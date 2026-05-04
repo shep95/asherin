@@ -164,6 +164,7 @@ const AsherBrainsModule = () => {
   useEffect(() => { if (unlocked && canContribute) void refresh(); }, [unlocked, canContribute, refresh]);
 
   const [failed, setFailed] = useState<{ file: File; category: AsherBrainCategory; error: string }[]>([]);
+  const [bgQueue, setBgQueue] = useState(0);
 
   const sanitizeForPg = (s: string) =>
     s
@@ -240,34 +241,48 @@ const AsherBrainsModule = () => {
     }
   };
 
+  const processInBackground = async (files: File[]) => {
+    setBgQueue((n) => n + files.length);
+    const newFailed: { file: File; category: AsherBrainCategory; error: string }[] = [];
+    for (const file of files) {
+      try {
+        if (/\.zip$/i.test(file.name)) {
+          const inner = await expandZip(file);
+          if (inner.length) {
+            setBgQueue((n) => n + inner.length);
+            toast.success(`${file.name}: extracted ${inner.length} file(s)`);
+            for (const f of inner) {
+              const res = await uploadOne(f, uploadCategory);
+              if (!res.ok) {
+                newFailed.push({ file: f, category: uploadCategory, error: res.error || "unknown" });
+                toast.error(`${f.name}: ${res.error}`);
+              }
+              setBgQueue((n) => Math.max(0, n - 1));
+            }
+          }
+        } else {
+          const res = await uploadOne(file, uploadCategory);
+          if (!res.ok) {
+            newFailed.push({ file, category: uploadCategory, error: res.error || "unknown" });
+            toast.error(`${file.name}: ${res.error}`);
+          }
+        }
+      } catch (err: any) {
+        newFailed.push({ file, category: uploadCategory, error: err?.message || "unknown" });
+      } finally {
+        setBgQueue((n) => Math.max(0, n - 1));
+      }
+    }
+    if (newFailed.length) setFailed((prev) => [...prev, ...newFailed]);
+  };
+
   const upload = async (files: FileList | File[]) => {
     if (!canContribute) return;
     const arr = Array.from(files);
     if (!arr.length) return;
-    setUploading(true);
-
-    // Expand any .zip archives into their contained brain files
-    const expanded: File[] = [];
-    for (const f of arr) {
-      if (/\.zip$/i.test(f.name)) {
-        const inner = await expandZip(f);
-        if (inner.length) toast.success(`${f.name}: extracted ${inner.length} file(s)`);
-        expanded.push(...inner);
-      } else {
-        expanded.push(f);
-      }
-    }
-
-    const newFailed: { file: File; category: AsherBrainCategory; error: string }[] = [];
-    for (const file of expanded) {
-      const res = await uploadOne(file, uploadCategory);
-      if (!res.ok) {
-        newFailed.push({ file, category: uploadCategory, error: res.error || "unknown" });
-        toast.error(`${file.name}: ${res.error}`);
-      }
-    }
-    setFailed((prev) => [...prev, ...newFailed]);
-    setUploading(false);
+    toast.success(`Queued ${arr.length} file(s) — processing in background`);
+    // fire-and-forget; UI stays responsive
+    void processInBackground(arr);
   };
 
   const retryFailed = async () => {
@@ -450,20 +465,24 @@ const AsherBrainsModule = () => {
             multiple
             accept=".txt,.md,.json,.csv,.pdf,.log,.yml,.yaml,.zip"
             className="hidden"
-            disabled={uploading}
             onChange={(e) => {
               if (e.target.files) void upload(e.target.files);
               e.target.value = "";
             }}
           />
           <button
-            onClick={() => !uploading && inputRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-1.5 rounded-md border border-border/30 bg-foreground/5 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-foreground uppercase hover:bg-foreground/10 disabled:opacity-50"
+            onClick={() => inputRef.current?.click()}
+            className="flex items-center gap-1.5 rounded-md border border-border/30 bg-foreground/5 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-foreground uppercase hover:bg-foreground/10"
           >
-            {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+            <Upload className="h-3 w-3" />
             Upload
           </button>
+          {bgQueue > 0 && (
+            <div className="flex items-center gap-1.5 rounded-md border border-border/30 bg-foreground/5 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Processing {bgQueue}
+            </div>
+          )}
           {failed.length > 0 && (
             <button
               onClick={retryFailed}
