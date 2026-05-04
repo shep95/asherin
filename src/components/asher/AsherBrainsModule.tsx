@@ -410,8 +410,36 @@ const AsherBrainsModule = () => {
               Retry Failed ({failed.length})
             </button>
           )}
+          <button
+            onClick={() => void scanDuplicates()}
+            disabled={scanningDup || brains.length === 0}
+            title="Cross-check all brains for duplicate content"
+            className="flex items-center gap-1.5 rounded-md border border-border/30 bg-foreground/5 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-foreground uppercase hover:bg-foreground/10 disabled:opacity-50"
+          >
+            {scanningDup ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
+            Scan Duplicates
+          </button>
         </div>
       </div>
+
+      {dupGroups.length > 0 && (
+        <div className="shrink-0 border-b border-amber-400/30 bg-amber-400/5 px-4 py-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[10px] font-light tracking-[0.25em] text-amber-300 uppercase">
+              {dupGroups.length} Duplicate Group(s) · {dupGroups.reduce((n, g) => n + g.length, 0)} Brains
+            </p>
+            <button onClick={() => setDupGroups([])} className="text-[9px] tracking-[0.2em] uppercase text-amber-300/70 hover:text-amber-300">Dismiss</button>
+          </div>
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {dupGroups.map((g, i) => (
+              <div key={i} className="text-[10px] font-light text-amber-200/80">
+                <span className="text-amber-300/60">#{i + 1}:</span>{" "}
+                {g.map((b) => b.name).join("  ·  ")}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filter strip */}
       <div className="shrink-0 flex items-center gap-2 border-b border-border/15 px-4 py-2 bg-background">
