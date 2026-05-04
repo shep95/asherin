@@ -6269,14 +6269,19 @@ export type Database = {
           id: string
           ip_address: string | null
           is_current: boolean | null
+          landing_path: string | null
           last_active_at: string | null
           latitude: number | null
           longitude: number | null
           os: string | null
+          referrer: string | null
           region: string | null
           revoked_at: string | null
           session_token_hash: string
           user_id: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
         }
         Insert: {
           browser?: string | null
@@ -6288,14 +6293,19 @@ export type Database = {
           id?: string
           ip_address?: string | null
           is_current?: boolean | null
+          landing_path?: string | null
           last_active_at?: string | null
           latitude?: number | null
           longitude?: number | null
           os?: string | null
+          referrer?: string | null
           region?: string | null
           revoked_at?: string | null
           session_token_hash: string
           user_id: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
         }
         Update: {
           browser?: string | null
@@ -6307,14 +6317,19 @@ export type Database = {
           id?: string
           ip_address?: string | null
           is_current?: boolean | null
+          landing_path?: string | null
           last_active_at?: string | null
           latitude?: number | null
           longitude?: number | null
           os?: string | null
+          referrer?: string | null
           region?: string | null
           revoked_at?: string | null
           session_token_hash?: string
           user_id?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
         }
         Relationships: []
       }
@@ -7553,6 +7568,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_active_sessions: {
+        Args: { _window_minutes?: number }
+        Returns: {
+          browser: string
+          city: string
+          country: string
+          current_path: string
+          device_type: string
+          email: string
+          last_active_at: string
+          latitude: number
+          longitude: number
+          os: string
+          referrer: string
+          user_id: string
+          utm_source: string
+        }[]
+      }
+      admin_module_usage: {
+        Args: { _since: string }
+        Returns: {
+          module: string
+          tier: string
+          usage_count: number
+          user_count: number
+        }[]
+      }
       asher_accept_invitation: { Args: { _token: string }; Returns: string }
       asher_has_role_in_org: {
         Args: {
