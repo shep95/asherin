@@ -303,6 +303,7 @@ const AsherBrainsModule = () => {
     }
   }, [brains]);
 
+  const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation(); setDragging(true);
   }, []);
   const onDragLeave = useCallback((e: React.DragEvent) => {
