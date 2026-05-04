@@ -91,7 +91,7 @@ export const COUNTRY_CHARTS: CountryFoundation[] = [
   { code: "FI", name: "Finland", flag: "🇫🇮", event: "Independence",
     birthDate: "1917-12-06", birthTime: "13:00", tzOffset: 2, lat: 60.1699, lon: 24.9384, city: "Helsinki" },
   { code: "PL", name: "Poland (Third Republic)", flag: "🇵🇱", event: "Constitution",
-    birthDate: "1989-04-07", birthTime: "12:00", tzOffset: 1, lat: 52.2297, lon: 21.0122, city: "Warsaw" },
+    birthDate: "1989-04-07", birthTime: "12:00", tzOffset: 2, lat: 52.2297, lon: 21.0122, city: "Warsaw" },
   { code: "IE", name: "Ireland", flag: "🇮🇪", event: "Republic Proclamation",
     birthDate: "1949-04-18", birthTime: "00:00", tzOffset: 1, lat: 53.3498, lon: -6.2603, city: "Dublin" },
   { code: "PT", name: "Portugal (Republic)", flag: "🇵🇹", event: "Republic Proclamation",
