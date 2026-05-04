@@ -745,6 +745,68 @@ export type Database = {
         }
         Relationships: []
       }
+      asher_ai_messages: {
+        Row: {
+          attachments: Json
+          content: string
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json
+          content?: string
+          created_at?: string
+          id?: string
+          role: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          attachments?: Json
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_ai_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "asher_ai_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_ai_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asher_audit_log: {
         Row: {
           created_at: string
