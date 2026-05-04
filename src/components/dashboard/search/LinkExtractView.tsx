@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import {
   Crosshair, Loader2, Globe, Link2, Sparkles, Shield, Zap,
   Server, Cpu, Plug, Network, Building2, AlertTriangle, ExternalLink,
-  Copy, Check, ChevronRight, ChevronDown, KeyRound, Eye, EyeOff,
+  Copy, Check, ChevronRight, ChevronDown, KeyRound, Eye, EyeOff, Database,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -887,10 +887,36 @@ const SEV_STYLES: Record<SecretHit["severity"], { ring: string; chip: string; do
   low:      { ring: "border-border/30",     chip: "bg-card/40 text-muted-foreground border-border/30",  dot: "bg-muted-foreground" },
 };
 
+type ProbeState = {
+  loading?: boolean;
+  result?: { ok: boolean; status: number; endpoint: string; summary: string; data: unknown; error?: string };
+};
+
 const OpenApiKeysPanel = ({ secrets, target }: { secrets: SecretScan | null; target: string }) => {
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [showSidecar, setShowSidecar] = useState(false);
+  const [probes, setProbes] = useState<Record<number, ProbeState>>({});
+
+  const runProbe = useCallback(async (idx: number, hit: SecretHit) => {
+    setProbes((p) => ({ ...p, [idx]: { loading: true } }));
+    try {
+      const { data, error } = await supabase.functions.invoke("zophiel-key-probe", {
+        body: { type: hit.type, key: hit.raw, hostHint: target },
+      });
+      if (error) throw error;
+      setProbes((p) => ({ ...p, [idx]: { loading: false, result: data as ProbeState["result"] } }));
+    } catch (e: any) {
+      setProbes((p) => ({
+        ...p,
+        [idx]: {
+          loading: false,
+          result: { ok: false, status: 0, endpoint: "(invoke failed)", summary: e?.message || "probe failed", data: null, error: e?.message },
+        },
+      }));
+    }
+  }, [target]);
+
 
   if (!secrets) return null;
 
@@ -1013,6 +1039,17 @@ const OpenApiKeysPanel = ({ secrets, target }: { secrets: SecretScan | null; tar
                                   {copiedIdx === idx ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                                   Copy
                                 </button>
+                                <button
+                                  onClick={() => void runProbe(idx, s)}
+                                  disabled={probes[idx]?.loading}
+                                  className="inline-flex items-center gap-1 text-[9px] tracking-wider text-cyan-300/80 hover:text-cyan-200 uppercase border border-cyan-400/30 rounded px-1.5 py-0.5 disabled:opacity-50"
+                                  title="Authenticate with this key against the provider's API and pull live account data"
+                                >
+                                  {probes[idx]?.loading
+                                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                                    : <Database className="h-3 w-3" />}
+                                  Pull Data
+                                </button>
                               </div>
                               <div className="text-[9px] tracking-wide text-muted-foreground/50 break-all">
                                 <span className="uppercase mr-1.5">src</span>
@@ -1023,6 +1060,28 @@ const OpenApiKeysPanel = ({ secrets, target }: { secrets: SecretScan | null; tar
                                   …{s.context}…
                                 </div>
                               )}
+                              {probes[idx]?.result && (
+                                <div className={`mt-1 rounded-md border px-2 py-1.5 text-[9px] font-mono ${probes[idx]!.result!.ok ? "border-emerald-400/30 bg-emerald-500/[0.04] text-emerald-200/90" : "border-red-400/30 bg-red-500/[0.04] text-red-200/90"}`}>
+                                  <div className="flex items-center justify-between gap-2 mb-1">
+                                    <span className="tracking-[0.2em] uppercase">
+                                      {probes[idx]!.result!.ok ? "Live Data" : "Probe Failed"} · {probes[idx]!.result!.status}
+                                    </span>
+                                    <span className="text-muted-foreground/50 truncate">{probes[idx]!.result!.endpoint}</span>
+                                  </div>
+                                  <div className="text-foreground/90 whitespace-pre-wrap break-all">
+                                    {probes[idx]!.result!.summary}
+                                  </div>
+                                  <details className="mt-1">
+                                    <summary className="cursor-pointer text-muted-foreground/60 uppercase tracking-wider">Raw response</summary>
+                                    <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-all text-foreground/80">
+{typeof probes[idx]!.result!.data === "string"
+  ? probes[idx]!.result!.data
+  : JSON.stringify(probes[idx]!.result!.data, null, 2)}
+                                    </pre>
+                                  </details>
+                                </div>
+                              )}
+
                             </div>
                           </li>
                         );
