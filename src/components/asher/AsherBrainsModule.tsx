@@ -372,6 +372,53 @@ const AsherBrainsModule = () => {
     }
   };
 
+  const [scanningVirus, setScanningVirus] = useState(false);
+  const scanForViruses = useCallback(async () => {
+    setScanningVirus(true);
+    try {
+      const PAGE = 200;
+      const infected: { id: string; name: string; threats: string[]; file_path: string | null }[] = [];
+      let from = 0;
+      for (let i = 0; i < 50; i++) {
+        const { data, error } = await supabase
+          .from("asher_brains")
+          .select("id,name,content,file_path")
+          .range(from, from + PAGE - 1);
+        if (error) { toast.error(error.message); break; }
+        const rows = (data as any[] | null) ?? [];
+        for (const r of rows) {
+          const res = scanContentForThreats((r.content as string) || "");
+          if (!res.clean) infected.push({ id: r.id, name: r.name, threats: res.threats, file_path: r.file_path });
+        }
+        if (rows.length < PAGE) break;
+        from += PAGE;
+      }
+      if (infected.length === 0) {
+        toast.success("No infected brains detected");
+        return;
+      }
+      if (!isAdmin) {
+        toast.warning(`${infected.length} infected brain(s) — admin required to purge`);
+        return;
+      }
+      const ids = infected.map((b) => b.id);
+      const paths = infected.map((b) => b.file_path).filter((p): p is string => !!p);
+      if (paths.length) await supabase.storage.from("asher-brains").remove(paths).catch(() => {});
+      const { error } = await supabase.from("asher_brains").delete().in("id", ids);
+      if (error) {
+        toast.error(`Quarantine failed: ${error.message}`);
+      } else {
+        setBrains((prev) => prev.filter((b) => !ids.includes(b.id)));
+        toast.success(`Quarantined ${infected.length} infected brain(s)`);
+        logAsherEvent("module_open", { module: "asher_brain_virus_purge", count: infected.length });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Virus scan failed");
+    } finally {
+      setScanningVirus(false);
+    }
+  }, [isAdmin]);
+
   const scanDuplicates = useCallback(async () => {
     setScanningDup(true);
     try {
