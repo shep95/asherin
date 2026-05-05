@@ -5,7 +5,7 @@ import {
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
   Building2, Wrench, PenSquare, Activity, NotebookPen, Code2, Package, Moon,
-  BrainCircuit, BarChart3,
+  BrainCircuit, BarChart3, Workflow, Bot,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,7 +139,7 @@ type AsherTab =
   | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains" | "aureondata"
   | string; // allow dynamic published-tab ids: `pub:<uuid>`
 
-interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
+interface NavItem { id: AsherTab; label: string; icon: any; sub?: string; children?: NavItem[] }
 interface NavBranch { id: string; label: string; items: NavItem[] }
 
 interface PublishedTab { id: string; name: string; icon: string; entry_html: string }
@@ -168,13 +168,17 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "whiteboard",label: "Whiteboard",      icon: PenSquare, sub: "Live" },
     { id: "notebooks", label: "Notebooks",       icon: NotebookPen, sub: "Live" },
     { id: "vedic",     label: "Vedic Strategy",  icon: Moon,      sub: "Sidereal" },
-    { id: "zahten",    label: "Zahten",          icon: Package,   sub: "Engine" },
-    { id: "zacoon",    label: "Zacoon",          icon: Package,   sub: "Agent" },
-    { id: "theater",   label: "Theater Brief",   icon: FileText },
-    { id: "targeting", label: "Targeting Aid",   icon: Crosshair },
-    { id: "sigint",    label: "SIGINT Fusion",   icon: Radio },
-    { id: "geoint",    label: "GEOINT Layer",    icon: Satellite },
-    { id: "doctrine",  label: "Doctrine Recall", icon: BookOpen },
+    { id: "__automation" as AsherTab, label: "Automation", icon: Package, children: [
+      { id: "zahten",  label: "Zahten Agents",   icon: Workflow,  sub: "Builder" },
+      { id: "zacoon",  label: "Zacoon Operator", icon: Bot,       sub: "Stealth" },
+    ]},
+    { id: "__aureonIntel" as AsherTab, label: "Aureon Disciplines", icon: Satellite, children: [
+      { id: "theater",   label: "Theater Brief",   icon: FileText },
+      { id: "targeting", label: "Targeting Aid",   icon: Crosshair },
+      { id: "sigint",    label: "SIGINT Fusion",   icon: Radio },
+      { id: "geoint",    label: "GEOINT Layer",    icon: Satellite },
+      { id: "doctrine",  label: "Doctrine Recall", icon: BookOpen },
+    ]},
   ]},
   ...(publishedTabs.length ? [{ id: "custom", label: "Custom Tabs", items: publishedTabs.map((t) => ({
     id: `pub:${t.id}` as AsherTab,
@@ -277,8 +281,45 @@ const AsherDashboard = () => {
                 {open && (
                   <div className="mt-0.5 ml-2 border-l border-border/15 pl-2 space-y-0.5">
                     {branch.items.map((n) => {
-                      const isActive = active === n.id;
                       const Icon = n.icon;
+                      if (n.children && n.children.length) {
+                        const subId = `${branch.id}::${n.id}`;
+                        const subOpen = !!openBranches[subId];
+                        return (
+                          <div key={n.id}>
+                            <button
+                              onClick={() => toggleBranch(subId)}
+                              className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
+                            >
+                              {subOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                              <Icon className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+                              <span className="flex-1 text-xs font-light tracking-wide">{n.label}</span>
+                            </button>
+                            {subOpen && (
+                              <div className="mt-0.5 ml-3 border-l border-border/10 pl-2 space-y-0.5">
+                                {n.children.map((c) => {
+                                  const CIcon = c.icon;
+                                  const cActive = active === c.id;
+                                  return (
+                                    <button
+                                      key={c.id}
+                                      onClick={() => setActive(c.id)}
+                                      className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors ${
+                                        cActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                                      }`}
+                                    >
+                                      <CIcon className="h-3 w-3 flex-shrink-0" strokeWidth={1.5} />
+                                      <span className="flex-1 text-[11px] font-light tracking-wide">{c.label}</span>
+                                      {c.sub && <span className="text-[8px] font-light tracking-[0.2em] text-red-400/70 uppercase">{c.sub}</span>}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      const isActive = active === n.id;
                       return (
                         <button
                           key={n.id}
