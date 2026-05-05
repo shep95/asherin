@@ -31,9 +31,13 @@ import {
   IdeProjectGuide,
   IdeCommandPalette,
   IdeRecoveryDialog,
+  IdeCheckpointPanel,
+  IdeModeToggle,
+  IdeChangedFilesPanel,
   type PlannedChange,
   type IdeCommand,
 } from "@/components/ide-shared";
+import { changedFiles } from "@/lib/ide";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSave, getAutoSaveAge, startAutoSaveLoop, clearAutoSave, type IdeModelId, type AutoSaveSnapshot } from "@/lib/ide";
 import { toast } from "sonner";
