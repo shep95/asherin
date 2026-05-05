@@ -175,19 +175,59 @@ type ScopeState =
   | { phase: "clarify"; questions: string[]; answers: string[] }
   | { phase: "ready"; restated: string };
 
+type AgentRecord = {
+  id: string;
+  name: string;
+  status: "draft" | "ready" | "scheduled" | "paused";
+  trigger: string;
+  lastRun?: string;
+  passes: Pass[];
+  objective: string;
+};
+
+type ViewTab = "builder" | "runs" | "code" | "schedule" | "compliance";
+
+const STARTER_AGENTS: AgentRecord[] = [
+  { id: "agent-001", name: "GitHub Bug Triage", status: "scheduled", trigger: "cron: 0 7 * * *", lastRun: "2h ago", passes: [], objective: "Pull new GitHub issues labelled bug, summarise them, post digest to Slack #eng-triage." },
+  { id: "agent-002", name: "OSINT Watchdog",    status: "ready",     trigger: "webhook",        lastRun: "—",      passes: [], objective: "Watch a list of news domains for keyword mentions and emit structured alerts." },
+  { id: "agent-003", name: "Invoice Reconciler",status: "draft",     trigger: "manual",         lastRun: "—",      passes: [], objective: "" },
+];
+
 const AsherZahtenModule = () => {
+  // Agent registry
+  const [agents, setAgents] = useState<AgentRecord[]>(STARTER_AGENTS);
+  const [activeAgentId, setActiveAgentId] = useState<string>(STARTER_AGENTS[0].id);
+  const [viewTab, setViewTab] = useState<ViewTab>("builder");
+  const activeAgent = agents.find((a) => a.id === activeAgentId) || agents[0];
+
   // Mission Console state
-  const [objective, setObjective] = useState("");
+  const [objective, setObjective] = useState(activeAgent?.objective || "");
   const [maxIters, setMaxIters] = useState(MAX_ITERATIONS_DEFAULT);
   const [autoApprove, setAutoApprove] = useState(true);
   const [running, setRunning] = useState(false);
-  const [passes, setPasses] = useState<Pass[]>([]);
+  const [passes, setPasses] = useState<Pass[]>(activeAgent?.passes || []);
   const [classification, setClassification] = useState<string>("SECRET");
   const [scope, setScope] = useState<ScopeState>({ phase: "idle" });
   const abortRef = useRef<AbortController | null>(null);
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
+  // Sync when switching agents
+  useEffect(() => {
+    if (!activeAgent) return;
+    setObjective(activeAgent.objective);
+    setPasses(activeAgent.passes);
+    setScope({ phase: "idle" });
+  }, [activeAgentId]);
+
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [passes]);
+
+  const createAgent = () => {
+    const id = `agent-${Date.now()}`;
+    const next: AgentRecord = { id, name: `Untitled Agent ${agents.length + 1}`, status: "draft", trigger: "manual", passes: [], objective: "" };
+    setAgents((p) => [next, ...p]);
+    setActiveAgentId(id);
+    setViewTab("builder");
+  };
 
   const stopMission = () => {
     abortRef.current?.abort();
