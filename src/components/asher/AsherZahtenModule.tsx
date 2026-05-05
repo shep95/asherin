@@ -511,9 +511,9 @@ const AsherZahtenModule = () => {
 
   // Save current builder state into active agent
   useEffect(() => {
-    setAgents((prev) => prev.map((a) => a.id === activeAgentId ? { ...a, objective, passes } : a));
+    setAgents((prev) => prev.map((a) => a.id === activeAgentId ? { ...a, objective, passes, secretValues, liveRuns } : a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [objective, passes]);
+  }, [objective, passes, secretValues, liveRuns]);
 
   const lastCodeBlock = (() => {
     const last = passes[passes.length - 1];
@@ -522,8 +522,77 @@ const AsherZahtenModule = () => {
     return m ? m[1].trim() : "";
   })();
 
+  // Follow-up refinement — operator gives natural-language instruction; AI re-emits a full improved pass.
+  const sendFollowUp = async () => {
+    const instr = followUp.trim();
+    if (!instr || running || !passes.length) return;
+    setFollowUp("");
+    setRunning(true);
+    const ctl = new AbortController();
+    abortRef.current = ctl;
+    const prior = passes.map((p) => ({ role: "assistant" as const, content: p.text }));
+    const history: { role: "user" | "assistant"; content: string }[] = [
+      { role: "user", content: `AGENT BUILD OBJECTIVE:\n${objective.trim()}` },
+      ...prior,
+      { role: "user", content: `OPERATOR FOLLOW-UP: ${instr}\n\nProduce the FULL improved version of the agent (spec + workflow + code + test plan). End with the STATUS sentinel.` },
+    ];
+    const n = passes.length + 1;
+    setPasses((p) => [...p, { n, status: "running", text: "", startedAt: Date.now() }]);
+    try {
+      const text = await callAsherAi(history, ctl.signal);
+      const status = parseStatus(text);
+      setPasses((p) => p.map((pp) => pp.n === n ? { ...pp, status: status === "complete" ? "complete" : "refining", text, endedAt: Date.now() } : pp));
+      toast.success("Follow-up applied");
+    } catch (e: any) {
+      setPasses((p) => p.map((pp) => pp.n === n ? { ...pp, status: "error", text: pp.text + `\n\n_Error: ${e?.message || e}_`, endedAt: Date.now() } : pp));
+      toast.error(e?.message || "Follow-up failed");
+    } finally {
+      setRunning(false);
+      abortRef.current = null;
+    }
+  };
+
+  // Deploy live — flips agent to live, starts a simulated heartbeat run loop.
+  const stopLive = () => {
+    if (liveTimerRef.current) { window.clearInterval(liveTimerRef.current); liveTimerRef.current = null; }
+    setAgents((p) => p.map((a) => a.id === activeAgentId ? { ...a, status: "ready" } : a));
+    toast.message("Agent paused");
+  };
+
+  const deployLive = () => {
+    if (missingSecrets.length) { toast.error(`Provide values for: ${missingSecrets.join(", ")}`); return; }
+    if (!passes.length) { toast.error("Build the agent first"); return; }
+    setAgents((p) => p.map((a) => a.id === activeAgentId ? { ...a, status: "live", deployedAt: Date.now() } : a));
+    setViewTab("workflow");
+    toast.success("Agent deployed live");
+    // Start a heartbeat that synthesizes runs from the parsed workflow steps.
+    if (liveTimerRef.current) window.clearInterval(liveTimerRef.current);
+    const tick = () => {
+      const steps = workflowSteps.length ? workflowSteps : [{ n: 1, label: "Execute" }];
+      const runId = `run-${Date.now()}`;
+      const run: LiveRun = { id: runId, startedAt: Date.now(), status: "running", log: [] };
+      setLiveRuns((p) => [run, ...p].slice(0, 30));
+      let i = 0;
+      const stepTimer = window.setInterval(() => {
+        const s = steps[i];
+        if (!s) {
+          window.clearInterval(stepTimer);
+          setLiveRuns((p) => p.map((r) => r.id === runId ? { ...r, status: "ok", endedAt: Date.now() } : r));
+          return;
+        }
+        setLiveRuns((p) => p.map((r) => r.id === runId ? { ...r, log: [...r.log, `${new Date().toLocaleTimeString()}  step ${s.n} · ${s.label}`] } : r));
+        i++;
+      }, 700);
+    };
+    tick();
+    liveTimerRef.current = window.setInterval(tick, 12000);
+  };
+
+  useEffect(() => () => { if (liveTimerRef.current) window.clearInterval(liveTimerRef.current); }, []);
+
   const TABS: { id: ViewTab; label: string }[] = [
     { id: "builder",    label: "Builder" },
+    { id: "workflow",   label: "Workflow Map" },
     { id: "runs",       label: "Runs" },
     { id: "code",       label: "Code" },
     { id: "schedule",   label: "Schedule" },
