@@ -2072,6 +2072,19 @@ try {
             </div>
           )}
 
+          {activeProject && (
+            <div className="px-2 py-1 border-b border-border/15 bg-card/5">
+              <IdeChangedFilesPanel
+                scope="asher"
+                projectId={activeProject.id}
+                onOpenFile={(id) => {
+                  const f = activeProject.files?.find((x: any) => x.id === id);
+                  if (f) setActiveFile(f);
+                }}
+              />
+            </div>
+          )}
+
           {/* Editor + preview + workflow — controlled by viewMode (code | split | preview | workflow) */}
           <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
             {viewMode === "workflow" ? (
