@@ -456,7 +456,10 @@ Use the AUREON + ASHER brain corpus injected below as ground truth. Cite specifi
 
           {/* Target Site */}
           <section>
-            <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Target Site</p>
+            <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase flex items-center gap-2">
+              <span className="text-foreground/90">Step 1 →</span> Target Site
+              <span className="ml-auto text-muted-foreground/40 normal-case tracking-normal text-[10px] font-extralight">Paste the website you want Zacoon to operate on</span>
+            </p>
             <div className="rounded-xl border border-border/25 bg-card/40 backdrop-blur-xl p-6 space-y-4">
               <div className="flex items-start gap-3">
                 <Gavel className="h-4 w-4 text-foreground/70 mt-0.5" strokeWidth={1.5} />
