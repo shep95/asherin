@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Globe, MousePointer2, Bot, Eye, ShieldCheck, Cpu, Zap, Workflow,
   Terminal, ExternalLink, Copy, Check, ChevronRight, AlertCircle, Lock, Cloud,
@@ -6,9 +6,12 @@ import {
   FileCheck2, Fingerprint, RotateCw, CircleDot, Sparkles, UserCheck,
   Ghost, Network, EyeOff, Database, Users, Building2, Wallet, Map,
   Layers, KeyRound, Hash, Stamp, Link2, Activity, Skull, Compass,
-  GitBranch, Binary, Crosshair, Briefcase, FileBadge,
+  GitBranch, Binary, Crosshair, Briefcase, FileBadge, Send, Brain, Play, Square,
 } from "lucide-react";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+import { streamChat } from "@/lib/ai";
+import { buildBrainContext } from "@/lib/asherBrains";
+import { toast } from "sonner";
 
 /**
  * ZACOON — House of Asher
