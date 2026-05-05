@@ -20,12 +20,16 @@ import {
   IdeApprovalGate,
   IdeModelRouterBadge,
   IdeValidatorBadge,
+  IdeCheckpointPanel,
+  IdeModeToggle,
+  IdeChangedFilesPanel,
   type PlannedChange,
 } from "@/components/ide-shared";
+import { changedFiles } from "@/lib/ide";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
 import { callAsherCodeAi, extractCodeBlock } from "@/lib/asherCode/aiClient";
 import { routeGoal } from "@/lib/asherCode/goalRouter";
-import { History, Stethoscope, Wand2, Cpu, Brain, Zap, Bug, Eye, ScrollText } from "lucide-react";
+import { History, Stethoscope, Wand2, Cpu, Brain, Zap, Bug, Eye, ScrollText, GitCommit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { startQueueWorker as zqStart, registerHandler as zqRegister, enqueue as zqEnqueue, type QueuedJob } from "@/lib/zanoem/offlineQueue";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
@@ -367,6 +371,7 @@ const AureonIdeView = () => {
 
   // ── Pro tools state (shared IDE upgrade pack) ──
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [checkpointsOpen, setCheckpointsOpen] = useState(false);
   const [bugDoctorOpen, setBugDoctorOpen] = useState(false);
   const [bugDoctorMsg, setBugDoctorMsg] = useState("");
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -1010,6 +1015,10 @@ const AureonIdeView = () => {
           <button onClick={() => setHistoryOpen(true)} disabled={!activeSessionId || !activeFileId} title="Version history (Ctrl+Shift+H)" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30">
             <History className="h-3.5 w-3.5" />
           </button>
+          <button onClick={() => setCheckpointsOpen(true)} disabled={!activeSessionId} title="Checkpoints — rollback the last agent edit" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30">
+            <GitCommit className="h-3.5 w-3.5" />
+          </button>
+          <IdeModeToggle scope="aureon" />
           <button onClick={() => { setBugDoctorMsg(terminalOutput.slice(-5).join("\n") || ""); setBugDoctorOpen(true); }} title="Bug Doctor — explain last error" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
             <Stethoscope className="h-3.5 w-3.5" />
           </button>
@@ -1148,6 +1157,13 @@ const AureonIdeView = () => {
               <ResizablePanel defaultSize={24} minSize={15} maxSize={40} className="overflow-hidden">
                 <div className="h-full border-l border-border/20 bg-card/10 overflow-hidden flex flex-col">
                   {zanoemToggleBar}
+                  <div className="px-2 pt-2">
+                    <IdeChangedFilesPanel
+                      scope="aureon"
+                      projectId={activeSessionId ?? ""}
+                      onOpenFile={(id) => { const f = allFiles.find(x => x.id === id); if (f) selectFile(f); }}
+                    />
+                  </div>
                   <div className="flex-1 min-h-0"><IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} /></div>
                 </div>
               </ResizablePanel>
@@ -1181,6 +1197,16 @@ const AureonIdeView = () => {
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         onRestore={(content) => activeFileId && aiWriteContent(activeFileId, content)}
+      />
+      <IdeCheckpointPanel
+        scope="aureon"
+        projectId={activeSessionId ?? ""}
+        open={checkpointsOpen}
+        onClose={() => setCheckpointsOpen(false)}
+        onRestore={(restored) => {
+          for (const f of restored) aiWriteContent(f.fileId, f.content);
+          changedFiles.clear("aureon", activeSessionId ?? "");
+        }}
       />
       <IdeErrorExplainer
         open={bugDoctorOpen}

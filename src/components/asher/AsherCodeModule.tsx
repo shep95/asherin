@@ -5,7 +5,7 @@ import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap, Columns2,
-  History, Stethoscope, GitBranch, Download, ArrowDown, Network,
+  History, Stethoscope, GitBranch, Download, ArrowDown, Network, GitCommit,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import AsherWorkflowMap, { type WorkflowEvent, type FileWorkflowStat } from "./AsherWorkflowMap";
@@ -31,9 +31,13 @@ import {
   IdeProjectGuide,
   IdeCommandPalette,
   IdeRecoveryDialog,
+  IdeCheckpointPanel,
+  IdeModeToggle,
+  IdeChangedFilesPanel,
   type PlannedChange,
   type IdeCommand,
 } from "@/components/ide-shared";
+import { changedFiles } from "@/lib/ide";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSave, getAutoSaveAge, startAutoSaveLoop, clearAutoSave, type IdeModelId, type AutoSaveSnapshot } from "@/lib/ide";
 import { toast } from "sonner";
@@ -255,6 +259,7 @@ export default function AsherCodeModule() {
 
   // ── Shared IDE upgrade pack state ──
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [checkpointsOpen, setCheckpointsOpen] = useState(false);
   const [bugDoctorOpen, setBugDoctorOpen] = useState(false);
   const [bugDoctorMsg, setBugDoctorMsg] = useState("");
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -1957,6 +1962,8 @@ try {
           <button onClick={() => setTemplateOpen(true)} title="Scaffold from natural language" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><Wand2 className="h-3 w-3" /></button>
           <button onClick={() => setFuzzyOpen(true)} title="Fuzzy file finder" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><FileText className="h-3 w-3" /></button>
           <button onClick={() => setHistoryOpen(true)} disabled={!activeFile} title="Version history" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30 disabled:opacity-40"><History className="h-3 w-3" /></button>
+          <button onClick={() => setCheckpointsOpen(true)} disabled={!activeProject} title="Checkpoints — rollback last agent edit" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30 disabled:opacity-40"><GitCommit className="h-3 w-3" /></button>
+          <IdeModeToggle scope="asher" />
           <button onClick={() => { setBugDoctorMsg(""); setBugDoctorOpen(true); }} title="Bug Doctor" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><Stethoscope className="h-3 w-3" /></button>
           <IdeModelRouterBadge decision={routeDecision} onOverride={setModelOverride} isOverridden={!!modelOverride} />
           <button onClick={() => setShowSettings(true)} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Settings className="h-3 w-3" /></button>
@@ -2062,6 +2069,19 @@ try {
           {activeFile && activeContent && (
             <div className="px-2 py-1 border-b border-border/15 bg-card/5">
               <IdeValidatorBadge content={activeContent} language={activeFile.language || "tsx"} />
+            </div>
+          )}
+
+          {activeProject && (
+            <div className="px-2 py-1 border-b border-border/15 bg-card/5">
+              <IdeChangedFilesPanel
+                scope="asher"
+                projectId={activeProject.id}
+                onOpenFile={(id) => {
+                  if (!openTabs.includes(id)) setOpenTabs(t => [...t, id]);
+                  setActiveFileId(id);
+                }}
+              />
             </div>
           )}
 
@@ -2457,6 +2477,23 @@ try {
             setDirty(d => ({ ...d, [activeFile.id]: content }));
             setHistoryOpen(false);
             toast.success("Snapshot restored to editor (unsaved)");
+          }}
+        />
+      )}
+      {activeProject && (
+        <IdeCheckpointPanel
+          scope="asher"
+          projectId={activeProject.id}
+          open={checkpointsOpen}
+          onClose={() => setCheckpointsOpen(false)}
+          onRestore={(restored) => {
+            setDirty(d => {
+              const next = { ...d };
+              for (const f of restored) next[f.fileId] = f.content;
+              return next;
+            });
+            changedFiles.clear("asher", activeProject.id);
+            toast.success(`Restored ${restored.length} file${restored.length === 1 ? "" : "s"} (unsaved)`);
           }}
         />
       )}
