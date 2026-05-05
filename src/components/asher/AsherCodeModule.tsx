@@ -2078,8 +2078,8 @@ try {
                 scope="asher"
                 projectId={activeProject.id}
                 onOpenFile={(id) => {
-                  const f = activeProject.files?.find((x: any) => x.id === id);
-                  if (f) setActiveFile(f);
+                  if (!openTabs.includes(id)) setOpenTabs(t => [...t, id]);
+                  setActiveFileId(id);
                 }}
               />
             </div>
