@@ -5,7 +5,7 @@ import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConic
 import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
 import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import ReactMarkdown from "react-markdown";
 import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
@@ -69,6 +69,14 @@ const Index = () => {
   const [authIsLogin, setAuthIsLogin] = useState(false);
   const [showHouseLogo, setShowHouseLogo] = useState(false);
   const maxDemos = 3;
+  const location = useLocation();
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("next")) {
+      setAuthIsLogin(true);
+      setShowAuth(true);
+    }
+  }, [location.search]);
 
   const handleDemo = async (e: React.FormEvent) => {
     e.preventDefault();

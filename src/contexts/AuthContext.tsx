@@ -42,20 +42,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
 
-      // Register session on initial load if logged in
-      if (session?.user) {
-        const sid = session.user.id + "_" + (session.access_token?.substring(0, 8) || "x");
-        if (sessionRegisteredRef.current !== sid) {
-          sessionRegisteredRef.current = sid;
-          registerSession(session.user.id, sid);
+        // Register session on initial load if logged in
+        if (session?.user) {
+          const sid = session.user.id + "_" + (session.access_token?.substring(0, 8) || "x");
+          if (sessionRegisteredRef.current !== sid) {
+            sessionRegisteredRef.current = sid;
+            registerSession(session.user.id, sid);
+          }
         }
-      }
-    });
+      })
+      .catch((error) => {
+        console.error("auth session restore error:", error);
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+      });
 
     return () => subscription.unsubscribe();
   }, []);
