@@ -169,6 +169,12 @@ const GOV_INTEGRATIONS = [
 
 // ───────────────────────────── Component ─────────────────────────────
 
+type ScopeState =
+  | { phase: "idle" }
+  | { phase: "assessing" }
+  | { phase: "clarify"; questions: string[]; answers: string[] }
+  | { phase: "ready"; restated: string };
+
 const AsherZahtenModule = () => {
   // Mission Console state
   const [objective, setObjective] = useState("");
@@ -177,6 +183,7 @@ const AsherZahtenModule = () => {
   const [running, setRunning] = useState(false);
   const [passes, setPasses] = useState<Pass[]>([]);
   const [classification, setClassification] = useState<string>("SECRET");
+  const [scope, setScope] = useState<ScopeState>({ phase: "idle" });
   const abortRef = useRef<AbortController | null>(null);
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
