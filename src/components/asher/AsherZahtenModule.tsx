@@ -608,12 +608,12 @@ const AsherZahtenModule = () => {
             </div>
           )}
 
-          {!passes.length && (
+          {!passes.length && scope.phase === "idle" && (
             <div className="mt-5 flex items-start gap-2 rounded-md border border-border/20 bg-background/30 p-3">
               <Zap className="h-3 w-3 text-foreground/60 mt-0.5" strokeWidth={1.5} />
               <p className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/70 uppercase leading-relaxed">
-                Engine self-iterates. Each pass is a full revision — not a diff. The orchestrator emits
-                STATUS: REFINING or STATUS: MISSION_COMPLETE on its own. You do not type again.
+                Two-phase build: (1) the Scope Assessor reads your prompt and asks for any missing details,
+                (2) the Builder iterates spec + Trigger.dev code, self-critiquing each pass until MISSION_COMPLETE.
               </p>
             </div>
           )}
