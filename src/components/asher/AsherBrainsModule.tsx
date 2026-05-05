@@ -190,6 +190,17 @@ const AsherBrainsModule = () => {
 
   const uploadOne = async (file: File, category: AsherBrainCategory, attempt = 1): Promise<{ ok: boolean; error?: string }> => {
     if (!isSupportedBrainFile(file.name)) return { ok: false, error: "unsupported format" };
+    // VIRUS SCAN — block before upload
+    if (attempt === 1) {
+      try {
+        const scan = await scanFileForThreats(file);
+        if (!scan.clean) {
+          toast.error(`${file.name} blocked: ${scan.threats[0]}`);
+          logAsherEvent("module_open", { module: "asher_brain_virus_blocked", file: file.name, threats: scan.threats });
+          return { ok: false, error: `Virus scan: ${scan.threats.join(", ")}` };
+        }
+      } catch { /* scanner failure → fall through, do not block */ }
+    }
     try {
       const rawText = await readBrainFile(file);
       let text = sanitizeForPg(rawText);
