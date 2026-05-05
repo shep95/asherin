@@ -371,6 +371,7 @@ const AureonIdeView = () => {
 
   // ── Pro tools state (shared IDE upgrade pack) ──
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [checkpointsOpen, setCheckpointsOpen] = useState(false);
   const [bugDoctorOpen, setBugDoctorOpen] = useState(false);
   const [bugDoctorMsg, setBugDoctorMsg] = useState("");
   const [templateOpen, setTemplateOpen] = useState(false);
