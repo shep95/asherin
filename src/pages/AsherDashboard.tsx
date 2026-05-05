@@ -29,6 +29,7 @@ import VedicAstrologyView from "@/components/dashboard/VedicAstrologyView";
 import AsherPublishedTabRenderer from "@/components/asher/AsherPublishedTabRenderer";
 import AsherBrainsModule from "@/components/asher/AsherBrainsModule";
 import AsherAureonDataModule from "@/components/asher/AsherAureonDataModule";
+import AsherZahtenModule from "@/components/asher/AsherZahtenModule";
 import { isSuperOwner } from "@/lib/asherOrgs";
 
 import AsherProfile from "@/components/asher/AsherProfile";
