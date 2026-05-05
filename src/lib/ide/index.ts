@@ -12,4 +12,5 @@ export * from "./projectGuide";
 export * from "./fastApply";
 export * from "./checkpoints";
 export * from "./changedFiles";
+export * from "./completionLoop";
 
