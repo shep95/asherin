@@ -466,7 +466,7 @@ const AsherZahtenModule = () => {
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Terminal className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
-              <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Agent Build Console</p>
+              <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Step 1 → Describe Agent  ·  Step 2 → Answer Clarifications  ·  Step 3 → Build</p>
             </div>
             <div className="flex items-center gap-2 text-[9px] font-light tracking-[0.25em] uppercase">
               <span className="text-muted-foreground/60">Classification</span>
