@@ -1198,6 +1198,16 @@ const AureonIdeView = () => {
         onClose={() => setHistoryOpen(false)}
         onRestore={(content) => activeFileId && aiWriteContent(activeFileId, content)}
       />
+      <IdeCheckpointPanel
+        scope="aureon"
+        projectId={activeSessionId ?? ""}
+        open={checkpointsOpen}
+        onClose={() => setCheckpointsOpen(false)}
+        onRestore={(restored) => {
+          for (const f of restored) aiWriteContent(f.fileId, f.content);
+          changedFiles.clear("aureon", activeSessionId ?? "");
+        }}
+      />
       <IdeErrorExplainer
         open={bugDoctorOpen}
         message={bugDoctorMsg}
