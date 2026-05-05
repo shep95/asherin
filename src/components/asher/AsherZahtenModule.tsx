@@ -784,7 +784,11 @@ const AsherZahtenModule = () => {
             </div>
           )}
         </section>
+          </div>
+          )}
 
+          {viewTab === "compliance" && (
+          <div className="mx-auto max-w-5xl px-8 py-8 space-y-6">
         {/* Pillars */}
         <section>
           <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Pillars</p>
