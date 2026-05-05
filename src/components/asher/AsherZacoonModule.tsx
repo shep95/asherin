@@ -568,40 +568,55 @@ Use the AUREON + ASHER brain corpus injected below as ground truth. Cite specifi
                 className="w-full rounded-md border border-border/25 bg-background/40 px-3 py-2.5 text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 resize-none"
               />
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={runMission}
-                  disabled={!engagementValid || !objective.trim() || running}
-                  className="inline-flex items-center gap-2 rounded-md border border-foreground/40 bg-foreground/10 px-4 py-2 text-[10px] font-light tracking-[0.25em] text-foreground hover:bg-foreground/20 transition-colors uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={!engagementValid || !objective.trim() || running || streaming}
+                  className="inline-flex items-center gap-2 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-[10px] font-light tracking-[0.25em] text-emerald-300 hover:bg-emerald-500/20 transition-colors uppercase disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {running ? <RotateCw className="h-3 w-3 animate-spin" strokeWidth={1.5} /> : <Zap className="h-3 w-3" strokeWidth={1.5} />}
-                  {running ? "Running…" : "Launch Mission"}
+                  {running || streaming ? <RotateCw className="h-3 w-3 animate-spin" strokeWidth={1.5} /> : <Play className="h-3 w-3" strokeWidth={1.5} />}
+                  {running || streaming ? "Running…" : "Run"}
                 </button>
-                {(steps.length > 0 || verdict) && !running && (
-                  <button
-                    onClick={resetMission}
-                    className="inline-flex items-center gap-2 rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[10px] font-light tracking-[0.25em] text-muted-foreground hover:text-foreground transition-colors uppercase"
-                  >
+                {streaming && (
+                  <button onClick={stopStream} className="inline-flex items-center gap-2 rounded-md border border-red-400/40 bg-red-500/10 px-3 py-2 text-[10px] font-light tracking-[0.25em] text-red-300 hover:bg-red-500/20 uppercase">
+                    <Square className="h-3 w-3" strokeWidth={1.5} /> Stop
+                  </button>
+                )}
+                {(steps.length > 0 || verdict || chat.length > 0) && !running && !streaming && (
+                  <button onClick={resetMission} className="inline-flex items-center gap-2 rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[10px] font-light tracking-[0.25em] text-muted-foreground hover:text-foreground uppercase">
                     Reset
                   </button>
                 )}
+                <span className="inline-flex items-center gap-1.5 text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">
+                  <Brain className="h-3 w-3" strokeWidth={1.5} /> Aureon + Asher Brains injected
+                </span>
                 {!engagementValid && (
-                  <span className="text-[10px] font-light tracking-[0.2em] text-amber-400/80 uppercase">
-                    Arm engagement to launch
-                  </span>
+                  <span className="text-[10px] font-light tracking-[0.2em] text-amber-400/80 uppercase">Set target to run</span>
                 )}
               </div>
 
+              {/* Live workflow steps */}
               {steps.length > 0 && (
-                <div className="rounded-lg border border-border/20 bg-background/30 divide-y divide-border/10 max-h-72 overflow-y-auto">
-                  {steps.map((s, i) => (
-                    <div key={i} className="flex items-start gap-3 px-4 py-2.5">
-                      <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/60 w-6 mt-0.5">{String(s.iter).padStart(2, "0")}</span>
-                      <span className={`mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0 ${s.ok ? "bg-emerald-400/80" : "bg-amber-400/80"}`} />
-                      <span className="text-[9px] font-light tracking-[0.3em] text-foreground/80 uppercase w-20 flex-shrink-0 mt-0.5">{s.phase}</span>
-                      <span className="text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{s.detail}</span>
-                    </div>
-                  ))}
+                <div>
+                  <p className="mb-1.5 text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Workflow</p>
+                  <div className="rounded-lg border border-border/20 bg-background/30 divide-y divide-border/10 max-h-72 overflow-y-auto">
+                    {steps.map((s, i) => (
+                      <div key={i} className="flex items-start gap-3 px-4 py-2.5">
+                        <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/60 w-6 mt-0.5">{String(s.iter).padStart(2, "0")}</span>
+                        <span className={`mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0 ${s.ok ? "bg-emerald-400/80" : "bg-amber-400/80"}`} />
+                        <span className="text-[9px] font-light tracking-[0.3em] text-foreground/80 uppercase w-20 flex-shrink-0 mt-0.5">{s.phase}</span>
+                        <span className="text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{s.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Mermaid diagram (raw — rendered as code; user can copy into a renderer) */}
+              {mermaid && (
+                <div>
+                  <p className="mb-1.5 text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Diagram (mermaid)</p>
+                  <pre className="rounded-lg border border-border/20 bg-background/40 p-3 text-[10px] font-mono text-foreground/80 overflow-x-auto whitespace-pre">{mermaid}</pre>
                 </div>
               )}
 
@@ -611,6 +626,43 @@ Use the AUREON + ASHER brain corpus injected below as ground truth. Cite specifi
                   <span className="text-[10px] font-light tracking-[0.3em] text-emerald-400/90 uppercase">Verdict — {verdict}</span>
                 </div>
               )}
+
+              {/* Chat session — ask follow-ups, request more tasks */}
+              {chat.length > 0 && (
+                <div>
+                  <p className="mb-1.5 text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Session Transcript</p>
+                  <div className="rounded-lg border border-border/20 bg-background/30 divide-y divide-border/10 max-h-96 overflow-y-auto">
+                    {chat.map((m, i) => (
+                      <div key={i} className="px-4 py-2.5">
+                        <p className="text-[8px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase mb-1">
+                          {m.role === "user" ? "Operator" : "Zacoon"}
+                        </p>
+                        <p className="text-[11px] font-extralight text-foreground/85 whitespace-pre-wrap leading-relaxed">{m.content || "…"}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendChat(); } }}
+                  placeholder="Ask Zacoon to run another task, refine the workflow, or pull more intel from the brains…"
+                  rows={2}
+                  className="flex-1 rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 resize-none"
+                />
+                <button
+                  onClick={() => void sendChat()}
+                  disabled={!chatInput.trim() || streaming}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-foreground/40 bg-foreground/10 px-3 py-2 text-[10px] font-light tracking-[0.25em] text-foreground hover:bg-foreground/20 uppercase disabled:opacity-40"
+                >
+                  <Send className="h-3 w-3" strokeWidth={1.5} /> Send
+                </button>
+              </div>
+            </div>
+          </section>
             </div>
           </section>
 
