@@ -1015,6 +1015,10 @@ const AureonIdeView = () => {
           <button onClick={() => setHistoryOpen(true)} disabled={!activeSessionId || !activeFileId} title="Version history (Ctrl+Shift+H)" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30">
             <History className="h-3.5 w-3.5" />
           </button>
+          <button onClick={() => setCheckpointsOpen(true)} disabled={!activeSessionId} title="Checkpoints — rollback the last agent edit" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30">
+            <GitCommit className="h-3.5 w-3.5" />
+          </button>
+          <IdeModeToggle scope="aureon" />
           <button onClick={() => { setBugDoctorMsg(terminalOutput.slice(-5).join("\n") || ""); setBugDoctorOpen(true); }} title="Bug Doctor — explain last error" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
             <Stethoscope className="h-3.5 w-3.5" />
           </button>
