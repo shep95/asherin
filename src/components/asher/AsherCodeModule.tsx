@@ -2467,6 +2467,23 @@ try {
           }}
         />
       )}
+      {activeProject && (
+        <IdeCheckpointPanel
+          scope="asher"
+          projectId={activeProject.id}
+          open={checkpointsOpen}
+          onClose={() => setCheckpointsOpen(false)}
+          onRestore={(restored) => {
+            setDirty(d => {
+              const next = { ...d };
+              for (const f of restored) next[f.fileId] = f.content;
+              return next;
+            });
+            changedFiles.clear("asher", activeProject.id);
+            toast.success(`Restored ${restored.length} file${restored.length === 1 ? "" : "s"} (unsaved)`);
+          }}
+        />
+      )}
       <IdeErrorExplainer
         open={bugDoctorOpen}
         message={bugDoctorMsg}
