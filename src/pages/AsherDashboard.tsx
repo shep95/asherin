@@ -168,6 +168,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "notebooks", label: "Notebooks",       icon: NotebookPen, sub: "Live" },
     { id: "vedic",     label: "Vedic Strategy",  icon: Moon,      sub: "Sidereal" },
     { id: "zahten",    label: "Zahten",          icon: Package,   sub: "Engine" },
+    { id: "zacoon",    label: "Zacoon",          icon: Package,   sub: "Soon" },
     { id: "theater",   label: "Theater Brief",   icon: FileText },
     { id: "targeting", label: "Targeting Aid",   icon: Crosshair },
     { id: "sigint",    label: "SIGINT Fusion",   icon: Radio },
