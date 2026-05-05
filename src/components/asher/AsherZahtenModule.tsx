@@ -999,6 +999,9 @@ const AsherZahtenModule = () => {
           <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">House of Asher · Zahten Engine · Standby</p>
           <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Apache 2.0 · Self-Hostable · Air-Gappable</p>
         </footer>
+          </div>
+          )}
+        </div>
       </div>
     </div>
   );
