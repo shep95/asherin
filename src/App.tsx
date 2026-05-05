@@ -64,6 +64,7 @@ const Whiteboard = lazy(() => import("./pages/Whiteboard"));
 const EliteSuite = lazy(() => import("./pages/EliteSuite"));
 const Asher = lazy(() => import("./pages/Asher"));
 const AsherDashboard = lazy(() => import("./pages/AsherDashboard"));
+const Forums = lazy(() => import("./pages/Forums"));
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import AureonDomainGate from "./components/AureonDomainGate";
@@ -145,6 +146,7 @@ const App = () => (
             <Route path="/whiteboard" element={<Whiteboard />} />
             <Route path="/elite" element={<ProtectedRoute><EliteSuite /></ProtectedRoute>} />
             <Route path="/asher" element={<Asher />} />
+            <Route path="/forums" element={<Forums />} />
             <Route path="/asher-dashboard" element={<ProtectedRoute><AsherDashboard /></ProtectedRoute>} />
             <Route
               path="/dashboard"
