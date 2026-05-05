@@ -9,4 +9,7 @@ export * from "./codeAnimator";
 export * from "./autoSave";
 export * from "./semanticSearch";
 export * from "./projectGuide";
+export * from "./fastApply";
+export * from "./checkpoints";
+export * from "./changedFiles";
 
