@@ -913,8 +913,205 @@ const AsherZahtenModule = () => {
               </p>
             </div>
           )}
+
+          {/* ─────────── REQUIRED SECRETS (AI follow-up for keys) ─────────── */}
+          {requiredSecrets.length > 0 && (
+            <div className="mt-6 rounded-lg border border-amber-500/25 bg-amber-500/5 p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <KeyRound className="h-3.5 w-3.5 text-amber-400 mt-0.5" strokeWidth={1.5} />
+                <div className="flex-1">
+                  <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">AI Follow-Up · Credentials Required</p>
+                  <p className="mt-1 text-[11px] font-extralight text-muted-foreground/80 leading-relaxed">
+                    The agent needs the following secrets before it can run live. Values stay in your browser session and are injected into the deployed agent.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {requiredSecrets.map((s) => (
+                  <div key={s} className="space-y-1">
+                    <p className="text-[9px] font-mono tracking-wide text-muted-foreground/70">{s}</p>
+                    <input
+                      type="password"
+                      value={secretValues[s] || ""}
+                      onChange={(e) => setSecretValues((p) => ({ ...p, [s]: e.target.value }))}
+                      placeholder="paste value"
+                      className="w-full bg-background/60 border border-border/30 rounded px-3 py-1.5 text-[12px] font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/60"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─────────── FOLLOW-UP PROMPT + DEPLOY ─────────── */}
+          {passes.length > 0 && !running && (
+            <div className="mt-6 rounded-lg border border-border/25 bg-background/40 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
+                <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Refine · Add · Test</p>
+              </div>
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={followUp}
+                  onChange={(e) => setFollowUp(e.target.value)}
+                  placeholder="e.g. add a Discord fallback if Slack fails · raise retry to 5 with jitter · write a test for empty payload"
+                  rows={2}
+                  className="flex-1 bg-background/60 border border-border/30 rounded px-3 py-2 text-[12px] font-extralight text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/60 resize-none"
+                />
+                <button
+                  onClick={sendFollowUp}
+                  disabled={!followUp.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/40 bg-foreground/10 hover:bg-foreground/20 disabled:opacity-30 px-3 py-2 text-[10px] font-light tracking-[0.25em] uppercase"
+                >
+                  <Send className="h-3 w-3" strokeWidth={1.5} /> Send
+                </button>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-border/15">
+                <p className="text-[10px] font-extralight text-muted-foreground/70">
+                  {missingSecrets.length
+                    ? `${missingSecrets.length} secret${missingSecrets.length === 1 ? "" : "s"} still needed`
+                    : activeAgent?.status === "live" ? "Agent is live · streaming runs to Workflow Map" : "Ready to deploy"}
+                </p>
+                {activeAgent?.status === "live" ? (
+                  <button onClick={stopLive} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 px-4 py-2 text-[10px] font-light tracking-[0.25em] uppercase">
+                    <Square className="h-3 w-3" strokeWidth={1.5} /> Pause Live
+                  </button>
+                ) : (
+                  <button
+                    onClick={deployLive}
+                    disabled={missingSecrets.length > 0}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 text-[10px] font-light tracking-[0.25em] uppercase"
+                  >
+                    <Rocket className="h-3 w-3" strokeWidth={1.5} /> Deploy Live
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </section>
           </div>
+          )}
+
+          {/* ─────────── WORKFLOW MAP TAB ─────────── */}
+          {viewTab === "workflow" && (
+            <div className="mx-auto max-w-5xl px-8 py-8 space-y-6">
+              {/* Status header */}
+              <div className="rounded-xl border border-border/25 bg-card/40 backdrop-blur-xl p-5 flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <span className={`relative flex h-2 w-2`}>
+                    {activeAgent?.status === "live" && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+                    <span className={`relative inline-flex h-2 w-2 rounded-full ${activeAgent?.status === "live" ? "bg-emerald-400" : "bg-muted-foreground/40"}`} />
+                  </span>
+                  <p className="text-[11px] font-light tracking-[0.3em] text-foreground uppercase">
+                    {activeAgent?.status === "live" ? "Agent Live" : "Agent Idle"}
+                  </p>
+                  <span className="text-[9px] font-mono text-muted-foreground/60">
+                    {liveRuns.filter(r => r.status === "running").length} running · {liveRuns.filter(r => r.status === "ok").length} ok · {liveRuns.filter(r => r.status === "failed").length} failed
+                  </span>
+                </div>
+                {activeAgent?.status === "live" ? (
+                  <button onClick={stopLive} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase">
+                    <Square className="h-3 w-3" /> Pause
+                  </button>
+                ) : (
+                  <button onClick={deployLive} disabled={!passes.length || missingSecrets.length > 0}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase">
+                    <Rocket className="h-3 w-3" /> Deploy
+                  </button>
+                )}
+              </div>
+
+              {/* Modern flow diagram */}
+              <section className="rounded-xl border border-border/25 bg-card/30 backdrop-blur-xl p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <GitFork className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
+                  <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Automated Flow</p>
+                  <span className="ml-auto text-[9px] font-mono text-muted-foreground/50">
+                    trigger · {workflowSteps.length} step{workflowSteps.length === 1 ? "" : "s"} · output
+                  </span>
+                </div>
+                {workflowSteps.length === 0 ? (
+                  <p className="text-[11px] font-extralight text-muted-foreground/70">Build the agent first — workflow steps will be parsed from the AI's WORKFLOW section.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <div className="flex items-stretch gap-2 min-w-max py-2">
+                      {/* trigger node */}
+                      <div className="flex flex-col items-center justify-center rounded-xl border border-foreground/30 bg-foreground/5 px-4 py-3 min-w-[140px]">
+                        <Radio className="h-3.5 w-3.5 text-foreground/80 mb-1" strokeWidth={1.5} />
+                        <p className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/70">Trigger</p>
+                        <p className="text-[11px] font-mono text-foreground/90 mt-0.5 truncate max-w-[120px]" title={activeAgent?.trigger}>{activeAgent?.trigger || "manual"}</p>
+                      </div>
+                      {workflowSteps.map((s, i) => {
+                        const activeRun = liveRuns.find(r => r.status === "running");
+                        const stepHit = activeRun ? activeRun.log.some(l => l.includes(`step ${s.n} `)) : false;
+                        return (
+                          <div key={s.n} className="flex items-center">
+                            <div className="flex flex-col items-center px-1">
+                              <div className="h-px w-6 bg-border/40" />
+                              <ChevronRight className="h-3 w-3 text-muted-foreground/40 -mt-1.5" />
+                            </div>
+                            <div className={`flex flex-col rounded-xl border px-3 py-2.5 min-w-[160px] max-w-[220px] transition-all ${stepHit ? "border-emerald-400/50 bg-emerald-500/10 shadow-[0_0_24px_-8px_hsl(var(--foreground)/0.4)]" : "border-border/30 bg-background/40"}`}>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[8px] font-mono text-muted-foreground/60">{String(s.n).padStart(2, "0")}</span>
+                                {stepHit && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                              </div>
+                              <p className="text-[10.5px] font-light text-foreground/90 leading-snug mt-1">{s.label}</p>
+                            </div>
+                            {i === workflowSteps.length - 1 && (
+                              <>
+                                <div className="flex flex-col items-center px-1">
+                                  <div className="h-px w-6 bg-border/40" />
+                                  <ChevronRight className="h-3 w-3 text-muted-foreground/40 -mt-1.5" />
+                                </div>
+                                <div className="flex flex-col items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 min-w-[140px]">
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/80 mb-1" strokeWidth={1.5} />
+                                  <p className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/70">Output</p>
+                                  <p className="text-[11px] font-mono text-foreground/80 mt-0.5">delivered</p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {/* Live runs */}
+              <section className="rounded-xl border border-border/25 bg-card/30 backdrop-blur-xl p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Activity className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
+                  <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Live Runs</p>
+                </div>
+                {liveRuns.length === 0 ? (
+                  <p className="text-[11px] font-extralight text-muted-foreground/70">No runs yet. Deploy the agent to start the live execution loop.</p>
+                ) : (
+                  <div className="space-y-2 max-h-[480px] overflow-y-auto">
+                    {liveRuns.map((r) => (
+                      <div key={r.id} className="rounded-lg border border-border/20 bg-background/40 p-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            {r.status === "running" && <Loader2 className="h-3 w-3 animate-spin text-foreground/70" />}
+                            {r.status === "ok" && <CheckCircle2 className="h-3 w-3 text-emerald-400" />}
+                            {r.status === "failed" && <AlertCircle className="h-3 w-3 text-red-400" />}
+                            <span className="font-mono text-[10px] text-foreground/85">{r.id}</span>
+                          </div>
+                          <span className="text-[9px] font-mono text-muted-foreground/50">
+                            {new Date(r.startedAt).toLocaleTimeString()}
+                            {r.endedAt ? ` · ${((r.endedAt - r.startedAt) / 1000).toFixed(1)}s` : ""}
+                          </span>
+                        </div>
+                        <div className="font-mono text-[10px] text-muted-foreground/80 space-y-0.5 max-h-[120px] overflow-y-auto">
+                          {r.log.map((l, i) => <div key={i}>{l}</div>)}
+                          {r.status === "running" && r.log.length === 0 && <div className="opacity-60">spawning…</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
           )}
 
           {viewTab === "compliance" && (
