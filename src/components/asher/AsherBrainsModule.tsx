@@ -620,6 +620,15 @@ const AsherBrainsModule = () => {
             {scanningDup ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
             Scan Duplicates
           </button>
+          <button
+            onClick={() => void scanForViruses()}
+            disabled={scanningVirus}
+            title="Scan every brain for malware/virus signatures and auto-quarantine infected files"
+            className="flex items-center gap-1.5 rounded-md border border-red-400/40 bg-red-500/10 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-red-300 uppercase hover:bg-red-500/20 disabled:opacity-50"
+          >
+            {scanningVirus ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldCheck className="h-3 w-3" />}
+            Virus Scan
+          </button>
         </div>
       </div>
 
