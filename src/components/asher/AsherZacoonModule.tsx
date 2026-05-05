@@ -236,24 +236,9 @@ const AsherZacoonModule = () => {
     try { await navigator.clipboard.writeText(TASK_SAMPLE); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
   };
 
-  // Authorized engagement intake
-  const [authorized, setAuthorized] = useState(false);
+  // Target site (URL the agent will operate against)
   const [target, setTarget] = useState("");
-  const [scope, setScope] = useState("");
-  const [owner, setOwner] = useState("");
-  const [authRef, setAuthRef] = useState("");
-  const [windowStart, setWindowStart] = useState("");
-  const [windowEnd, setWindowEnd] = useState("");
-  const [classification, setClassification] = useState("S");
-  const [selectedCaveats, setSelectedCaveats] = useState<string[]>([]);
-
-  const toggleCaveat = (c: string) =>
-    setSelectedCaveats((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
-
-  const engagementValid = useMemo(
-    () => authorized && target.trim() && scope.trim() && owner.trim() && authRef.trim() && windowStart && windowEnd,
-    [authorized, target, scope, owner, authRef, windowStart, windowEnd],
-  );
+  const engagementValid = useMemo(() => target.trim().length > 0, [target]);
 
   // Stealth posture toggles
   const [stealthOn, setStealthOn] = useState(true);
@@ -384,151 +369,46 @@ const AsherZacoonModule = () => {
             </div>
           </section>
 
-          {/* Authorized Engagement Intake */}
+          {/* Target Site */}
           <section>
-            <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Authorized Engagement</p>
-            <div className="rounded-xl border border-border/25 bg-card/40 backdrop-blur-xl p-6 space-y-5">
+            <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Target Site</p>
+            <div className="rounded-xl border border-border/25 bg-card/40 backdrop-blur-xl p-6 space-y-4">
               <div className="flex items-start gap-3">
                 <Gavel className="h-4 w-4 text-foreground/70 mt-0.5" strokeWidth={1.5} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase mb-1.5">
-                    Rules of Engagement Required
+                    How Zacoon Works
                   </p>
                   <p className="text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">
-                    Zacoon will not issue any offensive tool call without a verifiable, signed authorization
-                    from the asset owner. This panel mirrors the engagement gate enforced at the runtime layer.
-                    Unauthorized testing is illegal under the CFAA, the UK Computer Misuse Act, and equivalent
-                    statutes worldwide — the engine refuses by design.
+                    Paste a website URL below. Zacoon spins up an autonomous browser session against that
+                    site and carries out the objective you give it — navigating pages, filling forms,
+                    extracting data, and capturing evidence. Use it for OSINT collection, content scraping,
+                    workflow automation, or — when you have written permission from the site owner —
+                    authorized security testing.
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <label className="block">
-                  <span className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">Target Asset</span>
-                  <input
-                    value={target}
-                    onChange={(e) => setTarget(e.target.value)}
-                    placeholder="acme-corp.test"
-                    className="mt-1.5 w-full rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">Asset Owner / Org</span>
-                  <input
-                    value={owner}
-                    onChange={(e) => setOwner(e.target.value)}
-                    placeholder="Acme Corporation, Inc."
-                    className="mt-1.5 w-full rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40"
-                  />
-                </label>
-                <label className="block md:col-span-2">
-                  <span className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">In-Scope Hosts / IP Ranges (comma separated)</span>
-                  <input
-                    value={scope}
-                    onChange={(e) => setScope(e.target.value)}
-                    placeholder="*.acme-corp.test, 198.51.100.0/24"
-                    className="mt-1.5 w-full rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40"
-                  />
-                </label>
-                <label className="block md:col-span-2">
-                  <span className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">Authorization Reference (signed letter ID / hash)</span>
-                  <input
-                    value={authRef}
-                    onChange={(e) => setAuthRef(e.target.value)}
-                    placeholder="ENG-2026-ACME-WEBAPP / sha256:…"
-                    className="mt-1.5 w-full rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">Test Window — Start (UTC)</span>
-                  <input
-                    type="datetime-local"
-                    value={windowStart}
-                    onChange={(e) => setWindowStart(e.target.value)}
-                    className="mt-1.5 w-full rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[12px] font-light text-foreground focus:outline-none focus:border-foreground/40"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">Test Window — End (UTC)</span>
-                  <input
-                    type="datetime-local"
-                    value={windowEnd}
-                    onChange={(e) => setWindowEnd(e.target.value)}
-                    className="mt-1.5 w-full rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[12px] font-light text-foreground focus:outline-none focus:border-foreground/40"
-                  />
-                </label>
-              </div>
-
-              {/* Classification + caveats */}
-              <div className="space-y-3">
-                <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">Classification</p>
-                <div className="flex flex-wrap gap-2">
-                  {CLASSIFICATION_LEVELS.map((c) => {
-                    const active = classification === c.code;
-                    return (
-                      <button
-                        key={c.code}
-                        type="button"
-                        onClick={() => setClassification(c.code)}
-                        className={`rounded-md border px-3 py-1.5 text-[9px] font-light tracking-[0.25em] uppercase transition-colors ${
-                          active
-                            ? "border-foreground/60 bg-foreground/15 text-foreground"
-                            : "border-border/25 bg-background/40 text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {c.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase pt-1">Handling Caveats</p>
-                <div className="flex flex-wrap gap-2">
-                  {HANDLING_CAVEATS.map((c) => {
-                    const active = selectedCaveats.includes(c);
-                    return (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => toggleCaveat(c)}
-                        className={`rounded-full border px-3 py-1 text-[9px] font-light tracking-[0.25em] uppercase transition-colors ${
-                          active
-                            ? "border-foreground/60 bg-foreground/15 text-foreground"
-                            : "border-border/25 bg-background/40 text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {c}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <label className="flex items-start gap-3 cursor-pointer select-none rounded-md border border-border/20 bg-background/30 p-3">
+              <label className="block">
+                <span className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">Target Website / URL</span>
                 <input
-                  type="checkbox"
-                  checked={authorized}
-                  onChange={(e) => setAuthorized(e.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 accent-foreground"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  placeholder="https://example.com"
+                  className="mt-1.5 w-full rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40"
                 />
-                <span className="text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">
-                  I attest, under operator accountability, that I hold a current, written, signed
-                  authorization from the asset owner above to perform security testing within the
-                  defined scope and window. I understand any offensive activity outside this scope is
-                  unauthorized and will be refused by the engine and logged to the immutable audit trail.
-                </span>
               </label>
 
               <div className="flex items-center gap-2 text-[10px] font-light tracking-[0.25em] uppercase">
                 {engagementValid ? (
                   <>
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-400/80" strokeWidth={1.5} />
-                    <span className="text-emerald-400/80">Engagement Armed — offensive verbs unlocked at {classification}{selectedCaveats.length ? ` // ${selectedCaveats.join(" / ")}` : ""}</span>
+                    <span className="text-emerald-400/80">Target Locked — ready to launch mission</span>
                   </>
                 ) : (
                   <>
                     <ShieldAlert className="h-3.5 w-3.5 text-amber-400/80" strokeWidth={1.5} />
-                    <span className="text-amber-400/80">Engagement Not Armed — destructive verbs refused</span>
+                    <span className="text-amber-400/80">No Target — paste a URL to begin</span>
                   </>
                 )}
               </div>
@@ -893,8 +773,8 @@ const AsherZacoonModule = () => {
                 </p>
                 <p className="mt-1 text-[11px] font-extralight text-muted-foreground/80">
                   {engagementValid
-                    ? `Engagement loaded at ${classification}${selectedCaveats.length ? ` // ${selectedCaveats.join(" / ")}` : ""}. Stealth ${stealthOn ? "on" : "off"} · TOR ${torOn ? "on" : "off"} · Burner ${burnerOn ? "on" : "off"}.`
-                    : "Zacoon will not issue any offensive tool call until a signed Rules of Engagement is armed above."}
+                    ? `Target ${target} locked. Stealth ${stealthOn ? "on" : "off"} · TOR ${torOn ? "on" : "off"} · Burner ${burnerOn ? "on" : "off"}.`
+                    : "Paste a target website URL above to arm Zacoon."}
                 </p>
               </div>
               <FileBadge className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />
