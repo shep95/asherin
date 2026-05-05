@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -19,6 +20,13 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const { toast } = useToast();
+  const location = useLocation();
+
+  const getRedirectPath = () => {
+    const next = new URLSearchParams(location.search).get("next");
+    if (next?.startsWith("/") && !next.startsWith("//")) return next;
+    return location.pathname.startsWith("/asher") ? "/asher-dashboard" : "/dashboard";
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +38,7 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
       if (error) {
         toast({ title: "Login failed", description: error.message, variant: "destructive" });
       } else {
-        window.location.href = "/dashboard";
+        window.location.href = getRedirectPath();
       }
     } else {
       const { error } = await supabase.auth.signUp({
@@ -41,7 +49,7 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
       if (error) {
         toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
       } else {
-        window.location.href = "/dashboard";
+        window.location.href = getRedirectPath();
       }
     }
   };
@@ -49,7 +57,7 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}${getRedirectPath()}`,
     });
     setGoogleLoading(false);
     if (error) {
