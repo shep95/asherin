@@ -23,6 +23,7 @@ import {
   IdeCheckpointPanel,
   IdeModeToggle,
   IdeChangedFilesPanel,
+  IdeBuildStatusPanel,
   type PlannedChange,
 } from "@/components/ide-shared";
 import { changedFiles } from "@/lib/ide";
@@ -34,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { startQueueWorker as zqStart, registerHandler as zqRegister, enqueue as zqEnqueue, type QueuedJob } from "@/lib/zanoem/offlineQueue";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
+import { IDE_BUILD_CONTRACT, parseIdeBuildStatus, buildCritiqueContinuationReply } from "@/lib/ide/completionLoop";
 import ZanoemDecisionLog from "@/components/asher/ZanoemDecisionLog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -159,7 +161,7 @@ const AureonIdeView = () => {
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("aureonIde.autoApprove") !== "0"); // default ON
   const [decisionLogOpen, setDecisionLogOpen] = useState(false);
   const autopilotRoundsRef = useRef(0);
-  const AUTOPILOT_MAX_ROUNDS = 6;
+  const AUTOPILOT_MAX_ROUNDS = 8;
   useEffect(() => { localStorage.setItem("aureonIde.zanoemMode", zanoemMode ? "1" : "0"); }, [zanoemMode]);
   useEffect(() => { localStorage.setItem("aureonIde.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
   useEffect(() => { localStorage.setItem("aureonIde.autoDebug", autoDebug ? "1" : "0"); }, [autoDebug]);
@@ -698,7 +700,7 @@ const AureonIdeView = () => {
         autopilotRoundsRef.current = 0;
         // Fall through with an enriched prompt — ZANOEM autopilot will then
         // run round-by-round until the build is complete.
-        content = `${content}\n\n[GOAL ROUTER DIRECTIVE]\nThis is a project-wide build request. Plan the complete file tree, then write each file in turn. Do not stop until every file in the plan is written and the build is shippable. After each file, list what's still missing and continue automatically.`;
+        content = `${content}\n\n[GOAL ROUTER DIRECTIVE]\nThis is a project-wide build request. Plan the complete file tree, then write each file in turn. Do not stop until every file in the plan is written and the build is shippable. After each file, list what's still missing and continue automatically.\n\n${IDE_BUILD_CONTRACT}`;
       }
     }
 
@@ -760,8 +762,14 @@ const AureonIdeView = () => {
 
       lastAssistantRef.current = assistantContent;
 
-      // ── Autopilot loop ──
-      if (zanoemMode && autopilotZanoem && autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS && zanoemNeedsDecision(assistantContent)) {
+      // ── Autopilot loop (ZAHTEN-style: continue on question OR STATUS:REFINING) ──
+      const buildStatus = parseIdeBuildStatus(assistantContent);
+      const shouldContinue =
+        zanoemMode &&
+        autopilotZanoem &&
+        autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS &&
+        (zanoemNeedsDecision(assistantContent) || buildStatus === "refining");
+      if (shouldContinue) {
         if (isAutopilotTurn && autopilotTriggerRef.current) {
           void zanoemLogDecision({
             surface: "aureon_ide",
@@ -774,7 +782,9 @@ const AureonIdeView = () => {
         }
         autopilotRoundsRef.current += 1;
         autopilotTriggerRef.current = assistantContent;
-        const autoReply = zanoemBuildReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
+        const autoReply = buildStatus === "refining"
+          ? buildCritiqueContinuationReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS)
+          : zanoemBuildReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
         setTimeout(() => { void sendChatMessage(autoReply, customBrainPrompt, true); }, 250);
       } else if (isAutopilotTurn && autopilotRoundsRef.current > 0) {
         toast({ title: "ZANOEM autopilot complete", description: `${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"}` });
@@ -1157,12 +1167,20 @@ const AureonIdeView = () => {
               <ResizablePanel defaultSize={24} minSize={15} maxSize={40} className="overflow-hidden">
                 <div className="h-full border-l border-border/20 bg-card/10 overflow-hidden flex flex-col">
                   {zanoemToggleBar}
-                  <div className="px-2 pt-2">
+                  <div className="px-2 pt-2 space-y-2">
                     <IdeChangedFilesPanel
                       scope="aureon"
                       projectId={activeSessionId ?? ""}
                       onOpenFile={(id) => { const f = allFiles.find(x => x.id === id); if (f) selectFile(f); }}
                     />
+                    {(zanoemMode || autopilotRoundsRef.current > 0) && (
+                      <IdeBuildStatusPanel
+                        lastAssistantText={lastAssistantRef.current || ""}
+                        round={autopilotRoundsRef.current}
+                        maxRounds={AUTOPILOT_MAX_ROUNDS}
+                        busy={isStreaming}
+                      />
+                    )}
                   </div>
                   <div className="flex-1 min-h-0"><IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} /></div>
                 </div>

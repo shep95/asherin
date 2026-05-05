@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ASHER_CODE_PROVIDERS, type AsherCodeProject, type AsherCodeFile } from "@/lib/asherCode/types";
 import { callAsherCodeAi, extractCodeBlock, extractJsonBlock, type EditPlan, type CallAsherCodeResult } from "@/lib/asherCode/aiClient";
 import { routeGoal } from "@/lib/asherCode/goalRouter";
+import { IDE_BUILD_CONTRACT, parseIdeBuildStatus, buildCritiqueContinuationReply } from "@/lib/ide/completionLoop";
 import EditPlanReview from "./AsherCodeEditPlan";
 import AsherCodeOrchestrationResult from "./AsherCodeOrchestrationResult";
 import { AsherCodePlanStepsView } from "./AsherCodePlanSteps";
@@ -34,6 +35,7 @@ import {
   IdeCheckpointPanel,
   IdeModeToggle,
   IdeChangedFilesPanel,
+  IdeBuildStatusPanel,
   type PlannedChange,
   type IdeCommand,
 } from "@/components/ide-shared";
@@ -245,7 +247,7 @@ export default function AsherCodeModule() {
   const [autoDebug, setAutoDebug] = useState(() => localStorage.getItem("asherCode.autoDebug") !== "0");          // default ON
   const [autoUiDebug, setAutoUiDebug] = useState(() => localStorage.getItem("asherCode.autoUiDebug") !== "0");    // default ON
   const autopilotRoundsRef = useRef(0);
-  const AUTOPILOT_MAX_ROUNDS = 6;
+  const AUTOPILOT_MAX_ROUNDS = 8;
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
   const [animateInsertion, setAnimateInsertion] = useState(() => localStorage.getItem("asherCode.animate") !== "0");
   const [pendingUploads, setPendingUploads] = useState<{ name: string; preview?: string; content: string; kind: "image" | "zip" | "text" }[]>([]);
@@ -1272,7 +1274,7 @@ try {
         if (!autopilotZanoem) { setAutopilotZanoem(true); autopilotZanoemRef.current = true; }
         // Reset the autopilot round counter so this build gets the full budget.
         autopilotRoundsRef.current = 0;
-        const enriched = `${chatInput}\n\n[GOAL ROUTER DIRECTIVE]\nThis is a project-wide build request. Plan the complete file tree, then write each file in turn. Do not stop until every file in the plan is written and the build is shippable. After each file, list what's still missing and continue automatically.`;
+        const enriched = `${chatInput}\n\n[GOAL ROUTER DIRECTIVE]\nThis is a project-wide build request. Plan the complete file tree, then write each file in turn. Do not stop until every file in the plan is written and the build is shippable. After each file, list what's still missing and continue automatically.\n\n${IDE_BUILD_CONTRACT}`;
         // Defer one tick so the zanoemMode state flush lands before dispatch.
         setTimeout(() => { void sendChatViaZanoem(enriched, false); }, 50);
         return;
@@ -1420,17 +1422,24 @@ try {
         });
         autopilotTriggerRef.current = "";
       }
-      // ── AUTOPILOT: ZANOEM decides on the human's behalf for the NEXT turn ──
-      if (autopilotZanoem && autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS && needsHumanDecision(assistantText)) {
+      // ── AUTOPILOT: continue when ZANOEM asks a question OR when its
+      // STATUS sentinel says REFINING (ZAHTEN-style completion loop).
+      const buildStatus = parseIdeBuildStatus(assistantText);
+      const shouldContinue =
+        autopilotZanoem &&
+        autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS &&
+        (needsHumanDecision(assistantText) || buildStatus === "refining");
+      if (shouldContinue) {
         autopilotRoundsRef.current += 1;
-        autopilotTriggerRef.current = assistantText;  // remember what triggered it
-        const autoReply = buildAutopilotReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
+        autopilotTriggerRef.current = assistantText;
+        const autoReply = buildStatus === "refining"
+          ? buildCritiqueContinuationReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS)
+          : buildAutopilotReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
         setAiBusy(false);
-        // Tiny delay so UI flushes the streamed message before the next turn starts
         setTimeout(() => { void sendChatViaZanoem(autoReply, true); }, 350);
         return;
       }
-      if (isAutopilotTurn && !needsHumanDecision(assistantText)) {
+      if (isAutopilotTurn && buildStatus !== "refining" && !needsHumanDecision(assistantText)) {
         toast.success(`ZANOEM autopilot complete (${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"})`);
         autopilotRoundsRef.current = 0;
         autopilotTriggerRef.current = "";
@@ -2191,6 +2200,14 @@ try {
                 </div>
               ))}
               <AsherCodePlanStepsView plan={activePlan} />
+              {(zanoemMode || autopilotRoundsRef.current > 0) && (
+                <IdeBuildStatusPanel
+                  lastAssistantText={chat.filter(m => m.role === "assistant").slice(-1)[0]?.content || ""}
+                  round={autopilotRoundsRef.current}
+                  maxRounds={AUTOPILOT_MAX_ROUNDS}
+                  busy={aiBusy}
+                />
+              )}
               {aiBusy && <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Thinking…</div>}
               <div ref={chatEndRef} />
             </div>

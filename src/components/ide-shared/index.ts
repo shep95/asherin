@@ -15,6 +15,7 @@ export { default as IdeCheckpointPanel } from "./IdeCheckpointPanel";
 export { default as IdeFastApplyPreview } from "./IdeFastApplyPreview";
 export { default as IdeModeToggle, readIdeMode, type IdeMode } from "./IdeModeToggle";
 export { default as IdeChangedFilesPanel } from "./IdeChangedFilesPanel";
+export { default as IdeBuildStatusPanel } from "./IdeBuildStatusPanel";
 export type { PlannedChange } from "./IdeApprovalGate";
 export type { FuzzyFile } from "./IdeFuzzyFinder";
 export type { IdeCommand } from "./IdeCommandPalette";
