@@ -773,8 +773,8 @@ const AsherZacoonModule = () => {
                 </p>
                 <p className="mt-1 text-[11px] font-extralight text-muted-foreground/80">
                   {engagementValid
-                    ? `Engagement loaded at ${classification}${selectedCaveats.length ? ` // ${selectedCaveats.join(" / ")}` : ""}. Stealth ${stealthOn ? "on" : "off"} · TOR ${torOn ? "on" : "off"} · Burner ${burnerOn ? "on" : "off"}.`
-                    : "Zacoon will not issue any offensive tool call until a signed Rules of Engagement is armed above."}
+                    ? `Target ${target} locked. Stealth ${stealthOn ? "on" : "off"} · TOR ${torOn ? "on" : "off"} · Burner ${burnerOn ? "on" : "off"}.`
+                    : "Paste a target website URL above to arm Zacoon."}
                 </p>
               </div>
               <FileBadge className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />
