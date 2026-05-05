@@ -41,24 +41,65 @@ type Pass = {
   endedAt?: number;
 };
 
-const ORCHESTRATOR_SYSTEM = `You are ZAHTEN MISSION ORCHESTRATOR — an autonomous, self-iterating intelligence engine.
+const ORCHESTRATOR_SYSTEM = `You are ZAHTEN AGENT BUILDER — an autonomous engine that designs, scaffolds and hardens production-grade automated agents (Trigger.dev-style: durable, retryable, observable, schedulable).
 
 OPERATING DOCTRINE:
-1. The operator gives ONE objective. You execute it WITHOUT asking clarifying questions.
-2. After producing output, SILENTLY self-critique: identify weaknesses, missing facets, shallow logic, factual gaps, structural flaws.
-3. If the work is not yet "tradecraft-grade", produce an IMPROVED full revision (not a diff). Keep going until the work is genuinely surgical, complete, and could withstand a senior intelligence officer's review.
-4. NEVER ask the operator a question. Make defensible assumptions and document them inline.
-5. NEVER stop early. If you are tempted to stop, do one more refinement pass.
+1. The operator gives ONE agent objective. By this point the scope is sufficient (the scope assessor already ran). Do NOT ask further questions.
+2. Each pass MUST produce the FULL current best version of the agent specification AND its working code (not a diff).
+3. After producing output, SILENTLY self-critique: missing triggers, weak retry logic, unhandled edge cases, missing observability, shallow tool integration, security gaps. Then produce an improved full revision.
+4. Keep iterating until the agent is genuinely production-grade and could ship to a Trigger.dev deployment as-is.
 
-OUTPUT CONTRACT (every single pass):
-- Begin with a one-line BOLD header: **PASS N — <short summary of this pass's improvement>**
-- Then the FULL current best version of the deliverable.
-- End the message with EXACTLY one of these sentinel lines on its own:
+OUTPUT CONTRACT (every single pass) — use these exact bold sections in this order:
+
+**PASS N — <one-line summary of this pass's improvement>**
+
+**AGENT SPEC**
+- Name: <slug>
+- Purpose: <one sentence>
+- Trigger: <event | schedule(cron) | webhook | manual>
+- Schedule: <cron or "n/a">
+- Inputs: <typed payload schema>
+- Outputs: <typed result schema>
+- Tools / Integrations: <list>
+- Secrets required: <list, or "none">
+- Concurrency / queue: <rule>
+- Retry policy: <attempts, backoff>
+- Idempotency key: <strategy>
+- Observability: <logs, metrics, alerts>
+
+**WORKFLOW** (numbered steps, each step names the tool, inputs, outputs, failure mode)
+
+**CODE** (one fenced \`\`\`ts block, complete Trigger.dev v3 task definition: \`task({ id, run })\`, all imports, typed payload, retry/queue config, structured logger calls, error handling)
+
+**TEST PLAN** (table: scenario | input | expected | failure mode covered)
+
+End the message with EXACTLY one of these sentinel lines on its own:
     STATUS: REFINING — <one-sentence reason why another pass is needed>
-    STATUS: MISSION_COMPLETE — <one-sentence reason this is now tradecraft-grade>
+    STATUS: MISSION_COMPLETE — <one-sentence reason this agent is now production-grade>
 
-Use STATUS: MISSION_COMPLETE only when further iteration would be polish for polish's sake.
-Voice: Intelligence Officer. Surgical. Direct. Bold headers. Tables for data. No filler. No "Certainly".`;
+Voice: Senior staff engineer. Surgical. Direct. No filler. No "Certainly".`;
+
+const SCOPE_ASSESSOR_SYSTEM = `You are ZAHTEN SCOPE ASSESSOR. Your only job is to decide whether an agent-build prompt has enough information to produce a production-grade automated agent without guessing core decisions.
+
+Required signal (must be inferable from the prompt):
+- What the agent does (action verb + target system)
+- When it runs (trigger: event / schedule / webhook / manual)
+- Where data comes from and where results go
+- Any external services / APIs / credentials involved
+- Success criteria or expected output shape
+
+Respond with ONE of these two formats and nothing else:
+
+READY
+<one short sentence restating the agent in your own words>
+
+or
+
+CLARIFY
+1. <specific question>
+2. <specific question>
+3. <specific question>
+(2–5 questions max, each one concrete and answerable in one line. Never ask vague "tell me more" questions.)`;
 
 function parseStatus(text: string): "refining" | "complete" | null {
   const m = text.match(/STATUS:\s*(REFINING|MISSION_COMPLETE)/i);
@@ -128,6 +169,12 @@ const GOV_INTEGRATIONS = [
 
 // ───────────────────────────── Component ─────────────────────────────
 
+type ScopeState =
+  | { phase: "idle" }
+  | { phase: "assessing" }
+  | { phase: "clarify"; questions: string[]; answers: string[] }
+  | { phase: "ready"; restated: string };
+
 const AsherZahtenModule = () => {
   // Mission Console state
   const [objective, setObjective] = useState("");
@@ -136,6 +183,7 @@ const AsherZahtenModule = () => {
   const [running, setRunning] = useState(false);
   const [passes, setPasses] = useState<Pass[]>([]);
   const [classification, setClassification] = useState<string>("SECRET");
+  const [scope, setScope] = useState<ScopeState>({ phase: "idle" });
   const abortRef = useRef<AbortController | null>(null);
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -202,15 +250,118 @@ const AsherZahtenModule = () => {
     return text;
   };
 
+  // Plain (non-streaming-into-passes) call for the scope assessor.
+  const callAsherAiPlain = async (system: string, user: string, signal: AbortSignal): Promise<string> => {
+    const byok = getActiveIntelMapByok();
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asher-ai`;
+    const resp = await fetch(url, {
+      method: "POST",
+      signal,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        ...(byok ? { "x-byok-gemini-key": byok.apiKey } : {}),
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: "user", content: system },
+          { role: "user", content: user },
+        ],
+        mapContext: { surface: "zahten_scope_assessor" },
+      }),
+    });
+    if (!resp.ok || !resp.body) throw new Error(`Assessor failed (${resp.status})`);
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "", text = "", done = false;
+    while (!done) {
+      const { value, done: d } = await reader.read();
+      if (d) break;
+      buf += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf("\n")) !== -1) {
+        let line = buf.slice(0, idx); buf = buf.slice(idx + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (!line.startsWith("data: ")) continue;
+        const json = line.slice(6).trim();
+        if (json === "[DONE]") { done = true; break; }
+        try {
+          const parsed = JSON.parse(json);
+          const delta = parsed.choices?.[0]?.delta;
+          if (delta?.content) text += delta.content;
+        } catch { buf = line + "\n" + buf; break; }
+      }
+    }
+    return text.trim();
+  };
+
+  const parseAssessor = (text: string): { ready: boolean; restated?: string; questions?: string[] } => {
+    const t = text.trim();
+    if (/^READY\b/i.test(t)) {
+      const rest = t.replace(/^READY\s*/i, "").trim();
+      return { ready: true, restated: rest || "Scope confirmed." };
+    }
+    if (/^CLARIFY\b/i.test(t)) {
+      const lines = t.split("\n").slice(1).map((l) => l.replace(/^\s*\d+[.)]\s*/, "").trim()).filter(Boolean);
+      return { ready: false, questions: lines.slice(0, 5) };
+    }
+    // Fallback: assume ready if model didn't follow format
+    return { ready: true, restated: t.slice(0, 240) };
+  };
+
+  const assessScope = async () => {
+    if (!objective.trim() || running || scope.phase === "assessing") return;
+    setScope({ phase: "assessing" });
+    const ctl = new AbortController();
+    abortRef.current = ctl;
+    try {
+      const out = await callAsherAiPlain(
+        SCOPE_ASSESSOR_SYSTEM,
+        `AGENT BUILD PROMPT:\n${objective.trim()}`,
+        ctl.signal,
+      );
+      const parsed = parseAssessor(out);
+      if (parsed.ready) {
+        setScope({ phase: "ready", restated: parsed.restated! });
+      } else if (parsed.questions && parsed.questions.length) {
+        setScope({ phase: "clarify", questions: parsed.questions, answers: parsed.questions.map(() => "") });
+      } else {
+        setScope({ phase: "ready", restated: "Scope confirmed." });
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Scope assessment failed");
+      setScope({ phase: "idle" });
+    } finally {
+      abortRef.current = null;
+    }
+  };
+
+  const buildEnrichedObjective = (): string => {
+    if (scope.phase !== "clarify") return objective.trim();
+    const qa = scope.questions
+      .map((q, i) => `Q: ${q}\nA: ${scope.answers[i]?.trim() || "(no answer — make a defensible assumption)"}`)
+      .join("\n\n");
+    return `${objective.trim()}\n\n--- CLARIFICATIONS ---\n${qa}`;
+  };
+
   const deploy = async () => {
     if (!objective.trim() || running) return;
+
+    // Pre-flight: if scope hasn't been assessed yet, run the assessor first.
+    if (scope.phase === "idle") {
+      await assessScope();
+      return; // user reviews questions / restated scope, then clicks Deploy again
+    }
+    if (scope.phase === "assessing") return;
+
     setRunning(true);
     setPasses([]);
     const ctl = new AbortController();
     abortRef.current = ctl;
 
+    const enriched = buildEnrichedObjective();
     const history: { role: "user" | "assistant"; content: string }[] = [
-      { role: "user", content: `MISSION OBJECTIVE:\n${objective.trim()}\n\nExecute pass 1 now. Then self-critique and continue iterating until MISSION_COMPLETE.` },
+      { role: "user", content: `AGENT BUILD OBJECTIVE:\n${enriched}\n\nExecute pass 1 now. Then self-critique and continue iterating until MISSION_COMPLETE.` },
     ];
 
     try {
@@ -223,7 +374,7 @@ const AsherZahtenModule = () => {
         } catch (e: any) {
           if (ctl.signal.aborted) break;
           setPasses((p) => p.map((pp) => pp.n === n ? { ...pp, status: "error", text: pp.text + `\n\n_Error: ${e?.message || e}_`, endedAt: Date.now() } : pp));
-          toast.error(e?.message || "Mission pass failed");
+          toast.error(e?.message || "Build pass failed");
           break;
         }
         const status = parseStatus(text);
@@ -232,19 +383,17 @@ const AsherZahtenModule = () => {
 
         if (isComplete) {
           if (n === maxIters && status !== "complete") {
-            toast.message(`Iteration cap hit at pass ${n}. Mission auto-finalized.`);
+            toast.message(`Iteration cap hit at pass ${n}. Agent auto-finalized.`);
           } else {
-            toast.success(`Mission complete in ${n} pass${n === 1 ? "" : "es"}`);
+            toast.success(`Agent built in ${n} pass${n === 1 ? "" : "es"}`);
           }
           break;
         }
-
-        // Auto-approve refinement: feed the model's own output back and ask for a deeper pass.
         history.push({ role: "assistant", content: text });
         history.push({
           role: "user",
           content: autoApprove
-            ? `APPROVED. Now perform pass ${n + 1}: harder self-critique, deeper sourcing, sharper structure. Produce the FULL improved version. End with the STATUS sentinel.`
+            ? `APPROVED. Now perform pass ${n + 1}: harder self-critique, deeper edge cases, tighter code. Produce the FULL improved version. End with the STATUS sentinel.`
             : `Continue. Pass ${n + 1}.`,
         });
       }
@@ -252,6 +401,11 @@ const AsherZahtenModule = () => {
       setRunning(false);
       abortRef.current = null;
     }
+  };
+
+  const resetScope = () => {
+    setScope({ phase: "idle" });
+    setPasses([]);
   };
 
   return (
@@ -265,14 +419,15 @@ const AsherZahtenModule = () => {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-50" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
             </span>
-            <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">House of Asher · Mission Engine</p>
+            <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">House of Asher · Automated Agent Builder</p>
           </div>
           <div className="flex items-end justify-between gap-6 flex-wrap">
             <div>
               <h1 className="text-4xl font-extralight tracking-[0.25em] text-foreground">ZAHTEN</h1>
               <p className="mt-2 text-sm font-extralight text-muted-foreground/80 max-w-2xl">
-                Classified-ready intelligence operations platform. Type one objective. The engine iterates,
-                self-critiques and auto-approves its own refinements until the work is tradecraft-grade.
+                Automated agent builder. Describe the agent you want — the engine assesses your prompt,
+                asks for any missing details, then iterates and self-critiques the spec + code until it is
+                production-grade and deployable.
               </p>
             </div>
             <a
@@ -311,7 +466,7 @@ const AsherZahtenModule = () => {
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Terminal className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
-              <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Autonomous Mission Console</p>
+              <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Agent Build Console</p>
             </div>
             <div className="flex items-center gap-2 text-[9px] font-light tracking-[0.25em] uppercase">
               <span className="text-muted-foreground/60">Classification</span>
@@ -328,9 +483,9 @@ const AsherZahtenModule = () => {
 
           <textarea
             value={objective}
-            onChange={(e) => setObjective(e.target.value)}
-            disabled={running}
-            placeholder="Type the mission objective. e.g. Build a 14-day OSINT collection plan against [target] covering social, infra, financial. The engine will iterate and auto-approve until tradecraft-grade."
+            onChange={(e) => { setObjective(e.target.value); if (scope.phase !== "idle") setScope({ phase: "idle" }); }}
+            disabled={running || scope.phase === "assessing"}
+            placeholder="Describe the agent you want. e.g. 'Every morning at 7am pull new GitHub issues labelled bug, summarise them with an LLM, and post the digest to Slack #eng-triage.' If you skip key details (trigger, source, destination, success criteria) the assessor will ask before building."
             rows={4}
             className="w-full bg-background/60 border border-border/30 rounded-lg px-4 py-3 text-sm font-extralight text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/60 resize-none"
           />
@@ -354,19 +509,76 @@ const AsherZahtenModule = () => {
             <div className="flex items-center gap-2">
               {running ? (
                 <button onClick={stopMission} className="inline-flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 px-4 py-2 text-[10px] font-light tracking-[0.25em] text-foreground uppercase transition-colors">
-                  <Square className="h-3 w-3" strokeWidth={1.5} /> Abort Mission
+                  <Square className="h-3 w-3" strokeWidth={1.5} /> Abort Build
                 </button>
               ) : (
-                <button
-                  onClick={deploy}
-                  disabled={!objective.trim()}
-                  className="inline-flex items-center gap-2 rounded-lg border border-foreground/40 bg-foreground/10 hover:bg-foreground/20 disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 text-[10px] font-light tracking-[0.25em] text-foreground uppercase transition-colors"
-                >
-                  <Play className="h-3 w-3" strokeWidth={1.5} /> Deploy Mission
-                </button>
+                <>
+                  {scope.phase !== "idle" && (
+                    <button onClick={resetScope} className="inline-flex items-center gap-2 rounded-lg border border-border/30 hover:border-foreground/40 px-3 py-2 text-[10px] font-light tracking-[0.25em] text-muted-foreground hover:text-foreground uppercase transition-colors">
+                      Reset Scope
+                    </button>
+                  )}
+                  <button
+                    onClick={deploy}
+                    disabled={!objective.trim() || scope.phase === "assessing" || (scope.phase === "clarify" && scope.answers.every((a) => !a.trim()))}
+                    className="inline-flex items-center gap-2 rounded-lg border border-foreground/40 bg-foreground/10 hover:bg-foreground/20 disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 text-[10px] font-light tracking-[0.25em] text-foreground uppercase transition-colors"
+                  >
+                    {scope.phase === "assessing" ? (
+                      <><Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} /> Assessing Scope</>
+                    ) : scope.phase === "idle" ? (
+                      <><Eye className="h-3 w-3" strokeWidth={1.5} /> Assess & Build</>
+                    ) : scope.phase === "clarify" ? (
+                      <><Play className="h-3 w-3" strokeWidth={1.5} /> Build Agent</>
+                    ) : (
+                      <><Play className="h-3 w-3" strokeWidth={1.5} /> Build Agent</>
+                    )}
+                  </button>
+                </>
               )}
             </div>
           </div>
+
+          {/* Scope assessor — clarify panel */}
+          {scope.phase === "clarify" && (
+            <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-400 mt-0.5" strokeWidth={1.5} />
+                <div>
+                  <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Scope Assessor — Clarification Needed</p>
+                  <p className="mt-1 text-[11px] font-extralight text-muted-foreground/80 leading-relaxed">
+                    Your prompt is light on specifics. Answer what you can — anything left blank will be filled with a defensible assumption.
+                  </p>
+                </div>
+              </div>
+              {scope.questions.map((q, i) => (
+                <div key={i} className="space-y-1">
+                  <p className="text-[11px] font-light text-foreground/85">{i + 1}. {q}</p>
+                  <input
+                    value={scope.answers[i]}
+                    onChange={(e) => {
+                      const next = [...scope.answers]; next[i] = e.target.value;
+                      setScope({ ...scope, answers: next });
+                    }}
+                    placeholder="Your answer (optional)"
+                    className="w-full bg-background/60 border border-border/30 rounded px-3 py-2 text-[12px] font-extralight text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/60"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Scope assessor — ready panel */}
+          {scope.phase === "ready" && (
+            <div className="mt-5 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 mt-0.5" strokeWidth={1.5} />
+                <div>
+                  <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Scope Confirmed</p>
+                  <p className="mt-1 text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{scope.restated}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Iteration log */}
           {passes.length > 0 && (
@@ -396,12 +608,12 @@ const AsherZahtenModule = () => {
             </div>
           )}
 
-          {!passes.length && (
+          {!passes.length && scope.phase === "idle" && (
             <div className="mt-5 flex items-start gap-2 rounded-md border border-border/20 bg-background/30 p-3">
               <Zap className="h-3 w-3 text-foreground/60 mt-0.5" strokeWidth={1.5} />
               <p className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/70 uppercase leading-relaxed">
-                Engine self-iterates. Each pass is a full revision — not a diff. The orchestrator emits
-                STATUS: REFINING or STATUS: MISSION_COMPLETE on its own. You do not type again.
+                Two-phase build: (1) the Scope Assessor reads your prompt and asks for any missing details,
+                (2) the Builder iterates spec + Trigger.dev code, self-critiquing each pass until MISSION_COMPLETE.
               </p>
             </div>
           )}
