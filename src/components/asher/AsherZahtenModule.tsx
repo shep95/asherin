@@ -230,10 +230,38 @@ function parseWorkflowSteps(text: string): { n: number; label: string }[] {
   return steps;
 }
 
+const ZAHTEN_AGENTS_KEY = "zahten.agents.v1";
+const ZAHTEN_ACTIVE_KEY = "zahten.activeAgentId.v1";
+
+const loadAgents = (): AgentRecord[] => {
+  try {
+    const raw = localStorage.getItem(ZAHTEN_AGENTS_KEY);
+    if (!raw) return STARTER_AGENTS;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length) return parsed;
+  } catch {}
+  return STARTER_AGENTS;
+};
+
 const AsherZahtenModule = () => {
-  // Agent registry
-  const [agents, setAgents] = useState<AgentRecord[]>(STARTER_AGENTS);
-  const [activeAgentId, setActiveAgentId] = useState<string>(STARTER_AGENTS[0].id);
+  // Agent registry — persisted to localStorage so built agents survive reloads
+  const [agents, setAgents] = useState<AgentRecord[]>(() => loadAgents());
+  const [activeAgentId, setActiveAgentId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(ZAHTEN_ACTIVE_KEY);
+      if (saved) return saved;
+    } catch {}
+    const a = loadAgents();
+    return a[0]?.id || STARTER_AGENTS[0].id;
+  });
+
+  // Persist whenever the agent list changes
+  useEffect(() => {
+    try { localStorage.setItem(ZAHTEN_AGENTS_KEY, JSON.stringify(agents)); } catch {}
+  }, [agents]);
+  useEffect(() => {
+    try { localStorage.setItem(ZAHTEN_ACTIVE_KEY, activeAgentId); } catch {}
+  }, [activeAgentId]);
   const [viewTab, setViewTab] = useState<ViewTab>("builder");
   const activeAgent = agents.find((a) => a.id === activeAgentId) || agents[0];
 
