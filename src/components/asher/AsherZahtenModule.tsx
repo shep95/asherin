@@ -419,14 +419,15 @@ const AsherZahtenModule = () => {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-50" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
             </span>
-            <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">House of Asher · Mission Engine</p>
+            <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">House of Asher · Automated Agent Builder</p>
           </div>
           <div className="flex items-end justify-between gap-6 flex-wrap">
             <div>
               <h1 className="text-4xl font-extralight tracking-[0.25em] text-foreground">ZAHTEN</h1>
               <p className="mt-2 text-sm font-extralight text-muted-foreground/80 max-w-2xl">
-                Classified-ready intelligence operations platform. Type one objective. The engine iterates,
-                self-critiques and auto-approves its own refinements until the work is tradecraft-grade.
+                Automated agent builder. Describe the agent you want — the engine assesses your prompt,
+                asks for any missing details, then iterates and self-critiques the spec + code until it is
+                production-grade and deployable.
               </p>
             </div>
             <a
