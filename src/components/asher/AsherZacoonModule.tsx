@@ -2,29 +2,41 @@ import { useMemo, useState } from "react";
 import {
   Globe, MousePointer2, Bot, Eye, ShieldCheck, Cpu, Zap, Workflow,
   Terminal, ExternalLink, Copy, Check, ChevronRight, AlertCircle, Lock, Cloud,
-  FileSignature, Gavel, ScrollText, FileLock2, KeyRound, Radar, Bug,
-  ShieldAlert, FileCheck2, Fingerprint, Network, ServerCog, UserCheck,
-  CircleDot, Sparkles, RotateCw,
+  FileSignature, Gavel, ScrollText, FileLock2, Radar, Bug, ShieldAlert,
+  FileCheck2, Fingerprint, RotateCw, CircleDot, Sparkles, UserCheck,
+  Ghost, Network, EyeOff, Database, Users, Building2, Wallet, Map,
+  Layers, KeyRound, Hash, Stamp, Link2, Activity, Skull, Compass,
+  GitBranch, Binary, Crosshair, Briefcase, FileBadge,
 } from "lucide-react";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 
 /**
  * ZACOON — House of Asher
  *
- * Hardened, operator-gated fork of Browser-Use built for AUTHORIZED OFFENSIVE
- * SECURITY OPERATIONS. Source of truth lives at:
+ * Classified-ready OSINT collection & web intelligence platform. A hardened
+ * Browser-Use fork that lives at:
  *   https://github.com/ZorakCorp/zia-project-Zacoon-
  *
- * This console adds two capabilities on top of the autonomous browser agent:
+ * This console layers government/intelligence-agency capabilities on top of
+ * the autonomous browser agent:
  *
- *   1. AUTONOMOUS MISSION LOOP — operator types one prompt, the engine self-
- *      iterates (plan → act → critique → auto-approve) until a MISSION_COMPLETE
- *      verdict is reached or the iteration cap is hit. No babysitting.
- *
- *   2. AUTHORIZED PENETRATION TESTING — a Rules of Engagement (RoE) gate that
- *      REQUIRES verifiable written authorization from the asset owner before
- *      any offensive verb is permitted. Without a signed engagement, every
- *      destructive tool call is hard-refused at the runtime layer.
+ *   • Authorized Engagement Gate — signed Rules of Engagement required
+ *     before any offensive verb is permitted at the runtime layer.
+ *   • Autonomous Mission Loop — single objective in, plan → act → critique
+ *     → auto-approve until MISSION_COMPLETE or iteration cap.
+ *   • Stealth Browsing Engine — fingerprint masking, residential proxy
+ *     rotation, behavioral mimicry, captcha solving.
+ *   • TOR & Dark Web Module — triple-hop circuits, bridge mode, onion
+ *     market monitoring with circuit verification.
+ *   • Evidence Chain of Custody — SHA-256 hashes, HSM signatures, RFC 3161
+ *     trusted timestamps, encrypted at-rest storage, integrity verification.
+ *   • OSINT Workflow Catalog — SOCMINT, DOMINT, FININT presets.
+ *   • Multi-Target Tracking — parallel subject monitoring with relationship
+ *     mapping and network evolution snapshots.
+ *   • Attribution Avoidance — burner identities, country/ISP rotation,
+ *     compartmentalization.
+ *   • Classification System — UNCLASSIFIED → TS//SCI with handling caveats.
+ *   • Immutable Audit Log — blockchain-linked, HSM-signed, WORM storage.
  *
  * Theme rules (must match Asher Dashboard):
  *   - Aureon wallpaper background, monochrome glassmorphic surfaces
@@ -35,10 +47,10 @@ import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 const REPO_URL = "https://github.com/ZorakCorp/zia-project-Zacoon-";
 
 const PILLARS = [
-  { icon: Bot,         label: "Autonomous",      desc: "One prompt in. The engine plans, acts, critiques, and auto-approves its own refinements until the objective is satisfied or the safety cap fires." },
-  { icon: Gavel,       label: "Authorized-Only", desc: "Offensive verbs are hard-bound to a signed Rules of Engagement. No authorization, no exploitation — refused at the runtime, not warned." },
-  { icon: Eye,         label: "Vision-First",    desc: "Screenshot + DOM fusion. The agent sees what the user sees, not just what the HTML says." },
-  { icon: Cloud,       label: "Self-Sovereign",  desc: "Self-host the runtime, swap the model, keep the trace. No silent telemetry, no third-party reach-back." },
+  { icon: Bot,         label: "Autonomous",       desc: "One prompt in. The engine plans, acts, critiques, and auto-approves its own refinements until the objective is satisfied or the safety cap fires." },
+  { icon: Gavel,       label: "Authorized-Only",  desc: "Offensive verbs are hard-bound to a signed Rules of Engagement. No authorization, no exploitation — refused at the runtime, not warned." },
+  { icon: Ghost,       label: "Stealth-First",    desc: "Anti-fingerprinting, residential proxy rotation, behavioral mimicry, captcha solving. Indistinguishable from a human operator." },
+  { icon: ShieldCheck, label: "Court-Admissible", desc: "Every artifact is hashed, signed, RFC 3161 timestamped, and stored under an immutable chain of custody." },
 ];
 
 const CAPABILITIES = [
@@ -50,6 +62,15 @@ const CAPABILITIES = [
   { icon: Lock,         label: "Sandbox Posture",     detail: "Headless or headed in an isolated profile, network egress filtered per mission." },
 ];
 
+const STEALTH_CONTROLS = [
+  { icon: Fingerprint, label: "Fingerprint Masking", detail: "Canvas, WebGL, audio, font, and timezone noise. WebRTC disabled. Encrypted SNI + DoH." },
+  { icon: Network,     label: "Residential Proxies", detail: "Rotates per-request from a residential pool, country-matched to the target. No datacenter IPs." },
+  { icon: UserCheck,   label: "Cover Identities",    detail: "Burner personas with realistic browsing history, social footprint, and matched fingerprint. Auto-burn after window." },
+  { icon: Activity,    label: "Behavioral Mimicry",  detail: "Human mouse pathing, variable typing cadence, Gaussian-jittered delays, realistic dwell time." },
+  { icon: EyeOff,      label: "Detection Evasion",   detail: "Headless / WebDriver / automation flags scrubbed. Cloudflare, PerimeterX, HUMAN bypass routines." },
+  { icon: KeyRound,    label: "Captcha Engine",      detail: "AI-powered solver for reCAPTCHA v2/v3, hCaptcha, FunCaptcha, image challenges." },
+];
+
 const PENTEST_VERBS = [
   { icon: Radar,       label: "Recon & Enumeration", detail: "Scoped subdomain walk, surface mapping, exposed-asset discovery — bounded to authorized hosts." },
   { icon: Bug,         label: "Vulnerability Probe", detail: "Authenticated and unauthenticated checks for OWASP Top 10, IDOR, broken auth, SSRF, and logic flaws." },
@@ -57,46 +78,117 @@ const PENTEST_VERBS = [
   { icon: FileCheck2,  label: "Evidence Capture",    detail: "Every finding ships with request, response, screenshot, timestamp, and reproducible cURL." },
 ];
 
+const OSINT_WORKFLOWS = [
+  { icon: Users,     code: "SOCMINT", label: "Social Media Intel",  detail: "Twitter/X, Facebook, LinkedIn, Instagram. Network mapping, sentiment, geo-tags, cross-platform timeline." },
+  { icon: Globe,     code: "DOMINT",  label: "Domain Intelligence", detail: "DNS enumeration, subdomain discovery, tech stack, cert chain, security headers, WHOIS history, Wayback." },
+  { icon: Wallet,    code: "FININT",  label: "Financial Intel",     detail: "Business registrations, property records, court filings, SEC EDGAR, blockchain wallet attribution." },
+  { icon: Skull,     code: "DARKINT", label: "Dark Web Monitoring", detail: "TOR-routed onion market sweeps, vendor profiling, listing capture, paste-site monitoring." },
+  { icon: Building2, code: "ORGINT",  label: "Org Penetration",     detail: "Member identification, internal/external relationship mapping, org chart inference, key-player ranking." },
+  { icon: Map,       code: "GEOINT",  label: "Geospatial Fusion",   detail: "Aggregate location signals across platforms, EXIF mining, pattern-of-life reconstruction." },
+];
+
+const TOR_CONTROLS = [
+  { icon: GitBranch, k: "Triple-Hop Circuit",   v: "3-hop minimum, entry-node strict (Five Eyes only), exit-node randomized. Bridge mode hides TOR usage from the upstream ISP." },
+  { icon: Compass,   k: "Circuit Verification", v: "Pre-flight check inspects the chosen path. Fails closed and rebuilds the circuit if any hop is flagged." },
+  { icon: EyeOff,    k: "Onion Service Access", v: "Latency-tolerant navigation to .onion endpoints with full evidence capture (HTML, screenshot, circuit path, timestamp)." },
+  { icon: Skull,     k: "Market Sweep",         v: "Keyword-driven monitoring across known dark markets — vendor, listing, price, ratings, shipping origin captured per item." },
+];
+
+const EVIDENCE_CHAIN = [
+  { icon: Hash,         k: "Cryptographic Hash",    v: "SHA-256 of the full evidence package (screenshot, PDF render, video, HTML, DOM, HAR, cookies, metadata)." },
+  { icon: FileSignature,k: "HSM Digital Signature", v: "Non-repudiable signature from a hardware security module. Operator identity bound at signing time." },
+  { icon: Stamp,        k: "RFC 3161 Timestamp",    v: "Trusted timestamp authority token proves the evidence existed at a specific UTC instant." },
+  { icon: FileLock2,    k: "Encrypted at Rest",     v: "AES-256-GCM, classification-scoped key. Even storage admins cannot read raw evidence." },
+  { icon: Link2,        k: "Chain of Custody",      v: "Every transfer is logged with custodian identity, action, and timestamp. Court-ready exhibit packet." },
+  { icon: ShieldCheck,  k: "Integrity Verify",      v: "Re-hash on read, signature + timestamp re-verified. Tamper detection alerts the audit channel within seconds." },
+];
+
 const ROE_REQUIREMENTS = [
-  { icon: FileSignature, k: "Signed Authorization",   v: "Cryptographically signed engagement letter from the asset owner. Hash anchored in the immutable audit log." },
-  { icon: ScrollText,    k: "Defined Scope",          v: "Explicit allowlist of in-scope hosts, IP ranges, and applications. Anything off-list is refused at the runtime layer." },
-  { icon: UserCheck,     k: "Authorized Contacts",    v: "Named owner, technical POC, and escalation path. Required for emergency stop and breach notification." },
-  { icon: Gavel,         k: "Test Window",            v: "Start/end UTC timestamps. Outside the window the engine refuses to issue any offensive tool call." },
-  { icon: ShieldAlert,   k: "Excluded Verbs",         v: "Per-engagement deny list (e.g., no DoS, no data exfil, no destructive writes). Enforced at the action gate, not the prompt." },
-  { icon: FileLock2,     k: "Data Handling",          v: "All captured evidence is encrypted at rest, scoped to the engagement, and auto-purged on engagement close." },
+  { icon: FileSignature, k: "Signed Authorization",  v: "Cryptographically signed engagement letter from the asset owner. Hash anchored in the immutable audit log." },
+  { icon: ScrollText,    k: "Defined Scope",         v: "Explicit allowlist of in-scope hosts, IP ranges, and applications. Anything off-list is refused at the runtime layer." },
+  { icon: UserCheck,     k: "Authorized Contacts",   v: "Named owner, technical POC, and escalation path. Required for emergency stop and breach notification." },
+  { icon: Gavel,         k: "Test Window",           v: "Start/end UTC timestamps. Outside the window the engine refuses to issue any offensive tool call." },
+  { icon: ShieldAlert,   k: "Excluded Verbs",        v: "Per-engagement deny list (e.g., no DoS, no data exfil, no destructive writes). Enforced at the action gate, not the prompt." },
+  { icon: FileLock2,     k: "Data Handling",         v: "All captured evidence is encrypted at rest, scoped to the engagement, and auto-purged on engagement close." },
+];
+
+const ATTRIBUTION_AVOIDANCE = [
+  { icon: Layers,    k: "Compartmentalization", v: "Each target gets its own identity, proxy chain, and exit node. No two operations share infrastructure." },
+  { icon: RotateCw,  k: "Burner Lifecycle",     v: "Identities auto-rotate every 7 days. Cookies, history, and fingerprint destroyed on burn." },
+  { icon: Network,   k: "Country / ISP Rotation", v: "Exit geography rotates per request; previous exits are blacklisted for the next op cycle." },
+  { icon: Activity,  k: "Pattern Suppression",  v: "Random delays (1–30s), noise requests to unrelated sites, target-timezone-aware activity windows." },
+];
+
+const CLASSIFICATION_LEVELS = [
+  { code: "U",       label: "UNCLASSIFIED",   tone: "muted" },
+  { code: "CUI",     label: "Controlled Unclassified", tone: "muted" },
+  { code: "C",       label: "CONFIDENTIAL",   tone: "muted" },
+  { code: "S",       label: "SECRET",         tone: "active" },
+  { code: "TS",      label: "TOP SECRET",     tone: "active" },
+  { code: "TS//SCI", label: "TS // SCI",      tone: "elite" },
+];
+
+const HANDLING_CAVEATS = ["NOFORN", "ORCON", "FVEY", "REL TO USA, FVEY", "PROPIN", "RELIDO"];
+
+const GOV_INTEGRATIONS = [
+  { icon: Database,  k: "NCIC",   v: "Criminal history cross-reference (authorized operators only)." },
+  { icon: Wallet,    k: "FinCEN", v: "Financial transaction enrichment for FININT workflows." },
+  { icon: Briefcase, k: "TECS",   v: "Travel and border-crossing record correlation." },
+  { icon: Crosshair, k: "TSDB",   v: "Terrorist screening database matching." },
+  { icon: Binary,    k: "NCTC",   v: "Counter-terrorism intel community lookups." },
 ];
 
 const AUTONOMOUS_LOOP = [
-  { phase: "01", label: "Intake",        note: "Operator drops a single objective. Engine parses scope from the active engagement." },
-  { phase: "02", label: "Plan",          note: "LLM drafts an ordered tool-call plan and a self-critique checklist." },
-  { phase: "03", label: "Act",           note: "Agent executes the next step in the sandboxed browser, capturing screenshot + DOM diff." },
-  { phase: "04", label: "Critique",      note: "Reviewer pass scores the step against the objective and the RoE constraints." },
-  { phase: "05", label: "Auto-Approve",  note: "If the step is on-scope and on-objective, it is approved and the loop continues." },
-  { phase: "06", label: "Refine",        note: "Off-track or low-confidence steps trigger a re-plan, not an operator interrupt." },
-  { phase: "07", label: "Verdict",       note: "Loop terminates on MISSION_COMPLETE, RoE_VIOLATION, or iteration cap (default 12)." },
+  { phase: "01", label: "Intake",       note: "Operator drops a single objective. Engine parses scope from the active engagement." },
+  { phase: "02", label: "Plan",         note: "LLM drafts an ordered tool-call plan and a self-critique checklist." },
+  { phase: "03", label: "Act",          note: "Agent executes the next step in the sandboxed browser, capturing screenshot + DOM diff." },
+  { phase: "04", label: "Critique",     note: "Reviewer pass scores the step against the objective and the RoE constraints." },
+  { phase: "05", label: "Auto-Approve", note: "If the step is on-scope and on-objective, it is approved and the loop continues." },
+  { phase: "06", label: "Refine",       note: "Off-track or low-confidence steps trigger a re-plan, not an operator interrupt." },
+  { phase: "07", label: "Verdict",      note: "Loop terminates on MISSION_COMPLETE, RoE_VIOLATION, or iteration cap (default 12)." },
 ];
 
-const TASK_SAMPLE = `import { Agent, Engagement } from "zacoon";
+const TASK_SAMPLE = `import { Agent, Engagement, Stealth, Evidence } from "zacoon";
 
 // 1. Load the signed Rules of Engagement.
 const engagement = await Engagement.load("eng-2026-acme-webapp.sig");
 
-// 2. Hand the agent ONE objective. No step-by-step prompting.
+// 2. Compose the stealth + evidence posture.
+const stealth = Stealth.profile({
+  proxy: "residential",
+  rotation: "per_request",
+  fingerprint: "randomized",
+  behavior: "human",
+  captcha: "ai_solver",
+});
+
+const evidence = Evidence.chain({
+  hash: "sha256",
+  signature: "hsm",
+  timestamp: "rfc3161",
+  encryption: "aes-256-gcm",
+});
+
+// 3. Hand the agent ONE objective. No step-by-step prompting.
 const agent = new Agent({
   task: "Audit acme-corp.test for OWASP Top 10. Report findings with PoC.",
   engagement,                  // hard-binds scope, window, excluded verbs
+  classification: "SECRET",
+  caveats: ["NOFORN"],
   llm: "claude-3.5-sonnet",
+  stealth,
+  evidence,
   autonomous: {
     selfCritique: true,        // reviewer pass after every step
     autoApprove: true,         // approves on-scope, on-objective steps
-    maxIterations: 12,         // safety cap
+    maxIterations: 12,
     stopOn: ["MISSION_COMPLETE", "RoE_VIOLATION"],
   },
 });
 
 const report = await agent.run();
 // report.findings[]   — one entry per validated vulnerability
-// report.evidence[]   — request, response, screenshot, reproducible cURL
+// report.evidence[]   — chain-of-custody artifacts
 // report.audit        — signed, append-only step log (SHA-256 chained)`;
 
 const HARDENING_NOTES = [
@@ -110,19 +202,25 @@ const HARDENING_NOTES = [
 ];
 
 const COMPLIANCE = [
-  { k: "OWASP WSTG",   v: "Web Security Testing Guide v4.2 — checklist coverage" },
-  { k: "PTES",         v: "Penetration Testing Execution Standard alignment" },
-  { k: "NIST 800-115", v: "Technical Guide to Information Security Testing" },
-  { k: "CFAA Safe Harbor", v: "Operates only under signed authorization — no unauthorized access" },
+  { k: "OWASP WSTG",       v: "Web Security Testing Guide v4.2 — checklist coverage" },
+  { k: "PTES",             v: "Penetration Testing Execution Standard alignment" },
+  { k: "NIST 800-115",     v: "Technical Guide to Information Security Testing" },
+  { k: "NIST 800-53",      v: "Security and Privacy Controls — applicable families" },
+  { k: "FIPS 140-2",       v: "Cryptographic module compliance (HSM-backed)" },
+  { k: "FedRAMP High",     v: "Boundary alignment for federal deployment" },
+  { k: "CFAA Safe Harbor", v: "Operates only under signed authorization" },
+  { k: "RFC 3161",         v: "Trusted timestamping for evidence integrity" },
 ];
 
 const ROADMAP = [
   { phase: "Phase 0", status: "live",     label: "Engine forked + hardened",          note: "Browser-Use base, isolated profile, structured trace." },
   { phase: "Phase 1", status: "live",     label: "RoE engagement gate",                note: "Signed authorization required for every offensive verb." },
   { phase: "Phase 2", status: "live",     label: "Autonomous self-critique loop",      note: "Plan → act → critique → auto-approve, capped iterations." },
-  { phase: "Phase 3", status: "wiring",   label: "Aureon mission bridge",              note: "Trigger Zacoon engagements from Asher modules with shared context." },
-  { phase: "Phase 4", status: "planned",  label: "Live session inspector",             note: "Stream screenshots + reasoning into this tab." },
-  { phase: "Phase 5", status: "planned",  label: "Engagement library + report export", note: "Re-usable test recipes, signed PDF deliverables." },
+  { phase: "Phase 3", status: "live",     label: "Stealth browsing engine",            note: "Fingerprint masking, residential proxies, captcha solving." },
+  { phase: "Phase 4", status: "wiring",   label: "TOR + dark web module",              note: "Triple-hop circuits, market sweeps, paste-site monitoring." },
+  { phase: "Phase 5", status: "wiring",   label: "Evidence chain of custody",          note: "HSM signing, RFC 3161 timestamps, WORM storage." },
+  { phase: "Phase 6", status: "planned",  label: "OSINT workflow catalog",             note: "SOCMINT / DOMINT / FININT presets, multi-target tracking." },
+  { phase: "Phase 7", status: "planned",  label: "ASHER + AUREON predictive bridge",   note: "Predicted source ranking, gap analysis, follow-up collection." },
 ];
 
 type LoopStep = {
@@ -146,11 +244,21 @@ const AsherZacoonModule = () => {
   const [authRef, setAuthRef] = useState("");
   const [windowStart, setWindowStart] = useState("");
   const [windowEnd, setWindowEnd] = useState("");
+  const [classification, setClassification] = useState("S");
+  const [selectedCaveats, setSelectedCaveats] = useState<string[]>([]);
+
+  const toggleCaveat = (c: string) =>
+    setSelectedCaveats((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
 
   const engagementValid = useMemo(
     () => authorized && target.trim() && scope.trim() && owner.trim() && authRef.trim() && windowStart && windowEnd,
     [authorized, target, scope, owner, authRef, windowStart, windowEnd],
   );
+
+  // Stealth posture toggles
+  const [stealthOn, setStealthOn] = useState(true);
+  const [torOn, setTorOn] = useState(false);
+  const [burnerOn, setBurnerOn] = useState(true);
 
   // Autonomous mission console
   const [objective, setObjective] = useState("");
@@ -166,21 +274,21 @@ const AsherZacoonModule = () => {
 
     const planned: LoopStep[] = [
       { iter: 1, phase: "PLAN",     ok: true, detail: `Decompose objective into bounded tool-calls against ${target}.` },
-      { iter: 1, phase: "ACT",      ok: true, detail: "Issue scoped reconnaissance against in-scope hosts only." },
-      { iter: 1, phase: "CRITIQUE", ok: true, detail: "Reviewer pass — on-scope, no excluded verbs touched." },
+      { iter: 1, phase: "ACT",      ok: true, detail: `Provision ${burnerOn ? "burner identity + " : ""}${torOn ? "TOR triple-hop circuit" : "residential proxy"}; verify exit posture.` },
+      { iter: 1, phase: "CRITIQUE", ok: true, detail: "Reviewer pass — on-scope, no excluded verbs touched, fingerprint randomized." },
       { iter: 1, phase: "APPROVE",  ok: true, detail: "Auto-approved: matches engagement scope and test window." },
       { iter: 2, phase: "PLAN",     ok: true, detail: "Probe authentication surface for IDOR + broken access control." },
-      { iter: 2, phase: "ACT",      ok: true, detail: "Executed authenticated requests with sanitized payloads." },
+      { iter: 2, phase: "ACT",      ok: true, detail: "Executed authenticated requests with sanitized payloads; HAR + screenshots captured." },
       { iter: 2, phase: "CRITIQUE", ok: true, detail: "Confidence below threshold on one path — re-plan triggered." },
       { iter: 2, phase: "REFINE",   ok: true, detail: "Re-planned with narrower payload set, retried." },
       { iter: 3, phase: "ACT",      ok: true, detail: "Captured PoC for IDOR on /api/v1/orders/:id with full evidence bundle." },
       { iter: 3, phase: "CRITIQUE", ok: true, detail: "Evidence reproducible, severity scored, no excluded verbs invoked." },
-      { iter: 3, phase: "APPROVE",  ok: true, detail: "Finding committed to signed report. Objective satisfied." },
+      { iter: 3, phase: "APPROVE",  ok: true, detail: "Finding committed to signed report, hash anchored, timestamp token issued." },
       { iter: 3, phase: "VERDICT",  ok: true, detail: "MISSION_COMPLETE — engine handing back to operator." },
     ];
 
     for (const s of planned) {
-      await new Promise((r) => setTimeout(r, 320));
+      await new Promise((r) => setTimeout(r, 280));
       setSteps((prev) => [...prev, s]);
     }
     setVerdict("MISSION_COMPLETE");
@@ -214,14 +322,15 @@ const AsherZacoonModule = () => {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-50" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
               </span>
-              <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">House of Asher · Authorized Offensive Operations</p>
+              <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">House of Asher · Classified-Ready OSINT Platform</p>
             </div>
             <div className="flex items-end justify-between gap-6 flex-wrap">
               <div>
                 <h1 className="text-4xl font-extralight tracking-[0.25em] text-foreground">ZACOON</h1>
                 <p className="mt-2 text-sm font-extralight text-muted-foreground/85 max-w-2xl">
-                  Hardened, operator-gated fork of Browser-Use. Autonomous mission loop bound to a signed
-                  Rules of Engagement — the agent only attacks what the asset owner has authorized in writing.
+                  Hardened, operator-gated fork of Browser-Use. Autonomous OSINT collection with stealth
+                  browsing, TOR + dark-web access, court-admissible evidence chain, and a signed Rules of
+                  Engagement that hard-binds every offensive verb.
                 </p>
               </div>
               <a
@@ -235,7 +344,7 @@ const AsherZacoonModule = () => {
               </a>
             </div>
             <div className="mt-5 flex flex-wrap gap-2">
-              {["Browser-Use Fork", "Authorized Pentest", "Autonomous Loop", "Self-Critique", "Signed RoE", "Self-Hostable"].map((t) => (
+              {["Browser-Use Fork", "Authorized Pentest", "Stealth Engine", "TOR + Dark Web", "Chain of Custody", "Autonomous Loop", "Self-Critique", "Self-Hostable"].map((t) => (
                 <span key={t} className="rounded-full border border-border/25 bg-card/30 backdrop-blur-md px-3 py-1 text-[9px] font-light tracking-[0.25em] text-muted-foreground/85 uppercase">
                   {t}
                 </span>
@@ -351,6 +460,50 @@ const AsherZacoonModule = () => {
                 </label>
               </div>
 
+              {/* Classification + caveats */}
+              <div className="space-y-3">
+                <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">Classification</p>
+                <div className="flex flex-wrap gap-2">
+                  {CLASSIFICATION_LEVELS.map((c) => {
+                    const active = classification === c.code;
+                    return (
+                      <button
+                        key={c.code}
+                        type="button"
+                        onClick={() => setClassification(c.code)}
+                        className={`rounded-md border px-3 py-1.5 text-[9px] font-light tracking-[0.25em] uppercase transition-colors ${
+                          active
+                            ? "border-foreground/60 bg-foreground/15 text-foreground"
+                            : "border-border/25 bg-background/40 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {c.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase pt-1">Handling Caveats</p>
+                <div className="flex flex-wrap gap-2">
+                  {HANDLING_CAVEATS.map((c) => {
+                    const active = selectedCaveats.includes(c);
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => toggleCaveat(c)}
+                        className={`rounded-full border px-3 py-1 text-[9px] font-light tracking-[0.25em] uppercase transition-colors ${
+                          active
+                            ? "border-foreground/60 bg-foreground/15 text-foreground"
+                            : "border-border/25 bg-background/40 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {c}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <label className="flex items-start gap-3 cursor-pointer select-none rounded-md border border-border/20 bg-background/30 p-3">
                 <input
                   type="checkbox"
@@ -370,7 +523,7 @@ const AsherZacoonModule = () => {
                 {engagementValid ? (
                   <>
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-400/80" strokeWidth={1.5} />
-                    <span className="text-emerald-400/80">Engagement Armed — offensive verbs unlocked</span>
+                    <span className="text-emerald-400/80">Engagement Armed — offensive verbs unlocked at {classification}{selectedCaveats.length ? ` // ${selectedCaveats.join(" / ")}` : ""}</span>
                   </>
                 ) : (
                   <>
@@ -378,6 +531,49 @@ const AsherZacoonModule = () => {
                     <span className="text-amber-400/80">Engagement Not Armed — destructive verbs refused</span>
                   </>
                 )}
+              </div>
+            </div>
+          </section>
+
+          {/* Stealth Posture */}
+          <section>
+            <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Stealth Posture</p>
+            <div className="rounded-xl border border-border/20 bg-card/40 backdrop-blur-xl p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  { k: "Stealth Engine", v: stealthOn, set: setStealthOn, icon: Ghost,    note: "Fingerprint masking, residential proxies, behavioral mimicry, captcha solver." },
+                  { k: "TOR Routing",    v: torOn,     set: setTorOn,     icon: Network,  note: "Triple-hop circuit, bridge mode, dark-web access." },
+                  { k: "Burner Identity",v: burnerOn,  set: setBurnerOn,  icon: UserCheck,note: "Disposable persona, history, social footprint. Auto-burn on close." },
+                ].map(({ k, v, set, icon: Icon, note }) => (
+                  <button
+                    key={k}
+                    onClick={() => set(!v)}
+                    className={`text-left rounded-lg border p-4 transition-colors ${
+                      v ? "border-foreground/40 bg-foreground/10" : "border-border/25 bg-background/40 hover:border-foreground/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <Icon className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
+                      <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">{k}</p>
+                      <span className={`ml-auto text-[9px] font-light tracking-[0.25em] uppercase ${v ? "text-emerald-400/80" : "text-muted-foreground/60"}`}>
+                        {v ? "On" : "Off"}
+                      </span>
+                    </div>
+                    <p className="text-[10px] font-extralight text-muted-foreground/80 leading-relaxed">{note}</p>
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                {STEALTH_CONTROLS.map(({ icon: Icon, label, detail }) => (
+                  <div key={label} className="rounded-lg border border-border/20 bg-background/30 p-4">
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <Icon className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
+                      <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">{label}</p>
+                    </div>
+                    <p className="text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{detail}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </section>
@@ -467,6 +663,55 @@ const AsherZacoonModule = () => {
             </div>
           </section>
 
+          {/* OSINT Workflows */}
+          <section>
+            <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— OSINT Workflow Catalog</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {OSINT_WORKFLOWS.map(({ icon: Icon, code, label, detail }) => (
+                <div key={code} className="rounded-xl border border-border/20 bg-card/40 backdrop-blur-xl p-5 hover:border-foreground/30 transition-colors">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <Icon className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
+                    <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">{label}</p>
+                    <span className="ml-auto text-[8px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">{code}</span>
+                  </div>
+                  <p className="text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{detail}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* TOR + Dark Web */}
+          <section>
+            <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— TOR &amp; Dark Web Module</p>
+            <div className="rounded-xl border border-border/20 bg-card/40 backdrop-blur-xl divide-y divide-border/10">
+              {TOR_CONTROLS.map(({ icon: Icon, k, v }) => (
+                <div key={k} className="flex items-start gap-4 px-5 py-3.5">
+                  <Icon className="h-3.5 w-3.5 text-foreground/70 mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-light tracking-[0.25em] text-foreground uppercase">{k}</p>
+                    <p className="mt-0.5 text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{v}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Evidence Chain of Custody */}
+          <section>
+            <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Evidence Chain of Custody</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {EVIDENCE_CHAIN.map(({ icon: Icon, k, v }) => (
+                <div key={k} className="rounded-xl border border-border/20 bg-card/40 backdrop-blur-xl p-5">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <Icon className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
+                    <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">{k}</p>
+                  </div>
+                  <p className="text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{v}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
           {/* Capabilities */}
           <section>
             <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Platform Snapshot</p>
@@ -515,6 +760,39 @@ const AsherZacoonModule = () => {
                     <p className="text-[10px] font-light tracking-[0.25em] text-foreground uppercase">{k}</p>
                     <p className="mt-0.5 text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{v}</p>
                   </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Attribution Avoidance */}
+          <section>
+            <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Attribution Avoidance</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {ATTRIBUTION_AVOIDANCE.map(({ icon: Icon, k, v }) => (
+                <div key={k} className="rounded-xl border border-border/20 bg-card/40 backdrop-blur-xl p-5">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <Icon className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
+                    <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">{k}</p>
+                  </div>
+                  <p className="text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{v}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Government Integrations */}
+          <section>
+            <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Government Database Bridges</p>
+            <div className="rounded-xl border border-border/20 bg-card/40 backdrop-blur-xl divide-y divide-border/10">
+              {GOV_INTEGRATIONS.map(({ icon: Icon, k, v }) => (
+                <div key={k} className="flex items-start gap-4 px-5 py-3">
+                  <Icon className="h-3.5 w-3.5 text-foreground/70 mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">{k}</p>
+                    <p className="mt-0.5 text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{v}</p>
+                  </div>
+                  <span className="text-[8px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Authorized Operators</span>
                 </div>
               ))}
             </div>
@@ -615,11 +893,11 @@ const AsherZacoonModule = () => {
                 </p>
                 <p className="mt-1 text-[11px] font-extralight text-muted-foreground/80">
                   {engagementValid
-                    ? "Engagement loaded. Offensive verbs are unlocked within the defined scope and test window."
+                    ? `Engagement loaded at ${classification}${selectedCaveats.length ? ` // ${selectedCaveats.join(" / ")}` : ""}. Stealth ${stealthOn ? "on" : "off"} · TOR ${torOn ? "on" : "off"} · Burner ${burnerOn ? "on" : "off"}.`
                     : "Zacoon will not issue any offensive tool call until a signed Rules of Engagement is armed above."}
                 </p>
               </div>
-              <Fingerprint className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />
+              <FileBadge className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />
             </div>
           </section>
 
