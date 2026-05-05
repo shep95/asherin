@@ -170,7 +170,6 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "vedic",     label: "Vedic Strategy",  icon: Moon,      sub: "Sidereal" },
     { id: "__automation" as AsherTab, label: "Automation", icon: Package, children: [
       { id: "zahten",  label: "Zahten Agents",   icon: Workflow,  sub: "Builder" },
-      { id: "zacoon",  label: "Zacoon Operator", icon: Bot,       sub: "Stealth" },
     ]},
     { id: "__aureonIntel" as AsherTab, label: "Aureon Disciplines", icon: Satellite, children: [
       { id: "theater",   label: "Theater Brief",   icon: FileText },
