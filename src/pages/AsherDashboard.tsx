@@ -139,7 +139,7 @@ type AsherTab =
   | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains" | "aureondata"
   | string; // allow dynamic published-tab ids: `pub:<uuid>`
 
-interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
+interface NavItem { id: AsherTab; label: string; icon: any; sub?: string; children?: NavItem[] }
 interface NavBranch { id: string; label: string; items: NavItem[] }
 
 interface PublishedTab { id: string; name: string; icon: string; entry_html: string }
