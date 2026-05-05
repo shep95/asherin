@@ -125,6 +125,25 @@ const AsherZacoonModule = () => {
             </div>
           </header>
 
+          {/* Brains + BYOK notice */}
+          <section className="rounded-xl border border-border/25 bg-card/40 backdrop-blur-xl p-5">
+            <div className="flex items-start gap-3">
+              <Cpu className="h-3.5 w-3.5 text-foreground/70 mt-0.5" strokeWidth={1.5} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase mb-1.5">
+                  Powered by Asher + Aureon Brains
+                </p>
+                <p className="text-xs font-extralight text-muted-foreground/85 leading-relaxed">
+                  Zacoon's browser agent reasons across every Asher and Aureon brain — vision, planning, and
+                  extraction route through the full cognitive stack. Operators must supply their own LLM API key
+                  once in <span className="text-foreground/90">Settings → Bring Your Own LLM Key</span>. The
+                  same key powers every tab; no per-tab configuration.
+                </p>
+              </div>
+              <Lock className="h-3 w-3 text-foreground/50 mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+            </div>
+          </section>
+
           {/* Pillars */}
           <section>
             <p className="mb-4 text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Pillars</p>
