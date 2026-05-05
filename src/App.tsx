@@ -90,6 +90,7 @@ const App = () => (
         <BrowserRouter>
           <CommandPalette />
           <RouteSessionTracker />
+          <ByokRequiredDialog />
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Index />} />
