@@ -166,6 +166,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "whiteboard",label: "Whiteboard",      icon: PenSquare, sub: "Live" },
     { id: "notebooks", label: "Notebooks",       icon: NotebookPen, sub: "Live" },
     { id: "vedic",     label: "Vedic Strategy",  icon: Moon,      sub: "Sidereal" },
+    { id: "zahten",    label: "Zahten",          icon: Package,   sub: "Soon" },
     { id: "theater",   label: "Theater Brief",   icon: FileText },
     { id: "targeting", label: "Targeting Aid",   icon: Crosshair },
     { id: "sigint",    label: "SIGINT Fusion",   icon: Radio },
@@ -326,6 +327,7 @@ const AsherDashboard = () => {
           {active === "axrlen"    && <AsherAxrlenModule />}
           {active === "notebooks" && <AsherNotebooksModule />}
           {active === "vedic"     && <VedicAstrologyView />}
+          {active === "zahten"    && <ComingSoonModule title="Zahten" sub="Module pending specification" />}
           {active === "targets"   && <AsherSavedTargets />}
           {active === "comms"     && <AsherCommsModule />}
           {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
