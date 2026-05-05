@@ -30,6 +30,7 @@ import AsherPublishedTabRenderer from "@/components/asher/AsherPublishedTabRende
 import AsherBrainsModule from "@/components/asher/AsherBrainsModule";
 import AsherAureonDataModule from "@/components/asher/AsherAureonDataModule";
 import AsherZahtenModule from "@/components/asher/AsherZahtenModule";
+import AsherZacoonModule from "@/components/asher/AsherZacoonModule";
 import { isSuperOwner } from "@/lib/asherOrgs";
 
 import AsherProfile from "@/components/asher/AsherProfile";
@@ -168,7 +169,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "notebooks", label: "Notebooks",       icon: NotebookPen, sub: "Live" },
     { id: "vedic",     label: "Vedic Strategy",  icon: Moon,      sub: "Sidereal" },
     { id: "zahten",    label: "Zahten",          icon: Package,   sub: "Engine" },
-    { id: "zacoon",    label: "Zacoon",          icon: Package,   sub: "Soon" },
+    { id: "zacoon",    label: "Zacoon",          icon: Package,   sub: "Agent" },
     { id: "theater",   label: "Theater Brief",   icon: FileText },
     { id: "targeting", label: "Targeting Aid",   icon: Crosshair },
     { id: "sigint",    label: "SIGINT Fusion",   icon: Radio },
@@ -330,7 +331,7 @@ const AsherDashboard = () => {
           {active === "notebooks" && <AsherNotebooksModule />}
           {active === "vedic"     && <VedicAstrologyView />}
           {active === "zahten"    && <AsherZahtenModule />}
-          {active === "zacoon"    && <ComingSoonModule title="Zacoon" sub="Module pending specification" />}
+          {active === "zacoon"    && <AsherZacoonModule />}
           {active === "targets"   && <AsherSavedTargets />}
           {active === "comms"     && <AsherCommsModule />}
           {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
