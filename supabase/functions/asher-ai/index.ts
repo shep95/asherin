@@ -234,26 +234,60 @@ serve(async (req) => {
     }
 
     // ── Text-only path: OpenAI-compat (supports tool calls)
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gemini-2.5-flash",
-          messages: [{ role: "system", content: fullSystem }, ...cleaned.map((m) => ({ role: m.role, content: m.content }))],
-          tools: TOOLS,
-          stream: true,
-        }),
-      },
-    );
+    // Retry on transient 503/overload with exponential backoff before failing
+    const MODELS_FALLBACK = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+    let response: Response | null = null;
+    let lastErrText = "";
+    let lastStatus = 0;
+    outer: for (const model of MODELS_FALLBACK) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        response = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model,
+              messages: [{ role: "system", content: fullSystem }, ...cleaned.map((m) => ({ role: m.role, content: m.content }))],
+              tools: TOOLS,
+              stream: true,
+            }),
+          },
+        );
+        if (response.ok) break outer;
+        lastStatus = response.status;
+        if (response.status === 429 || response.status === 401 || response.status === 403) break outer;
+        if (response.status === 503 || response.status === 502 || response.status === 500) {
+          lastErrText = await response.text().catch(() => "");
+          console.warn(`[asher-ai] ${model} ${response.status} attempt ${attempt + 1}, backing off`);
+          await new Promise(r => setTimeout(r, 400 * Math.pow(2, attempt)));
+          continue;
+        }
+        lastErrText = await response.text().catch(() => "");
+        break outer;
+      }
+    }
 
-    if (response.status === 429) return new Response(JSON.stringify({ error: "Gemini rate limit." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!response) {
+      return new Response(JSON.stringify({ error: "No response from Gemini" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (response.status === 429) return new Response(JSON.stringify({ error: "Gemini rate limit. Try again in a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (response.status === 401 || response.status === 403) return new Response(JSON.stringify({ error: "Gemini key invalid." }), { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!response.ok) {
-      const t = await response.text();
-      console.error("asher-ai gemini:", response.status, t);
-      return new Response(JSON.stringify({ error: `Gemini error ${response.status}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("asher-ai gemini:", response.status, lastErrText);
+      // Graceful fallback: stream a friendly message instead of a 500 (prevents blank screen)
+      const friendly = response.status === 503
+        ? "The intelligence model is currently overloaded. Please retry in a few seconds."
+        : `Upstream model error (${response.status}). Please retry.`;
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(sse({ choices: [{ delta: { content: friendly }, index: 0, finish_reason: "stop" }] })));
+          controller.enqueue(encoder.encode(sse("[DONE]")));
+          controller.close();
+        },
+      });
+      return new Response(stream, { status: 200, headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
     return new Response(response.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
