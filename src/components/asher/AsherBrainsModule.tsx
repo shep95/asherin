@@ -18,6 +18,8 @@ import {
   readBrainFile,
 } from "@/lib/asherBrains";
 import { logAsherEvent } from "@/lib/asherAudit";
+import { scanFileForThreats, scanContentForThreats } from "@/lib/brainSafetyScan";
+import { ShieldCheck } from "lucide-react";
 import JSZip from "jszip";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
@@ -188,6 +190,17 @@ const AsherBrainsModule = () => {
 
   const uploadOne = async (file: File, category: AsherBrainCategory, attempt = 1): Promise<{ ok: boolean; error?: string }> => {
     if (!isSupportedBrainFile(file.name)) return { ok: false, error: "unsupported format" };
+    // VIRUS SCAN — block before upload
+    if (attempt === 1) {
+      try {
+        const scan = await scanFileForThreats(file);
+        if (!scan.clean) {
+          toast.error(`${file.name} blocked: ${scan.threats[0]}`);
+          logAsherEvent("module_open", { module: "asher_brain_virus_blocked", file: file.name, threats: scan.threats });
+          return { ok: false, error: `Virus scan: ${scan.threats.join(", ")}` };
+        }
+      } catch { /* scanner failure → fall through, do not block */ }
+    }
     try {
       const rawText = await readBrainFile(file);
       let text = sanitizeForPg(rawText);
@@ -358,6 +371,53 @@ const AsherBrainsModule = () => {
       logAsherEvent("module_open", { module: "asher_brain_deleted", category: b.category });
     }
   };
+
+  const [scanningVirus, setScanningVirus] = useState(false);
+  const scanForViruses = useCallback(async () => {
+    setScanningVirus(true);
+    try {
+      const PAGE = 200;
+      const infected: { id: string; name: string; threats: string[]; file_path: string | null }[] = [];
+      let from = 0;
+      for (let i = 0; i < 50; i++) {
+        const { data, error } = await supabase
+          .from("asher_brains")
+          .select("id,name,content,file_path")
+          .range(from, from + PAGE - 1);
+        if (error) { toast.error(error.message); break; }
+        const rows = (data as any[] | null) ?? [];
+        for (const r of rows) {
+          const res = scanContentForThreats((r.content as string) || "");
+          if (!res.clean) infected.push({ id: r.id, name: r.name, threats: res.threats, file_path: r.file_path });
+        }
+        if (rows.length < PAGE) break;
+        from += PAGE;
+      }
+      if (infected.length === 0) {
+        toast.success("No infected brains detected");
+        return;
+      }
+      if (!isAdmin) {
+        toast.warning(`${infected.length} infected brain(s) — admin required to purge`);
+        return;
+      }
+      const ids = infected.map((b) => b.id);
+      const paths = infected.map((b) => b.file_path).filter((p): p is string => !!p);
+      if (paths.length) await supabase.storage.from("asher-brains").remove(paths).catch(() => {});
+      const { error } = await supabase.from("asher_brains").delete().in("id", ids);
+      if (error) {
+        toast.error(`Quarantine failed: ${error.message}`);
+      } else {
+        setBrains((prev) => prev.filter((b) => !ids.includes(b.id)));
+        toast.success(`Quarantined ${infected.length} infected brain(s)`);
+        logAsherEvent("module_open", { module: "asher_brain_virus_purge", count: infected.length });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Virus scan failed");
+    } finally {
+      setScanningVirus(false);
+    }
+  }, [isAdmin]);
 
   const scanDuplicates = useCallback(async () => {
     setScanningDup(true);
@@ -559,6 +619,15 @@ const AsherBrainsModule = () => {
           >
             {scanningDup ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
             Scan Duplicates
+          </button>
+          <button
+            onClick={() => void scanForViruses()}
+            disabled={scanningVirus}
+            title="Scan every brain for malware/virus signatures and auto-quarantine infected files"
+            className="flex items-center gap-1.5 rounded-md border border-red-400/40 bg-red-500/10 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-red-300 uppercase hover:bg-red-500/20 disabled:opacity-50"
+          >
+            {scanningVirus ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldCheck className="h-3 w-3" />}
+            Virus Scan
           </button>
         </div>
       </div>

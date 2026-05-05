@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Globe, MousePointer2, Bot, Eye, ShieldCheck, Cpu, Zap, Workflow,
   Terminal, ExternalLink, Copy, Check, ChevronRight, AlertCircle, Lock, Cloud,
@@ -6,9 +6,12 @@ import {
   FileCheck2, Fingerprint, RotateCw, CircleDot, Sparkles, UserCheck,
   Ghost, Network, EyeOff, Database, Users, Building2, Wallet, Map,
   Layers, KeyRound, Hash, Stamp, Link2, Activity, Skull, Compass,
-  GitBranch, Binary, Crosshair, Briefcase, FileBadge,
+  GitBranch, Binary, Crosshair, Briefcase, FileBadge, Send, Brain, Play, Square,
 } from "lucide-react";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+import { streamChat } from "@/lib/ai";
+import { buildBrainContext } from "@/lib/asherBrains";
+import { toast } from "sonner";
 
 /**
  * ZACOON — House of Asher
@@ -230,60 +233,142 @@ type LoopStep = {
   ok: boolean;
 };
 
+type ChatMsg = { role: "user" | "assistant"; content: string };
+
+// Parse model output for structured workflow / steps / mermaid blocks
+const parseWorkflow = (text: string): { steps: LoopStep[]; mermaid: string | null; verdict: string } => {
+  const steps: LoopStep[] = [];
+  let mermaid: string | null = null;
+  let verdict = "";
+
+  const mermMatch = text.match(/```mermaid\s+([\s\S]*?)```/i);
+  if (mermMatch) mermaid = mermMatch[1].trim();
+
+  const verdictMatch = text.match(/\b(MISSION_COMPLETE|RoE_VIOLATION|ITERATION_CAP)\b/);
+  if (verdictMatch) verdict = verdictMatch[1];
+
+  const stepRe = /\[?\s*(\d{1,2})\s*\]?[\s.:)-]*\s*(PLAN|ACT|CRITIQUE|APPROVE|REFINE|VERDICT)\b[\s—:-]*([^\n\[]+)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = stepRe.exec(text))) {
+    const iter = parseInt(m[1], 10);
+    const phase = m[2].toUpperCase() as LoopStep["phase"];
+    const detail = m[3].trim().replace(/\s+/g, " ").slice(0, 280);
+    if (detail) steps.push({ iter, phase, detail, ok: true });
+  }
+  return { steps, mermaid, verdict };
+};
+
 const AsherZacoonModule = () => {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try { await navigator.clipboard.writeText(TASK_SAMPLE); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
   };
 
-  // Target site (URL the agent will operate against)
   const [target, setTarget] = useState("");
   const engagementValid = useMemo(() => target.trim().length > 0, [target]);
 
-  // Stealth posture toggles
   const [stealthOn, setStealthOn] = useState(true);
   const [torOn, setTorOn] = useState(false);
   const [burnerOn, setBurnerOn] = useState(true);
 
-  // Autonomous mission console
   const [objective, setObjective] = useState("");
   const [running, setRunning] = useState(false);
   const [steps, setSteps] = useState<LoopStep[]>([]);
-  const [verdict, setVerdict] = useState<"" | "MISSION_COMPLETE" | "RoE_VIOLATION" | "ITERATION_CAP">("");
+  const [verdict, setVerdict] = useState<string>("");
+  const [mermaid, setMermaid] = useState<string | null>(null);
+  const [chat, setChat] = useState<ChatMsg[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [streaming, setStreaming] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const buildSystemPrompt = () => `You are ZACOON — the operator's autonomous OSINT + browser-automation co-pilot, fused with the AUREON / ASHER intelligence stack.
+
+ACTIVE SESSION:
+- Target: ${target || "(none)"}
+- Stealth: ${stealthOn ? "ON" : "OFF"} | TOR: ${torOn ? "ON" : "OFF"} | Burner: ${burnerOn ? "ON" : "OFF"}
+- Objective: ${objective || "(awaiting)"}
+
+OUTPUT CONTRACT (every reply must include all three sections):
+1. Intelligence-Officer narrative (bold headers, tables when useful, no filler).
+2. Numbered execution workflow — one phase per line, EXACT format:
+     [01 PLAN] ...
+     [01 ACT] ...
+     [01 CRITIQUE] ...
+     [01 APPROVE] ...
+     [02 PLAN] ...
+     ... ending with  [NN VERDICT] MISSION_COMPLETE | RoE_VIOLATION | ITERATION_CAP
+3. A mermaid diagram of the flow inside a fenced \`\`\`mermaid block (graph TD or sequenceDiagram).
+
+Use the AUREON + ASHER brain corpus injected below as ground truth. Cite specific brain names when leveraging them. Surgical, direct, no filler.`;
+
+  const streamWithBrains = async (msgs: ChatMsg[]) => {
+    setStreaming(true);
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    let acc = "";
+    try {
+      const brainCtx = await buildBrainContext().catch(() => null);
+      const brainContext = {
+        prompt: buildSystemPrompt(),
+        fileContents: brainCtx
+          ? brainCtx.brains.map((b) => ({ name: `${b.category}::${b.name}`, content: b.content }))
+          : [],
+      };
+
+      setChat((p) => [...p, { role: "assistant", content: "" }]);
+
+      await streamChat({
+        messages: msgs as any,
+        mode: "default" as any,
+        depth: "standard" as any,
+        brainContext,
+        signal: ac.signal,
+        onDelta: (d) => {
+          acc += d;
+          setChat((p) => {
+            const cp = [...p];
+            cp[cp.length - 1] = { role: "assistant", content: acc };
+            return cp;
+          });
+          const parsed = parseWorkflow(acc);
+          if (parsed.steps.length) setSteps(parsed.steps);
+          if (parsed.mermaid) setMermaid(parsed.mermaid);
+          if (parsed.verdict) setVerdict(parsed.verdict);
+        },
+        onDone: () => { /* parsed live */ },
+      });
+    } catch (err: any) {
+      if (err?.name !== "AbortError") toast.error(err?.message || "Session failed");
+    } finally {
+      setStreaming(false);
+    }
+  };
 
   const runMission = async () => {
     if (!engagementValid || !objective.trim() || running) return;
     setRunning(true);
-    setSteps([]);
-    setVerdict("");
-
-    const planned: LoopStep[] = [
-      { iter: 1, phase: "PLAN",     ok: true, detail: `Decompose objective into bounded tool-calls against ${target}.` },
-      { iter: 1, phase: "ACT",      ok: true, detail: `Provision ${burnerOn ? "burner identity + " : ""}${torOn ? "TOR triple-hop circuit" : "residential proxy"}; verify exit posture.` },
-      { iter: 1, phase: "CRITIQUE", ok: true, detail: "Reviewer pass — on-scope, no excluded verbs touched, fingerprint randomized." },
-      { iter: 1, phase: "APPROVE",  ok: true, detail: "Auto-approved: matches engagement scope and test window." },
-      { iter: 2, phase: "PLAN",     ok: true, detail: "Probe authentication surface for IDOR + broken access control." },
-      { iter: 2, phase: "ACT",      ok: true, detail: "Executed authenticated requests with sanitized payloads; HAR + screenshots captured." },
-      { iter: 2, phase: "CRITIQUE", ok: true, detail: "Confidence below threshold on one path — re-plan triggered." },
-      { iter: 2, phase: "REFINE",   ok: true, detail: "Re-planned with narrower payload set, retried." },
-      { iter: 3, phase: "ACT",      ok: true, detail: "Captured PoC for IDOR on /api/v1/orders/:id with full evidence bundle." },
-      { iter: 3, phase: "CRITIQUE", ok: true, detail: "Evidence reproducible, severity scored, no excluded verbs invoked." },
-      { iter: 3, phase: "APPROVE",  ok: true, detail: "Finding committed to signed report, hash anchored, timestamp token issued." },
-      { iter: 3, phase: "VERDICT",  ok: true, detail: "MISSION_COMPLETE — engine handing back to operator." },
-    ];
-
-    for (const s of planned) {
-      await new Promise((r) => setTimeout(r, 280));
-      setSteps((prev) => [...prev, s]);
-    }
-    setVerdict("MISSION_COMPLETE");
+    setSteps([]); setVerdict(""); setMermaid(null);
+    const userMsg: ChatMsg = { role: "user", content: `MISSION INTAKE — Target: ${target}\nObjective: ${objective}` };
+    setChat([userMsg]);
+    await streamWithBrains([userMsg]);
     setRunning(false);
   };
 
+  const sendChat = async () => {
+    const text = chatInput.trim();
+    if (!text || streaming) return;
+    setChatInput("");
+    const next: ChatMsg[] = [...chat, { role: "user", content: text }];
+    setChat(next);
+    await streamWithBrains(next);
+  };
+
+  const stopStream = () => abortRef.current?.abort();
+
   const resetMission = () => {
-    setSteps([]);
-    setVerdict("");
-    setObjective("");
+    setSteps([]); setVerdict(""); setObjective("");
+    setChat([]); setMermaid(null);
   };
 
   return (
@@ -483,40 +568,55 @@ const AsherZacoonModule = () => {
                 className="w-full rounded-md border border-border/25 bg-background/40 px-3 py-2.5 text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 resize-none"
               />
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={runMission}
-                  disabled={!engagementValid || !objective.trim() || running}
-                  className="inline-flex items-center gap-2 rounded-md border border-foreground/40 bg-foreground/10 px-4 py-2 text-[10px] font-light tracking-[0.25em] text-foreground hover:bg-foreground/20 transition-colors uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={!engagementValid || !objective.trim() || running || streaming}
+                  className="inline-flex items-center gap-2 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-[10px] font-light tracking-[0.25em] text-emerald-300 hover:bg-emerald-500/20 transition-colors uppercase disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {running ? <RotateCw className="h-3 w-3 animate-spin" strokeWidth={1.5} /> : <Zap className="h-3 w-3" strokeWidth={1.5} />}
-                  {running ? "Running…" : "Launch Mission"}
+                  {running || streaming ? <RotateCw className="h-3 w-3 animate-spin" strokeWidth={1.5} /> : <Play className="h-3 w-3" strokeWidth={1.5} />}
+                  {running || streaming ? "Running…" : "Run"}
                 </button>
-                {(steps.length > 0 || verdict) && !running && (
-                  <button
-                    onClick={resetMission}
-                    className="inline-flex items-center gap-2 rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[10px] font-light tracking-[0.25em] text-muted-foreground hover:text-foreground transition-colors uppercase"
-                  >
+                {streaming && (
+                  <button onClick={stopStream} className="inline-flex items-center gap-2 rounded-md border border-red-400/40 bg-red-500/10 px-3 py-2 text-[10px] font-light tracking-[0.25em] text-red-300 hover:bg-red-500/20 uppercase">
+                    <Square className="h-3 w-3" strokeWidth={1.5} /> Stop
+                  </button>
+                )}
+                {(steps.length > 0 || verdict || chat.length > 0) && !running && !streaming && (
+                  <button onClick={resetMission} className="inline-flex items-center gap-2 rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[10px] font-light tracking-[0.25em] text-muted-foreground hover:text-foreground uppercase">
                     Reset
                   </button>
                 )}
+                <span className="inline-flex items-center gap-1.5 text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">
+                  <Brain className="h-3 w-3" strokeWidth={1.5} /> Aureon + Asher Brains injected
+                </span>
                 {!engagementValid && (
-                  <span className="text-[10px] font-light tracking-[0.2em] text-amber-400/80 uppercase">
-                    Arm engagement to launch
-                  </span>
+                  <span className="text-[10px] font-light tracking-[0.2em] text-amber-400/80 uppercase">Set target to run</span>
                 )}
               </div>
 
+              {/* Live workflow steps */}
               {steps.length > 0 && (
-                <div className="rounded-lg border border-border/20 bg-background/30 divide-y divide-border/10 max-h-72 overflow-y-auto">
-                  {steps.map((s, i) => (
-                    <div key={i} className="flex items-start gap-3 px-4 py-2.5">
-                      <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/60 w-6 mt-0.5">{String(s.iter).padStart(2, "0")}</span>
-                      <span className={`mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0 ${s.ok ? "bg-emerald-400/80" : "bg-amber-400/80"}`} />
-                      <span className="text-[9px] font-light tracking-[0.3em] text-foreground/80 uppercase w-20 flex-shrink-0 mt-0.5">{s.phase}</span>
-                      <span className="text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{s.detail}</span>
-                    </div>
-                  ))}
+                <div>
+                  <p className="mb-1.5 text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Workflow</p>
+                  <div className="rounded-lg border border-border/20 bg-background/30 divide-y divide-border/10 max-h-72 overflow-y-auto">
+                    {steps.map((s, i) => (
+                      <div key={i} className="flex items-start gap-3 px-4 py-2.5">
+                        <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/60 w-6 mt-0.5">{String(s.iter).padStart(2, "0")}</span>
+                        <span className={`mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0 ${s.ok ? "bg-emerald-400/80" : "bg-amber-400/80"}`} />
+                        <span className="text-[9px] font-light tracking-[0.3em] text-foreground/80 uppercase w-20 flex-shrink-0 mt-0.5">{s.phase}</span>
+                        <span className="text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">{s.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Mermaid diagram (raw — rendered as code; user can copy into a renderer) */}
+              {mermaid && (
+                <div>
+                  <p className="mb-1.5 text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Diagram (mermaid)</p>
+                  <pre className="rounded-lg border border-border/20 bg-background/40 p-3 text-[10px] font-mono text-foreground/80 overflow-x-auto whitespace-pre">{mermaid}</pre>
                 </div>
               )}
 
@@ -526,6 +626,41 @@ const AsherZacoonModule = () => {
                   <span className="text-[10px] font-light tracking-[0.3em] text-emerald-400/90 uppercase">Verdict — {verdict}</span>
                 </div>
               )}
+
+              {/* Chat session — ask follow-ups, request more tasks */}
+              {chat.length > 0 && (
+                <div>
+                  <p className="mb-1.5 text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">— Session Transcript</p>
+                  <div className="rounded-lg border border-border/20 bg-background/30 divide-y divide-border/10 max-h-96 overflow-y-auto">
+                    {chat.map((m, i) => (
+                      <div key={i} className="px-4 py-2.5">
+                        <p className="text-[8px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase mb-1">
+                          {m.role === "user" ? "Operator" : "Zacoon"}
+                        </p>
+                        <p className="text-[11px] font-extralight text-foreground/85 whitespace-pre-wrap leading-relaxed">{m.content || "…"}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendChat(); } }}
+                  placeholder="Ask Zacoon to run another task, refine the workflow, or pull more intel from the brains…"
+                  rows={2}
+                  className="flex-1 rounded-md border border-border/25 bg-background/40 px-3 py-2 text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 resize-none"
+                />
+                <button
+                  onClick={() => void sendChat()}
+                  disabled={!chatInput.trim() || streaming}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-foreground/40 bg-foreground/10 px-3 py-2 text-[10px] font-light tracking-[0.25em] text-foreground hover:bg-foreground/20 uppercase disabled:opacity-40"
+                >
+                  <Send className="h-3 w-3" strokeWidth={1.5} /> Send
+                </button>
+              </div>
             </div>
           </section>
 
