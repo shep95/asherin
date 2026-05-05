@@ -29,7 +29,7 @@ import { changedFiles } from "@/lib/ide";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
 import { callAsherCodeAi, extractCodeBlock } from "@/lib/asherCode/aiClient";
 import { routeGoal } from "@/lib/asherCode/goalRouter";
-import { History, Stethoscope, Wand2, Cpu, Brain, Zap, Bug, Eye, ScrollText } from "lucide-react";
+import { History, Stethoscope, Wand2, Cpu, Brain, Zap, Bug, Eye, ScrollText, GitCommit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { startQueueWorker as zqStart, registerHandler as zqRegister, enqueue as zqEnqueue, type QueuedJob } from "@/lib/zanoem/offlineQueue";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
