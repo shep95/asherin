@@ -281,8 +281,45 @@ const AsherDashboard = () => {
                 {open && (
                   <div className="mt-0.5 ml-2 border-l border-border/15 pl-2 space-y-0.5">
                     {branch.items.map((n) => {
-                      const isActive = active === n.id;
                       const Icon = n.icon;
+                      if (n.children && n.children.length) {
+                        const subId = `${branch.id}::${n.id}`;
+                        const subOpen = !!openBranches[subId];
+                        return (
+                          <div key={n.id}>
+                            <button
+                              onClick={() => toggleBranch(subId)}
+                              className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
+                            >
+                              {subOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                              <Icon className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+                              <span className="flex-1 text-xs font-light tracking-wide">{n.label}</span>
+                            </button>
+                            {subOpen && (
+                              <div className="mt-0.5 ml-3 border-l border-border/10 pl-2 space-y-0.5">
+                                {n.children.map((c) => {
+                                  const CIcon = c.icon;
+                                  const cActive = active === c.id;
+                                  return (
+                                    <button
+                                      key={c.id}
+                                      onClick={() => setActive(c.id)}
+                                      className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors ${
+                                        cActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                                      }`}
+                                    >
+                                      <CIcon className="h-3 w-3 flex-shrink-0" strokeWidth={1.5} />
+                                      <span className="flex-1 text-[11px] font-light tracking-wide">{c.label}</span>
+                                      {c.sub && <span className="text-[8px] font-light tracking-[0.2em] text-red-400/70 uppercase">{c.sub}</span>}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      const isActive = active === n.id;
                       return (
                         <button
                           key={n.id}
