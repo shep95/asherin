@@ -18,6 +18,8 @@ import {
   readBrainFile,
 } from "@/lib/asherBrains";
 import { logAsherEvent } from "@/lib/asherAudit";
+import { scanFileForThreats, scanContentForThreats } from "@/lib/brainSafetyScan";
+import { ShieldCheck } from "lucide-react";
 import JSZip from "jszip";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
