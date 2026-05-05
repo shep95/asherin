@@ -663,8 +663,6 @@ Use the AUREON + ASHER brain corpus injected below as ground truth. Cite specifi
               </div>
             </div>
           </section>
-            </div>
-          </section>
 
           {/* Autonomous Loop Diagram */}
           <section>
