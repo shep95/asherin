@@ -1678,10 +1678,17 @@ ${zophielCodingBrainContent}
 
           lastStatus = response.status;
 
-          // 429 (rate limit) and 503 (overloaded) → retry with backoff, then cascade to next model
-          if ((response.status === 429 || response.status === 503) && attempt < MAX_RETRIES) {
-            const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 16000);
-            console.log(`[chat] ${modelId} returned ${response.status}, retry ${attempt + 1}/${MAX_RETRIES} in ${Math.round(delay)}ms`);
+          // 429 (quota) won't recover in seconds — cascade immediately to next model.
+          if (response.status === 429) {
+            lastError = await response.text();
+            console.error(`[chat] ${modelId} quota-limited (429), cascading immediately:`, lastError.slice(0, 200));
+            break; // next model
+          }
+
+          // 503 (transient overload) → short retry, max 2 attempts, capped delay
+          if (response.status === 503 && attempt < 2) {
+            const delay = Math.min(500 * Math.pow(2, attempt) + Math.random() * 200, 2000);
+            console.log(`[chat] ${modelId} returned 503, retry ${attempt + 1}/2 in ${Math.round(delay)}ms`);
             await new Promise((r) => setTimeout(r, delay));
             continue;
           }
