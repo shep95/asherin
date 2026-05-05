@@ -305,6 +305,12 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
 
       if (resp.status === 429) { toast.error("Rate limit — slow down"); setBusy(false); return; }
       if (resp.status === 402) { toast.error("AI credits exhausted"); setBusy(false); return; }
+      if (resp.status === 503 || resp.status === 502) {
+        const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
+        triggerByokRequired({ source: "asher-ai", reason: "Asher Dashboard core model is overloaded." });
+        setBusy(false);
+        return;
+      }
       if (!resp.ok || !resp.body) throw new Error("stream failed");
 
       const assistantId = crypto.randomUUID();
