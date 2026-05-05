@@ -35,6 +35,7 @@ import {
   IdeCheckpointPanel,
   IdeModeToggle,
   IdeChangedFilesPanel,
+  IdeBuildStatusPanel,
   type PlannedChange,
   type IdeCommand,
 } from "@/components/ide-shared";
@@ -2199,6 +2200,14 @@ try {
                 </div>
               ))}
               <AsherCodePlanStepsView plan={activePlan} />
+              {(zanoemMode || autopilotRoundsRef.current > 0) && (
+                <IdeBuildStatusPanel
+                  lastAssistantText={chat.filter(m => m.role === "assistant").slice(-1)[0]?.content || ""}
+                  round={autopilotRoundsRef.current}
+                  maxRounds={AUTOPILOT_MAX_ROUNDS}
+                  busy={aiBusy}
+                />
+              )}
               {aiBusy && <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Thinking…</div>}
               <div ref={chatEndRef} />
             </div>

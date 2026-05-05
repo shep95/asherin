@@ -23,6 +23,7 @@ import {
   IdeCheckpointPanel,
   IdeModeToggle,
   IdeChangedFilesPanel,
+  IdeBuildStatusPanel,
   type PlannedChange,
 } from "@/components/ide-shared";
 import { changedFiles } from "@/lib/ide";
@@ -1166,12 +1167,20 @@ const AureonIdeView = () => {
               <ResizablePanel defaultSize={24} minSize={15} maxSize={40} className="overflow-hidden">
                 <div className="h-full border-l border-border/20 bg-card/10 overflow-hidden flex flex-col">
                   {zanoemToggleBar}
-                  <div className="px-2 pt-2">
+                  <div className="px-2 pt-2 space-y-2">
                     <IdeChangedFilesPanel
                       scope="aureon"
                       projectId={activeSessionId ?? ""}
                       onOpenFile={(id) => { const f = allFiles.find(x => x.id === id); if (f) selectFile(f); }}
                     />
+                    {(zanoemMode || autopilotRoundsRef.current > 0) && (
+                      <IdeBuildStatusPanel
+                        lastAssistantText={lastAssistantRef.current || ""}
+                        round={autopilotRoundsRef.current}
+                        maxRounds={AUTOPILOT_MAX_ROUNDS}
+                        busy={isStreaming}
+                      />
+                    )}
                   </div>
                   <div className="flex-1 min-h-0"><IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} /></div>
                 </div>
