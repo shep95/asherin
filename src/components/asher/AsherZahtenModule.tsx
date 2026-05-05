@@ -250,15 +250,118 @@ const AsherZahtenModule = () => {
     return text;
   };
 
+  // Plain (non-streaming-into-passes) call for the scope assessor.
+  const callAsherAiPlain = async (system: string, user: string, signal: AbortSignal): Promise<string> => {
+    const byok = getActiveIntelMapByok();
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asher-ai`;
+    const resp = await fetch(url, {
+      method: "POST",
+      signal,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        ...(byok ? { "x-byok-gemini-key": byok.apiKey } : {}),
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: "user", content: system },
+          { role: "user", content: user },
+        ],
+        mapContext: { surface: "zahten_scope_assessor" },
+      }),
+    });
+    if (!resp.ok || !resp.body) throw new Error(`Assessor failed (${resp.status})`);
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "", text = "", done = false;
+    while (!done) {
+      const { value, done: d } = await reader.read();
+      if (d) break;
+      buf += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf("\n")) !== -1) {
+        let line = buf.slice(0, idx); buf = buf.slice(idx + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (!line.startsWith("data: ")) continue;
+        const json = line.slice(6).trim();
+        if (json === "[DONE]") { done = true; break; }
+        try {
+          const parsed = JSON.parse(json);
+          const delta = parsed.choices?.[0]?.delta;
+          if (delta?.content) text += delta.content;
+        } catch { buf = line + "\n" + buf; break; }
+      }
+    }
+    return text.trim();
+  };
+
+  const parseAssessor = (text: string): { ready: boolean; restated?: string; questions?: string[] } => {
+    const t = text.trim();
+    if (/^READY\b/i.test(t)) {
+      const rest = t.replace(/^READY\s*/i, "").trim();
+      return { ready: true, restated: rest || "Scope confirmed." };
+    }
+    if (/^CLARIFY\b/i.test(t)) {
+      const lines = t.split("\n").slice(1).map((l) => l.replace(/^\s*\d+[.)]\s*/, "").trim()).filter(Boolean);
+      return { ready: false, questions: lines.slice(0, 5) };
+    }
+    // Fallback: assume ready if model didn't follow format
+    return { ready: true, restated: t.slice(0, 240) };
+  };
+
+  const assessScope = async () => {
+    if (!objective.trim() || running || scope.phase === "assessing") return;
+    setScope({ phase: "assessing" });
+    const ctl = new AbortController();
+    abortRef.current = ctl;
+    try {
+      const out = await callAsherAiPlain(
+        SCOPE_ASSESSOR_SYSTEM,
+        `AGENT BUILD PROMPT:\n${objective.trim()}`,
+        ctl.signal,
+      );
+      const parsed = parseAssessor(out);
+      if (parsed.ready) {
+        setScope({ phase: "ready", restated: parsed.restated! });
+      } else if (parsed.questions && parsed.questions.length) {
+        setScope({ phase: "clarify", questions: parsed.questions, answers: parsed.questions.map(() => "") });
+      } else {
+        setScope({ phase: "ready", restated: "Scope confirmed." });
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Scope assessment failed");
+      setScope({ phase: "idle" });
+    } finally {
+      abortRef.current = null;
+    }
+  };
+
+  const buildEnrichedObjective = (): string => {
+    if (scope.phase !== "clarify") return objective.trim();
+    const qa = scope.questions
+      .map((q, i) => `Q: ${q}\nA: ${scope.answers[i]?.trim() || "(no answer — make a defensible assumption)"}`)
+      .join("\n\n");
+    return `${objective.trim()}\n\n--- CLARIFICATIONS ---\n${qa}`;
+  };
+
   const deploy = async () => {
     if (!objective.trim() || running) return;
+
+    // Pre-flight: if scope hasn't been assessed yet, run the assessor first.
+    if (scope.phase === "idle") {
+      await assessScope();
+      return; // user reviews questions / restated scope, then clicks Deploy again
+    }
+    if (scope.phase === "assessing") return;
+
     setRunning(true);
     setPasses([]);
     const ctl = new AbortController();
     abortRef.current = ctl;
 
+    const enriched = buildEnrichedObjective();
     const history: { role: "user" | "assistant"; content: string }[] = [
-      { role: "user", content: `MISSION OBJECTIVE:\n${objective.trim()}\n\nExecute pass 1 now. Then self-critique and continue iterating until MISSION_COMPLETE.` },
+      { role: "user", content: `AGENT BUILD OBJECTIVE:\n${enriched}\n\nExecute pass 1 now. Then self-critique and continue iterating until MISSION_COMPLETE.` },
     ];
 
     try {
@@ -271,7 +374,7 @@ const AsherZahtenModule = () => {
         } catch (e: any) {
           if (ctl.signal.aborted) break;
           setPasses((p) => p.map((pp) => pp.n === n ? { ...pp, status: "error", text: pp.text + `\n\n_Error: ${e?.message || e}_`, endedAt: Date.now() } : pp));
-          toast.error(e?.message || "Mission pass failed");
+          toast.error(e?.message || "Build pass failed");
           break;
         }
         const status = parseStatus(text);
@@ -280,19 +383,17 @@ const AsherZahtenModule = () => {
 
         if (isComplete) {
           if (n === maxIters && status !== "complete") {
-            toast.message(`Iteration cap hit at pass ${n}. Mission auto-finalized.`);
+            toast.message(`Iteration cap hit at pass ${n}. Agent auto-finalized.`);
           } else {
-            toast.success(`Mission complete in ${n} pass${n === 1 ? "" : "es"}`);
+            toast.success(`Agent built in ${n} pass${n === 1 ? "" : "es"}`);
           }
           break;
         }
-
-        // Auto-approve refinement: feed the model's own output back and ask for a deeper pass.
         history.push({ role: "assistant", content: text });
         history.push({
           role: "user",
           content: autoApprove
-            ? `APPROVED. Now perform pass ${n + 1}: harder self-critique, deeper sourcing, sharper structure. Produce the FULL improved version. End with the STATUS sentinel.`
+            ? `APPROVED. Now perform pass ${n + 1}: harder self-critique, deeper edge cases, tighter code. Produce the FULL improved version. End with the STATUS sentinel.`
             : `Continue. Pass ${n + 1}.`,
         });
       }
@@ -300,6 +401,11 @@ const AsherZahtenModule = () => {
       setRunning(false);
       abortRef.current = null;
     }
+  };
+
+  const resetScope = () => {
+    setScope({ phase: "idle" });
+    setPasses([]);
   };
 
   return (
