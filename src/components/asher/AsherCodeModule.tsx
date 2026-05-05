@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ASHER_CODE_PROVIDERS, type AsherCodeProject, type AsherCodeFile } from "@/lib/asherCode/types";
 import { callAsherCodeAi, extractCodeBlock, extractJsonBlock, type EditPlan, type CallAsherCodeResult } from "@/lib/asherCode/aiClient";
 import { routeGoal } from "@/lib/asherCode/goalRouter";
+import { IDE_BUILD_CONTRACT, parseIdeBuildStatus, buildCritiqueContinuationReply } from "@/lib/ide/completionLoop";
 import EditPlanReview from "./AsherCodeEditPlan";
 import AsherCodeOrchestrationResult from "./AsherCodeOrchestrationResult";
 import { AsherCodePlanStepsView } from "./AsherCodePlanSteps";
