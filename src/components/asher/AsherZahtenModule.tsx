@@ -621,7 +621,7 @@ const AsherZahtenModule = () => {
                 className={`w-full text-left rounded-md px-2.5 py-2 transition-colors ${isActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"}`}
               >
                 <div className="flex items-center gap-2">
-                  <span className={`h-1.5 w-1.5 rounded-full ${a.status === "scheduled" ? "bg-emerald-400/80" : a.status === "ready" ? "bg-sky-400/80" : a.status === "paused" ? "bg-amber-400/80" : "bg-muted-foreground/40"}`} />
+                  <span className={`h-1.5 w-1.5 rounded-full ${a.status === "live" ? "bg-emerald-400 animate-pulse" : a.status === "scheduled" ? "bg-emerald-400/80" : a.status === "ready" ? "bg-sky-400/80" : a.status === "paused" ? "bg-amber-400/80" : "bg-muted-foreground/40"}`} />
                   <span className="flex-1 text-[12px] font-light truncate">{a.name}</span>
                 </div>
                 <div className="mt-0.5 ml-3.5 text-[9px] font-light tracking-[0.2em] text-muted-foreground/50 uppercase truncate">{a.trigger}</div>
