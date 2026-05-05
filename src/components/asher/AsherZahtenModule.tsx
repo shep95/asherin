@@ -483,9 +483,9 @@ const AsherZahtenModule = () => {
 
           <textarea
             value={objective}
-            onChange={(e) => setObjective(e.target.value)}
-            disabled={running}
-            placeholder="Type the mission objective. e.g. Build a 14-day OSINT collection plan against [target] covering social, infra, financial. The engine will iterate and auto-approve until tradecraft-grade."
+            onChange={(e) => { setObjective(e.target.value); if (scope.phase !== "idle") setScope({ phase: "idle" }); }}
+            disabled={running || scope.phase === "assessing"}
+            placeholder="Describe the agent you want. e.g. 'Every morning at 7am pull new GitHub issues labelled bug, summarise them with an LLM, and post the digest to Slack #eng-triage.' If you skip key details (trigger, source, destination, success criteria) the assessor will ask before building."
             rows={4}
             className="w-full bg-background/60 border border-border/30 rounded-lg px-4 py-3 text-sm font-extralight text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/60 resize-none"
           />
