@@ -20,8 +20,12 @@ import {
   IdeApprovalGate,
   IdeModelRouterBadge,
   IdeValidatorBadge,
+  IdeCheckpointPanel,
+  IdeModeToggle,
+  IdeChangedFilesPanel,
   type PlannedChange,
 } from "@/components/ide-shared";
+import { changedFiles } from "@/lib/ide";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
 import { callAsherCodeAi, extractCodeBlock } from "@/lib/asherCode/aiClient";
 import { routeGoal } from "@/lib/asherCode/goalRouter";
