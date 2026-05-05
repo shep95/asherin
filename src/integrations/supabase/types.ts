@@ -3265,6 +3265,77 @@ export type Database = {
         }
         Relationships: []
       }
+      forum_posts: {
+        Row: {
+          author_name: string | null
+          body: string
+          category: Database["public"]["Enums"]["forum_category"]
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author_name?: string | null
+          body: string
+          category?: Database["public"]["Enums"]["forum_category"]
+          created_at?: string
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string | null
+          body?: string
+          category?: Database["public"]["Enums"]["forum_category"]
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      forum_replies: {
+        Row: {
+          author_name: string | null
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author_name?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_replies_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gift_purchases: {
         Row: {
           addons: Json | null
@@ -7732,6 +7803,7 @@ export type Database = {
         | "dept_admin"
         | "officer"
         | "analyst"
+      forum_category: "idea" | "leak" | "bug"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -7886,6 +7958,7 @@ export const Constants = {
         "officer",
         "analyst",
       ],
+      forum_category: ["idea", "leak", "bug"],
     },
   },
 } as const
