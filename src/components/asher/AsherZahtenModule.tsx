@@ -275,6 +275,9 @@ const AsherZahtenModule = () => {
     setObjective(activeAgent.objective);
     setPasses(activeAgent.passes);
     setScope({ phase: "idle" });
+    setSecretValues(activeAgent.secretValues || {});
+    setLiveRuns(activeAgent.liveRuns || []);
+    setFollowUp("");
   }, [activeAgentId]);
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [passes]);
