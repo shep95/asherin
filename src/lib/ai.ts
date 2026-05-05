@@ -122,6 +122,12 @@ export async function streamChat({
 
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+    if (resp.status === 503 || resp.status === 502 || /overload/i.test(err?.error || "")) {
+      try {
+        const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
+        triggerByokRequired({ source: "aureon-chat", reason: "AUREON LLM API is overloaded right now." });
+      } catch { /* noop */ }
+    }
     throw new Error(err.error || `HTTP ${resp.status}`);
   }
 
