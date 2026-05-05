@@ -30,6 +30,7 @@ import AsherPublishedTabRenderer from "@/components/asher/AsherPublishedTabRende
 import AsherBrainsModule from "@/components/asher/AsherBrainsModule";
 import AsherAureonDataModule from "@/components/asher/AsherAureonDataModule";
 import AsherZahtenModule from "@/components/asher/AsherZahtenModule";
+import AsherZacoonModule from "@/components/asher/AsherZacoonModule";
 
 import { isSuperOwner } from "@/lib/asherOrgs";
 
