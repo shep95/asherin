@@ -330,6 +330,7 @@ const AsherDashboard = () => {
           {active === "notebooks" && <AsherNotebooksModule />}
           {active === "vedic"     && <VedicAstrologyView />}
           {active === "zahten"    && <AsherZahtenModule />}
+          {active === "zacoon"    && <ComingSoonModule title="Zacoon" sub="Module pending specification" />}
           {active === "targets"   && <AsherSavedTargets />}
           {active === "comms"     && <AsherCommsModule />}
           {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
