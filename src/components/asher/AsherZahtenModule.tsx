@@ -178,20 +178,57 @@ type ScopeState =
 type AgentRecord = {
   id: string;
   name: string;
-  status: "draft" | "ready" | "scheduled" | "paused";
+  status: "draft" | "ready" | "scheduled" | "paused" | "live";
   trigger: string;
   lastRun?: string;
   passes: Pass[];
   objective: string;
+  deployedAt?: number;
+  liveRuns?: LiveRun[];
+  secretValues?: Record<string, string>;
 };
 
-type ViewTab = "builder" | "runs" | "code" | "schedule" | "compliance";
+type LiveRun = {
+  id: string;
+  startedAt: number;
+  endedAt?: number;
+  status: "running" | "ok" | "failed";
+  log: string[];
+};
+
+type ViewTab = "builder" | "workflow" | "runs" | "code" | "schedule" | "compliance";
 
 const STARTER_AGENTS: AgentRecord[] = [
   { id: "agent-001", name: "GitHub Bug Triage", status: "scheduled", trigger: "cron: 0 7 * * *", lastRun: "2h ago", passes: [], objective: "Pull new GitHub issues labelled bug, summarise them, post digest to Slack #eng-triage." },
   { id: "agent-002", name: "OSINT Watchdog",    status: "ready",     trigger: "webhook",        lastRun: "—",      passes: [], objective: "Watch a list of news domains for keyword mentions and emit structured alerts." },
   { id: "agent-003", name: "Invoice Reconciler",status: "draft",     trigger: "manual",         lastRun: "—",      passes: [], objective: "" },
 ];
+
+// Parse "Secrets required:" line from pass text → array of secret names
+function parseRequiredSecrets(text: string): string[] {
+  if (!text) return [];
+  const m = text.match(/Secrets?\s*required\s*[:\-]\s*([^\n]+)/i);
+  if (!m) return [];
+  const raw = m[1].trim();
+  if (/^(none|n\/?a|—|-)$/i.test(raw)) return [];
+  return raw.split(/[,;]| and /i).map(s => s.replace(/[`*<>]/g, "").trim()).filter(s => s && s.length < 60).slice(0, 12);
+}
+
+// Parse numbered WORKFLOW steps from pass text → array of short labels
+function parseWorkflowSteps(text: string): { n: number; label: string }[] {
+  if (!text) return [];
+  const wfMatch = text.match(/\*\*WORKFLOW\*\*([\s\S]*?)(?:\*\*CODE\*\*|\*\*TEST PLAN\*\*|$)/i);
+  const block = wfMatch ? wfMatch[1] : text;
+  const steps: { n: number; label: string }[] = [];
+  const re = /^\s*(\d+)[.)]\s+(.+)$/gm;
+  let m;
+  while ((m = re.exec(block)) !== null) {
+    const label = m[2].split(/[—\-:|]/)[0].replace(/\*/g, "").trim().slice(0, 60);
+    if (label) steps.push({ n: parseInt(m[1]), label });
+    if (steps.length >= 12) break;
+  }
+  return steps;
+}
 
 const AsherZahtenModule = () => {
   // Agent registry
