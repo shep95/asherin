@@ -236,24 +236,9 @@ const AsherZacoonModule = () => {
     try { await navigator.clipboard.writeText(TASK_SAMPLE); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
   };
 
-  // Authorized engagement intake
-  const [authorized, setAuthorized] = useState(false);
+  // Target site (URL the agent will operate against)
   const [target, setTarget] = useState("");
-  const [scope, setScope] = useState("");
-  const [owner, setOwner] = useState("");
-  const [authRef, setAuthRef] = useState("");
-  const [windowStart, setWindowStart] = useState("");
-  const [windowEnd, setWindowEnd] = useState("");
-  const [classification, setClassification] = useState("S");
-  const [selectedCaveats, setSelectedCaveats] = useState<string[]>([]);
-
-  const toggleCaveat = (c: string) =>
-    setSelectedCaveats((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
-
-  const engagementValid = useMemo(
-    () => authorized && target.trim() && scope.trim() && owner.trim() && authRef.trim() && windowStart && windowEnd,
-    [authorized, target, scope, owner, authRef, windowStart, windowEnd],
-  );
+  const engagementValid = useMemo(() => target.trim().length > 0, [target]);
 
   // Stealth posture toggles
   const [stealthOn, setStealthOn] = useState(true);
