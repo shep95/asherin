@@ -74,23 +74,19 @@ export async function streamChat({
     }
   } catch { /* ignore */ }
 
-  // Per-conversation API toggle: only use BYOK if explicitly enabled for THIS conversation.
-  // The toggle is OFF by default — users must opt in per-conversation in ConversationApiToggles.
-  // Without this gate, a globally-active BYOK key (e.g. low-credit OpenAI) would be used even when
-  // the user disabled it for the chat, causing avoidable AI gateway errors.
+  // Per-conversation API toggle: a globally-selected BYOK provider (set in Settings)
+  // applies to ALL conversations by default. Users can EXPLICITLY disable it for a
+  // single conversation by toggling it off in ConversationApiToggles (stored as `false`).
+  // Only `=== false` blocks BYOK — undefined/missing means "respect global setting".
   if (conversationId && byokProvider) {
     try {
       const all = JSON.parse(localStorage.getItem("aureon_conv_api_toggles") || "{}");
       const convToggles = all[conversationId] || {};
-      if (convToggles[byokProvider] !== true) {
+      if (convToggles[byokProvider] === false) {
         byokProvider = undefined;
         byokModel = undefined;
       }
-    } catch {
-      // If toggles can't be read, fall back to default Aureon (safer than using BYOK)
-      byokProvider = undefined;
-      byokModel = undefined;
-    }
+    } catch { /* respect global setting */ }
   }
 
   // Get auth token for BYOK key lookup
