@@ -245,8 +245,29 @@ const AsherZahtenModule = () => {
   const [passes, setPasses] = useState<Pass[]>(activeAgent?.passes || []);
   const [classification, setClassification] = useState<string>("SECRET");
   const [scope, setScope] = useState<ScopeState>({ phase: "idle" });
+  const [followUp, setFollowUp] = useState("");
+  const [secretValues, setSecretValues] = useState<Record<string, string>>(activeAgent?.secretValues || {});
+  const [liveRuns, setLiveRuns] = useState<LiveRun[]>(activeAgent?.liveRuns || []);
+  const liveTimerRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const logEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Derived: secrets the AI says it needs (parsed from latest pass)
+  const requiredSecrets = (() => {
+    for (let i = passes.length - 1; i >= 0; i--) {
+      const arr = parseRequiredSecrets(passes[i].text);
+      if (arr.length) return arr;
+    }
+    return [];
+  })();
+  const missingSecrets = requiredSecrets.filter((s) => !(secretValues[s] && secretValues[s].trim()));
+  const workflowSteps = (() => {
+    for (let i = passes.length - 1; i >= 0; i--) {
+      const arr = parseWorkflowSteps(passes[i].text);
+      if (arr.length) return arr;
+    }
+    return [];
+  })();
 
   // Sync when switching agents
   useEffect(() => {
