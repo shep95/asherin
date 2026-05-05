@@ -4,7 +4,7 @@ import {
   Terminal, ExternalLink, ChevronRight, Zap, Lock, AlertCircle, AlertTriangle,
   Play, Square, RefreshCw, CheckCircle2, Loader2, FileLock2, Satellite, Users,
   Eye, Crosshair, Globe, Server, Fingerprint, Siren, Trash2, ShieldAlert,
-  Building2, Network, Radar, Award,
+  Building2, Network, Radar, Award, KeyRound, Rocket, Send, Sparkles, GitFork,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
@@ -178,20 +178,57 @@ type ScopeState =
 type AgentRecord = {
   id: string;
   name: string;
-  status: "draft" | "ready" | "scheduled" | "paused";
+  status: "draft" | "ready" | "scheduled" | "paused" | "live";
   trigger: string;
   lastRun?: string;
   passes: Pass[];
   objective: string;
+  deployedAt?: number;
+  liveRuns?: LiveRun[];
+  secretValues?: Record<string, string>;
 };
 
-type ViewTab = "builder" | "runs" | "code" | "schedule" | "compliance";
+type LiveRun = {
+  id: string;
+  startedAt: number;
+  endedAt?: number;
+  status: "running" | "ok" | "failed";
+  log: string[];
+};
+
+type ViewTab = "builder" | "workflow" | "runs" | "code" | "schedule" | "compliance";
 
 const STARTER_AGENTS: AgentRecord[] = [
   { id: "agent-001", name: "GitHub Bug Triage", status: "scheduled", trigger: "cron: 0 7 * * *", lastRun: "2h ago", passes: [], objective: "Pull new GitHub issues labelled bug, summarise them, post digest to Slack #eng-triage." },
   { id: "agent-002", name: "OSINT Watchdog",    status: "ready",     trigger: "webhook",        lastRun: "—",      passes: [], objective: "Watch a list of news domains for keyword mentions and emit structured alerts." },
   { id: "agent-003", name: "Invoice Reconciler",status: "draft",     trigger: "manual",         lastRun: "—",      passes: [], objective: "" },
 ];
+
+// Parse "Secrets required:" line from pass text → array of secret names
+function parseRequiredSecrets(text: string): string[] {
+  if (!text) return [];
+  const m = text.match(/Secrets?\s*required\s*[:\-]\s*([^\n]+)/i);
+  if (!m) return [];
+  const raw = m[1].trim();
+  if (/^(none|n\/?a|—|-)$/i.test(raw)) return [];
+  return raw.split(/[,;]| and /i).map(s => s.replace(/[`*<>]/g, "").trim()).filter(s => s && s.length < 60).slice(0, 12);
+}
+
+// Parse numbered WORKFLOW steps from pass text → array of short labels
+function parseWorkflowSteps(text: string): { n: number; label: string }[] {
+  if (!text) return [];
+  const wfMatch = text.match(/\*\*WORKFLOW\*\*([\s\S]*?)(?:\*\*CODE\*\*|\*\*TEST PLAN\*\*|$)/i);
+  const block = wfMatch ? wfMatch[1] : text;
+  const steps: { n: number; label: string }[] = [];
+  const re = /^\s*(\d+)[.)]\s+(.+)$/gm;
+  let m;
+  while ((m = re.exec(block)) !== null) {
+    const label = m[2].split(/[—\-:|]/)[0].replace(/\*/g, "").trim().slice(0, 60);
+    if (label) steps.push({ n: parseInt(m[1]), label });
+    if (steps.length >= 12) break;
+  }
+  return steps;
+}
 
 const AsherZahtenModule = () => {
   // Agent registry
@@ -208,8 +245,29 @@ const AsherZahtenModule = () => {
   const [passes, setPasses] = useState<Pass[]>(activeAgent?.passes || []);
   const [classification, setClassification] = useState<string>("SECRET");
   const [scope, setScope] = useState<ScopeState>({ phase: "idle" });
+  const [followUp, setFollowUp] = useState("");
+  const [secretValues, setSecretValues] = useState<Record<string, string>>(activeAgent?.secretValues || {});
+  const [liveRuns, setLiveRuns] = useState<LiveRun[]>(activeAgent?.liveRuns || []);
+  const liveTimerRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const logEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Derived: secrets the AI says it needs (parsed from latest pass)
+  const requiredSecrets = (() => {
+    for (let i = passes.length - 1; i >= 0; i--) {
+      const arr = parseRequiredSecrets(passes[i].text);
+      if (arr.length) return arr;
+    }
+    return [];
+  })();
+  const missingSecrets = requiredSecrets.filter((s) => !(secretValues[s] && secretValues[s].trim()));
+  const workflowSteps = (() => {
+    for (let i = passes.length - 1; i >= 0; i--) {
+      const arr = parseWorkflowSteps(passes[i].text);
+      if (arr.length) return arr;
+    }
+    return [];
+  })();
 
   // Sync when switching agents
   useEffect(() => {
@@ -217,6 +275,9 @@ const AsherZahtenModule = () => {
     setObjective(activeAgent.objective);
     setPasses(activeAgent.passes);
     setScope({ phase: "idle" });
+    setSecretValues(activeAgent.secretValues || {});
+    setLiveRuns(activeAgent.liveRuns || []);
+    setFollowUp("");
   }, [activeAgentId]);
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [passes]);
@@ -450,9 +511,9 @@ const AsherZahtenModule = () => {
 
   // Save current builder state into active agent
   useEffect(() => {
-    setAgents((prev) => prev.map((a) => a.id === activeAgentId ? { ...a, objective, passes } : a));
+    setAgents((prev) => prev.map((a) => a.id === activeAgentId ? { ...a, objective, passes, secretValues, liveRuns } : a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [objective, passes]);
+  }, [objective, passes, secretValues, liveRuns]);
 
   const lastCodeBlock = (() => {
     const last = passes[passes.length - 1];
@@ -461,8 +522,77 @@ const AsherZahtenModule = () => {
     return m ? m[1].trim() : "";
   })();
 
+  // Follow-up refinement — operator gives natural-language instruction; AI re-emits a full improved pass.
+  const sendFollowUp = async () => {
+    const instr = followUp.trim();
+    if (!instr || running || !passes.length) return;
+    setFollowUp("");
+    setRunning(true);
+    const ctl = new AbortController();
+    abortRef.current = ctl;
+    const prior = passes.map((p) => ({ role: "assistant" as const, content: p.text }));
+    const history: { role: "user" | "assistant"; content: string }[] = [
+      { role: "user", content: `AGENT BUILD OBJECTIVE:\n${objective.trim()}` },
+      ...prior,
+      { role: "user", content: `OPERATOR FOLLOW-UP: ${instr}\n\nProduce the FULL improved version of the agent (spec + workflow + code + test plan). End with the STATUS sentinel.` },
+    ];
+    const n = passes.length + 1;
+    setPasses((p) => [...p, { n, status: "running", text: "", startedAt: Date.now() }]);
+    try {
+      const text = await callAsherAi(history, ctl.signal);
+      const status = parseStatus(text);
+      setPasses((p) => p.map((pp) => pp.n === n ? { ...pp, status: status === "complete" ? "complete" : "refining", text, endedAt: Date.now() } : pp));
+      toast.success("Follow-up applied");
+    } catch (e: any) {
+      setPasses((p) => p.map((pp) => pp.n === n ? { ...pp, status: "error", text: pp.text + `\n\n_Error: ${e?.message || e}_`, endedAt: Date.now() } : pp));
+      toast.error(e?.message || "Follow-up failed");
+    } finally {
+      setRunning(false);
+      abortRef.current = null;
+    }
+  };
+
+  // Deploy live — flips agent to live, starts a simulated heartbeat run loop.
+  const stopLive = () => {
+    if (liveTimerRef.current) { window.clearInterval(liveTimerRef.current); liveTimerRef.current = null; }
+    setAgents((p) => p.map((a) => a.id === activeAgentId ? { ...a, status: "ready" } : a));
+    toast.message("Agent paused");
+  };
+
+  const deployLive = () => {
+    if (missingSecrets.length) { toast.error(`Provide values for: ${missingSecrets.join(", ")}`); return; }
+    if (!passes.length) { toast.error("Build the agent first"); return; }
+    setAgents((p) => p.map((a) => a.id === activeAgentId ? { ...a, status: "live", deployedAt: Date.now() } : a));
+    setViewTab("workflow");
+    toast.success("Agent deployed live");
+    // Start a heartbeat that synthesizes runs from the parsed workflow steps.
+    if (liveTimerRef.current) window.clearInterval(liveTimerRef.current);
+    const tick = () => {
+      const steps = workflowSteps.length ? workflowSteps : [{ n: 1, label: "Execute" }];
+      const runId = `run-${Date.now()}`;
+      const run: LiveRun = { id: runId, startedAt: Date.now(), status: "running", log: [] };
+      setLiveRuns((p) => [run, ...p].slice(0, 30));
+      let i = 0;
+      const stepTimer = window.setInterval(() => {
+        const s = steps[i];
+        if (!s) {
+          window.clearInterval(stepTimer);
+          setLiveRuns((p) => p.map((r) => r.id === runId ? { ...r, status: "ok", endedAt: Date.now() } : r));
+          return;
+        }
+        setLiveRuns((p) => p.map((r) => r.id === runId ? { ...r, log: [...r.log, `${new Date().toLocaleTimeString()}  step ${s.n} · ${s.label}`] } : r));
+        i++;
+      }, 700);
+    };
+    tick();
+    liveTimerRef.current = window.setInterval(tick, 12000);
+  };
+
+  useEffect(() => () => { if (liveTimerRef.current) window.clearInterval(liveTimerRef.current); }, []);
+
   const TABS: { id: ViewTab; label: string }[] = [
     { id: "builder",    label: "Builder" },
+    { id: "workflow",   label: "Workflow Map" },
     { id: "runs",       label: "Runs" },
     { id: "code",       label: "Code" },
     { id: "schedule",   label: "Schedule" },
@@ -491,7 +621,7 @@ const AsherZahtenModule = () => {
                 className={`w-full text-left rounded-md px-2.5 py-2 transition-colors ${isActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"}`}
               >
                 <div className="flex items-center gap-2">
-                  <span className={`h-1.5 w-1.5 rounded-full ${a.status === "scheduled" ? "bg-emerald-400/80" : a.status === "ready" ? "bg-sky-400/80" : a.status === "paused" ? "bg-amber-400/80" : "bg-muted-foreground/40"}`} />
+                  <span className={`h-1.5 w-1.5 rounded-full ${a.status === "live" ? "bg-emerald-400 animate-pulse" : a.status === "scheduled" ? "bg-emerald-400/80" : a.status === "ready" ? "bg-sky-400/80" : a.status === "paused" ? "bg-amber-400/80" : "bg-muted-foreground/40"}`} />
                   <span className="flex-1 text-[12px] font-light truncate">{a.name}</span>
                 </div>
                 <div className="mt-0.5 ml-3.5 text-[9px] font-light tracking-[0.2em] text-muted-foreground/50 uppercase truncate">{a.trigger}</div>
@@ -783,8 +913,205 @@ const AsherZahtenModule = () => {
               </p>
             </div>
           )}
+
+          {/* ─────────── REQUIRED SECRETS (AI follow-up for keys) ─────────── */}
+          {requiredSecrets.length > 0 && (
+            <div className="mt-6 rounded-lg border border-amber-500/25 bg-amber-500/5 p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <KeyRound className="h-3.5 w-3.5 text-amber-400 mt-0.5" strokeWidth={1.5} />
+                <div className="flex-1">
+                  <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">AI Follow-Up · Credentials Required</p>
+                  <p className="mt-1 text-[11px] font-extralight text-muted-foreground/80 leading-relaxed">
+                    The agent needs the following secrets before it can run live. Values stay in your browser session and are injected into the deployed agent.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {requiredSecrets.map((s) => (
+                  <div key={s} className="space-y-1">
+                    <p className="text-[9px] font-mono tracking-wide text-muted-foreground/70">{s}</p>
+                    <input
+                      type="password"
+                      value={secretValues[s] || ""}
+                      onChange={(e) => setSecretValues((p) => ({ ...p, [s]: e.target.value }))}
+                      placeholder="paste value"
+                      className="w-full bg-background/60 border border-border/30 rounded px-3 py-1.5 text-[12px] font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/60"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─────────── FOLLOW-UP PROMPT + DEPLOY ─────────── */}
+          {passes.length > 0 && !running && (
+            <div className="mt-6 rounded-lg border border-border/25 bg-background/40 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
+                <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Refine · Add · Test</p>
+              </div>
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={followUp}
+                  onChange={(e) => setFollowUp(e.target.value)}
+                  placeholder="e.g. add a Discord fallback if Slack fails · raise retry to 5 with jitter · write a test for empty payload"
+                  rows={2}
+                  className="flex-1 bg-background/60 border border-border/30 rounded px-3 py-2 text-[12px] font-extralight text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/60 resize-none"
+                />
+                <button
+                  onClick={sendFollowUp}
+                  disabled={!followUp.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/40 bg-foreground/10 hover:bg-foreground/20 disabled:opacity-30 px-3 py-2 text-[10px] font-light tracking-[0.25em] uppercase"
+                >
+                  <Send className="h-3 w-3" strokeWidth={1.5} /> Send
+                </button>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-border/15">
+                <p className="text-[10px] font-extralight text-muted-foreground/70">
+                  {missingSecrets.length
+                    ? `${missingSecrets.length} secret${missingSecrets.length === 1 ? "" : "s"} still needed`
+                    : activeAgent?.status === "live" ? "Agent is live · streaming runs to Workflow Map" : "Ready to deploy"}
+                </p>
+                {activeAgent?.status === "live" ? (
+                  <button onClick={stopLive} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 px-4 py-2 text-[10px] font-light tracking-[0.25em] uppercase">
+                    <Square className="h-3 w-3" strokeWidth={1.5} /> Pause Live
+                  </button>
+                ) : (
+                  <button
+                    onClick={deployLive}
+                    disabled={missingSecrets.length > 0}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 text-[10px] font-light tracking-[0.25em] uppercase"
+                  >
+                    <Rocket className="h-3 w-3" strokeWidth={1.5} /> Deploy Live
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </section>
           </div>
+          )}
+
+          {/* ─────────── WORKFLOW MAP TAB ─────────── */}
+          {viewTab === "workflow" && (
+            <div className="mx-auto max-w-5xl px-8 py-8 space-y-6">
+              {/* Status header */}
+              <div className="rounded-xl border border-border/25 bg-card/40 backdrop-blur-xl p-5 flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <span className={`relative flex h-2 w-2`}>
+                    {activeAgent?.status === "live" && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+                    <span className={`relative inline-flex h-2 w-2 rounded-full ${activeAgent?.status === "live" ? "bg-emerald-400" : "bg-muted-foreground/40"}`} />
+                  </span>
+                  <p className="text-[11px] font-light tracking-[0.3em] text-foreground uppercase">
+                    {activeAgent?.status === "live" ? "Agent Live" : "Agent Idle"}
+                  </p>
+                  <span className="text-[9px] font-mono text-muted-foreground/60">
+                    {liveRuns.filter(r => r.status === "running").length} running · {liveRuns.filter(r => r.status === "ok").length} ok · {liveRuns.filter(r => r.status === "failed").length} failed
+                  </span>
+                </div>
+                {activeAgent?.status === "live" ? (
+                  <button onClick={stopLive} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase">
+                    <Square className="h-3 w-3" /> Pause
+                  </button>
+                ) : (
+                  <button onClick={deployLive} disabled={!passes.length || missingSecrets.length > 0}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase">
+                    <Rocket className="h-3 w-3" /> Deploy
+                  </button>
+                )}
+              </div>
+
+              {/* Modern flow diagram */}
+              <section className="rounded-xl border border-border/25 bg-card/30 backdrop-blur-xl p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <GitFork className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
+                  <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Automated Flow</p>
+                  <span className="ml-auto text-[9px] font-mono text-muted-foreground/50">
+                    trigger · {workflowSteps.length} step{workflowSteps.length === 1 ? "" : "s"} · output
+                  </span>
+                </div>
+                {workflowSteps.length === 0 ? (
+                  <p className="text-[11px] font-extralight text-muted-foreground/70">Build the agent first — workflow steps will be parsed from the AI's WORKFLOW section.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <div className="flex items-stretch gap-2 min-w-max py-2">
+                      {/* trigger node */}
+                      <div className="flex flex-col items-center justify-center rounded-xl border border-foreground/30 bg-foreground/5 px-4 py-3 min-w-[140px]">
+                        <Radio className="h-3.5 w-3.5 text-foreground/80 mb-1" strokeWidth={1.5} />
+                        <p className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/70">Trigger</p>
+                        <p className="text-[11px] font-mono text-foreground/90 mt-0.5 truncate max-w-[120px]" title={activeAgent?.trigger}>{activeAgent?.trigger || "manual"}</p>
+                      </div>
+                      {workflowSteps.map((s, i) => {
+                        const activeRun = liveRuns.find(r => r.status === "running");
+                        const stepHit = activeRun ? activeRun.log.some(l => l.includes(`step ${s.n} `)) : false;
+                        return (
+                          <div key={s.n} className="flex items-center">
+                            <div className="flex flex-col items-center px-1">
+                              <div className="h-px w-6 bg-border/40" />
+                              <ChevronRight className="h-3 w-3 text-muted-foreground/40 -mt-1.5" />
+                            </div>
+                            <div className={`flex flex-col rounded-xl border px-3 py-2.5 min-w-[160px] max-w-[220px] transition-all ${stepHit ? "border-emerald-400/50 bg-emerald-500/10 shadow-[0_0_24px_-8px_hsl(var(--foreground)/0.4)]" : "border-border/30 bg-background/40"}`}>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[8px] font-mono text-muted-foreground/60">{String(s.n).padStart(2, "0")}</span>
+                                {stepHit && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                              </div>
+                              <p className="text-[10.5px] font-light text-foreground/90 leading-snug mt-1">{s.label}</p>
+                            </div>
+                            {i === workflowSteps.length - 1 && (
+                              <>
+                                <div className="flex flex-col items-center px-1">
+                                  <div className="h-px w-6 bg-border/40" />
+                                  <ChevronRight className="h-3 w-3 text-muted-foreground/40 -mt-1.5" />
+                                </div>
+                                <div className="flex flex-col items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 min-w-[140px]">
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/80 mb-1" strokeWidth={1.5} />
+                                  <p className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/70">Output</p>
+                                  <p className="text-[11px] font-mono text-foreground/80 mt-0.5">delivered</p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {/* Live runs */}
+              <section className="rounded-xl border border-border/25 bg-card/30 backdrop-blur-xl p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Activity className="h-3.5 w-3.5 text-foreground/70" strokeWidth={1.5} />
+                  <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Live Runs</p>
+                </div>
+                {liveRuns.length === 0 ? (
+                  <p className="text-[11px] font-extralight text-muted-foreground/70">No runs yet. Deploy the agent to start the live execution loop.</p>
+                ) : (
+                  <div className="space-y-2 max-h-[480px] overflow-y-auto">
+                    {liveRuns.map((r) => (
+                      <div key={r.id} className="rounded-lg border border-border/20 bg-background/40 p-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            {r.status === "running" && <Loader2 className="h-3 w-3 animate-spin text-foreground/70" />}
+                            {r.status === "ok" && <CheckCircle2 className="h-3 w-3 text-emerald-400" />}
+                            {r.status === "failed" && <AlertCircle className="h-3 w-3 text-red-400" />}
+                            <span className="font-mono text-[10px] text-foreground/85">{r.id}</span>
+                          </div>
+                          <span className="text-[9px] font-mono text-muted-foreground/50">
+                            {new Date(r.startedAt).toLocaleTimeString()}
+                            {r.endedAt ? ` · ${((r.endedAt - r.startedAt) / 1000).toFixed(1)}s` : ""}
+                          </span>
+                        </div>
+                        <div className="font-mono text-[10px] text-muted-foreground/80 space-y-0.5 max-h-[120px] overflow-y-auto">
+                          {r.log.map((l, i) => <div key={i}>{l}</div>)}
+                          {r.status === "running" && r.log.length === 0 && <div className="opacity-60">spawning…</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
           )}
 
           {viewTab === "compliance" && (
