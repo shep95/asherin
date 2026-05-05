@@ -448,58 +448,184 @@ const AsherZahtenModule = () => {
     setPasses([]);
   };
 
-  return (
-    <div className="h-full w-full overflow-y-auto bg-background text-foreground">
-      <div className="mx-auto max-w-6xl px-8 py-10 space-y-10">
+  // Save current builder state into active agent
+  useEffect(() => {
+    setAgents((prev) => prev.map((a) => a.id === activeAgentId ? { ...a, objective, passes } : a));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [objective, passes]);
 
-        {/* Header */}
-        <header className="border-b border-border/15 pb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-50" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-            </span>
-            <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">House of Asher · Automated Agent Builder</p>
+  const lastCodeBlock = (() => {
+    const last = passes[passes.length - 1];
+    if (!last) return "";
+    const m = last.text.match(/```ts([\s\S]*?)```/);
+    return m ? m[1].trim() : "";
+  })();
+
+  const TABS: { id: ViewTab; label: string }[] = [
+    { id: "builder",    label: "Builder" },
+    { id: "runs",       label: "Runs" },
+    { id: "code",       label: "Code" },
+    { id: "schedule",   label: "Schedule" },
+    { id: "compliance", label: "Platform" },
+  ];
+
+  return (
+    <div className="h-full w-full flex bg-background text-foreground overflow-hidden">
+      {/* My Agents sidebar */}
+      <aside className="w-64 flex-shrink-0 border-r border-border/15 bg-card/20 flex flex-col">
+        <div className="px-4 py-4 border-b border-border/15 flex items-center justify-between">
+          <div>
+            <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">House of Asher</p>
+            <p className="text-sm font-extralight tracking-[0.25em] text-foreground mt-0.5">ZAHTEN</p>
           </div>
-          <div className="flex items-end justify-between gap-6 flex-wrap">
-            <div>
-              <h1 className="text-4xl font-extralight tracking-[0.25em] text-foreground">ZAHTEN</h1>
-              <p className="mt-2 text-sm font-extralight text-muted-foreground/80 max-w-2xl">
-                Automated agent builder. Describe the agent you want — the engine assesses your prompt,
-                asks for any missing details, then iterates and self-critiques the spec + code until it is
-                production-grade and deployable.
-              </p>
-            </div>
-            <a
-              href={REPO_URL} target="_blank" rel="noreferrer"
-              className="group inline-flex items-center gap-2 rounded-lg border border-border/30 bg-card/40 backdrop-blur-md px-4 py-2 text-[10px] font-light tracking-[0.25em] text-foreground/80 hover:border-foreground/40 hover:text-foreground transition-colors uppercase"
+          <button onClick={createAgent} title="New Agent" className="rounded-md border border-border/30 hover:border-foreground/50 px-2 py-1 text-[10px] font-light tracking-wide text-foreground/80 hover:text-foreground">+ New</button>
+        </div>
+        <div className="px-3 py-2 text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">My Agents</div>
+        <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5">
+          {agents.map((a) => {
+            const isActive = a.id === activeAgentId;
+            return (
+              <button
+                key={a.id}
+                onClick={() => setActiveAgentId(a.id)}
+                className={`w-full text-left rounded-md px-2.5 py-2 transition-colors ${isActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`h-1.5 w-1.5 rounded-full ${a.status === "scheduled" ? "bg-emerald-400/80" : a.status === "ready" ? "bg-sky-400/80" : a.status === "paused" ? "bg-amber-400/80" : "bg-muted-foreground/40"}`} />
+                  <span className="flex-1 text-[12px] font-light truncate">{a.name}</span>
+                </div>
+                <div className="mt-0.5 ml-3.5 text-[9px] font-light tracking-[0.2em] text-muted-foreground/50 uppercase truncate">{a.trigger}</div>
+              </button>
+            );
+          })}
+        </div>
+        <div className="border-t border-border/15 px-3 py-3">
+          <a href={REPO_URL} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[10px] font-light tracking-[0.2em] text-muted-foreground hover:text-foreground uppercase">
+            <ExternalLink className="h-3 w-3" /> Repository
+          </a>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="border-b border-border/15 px-6 py-3 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Workflow className="h-4 w-4 text-foreground/70" strokeWidth={1.5} />
+            <input
+              value={activeAgent?.name || ""}
+              onChange={(e) => setAgents((p) => p.map((a) => a.id === activeAgentId ? { ...a, name: e.target.value } : a))}
+              className="bg-transparent text-base font-extralight tracking-wide text-foreground focus:outline-none border-b border-transparent focus:border-border/40 px-1 min-w-[180px]"
+            />
+            <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/60 uppercase border border-border/30 rounded-full px-2 py-0.5">{activeAgent?.status}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/60 uppercase">Classification</span>
+            <select
+              value={classification}
+              onChange={(e) => setClassification(e.target.value)}
+              disabled={running}
+              className="bg-background/60 border border-border/30 rounded px-2 py-1 text-[10px] tracking-[0.2em] text-foreground/90 focus:outline-none focus:border-foreground/60 uppercase"
             >
-              <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
-              View Repository
-            </a>
-          </div>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {["Air-Gappable", "FIPS 140-2", "FedRAMP High", "DoD IL-6", "Self-Hostable", "Realtime"].map((t) => (
-              <span key={t} className="rounded-full border border-border/25 bg-card/30 backdrop-blur-md px-3 py-1 text-[9px] font-light tracking-[0.25em] text-muted-foreground/80 uppercase">
-                {t}
-              </span>
-            ))}
+              {CLASSIFICATIONS.map((c) => <option key={c.tier} value={c.tier}>{c.tier}</option>)}
+            </select>
           </div>
         </header>
 
-        {/* BYOK notice */}
-        <section className="rounded-xl border border-border/25 bg-card/40 backdrop-blur-xl p-5">
-          <div className="flex items-start gap-3">
-            <Lock className="h-3.5 w-3.5 text-foreground/70 mt-0.5" strokeWidth={1.5} />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase mb-1.5">Bring Your Own LLM Key</p>
-              <p className="text-xs font-extralight text-muted-foreground/85 leading-relaxed">
-                Set your LLM API key once in <span className="text-foreground/90">Settings → Bring Your Own LLM Key</span>.
-                The same key powers every tab — no per-tab configuration.
-              </p>
+        {/* Tabs */}
+        <div className="border-b border-border/15 px-6 flex items-center gap-1">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setViewTab(t.id)}
+              className={`px-3 py-2.5 text-[10px] font-light tracking-[0.25em] uppercase border-b-2 transition-colors ${viewTab === t.id ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto">
+          {viewTab !== "compliance" ? (
+            <div className="mx-auto max-w-5xl px-8 py-8 space-y-6">
+
+              {viewTab === "runs" && (
+                <section className="rounded-xl border border-border/20 bg-card/30 p-5">
+                  <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase mb-4">Recent Runs</p>
+                  {passes.length === 0 ? (
+                    <p className="text-[11px] font-extralight text-muted-foreground/70">No runs yet. Build the agent first to populate the run history.</p>
+                  ) : (
+                    <table className="w-full text-[11px]">
+                      <thead><tr className="text-[9px] tracking-[0.25em] text-muted-foreground/60 uppercase border-b border-border/15"><th className="text-left py-2">Pass</th><th className="text-left py-2">Status</th><th className="text-left py-2">Started</th><th className="text-left py-2">Duration</th></tr></thead>
+                      <tbody>
+                        {passes.map((p) => (
+                          <tr key={p.n} className="border-b border-border/10 last:border-0">
+                            <td className="py-2 font-mono text-foreground/90">#{p.n}</td>
+                            <td className="py-2 text-muted-foreground/85">{p.status}</td>
+                            <td className="py-2 text-muted-foreground/70">{new Date(p.startedAt).toLocaleTimeString()}</td>
+                            <td className="py-2 text-muted-foreground/70">{p.endedAt ? `${((p.endedAt - p.startedAt) / 1000).toFixed(1)}s` : "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </section>
+              )}
+
+              {viewTab === "code" && (
+                <section className="rounded-xl border border-border/20 bg-card/30 p-5">
+                  <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase mb-3">Generated Trigger.dev Task</p>
+                  {lastCodeBlock ? (
+                    <pre className="font-mono text-[11px] leading-relaxed text-foreground/85 bg-background/60 border border-border/20 rounded-md p-4 overflow-auto max-h-[600px]">{lastCodeBlock}</pre>
+                  ) : (
+                    <p className="text-[11px] font-extralight text-muted-foreground/70">Run the Builder to generate the agent's code.</p>
+                  )}
+                </section>
+              )}
+
+              {viewTab === "schedule" && (
+                <section className="rounded-xl border border-border/20 bg-card/30 p-5 space-y-3">
+                  <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Trigger</p>
+                  <div className="grid grid-cols-2 gap-3 text-[11px] font-extralight">
+                    {["manual", "schedule", "webhook", "event"].map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setAgents((p) => p.map((a) => a.id === activeAgentId ? { ...a, trigger: t } : a))}
+                        className={`rounded-md border px-3 py-2 text-left ${activeAgent?.trigger === t || activeAgent?.trigger?.startsWith(t) ? "border-foreground/50 bg-foreground/5 text-foreground" : "border-border/25 text-muted-foreground hover:text-foreground"}`}
+                      >
+                        <p className="text-[9px] tracking-[0.25em] uppercase">{t}</p>
+                      </button>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-[9px] tracking-[0.25em] text-muted-foreground/60 uppercase mb-1">Cron expression</p>
+                    <input
+                      placeholder="0 7 * * *"
+                      defaultValue={activeAgent?.trigger?.startsWith("cron:") ? activeAgent.trigger.slice(5).trim() : ""}
+                      onChange={(e) => setAgents((p) => p.map((a) => a.id === activeAgentId ? { ...a, trigger: e.target.value ? `cron: ${e.target.value}` : "manual" } : a))}
+                      className="w-full bg-background/60 border border-border/30 rounded px-3 py-2 font-mono text-[11px] text-foreground focus:outline-none focus:border-foreground/60"
+                    />
+                  </div>
+                </section>
+              )}
+
+              {viewTab === "builder" && (
+                <>
+                  <section className="rounded-xl border border-border/25 bg-card/40 p-4 flex items-start gap-3">
+                    <Lock className="h-3.5 w-3.5 text-foreground/70 mt-0.5" strokeWidth={1.5} />
+                    <p className="text-[11px] font-extralight text-muted-foreground/85 leading-relaxed">
+                      Set your LLM API key once in <span className="text-foreground/90">Settings → Bring Your Own LLM Key</span>.
+                      The Builder uses the Scope Assessor to clarify your prompt, then iterates spec + Trigger.dev code until production-grade.
+                    </p>
+                  </section>
+                </>
+              )}
             </div>
-          </div>
-        </section>
+          ) : null}
+
+          {viewTab === "builder" && (
+          <div className="mx-auto max-w-5xl px-8 pb-10 space-y-6">
 
         {/* ─────────── AUTONOMOUS MISSION CONSOLE ─────────── */}
         <section className="rounded-2xl border border-border/25 bg-card/40 backdrop-blur-xl p-6">
