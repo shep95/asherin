@@ -698,11 +698,10 @@ const Index = () => {
                   { feature: "Zophiel Search", lifetime: false, chat: false, aureon: true, pro: true },
                   { feature: "Code Snippets Vault", lifetime: false, chat: false, aureon: true, pro: true },
                   { feature: "Azplen Data Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "NOMAD OSINT", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "Elion / Zohar Toolkit", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "ZANOEM Design Lab", lifetime: false, chat: false, aureon: false, pro: true },
+                  { feature: "NOMAD Public Intelligence", lifetime: false, chat: false, aureon: true, pro: true },
+                  { feature: "ZANOEM Design Lab", lifetime: false, chat: false, aureon: true, pro: true },
+                  { feature: "Daily Briefings", lifetime: false, chat: false, aureon: true, pro: true },
                   { feature: "Predictive Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "Daily Briefings", lifetime: false, chat: false, aureon: false, pro: true },
                 ].map((row, i) => (
                   <tr key={row.feature} className={`border-b border-border/10 ${i % 2 === 0 ? "bg-card/5" : ""}`}>
                     <td className="py-3 px-4 text-xs font-extralight text-foreground/90">{row.feature}</td>
