@@ -636,6 +636,19 @@ const AsherZahtenModule = () => {
   const [publishHtml, setPublishHtml] = useState("");
   const [publishHtmlDirty, setPublishHtmlDirty] = useState(false);
 
+  // Tab Preview sub-view: "live" (rendered iframe) or "infra" (workflow map)
+  const [previewSubView, setPreviewSubView] = useState<"live" | "infra">("live");
+  // Chat-based editor lanes
+  type ChatTurn = { role: "user" | "assistant"; content: string; ts: number };
+  const [uiChat, setUiChat] = useState<ChatTurn[]>([]);
+  const [backendChat, setBackendChat] = useState<ChatTurn[]>([]);
+  const [uiChatInput, setUiChatInput] = useState("");
+  const [backendChatInput, setBackendChatInput] = useState("");
+  const [uiChatBusy, setUiChatBusy] = useState(false);
+  const [backendChatBusy, setBackendChatBusy] = useState(false);
+  // Editable backend code (TS task) — defaults to lastCodeBlock
+  const [backendCode, setBackendCode] = useState<string>("");
+
   const buildEntryHtml = (): string => {
     const code = lastCodeBlock || "// no code generated";
     const safeName = (activeAgent?.name || "Agent").replace(/[<>&"']/g, "");
