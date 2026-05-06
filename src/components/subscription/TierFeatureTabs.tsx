@@ -8,7 +8,7 @@ const CHAT_FEATURE_GROUPS = [
     category: "AI Chat",
     features: [
       { name: "Uncensored AI chat", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
-      { name: "100 messages per 3-hour window", desc: "Automatic reset every 3 hours.", link: null },
+      { name: "Unlimited messages", desc: "Bring your own AI key — message as much as you want.", link: null },
       { name: "Bring Your Own AI Key (required)", desc: "Connect your own keys from Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more — required to use Aureon.", link: "/feature/byok" },
     ],
   },
