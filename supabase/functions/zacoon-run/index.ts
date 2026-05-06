@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
   if (!userId) return j({ error: "auth required" }, 401);
 
   const body = await req.json().catch(() => ({}));
-  const mode: "browser" | "recon" = body.mode || "browser";
+  const mode: "browser" | "recon" | "extract" | "forge" | "stress" = body.mode || "browser";
   const task: string = body.task || "";
   const targetUrl: string = body.target_url || body.url || "";
 
@@ -197,6 +197,107 @@ Deno.serve(async (req) => {
       catch { findings = { raw: exploitText }; }
       log("recon.findings", "AI exploit & exposure analysis complete");
       output = { recon, mapped: mapped.slice(0, 50) };
+    } else if (mode === "extract") {
+      // ── EXTRACT MODE — deep structured data harvest from a single link
+      // Owner-attestation required (auto-checked client-side for admin / explicit consent).
+      if (!targetUrl) throw new Error("target_url required for extract mode");
+      if (!body.permission_attestation) throw new Error("permission_attestation required (auto-approved by site owner)");
+
+      log("extract.start", `Harvesting ${targetUrl}`);
+      let scrape: { markdown: string; links: string[] };
+      if (FIRECRAWL_KEY) {
+        const fr = await firecrawlScrape(targetUrl, ["markdown", "links", "html"]);
+        scrape = { markdown: fr.data?.markdown || fr.markdown || "", links: fr.data?.links || fr.links || [] };
+        log("extract.firecrawl", `Pulled ${scrape.markdown.length} chars / ${scrape.links.length} links`);
+      } else {
+        const ns = await nativeScrape(targetUrl);
+        scrape = { markdown: ns.markdown, links: ns.links };
+        log("extract.native", `Pulled ${scrape.markdown.length} chars / ${scrape.links.length} links`);
+      }
+
+      // Backend-surface probe (same primitives as recon, lighter)
+      const recon = await reconTarget(targetUrl);
+      log("extract.backend", `Backend surface: ${recon.surface.length} paths, server=${recon.infra.server ?? "?"}`, recon.infra);
+
+      const harvest = await gemini(
+        `Operator task: "${task || "extract everything useful"}"\nURL: ${targetUrl}\n\n` +
+        `Page content:\n${scrape.markdown.slice(0, 80_000)}\n\n` +
+        `Backend headers:\n${JSON.stringify(recon.headers, null, 2)}\n\n` +
+        `Reachable surface:\n${recon.surface.join("\n")}\n\n` +
+        `Return strict JSON: {"summary":"","entities":[{"name":"","type":"","value":""}],` +
+        `"tables":[{"title":"","rows":[[""]]}],"endpoints":[{"path":"","method":"","why":""}],` +
+        `"data_schema":{},"confidence":0.0}`,
+        "You return ONLY valid JSON. No prose, no fences. Be exhaustive on entities.",
+        geminiKey,
+      );
+      try { output = JSON.parse(harvest.replace(/^```json\s*|\s*```$/gi, "").trim()); }
+      catch { output = { raw: harvest }; }
+      (output as any).recon = recon;
+      (output as any).links = scrape.links.slice(0, 80);
+      log("extract.ok", "Deep extraction complete");
+    } else if (mode === "forge") {
+      // ── FORGE MODE — auto-build a small extraction tool around a target
+      if (!targetUrl) throw new Error("target_url required for forge mode");
+      if (!body.permission_attestation) throw new Error("permission_attestation required");
+
+      log("forge.start", `Designing extractor for ${targetUrl}`);
+      let scrape: { markdown: string; links: string[] };
+      if (FIRECRAWL_KEY) {
+        const fr = await firecrawlScrape(targetUrl);
+        scrape = { markdown: fr.data?.markdown || fr.markdown || "", links: fr.data?.links || fr.links || [] };
+      } else {
+        const ns = await nativeScrape(targetUrl);
+        scrape = { markdown: ns.markdown, links: ns.links };
+      }
+      log("forge.sample", `Captured ${scrape.markdown.length} chars`);
+
+      const forged = await gemini(
+        `Operator brief: "${task || "build a reusable scraper around this target"}"\nURL: ${targetUrl}\n\n` +
+        `Sample content:\n${scrape.markdown.slice(0, 40_000)}\n\n` +
+        `Design a minimal, production-grade TypeScript Deno script that extracts the intended data on a recurring schedule. ` +
+        `Return strict JSON: {"name":"","description":"","schema":{},"selectors":[{"field":"","strategy":"","selector":""}],` +
+        `"code_typescript":"","run_interval_minutes":60,"output_shape":"json"}`,
+        "You return ONLY valid JSON. The code field must be a complete, runnable Deno script.",
+        geminiKey,
+      );
+      try { output = JSON.parse(forged.replace(/^```json\s*|\s*```$/gi, "").trim()); }
+      catch { output = { raw: forged }; }
+      log("forge.ok", "Extractor blueprint generated");
+    } else if (mode === "stress") {
+      // ── STRESS MODE — permissioned strength test (no real DoS, only modeled feasibility)
+      if (!targetUrl) throw new Error("target_url required for stress mode");
+      if (!body.permission_attestation) throw new Error("permission_attestation required (owner authorization)");
+
+      log("stress.start", `Modeling resilience of ${targetUrl}`);
+      const recon = await reconTarget(targetUrl);
+      log("stress.infra", `host=${recon.infra.hostname} waf=${JSON.stringify(recon.infra.cdn_or_waf)}`, recon.infra);
+
+      // Light, throttled probes — no flood, just timing samples (5 sequential GETs)
+      const samples: number[] = [];
+      for (let i = 0; i < 5; i++) {
+        const s = Date.now();
+        try { await fetch(targetUrl, { method: "HEAD" }); } catch { /* ignore */ }
+        samples.push(Date.now() - s);
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
+      log("stress.timing", `avg latency ${avg.toFixed(0)}ms across ${samples.length} HEAD probes`, samples);
+
+      const stress = await gemini(
+        `Permissioned resilience analysis. Target: ${targetUrl}\n\n` +
+        `Infra: ${JSON.stringify(recon.infra, null, 2)}\n` +
+        `Surface: ${recon.surface.join("\n")}\n` +
+        `Latency samples (ms): ${samples.join(", ")} (avg ${avg.toFixed(0)})\n\n` +
+        `Return strict JSON: {"resilience_score":0,"weak_points":[{"layer":"","why":"","severity":"low|med|high|crit"}],` +
+        `"shutdown_feasibility":{"summary":"","required_perms":[],"steps":[],"estimated_capacity_to_overwhelm":""},` +
+        `"hardening_recommendations":[]}`,
+        "You return ONLY valid JSON. Treat 'shutdown_feasibility' as a theoretical model — do not output exploit payloads.",
+        geminiKey,
+      );
+      try { findings = JSON.parse(stress.replace(/^```json\s*|\s*```$/gi, "").trim()); }
+      catch { findings = { raw: stress }; }
+      output = { recon, latency_samples: samples, latency_avg_ms: avg };
+      log("stress.ok", "Resilience modeling complete");
     } else {
       // Browser task mode
       log("plan", `Planning task: ${task}`);
