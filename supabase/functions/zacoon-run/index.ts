@@ -5,12 +5,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-byok-gemini-key",
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
+const ADMIN_GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
 const FIRECRAWL_KEY = Deno.env.get("FIRECRAWL_API_KEY");
 
 interface Step { ts: number; type: string; detail: string; data?: unknown }
@@ -18,10 +18,10 @@ interface Step { ts: number; type: string; detail: string; data?: unknown }
 const j = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-async function gemini(prompt: string, system?: string): Promise<string> {
-  if (!GEMINI_KEY) throw new Error("GEMINI_API_KEY missing");
+async function gemini(prompt: string, system: string | undefined, apiKey: string): Promise<string> {
+  if (!apiKey) throw new Error("No Gemini API key available — add a BYOK key in Settings.");
   const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
