@@ -185,6 +185,7 @@ const VedicAstrologyView = () => {
   const [leaderPlacements, setLeaderPlacements] = useState<Record<string, Placement[]>>({});
   const [companyPlacements, setCompanyPlacements] = useState<Record<string, Placement[]>>({});
   const [founderPlacements, setFounderPlacements] = useState<Record<string, Placement[]>>({});
+  const [savedPlacements, setSavedPlacements] = useState<Record<string, Placement[]>>({});
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
