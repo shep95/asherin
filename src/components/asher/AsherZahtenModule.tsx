@@ -690,6 +690,7 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
     { id: "workflow",   label: "Workflow Map" },
     { id: "runs",       label: "Runs" },
     { id: "code",       label: "Code" },
+    { id: "preview",    label: "Tab Preview" },
     { id: "schedule",   label: "Schedule" },
     { id: "compliance", label: "Platform" },
   ];
