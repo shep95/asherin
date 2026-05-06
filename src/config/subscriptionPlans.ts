@@ -75,9 +75,6 @@ export interface PlanDefinition {
 }
 
 // ── Tier → Feature Mapping ───────────────────────────────────────────────────
-const LIFETIME_FEATURES: FeatureId[] = [
-  "chat", "encryption", "byok",
-];
 
 const CHAT_FEATURES: FeatureId[] = [
   "chat", "encryption", "byok", "zophiel_search", "notebooks",
