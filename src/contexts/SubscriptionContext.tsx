@@ -91,6 +91,11 @@ export function hasSearchAccess(tierKey: TierKey | null): boolean {
   return tierKey === "chat" || tierKey === "starter" || tierKey === "lifetime" || tierKey === "aureon" || tierKey === "pro";
 }
 
+/** Check if user has Aureon-tier ($199) access — required for NOMAD, Briefings, ZANOEM Design Lab */
+export function hasAureonAccess(tierKey: TierKey | null): boolean {
+  return tierKey === "aureon" || tierKey === "pro";
+}
+
 /** Check if user has pro-level access */
 export function hasProAccess(tierKey: TierKey | null): boolean {
   return tierKey === "pro";
