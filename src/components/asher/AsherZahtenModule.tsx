@@ -689,7 +689,7 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
         category: "zahten",
         runtime: "iframe",
         entry_html: finalHtml,
-        source_tsx: lastCodeBlock || null,
+        source_tsx: backendCode || lastCodeBlock || null,
         system_prompt: ORCHESTRATOR_SYSTEM.slice(0, 4000),
         visibility: publishVis,
         status: "published",
