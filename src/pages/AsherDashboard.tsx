@@ -241,6 +241,25 @@ const AsherDashboard = () => {
     return () => { cancelled = true; };
   }, [unlocked, user?.id]);
 
+  // Load Agent Store (Zahten-published agents the operator can see — RLS does the visibility filtering).
+  useEffect(() => {
+    if (!unlocked || !user?.id) return;
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await supabase
+        .from("asher_agents" as any)
+        .select("id, name, icon, entry_html, visibility")
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (!cancelled && data) setAgentStore(data as any);
+    };
+    load();
+    const onUpd = () => load();
+    window.addEventListener("asher-agents-updated", onUpd);
+    return () => { cancelled = true; window.removeEventListener("asher-agents-updated", onUpd); };
+  }, [unlocked, user?.id]);
+
   useAsherAutoLock(() => {
     try { sessionStorage.removeItem(ASHER_GATE_KEY); } catch {}
     setUnlocked(false);
