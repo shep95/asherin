@@ -208,14 +208,20 @@ const AsherZacoonModule = () => {
         </header>
 
         {/* Mode toggle */}
-        <div className="flex items-center gap-2 mb-3">
-          {(["browser","recon"] as const).map((m) => (
-            <button key={m} onClick={() => setMode(m)}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {([
+            { k: "browser", label: "Browser Task", Icon: Bot },
+            { k: "extract", label: "Extract (Link Forensics)", Icon: FileSearch },
+            { k: "forge",   label: "Forge Software", Icon: Layers },
+            { k: "recon",   label: "Recon", Icon: Radar },
+            { k: "stress",  label: "Stress / Shutdown Model", Icon: AlertTriangle },
+          ] as const).map(({ k, label, Icon }) => (
+            <button key={k} onClick={() => setMode(k)}
               className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase transition-colors ${
-                mode === m ? "border-foreground/40 bg-foreground/10 text-foreground" : "border-border/30 text-muted-foreground hover:text-foreground"
+                mode === k ? "border-foreground/40 bg-foreground/10 text-foreground" : "border-border/30 text-muted-foreground hover:text-foreground"
               }`}>
-              {m === "browser" ? <Bot className="h-3 w-3" strokeWidth={1.5} /> : <Radar className="h-3 w-3" strokeWidth={1.5} />}
-              {m === "browser" ? "Browser Task" : "Recon (Permissioned)"}
+              <Icon className="h-3 w-3" strokeWidth={1.5} />
+              {label}
             </button>
           ))}
         </div>
