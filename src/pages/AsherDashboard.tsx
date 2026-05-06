@@ -145,7 +145,7 @@ interface NavBranch { id: string; label: string; items: NavItem[] }
 
 interface PublishedTab { id: string; name: string; icon: string; entry_html: string }
 
-const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimaryAdmin: boolean, publishedTabs: PublishedTab[]): NavBranch[] => [
+const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimaryAdmin: boolean, publishedTabs: PublishedTab[], agentStore: { id: string; name: string; icon: string }[] = []): NavBranch[] => [
   ...(superOwner ? [{ id: "governance", label: "Organizations", items: [
     { id: "orgs" as AsherTab, label: "Org Management", icon: Building2, sub: "God-Mode" },
   ]}] : []),
