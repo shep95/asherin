@@ -206,23 +206,46 @@ const AsherZacoonModule = () => {
           </div>
         </header>
 
+        {/* Mode toggle */}
+        <div className="flex items-center gap-2 mb-3">
+          {(["browser","recon"] as const).map((m) => (
+            <button key={m} onClick={() => setMode(m)}
+              className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase transition-colors ${
+                mode === m ? "border-foreground/40 bg-foreground/10 text-foreground" : "border-border/30 text-muted-foreground hover:text-foreground"
+              }`}>
+              {m === "browser" ? <Bot className="h-3 w-3" strokeWidth={1.5} /> : <Radar className="h-3 w-3" strokeWidth={1.5} />}
+              {m === "browser" ? "Browser Task" : "Recon (Permissioned)"}
+            </button>
+          ))}
+        </div>
+
         {/* Task console */}
         <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-xl p-5 mb-6">
-          <p className="text-[10px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase mb-3">Mission Brief</p>
+          <p className="text-[10px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase mb-3">
+            {mode === "recon" ? "Target Brief — Permissioned Recon" : "Mission Brief"}
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-3">
             <textarea
               value={task}
               onChange={(e) => setTask(e.target.value)}
-              placeholder="e.g. Find the latest pricing plans on browser-use.com and extract the table"
+              placeholder={mode === "recon"
+                ? "Notes on scope (e.g. only public surfaces, no auth bypass)…"
+                : "e.g. Find the latest pricing plans on browser-use.com and extract the table"}
               className="min-h-[88px] resize-none rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
             />
             <div className="flex flex-col gap-3">
               <input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="Start URL (optional)"
+                placeholder={mode === "recon" ? "Target URL (required)" : "Start URL (optional)"}
                 className="rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
               />
+              {mode === "recon" && (
+                <label className="flex items-start gap-2 text-[10px] font-light text-muted-foreground/80 cursor-pointer">
+                  <input type="checkbox" checked={permission} onChange={(e) => setPermission(e.target.checked)} className="mt-0.5" />
+                  <span>I attest I own this target or have written authorization to test it.</span>
+                </label>
+              )}
               {running ? (
                 <button onClick={stopRun} className="flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2.5 text-[11px] font-light tracking-[0.2em] text-red-300 hover:bg-red-500/10 uppercase">
                   <Square className="h-3 w-3" strokeWidth={1.5} /> Stop
