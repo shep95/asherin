@@ -251,6 +251,7 @@ const AsherZacoonModule = () => {
               : mode === "extract" ? "Link Forensics — Auto-Approved Harvest"
               : mode === "forge" ? "Forge Software — Build Extractor Around Target"
               : mode === "stress" ? "Stress / Shutdown Feasibility — Permissioned"
+              : mode === "code" ? "Code — Edit / Create / Delete Files (Authorized)"
               : "Target Brief — Permissioned Recon"}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-3">
@@ -259,16 +260,40 @@ const AsherZacoonModule = () => {
               onChange={(e) => setTask(e.target.value)}
               placeholder={mode === "recon"
                 ? "Notes on scope (e.g. only public surfaces, no auth bypass)…"
+                : mode === "code"
+                ? "e.g. Refactor the auth flow, delete legacy /old folder, add a useDebounce hook…"
                 : "e.g. Find the latest pricing plans on browser-use.com and extract the table"}
               className="min-h-[88px] resize-none rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
             />
             <div className="flex flex-col gap-3">
-              <input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder={mode === "recon" ? "Target URL (required)" : "Start URL (optional)"}
-                className="rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
-              />
+              {mode === "code" ? (
+                <>
+                  <select
+                    value={projectId}
+                    onChange={(e) => setProjectId(e.target.value)}
+                    className="rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-xs font-light text-foreground focus:border-foreground/40 focus:outline-none"
+                  >
+                    <option value="">— Select code project —</option>
+                    {codeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                  <label className="flex items-center gap-2 text-[10px] font-light text-muted-foreground/80 cursor-pointer">
+                    <input type="checkbox" checked={applyChanges} onChange={(e) => setApplyChanges(e.target.checked)} />
+                    <span>Apply changes (off = dry-run plan only)</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-[10px] font-light text-red-300/80 cursor-pointer">
+                    <Trash2 className="h-3 w-3" strokeWidth={1.5} />
+                    <input type="checkbox" checked={wipeAll} onChange={(e) => setWipeAll(e.target.checked)} />
+                    <span>WIPE ALL FILES in project (destructive)</span>
+                  </label>
+                </>
+              ) : (
+                <input
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder={mode === "recon" ? "Target URL (required)" : "Start URL (optional)"}
+                  className="rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
+                />
+              )}
               {mode !== "browser" && (
                 <label className="flex items-start gap-2 text-[10px] font-light text-muted-foreground/80 cursor-pointer">
                   <input type="checkbox" checked={permission} onChange={(e) => setPermission(e.target.checked)} className="mt-0.5" />
