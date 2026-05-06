@@ -185,6 +185,7 @@ const VedicAstrologyView = () => {
   const [leaderPlacements, setLeaderPlacements] = useState<Record<string, Placement[]>>({});
   const [companyPlacements, setCompanyPlacements] = useState<Record<string, Placement[]>>({});
   const [founderPlacements, setFounderPlacements] = useState<Record<string, Placement[]>>({});
+  const [savedPlacements, setSavedPlacements] = useState<Record<string, Placement[]>>({});
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -208,6 +209,36 @@ const VedicAstrologyView = () => {
   useEffect(() => {
     void loadSavedCharts();
   }, []);
+
+  // Lazy-compute placements for saved user charts
+  useEffect(() => {
+    const missing = savedCharts.filter((s) => !(s.id in savedPlacements));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const updates: Record<string, Placement[]> = {};
+      for (const s of missing) {
+        try {
+          const r = await calculateSweVedicChart({
+            birthDate: s.birth_date, birthTime: s.birth_time,
+            tzOffset: s.tz_offset, lat: s.latitude, lon: s.longitude,
+          });
+          updates[s.id] = r.planets.map((p) => ({
+            name: p.name, symbol: p.symbol,
+            sign: rashis[Math.floor(p.sid / 30)].name,
+            house: houseFromAsc(p.sid, r.ascendant),
+            retro: p.retrograde,
+          }));
+        } catch {
+          updates[s.id] = [];
+        }
+        if (cancelled) return;
+      }
+      if (!cancelled) setSavedPlacements((prev) => ({ ...prev, ...updates }));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedCharts]);
 
   const searchCity = async (q?: string) => {
     const query = (q ?? cityQuery).trim();
@@ -1055,14 +1086,17 @@ const VedicAstrologyView = () => {
               {savedCharts.length === 0 ? (
                 <div className="px-3 py-3 text-xs text-muted-foreground">No saved charts yet.</div>
               ) : savedCharts.map((saved) => (
-                <div key={saved.id} className="flex items-center gap-3 px-3 py-2">
-                  <button onClick={() => void loadChart(saved)} className="flex-1 text-left min-w-0">
-                    <span className="block truncate text-sm text-foreground/85 font-light">{saved.name}</span>
-                    <span className="block truncate text-[10px] uppercase tracking-wider text-muted-foreground/70">{saved.birth_date} · {saved.birth_time} · {saved.city_label || `${saved.latitude}, ${saved.longitude}`}</span>
-                  </button>
-                  <button onClick={() => void deleteChart(saved.id)} className="p-1 text-muted-foreground hover:text-destructive transition" aria-label="Delete saved Vedic chart">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                <div key={saved.id} className="px-3 py-2">
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => void loadChart(saved)} className="flex-1 text-left min-w-0">
+                      <span className="block truncate text-sm text-foreground/85 font-light">{saved.name}</span>
+                      <span className="block truncate text-[10px] uppercase tracking-wider text-muted-foreground/70">{saved.birth_date} · {saved.birth_time} · {saved.city_label || `${saved.latitude}, ${saved.longitude}`}</span>
+                    </button>
+                    <button onClick={() => void deleteChart(saved.id)} className="p-1 text-muted-foreground hover:text-destructive transition" aria-label="Delete saved Vedic chart">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <PlacementsStrip items={savedPlacements[saved.id]} />
                 </div>
               ))}
             </div>
