@@ -312,7 +312,7 @@ const LLMModels = () => {
         diagramAccent="hsl(275, 95%, 60%)"
         diagramNodes={[
           { id: "z1", x: 140, y: 90, label: "Zophiel Search", sub: "30+ sources" },
-          { id: "z2", x: 660, y: 90, label: "NOMAD OSINT", sub: "14-pass dossier" },
+          { id: "z2", x: 660, y: 90, label: "NOMAD Public Intel", sub: "14-pass dossier" },
           { id: "z3", x: 80, y: 230, label: "Onion Index", sub: "Ahmia · Tier 5" },
           { id: "z4", x: 720, y: 230, label: "Intel Map", sub: "Graph engine" },
           { id: "z5", x: 220, y: 340, label: "Truth Graph", sub: "Veracity scores" },
