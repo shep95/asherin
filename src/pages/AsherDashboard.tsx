@@ -187,11 +187,11 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     icon: Package,
     sub: "Custom",
   })) }] : []),
-  ...(agentStore.length ? [{ id: "agentstore", label: "Agent Store", items: agentStore.map((a) => ({
+  ...(agentStore.length ? [{ id: "agentstore", label: "Deployed Agents", items: agentStore.map((a) => ({
     id: `agent:${a.id}` as AsherTab,
     label: a.name,
     icon: Package,
-    sub: "Agent",
+    sub: "Live",
   })) }] : []),
   { id: "comms", label: "Secure Comms", items: [
     { id: "comms", label: "Operator Comms", icon: MessageSquare, sub: "E2EE" },
