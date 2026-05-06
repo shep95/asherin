@@ -846,7 +846,7 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
       if (!u) throw new Error("Sign in required");
       const finalHtml = publishHtmlDirty ? publishHtml : buildEntryHtml();
       const finalName = publishName.trim() || activeAgent?.name || "Untitled Agent";
-      const { error } = await supabase.from("asher_agents").insert({
+      const payload = {
         owner_id: u.id,
         name: finalName,
         description: objective.slice(0, 280),
@@ -859,11 +859,21 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
         visibility: publishVis,
         status: "published",
         metadata: { workflow_steps: workflowSteps, classification } as any,
-      } as any);
-      if (error) throw error;
-      // Flip agent to live (combined Publish + Deploy)
-      setAgents((p) => p.map((a) => a.id === activeAgentId ? { ...a, name: finalName, status: "live", deployedAt: Date.now() } : a));
-      toast.success(`Published & deployed live · ${publishVis}`);
+      };
+      const existingId = activeAgent?.publishedAgentId;
+      let newId: string | undefined = existingId;
+      if (existingId) {
+        // UPDATE existing published tab (single source of truth — no duplicates)
+        const { error } = await supabase.from("asher_agents").update(payload as any).eq("id", existingId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from("asher_agents").insert(payload as any).select("id").single();
+        if (error) throw error;
+        newId = (data as any)?.id;
+      }
+      // Flip agent to live (combined Publish + Deploy) and remember its published row id
+      setAgents((p) => p.map((a) => a.id === activeAgentId ? { ...a, name: finalName, status: "live", deployedAt: Date.now(), publishedAgentId: newId } : a));
+      toast.success(existingId ? `Updated live tab · ${publishVis}` : `Published & deployed live · ${publishVis}`);
       setPublishOpen(false);
       window.dispatchEvent(new CustomEvent("asher-agents-updated"));
     } catch (e: any) {
