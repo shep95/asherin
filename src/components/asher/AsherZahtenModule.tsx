@@ -639,20 +639,31 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
 </body></html>`;
   };
 
+  const openPublish = () => {
+    if (!passes.length) { toast.error("Build the agent before publishing"); return; }
+    if (missingSecrets.length) { toast.error(`Provide values for: ${missingSecrets.join(", ")}`); return; }
+    setPublishName(activeAgent?.name || "Untitled Agent");
+    setPublishHtml(buildEntryHtml());
+    setPublishHtmlDirty(false);
+    setPublishOpen(true);
+  };
+
   const publishAsTab = async () => {
     if (!passes.length) { toast.error("Build the agent before publishing"); return; }
     setPublishing(true);
     try {
       const { data: { user: u } } = await supabase.auth.getUser();
       if (!u) throw new Error("Sign in required");
+      const finalHtml = publishHtmlDirty ? publishHtml : buildEntryHtml();
+      const finalName = publishName.trim() || activeAgent?.name || "Untitled Agent";
       const { error } = await supabase.from("asher_agents").insert({
         owner_id: u.id,
-        name: activeAgent?.name || "Untitled Agent",
+        name: finalName,
         description: objective.slice(0, 280),
         icon: "◈",
         category: "zahten",
         runtime: "iframe",
-        entry_html: buildEntryHtml(),
+        entry_html: finalHtml,
         source_tsx: lastCodeBlock || null,
         system_prompt: ORCHESTRATOR_SYSTEM.slice(0, 4000),
         visibility: publishVis,
@@ -660,7 +671,9 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
         metadata: { workflow_steps: workflowSteps, classification } as any,
       } as any);
       if (error) throw error;
-      toast.success(`Published to Agent Store · ${publishVis}`);
+      // Flip agent to live (combined Publish + Deploy)
+      setAgents((p) => p.map((a) => a.id === activeAgentId ? { ...a, name: finalName, status: "live", deployedAt: Date.now() } : a));
+      toast.success(`Published & deployed live · ${publishVis}`);
       setPublishOpen(false);
       window.dispatchEvent(new CustomEvent("asher-agents-updated"));
     } catch (e: any) {
