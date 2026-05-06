@@ -16,12 +16,11 @@ export type FeatureId =
   | "personas"
   | "code_snippets"
   | "encryption"
+  | "byok"
   | "slideshow"
   | "pdf_generator"
-  | "imagine_intelligence"
+  | "ebook"
   | "google_intel"
-  | "elion"
-  | "predictive"
   | "briefings"
   | "nomad"
   | "tracker"
@@ -35,18 +34,24 @@ export type FeatureId =
   | "teams"
   | "community"
   | "security_dashboard"
+  | "guardian_vault"
   | "plugins"
   | "audit"
-  | "entity_resolution"
   | "scenario_simulator"
-  | "priority_models"
   | "video_intelligence"
   | "vibe_imager"
   | "vibe_video"
   | "agents"
-   | "zeeion"
-   | "axrlen"
-   | "zerlal";
+  | "zahten"
+  | "reverse_engineer"
+  | "file_scrapper"
+  | "cipher"
+  | "whiteboard"
+  | "zeeion"
+  | "axrlen"
+  | "zerlal"
+  | "cross"
+  | "lavba";
 
 // ── Plan Definition ──────────────────────────────────────────────────────────
 export interface PlanDefinition {
@@ -70,31 +75,31 @@ export interface PlanDefinition {
 
 // ── Tier → Feature Mapping ───────────────────────────────────────────────────
 const LIFETIME_FEATURES: FeatureId[] = [
-  "chat", "encryption",
+  "chat", "encryption", "byok",
 ];
 
 const CHAT_FEATURES: FeatureId[] = [
-  "chat", "encryption", "zophiel_search", "imagine_intelligence", "notebooks",
-  "slideshow", "pdf_generator",
+  "chat", "encryption", "byok", "zophiel_search", "notebooks",
+  "slideshow", "pdf_generator", "ebook", "zahten", "guardian_vault",
 ];
 
 const AUREON_FEATURES: FeatureId[] = [
-  "chat", "ide", "zophiel_search", "memory", "personas", "code_snippets",
-  "encryption", "slideshow", "pdf_generator", "imagine_intelligence", "imagine_to_code",
-  "vibe_imager",
+  ...CHAT_FEATURES,
+  "ide", "memory", "personas", "code_snippets", "imagine_to_code",
+  "vibe_imager", "reverse_engineer", "file_scrapper", "cipher", "whiteboard",
 ];
 
 const PRO_FEATURES: FeatureId[] = [
   ...AUREON_FEATURES,
-  "google_intel", "elion", "predictive", "briefings", "nomad", "tracker",
-  "azplen", "pattern_analysis", "timeseries", "geospatial", "notebooks",
+  "google_intel", "briefings", "nomad", "tracker",
+  "azplen", "pattern_analysis", "timeseries", "geospatial",
   "zali", "teams", "community", "security_dashboard", "plugins", "audit",
-  "entity_resolution", "scenario_simulator", "priority_models", "video_intelligence",
-  "vibe_video", "agents", "zeeion", "axrlen", "zerlal",
+  "scenario_simulator", "video_intelligence",
+  "vibe_video", "agents", "zeeion", "axrlen", "zerlal", "cross", "lavba",
 ];
 
 const STARTER_FEATURES: FeatureId[] = [
-  "chat", "encryption",
+  "chat", "encryption", "byok",
 ];
 
 // ── Plans Array ──────────────────────────────────────────────────────────────
@@ -115,6 +120,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "50 messages per 3-hour window",
       "Uncensored AI chat",
       "End-to-end encryption",
+      "Bring Your Own AI Key (required)",
     ],
   },
   {
@@ -123,17 +129,17 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     tagline: "One-Time Purchase",
     price: "$470",
     period: "one-time",
-    description: "Lifetime access to Aureon AI chat with encryption. One payment, forever.",
+    description: "Lifetime access to Aureon AI chat with encryption. Bring your own API key — one payment, forever.",
     cta: "Get Lifetime Access",
     highlight: false,
     publicVisible: true,
     features: LIFETIME_FEATURES,
-    messageLimit: 60,
+    messageLimit: 9999,
     featureLabels: [
       "Lifetime access — one payment",
       "Uncensored AI chat",
       "End-to-end encryption",
-      "60 messages per 3-hour window",
+      "Unlimited* messages (BYOK required)",
     ],
   },
   {
@@ -142,20 +148,22 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     tagline: "Core Intelligence",
     price: "$47",
     period: "/ month",
-    description: "Full AI chat access with search, encryption, and memory. The foundation.",
+    description: "Full AI chat plus Zophiel Search, Notebooks, PDF / Slideshow / E-Book generators, Zahten Agent Forge, and Guardian Vault. Bring your own AI key.",
     cta: "Start With Chat",
     highlight: false,
     publicVisible: true,
     features: CHAT_FEATURES,
-    messageLimit: 60,
+    messageLimit: 100,
     featureLabels: [
-      "60 messages per 3-hour window",
+      "100 messages per 3-hour window",
       "Uncensored AI chat",
-      "Zophiel Search Engine",
+      "Bring Your Own AI Key (required)",
       "End-to-end encryption",
-      "Imagine Intelligence",
+      "Zophiel Search Engine",
       "Intelligence Notebooks",
-      "Slideshow & PDF generation",
+      "PDF, Slideshow & E-Book generators",
+      "Zahten Agent Forge",
+      "Guardian Vault",
     ],
   },
   {
@@ -164,21 +172,25 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     tagline: "Full AI Suite",
     price: "$199",
     period: "/ month",
-    description: "Complete AI toolkit — IDE, coding engine, personas, memory, and search.",
+    description: "Everything in Chat plus the Aureon IDE, persistent memory, custom personas, Imagine To Code, Vibe Imager, Reverse Engineer, File Scrapper, Cipher Toolkit, and Whiteboard.",
     cta: "Get Aureon",
     highlight: false,
     publicVisible: true,
     features: AUREON_FEATURES,
-    messageLimit: 60,
+    messageLimit: 200,
     featureLabels: [
       "Everything in Chat",
+      "200 messages per 3-hour window",
       "Aureon IDE — full cloud development environment",
-      "Elite Coding Engine",
-      "Code Snippets manager",
       "Persistent Memory & Calibration",
       "Custom Personas",
-      "Imagine To Code — AI pixel art & SVG editor",
-      "Vibe Imager — AI image generation",
+      "Code Snippets Vault",
+      "Imagine To Code — AI pixel & SVG editor",
+      "Vibe Imager — conversational AI image creation",
+      "Reverse Engineering Intelligence",
+      "File Scrapper — extract text from any document",
+      "Cipher Toolkit — encoding, hashing, encryption",
+      "Whiteboard — infinite canvas with layers",
     ],
   },
   {
@@ -187,7 +199,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     tagline: "Maximum Intelligence",
     price: "$740",
     period: "/ month",
-    description: "Everything in Aureon plus OSINT, briefings, data intelligence, team workspace, and all advanced tools.",
+    description: "Everything in Aureon plus OSINT, briefings, data intelligence, team workspace, and every advanced module.",
     cta: "Go Pro",
     highlight: true,
     publicVisible: true,
@@ -196,24 +208,24 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     featureLabels: [
       "Everything in Aureon — expanded",
       "200 messages per 3-hour window",
-      "Elion / Zohar OSINT Toolkit",
       "NOMAD Public Intelligence Agent",
+      "Google Intelligence Suite",
       "Daily Intelligence Briefings",
-      "Intelligence Notebooks with versioning",
-      "Team Workspace with RBAC & email invites",
+      "Azplen Data Intelligence Platform",
+      "Pattern Analysis Engine",
       "Time-Series Intelligence & forecasting",
       "Geospatial analysis & location mapping",
-      "Plugin Marketplace (20+ plugins)",
+      "ZANOEM Design Lab",
+      "Video Intelligence — behavioral & deception analysis",
+      "Vibe Video — AI video editing",
+      "Cross — live screen intelligence",
+      "Lavba Strategy Engine",
+      "Team Workspace with RBAC & email invites",
+      "Plugin Marketplace",
       "Security Dashboard — WAF, honeypots & threat intel",
       "Audit Trail for compliance",
-      "Entity resolution & relationship mapping",
-      "Scenario Simulator & threat modeling",
-      "Pattern Analysis Engine",
+      "Automated Agents",
       "Company & competitor tracking",
-      "IMAGINE INTELLIGENCE — Geo-Intelligence Analysis",
-      "Video Intelligence — behavioral & deception analysis",
-      "Priority model access",
-      "Bring Your Own AI Key — use any provider across all tools",
       "AXRLEN — Real-time global event prediction & policy simulation",
       "ZEEION FI — AI forensic financial intelligence platform",
       "ZERLAL — Domain reconnaissance & vulnerability intelligence",
@@ -249,13 +261,11 @@ export function getDashboardPlans(): PlanDefinition[] {
 export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   search: "zophiel_search",
   google: "google_intel",
-  elion: "elion",
-  predictive: "predictive",
   briefing: "briefings",
   nomad: "nomad",
   tracker: "tracker",
-  "imagine-intelligence": "imagine_intelligence",
   asha: "azplen",
+  azplen: "azplen",
   "pattern-analysis": "pattern_analysis",
   timeseries: "timeseries",
   geospatial: "geospatial",
@@ -266,18 +276,27 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   teams: "teams",
   community: "community",
   security: "security_dashboard",
+  "guardian-vault": "guardian_vault",
   plugins: "plugins",
   audit: "audit",
   slideshow: "slideshow",
   "pdf-generator": "pdf_generator",
+  ebook: "ebook",
   snippets: "code_snippets",
   "video-intelligence": "video_intelligence",
   "vibe-imager": "vibe_imager",
   "vibe-video": "vibe_video",
   agents: "agents",
+  zahten: "zahten",
+  "reverse-engineer": "reverse_engineer",
+  "file-scrapper": "file_scrapper",
+  cipher: "cipher",
+  whiteboard: "whiteboard",
   zeeion: "zeeion",
   axrlen: "axrlen",
   zerlal: "zerlal",
+  cross: "cross",
+  lavba: "lavba",
 };
 
 // ── "What Powers Each Tier" grid config ──────────────────────────────────────
@@ -289,16 +308,21 @@ export interface TierFeatureCard {
 
 export const TIER_FEATURE_CARDS: TierFeatureCard[] = [
   { label: "Aureon AI", desc: "Uncensored intelligence engine with persistent memory and calibration.", tier: "All tiers" },
-  { label: "Elite Coding", desc: "Multi-file architecture, debugging, and production-grade output.", tier: "All tiers" },
+  { label: "Bring Your Own AI Key", desc: "Connect your own keys from Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more.", tier: "All tiers" },
   { label: "End-to-End Encryption", desc: "Every message encrypted. Never stored as training data.", tier: "All tiers" },
   { label: "Zophiel Search", desc: "Privacy-first search with source credibility tiers and page preview.", tier: "All tiers" },
-  { label: "Aureon IDE", desc: "Full cloud development environment with AI chat, terminals, sessions, undo/redo, and ZIP export.", tier: "All tiers" },
-  { label: "Google Intelligence", desc: "Multi-account Google data analysis — email, calendar, contacts, YouTube, Chrome, and more.", tier: "Pro" },
-  { label: "Predictive Intelligence", desc: "AI-powered event forecasting with signal detection and confidence scoring.", tier: "Pro" },
+  { label: "Zahten Agent Forge", desc: "Autonomous agent builder — design, scaffold and harden production-grade automated agents.", tier: "All tiers" },
+  { label: "Guardian Vault", desc: "Centralized security command center with TOTP MFA and credential hygiene.", tier: "All tiers" },
+  { label: "Aureon IDE", desc: "Full cloud development environment with AI chat, terminals, sessions, undo/redo, and ZIP export.", tier: "Pro" },
   { label: "Imagine To Code", desc: "AI-powered pixel art & SVG editor — draw, upload images, or ask AUREON to design directly on the canvas.", tier: "Pro" },
+  { label: "Google Intelligence", desc: "Multi-account Google data analysis — email, calendar, contacts, YouTube, Chrome, and more.", tier: "Pro" },
   { label: "NOMAD OSINT", desc: "Public intelligence agent across 40+ data sources with dossier output.", tier: "Pro" },
   { label: "Azplen Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Pro" },
   { label: "Daily Briefings", desc: "Personalized intelligence briefings delivered every morning.", tier: "Pro" },
-  { label: "Elion / Zohar Toolkit", desc: "Domain forensics, security scoring, subdomain recon, and full attack surface mapping.", tier: "Pro" },
+  { label: "ZANOEM Design Lab", desc: "Universal design intelligence — first-principles design with FEA & thermal simulation.", tier: "Pro" },
+  { label: "Video Intelligence", desc: "Behavioral analysis, deception detection, and personality profiling from video.", tier: "Pro" },
   { label: "Security Dashboard", desc: "WAF, honeypots, threat intelligence feeds, and behavioral analytics.", tier: "Pro" },
+  { label: "AXRLEN", desc: "Real-time global event prediction and policy simulation engine.", tier: "Pro" },
+  { label: "ZEEION FI", desc: "AI forensic financial intelligence and dispute resolution.", tier: "Pro" },
+  { label: "ZERLAL", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence.", tier: "Pro" },
 ];
