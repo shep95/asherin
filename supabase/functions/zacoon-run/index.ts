@@ -138,7 +138,12 @@ Deno.serve(async (req) => {
   const task: string = body.task || "";
   const targetUrl: string = body.target_url || body.url || "";
 
+  // Resolve which Gemini key to use: BYOK header (user-supplied) takes precedence over admin env key.
+  const byokKey = req.headers.get("x-byok-gemini-key") || "";
+  const geminiKey = byokKey || ADMIN_GEMINI_KEY || "";
+
   if (!task && !targetUrl) return j({ error: "task or target_url required" }, 400);
+  if (!geminiKey) return j({ error: "No Gemini API key. Add a BYOK key in Settings or have an admin configure GEMINI_API_KEY." }, 401);
 
   const t0 = Date.now();
   const steps: Step[] = [];
