@@ -102,6 +102,7 @@ const ZerlalView = React.lazy(() => import("@/components/dashboard/zerlal/Zerlal
 const FileScrapperView = React.lazy(() => import("@/components/dashboard/scrapper/FileScrapperView"));
 
 const CipherView = React.lazy(() => import("@/components/dashboard/cipher/CipherToolkit"));
+const AsherZahtenModule = React.lazy(() => import("@/components/asher/AsherZahtenModule"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
