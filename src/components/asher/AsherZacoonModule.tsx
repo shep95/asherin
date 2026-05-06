@@ -118,7 +118,7 @@ const AsherZacoonModule = () => {
     const id = `run-${Date.now()}`;
     const seed: Step = { n: 1, kind: "think", label: mode === "recon" ? "Recon dispatch" : "Plan", detail: "Calling backend…", ts: Date.now() };
     const run: Run = {
-      id, task: task.trim() || `Recon ${url}`, url: url.trim(), mode,
+      id, task: task.trim() || `${mode} ${url}`, url: url.trim(), mode,
       status: "running", startedAt: Date.now(), steps: [seed],
     };
     setRuns((p) => [run, ...p].slice(0, 25));
