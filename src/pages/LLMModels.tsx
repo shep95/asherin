@@ -337,7 +337,7 @@ const LLMModels = () => {
           {
             title: "What It Actually Runs",
             body:
-              "Zophiel is a multi-pass reasoning architecture with a routing layer, parallel source-tier execution (clearnet → onion), an Immutable Truth Graph protocol, and a Semantic Intent Engine. It powers Zophiel Search, NOMAD OSINT, the Intel Map, Predictive Intelligence, Onion Indexing, and the Elion / Zohar link-forensics toolkit.",
+              "Zophiel is a multi-pass reasoning architecture with a routing layer, parallel source-tier execution (clearnet → onion), an Immutable Truth Graph protocol, and a Semantic Intent Engine. It powers Zophiel Search, NOMAD Public Intelligence, the Intel Map, Predictive Intelligence, and Onion Indexing.",
           },
         ]}
         capabilities={[
