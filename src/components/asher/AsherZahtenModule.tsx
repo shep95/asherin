@@ -708,6 +708,61 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
     }
   };
 
+  // Seed editable backend code + initialize publishHtml when agent or build changes
+  useEffect(() => {
+    if (lastCodeBlock && !backendCode) setBackendCode(lastCodeBlock);
+    if (passes.length && !publishHtml) setPublishHtml(buildEntryHtml());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastCodeBlock, passes.length]);
+
+  // ─── Chat-driven UI editor (Tab Preview) ──────────────────────────────────
+  const editUiViaChat = async () => {
+    const instr = uiChatInput.trim();
+    if (!instr || uiChatBusy) return;
+    setUiChatInput("");
+    const turn: ChatTurn = { role: "user", content: instr, ts: Date.now() };
+    setUiChat(p => [...p, turn]);
+    setUiChatBusy(true);
+    const ctl = new AbortController();
+    try {
+      const currentHtml = publishHtml || buildEntryHtml();
+      const sys = `You are a UI editor that returns ONLY a complete, self-contained, RESPONSIVE HTML document for an iframe-mounted dashboard tab. Dark theme. Use semantic HTML, mobile-first CSS (viewport meta), collapsible <details>/<summary> sections for any list, table, or panel. Do not include external resources. Include only HTML, inline CSS and inline JS. Output the FULL revised document — no commentary, no markdown fences.`;
+      const user = `CURRENT HTML:\n\`\`\`html\n${currentHtml}\n\`\`\`\n\nUSER INSTRUCTION:\n${instr}\n\nReturn the FULL revised HTML document.`;
+      const out = await callAsherAiPlain(sys, user, ctl.signal);
+      // Strip code fences if model added them
+      const clean = out.replace(/^```[a-z]*\n?|\n?```$/g, "").trim();
+      setPublishHtml(clean);
+      setPublishHtmlDirty(true);
+      setUiChat(p => [...p, { role: "assistant", content: "✓ UI updated. Preview refreshed.", ts: Date.now() }]);
+    } catch (e: any) {
+      setUiChat(p => [...p, { role: "assistant", content: `Error: ${e?.message || e}`, ts: Date.now() }]);
+    } finally {
+      setUiChatBusy(false);
+    }
+  };
+
+  // ─── Chat-driven Backend editor (Trigger.dev task code) ───────────────────
+  const editBackendViaChat = async () => {
+    const instr = backendChatInput.trim();
+    if (!instr || backendChatBusy) return;
+    setBackendChatInput("");
+    setBackendChat(p => [...p, { role: "user", content: instr, ts: Date.now() }]);
+    setBackendChatBusy(true);
+    const ctl = new AbortController();
+    try {
+      const sys = `You are a backend engineer editing a Trigger.dev v3 task. Return ONLY a single complete TypeScript task definition (task({ id, run })) — no commentary, no markdown fences. Production-grade: typed payloads, retry/queue config, structured logger calls, error handling. Keep imports minimal.`;
+      const user = `CURRENT BACKEND CODE:\n\`\`\`ts\n${backendCode || lastCodeBlock || "// (empty)"}\n\`\`\`\n\nAGENT OBJECTIVE: ${objective}\n\nUSER INSTRUCTION:\n${instr}\n\nReturn the FULL revised TypeScript task code.`;
+      const out = await callAsherAiPlain(sys, user, ctl.signal);
+      const clean = out.replace(/^```[a-z]*\n?|\n?```$/g, "").trim();
+      setBackendCode(clean);
+      setBackendChat(p => [...p, { role: "assistant", content: "✓ Backend code updated.", ts: Date.now() }]);
+    } catch (e: any) {
+      setBackendChat(p => [...p, { role: "assistant", content: `Error: ${e?.message || e}`, ts: Date.now() }]);
+    } finally {
+      setBackendChatBusy(false);
+    }
+  };
+
   useEffect(() => () => { if (liveTimerRef.current) window.clearInterval(liveTimerRef.current); }, []);
 
   const TABS: { id: ViewTab; label: string }[] = [
