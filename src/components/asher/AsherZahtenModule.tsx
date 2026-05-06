@@ -1191,6 +1191,50 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
             </div>
           )}
 
+          {/* ─────────── TAB PREVIEW ─────────── */}
+          {viewTab === "preview" && (
+            <div className="mx-auto max-w-6xl px-8 py-6 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Agent Store · Live Tab Preview</p>
+                  <p className="text-base font-extralight tracking-wide text-foreground mt-1">{activeAgent?.name || "Untitled Agent"}</p>
+                  <p className="text-[10px] font-light text-muted-foreground/70 mt-1 max-w-2xl leading-relaxed">
+                    Exactly what this tab will look like once published. Renders the same HTML/CSS/JS the dashboard will mount.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { if (!passes.length) { toast.error("Build the agent first"); return; } setPublishHtml(buildEntryHtml()); setPublishHtmlDirty(false); toast.message("Preview refreshed"); }}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border/30 px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase text-muted-foreground hover:text-foreground"
+                  >
+                    Refresh
+                  </button>
+                  <button
+                    onClick={openPublish}
+                    disabled={!passes.length || missingSecrets.length > 0}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase"
+                  >
+                    <Rocket className="h-3 w-3" strokeWidth={1.5} /> Edit &amp; Publish
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden" style={{ height: "70vh" }}>
+                {passes.length ? (
+                  <iframe
+                    title="Tab live preview"
+                    srcDoc={publishHtml || buildEntryHtml()}
+                    sandbox="allow-scripts"
+                    className="w-full h-full bg-[#0a0a0a]"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <p className="text-[11px] tracking-[0.25em] uppercase text-muted-foreground/60">Build the agent in the Builder tab to see the live preview</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* ─────────── WORKFLOW MAP TAB ─────────── */}
           {viewTab === "workflow" && (
             <div className="mx-auto max-w-5xl px-8 py-8 space-y-6">
