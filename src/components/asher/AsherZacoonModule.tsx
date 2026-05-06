@@ -137,7 +137,7 @@ const AsherZacoonModule = () => {
         },
         body: JSON.stringify({
           mode, task: task.trim(), target_url: url.trim(),
-          permission_attestation: mode === "recon" ? permission : undefined,
+          permission_attestation: needsTarget ? permission : undefined,
         }),
       });
       const data = await r.json();
