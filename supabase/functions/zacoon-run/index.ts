@@ -5,12 +5,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-byok-gemini-key",
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
+const ADMIN_GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
 const FIRECRAWL_KEY = Deno.env.get("FIRECRAWL_API_KEY");
 
 interface Step { ts: number; type: string; detail: string; data?: unknown }
@@ -18,10 +18,10 @@ interface Step { ts: number; type: string; detail: string; data?: unknown }
 const j = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-async function gemini(prompt: string, system?: string): Promise<string> {
-  if (!GEMINI_KEY) throw new Error("GEMINI_API_KEY missing");
+async function gemini(prompt: string, system: string | undefined, apiKey: string): Promise<string> {
+  if (!apiKey) throw new Error("No Gemini API key available — add a BYOK key in Settings.");
   const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -138,7 +138,12 @@ Deno.serve(async (req) => {
   const task: string = body.task || "";
   const targetUrl: string = body.target_url || body.url || "";
 
+  // Resolve which Gemini key to use: BYOK header (user-supplied) takes precedence over admin env key.
+  const byokKey = req.headers.get("x-byok-gemini-key") || "";
+  const geminiKey = byokKey || ADMIN_GEMINI_KEY || "";
+
   if (!task && !targetUrl) return j({ error: "task or target_url required" }, 400);
+  if (!geminiKey) return j({ error: "No Gemini API key. Add a BYOK key in Settings or have an admin configure GEMINI_API_KEY." }, 401);
 
   const t0 = Date.now();
   const steps: Step[] = [];
@@ -185,6 +190,7 @@ Deno.serve(async (req) => {
         `"exploit_hypotheses":[{"vector":"","cwe":"","severity":"low|med|high|crit","why":"","next_step":""}],` +
         `"shutdown_feasibility":{"summary":"","required_perms":[],"steps":[]}}`,
         "You return ONLY valid JSON. No prose, no code fences.",
+        geminiKey,
       );
       const cleaned = exploitText.replace(/^```json\s*|\s*```$/gi, "").trim();
       try { findings = JSON.parse(cleaned); }
@@ -198,6 +204,7 @@ Deno.serve(async (req) => {
         `Browser task: "${task}"${targetUrl ? `\nStart URL: ${targetUrl}` : ""}\n\n` +
         `Return strict JSON: {"start_url":"","steps":[{"action":"navigate|extract|search","detail":""}],"extraction_schema":{}}`,
         "You return ONLY valid JSON. No prose.",
+        geminiKey,
       );
       const planObj = (() => { try { return JSON.parse(plan.replace(/^```json\s*|\s*```$/gi, "").trim()); } catch { return { start_url: targetUrl, steps: [] }; } })();
       log("plan.ok", `Plan has ${planObj?.steps?.length ?? 0} step(s)`, planObj);
@@ -221,6 +228,7 @@ Deno.serve(async (req) => {
         `User task: "${task}"\nURL: ${url}\n\nPage content:\n${scrape.markdown.slice(0, 60_000)}\n\n` +
         `Extract the answer. Return strict JSON: {"answer":"","key_facts":[],"sources":[{"title":"","url":""}],"confidence":0.0}`,
         "You return ONLY valid JSON. Cite the source URL provided. No fabrication.",
+        geminiKey,
       );
       try { output = JSON.parse(extracted.replace(/^```json\s*|\s*```$/gi, "").trim()); }
       catch { output = { answer: extracted, raw: true }; }
