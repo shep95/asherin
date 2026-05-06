@@ -659,7 +659,7 @@ const Index = () => {
                     <div className="inline-flex flex-col items-center gap-1">
                       <span className="text-[10px] font-medium tracking-[0.15em] text-accent uppercase rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5">Best Value</span>
                       <span className="text-sm font-light tracking-[0.15em] text-foreground">Lifetime</span>
-                      <span className="text-lg font-extralight text-foreground">$470</span>
+                      <span className="text-lg font-extralight text-foreground">$740</span>
                       <span className="text-[10px] text-muted-foreground">one-time</span>
                     </div>
                   </th>
