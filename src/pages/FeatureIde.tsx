@@ -50,7 +50,7 @@ const capabilities = [
 
 const ideFeatures = [
   "AI code generation with full file context awareness",
-  "200 messages per 3-hour window shared with Aureon Chat",
+  "Unlimited messages with your own AI key — shared with Aureon Chat",
   "Multi-file project support with folder hierarchy",
   "Session persistence — your work saves automatically",
   "Custom AI prompt 'brains' for specialized coding tasks",
