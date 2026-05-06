@@ -1073,20 +1073,14 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
                   </button>
                 ) : (
                   <button
-                    onClick={deployLive}
-                    disabled={missingSecrets.length > 0}
+                    onClick={openPublish}
+                    disabled={!passes.length || missingSecrets.length > 0}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 text-[10px] font-light tracking-[0.25em] uppercase"
+                    title="Preview the tab UI, edit it, then publish & deploy live in one step"
                   >
-                    <Rocket className="h-3 w-3" strokeWidth={1.5} /> Deploy Live
+                    <Rocket className="h-3 w-3" strokeWidth={1.5} /> Publish &amp; Deploy
                   </button>
                 )}
-                <button
-                  onClick={() => setPublishOpen(true)}
-                  disabled={!passes.length}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/30 bg-foreground/5 hover:bg-foreground/10 disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 text-[10px] font-light tracking-[0.25em] uppercase"
-                >
-                  <Package className="h-3 w-3" strokeWidth={1.5} /> Publish as Tab
-                </button>
               </div>
             </div>
           )}
