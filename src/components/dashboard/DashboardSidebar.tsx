@@ -244,31 +244,27 @@ const DashboardSidebar = ({
     setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
-  // Filter nav groups based on tier access using centralized config
+  const itemAllowed = (item: NavItem) => {
+    if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
+    if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
+    if (item.id === "ebook") return user?.email === "ashernewtonx@gmail.com";
+    const featureId = VIEW_FEATURE_MAP[item.id];
+    if (featureId) {
+      return tierHasFeature(tierKey, featureId) || user?.email === "ashernewtonx@gmail.com";
+    }
+    if (user?.email === "ashernewtonx@gmail.com") return true;
+    if (!item.access) return true;
+    if (item.access === "search") return hasSearchAccess(tierKey);
+    if (item.access === "pro") return hasProAccess(tierKey);
+    return true;
+  };
+
   const filteredGroups = navGroups.map(group => ({
     ...group,
-    items: group.items.filter(item => {
-      // Admin-only views
-      if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
-      if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
-      if (item.id === "ebook") return user?.email === "ashernewtonx@gmail.com";
-      
-
-      // Use centralized feature map for tier-gated views
-      const featureId = VIEW_FEATURE_MAP[item.id];
-      if (featureId) {
-        return tierHasFeature(tierKey, featureId) || user?.email === "ashernewtonx@gmail.com";
-      }
-
-      // Legacy access field fallback (admin always has access)
-      if (user?.email === "ashernewtonx@gmail.com") return true;
-      if (!item.access) return true;
-      if (item.access === "search") return hasSearchAccess(tierKey);
-      if (item.access === "pro") return hasProAccess(tierKey);
-      
-      return true;
-    }),
-  })).filter(group => group.items.length > 0);
+    subgroups: group.subgroups
+      .map(sg => ({ ...sg, items: sg.items.filter(itemAllowed) }))
+      .filter(sg => sg.items.length > 0),
+  })).filter(group => group.subgroups.length > 0);
 
   // Load archived conversations
   const loadArchived = useCallback(async () => {
