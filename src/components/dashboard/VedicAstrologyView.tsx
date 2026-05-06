@@ -129,6 +129,23 @@ function VedicWheel({
   );
 }
 
+function PlacementsStrip({ items }: { items: { name: string; symbol: string; sign: string; house: number; retro: boolean }[] | undefined }) {
+  if (!items) {
+    return <div className="mt-1.5 text-[9px] text-muted-foreground/40 italic">computing planets…</div>;
+  }
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-1.5 pt-1.5 border-t border-border/15 grid grid-cols-3 gap-x-1.5 gap-y-0.5 text-[9px] font-light text-muted-foreground/80 leading-tight">
+      {items.map((p) => (
+        <div key={p.name} className="flex items-baseline gap-1 truncate" title={`${p.name} in ${p.sign} · House ${p.house}${p.retro ? " (R)" : ""}`}>
+          <span className="text-foreground/70 w-3">{p.symbol}</span>
+          <span className="truncate">{p.sign.slice(0, 3)} <span className="text-muted-foreground/50">H{p.house}</span>{p.retro && <span className="text-muted-foreground/60">ʀ</span>}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const VedicAstrologyView = () => {
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("12:00");
@@ -161,6 +178,13 @@ const VedicAstrologyView = () => {
   const [leaderLagnas, setLeaderLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
   const [companyLagnas, setCompanyLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
   const [founderLagnas, setFounderLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
+
+  // Compact planet placements per chart (for inline display in cards)
+  type Placement = { name: string; symbol: string; sign: string; house: number; retro: boolean };
+  const [countryPlacements, setCountryPlacements] = useState<Record<string, Placement[]>>({});
+  const [leaderPlacements, setLeaderPlacements] = useState<Record<string, Placement[]>>({});
+  const [companyPlacements, setCompanyPlacements] = useState<Record<string, Placement[]>>({});
+  const [founderPlacements, setFounderPlacements] = useState<Record<string, Placement[]>>({});
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -488,6 +512,7 @@ const VedicAstrologyView = () => {
     (async () => {
       setComputingLagnas(true);
       const updates: Record<string, { sign: string; sanskrit: string; deg: number } | null> = {};
+      const placeUpdates: Record<string, Placement[]> = {};
       for (const c of missing) {
         try {
           const r = await calculateSweVedicChart({
@@ -496,12 +521,21 @@ const VedicAstrologyView = () => {
           });
           const sign = rashis[Math.floor(r.ascendant / 30)];
           updates[c.code] = { sign: sign.name, sanskrit: sign.sanskrit, deg: r.ascendant % 30 };
+          placeUpdates[c.code] = r.planets.map((p) => ({
+            name: p.name, symbol: p.symbol,
+            sign: rashis[Math.floor(p.sid / 30)].name,
+            house: houseFromAsc(p.sid, r.ascendant),
+            retro: p.retrograde,
+          }));
         } catch {
           updates[c.code] = null;
         }
         if (cancelled) return;
       }
-      if (!cancelled) setCountryLagnas((prev) => ({ ...prev, ...updates }));
+      if (!cancelled) {
+        setCountryLagnas((prev) => ({ ...prev, ...updates }));
+        setCountryPlacements((prev) => ({ ...prev, ...placeUpdates }));
+      }
       setComputingLagnas(false);
     })();
     return () => { cancelled = true; };
@@ -516,6 +550,7 @@ const VedicAstrologyView = () => {
     let cancelled = false;
     (async () => {
       const updates: Record<string, { sign: string; sanskrit: string; deg: number } | null> = {};
+      const placeUpdates: Record<string, Placement[]> = {};
       for (const l of missing) {
         try {
           const r = await calculateSweVedicChart({
@@ -524,12 +559,21 @@ const VedicAstrologyView = () => {
           });
           const sign = rashis[Math.floor(r.ascendant / 30)];
           updates[l.countryCode] = { sign: sign.name, sanskrit: sign.sanskrit, deg: r.ascendant % 30 };
+          placeUpdates[l.countryCode] = r.planets.map((p) => ({
+            name: p.name, symbol: p.symbol,
+            sign: rashis[Math.floor(p.sid / 30)].name,
+            house: houseFromAsc(p.sid, r.ascendant),
+            retro: p.retrograde,
+          }));
         } catch {
           updates[l.countryCode] = null;
         }
         if (cancelled) return;
       }
-      if (!cancelled) setLeaderLagnas((prev) => ({ ...prev, ...updates }));
+      if (!cancelled) {
+        setLeaderLagnas((prev) => ({ ...prev, ...updates }));
+        setLeaderPlacements((prev) => ({ ...prev, ...placeUpdates }));
+      }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -571,6 +615,7 @@ const VedicAstrologyView = () => {
     let cancelled = false;
     (async () => {
       const updates: Record<string, { sign: string; sanskrit: string; deg: number } | null> = {};
+      const placeUpdates: Record<string, Placement[]> = {};
       for (const c of missing) {
         try {
           const r = await calculateSweVedicChart({
@@ -579,12 +624,21 @@ const VedicAstrologyView = () => {
           });
           const sign = rashis[Math.floor(r.ascendant / 30)];
           updates[c.symbol] = { sign: sign.name, sanskrit: sign.sanskrit, deg: r.ascendant % 30 };
+          placeUpdates[c.symbol] = r.planets.map((p) => ({
+            name: p.name, symbol: p.symbol,
+            sign: rashis[Math.floor(p.sid / 30)].name,
+            house: houseFromAsc(p.sid, r.ascendant),
+            retro: p.retrograde,
+          }));
         } catch {
           updates[c.symbol] = null;
         }
         if (cancelled) return;
       }
-      if (!cancelled) setCompanyLagnas((prev) => ({ ...prev, ...updates }));
+      if (!cancelled) {
+        setCompanyLagnas((prev) => ({ ...prev, ...updates }));
+        setCompanyPlacements((prev) => ({ ...prev, ...placeUpdates }));
+      }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -597,6 +651,7 @@ const VedicAstrologyView = () => {
     let cancelled = false;
     (async () => {
       const updates: Record<string, { sign: string; sanskrit: string; deg: number } | null> = {};
+      const placeUpdates: Record<string, Placement[]> = {};
       for (const f of missing) {
         try {
           const r = await calculateSweVedicChart({
@@ -605,12 +660,21 @@ const VedicAstrologyView = () => {
           });
           const sign = rashis[Math.floor(r.ascendant / 30)];
           updates[f.companySymbol] = { sign: sign.name, sanskrit: sign.sanskrit, deg: r.ascendant % 30 };
+          placeUpdates[f.companySymbol] = r.planets.map((p) => ({
+            name: p.name, symbol: p.symbol,
+            sign: rashis[Math.floor(p.sid / 30)].name,
+            house: houseFromAsc(p.sid, r.ascendant),
+            retro: p.retrograde,
+          }));
         } catch {
           updates[f.companySymbol] = null;
         }
         if (cancelled) return;
       }
-      if (!cancelled) setFounderLagnas((prev) => ({ ...prev, ...updates }));
+      if (!cancelled) {
+        setFounderLagnas((prev) => ({ ...prev, ...updates }));
+        setFounderPlacements((prev) => ({ ...prev, ...placeUpdates }));
+      }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -765,6 +829,7 @@ const VedicAstrologyView = () => {
                           <span className="text-foreground/85 font-light">{lagna.sign} <span className="text-muted-foreground/60">· {fmtDeg(lagna.deg)}</span></span>
                         )}
                       </div>
+                      <PlacementsStrip items={companyPlacements[c.symbol]} />
                     </button>
 
                     {founder && (() => {
@@ -802,6 +867,7 @@ const VedicAstrologyView = () => {
                               </span>
                             )}
                           </div>
+                          <PlacementsStrip items={founderPlacements[c.symbol]} />
                         </button>
                       );
                     })()}
@@ -859,6 +925,7 @@ const VedicAstrologyView = () => {
                           <span className="text-foreground/85 font-light">{lagna.sign} <span className="text-muted-foreground/60">· {fmtDeg(lagna.deg)}</span></span>
                         )}
                       </div>
+                      <PlacementsStrip items={countryPlacements[c.code]} />
                     </button>
 
                     {leader && (() => {
@@ -896,6 +963,7 @@ const VedicAstrologyView = () => {
                               </span>
                             )}
                           </div>
+                          <PlacementsStrip items={leaderPlacements[c.code]} />
                         </button>
                       );
                     })()}
