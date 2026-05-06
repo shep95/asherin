@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Globe2, MousePointer2, Keyboard, Camera, ListChecks, Play, Square,
   Send, Loader2, Sparkles, ShieldCheck, Bot, Cpu, Network, Terminal,
-  ChevronRight, MessageSquare, X, FileSearch, Layers, Radar, AlertTriangle,
+  ChevronRight, MessageSquare, X, FileSearch, Layers, Radar, AlertTriangle, Code2, Trash2,
 } from "lucide-react";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { supabase } from "@/integrations/supabase/client";
