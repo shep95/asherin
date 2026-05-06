@@ -210,6 +210,36 @@ const VedicAstrologyView = () => {
     void loadSavedCharts();
   }, []);
 
+  // Lazy-compute placements for saved user charts
+  useEffect(() => {
+    const missing = savedCharts.filter((s) => !(s.id in savedPlacements));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const updates: Record<string, Placement[]> = {};
+      for (const s of missing) {
+        try {
+          const r = await calculateSweVedicChart({
+            birthDate: s.birth_date, birthTime: s.birth_time,
+            tzOffset: s.tz_offset, lat: s.latitude, lon: s.longitude,
+          });
+          updates[s.id] = r.planets.map((p) => ({
+            name: p.name, symbol: p.symbol,
+            sign: rashis[Math.floor(p.sid / 30)].name,
+            house: houseFromAsc(p.sid, r.ascendant),
+            retro: p.retrograde,
+          }));
+        } catch {
+          updates[s.id] = [];
+        }
+        if (cancelled) return;
+      }
+      if (!cancelled) setSavedPlacements((prev) => ({ ...prev, ...updates }));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedCharts]);
+
   const searchCity = async (q?: string) => {
     const query = (q ?? cityQuery).trim();
     if (query.length < 2) {
