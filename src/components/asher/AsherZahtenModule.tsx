@@ -1064,11 +1064,58 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
                     <Rocket className="h-3 w-3" strokeWidth={1.5} /> Deploy Live
                   </button>
                 )}
+                <button
+                  onClick={() => setPublishOpen(true)}
+                  disabled={!passes.length}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/30 bg-foreground/5 hover:bg-foreground/10 disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 text-[10px] font-light tracking-[0.25em] uppercase"
+                >
+                  <Package className="h-3 w-3" strokeWidth={1.5} /> Publish as Tab
+                </button>
               </div>
             </div>
           )}
         </section>
           </div>
+          )}
+
+          {/* ─── Publish-as-Tab dialog ─── */}
+          {publishOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={() => !publishing && setPublishOpen(false)}>
+              <div className="w-full max-w-md rounded-xl border border-border/30 bg-card p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+                <div>
+                  <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Agent Store</p>
+                  <p className="text-base font-extralight tracking-wide text-foreground mt-1">Publish as Tab</p>
+                  <p className="text-[11px] font-light text-muted-foreground/70 mt-1 leading-relaxed">
+                    The agent appears as a new tab in the Asher Dashboard sidebar. Choose who can see it.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {([
+                    { v: "private", label: "Private", desc: "Only you" },
+                    { v: "team", label: "Team", desc: "Members of your team" },
+                    { v: "organization", label: "Organization", desc: "All members of your org" },
+                    { v: "public", label: "Public", desc: "Every Asher operator" },
+                  ] as const).map((o) => (
+                    <button
+                      key={o.v}
+                      onClick={() => setPublishVis(o.v)}
+                      className={`w-full text-left rounded-lg border px-3 py-2.5 transition-colors ${publishVis === o.v ? "border-foreground/50 bg-foreground/5" : "border-border/25 hover:border-foreground/30"}`}
+                    >
+                      <p className="text-[11px] font-light tracking-[0.2em] text-foreground uppercase">{o.label}</p>
+                      <p className="text-[10px] font-light text-muted-foreground/70 mt-0.5">{o.desc}</p>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={() => setPublishOpen(false)} disabled={publishing} className="rounded-md border border-border/30 px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground">
+                    Cancel
+                  </button>
+                  <button onClick={publishAsTab} disabled={publishing} className="rounded-md border border-foreground/40 bg-foreground/10 hover:bg-foreground/20 px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase text-foreground disabled:opacity-40">
+                    {publishing ? <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} /> : "Publish"}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* ─────────── WORKFLOW MAP TAB ─────────── */}
