@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Globe2, MousePointer2, Keyboard, Camera, ListChecks, Play, Square,
   Send, Loader2, Sparkles, ShieldCheck, Bot, Cpu, Network, Terminal,
-  ChevronRight, MessageSquare, X, FileSearch, Layers, Radar, AlertTriangle,
+  ChevronRight, MessageSquare, X, FileSearch, Layers, Radar, AlertTriangle, Code2, Trash2,
 } from "lucide-react";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +34,7 @@ type Run = {
   id: string;
   task: string;
   url: string;
-  mode: "browser" | "recon" | "extract" | "forge" | "stress";
+  mode: "browser" | "recon" | "extract" | "forge" | "stress" | "code";
   status: "queued" | "running" | "ok" | "failed" | "stopped";
   startedAt: number;
   endedAt?: number;
@@ -97,10 +97,21 @@ const AsherZacoonModule = () => {
   const [activeId, setActiveId] = useState<string>("");
   const [task, setTask] = useState("");
   const [url, setUrl] = useState("https://");
-  const [mode, setMode] = useState<"browser" | "recon" | "extract" | "forge" | "stress">("browser");
+  const [mode, setMode] = useState<"browser" | "recon" | "extract" | "forge" | "stress" | "code">("browser");
   const [permission, setPermission] = useState(true); // auto-approved by site owner per operator policy
-  const [running, setRunning] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
+  const [running, setRunning] = useState(false);
+  // CODE mode state
+  const [codeProjects, setCodeProjects] = useState<{ id: string; name: string }[]>([]);
+  const [projectId, setProjectId] = useState<string>("");
+  const [applyChanges, setApplyChanges] = useState(false);
+  const [wipeAll, setWipeAll] = useState(false);
+
+  useEffect(() => {
+    if (mode !== "code") return;
+    supabase.from("asher_code_projects").select("id,name").order("updated_at", { ascending: false }).limit(50)
+      .then(({ data }) => setCodeProjects(data || []));
+  }, [mode]);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(runs.slice(0, 25))); } catch { /* noop */ }
@@ -115,10 +126,15 @@ const AsherZacoonModule = () => {
       if (!url || url === "https://") { toast.error(`${mode} requires a target URL.`); return; }
       if (!permission) { toast.error("Owner-authorization attestation required."); return; }
     }
+    if (mode === "code") {
+      if (!projectId) { toast.error("Pick a code project."); return; }
+      if (!permission) { toast.error("Owner-authorization attestation required."); return; }
+      if (wipeAll && !applyChanges) { toast.error("Wipe-All requires Apply checked (destructive)."); return; }
+    }
     const id = `run-${Date.now()}`;
     const seed: Step = { n: 1, kind: "think", label: mode === "recon" ? "Recon dispatch" : "Plan", detail: "Calling backend…", ts: Date.now() };
     const run: Run = {
-      id, task: task.trim() || `${mode} ${url}`, url: url.trim(), mode,
+      id, task: task.trim() || `${mode} ${url || projectId}`, url: url.trim(), mode,
       status: "running", startedAt: Date.now(), steps: [seed],
     };
     setRuns((p) => [run, ...p].slice(0, 25));
@@ -137,7 +153,8 @@ const AsherZacoonModule = () => {
         },
         body: JSON.stringify({
           mode, task: task.trim(), target_url: url.trim(),
-          permission_attestation: needsTarget ? permission : undefined,
+          permission_attestation: (needsTarget || mode === "code") ? permission : undefined,
+          ...(mode === "code" ? { project_id: projectId, apply: applyChanges, wipe_all: wipeAll } : {}),
         }),
       });
       const data = await r.json();
@@ -215,6 +232,7 @@ const AsherZacoonModule = () => {
             { k: "forge",   label: "Forge Software", Icon: Layers },
             { k: "recon",   label: "Recon", Icon: Radar },
             { k: "stress",  label: "Stress / Shutdown Model", Icon: AlertTriangle },
+            { k: "code",    label: "Code (Edit / Delete Files)", Icon: Code2 },
           ] as const).map(({ k, label, Icon }) => (
             <button key={k} onClick={() => setMode(k)}
               className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase transition-colors ${
@@ -233,6 +251,7 @@ const AsherZacoonModule = () => {
               : mode === "extract" ? "Link Forensics — Auto-Approved Harvest"
               : mode === "forge" ? "Forge Software — Build Extractor Around Target"
               : mode === "stress" ? "Stress / Shutdown Feasibility — Permissioned"
+              : mode === "code" ? "Code — Edit / Create / Delete Files (Authorized)"
               : "Target Brief — Permissioned Recon"}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-3">
@@ -241,16 +260,40 @@ const AsherZacoonModule = () => {
               onChange={(e) => setTask(e.target.value)}
               placeholder={mode === "recon"
                 ? "Notes on scope (e.g. only public surfaces, no auth bypass)…"
+                : mode === "code"
+                ? "e.g. Refactor the auth flow, delete legacy /old folder, add a useDebounce hook…"
                 : "e.g. Find the latest pricing plans on browser-use.com and extract the table"}
               className="min-h-[88px] resize-none rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
             />
             <div className="flex flex-col gap-3">
-              <input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder={mode === "recon" ? "Target URL (required)" : "Start URL (optional)"}
-                className="rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
-              />
+              {mode === "code" ? (
+                <>
+                  <select
+                    value={projectId}
+                    onChange={(e) => setProjectId(e.target.value)}
+                    className="rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-xs font-light text-foreground focus:border-foreground/40 focus:outline-none"
+                  >
+                    <option value="">— Select code project —</option>
+                    {codeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                  <label className="flex items-center gap-2 text-[10px] font-light text-muted-foreground/80 cursor-pointer">
+                    <input type="checkbox" checked={applyChanges} onChange={(e) => setApplyChanges(e.target.checked)} />
+                    <span>Apply changes (off = dry-run plan only)</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-[10px] font-light text-red-300/80 cursor-pointer">
+                    <Trash2 className="h-3 w-3" strokeWidth={1.5} />
+                    <input type="checkbox" checked={wipeAll} onChange={(e) => setWipeAll(e.target.checked)} />
+                    <span>WIPE ALL FILES in project (destructive)</span>
+                  </label>
+                </>
+              ) : (
+                <input
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder={mode === "recon" ? "Target URL (required)" : "Start URL (optional)"}
+                  className="rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
+                />
+              )}
               {mode !== "browser" && (
                 <label className="flex items-start gap-2 text-[10px] font-light text-muted-foreground/80 cursor-pointer">
                   <input type="checkbox" checked={permission} onChange={(e) => setPermission(e.target.checked)} className="mt-0.5" />
