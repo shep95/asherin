@@ -52,81 +52,136 @@ interface DashboardSidebarProps {
   onDeleteCustomPersona?: (id: string) => void;
 }
 
-interface NavGroup {
-  label: string;
-  items: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "pro" }[];
-}
+type NavItem = { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "pro" };
+interface SubGroup { label: string; items: NavItem[] }
+interface NavGroup { label: string; subgroups: SubGroup[] }
 
 const navGroups: NavGroup[] = [
   {
     label: "Intelligence",
-    items: [
-      { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
-      { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
-      { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
-
-      { id: "video-intelligence", icon: Crosshair, label: "Video Intelligence", access: "pro" },
-      { id: "reverse-engineer" as DashboardView, icon: Search, label: "Reverse Engineer", access: "search" },
-      { id: "zahten" as DashboardView, icon: Workflow, label: "Zahten Agent Forge" },
+    subgroups: [
+      {
+        label: "Research",
+        items: [
+          { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
+          { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
+          { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
+        ],
+      },
+      {
+        label: "Vision & Agents",
+        items: [
+          { id: "video-intelligence", icon: Crosshair, label: "Video Intelligence", access: "pro" },
+          { id: "reverse-engineer" as DashboardView, icon: Search, label: "Reverse Engineer", access: "search" },
+          { id: "zahten" as DashboardView, icon: Workflow, label: "Zahten Agent Forge" },
+        ],
+      },
     ],
   },
   {
     label: "Data & Analysis",
-    items: [
-      { id: "azplen", icon: Database, label: "Azplen Intelligence", access: "pro" },
-      { id: "pattern-analysis", icon: Activity, label: "Pattern Engine", access: "pro" },
-      { id: "cross" as DashboardView, icon: Crosshair, label: "Cross", access: "pro" },
-      { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "pro" },
-      { id: "axrlen" as DashboardView, icon: Brain, label: "Axrlen", access: "pro" },
-      { id: "zerlal" as DashboardView, icon: Shield, label: "Zerlal", access: "pro" },
-      
-      { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
-      { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
-      { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
+    subgroups: [
+      {
+        label: "Platforms",
+        items: [
+          { id: "azplen", icon: Database, label: "Azplen Intelligence", access: "pro" },
+          { id: "pattern-analysis", icon: Activity, label: "Pattern Engine", access: "pro" },
+          { id: "cross" as DashboardView, icon: Crosshair, label: "Cross", access: "pro" },
+        ],
+      },
+      {
+        label: "Specialized Engines",
+        items: [
+          { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "pro" },
+          { id: "axrlen" as DashboardView, icon: Brain, label: "Axrlen", access: "pro" },
+          { id: "zerlal" as DashboardView, icon: Shield, label: "Zerlal", access: "pro" },
+        ],
+      },
+      {
+        label: "Analysis Tools",
+        items: [
+          { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
+          { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
+          { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
+        ],
+      },
     ],
   },
   {
     label: "Creation",
-    items: [
-      { id: "zali", icon: Zap, label: "ZANOEM Design Lab" },
-      { id: "ide", icon: Terminal, label: "AUREON IDE" },
-      { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
-      { id: "vibe-imager" as DashboardView, icon: Sparkles, label: "Vibe Imager" },
-      // { id: "vibe-video" as DashboardView, icon: Sparkles, label: "Vibe Video", access: "pro" },
-      { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
-      { id: "ebook" as DashboardView, icon: FileText, label: "E-Book Generator" },
-      { id: "slideshow", icon: Layers, label: "Slideshow Generator", access: "search" },
-      { id: "file-scrapper" as DashboardView, icon: FileText, label: "File Scrapper", access: "search" },
-      { id: "cipher" as DashboardView, icon: Shield, label: "Cipher Toolkit", access: "search" },
-      { id: "snippets", icon: Code2, label: "Code Snippets" },
-      { id: "projects", icon: Layers, label: "Projects" },
+    subgroups: [
+      {
+        label: "Design & Code",
+        items: [
+          { id: "zali", icon: Zap, label: "ZANOEM Design Lab" },
+          { id: "ide", icon: Terminal, label: "AUREON IDE" },
+          { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
+          { id: "snippets", icon: Code2, label: "Code Snippets" },
+          { id: "projects", icon: Layers, label: "Projects" },
+        ],
+      },
+      {
+        label: "Media Generation",
+        items: [
+          { id: "vibe-imager" as DashboardView, icon: Sparkles, label: "Vibe Imager" },
+          { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
+          { id: "ebook" as DashboardView, icon: FileText, label: "E-Book Generator" },
+          { id: "slideshow", icon: Layers, label: "Slideshow Generator", access: "search" },
+        ],
+      },
+      {
+        label: "Utilities",
+        items: [
+          { id: "file-scrapper" as DashboardView, icon: FileText, label: "File Scrapper", access: "search" },
+          { id: "cipher" as DashboardView, icon: Shield, label: "Cipher Toolkit", access: "search" },
+        ],
+      },
     ],
   },
   {
     label: "Workspace",
-    items: [
-      { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
-      { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
-      { id: "persona-store", icon: Sparkles, label: "Persona Store" },
-      { id: "library", icon: FolderOpen, label: "Library" },
-      { id: "memory", icon: Brain, label: "Memory Center" },
+    subgroups: [
+      {
+        label: "Collaboration",
+        items: [
+          { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
+          { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
+        ],
+      },
+      {
+        label: "Personal",
+        items: [
+          { id: "persona-store", icon: Sparkles, label: "Persona Store" },
+          { id: "library", icon: FolderOpen, label: "Library" },
+          { id: "memory", icon: Brain, label: "Memory Center" },
+        ],
+      },
     ],
   },
   {
     label: "System",
-    items: [
-      { id: "agents" as DashboardView, icon: Zap, label: "Agents", access: "pro" },
-      { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
-      { id: "guardian-vault" as DashboardView, icon: LockIcon, label: "Guardian Vault" },
-      { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
-      { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
-      
-      { id: "self-access", icon: FileText, label: "Self-Access Learning" },
-      { id: "bug-reports" as DashboardView, icon: ClipboardList, label: "Bug Reports" },
-      { id: "stats", icon: BarChart3, label: "My Stats" },
-      { id: "vedic-astrology" as DashboardView, icon: Moon, label: "Vedic Astrology" },
-      { id: "subscription", icon: CreditCard, label: "Subscription" },
-      { id: "settings", icon: Settings, label: "Settings" },
+    subgroups: [
+      {
+        label: "Security & Operations",
+        items: [
+          { id: "agents" as DashboardView, icon: Zap, label: "Agents", access: "pro" },
+          { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
+          { id: "guardian-vault" as DashboardView, icon: LockIcon, label: "Guardian Vault" },
+          { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
+          { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
+        ],
+      },
+      {
+        label: "Account",
+        items: [
+          { id: "self-access", icon: FileText, label: "Self-Access Learning" },
+          { id: "bug-reports" as DashboardView, icon: ClipboardList, label: "Bug Reports" },
+          { id: "stats", icon: BarChart3, label: "My Stats" },
+          { id: "vedic-astrology" as DashboardView, icon: Moon, label: "Vedic Astrology" },
+          { id: "subscription", icon: CreditCard, label: "Subscription" },
+          { id: "settings", icon: Settings, label: "Settings" },
+        ],
+      },
     ],
   },
 ];
