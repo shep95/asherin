@@ -51,6 +51,7 @@ export type FeatureId =
   | "axrlen"
   | "zerlal"
   | "cross"
+  | "vedic"
   | "lavba";
 
 // ── Plan Definition ──────────────────────────────────────────────────────────
