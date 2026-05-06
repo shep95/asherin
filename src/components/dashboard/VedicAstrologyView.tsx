@@ -829,6 +829,7 @@ const VedicAstrologyView = () => {
                           <span className="text-foreground/85 font-light">{lagna.sign} <span className="text-muted-foreground/60">· {fmtDeg(lagna.deg)}</span></span>
                         )}
                       </div>
+                      <PlacementsStrip items={companyPlacements[c.symbol]} />
                     </button>
 
                     {founder && (() => {
