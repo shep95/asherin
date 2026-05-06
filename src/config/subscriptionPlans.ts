@@ -174,7 +174,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     tagline: "Full AI Suite",
     price: "$199",
     period: "/ month",
-    description: "Everything in Chat plus the Aureon IDE, persistent memory, custom personas, Imagine To Code, Vibe Imager, Reverse Engineer, File Scrapper, Cipher, Whiteboard, NOMAD Public Intelligence, Daily Intelligence Briefings, and ZANOEM Design Lab.",
+    description: "Everything in Chat plus the Aureon IDE, persistent memory, custom personas, Imagine To Code, Vibe Imager, Reverse Engineer, File Scrapper, Cipher, Whiteboard, NOMAD Public Intelligence, Daily Intelligence Briefings, ZANOEM Design Lab, and Vedic Strategy.",
     cta: "Get Aureon",
     highlight: false,
     publicVisible: true,
@@ -196,6 +196,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "NOMAD Public Intelligence Agent",
       "Daily Intelligence Briefings",
       "ZANOEM Design Lab",
+      "Vedic Strategy — astro-temporal forecasting & dasha analysis",
     ],
   },
   {
