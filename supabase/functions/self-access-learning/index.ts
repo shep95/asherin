@@ -38,7 +38,7 @@ const CODEBASE_FILES = [
   { path: "src/pages/Founder.tsx", domain: "Frontend", desc: "Founder profile page" },
   { path: "src/pages/Benchmarks.tsx", domain: "Frontend", desc: "Performance benchmarks" },
   { path: "src/pages/FeatureAzplen.tsx", domain: "Frontend", desc: "Azplen marketing page" },
-  { path: "src/pages/FeatureElion.tsx", domain: "Frontend", desc: "Elion marketing page" },
+  
   { path: "src/pages/FeatureIde.tsx", domain: "Frontend", desc: "IDE marketing page" },
   { path: "src/pages/FeatureNomad.tsx", domain: "Frontend", desc: "Nomad marketing page" },
   { path: "src/pages/FeatureZali.tsx", domain: "Frontend", desc: "Zali marketing page" },
