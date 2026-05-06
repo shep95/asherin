@@ -204,6 +204,7 @@ Deno.serve(async (req) => {
         `Browser task: "${task}"${targetUrl ? `\nStart URL: ${targetUrl}` : ""}\n\n` +
         `Return strict JSON: {"start_url":"","steps":[{"action":"navigate|extract|search","detail":""}],"extraction_schema":{}}`,
         "You return ONLY valid JSON. No prose.",
+        geminiKey,
       );
       const planObj = (() => { try { return JSON.parse(plan.replace(/^```json\s*|\s*```$/gi, "").trim()); } catch { return { start_url: targetUrl, steps: [] }; } })();
       log("plan.ok", `Plan has ${planObj?.steps?.length ?? 0} step(s)`, planObj);
