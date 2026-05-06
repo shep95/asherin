@@ -110,9 +110,10 @@ const AsherZacoonModule = () => {
 
   const startRun = async () => {
     if (!task.trim() && mode === "browser") { toast.error("Provide a task."); return; }
-    if (mode === "recon") {
-      if (!url || url === "https://") { toast.error("Recon requires a target URL."); return; }
-      if (!permission) { toast.error("You must attest you have permission to test the target."); return; }
+    const needsTarget = mode === "recon" || mode === "extract" || mode === "forge" || mode === "stress";
+    if (needsTarget) {
+      if (!url || url === "https://") { toast.error(`${mode} requires a target URL.`); return; }
+      if (!permission) { toast.error("Owner-authorization attestation required."); return; }
     }
     const id = `run-${Date.now()}`;
     const seed: Step = { n: 1, kind: "think", label: mode === "recon" ? "Recon dispatch" : "Plan", detail: "Calling backend…", ts: Date.now() };
