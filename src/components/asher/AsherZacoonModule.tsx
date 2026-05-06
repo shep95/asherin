@@ -89,17 +89,17 @@ const AsherZacoonModule = () => {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch { /* noop */ }
     return STARTER_RUNS;
   });
-  const [activeId, setActiveId] = useState<string>(() => STARTER_RUNS[0].id);
+  const [activeId, setActiveId] = useState<string>("");
   const [task, setTask] = useState("");
   const [url, setUrl] = useState("https://");
+  const [mode, setMode] = useState<"browser" | "recon">("browser");
+  const [permission, setPermission] = useState(false);
   const [running, setRunning] = useState(false);
-  const stopRef = useRef<{ stopped: boolean }>({ stopped: false });
-
   const [chatOpen, setChatOpen] = useState(true);
 
   useEffect(() => {
@@ -109,39 +109,65 @@ const AsherZacoonModule = () => {
   const active = runs.find((r) => r.id === activeId);
 
   const startRun = async () => {
-    if (!task.trim()) {
-      toast.error("Provide a task.");
-      return;
+    if (!task.trim() && mode === "browser") { toast.error("Provide a task."); return; }
+    if (mode === "recon") {
+      if (!url || url === "https://") { toast.error("Recon requires a target URL."); return; }
+      if (!permission) { toast.error("You must attest you have permission to test the target."); return; }
     }
     const id = `run-${Date.now()}`;
-    const planned = planSteps(task.trim(), url.trim());
+    const seed: Step = { n: 1, kind: "think", label: mode === "recon" ? "Recon dispatch" : "Plan", detail: "Calling backend…", ts: Date.now() };
     const run: Run = {
-      id, task: task.trim(), url: url.trim(), status: "running",
-      startedAt: Date.now(), steps: [],
+      id, task: task.trim() || `Recon ${url}`, url: url.trim(), mode,
+      status: "running", startedAt: Date.now(), steps: [seed],
     };
     setRuns((p) => [run, ...p].slice(0, 25));
     setActiveId(id);
     setRunning(true);
-    stopRef.current = { stopped: false };
 
-    for (const s of planned) {
-      if (stopRef.current.stopped) break;
-      await new Promise((r) => setTimeout(r, 650 + Math.random() * 600));
-      setRuns((p) => p.map((r) => r.id === id ? { ...r, steps: [...r.steps, { ...s, ts: Date.now() }] } : r));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const byok = getActiveIntelMapByok();
+      const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zacoon-run`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          ...(byok ? { "x-byok-gemini-key": byok.apiKey } : {}),
+        },
+        body: JSON.stringify({
+          mode, task: task.trim(), target_url: url.trim(),
+          permission_attestation: mode === "recon" ? permission : undefined,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.ok) throw new Error(data?.error || `HTTP ${r.status}`);
+
+      const steps: Step[] = (data.steps || []).map((s: any, i: number) => ({
+        n: i + 1,
+        kind: s.type?.includes("error") ? "error"
+          : s.type?.startsWith("scrape") ? "extract"
+          : s.type?.startsWith("recon") ? (s.type === "recon.start" ? "navigate" : "extract")
+          : s.type === "plan.ok" ? "think"
+          : s.type === "extract.ok" ? "done"
+          : "think",
+        label: s.type, detail: s.detail, ts: s.ts,
+      }));
+      setRuns((p) => p.map((r) => r.id === id ? {
+        ...r, status: "ok", endedAt: Date.now(),
+        steps, output: data.output, findings: data.findings,
+      } : r));
+    } catch (e: any) {
+      const msg = e?.message || "Run failed";
+      toast.error(msg);
+      setRuns((p) => p.map((r) => r.id === id ? {
+        ...r, status: "failed", endedAt: Date.now(), error: msg,
+      } : r));
+    } finally {
+      setRunning(false);
     }
-
-    setRuns((p) => p.map((r) => r.id === id ? {
-      ...r,
-      status: stopRef.current.stopped ? "stopped" : "ok",
-      endedAt: Date.now(),
-    } : r));
-    setRunning(false);
   };
 
-  const stopRun = () => {
-    stopRef.current.stopped = true;
-    setRunning(false);
-  };
+  const stopRun = () => setRunning(false);
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
