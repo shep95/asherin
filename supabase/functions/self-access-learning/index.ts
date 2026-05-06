@@ -135,8 +135,7 @@ const CODEBASE_FILES = [
   { path: "src/components/dashboard/zali/ComponentLibraryPanel.tsx", domain: "Design", desc: "Component library" },
   { path: "src/components/dashboard/zali/MaterialIntelligencePanel.tsx", domain: "Design", desc: "Material AI analysis" },
   { path: "src/components/dashboard/zali/ManufacturingVerifyPanel.tsx", domain: "Design", desc: "Manufacturing verification" },
-  // ── Intelligence: Elion, Nomad, Google ──
-  { path: "src/components/dashboard/ElionView.tsx", domain: "Intelligence", desc: "Elion/Zohar forensic toolkit" },
+  // ── Intelligence: Nomad, Google ──
   { path: "src/components/dashboard/NomadView.tsx", domain: "Intelligence", desc: "OSINT investigation agent" },
   { path: "src/components/dashboard/google/GoogleIntelligenceView.tsx", domain: "Intelligence", desc: "Google data intelligence" },
   { path: "src/components/dashboard/google/MultiAccountManager.tsx", domain: "Intelligence", desc: "Multi-account management" },
