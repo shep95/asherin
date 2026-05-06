@@ -223,7 +223,8 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     messageLimit: 200,
     featureLabels: [
       "Everything in Aureon — expanded",
-      "200 messages per 3-hour window",
+      "Unlimited messages (BYOK required)",
+      "Zahten Agent Forge & Guardian Vault",
       "Google Intelligence Suite",
       "Azplen Data Intelligence Platform",
       "Pattern Analysis Engine",
