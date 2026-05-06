@@ -75,31 +75,31 @@ export interface PlanDefinition {
 
 // ── Tier → Feature Mapping ───────────────────────────────────────────────────
 const LIFETIME_FEATURES: FeatureId[] = [
-  "chat", "encryption",
+  "chat", "encryption", "byok",
 ];
 
 const CHAT_FEATURES: FeatureId[] = [
-  "chat", "encryption", "zophiel_search", "imagine_intelligence", "notebooks",
-  "slideshow", "pdf_generator",
+  "chat", "encryption", "byok", "zophiel_search", "notebooks",
+  "slideshow", "pdf_generator", "ebook", "zahten", "guardian_vault",
 ];
 
 const AUREON_FEATURES: FeatureId[] = [
-  "chat", "ide", "zophiel_search", "memory", "personas", "code_snippets",
-  "encryption", "slideshow", "pdf_generator", "imagine_intelligence", "imagine_to_code",
-  "vibe_imager",
+  ...CHAT_FEATURES,
+  "ide", "memory", "personas", "code_snippets", "imagine_to_code",
+  "vibe_imager", "reverse_engineer", "file_scrapper", "cipher", "whiteboard",
 ];
 
 const PRO_FEATURES: FeatureId[] = [
   ...AUREON_FEATURES,
-  "google_intel", "elion", "predictive", "briefings", "nomad", "tracker",
-  "azplen", "pattern_analysis", "timeseries", "geospatial", "notebooks",
+  "google_intel", "briefings", "nomad", "tracker",
+  "azplen", "pattern_analysis", "timeseries", "geospatial",
   "zali", "teams", "community", "security_dashboard", "plugins", "audit",
-  "entity_resolution", "scenario_simulator", "priority_models", "video_intelligence",
-  "vibe_video", "agents", "zeeion", "axrlen", "zerlal",
+  "scenario_simulator", "video_intelligence",
+  "vibe_video", "agents", "zeeion", "axrlen", "zerlal", "cross", "lavba",
 ];
 
 const STARTER_FEATURES: FeatureId[] = [
-  "chat", "encryption",
+  "chat", "encryption", "byok",
 ];
 
 // ── Plans Array ──────────────────────────────────────────────────────────────
