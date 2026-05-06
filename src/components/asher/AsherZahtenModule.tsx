@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import { routeBrainsForPrompt } from "@/lib/asherBrainRouter";
 import { toast } from "sonner";
 
 /**
@@ -243,6 +244,45 @@ const loadAgents = (): AgentRecord[] => {
   return STARTER_AGENTS;
 };
 
+// ── Reusable chat lane for prompt-driven UI / backend edits ──
+function ChatLane({ title, hint, messages, input, busy, onInput, onSend }: {
+  title: string; hint: string;
+  messages: { role: "user" | "assistant"; content: string; ts: number }[];
+  input: string; busy: boolean;
+  onInput: (v: string) => void; onSend: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col min-h-0">
+      <div className="px-3 py-2 border-b border-border/20 flex items-center justify-between">
+        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ {title}</p>
+        {busy && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />}
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {messages.length === 0 ? (
+          <p className="text-[10px] font-light text-muted-foreground/60 leading-relaxed">{hint}</p>
+        ) : messages.map((m, i) => (
+          <div key={i} className={`text-[11px] font-light leading-relaxed rounded-md px-2.5 py-1.5 ${m.role === "user" ? "bg-foreground/10 text-foreground self-end" : "bg-background/40 text-muted-foreground"}`}>
+            {m.content}
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-border/20 p-2 flex items-center gap-1.5">
+        <input
+          value={input}
+          onChange={(e) => onInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+          placeholder="Describe a change…"
+          disabled={busy}
+          className="flex-1 rounded-md border border-border/30 bg-background/40 px-2.5 py-1.5 text-[11px] text-foreground focus:outline-none focus:border-foreground/50 disabled:opacity-50"
+        />
+        <button onClick={onSend} disabled={busy || !input.trim()} className="rounded-md border border-border/30 px-2.5 py-1.5 text-muted-foreground hover:text-foreground disabled:opacity-30">
+          <Send className="h-3 w-3" strokeWidth={1.5} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const AsherZahtenModule = () => {
   // Agent registry — persisted to localStorage so built agents survive reloads
   const [agents, setAgents] = useState<AgentRecord[]>(() => loadAgents());
@@ -324,9 +364,20 @@ const AsherZahtenModule = () => {
     setRunning(false);
   };
 
+  const buildBrainContext = async (prompt: string): Promise<string> => {
+    try {
+      const route = await routeBrainsForPrompt(prompt, { topK: 5, charBudget: 40_000 });
+      if (!route || !route.brains.length) return "";
+      const blocks = route.brains.map(b => `### BRAIN — ${b.name} [${b.category}]\n${b.content}`).join("\n\n");
+      return `\n\n[AUREON BRAINS — injected for software build context]\n${route.rationale}\n\n${blocks}`;
+    } catch { return ""; }
+  };
+
   const callAsherAi = async (history: { role: "user" | "assistant"; content: string }[], signal: AbortSignal): Promise<string> => {
     const byok = getActiveIntelMapByok();
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asher-ai`;
+    const lastUser = [...history].reverse().find(m => m.role === "user")?.content || objective;
+    const brainCtx = await buildBrainContext(lastUser);
     const resp = await fetch(url, {
       method: "POST",
       signal,
@@ -337,7 +388,7 @@ const AsherZahtenModule = () => {
       },
       body: JSON.stringify({
         messages: [
-          { role: "user", content: `[ZAHTEN ORCHESTRATOR DOCTRINE]\n${ORCHESTRATOR_SYSTEM}\n\n[CLASSIFICATION] ${classification}` },
+          { role: "user", content: `[ZAHTEN ORCHESTRATOR DOCTRINE]\n${ORCHESTRATOR_SYSTEM}\n\n[CLASSIFICATION] ${classification}${brainCtx}` },
           ...history,
         ],
         mapContext: { surface: "zahten_mission_console" },
@@ -624,6 +675,19 @@ const AsherZahtenModule = () => {
   const [publishHtml, setPublishHtml] = useState("");
   const [publishHtmlDirty, setPublishHtmlDirty] = useState(false);
 
+  // Tab Preview sub-view: "live" (rendered iframe) or "infra" (workflow map)
+  const [previewSubView, setPreviewSubView] = useState<"live" | "infra">("live");
+  // Chat-based editor lanes
+  type ChatTurn = { role: "user" | "assistant"; content: string; ts: number };
+  const [uiChat, setUiChat] = useState<ChatTurn[]>([]);
+  const [backendChat, setBackendChat] = useState<ChatTurn[]>([]);
+  const [uiChatInput, setUiChatInput] = useState("");
+  const [backendChatInput, setBackendChatInput] = useState("");
+  const [uiChatBusy, setUiChatBusy] = useState(false);
+  const [backendChatBusy, setBackendChatBusy] = useState(false);
+  // Editable backend code (TS task) — defaults to lastCodeBlock
+  const [backendCode, setBackendCode] = useState<string>("");
+
   const buildEntryHtml = (): string => {
     const code = lastCodeBlock || "// no code generated";
     const safeName = (activeAgent?.name || "Agent").replace(/[<>&"']/g, "");
@@ -664,7 +728,7 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
         category: "zahten",
         runtime: "iframe",
         entry_html: finalHtml,
-        source_tsx: lastCodeBlock || null,
+        source_tsx: backendCode || lastCodeBlock || null,
         system_prompt: ORCHESTRATOR_SYSTEM.slice(0, 4000),
         visibility: publishVis,
         status: "published",
@@ -680,6 +744,61 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
       toast.error(e?.message || "Publish failed");
     } finally {
       setPublishing(false);
+    }
+  };
+
+  // Seed editable backend code + initialize publishHtml when agent or build changes
+  useEffect(() => {
+    if (lastCodeBlock && !backendCode) setBackendCode(lastCodeBlock);
+    if (passes.length && !publishHtml) setPublishHtml(buildEntryHtml());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastCodeBlock, passes.length]);
+
+  // ─── Chat-driven UI editor (Tab Preview) ──────────────────────────────────
+  const editUiViaChat = async () => {
+    const instr = uiChatInput.trim();
+    if (!instr || uiChatBusy) return;
+    setUiChatInput("");
+    const turn: ChatTurn = { role: "user", content: instr, ts: Date.now() };
+    setUiChat(p => [...p, turn]);
+    setUiChatBusy(true);
+    const ctl = new AbortController();
+    try {
+      const currentHtml = publishHtml || buildEntryHtml();
+      const sys = `You are a UI editor that returns ONLY a complete, self-contained, RESPONSIVE HTML document for an iframe-mounted dashboard tab. Dark theme. Use semantic HTML, mobile-first CSS (viewport meta), collapsible <details>/<summary> sections for any list, table, or panel. Do not include external resources. Include only HTML, inline CSS and inline JS. Output the FULL revised document — no commentary, no markdown fences.`;
+      const user = `CURRENT HTML:\n\`\`\`html\n${currentHtml}\n\`\`\`\n\nUSER INSTRUCTION:\n${instr}\n\nReturn the FULL revised HTML document.`;
+      const out = await callAsherAiPlain(sys, user, ctl.signal);
+      // Strip code fences if model added them
+      const clean = out.replace(/^```[a-z]*\n?|\n?```$/g, "").trim();
+      setPublishHtml(clean);
+      setPublishHtmlDirty(true);
+      setUiChat(p => [...p, { role: "assistant", content: "✓ UI updated. Preview refreshed.", ts: Date.now() }]);
+    } catch (e: any) {
+      setUiChat(p => [...p, { role: "assistant", content: `Error: ${e?.message || e}`, ts: Date.now() }]);
+    } finally {
+      setUiChatBusy(false);
+    }
+  };
+
+  // ─── Chat-driven Backend editor (Trigger.dev task code) ───────────────────
+  const editBackendViaChat = async () => {
+    const instr = backendChatInput.trim();
+    if (!instr || backendChatBusy) return;
+    setBackendChatInput("");
+    setBackendChat(p => [...p, { role: "user", content: instr, ts: Date.now() }]);
+    setBackendChatBusy(true);
+    const ctl = new AbortController();
+    try {
+      const sys = `You are a backend engineer editing a Trigger.dev v3 task. Return ONLY a single complete TypeScript task definition (task({ id, run })) — no commentary, no markdown fences. Production-grade: typed payloads, retry/queue config, structured logger calls, error handling. Keep imports minimal.`;
+      const user = `CURRENT BACKEND CODE:\n\`\`\`ts\n${backendCode || lastCodeBlock || "// (empty)"}\n\`\`\`\n\nAGENT OBJECTIVE: ${objective}\n\nUSER INSTRUCTION:\n${instr}\n\nReturn the FULL revised TypeScript task code.`;
+      const out = await callAsherAiPlain(sys, user, ctl.signal);
+      const clean = out.replace(/^```[a-z]*\n?|\n?```$/g, "").trim();
+      setBackendCode(clean);
+      setBackendChat(p => [...p, { role: "assistant", content: "✓ Backend code updated.", ts: Date.now() }]);
+    } catch (e: any) {
+      setBackendChat(p => [...p, { role: "assistant", content: `Error: ${e?.message || e}`, ts: Date.now() }]);
+    } finally {
+      setBackendChatBusy(false);
     }
   };
 
@@ -1193,82 +1312,135 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
 
           {/* ─────────── TAB PREVIEW ─────────── */}
           {viewTab === "preview" && (
-            <div className="mx-auto max-w-6xl px-8 py-6 space-y-4">
+            <div className="mx-auto max-w-7xl px-6 py-6 space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Agent Store · Live Tab Preview</p>
+                  <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Agent Store · Tab Preview</p>
                   <p className="text-base font-extralight tracking-wide text-foreground mt-1">{activeAgent?.name || "Untitled Agent"}</p>
                   <p className="text-[10px] font-light text-muted-foreground/70 mt-1 max-w-2xl leading-relaxed">
-                    Exactly what this tab will look like once published. Renders the same HTML/CSS/JS the dashboard will mount.
+                    Edit the UI and backend with chat prompts. Toggle between live preview and the workflow infrastructure map.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => { if (!passes.length) { toast.error("Build the agent first"); return; } setPublishHtml(buildEntryHtml()); setPublishHtmlDirty(false); toast.message("Preview refreshed"); }}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border/30 px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase text-muted-foreground hover:text-foreground"
-                  >
-                    Refresh
-                  </button>
+                  {/* Sub-tab toggle */}
+                  <div className="inline-flex rounded-md border border-border/30 overflow-hidden">
+                    <button
+                      onClick={() => setPreviewSubView("live")}
+                      className={`px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase ${previewSubView === "live" ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    >Live Preview</button>
+                    <button
+                      onClick={() => setPreviewSubView("infra")}
+                      className={`px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase border-l border-border/30 ${previewSubView === "infra" ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    >Infrastructure</button>
+                  </div>
                   <button
                     onClick={openPublish}
                     disabled={!passes.length || missingSecrets.length > 0}
                     className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase"
                   >
-                    <Rocket className="h-3 w-3" strokeWidth={1.5} /> Edit &amp; Publish
+                    <Rocket className="h-3 w-3" strokeWidth={1.5} /> Publish &amp; Deploy
                   </button>
                 </div>
               </div>
-              {passes.length ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3" style={{ height: "70vh" }}>
-                  {/* Live preview */}
-                  <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col">
-                    <div className="px-3 py-2 border-b border-border/20 flex items-center justify-between">
-                      <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ Live Preview</p>
-                      {publishHtmlDirty && <span className="text-[9px] tracking-[0.25em] uppercase text-amber-400/80">edited</span>}
-                    </div>
-                    <iframe
-                      title="Tab live preview"
-                      srcDoc={publishHtml || buildEntryHtml()}
-                      sandbox="allow-scripts"
-                      className="flex-1 w-full bg-[#0a0a0a]"
-                    />
-                  </div>
-                  {/* Editor */}
-                  <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col">
-                    <div className="px-3 py-2 border-b border-border/20 flex items-center justify-between gap-2">
-                      <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ UI Source (HTML / CSS / JS)</p>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => { setPublishHtml(buildEntryHtml()); setPublishHtmlDirty(false); toast.message("Reset to AI-generated design"); }}
-                          className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/70 hover:text-foreground"
-                        >
-                          Reset
-                        </button>
-                        <button
-                          onClick={openPublish}
-                          disabled={missingSecrets.length > 0}
-                          className="text-[9px] tracking-[0.25em] uppercase text-emerald-400/80 hover:text-emerald-300 disabled:opacity-30"
-                        >
-                          Publish
-                        </button>
-                      </div>
-                    </div>
-                    <textarea
-                      value={publishHtml || buildEntryHtml()}
-                      onChange={(e) => { setPublishHtml(e.target.value); setPublishHtmlDirty(true); }}
-                      spellCheck={false}
-                      className="flex-1 w-full bg-[#0a0a0a] text-[11px] font-mono text-foreground/90 p-3 outline-none resize-none border-0"
-                      placeholder="Edit the tab's HTML, CSS, and inline JavaScript here. Changes appear in the live preview instantly."
-                    />
-                  </div>
+
+              {!passes.length ? (
+                <div className="rounded-xl border border-border/25 bg-card/30 w-full flex items-center justify-center" style={{ height: "70vh" }}>
+                  <p className="text-[11px] tracking-[0.25em] uppercase text-muted-foreground/60">Build the agent in the Builder tab first</p>
                 </div>
               ) : (
-                <div className="rounded-xl border border-border/25 bg-card/30 w-full flex items-center justify-center" style={{ height: "70vh" }}>
-                  <p className="text-[11px] tracking-[0.25em] uppercase text-muted-foreground/60">Build the agent in the Builder tab to see the live preview</p>
+                <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3" style={{ height: "75vh" }}>
+                  {/* LEFT — Live Preview OR Infrastructure */}
+                  <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col">
+                    <div className="px-3 py-2 border-b border-border/20 flex items-center justify-between">
+                      <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">
+                        ◈ {previewSubView === "live" ? "Live Tab Preview (responsive)" : "Workflow Infrastructure"}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        {previewSubView === "live" && publishHtmlDirty && (
+                          <span className="text-[9px] tracking-[0.25em] uppercase text-amber-400/80">edited</span>
+                        )}
+                        {previewSubView === "live" && (
+                          <button
+                            onClick={() => { setPublishHtml(buildEntryHtml()); setPublishHtmlDirty(false); toast.message("Reset to AI-generated design"); }}
+                            className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/70 hover:text-foreground"
+                          >Reset</button>
+                        )}
+                      </div>
+                    </div>
+                    {previewSubView === "live" ? (
+                      <iframe
+                        title="Tab live preview"
+                        srcDoc={publishHtml || buildEntryHtml()}
+                        sandbox="allow-scripts"
+                        className="flex-1 w-full bg-[#0a0a0a]"
+                      />
+                    ) : (
+                      <div className="flex-1 overflow-auto p-5 bg-background/30">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Radio className="h-3 w-3 text-foreground/60" strokeWidth={1.5} />
+                          <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">Trigger</p>
+                          <span className="text-[10px] font-mono text-foreground/80">{activeAgent?.trigger || "manual"}</span>
+                        </div>
+                        {workflowSteps.length === 0 ? (
+                          <p className="text-[11px] font-extralight text-muted-foreground/70">No workflow steps parsed yet.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {workflowSteps.map((s) => (
+                              <details key={s.n} open className="rounded-lg border border-border/25 bg-background/40 group">
+                                <summary className="px-3 py-2 cursor-pointer flex items-center gap-2 text-[11px] font-light text-foreground/90">
+                                  <span className="font-mono text-[9px] text-muted-foreground/60">{String(s.n).padStart(2, "0")}</span>
+                                  <span className="flex-1">{s.label}</span>
+                                  <ChevronRight className="h-3 w-3 text-muted-foreground/50 group-open:rotate-90 transition-transform" />
+                                </summary>
+                                <div className="px-4 pb-3 pt-1 border-t border-border/15 text-[10px] font-mono text-muted-foreground/70">
+                                  step.{s.n}() · retries: 3 · timeout: 30s · idempotent
+                                </div>
+                              </details>
+                            ))}
+                            <details className="rounded-lg border border-emerald-500/30 bg-emerald-500/5">
+                              <summary className="px-3 py-2 cursor-pointer flex items-center gap-2 text-[11px] font-light text-foreground/90">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                                <span className="flex-1">Output delivered</span>
+                              </summary>
+                            </details>
+                          </div>
+                        )}
+                        <details className="mt-4 rounded-lg border border-border/25 bg-background/40">
+                          <summary className="px-3 py-2 cursor-pointer text-[11px] font-light text-foreground/90">Required secrets ({requiredSecrets.length})</summary>
+                          <div className="px-4 pb-3 pt-1 text-[10px] font-mono text-muted-foreground/70 space-y-1">
+                            {requiredSecrets.length === 0 ? "none" : requiredSecrets.map(s => <div key={s}>· {s}{secretValues[s] ? " ✓" : " (missing)"}</div>)}
+                          </div>
+                        </details>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* RIGHT — chat lanes for UI + Backend */}
+                  <div className="grid grid-rows-2 gap-3 min-h-0">
+                    <ChatLane
+                      title="UI Chat"
+                      hint="e.g. 'make the table collapsible', 'use a sidebar on desktop', 'change accent to amber'"
+                      messages={uiChat}
+                      input={uiChatInput}
+                      busy={uiChatBusy}
+                      onInput={setUiChatInput}
+                      onSend={editUiViaChat}
+                    />
+                    <ChatLane
+                      title="Backend Chat"
+                      hint="e.g. 'add cron 0 */6 * * *', 'retry on 502 with backoff', 'switch source to Postgres'"
+                      messages={backendChat}
+                      input={backendChatInput}
+                      busy={backendChatBusy}
+                      onInput={setBackendChatInput}
+                      onSend={editBackendViaChat}
+                    />
+                  </div>
                 </div>
               )}
             </div>
           )}
+
 
           {/* ─────────── WORKFLOW MAP TAB ─────────── */}
           {viewTab === "workflow" && (
