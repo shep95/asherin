@@ -405,6 +405,8 @@ const AsherZacoonModule = () => {
                             </button>
                           </>
                         ) : (
+                          <pre className="text-[10px] font-mono text-foreground/80 overflow-auto max-h-[280px] leading-relaxed">{JSON.stringify(active.output, null, 2)}</pre>
+                        )}
                       </div>
                     )}
                     {active.findings && (
