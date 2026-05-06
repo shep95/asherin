@@ -34,7 +34,7 @@ type Run = {
   id: string;
   task: string;
   url: string;
-  mode: "browser" | "recon";
+  mode: "browser" | "recon" | "extract" | "forge" | "stress";
   status: "queued" | "running" | "ok" | "failed" | "stopped";
   startedAt: number;
   endedAt?: number;
