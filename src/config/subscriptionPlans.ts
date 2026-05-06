@@ -87,13 +87,14 @@ const AUREON_FEATURES: FeatureId[] = [
   ...CHAT_FEATURES,
   "ide", "memory", "personas", "code_snippets", "imagine_to_code",
   "vibe_imager", "reverse_engineer", "file_scrapper", "cipher", "whiteboard",
+  "nomad", "briefings", "zali",
 ];
 
 const PRO_FEATURES: FeatureId[] = [
   ...AUREON_FEATURES,
-  "google_intel", "briefings", "nomad", "tracker",
+  "google_intel", "tracker",
   "azplen", "pattern_analysis", "timeseries", "geospatial",
-  "zali", "teams", "community", "security_dashboard", "plugins", "audit",
+  "teams", "community", "security_dashboard", "plugins", "audit",
   "scenario_simulator", "video_intelligence",
   "vibe_video", "agents", "zeeion", "axrlen", "zerlal", "cross", "lavba",
 ];
