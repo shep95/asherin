@@ -706,6 +706,113 @@ const AsherZahtenModule = () => {
   // Editable backend code (TS task) — defaults to lastCodeBlock
   const [backendCode, setBackendCode] = useState<string>("");
 
+  // ─── Admin: current user + all-agents registry ──────────────────────────
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+  const [adminAgents, setAdminAgents] = useState<AdminAgentRow[]>([]);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminFilter, setAdminFilter] = useState("");
+  const [adminVisFilter, setAdminVisFilter] = useState<"all" | "public" | "private" | "team" | "organization">("all");
+  const [adminSelected, setAdminSelected] = useState<AdminAgentRow | null>(null);
+  const isAdmin = (currentEmail || "").toLowerCase() === ADMIN_EMAIL;
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentEmail(data.user?.email ?? null));
+  }, []);
+
+  const loadAllAgents = async () => {
+    setAdminLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("asher_agents")
+        .select("id,name,description,category,visibility,status,owner_id,install_count,version,created_at,metadata")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      setAdminAgents((data as any) || []);
+    } catch (e: any) { toast.error(e?.message || "Failed to load agents"); }
+    finally { setAdminLoading(false); }
+  };
+
+  // ─── Tab Preview attachments (UI Chat: zip/files/images/links) ──────────
+  type Attachment =
+    | { kind: "image"; name: string; dataUrl: string; size: number }
+    | { kind: "file"; name: string; text: string; size: number }
+    | { kind: "zip"; name: string; manifest: string; fileCount: number; size: number }
+    | { kind: "link"; url: string };
+  const [uiAttachments, setUiAttachments] = useState<Attachment[]>([]);
+  const uiFileInputRef = useRef<HTMLInputElement | null>(null);
+  const uiZipInputRef = useRef<HTMLInputElement | null>(null);
+  const uiImageInputRef = useRef<HTMLInputElement | null>(null);
+
+  const TEXT_EXT = /\.(tsx?|jsx?|html?|css|scss|json|md|txt|ya?ml|toml|csv|xml|svg|sh|py|go|rs|java|kt|swift|sql|env|gitignore|lock)$/i;
+  const MAX_ZIP = 100 * 1024 * 1024; // 100MB
+  const MAX_TEXT_PER_FILE = 12_000;
+  const MAX_TOTAL_MANIFEST = 220_000;
+
+  const handleAttachZip = async (file: File) => {
+    if (file.size > MAX_ZIP) { toast.error(`Zip exceeds 100MB (${(file.size/1048576).toFixed(1)}MB)`); return; }
+    const t = toast.loading(`Extracting ${file.name}…`);
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const entries = Object.values(zip.files).filter((f: any) => !f.dir);
+      let total = 0; let count = 0;
+      const parts: string[] = [];
+      for (const entry of entries) {
+        if (total > MAX_TOTAL_MANIFEST) { parts.push(`\n…[truncated, ${entries.length - count} more files omitted]`); break; }
+        const path = (entry as any).name;
+        if (TEXT_EXT.test(path)) {
+          try {
+            const txt = await (entry as any).async("string");
+            const slice = txt.length > MAX_TEXT_PER_FILE ? txt.slice(0, MAX_TEXT_PER_FILE) + "\n…[truncated]" : txt;
+            const block = `\n\n===== FILE: ${path} =====\n${slice}`;
+            parts.push(block); total += block.length;
+          } catch {}
+        } else {
+          parts.push(`\n[binary] ${path}`); total += path.length + 10;
+        }
+        count++;
+      }
+      const manifest = parts.join("");
+      setUiAttachments(p => [...p, { kind: "zip", name: file.name, manifest, fileCount: entries.length, size: file.size }]);
+      toast.success(`Indexed ${entries.length} files from ${file.name}`, { id: t });
+    } catch (e: any) { toast.error(e?.message || "Zip extract failed", { id: t }); }
+  };
+
+  const handleAttachFile = async (file: File) => {
+    if (file.size > 4 * 1024 * 1024) { toast.error("File too large (max 4MB for inline)"); return; }
+    const text = await file.text();
+    const slice = text.length > 40_000 ? text.slice(0, 40_000) + "\n…[truncated]" : text;
+    setUiAttachments(p => [...p, { kind: "file", name: file.name, text: slice, size: file.size }]);
+  };
+
+  const handleAttachImage = async (file: File) => {
+    if (file.size > 6 * 1024 * 1024) { toast.error("Image too large (max 6MB)"); return; }
+    const dataUrl = await new Promise<string>((res, rej) => {
+      const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = () => rej(new Error("read failed")); r.readAsDataURL(file);
+    });
+    setUiAttachments(p => [...p, { kind: "image", name: file.name, dataUrl, size: file.size }]);
+  };
+
+  const handleAddLink = () => {
+    const url = window.prompt("Paste URL (reference for the AI):");
+    if (!url) return;
+    try { new URL(url); } catch { toast.error("Invalid URL"); return; }
+    setUiAttachments(p => [...p, { kind: "link", url }]);
+  };
+
+  const removeAttachment = (i: number) => setUiAttachments(p => p.filter((_, idx) => idx !== i));
+
+  const buildAttachmentsContext = (): string => {
+    if (!uiAttachments.length) return "";
+    const blocks = uiAttachments.map(a => {
+      if (a.kind === "link") return `[LINK] ${a.url}`;
+      if (a.kind === "image") return `[IMAGE] ${a.name} (data URL omitted; user attached an image as visual reference)`;
+      if (a.kind === "file") return `[FILE: ${a.name}]\n${a.text}`;
+      return `[ZIP: ${a.name} · ${a.fileCount} files]\n${a.manifest}`;
+    });
+    return `\n\n=== ATTACHMENTS (use as context for the requested UI change) ===\n${blocks.join("\n\n")}`;
+  };
+
   const buildEntryHtml = (): string => {
     const code = lastCodeBlock || "// no code generated";
     const safeName = (activeAgent?.name || "Agent").replace(/[<>&"']/g, "");
