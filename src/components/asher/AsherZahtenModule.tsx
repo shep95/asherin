@@ -199,7 +199,23 @@ type LiveRun = {
   log: string[];
 };
 
-type ViewTab = "builder" | "workflow" | "runs" | "code" | "preview" | "schedule" | "compliance";
+type ViewTab = "builder" | "workflow" | "runs" | "code" | "preview" | "schedule" | "compliance" | "admin";
+
+const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+
+type AdminAgentRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  visibility: string;
+  status: string;
+  owner_id: string;
+  install_count: number;
+  version: number;
+  created_at: string;
+  metadata: any;
+};
 
 const STARTER_AGENTS: AgentRecord[] = [
   { id: "agent-001", name: "GitHub Bug Triage", status: "scheduled", trigger: "cron: 0 7 * * *", lastRun: "2h ago", passes: [], objective: "Pull new GitHub issues labelled bug, summarise them, post digest to Slack #eng-triage." },
