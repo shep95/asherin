@@ -325,9 +325,20 @@ const AsherZahtenModule = () => {
     setRunning(false);
   };
 
+  const buildBrainContext = async (prompt: string): Promise<string> => {
+    try {
+      const route = await routeBrainsForPrompt(prompt, { topK: 5, charBudget: 40_000 });
+      if (!route || !route.brains.length) return "";
+      const blocks = route.brains.map(b => `### BRAIN — ${b.name} [${b.category}]\n${b.content}`).join("\n\n");
+      return `\n\n[AUREON BRAINS — injected for software build context]\n${route.rationale}\n\n${blocks}`;
+    } catch { return ""; }
+  };
+
   const callAsherAi = async (history: { role: "user" | "assistant"; content: string }[], signal: AbortSignal): Promise<string> => {
     const byok = getActiveIntelMapByok();
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asher-ai`;
+    const lastUser = [...history].reverse().find(m => m.role === "user")?.content || objective;
+    const brainCtx = await buildBrainContext(lastUser);
     const resp = await fetch(url, {
       method: "POST",
       signal,
@@ -338,7 +349,7 @@ const AsherZahtenModule = () => {
       },
       body: JSON.stringify({
         messages: [
-          { role: "user", content: `[ZAHTEN ORCHESTRATOR DOCTRINE]\n${ORCHESTRATOR_SYSTEM}\n\n[CLASSIFICATION] ${classification}` },
+          { role: "user", content: `[ZAHTEN ORCHESTRATOR DOCTRINE]\n${ORCHESTRATOR_SYSTEM}\n\n[CLASSIFICATION] ${classification}${brainCtx}` },
           ...history,
         ],
         mapContext: { surface: "zahten_mission_console" },
