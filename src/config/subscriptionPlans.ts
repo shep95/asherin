@@ -88,7 +88,7 @@ const AUREON_FEATURES: FeatureId[] = [
   ...CHAT_FEATURES,
   "ide", "memory", "personas", "code_snippets", "imagine_to_code",
   "vibe_imager", "reverse_engineer", "file_scrapper", "cipher", "whiteboard",
-  "nomad", "briefings", "zali",
+  "nomad", "briefings", "zali", "vedic",
 ];
 
 const PRO_FEATURES: FeatureId[] = [
