@@ -1,4 +1,4 @@
-import { useSubscription, hasChatAccess, hasSearchAccess, hasProAccess, hasEnterpriseOnlyAccess } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasChatAccess, hasSearchAccess, hasProAccess, hasEnterpriseOnlyAccess, hasAureonAccess } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { DashboardView } from "@/components/dashboard/types";
 
@@ -9,15 +9,18 @@ const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion", "axrlen"];
 
 // Views that require Pro access
 const PRO_VIEWS: DashboardView[] = [
-  "zali", "community", "azplen", "elion", "nomad", "briefing",
-  "teams", "notebooks", "geospatial", "plugins", "timeseries",
+  "community", "azplen",
+  "teams", "geospatial", "plugins", "timeseries",
   "audit", "predictive", "security", "imagine-to-code", "tracker",
   "google", "pattern-analysis", "video-intelligence", "lavba", "cross",
   "zaplen",
 ];
 
+// Views that require Aureon-tier ($199) — NOMAD, Briefings, ZANOEM Design Lab
+const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks"];
+
 // Views that require any paid plan (search-tier)
-const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "notebooks", "reverse-engineer", "file-scrapper", "cipher"];
+const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "reverse-engineer", "file-scrapper", "cipher"];
 
 // Views that require any paid plan (chat-tier minimum)
 const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow", "zahten"];
