@@ -462,7 +462,7 @@ const Index = () => {
               { label: "Uncensored AI", desc: "No topic limits. No filters. Full answers on every subject." },
               { label: "Real-Time Search", desc: "Privacy-first web intelligence with live data and source credibility tiers." },
               { label: "Persistent Memory", desc: "Context that carries across every conversation and session." },
-              { label: "OSINT & Domain Forensics", desc: "Full-spectrum OSINT tooling — NOMAD, Elion/Zohar, entity resolution." },
+              { label: "Public Intelligence & Forensics", desc: "Full-spectrum public intelligence — NOMAD, entity resolution, and dossier output." },
               { label: "Predictive Intelligence", desc: "AI event forecasting with signal detection and confidence scoring." },
               { label: "Data Privacy", desc: "End-to-end encryption. Your data is never sold or used for training." },
             ].map(({ label, desc }) => (
