@@ -126,10 +126,15 @@ const AsherZacoonModule = () => {
       if (!url || url === "https://") { toast.error(`${mode} requires a target URL.`); return; }
       if (!permission) { toast.error("Owner-authorization attestation required."); return; }
     }
+    if (mode === "code") {
+      if (!projectId) { toast.error("Pick a code project."); return; }
+      if (!permission) { toast.error("Owner-authorization attestation required."); return; }
+      if (wipeAll && !applyChanges) { toast.error("Wipe-All requires Apply checked (destructive)."); return; }
+    }
     const id = `run-${Date.now()}`;
     const seed: Step = { n: 1, kind: "think", label: mode === "recon" ? "Recon dispatch" : "Plan", detail: "Calling backend…", ts: Date.now() };
     const run: Run = {
-      id, task: task.trim() || `${mode} ${url}`, url: url.trim(), mode,
+      id, task: task.trim() || `${mode} ${url || projectId}`, url: url.trim(), mode,
       status: "running", startedAt: Date.now(), steps: [seed],
     };
     setRuns((p) => [run, ...p].slice(0, 25));
@@ -148,7 +153,8 @@ const AsherZacoonModule = () => {
         },
         body: JSON.stringify({
           mode, task: task.trim(), target_url: url.trim(),
-          permission_attestation: needsTarget ? permission : undefined,
+          permission_attestation: (needsTarget || mode === "code") ? permission : undefined,
+          ...(mode === "code" ? { project_id: projectId, apply: applyChanges, wipe_all: wipeAll } : {}),
         }),
       });
       const data = await r.json();
