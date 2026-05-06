@@ -189,6 +189,7 @@ type AgentRecord = {
   deployedAt?: number;
   liveRuns?: LiveRun[];
   secretValues?: Record<string, string>;
+  publishedAgentId?: string; // row id in asher_agents — used so re-publish UPDATES the same tab
 };
 
 type LiveRun = {
