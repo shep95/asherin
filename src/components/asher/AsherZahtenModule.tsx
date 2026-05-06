@@ -4,7 +4,7 @@ import {
   Terminal, ExternalLink, ChevronRight, Zap, Lock, AlertCircle, AlertTriangle,
   Play, Square, RefreshCw, CheckCircle2, Loader2, FileLock2, Satellite, Users,
   Eye, Crosshair, Globe, Server, Fingerprint, Siren, Trash2, ShieldAlert,
-  Building2, Network, Radar, Award, KeyRound, Rocket, Send, Sparkles, GitFork,
+  Building2, Network, Radar, Award, KeyRound, Rocket, Send, Sparkles, GitFork, Package,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
