@@ -117,7 +117,7 @@ const Pricing = () => {
             <p className="mt-4 text-sm font-extralight text-muted-foreground">No free trial. Full access. Day one.</p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 flex-wrap">
               <button className="group flex items-center gap-2 rounded-xl bg-foreground px-5 py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
-                Lifetime — $470
+                Lifetime — $740
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
               <button className="group flex items-center gap-2 rounded-xl bg-foreground px-5 py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
