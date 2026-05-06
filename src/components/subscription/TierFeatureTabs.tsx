@@ -64,6 +64,14 @@ const AUREON_FEATURE_GROUPS = [
       { name: "File Scrapper", desc: "Extract text from any document — PDF, DOCX, images and more.", link: "/feature/file-scrapper" },
       { name: "Cipher Toolkit", desc: "Encoding, hashing, encryption, format conversion and recipe chaining — all client-side.", link: "/feature/cipher" },
       { name: "Whiteboard", desc: "Infinite canvas with Photoshop-style layers, dot/square snap grids and freeform sketching.", link: "/feature/whiteboard" },
+      { name: "ZANOEM Design Lab", desc: "Universal design intelligence — first-principles design with FEA & thermal simulation.", link: "/feature/zali" },
+    ],
+  },
+  {
+    category: "Intelligence & Briefings",
+    features: [
+      { name: "NOMAD Public Intelligence", desc: "Public intelligence agent across 40+ data sources with persistent dossier output.", link: "/feature/nomad" },
+      { name: "Daily Intelligence Briefings", desc: "Personalized morning reports covering competitors, industry, and markets.", link: "/feature/briefings" },
     ],
   },
   {
