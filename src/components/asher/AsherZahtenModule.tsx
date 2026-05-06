@@ -1568,17 +1568,17 @@ Always wire UI ↔ backend coherently (e.g. if UI exposes a new field, backend m
                     )}
                   </div>
 
-                  {/* RIGHT — chat lanes for UI + Backend */}
-                  <div className="grid grid-rows-2 gap-3 min-h-0">
-                    <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col min-h-0">
+                  {/* RIGHT — unified UI + Backend chat (single conversation, edits both) */}
+                  <div className="flex flex-col min-h-0">
+                    <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col min-h-0 flex-1">
                       <div className="px-3 py-2 border-b border-border/20 flex items-center justify-between">
-                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ UI Chat</p>
+                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ Agent Chat · UI + Backend</p>
                         {uiChatBusy && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />}
                       </div>
                       <div className="flex-1 overflow-y-auto p-3 space-y-2">
                         {uiChat.length === 0 ? (
                           <p className="text-[10px] font-light text-muted-foreground/60 leading-relaxed">
-                            Edit the UI in chat. Attach a zip (≤100MB) of existing software, files, images, or paste links — the AI uses them as context. Always responsive · collapsible sections.
+                            Talk to the agent like you talk to me. One chat edits BOTH the live UI preview and the backend Trigger.dev task in sync. Attach a zip (≤100MB) of existing software, files, images, or paste links — they're used as context.
                           </p>
                         ) : uiChat.map((m, i) => (
                           <div key={i} className={`text-[11px] font-light leading-relaxed rounded-md px-2.5 py-1.5 whitespace-pre-wrap ${m.role === "user" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>{m.content}</div>
@@ -1610,7 +1610,7 @@ Always wire UI ↔ backend coherently (e.g. if UI exposes a new field, backend m
                           value={uiChatInput}
                           onChange={(e) => setUiChatInput(e.target.value)}
                           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); editUiViaChat(); } }}
-                          placeholder="Describe the UI change…"
+                          placeholder="Describe a UI change, a backend change, or both…"
                           disabled={uiChatBusy}
                           className="flex-1 rounded-md border border-border/30 bg-background/40 px-2.5 py-1.5 text-[11px] text-foreground focus:outline-none focus:border-foreground/50 disabled:opacity-50"
                         />
@@ -1619,15 +1619,6 @@ Always wire UI ↔ backend coherently (e.g. if UI exposes a new field, backend m
                         </button>
                       </div>
                     </div>
-                    <ChatLane
-                      title="Backend Chat"
-                      hint="e.g. 'add cron 0 */6 * * *', 'retry on 502 with backoff', 'switch source to Postgres'"
-                      messages={backendChat}
-                      input={backendChatInput}
-                      busy={backendChatBusy}
-                      onInput={setBackendChatInput}
-                      onSend={editBackendViaChat}
-                    />
                   </div>
                 </div>
               )}
