@@ -1615,7 +1615,120 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
           )}
 
 
-          {/* ─────────── WORKFLOW MAP TAB ─────────── */}
+          {/* ─────────── ADMIN · ALL AGENTS REGISTRY (ashernewtonx@gmail.com only) ─────────── */}
+          {viewTab === "admin" && isAdmin && (
+            <div className="mx-auto max-w-7xl px-6 py-6 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-400" strokeWidth={1.5} />
+                  <div>
+                    <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Admin Console · Restricted</p>
+                    <p className="text-base font-extralight tracking-wide text-foreground mt-0.5">All Agents Registry</p>
+                    <p className="text-[10px] font-light text-muted-foreground/70 mt-0.5">Every agent ever published across all users — names, descriptions, functions, owners, visibility.</p>
+                  </div>
+                </div>
+                <button onClick={loadAllAgents} disabled={adminLoading} className="inline-flex items-center gap-1.5 rounded-md border border-border/30 hover:border-foreground/50 px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase">
+                  {adminLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" strokeWidth={1.5} />} Refresh
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  value={adminFilter}
+                  onChange={(e) => setAdminFilter(e.target.value)}
+                  placeholder="Search name / description / category / owner_id…"
+                  className="flex-1 min-w-[220px] rounded-md border border-border/30 bg-background/40 px-2.5 py-1.5 text-[11px] focus:outline-none focus:border-foreground/50"
+                />
+                <select value={adminVisFilter} onChange={(e) => setAdminVisFilter(e.target.value as any)} className="rounded-md border border-border/30 bg-background/40 px-2 py-1.5 text-[10px] tracking-[0.2em] uppercase">
+                  <option value="all">All visibilities</option>
+                  <option value="public">Public</option>
+                  <option value="organization">Organization</option>
+                  <option value="team">Team</option>
+                  <option value="private">Private</option>
+                </select>
+                <span className="text-[10px] font-mono text-muted-foreground/60">{adminAgents.length} total</span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3">
+                <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden">
+                  <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
+                    <table className="w-full text-[11px]">
+                      <thead className="sticky top-0 bg-card/95 backdrop-blur z-10">
+                        <tr className="text-[9px] tracking-[0.25em] text-muted-foreground/60 uppercase border-b border-border/15">
+                          <th className="text-left py-2 px-3">Name</th>
+                          <th className="text-left py-2 px-3">Category</th>
+                          <th className="text-left py-2 px-3">Visibility</th>
+                          <th className="text-left py-2 px-3">Status</th>
+                          <th className="text-left py-2 px-3">Installs</th>
+                          <th className="text-left py-2 px-3">Owner</th>
+                          <th className="text-left py-2 px-3">Created</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminAgents
+                          .filter(a => adminVisFilter === "all" || a.visibility === adminVisFilter)
+                          .filter(a => {
+                            if (!adminFilter.trim()) return true;
+                            const q = adminFilter.toLowerCase();
+                            return (a.name + " " + (a.description || "") + " " + a.category + " " + a.owner_id).toLowerCase().includes(q);
+                          })
+                          .map(a => (
+                            <tr key={a.id} onClick={() => setAdminSelected(a)} className={`border-b border-border/10 cursor-pointer hover:bg-foreground/5 ${adminSelected?.id === a.id ? "bg-foreground/10" : ""}`}>
+                              <td className="py-2 px-3 text-foreground/90 font-light">{a.name}</td>
+                              <td className="py-2 px-3 text-muted-foreground/80">{a.category}</td>
+                              <td className="py-2 px-3"><span className={`text-[9px] tracking-[0.2em] uppercase px-1.5 py-0.5 rounded ${a.visibility === "public" ? "bg-emerald-500/15 text-emerald-300" : a.visibility === "private" ? "bg-muted/30 text-muted-foreground" : "bg-sky-500/15 text-sky-300"}`}>{a.visibility}</span></td>
+                              <td className="py-2 px-3 text-muted-foreground/80">{a.status}</td>
+                              <td className="py-2 px-3 font-mono text-muted-foreground/70">{a.install_count}</td>
+                              <td className="py-2 px-3 font-mono text-[10px] text-muted-foreground/60 truncate max-w-[120px]">{a.owner_id.slice(0, 8)}…</td>
+                              <td className="py-2 px-3 text-muted-foreground/70">{new Date(a.created_at).toLocaleDateString()}</td>
+                            </tr>
+                          ))}
+                        {!adminLoading && adminAgents.length === 0 && (
+                          <tr><td colSpan={7} className="py-8 text-center text-muted-foreground/60 text-[11px]">No agents yet.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border/25 bg-card/30 p-4 max-h-[70vh] overflow-y-auto">
+                  {adminSelected ? (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">Agent</p>
+                        <p className="text-sm font-extralight text-foreground mt-0.5">{adminSelected.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">Description / Function</p>
+                        <p className="text-[11px] font-light text-foreground/85 leading-relaxed mt-1 whitespace-pre-wrap">{adminSelected.description || "(no description)"}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-muted-foreground/80">
+                        <div><span className="text-muted-foreground/50">id:</span> {adminSelected.id.slice(0, 12)}…</div>
+                        <div><span className="text-muted-foreground/50">version:</span> v{adminSelected.version}</div>
+                        <div><span className="text-muted-foreground/50">visibility:</span> {adminSelected.visibility}</div>
+                        <div><span className="text-muted-foreground/50">status:</span> {adminSelected.status}</div>
+                        <div><span className="text-muted-foreground/50">installs:</span> {adminSelected.install_count}</div>
+                        <div><span className="text-muted-foreground/50">category:</span> {adminSelected.category}</div>
+                      </div>
+                      <div>
+                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">Owner ID</p>
+                        <p className="text-[10px] font-mono text-muted-foreground/85 mt-0.5 break-all">{adminSelected.owner_id}</p>
+                      </div>
+                      {adminSelected.metadata && Object.keys(adminSelected.metadata).length > 0 && (
+                        <details className="rounded-lg border border-border/25 bg-background/40">
+                          <summary className="px-3 py-2 cursor-pointer text-[10px] tracking-[0.25em] uppercase text-muted-foreground/70">Metadata</summary>
+                          <pre className="px-3 pb-3 pt-1 text-[10px] font-mono text-muted-foreground/70 overflow-auto">{JSON.stringify(adminSelected.metadata, null, 2)}</pre>
+                        </details>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] font-extralight text-muted-foreground/60">Select an agent to inspect its description and function.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {viewTab === "workflow" && (
             <div className="mx-auto max-w-5xl px-8 py-8 space-y-6">
               {/* Status header */}
