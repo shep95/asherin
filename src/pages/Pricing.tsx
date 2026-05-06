@@ -87,7 +87,7 @@ const Pricing = () => {
           <div className="space-y-3">
             {[
               { q: "Can I upgrade from Aureon to Pro or Advisor?", a: "Yes. Upgrade anytime from your dashboard. Changes take effect immediately with prorated billing." },
-              { q: "What are the message limits?", a: "Aureon: 200 messages per 3 hours (shared between Chat & IDE). Pro: 200 per 3 hours. All limits reset automatically." },
+              { q: "What are the message limits?", a: "Unlimited messages on every paid tier. You bring your own AI key, so usage is bound only by your provider's quota." },
               { q: "What payment methods do you accept?", a: "All major credit cards and wire transfers for Advisor. Billing is handled securely — we never store card details." },
               { q: "Can I use my own AI models?", a: "Yes — all tiers support Bring Your Own Key. Connect API keys from Google, OpenAI, Anthropic, Meta, Venice, xAI, Mistral, DeepSeek, or Perplexity and switch models from Settings." },
               { q: "What do Daily Intelligence Briefings include?", a: "Personalized morning reports covering your competitors, industry, key markets, regulatory changes, and news — generated from 100+ sources and delivered in-app." },
