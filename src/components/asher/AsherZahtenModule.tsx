@@ -904,15 +904,43 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
     const ctl = new AbortController();
     try {
       const currentHtml = publishHtml || buildEntryHtml();
+      const currentBackend = backendCode || lastCodeBlock || "";
       const attachCtx = buildAttachmentsContext();
-      const sys = `You are a UI editor that returns ONLY a complete, self-contained, RESPONSIVE HTML document for an iframe-mounted dashboard tab. Dark theme. Use semantic HTML, mobile-first CSS (viewport meta), collapsible <details>/<summary> sections for any list/table/panel. Do not include external resources. Inline HTML/CSS/JS only. Use any provided ATTACHMENTS (zip code, files, links, images) as context. Output the FULL revised document — no commentary, no markdown fences.`;
-      const user = `CURRENT HTML:\n\`\`\`html\n${currentHtml}\n\`\`\`\n\nUSER INSTRUCTION:\n${instr || "(see attachments)"}${attachCtx}\n\nReturn the FULL revised HTML document.`;
+      const sys = `You are a FULL-STACK AGENT EDITOR. A single user instruction may require updating the UI (iframe HTML), the backend (Trigger.dev v3 TypeScript task), or BOTH together — keep them in sync exactly like the Lovable agent does.
+
+Return ONLY a single JSON object — no prose, no markdown fences — with this shape:
+{
+  "summary": "1-2 sentences describing what you changed and why",
+  "ui_html":   "<!doctype html>... full revised document, OR null if UI didn't change",
+  "backend_code": "complete TypeScript task({ id, run }) ... OR null if backend didn't change"
+}
+
+UI rules: complete self-contained responsive dark-theme HTML, viewport meta, semantic HTML, collapsible <details>/<summary> for lists/tables/panels, inline CSS+JS only, no external resources.
+Backend rules: a single complete Trigger.dev v3 task definition, typed payloads, retry/queue config, structured logger, error handling, minimal imports.
+Always wire UI ↔ backend coherently (e.g. if UI exposes a new field, backend must accept/process it; if backend changes its output shape, UI must render the new shape).`;
+      const user = `CURRENT UI HTML:\n\`\`\`html\n${currentHtml}\n\`\`\`\n\nCURRENT BACKEND CODE:\n\`\`\`ts\n${currentBackend || "// (empty)"}\n\`\`\`\n\nAGENT OBJECTIVE: ${objective}\n\nUSER INSTRUCTION:\n${instr || "(see attachments)"}${attachCtx}\n\nReturn the single JSON object now.`;
       const out = await callAsherAiPlain(sys, user, ctl.signal);
-      const clean = out.replace(/^```[a-z]*\n?|\n?```$/g, "").trim();
-      setPublishHtml(clean);
-      setPublishHtmlDirty(true);
+      const cleaned = out.replace(/^```(?:json)?\n?|\n?```$/g, "").trim();
+      let parsed: { summary?: string; ui_html?: string | null; backend_code?: string | null } = {};
+      try { parsed = JSON.parse(cleaned); }
+      catch {
+        // Fallback: treat whole reply as UI HTML if it looks like HTML, else backend
+        if (/^\s*<!doctype/i.test(cleaned) || /<html/i.test(cleaned)) parsed = { ui_html: cleaned, summary: "UI updated (fallback parse)." };
+        else parsed = { backend_code: cleaned, summary: "Backend updated (fallback parse)." };
+      }
+      const changed: string[] = [];
+      if (parsed.ui_html && parsed.ui_html.trim()) {
+        setPublishHtml(parsed.ui_html);
+        setPublishHtmlDirty(true);
+        changed.push("UI");
+      }
+      if (parsed.backend_code && parsed.backend_code.trim()) {
+        setBackendCode(parsed.backend_code);
+        changed.push("Backend");
+      }
       setUiAttachments([]);
-      setUiChat(p => [...p, { role: "assistant", content: "✓ UI updated. Preview refreshed.", ts: Date.now() }]);
+      const summary = parsed.summary || (changed.length ? `Updated ${changed.join(" + ")}.` : "No changes.");
+      setUiChat(p => [...p, { role: "assistant", content: `✓ ${summary}${changed.length ? `  [${changed.join(", ")}]` : ""}`, ts: Date.now() }]);
     } catch (e: any) {
       setUiChat(p => [...p, { role: "assistant", content: `Error: ${e?.message || e}`, ts: Date.now() }]);
     } finally {
@@ -920,27 +948,8 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
     }
   };
 
-  // ─── Chat-driven Backend editor (Trigger.dev task code) ───────────────────
-  const editBackendViaChat = async () => {
-    const instr = backendChatInput.trim();
-    if (!instr || backendChatBusy) return;
-    setBackendChatInput("");
-    setBackendChat(p => [...p, { role: "user", content: instr, ts: Date.now() }]);
-    setBackendChatBusy(true);
-    const ctl = new AbortController();
-    try {
-      const sys = `You are a backend engineer editing a Trigger.dev v3 task. Return ONLY a single complete TypeScript task definition (task({ id, run })) — no commentary, no markdown fences. Production-grade: typed payloads, retry/queue config, structured logger calls, error handling. Keep imports minimal.`;
-      const user = `CURRENT BACKEND CODE:\n\`\`\`ts\n${backendCode || lastCodeBlock || "// (empty)"}\n\`\`\`\n\nAGENT OBJECTIVE: ${objective}\n\nUSER INSTRUCTION:\n${instr}\n\nReturn the FULL revised TypeScript task code.`;
-      const out = await callAsherAiPlain(sys, user, ctl.signal);
-      const clean = out.replace(/^```[a-z]*\n?|\n?```$/g, "").trim();
-      setBackendCode(clean);
-      setBackendChat(p => [...p, { role: "assistant", content: "✓ Backend code updated.", ts: Date.now() }]);
-    } catch (e: any) {
-      setBackendChat(p => [...p, { role: "assistant", content: `Error: ${e?.message || e}`, ts: Date.now() }]);
-    } finally {
-      setBackendChatBusy(false);
-    }
-  };
+  // Backend chat is now unified into the UI chat; keep alias for any external refs.
+  const editBackendViaChat = editUiViaChat;
 
   useEffect(() => () => { if (liveTimerRef.current) window.clearInterval(liveTimerRef.current); }, []);
 
@@ -1559,17 +1568,17 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
                     )}
                   </div>
 
-                  {/* RIGHT — chat lanes for UI + Backend */}
-                  <div className="grid grid-rows-2 gap-3 min-h-0">
-                    <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col min-h-0">
+                  {/* RIGHT — unified UI + Backend chat (single conversation, edits both) */}
+                  <div className="flex flex-col min-h-0">
+                    <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col min-h-0 flex-1">
                       <div className="px-3 py-2 border-b border-border/20 flex items-center justify-between">
-                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ UI Chat</p>
+                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ Agent Chat · UI + Backend</p>
                         {uiChatBusy && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />}
                       </div>
                       <div className="flex-1 overflow-y-auto p-3 space-y-2">
                         {uiChat.length === 0 ? (
                           <p className="text-[10px] font-light text-muted-foreground/60 leading-relaxed">
-                            Edit the UI in chat. Attach a zip (≤100MB) of existing software, files, images, or paste links — the AI uses them as context. Always responsive · collapsible sections.
+                            Talk to the agent like you talk to me. One chat edits BOTH the live UI preview and the backend Trigger.dev task in sync. Attach a zip (≤100MB) of existing software, files, images, or paste links — they're used as context.
                           </p>
                         ) : uiChat.map((m, i) => (
                           <div key={i} className={`text-[11px] font-light leading-relaxed rounded-md px-2.5 py-1.5 whitespace-pre-wrap ${m.role === "user" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>{m.content}</div>
@@ -1601,7 +1610,7 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
                           value={uiChatInput}
                           onChange={(e) => setUiChatInput(e.target.value)}
                           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); editUiViaChat(); } }}
-                          placeholder="Describe the UI change…"
+                          placeholder="Describe a UI change, a backend change, or both…"
                           disabled={uiChatBusy}
                           className="flex-1 rounded-md border border-border/30 bg-background/40 px-2.5 py-1.5 text-[11px] text-foreground focus:outline-none focus:border-foreground/50 disabled:opacity-50"
                         />
@@ -1610,15 +1619,6 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
                         </button>
                       </div>
                     </div>
-                    <ChatLane
-                      title="Backend Chat"
-                      hint="e.g. 'add cron 0 */6 * * *', 'retry on 502 with backoff', 'switch source to Postgres'"
-                      messages={backendChat}
-                      input={backendChatInput}
-                      busy={backendChatBusy}
-                      onInput={setBackendChatInput}
-                      onSend={editBackendViaChat}
-                    />
                   </div>
                 </div>
               )}
