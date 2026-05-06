@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import {
   Globe2, MousePointer2, Keyboard, Camera, ListChecks, Play, Square,
   Send, Loader2, Sparkles, ShieldCheck, Bot, Cpu, Network, Terminal,
-  ChevronRight, MessageSquare, X, FileSearch, Layers,
+  ChevronRight, MessageSquare, X, FileSearch, Layers, Radar, AlertTriangle,
 } from "lucide-react";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
@@ -33,27 +34,17 @@ type Run = {
   id: string;
   task: string;
   url: string;
+  mode: "browser" | "recon";
   status: "queued" | "running" | "ok" | "failed" | "stopped";
   startedAt: number;
   endedAt?: number;
   steps: Step[];
+  output?: any;
+  findings?: any;
+  error?: string;
 };
 
-const STARTER_RUNS: Run[] = [
-  {
-    id: "run-001",
-    task: "Find the number of stars on the browser-use repo",
-    url: "https://github.com/browser-use/browser-use",
-    status: "ok",
-    startedAt: Date.now() - 1000 * 60 * 12,
-    endedAt: Date.now() - 1000 * 60 * 11,
-    steps: [
-      { n: 1, kind: "navigate", label: "Navigate", detail: "github.com/browser-use/browser-use", ts: 0 },
-      { n: 2, kind: "extract", label: "Extract DOM", detail: "[data-testid='star-count']", ts: 1 },
-      { n: 3, kind: "done", label: "Result", detail: "78,402 stars", ts: 2 },
-    ],
-  },
-];
+const STARTER_RUNS: Run[] = [];
 
 const CAPABILITIES = [
   { icon: Globe2,        label: "Navigate",   detail: "Spin up Chromium, follow links, manage tabs and history." },
