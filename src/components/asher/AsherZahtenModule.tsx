@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import { routeBrainsForPrompt } from "@/lib/asherBrainRouter";
 import { toast } from "sonner";
 
 /**
