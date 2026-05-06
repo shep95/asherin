@@ -447,7 +447,7 @@ const SubscriptionView = () => {
               { q: "Can I try Pro before committing?", a: "Aureon ($199/mo) subscribers get a free 3-day Pro trial. Full Pro access, no charge. After 3 days it reverts — you can upgrade if you like it." },
               { q: "What happens if I cancel?", a: "Your subscription stays active until the end of your billing period. You keep full access until then — no immediate cutoff." },
               { q: "What if my payment fails?", a: "All premium features are paused until your payment method is updated. Your data is preserved — update payment to restore access." },
-              { q: "What are the message limits?", a: "Aureon: 200 messages per 3 hours. Pro: 200 per 3 hours. Advisor: Unlimited." },
+              { q: "What are the message limits?", a: "Unlimited messages on every paid tier — you bring your own AI key, so usage is bound only by your provider's quota." },
               { q: "Can I use my own AI models?", a: "Yes — go to Settings → AI Model Keys. Connect API keys from Google, OpenAI, Claude, Meta, Venice, xAI, Mistral, or DeepSeek and select your preferred model." },
             ].map(({ q, a }) => (
               <details key={q} className="group rounded-lg border border-border/12 bg-card/5 overflow-hidden">

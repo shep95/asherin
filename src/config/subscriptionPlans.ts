@@ -75,9 +75,6 @@ export interface PlanDefinition {
 }
 
 // ── Tier → Feature Mapping ───────────────────────────────────────────────────
-const LIFETIME_FEATURES: FeatureId[] = [
-  "chat", "encryption", "byok",
-];
 
 const CHAT_FEATURES: FeatureId[] = [
   "chat", "encryption", "byok", "zophiel_search", "notebooks",
@@ -90,6 +87,9 @@ const AUREON_FEATURES: FeatureId[] = [
   "vibe_imager", "reverse_engineer", "file_scrapper", "cipher", "whiteboard",
   "nomad", "briefings", "zali", "vedic",
 ];
+
+// Lifetime ($740 one-time) gets everything in Aureon ($199) and below.
+const LIFETIME_FEATURES: FeatureId[] = [...AUREON_FEATURES];
 
 const PRO_FEATURES: FeatureId[] = [
   ...AUREON_FEATURES,
@@ -129,19 +129,27 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     id: "lifetime",
     name: "AUREON LIFETIME",
     tagline: "One-Time Purchase",
-    price: "$470",
+    price: "$740",
     period: "one-time",
-    description: "Lifetime access to Aureon AI chat with encryption. Bring your own API key — one payment, forever.",
+    description: "Lifetime access to everything in the Aureon $199/mo tier and below — IDE, persistent memory, personas, NOMAD, Briefings, ZANOEM Design Lab, Vedic Strategy, Zophiel Search, Notebooks, generators, Zahten and Guardian Vault. Unlimited messages. Bring your own AI key — one payment, forever.",
     cta: "Get Lifetime Access",
-    highlight: false,
+    highlight: true,
     publicVisible: true,
     features: LIFETIME_FEATURES,
-    messageLimit: 9999,
+    messageLimit: 999999,
     featureLabels: [
       "Lifetime access — one payment",
-      "Uncensored AI chat",
+      "Unlimited messages (BYOK required)",
+      "Everything in the Aureon $199/mo tier and below",
+      "Aureon IDE — full cloud development environment",
+      "Persistent Memory & Custom Personas",
+      "Zophiel Search, Notebooks, PDF / Slideshow / E-Book",
+      "Zahten Agent Forge & Guardian Vault",
+      "NOMAD Public Intelligence",
+      "Daily Intelligence Briefings",
+      "ZANOEM Design Lab",
+      "Vedic Strategy",
       "End-to-end encryption",
-      "Unlimited* messages (BYOK required)",
     ],
   },
   {
@@ -150,14 +158,14 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     tagline: "Core Intelligence",
     price: "$47",
     period: "/ month",
-    description: "Full AI chat plus Zophiel Search, Notebooks, PDF / Slideshow / E-Book generators, Zahten Agent Forge, and Guardian Vault. Bring your own AI key.",
+    description: "Full AI chat plus Zophiel Search, Notebooks, PDF / Slideshow / E-Book generators, Zahten Agent Forge, and Guardian Vault. Bring your own AI key — unlimited messages.",
     cta: "Start With Chat",
     highlight: false,
     publicVisible: true,
     features: CHAT_FEATURES,
-    messageLimit: 100,
+    messageLimit: 999999,
     featureLabels: [
-      "100 messages per 3-hour window",
+      "Unlimited messages (BYOK required)",
       "Uncensored AI chat",
       "Bring Your Own AI Key (required)",
       "End-to-end encryption",
