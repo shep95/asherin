@@ -616,6 +616,57 @@ const AsherZahtenModule = () => {
     liveTimerRef.current = window.setInterval(tick, 12000);
   };
 
+  // ─── Publish-as-Tab ───────────────────────────────────────────────
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishVis, setPublishVis] = useState<"private" | "team" | "organization" | "public">("private");
+  const [publishing, setPublishing] = useState(false);
+
+  const buildEntryHtml = (): string => {
+    const code = lastCodeBlock || "// no code generated";
+    const safeName = (activeAgent?.name || "Agent").replace(/[<>&"']/g, "");
+    const safeObjective = (objective || "").replace(/[<>&"']/g, "");
+    const stepsHtml = workflowSteps.map(s => `<li><span class="n">${String(s.n).padStart(2,"0")}</span> ${s.label.replace(/[<>&"']/g, "")}</li>`).join("");
+    const escCode = code.replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c] as string));
+    return `<!doctype html><html><head><meta charset="utf-8"/><title>${safeName}</title>
+<style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:#0a0a0a;color:#e8e8e8;padding:24px;line-height:1.6}h1{font-weight:200;letter-spacing:.18em;text-transform:uppercase;font-size:18px;margin:0 0 4px}.sub{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:#888;margin-bottom:24px}.card{border:1px solid #2a2a2a;border-radius:12px;padding:16px;margin-bottom:14px;background:#111}.label{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:#888;margin-bottom:8px}ol{margin:0;padding-left:0;list-style:none}ol li{padding:6px 0;border-bottom:1px solid #1f1f1f;font-size:12px;font-weight:300}ol li:last-child{border:0}.n{display:inline-block;width:28px;color:#666;font-family:ui-monospace,monospace;font-size:10px}pre{background:#080808;border:1px solid #1f1f1f;border-radius:8px;padding:12px;overflow:auto;font-size:11px;color:#cfcfcf;max-height:480px}p.obj{font-size:13px;font-weight:300;color:#d6d6d6}</style>
+</head><body><h1>${safeName}</h1><div class="sub">◈ Zahten Agent · Published Tab</div>
+<div class="card"><div class="label">Objective</div><p class="obj">${safeObjective}</p></div>
+${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtml}</ol></div>` : ""}
+<div class="card"><div class="label">Generated Task</div><pre>${escCode}</pre></div>
+</body></html>`;
+  };
+
+  const publishAsTab = async () => {
+    if (!passes.length) { toast.error("Build the agent before publishing"); return; }
+    setPublishing(true);
+    try {
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (!u) throw new Error("Sign in required");
+      const { error } = await supabase.from("asher_agents").insert({
+        owner_id: u.id,
+        name: activeAgent?.name || "Untitled Agent",
+        description: objective.slice(0, 280),
+        icon: "◈",
+        category: "zahten",
+        runtime: "iframe",
+        entry_html: buildEntryHtml(),
+        source_tsx: lastCodeBlock || null,
+        system_prompt: ORCHESTRATOR_SYSTEM.slice(0, 4000),
+        visibility: publishVis,
+        status: "published",
+        metadata: { workflow_steps: workflowSteps, classification } as any,
+      } as any);
+      if (error) throw error;
+      toast.success(`Published to Agent Store · ${publishVis}`);
+      setPublishOpen(false);
+      window.dispatchEvent(new CustomEvent("asher-agents-updated"));
+    } catch (e: any) {
+      toast.error(e?.message || "Publish failed");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   useEffect(() => () => { if (liveTimerRef.current) window.clearInterval(liveTimerRef.current); }, []);
 
   const TABS: { id: ViewTab; label: string }[] = [
