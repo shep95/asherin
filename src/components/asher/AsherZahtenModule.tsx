@@ -941,7 +941,11 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
     { id: "preview",    label: "Tab Preview" },
     { id: "schedule",   label: "Schedule" },
     { id: "compliance", label: "Platform" },
+    ...(isAdmin ? [{ id: "admin" as ViewTab, label: "◈ Admin · All Agents" }] : []),
   ];
+
+  // Auto-load admin registry whenever admin opens that tab
+  useEffect(() => { if (isAdmin && viewTab === "admin") loadAllAgents(); /* eslint-disable-next-line */ }, [viewTab, isAdmin]);
 
   return (
     <div className="h-full w-full flex bg-background text-foreground overflow-hidden">
