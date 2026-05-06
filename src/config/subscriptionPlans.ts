@@ -189,8 +189,10 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     features: AUREON_FEATURES,
     messageLimit: 200,
     featureLabels: [
-      "Everything in Chat",
-      "200 messages per 3-hour window",
+      "Everything in Chat (Zophiel Search, Notebooks, PDF / Slideshow / E-Book, Zahten Agent Forge, Guardian Vault)",
+      "Unlimited messages (BYOK required)",
+      "Zahten Agent Forge — autonomous agent builder",
+      "Guardian Vault — security command center",
       "Aureon IDE — full cloud development environment",
       "Persistent Memory & Calibration",
       "Custom Personas",
@@ -221,7 +223,8 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     messageLimit: 200,
     featureLabels: [
       "Everything in Aureon — expanded",
-      "200 messages per 3-hour window",
+      "Unlimited messages (BYOK required)",
+      "Zahten Agent Forge & Guardian Vault",
       "Google Intelligence Suite",
       "Azplen Data Intelligence Platform",
       "Pattern Analysis Engine",
