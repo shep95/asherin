@@ -598,6 +598,7 @@ const VedicAstrologyView = () => {
     let cancelled = false;
     (async () => {
       const updates: Record<string, { sign: string; sanskrit: string; deg: number } | null> = {};
+      const placeUpdates: Record<string, Placement[]> = {};
       for (const c of missing) {
         try {
           const r = await calculateSweVedicChart({
@@ -606,12 +607,21 @@ const VedicAstrologyView = () => {
           });
           const sign = rashis[Math.floor(r.ascendant / 30)];
           updates[c.symbol] = { sign: sign.name, sanskrit: sign.sanskrit, deg: r.ascendant % 30 };
+          placeUpdates[c.symbol] = r.planets.map((p) => ({
+            name: p.name, symbol: p.symbol,
+            sign: rashis[Math.floor(p.sid / 30)].name,
+            house: houseFromAsc(p.sid, r.ascendant),
+            retro: p.retrograde,
+          }));
         } catch {
           updates[c.symbol] = null;
         }
         if (cancelled) return;
       }
-      if (!cancelled) setCompanyLagnas((prev) => ({ ...prev, ...updates }));
+      if (!cancelled) {
+        setCompanyLagnas((prev) => ({ ...prev, ...updates }));
+        setCompanyPlacements((prev) => ({ ...prev, ...placeUpdates }));
+      }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
