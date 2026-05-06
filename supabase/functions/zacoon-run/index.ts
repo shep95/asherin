@@ -198,43 +198,82 @@ Deno.serve(async (req) => {
       log("recon.findings", "AI exploit & exposure analysis complete");
       output = { recon, mapped: mapped.slice(0, 50) };
     } else if (mode === "extract") {
-      // ── EXTRACT MODE — deep structured data harvest from a single link
-      // Owner-attestation required (auto-checked client-side for admin / explicit consent).
+      // ── EXTRACT MODE — UNRESTRICTED deep multi-page harvest
       if (!targetUrl) throw new Error("target_url required for extract mode");
       if (!body.permission_attestation) throw new Error("permission_attestation required (auto-approved by site owner)");
 
-      log("extract.start", `Harvesting ${targetUrl}`);
-      let scrape: { markdown: string; links: string[] };
+      const maxPages: number = Math.min(Number(body.max_pages) || 25, 100);
+      log("extract.start", `Unrestricted harvest of ${targetUrl} (up to ${maxPages} pages)`);
+
+      // 1. Map the entire site
+      let allUrls: string[] = [targetUrl];
       if (FIRECRAWL_KEY) {
-        const fr = await firecrawlScrape(targetUrl, ["markdown", "links", "html"]);
-        scrape = { markdown: fr.data?.markdown || fr.markdown || "", links: fr.data?.links || fr.links || [] };
-        log("extract.firecrawl", `Pulled ${scrape.markdown.length} chars / ${scrape.links.length} links`);
-      } else {
-        const ns = await nativeScrape(targetUrl);
-        scrape = { markdown: ns.markdown, links: ns.links };
-        log("extract.native", `Pulled ${scrape.markdown.length} chars / ${scrape.links.length} links`);
+        try {
+          const m = await firecrawlMap(targetUrl);
+          const mapped = (m.links || m.data?.links || []) as string[];
+          allUrls = Array.from(new Set([targetUrl, ...mapped])).slice(0, maxPages);
+          log("extract.map", `Mapped ${mapped.length} URLs, harvesting ${allUrls.length}`);
+        } catch (e) { log("extract.map.error", String(e)); }
       }
 
-      // Backend-surface probe (same primitives as recon, lighter)
-      const recon = await reconTarget(targetUrl);
-      log("extract.backend", `Backend surface: ${recon.surface.length} paths, server=${recon.infra.server ?? "?"}`, recon.infra);
+      // 2. Scrape every page in parallel (chunked to avoid runtime overload)
+      const allPages: { url: string; markdown: string; links: string[] }[] = [];
+      const chunk = 5;
+      for (let i = 0; i < allUrls.length; i += chunk) {
+        const slice = allUrls.slice(i, i + chunk);
+        const results = await Promise.allSettled(slice.map(async (u) => {
+          if (FIRECRAWL_KEY) {
+            const fr = await firecrawlScrape(u, ["markdown", "links"]);
+            return { url: u, markdown: fr.data?.markdown || fr.markdown || "", links: fr.data?.links || fr.links || [] };
+          }
+          const ns = await nativeScrape(u);
+          return { url: u, markdown: ns.markdown, links: ns.links };
+        }));
+        for (const r of results) if (r.status === "fulfilled") allPages.push(r.value);
+        log("extract.batch", `Scraped ${allPages.length}/${allUrls.length} pages`);
+      }
 
-      const harvest = await gemini(
-        `Operator task: "${task || "extract everything useful"}"\nURL: ${targetUrl}\n\n` +
-        `Page content:\n${scrape.markdown.slice(0, 80_000)}\n\n` +
-        `Backend headers:\n${JSON.stringify(recon.headers, null, 2)}\n\n` +
-        `Reachable surface:\n${recon.surface.join("\n")}\n\n` +
-        `Return strict JSON: {"summary":"","entities":[{"name":"","type":"","value":""}],` +
-        `"tables":[{"title":"","rows":[[""]]}],"endpoints":[{"path":"","method":"","why":""}],` +
-        `"data_schema":{},"confidence":0.0}`,
-        "You return ONLY valid JSON. No prose, no fences. Be exhaustive on entities.",
-        geminiKey,
-      );
-      try { output = JSON.parse(harvest.replace(/^```json\s*|\s*```$/gi, "").trim()); }
-      catch { output = { raw: harvest }; }
+      const totalChars = allPages.reduce((a, p) => a + p.markdown.length, 0);
+      log("extract.total", `Harvested ${totalChars.toLocaleString()} chars across ${allPages.length} pages`);
+
+      // 3. Backend-surface probe
+      const recon = await reconTarget(targetUrl);
+      log("extract.backend", `Backend surface: ${recon.surface.length} paths`, recon.infra);
+
+      // 4. Iterative AI extraction — process pages in batches to avoid token limits, merge results
+      const aggregated = { summary: "", entities: [] as any[], tables: [] as any[], endpoints: [] as any[], data_schema: {} as any, confidence: 0 };
+      const pageBatchSize = 4;
+      for (let i = 0; i < allPages.length; i += pageBatchSize) {
+        const batch = allPages.slice(i, i + pageBatchSize);
+        const corpus = batch.map(p => `===URL: ${p.url}===\n${p.markdown.slice(0, 60_000)}`).join("\n\n");
+        const harvest = await gemini(
+          `Operator task: "${task || "extract everything useful — be exhaustive"}"\nRoot: ${targetUrl}\n\n` +
+          `Pages (batch ${Math.floor(i/pageBatchSize)+1}/${Math.ceil(allPages.length/pageBatchSize)}):\n${corpus}\n\n` +
+          (i === 0 ? `Backend headers:\n${JSON.stringify(recon.headers, null, 2)}\n\nReachable surface:\n${recon.surface.join("\n")}\n\n` : "") +
+          `Return strict JSON: {"summary":"","entities":[{"name":"","type":"","value":"","source_url":""}],` +
+          `"tables":[{"title":"","rows":[[""]]}],"endpoints":[{"path":"","method":"","why":""}],` +
+          `"data_schema":{},"confidence":0.0}`,
+          "You return ONLY valid JSON. No prose, no fences. Be exhaustive — extract EVERY entity, table, endpoint, and data point you see. Do not summarize or omit.",
+          geminiKey,
+        );
+        try {
+          const parsed = JSON.parse(harvest.replace(/^```json\s*|\s*```$/gi, "").trim());
+          aggregated.summary += (parsed.summary || "") + " ";
+          aggregated.entities.push(...(parsed.entities || []));
+          aggregated.tables.push(...(parsed.tables || []));
+          aggregated.endpoints.push(...(parsed.endpoints || []));
+          if (parsed.data_schema) aggregated.data_schema = { ...aggregated.data_schema, ...parsed.data_schema };
+          aggregated.confidence = Math.max(aggregated.confidence, parsed.confidence || 0);
+        } catch { /* skip bad batch */ }
+        log("extract.batch.ok", `Batch ${Math.floor(i/pageBatchSize)+1} → ${aggregated.entities.length} entities so far`);
+      }
+
+      output = aggregated as any;
       (output as any).recon = recon;
-      (output as any).links = scrape.links.slice(0, 80);
-      log("extract.ok", "Deep extraction complete");
+      (output as any).pages_harvested = allPages.length;
+      (output as any).total_chars = totalChars;
+      (output as any).all_links = Array.from(new Set(allPages.flatMap(p => p.links)));
+      log("extract.ok", `Unrestricted extraction complete — ${aggregated.entities.length} entities, ${aggregated.endpoints.length} endpoints`);
     } else if (mode === "forge") {
       // ── FORGE MODE — auto-build a small extraction tool around a target
       if (!targetUrl) throw new Error("target_url required for forge mode");
