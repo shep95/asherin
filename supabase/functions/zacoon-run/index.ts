@@ -28,7 +28,7 @@ async function gemini(prompt: string, system: string | undefined, apiKey: string
       body: JSON.stringify({
         systemInstruction: system ? { parts: [{ text: system }] } : undefined,
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
+        generationConfig: { temperature: 0.4, maxOutputTokens: 16384 },
       }),
     },
   );
