@@ -97,10 +97,21 @@ const AsherZacoonModule = () => {
   const [activeId, setActiveId] = useState<string>("");
   const [task, setTask] = useState("");
   const [url, setUrl] = useState("https://");
-  const [mode, setMode] = useState<"browser" | "recon" | "extract" | "forge" | "stress">("browser");
+  const [mode, setMode] = useState<"browser" | "recon" | "extract" | "forge" | "stress" | "code">("browser");
   const [permission, setPermission] = useState(true); // auto-approved by site owner per operator policy
-  const [running, setRunning] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
+  const [running, setRunning] = useState(false);
+  // CODE mode state
+  const [codeProjects, setCodeProjects] = useState<{ id: string; name: string }[]>([]);
+  const [projectId, setProjectId] = useState<string>("");
+  const [applyChanges, setApplyChanges] = useState(false);
+  const [wipeAll, setWipeAll] = useState(false);
+
+  useEffect(() => {
+    if (mode !== "code") return;
+    supabase.from("asher_code_projects").select("id,name").order("updated_at", { ascending: false }).limit(50)
+      .then(({ data }) => setCodeProjects(data || []));
+  }, [mode]);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(runs.slice(0, 25))); } catch { /* noop */ }
