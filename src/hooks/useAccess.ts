@@ -46,11 +46,11 @@ export function useAccess() {
     if (ENTERPRISE_VIEWS.includes(view)) return hasEnterpriseOnlyAccess(tierKey);
     if (CHAT_VIEWS.includes(view)) return hasChatAccess(tierKey);
     if (SEARCH_VIEWS.includes(view)) return hasSearchAccess(tierKey);
+    if (AUREON_VIEWS.includes(view)) return hasAureonAccess(tierKey);
     if (PRO_VIEWS.includes(view)) return hasProAccess(tierKey);
-    // IDE, personas, etc. require aureon+ tier
     if (!PUBLIC_VIEWS.includes(view) && !CHAT_VIEWS.includes(view)) return hasSearchAccess(tierKey);
     return true;
   };
 
-  return { canAccess, isAdmin, tierKey, isPastDue, hasChat: hasChatAccess(tierKey), hasSearch: hasSearchAccess(tierKey), hasPro: hasProAccess(tierKey), hasEnterprise: hasEnterpriseOnlyAccess(tierKey) };
+  return { canAccess, isAdmin, tierKey, isPastDue, hasChat: hasChatAccess(tierKey), hasSearch: hasSearchAccess(tierKey), hasAureon: hasAureonAccess(tierKey), hasPro: hasProAccess(tierKey), hasEnterprise: hasEnterpriseOnlyAccess(tierKey) };
 }
