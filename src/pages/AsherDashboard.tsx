@@ -418,6 +418,10 @@ const AsherDashboard = () => {
             const tab = publishedTabs.find((t) => `pub:${t.id}` === active);
             return tab ? <AsherPublishedTabRenderer name={tab.name} entryHtml={tab.entry_html} /> : null;
           })()}
+          {typeof active === "string" && active.startsWith("agent:") && (() => {
+            const a = agentStore.find((x) => `agent:${x.id}` === active);
+            return a ? <AsherPublishedTabRenderer name={a.name} entryHtml={a.entry_html || ""} /> : null;
+          })()}
         </div>
       </main>
     </div>
