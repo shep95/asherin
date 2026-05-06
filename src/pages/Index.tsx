@@ -958,7 +958,7 @@ const Index = () => {
                   <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Agents & Tools</p>
                   <Link to="/feature/personas" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">AI Personas</Link>
                   <Link to="/feature/briefings" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Daily Briefings</Link>
-                  <Link to="/feature/elion" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Elion / Zohar</Link>
+                  
                   <Link to="/feature/notebooks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Notebooks</Link>
                 </div>
                 <div className="flex flex-col gap-2">
