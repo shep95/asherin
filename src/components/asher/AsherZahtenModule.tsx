@@ -1218,20 +1218,55 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
                   </button>
                 </div>
               </div>
-              <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden" style={{ height: "70vh" }}>
-                {passes.length ? (
-                  <iframe
-                    title="Tab live preview"
-                    srcDoc={publishHtml || buildEntryHtml()}
-                    sandbox="allow-scripts"
-                    className="w-full h-full bg-[#0a0a0a]"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <p className="text-[11px] tracking-[0.25em] uppercase text-muted-foreground/60">Build the agent in the Builder tab to see the live preview</p>
+              {passes.length ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3" style={{ height: "70vh" }}>
+                  {/* Live preview */}
+                  <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col">
+                    <div className="px-3 py-2 border-b border-border/20 flex items-center justify-between">
+                      <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ Live Preview</p>
+                      {publishHtmlDirty && <span className="text-[9px] tracking-[0.25em] uppercase text-amber-400/80">edited</span>}
+                    </div>
+                    <iframe
+                      title="Tab live preview"
+                      srcDoc={publishHtml || buildEntryHtml()}
+                      sandbox="allow-scripts"
+                      className="flex-1 w-full bg-[#0a0a0a]"
+                    />
                   </div>
-                )}
-              </div>
+                  {/* Editor */}
+                  <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col">
+                    <div className="px-3 py-2 border-b border-border/20 flex items-center justify-between gap-2">
+                      <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ UI Source (HTML / CSS / JS)</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => { setPublishHtml(buildEntryHtml()); setPublishHtmlDirty(false); toast.message("Reset to AI-generated design"); }}
+                          className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/70 hover:text-foreground"
+                        >
+                          Reset
+                        </button>
+                        <button
+                          onClick={openPublish}
+                          disabled={missingSecrets.length > 0}
+                          className="text-[9px] tracking-[0.25em] uppercase text-emerald-400/80 hover:text-emerald-300 disabled:opacity-30"
+                        >
+                          Publish
+                        </button>
+                      </div>
+                    </div>
+                    <textarea
+                      value={publishHtml || buildEntryHtml()}
+                      onChange={(e) => { setPublishHtml(e.target.value); setPublishHtmlDirty(true); }}
+                      spellCheck={false}
+                      className="flex-1 w-full bg-[#0a0a0a] text-[11px] font-mono text-foreground/90 p-3 outline-none resize-none border-0"
+                      placeholder="Edit the tab's HTML, CSS, and inline JavaScript here. Changes appear in the live preview instantly."
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border/25 bg-card/30 w-full flex items-center justify-center" style={{ height: "70vh" }}>
+                  <p className="text-[11px] tracking-[0.25em] uppercase text-muted-foreground/60">Build the agent in the Builder tab to see the live preview</p>
+                </div>
+              )}
             </div>
           )}
 
