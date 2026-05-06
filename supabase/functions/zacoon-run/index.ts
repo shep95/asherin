@@ -190,6 +190,7 @@ Deno.serve(async (req) => {
         `"exploit_hypotheses":[{"vector":"","cwe":"","severity":"low|med|high|crit","why":"","next_step":""}],` +
         `"shutdown_feasibility":{"summary":"","required_perms":[],"steps":[]}}`,
         "You return ONLY valid JSON. No prose, no code fences.",
+        geminiKey,
       );
       const cleaned = exploitText.replace(/^```json\s*|\s*```$/gi, "").trim();
       try { findings = JSON.parse(cleaned); }
