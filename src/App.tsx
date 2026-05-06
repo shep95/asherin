@@ -56,6 +56,7 @@ const FeatureMemoryCenter = lazy(() => import("./pages/FeatureMemoryCenter"));
 const FeatureBrains = lazy(() => import("./pages/FeatureBrains"));
 const FeatureLibrary = lazy(() => import("./pages/FeatureLibrary"));
 const FeatureWhiteboardPage = lazy(() => import("./pages/FeatureWhiteboard"));
+const FeatureVedic = lazy(() => import("./pages/FeatureVedic"));
 const ZophielFree = lazy(() => import("./pages/ZophielFree"));
 const WW3 = lazy(() => import("./pages/WW3"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
