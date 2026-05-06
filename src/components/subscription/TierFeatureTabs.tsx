@@ -72,6 +72,7 @@ const AUREON_FEATURE_GROUPS = [
     features: [
       { name: "NOMAD Public Intelligence", desc: "Public intelligence agent across 40+ data sources with persistent dossier output.", link: "/feature/nomad" },
       { name: "Daily Intelligence Briefings", desc: "Personalized morning reports covering competitors, industry, and markets.", link: "/feature/briefings" },
+      { name: "Vedic Strategy", desc: "Astro-temporal forecasting, dasha cycles, lagna relationship and timing intelligence.", link: "/feature/vedic" },
     ],
   },
   {
