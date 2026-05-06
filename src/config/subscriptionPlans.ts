@@ -301,7 +301,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   "vibe-imager": "vibe_imager",
   "vibe-video": "vibe_video",
   agents: "agents",
-  zahten: "zahten",
+  // zahten intentionally omitted — always visible in sidebar; gating handled in Dashboard.tsx
   "reverse-engineer": "reverse_engineer",
   "file-scrapper": "file_scrapper",
   cipher: "cipher",
