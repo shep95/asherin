@@ -229,7 +229,11 @@ const AsherZacoonModule = () => {
         {/* Task console */}
         <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-xl p-5 mb-6">
           <p className="text-[10px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase mb-3">
-            {mode === "recon" ? "Target Brief — Permissioned Recon" : "Mission Brief"}
+            {mode === "browser" ? "Mission Brief"
+              : mode === "extract" ? "Link Forensics — Auto-Approved Harvest"
+              : mode === "forge" ? "Forge Software — Build Extractor Around Target"
+              : mode === "stress" ? "Stress / Shutdown Feasibility — Permissioned"
+              : "Target Brief — Permissioned Recon"}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-3">
             <textarea
