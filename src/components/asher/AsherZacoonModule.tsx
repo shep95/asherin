@@ -232,6 +232,7 @@ const AsherZacoonModule = () => {
             { k: "forge",   label: "Forge Software", Icon: Layers },
             { k: "recon",   label: "Recon", Icon: Radar },
             { k: "stress",  label: "Stress / Shutdown Model", Icon: AlertTriangle },
+            { k: "code",    label: "Code (Edit / Delete Files)", Icon: Code2 },
           ] as const).map(({ k, label, Icon }) => (
             <button key={k} onClick={() => setMode(k)}
               className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase transition-colors ${
