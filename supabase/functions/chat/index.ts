@@ -204,7 +204,7 @@ When providing links to Aureon features or pages, you MUST ONLY use these verifi
 - /feature/personas — AI Personas
 - /feature/zali — ZALI Design Lab
 - /feature/predictive — Predictive Intelligence
-- /feature/elion — Elion/Zohar Toolkit
+
 - /feature/tracker — Company Tracker
 - /feature/imagine-to-code — Imagine To Code
 - /feature/ide — Aureon IDE
