@@ -963,6 +963,7 @@ const VedicAstrologyView = () => {
                               </span>
                             )}
                           </div>
+                          <PlacementsStrip items={leaderPlacements[c.code]} />
                         </button>
                       );
                     })()}
