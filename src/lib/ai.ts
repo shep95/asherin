@@ -91,11 +91,26 @@ export async function streamChat({
 
   // Get auth token for BYOK key lookup
   let authToken = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  let userEmail: string | null = null;
   try {
     const { supabase } = await import("@/integrations/supabase/client");
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.access_token) authToken = session.access_token;
+    userEmail = session?.user?.email ?? null;
   } catch { /* fallback to anon key */ }
+
+  // BYOK enforcement: non-admin users MUST bring their own API key.
+  const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+  if (userEmail !== ADMIN_EMAIL && !byokProvider) {
+    try {
+      const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
+      triggerByokRequired({
+        source: "aureon-chat",
+        reason: "Aureon now requires you to connect your own LLM API key. Add one in Settings → AI Keys to continue.",
+      });
+    } catch { /* noop */ }
+    throw new Error("BYOK required: please add your own LLM API key in Settings → AI Keys.");
+  }
 
   // Auto-detect and inject domain skills based on conversation context
   const detectedSkills = detectRelevantSkills(messages.map(m => ({ role: m.role, content: m.content })));

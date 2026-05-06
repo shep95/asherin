@@ -102,6 +102,7 @@ const ZerlalView = React.lazy(() => import("@/components/dashboard/zerlal/Zerlal
 const FileScrapperView = React.lazy(() => import("@/components/dashboard/scrapper/FileScrapperView"));
 
 const CipherView = React.lazy(() => import("@/components/dashboard/cipher/CipherToolkit"));
+const AsherZahtenModule = React.lazy(() => import("@/components/asher/AsherZahtenModule"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
@@ -1281,7 +1282,7 @@ const Dashboard = () => {
       case "zali": return gatedView("zali", ZaliView, "ZANOEM Design Lab", "Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro plans.");
       case "community": return gatedView("community", CommunityView, "Community", "Join the community — ask questions, make requests, and vote on future features. Available on Pro plans.");
       case "azplen": return gatedView("azplen", AzplenView, "Azplen Intelligence", "The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro plans.");
-      case "elion": return gatedView("elion", ElionView, "Elion / Zohar Toolkit", "Forensic-grade OSINT toolkit — 20+ DeepDive phases, HiveMind orchestration, Ghost Mode, and identity recon. Available on Pro plans.");
+      // case "elion" removed
       case "nomad": return gatedView("nomad", NomadView, "NOMAD Agent", "Public intelligence agent — OSINT research across 40+ data sources with AI-powered correlation. Available on Pro plans.");
       case "briefing": return gatedView("briefing", BriefingView, "Intelligence Briefings", "Personalized daily intelligence briefings — competitor tracking, regulatory monitoring, and market signals. Available on Pro plans.");
       case "teams": return gatedView("teams", TeamsView, "Team Workspace", "Collaborative intelligence with role-based access, team invites, and shared analysis. Available on Pro plans.");
@@ -1290,7 +1291,7 @@ const Dashboard = () => {
       case "plugins": return gatedView("plugins", PluginMarketplaceView, "Plugin Marketplace", "Extend Azplen with data connectors, analysis modules, and visualization plugins. Available on Pro plans.");
       case "timeseries": return gatedView("timeseries", TimeSeriesView, "Time-Series Intelligence", "Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro plans.");
       case "audit": return gatedView("audit", AuditLogView, "Audit Trail", "Complete access and activity logging for compliance and security. Available on Pro plans.");
-      case "predictive": return gatedView("predictive", PredictiveIntelligenceView, "Predictive Intelligence", "AI-powered event forecasting — detect signals and predict regulatory actions, earnings surprises, and more. Available on Pro plans.");
+      case "zahten": return gatedView("zahten" as DashboardView, AsherZahtenModule, "Zahten Agent Forge", "Autonomous agent builder — design, scaffold, and harden production-grade automated agents. Available on the Chat plan ($47/mo) and above.");
       case "imagine-to-code": return gatedView("imagine-to-code", ImagineToCodeView, "Imagine To Code", "AI-powered pixel art editor — paint, upload images, and ask AUREON to design directly on the canvas. Available on Pro plans.");
       
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
@@ -1299,7 +1300,7 @@ const Dashboard = () => {
       case "axrlen": return gatedView("axrlen", AxrlenView, "Axrlen — Predictive Intelligence", "Real-time global event prediction and policy simulation — powered by live data from 9+ intelligence sources. Available on Pro plans.");
       case "zerlal": return gatedView("zerlal", ZerlalView, "Zerlal — Cyber Security", "AI-powered cyber security intelligence — threat analysis, vulnerability detection, and defense strategies powered by AUREON. Available on Pro plans.");
       
-      case "imagine-intelligence": return gatedView("imagine-intelligence", ImagineIntelligenceView, "Imagine Intelligence", "Geo-intelligence analysis engine. Available on all paid plans.");
+      // case "imagine-intelligence" removed
       case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Aureon ($199/mo) and above.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro plans.");
       case "vibe-imager": return gatedView("vibe-imager", VibeImagerView, "Vibe Imager", "Conversational AI image creation — describe, iterate, version control. Available on all paid plans.");
