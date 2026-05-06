@@ -616,10 +616,13 @@ const AsherZahtenModule = () => {
     liveTimerRef.current = window.setInterval(tick, 12000);
   };
 
-  // ─── Publish-as-Tab ───────────────────────────────────────────────
+  // ─── Publish-as-Tab + Deploy ───────────────────────────────────────────────
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishVis, setPublishVis] = useState<"private" | "team" | "organization" | "public">("private");
   const [publishing, setPublishing] = useState(false);
+  const [publishName, setPublishName] = useState("");
+  const [publishHtml, setPublishHtml] = useState("");
+  const [publishHtmlDirty, setPublishHtmlDirty] = useState(false);
 
   const buildEntryHtml = (): string => {
     const code = lastCodeBlock || "// no code generated";
