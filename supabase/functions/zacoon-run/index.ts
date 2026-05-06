@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
   if (!userId) return j({ error: "auth required" }, 401);
 
   const body = await req.json().catch(() => ({}));
-  const mode: "browser" | "recon" | "extract" | "forge" | "stress" = body.mode || "browser";
+  const mode: "browser" | "recon" | "extract" | "forge" | "stress" | "code" = body.mode || "browser";
   const task: string = body.task || "";
   const targetUrl: string = body.target_url || body.url || "";
 
