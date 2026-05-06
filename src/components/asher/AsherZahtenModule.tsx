@@ -244,6 +244,45 @@ const loadAgents = (): AgentRecord[] => {
   return STARTER_AGENTS;
 };
 
+// ── Reusable chat lane for prompt-driven UI / backend edits ──
+function ChatLane({ title, hint, messages, input, busy, onInput, onSend }: {
+  title: string; hint: string;
+  messages: { role: "user" | "assistant"; content: string; ts: number }[];
+  input: string; busy: boolean;
+  onInput: (v: string) => void; onSend: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col min-h-0">
+      <div className="px-3 py-2 border-b border-border/20 flex items-center justify-between">
+        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ {title}</p>
+        {busy && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />}
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {messages.length === 0 ? (
+          <p className="text-[10px] font-light text-muted-foreground/60 leading-relaxed">{hint}</p>
+        ) : messages.map((m, i) => (
+          <div key={i} className={`text-[11px] font-light leading-relaxed rounded-md px-2.5 py-1.5 ${m.role === "user" ? "bg-foreground/10 text-foreground self-end" : "bg-background/40 text-muted-foreground"}`}>
+            {m.content}
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-border/20 p-2 flex items-center gap-1.5">
+        <input
+          value={input}
+          onChange={(e) => onInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+          placeholder="Describe a change…"
+          disabled={busy}
+          className="flex-1 rounded-md border border-border/30 bg-background/40 px-2.5 py-1.5 text-[11px] text-foreground focus:outline-none focus:border-foreground/50 disabled:opacity-50"
+        />
+        <button onClick={onSend} disabled={busy || !input.trim()} className="rounded-md border border-border/30 px-2.5 py-1.5 text-muted-foreground hover:text-foreground disabled:opacity-30">
+          <Send className="h-3 w-3" strokeWidth={1.5} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const AsherZahtenModule = () => {
   // Agent registry — persisted to localStorage so built agents survive reloads
   const [agents, setAgents] = useState<AgentRecord[]>(() => loadAgents());
