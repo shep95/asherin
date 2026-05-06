@@ -311,7 +311,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   zerlal: "zerlal",
   cross: "cross",
   lavba: "lavba",
-  "vedic-astrology": "vedic",
+  // vedic-astrology intentionally omitted — always visible in sidebar; gating handled in Dashboard.tsx via useAccess
 };
 
 // ── "What Powers Each Tier" grid config ──────────────────────────────────────
