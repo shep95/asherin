@@ -247,10 +247,10 @@ const AsherZacoonModule = () => {
                 placeholder={mode === "recon" ? "Target URL (required)" : "Start URL (optional)"}
                 className="rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
               />
-              {mode === "recon" && (
+              {mode !== "browser" && (
                 <label className="flex items-start gap-2 text-[10px] font-light text-muted-foreground/80 cursor-pointer">
                   <input type="checkbox" checked={permission} onChange={(e) => setPermission(e.target.checked)} className="mt-0.5" />
-                  <span>I attest I own this target or have written authorization to test it.</span>
+                  <span>Owner authorization confirmed (auto-approved). I attest I own or am authorized to operate against this target.</span>
                 </label>
               )}
               {running ? (
