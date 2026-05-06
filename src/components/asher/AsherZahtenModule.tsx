@@ -5,7 +5,9 @@ import {
   Play, Square, RefreshCw, CheckCircle2, Loader2, FileLock2, Satellite, Users,
   Eye, Crosshair, Globe, Server, Fingerprint, Siren, Trash2, ShieldAlert,
   Building2, Network, Radar, Award, KeyRound, Rocket, Send, Sparkles, GitFork, Package,
+  Paperclip, Image as ImageIcon, FileArchive, Link2, X as XIcon, ShieldCheck,
 } from "lucide-react";
+import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { routeBrainsForPrompt } from "@/lib/asherBrainRouter";
