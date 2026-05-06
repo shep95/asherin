@@ -52,81 +52,136 @@ interface DashboardSidebarProps {
   onDeleteCustomPersona?: (id: string) => void;
 }
 
-interface NavGroup {
-  label: string;
-  items: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "pro" }[];
-}
+type NavItem = { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "pro" };
+interface SubGroup { label: string; items: NavItem[] }
+interface NavGroup { label: string; subgroups: SubGroup[] }
 
 const navGroups: NavGroup[] = [
   {
     label: "Intelligence",
-    items: [
-      { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
-      { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
-      { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
-
-      { id: "video-intelligence", icon: Crosshair, label: "Video Intelligence", access: "pro" },
-      { id: "reverse-engineer" as DashboardView, icon: Search, label: "Reverse Engineer", access: "search" },
-      { id: "zahten" as DashboardView, icon: Workflow, label: "Zahten Agent Forge" },
+    subgroups: [
+      {
+        label: "Research",
+        items: [
+          { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
+          { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
+          { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
+        ],
+      },
+      {
+        label: "Vision & Agents",
+        items: [
+          { id: "video-intelligence", icon: Crosshair, label: "Video Intelligence", access: "pro" },
+          { id: "reverse-engineer" as DashboardView, icon: Search, label: "Reverse Engineer", access: "search" },
+          { id: "zahten" as DashboardView, icon: Workflow, label: "Zahten Agent Forge" },
+        ],
+      },
     ],
   },
   {
     label: "Data & Analysis",
-    items: [
-      { id: "azplen", icon: Database, label: "Azplen Intelligence", access: "pro" },
-      { id: "pattern-analysis", icon: Activity, label: "Pattern Engine", access: "pro" },
-      { id: "cross" as DashboardView, icon: Crosshair, label: "Cross", access: "pro" },
-      { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "pro" },
-      { id: "axrlen" as DashboardView, icon: Brain, label: "Axrlen", access: "pro" },
-      { id: "zerlal" as DashboardView, icon: Shield, label: "Zerlal", access: "pro" },
-      
-      { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
-      { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
-      { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
+    subgroups: [
+      {
+        label: "Platforms",
+        items: [
+          { id: "azplen", icon: Database, label: "Azplen Intelligence", access: "pro" },
+          { id: "pattern-analysis", icon: Activity, label: "Pattern Engine", access: "pro" },
+          { id: "cross" as DashboardView, icon: Crosshair, label: "Cross", access: "pro" },
+        ],
+      },
+      {
+        label: "Specialized Engines",
+        items: [
+          { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "pro" },
+          { id: "axrlen" as DashboardView, icon: Brain, label: "Axrlen", access: "pro" },
+          { id: "zerlal" as DashboardView, icon: Shield, label: "Zerlal", access: "pro" },
+        ],
+      },
+      {
+        label: "Analysis Tools",
+        items: [
+          { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
+          { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
+          { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
+        ],
+      },
     ],
   },
   {
     label: "Creation",
-    items: [
-      { id: "zali", icon: Zap, label: "ZANOEM Design Lab" },
-      { id: "ide", icon: Terminal, label: "AUREON IDE" },
-      { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
-      { id: "vibe-imager" as DashboardView, icon: Sparkles, label: "Vibe Imager" },
-      // { id: "vibe-video" as DashboardView, icon: Sparkles, label: "Vibe Video", access: "pro" },
-      { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
-      { id: "ebook" as DashboardView, icon: FileText, label: "E-Book Generator" },
-      { id: "slideshow", icon: Layers, label: "Slideshow Generator", access: "search" },
-      { id: "file-scrapper" as DashboardView, icon: FileText, label: "File Scrapper", access: "search" },
-      { id: "cipher" as DashboardView, icon: Shield, label: "Cipher Toolkit", access: "search" },
-      { id: "snippets", icon: Code2, label: "Code Snippets" },
-      { id: "projects", icon: Layers, label: "Projects" },
+    subgroups: [
+      {
+        label: "Design & Code",
+        items: [
+          { id: "zali", icon: Zap, label: "ZANOEM Design Lab" },
+          { id: "ide", icon: Terminal, label: "AUREON IDE" },
+          { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
+          { id: "snippets", icon: Code2, label: "Code Snippets" },
+          { id: "projects", icon: Layers, label: "Projects" },
+        ],
+      },
+      {
+        label: "Media Generation",
+        items: [
+          { id: "vibe-imager" as DashboardView, icon: Sparkles, label: "Vibe Imager" },
+          { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
+          { id: "ebook" as DashboardView, icon: FileText, label: "E-Book Generator" },
+          { id: "slideshow", icon: Layers, label: "Slideshow Generator", access: "search" },
+        ],
+      },
+      {
+        label: "Utilities",
+        items: [
+          { id: "file-scrapper" as DashboardView, icon: FileText, label: "File Scrapper", access: "search" },
+          { id: "cipher" as DashboardView, icon: Shield, label: "Cipher Toolkit", access: "search" },
+        ],
+      },
     ],
   },
   {
     label: "Workspace",
-    items: [
-      { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
-      { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
-      { id: "persona-store", icon: Sparkles, label: "Persona Store" },
-      { id: "library", icon: FolderOpen, label: "Library" },
-      { id: "memory", icon: Brain, label: "Memory Center" },
+    subgroups: [
+      {
+        label: "Collaboration",
+        items: [
+          { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
+          { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
+        ],
+      },
+      {
+        label: "Personal",
+        items: [
+          { id: "persona-store", icon: Sparkles, label: "Persona Store" },
+          { id: "library", icon: FolderOpen, label: "Library" },
+          { id: "memory", icon: Brain, label: "Memory Center" },
+        ],
+      },
     ],
   },
   {
     label: "System",
-    items: [
-      { id: "agents" as DashboardView, icon: Zap, label: "Agents", access: "pro" },
-      { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
-      { id: "guardian-vault" as DashboardView, icon: LockIcon, label: "Guardian Vault" },
-      { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
-      { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
-      
-      { id: "self-access", icon: FileText, label: "Self-Access Learning" },
-      { id: "bug-reports" as DashboardView, icon: ClipboardList, label: "Bug Reports" },
-      { id: "stats", icon: BarChart3, label: "My Stats" },
-      { id: "vedic-astrology" as DashboardView, icon: Moon, label: "Vedic Astrology" },
-      { id: "subscription", icon: CreditCard, label: "Subscription" },
-      { id: "settings", icon: Settings, label: "Settings" },
+    subgroups: [
+      {
+        label: "Security & Operations",
+        items: [
+          { id: "agents" as DashboardView, icon: Zap, label: "Agents", access: "pro" },
+          { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
+          { id: "guardian-vault" as DashboardView, icon: LockIcon, label: "Guardian Vault" },
+          { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
+          { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
+        ],
+      },
+      {
+        label: "Account",
+        items: [
+          { id: "self-access", icon: FileText, label: "Self-Access Learning" },
+          { id: "bug-reports" as DashboardView, icon: ClipboardList, label: "Bug Reports" },
+          { id: "stats", icon: BarChart3, label: "My Stats" },
+          { id: "vedic-astrology" as DashboardView, icon: Moon, label: "Vedic Astrology" },
+          { id: "subscription", icon: CreditCard, label: "Subscription" },
+          { id: "settings", icon: Settings, label: "Settings" },
+        ],
+      },
     ],
   },
 ];
@@ -189,31 +244,27 @@ const DashboardSidebar = ({
     setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
-  // Filter nav groups based on tier access using centralized config
+  const itemAllowed = (item: NavItem) => {
+    if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
+    if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
+    if (item.id === "ebook") return user?.email === "ashernewtonx@gmail.com";
+    const featureId = VIEW_FEATURE_MAP[item.id];
+    if (featureId) {
+      return tierHasFeature(tierKey, featureId) || user?.email === "ashernewtonx@gmail.com";
+    }
+    if (user?.email === "ashernewtonx@gmail.com") return true;
+    if (!item.access) return true;
+    if (item.access === "search") return hasSearchAccess(tierKey);
+    if (item.access === "pro") return hasProAccess(tierKey);
+    return true;
+  };
+
   const filteredGroups = navGroups.map(group => ({
     ...group,
-    items: group.items.filter(item => {
-      // Admin-only views
-      if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
-      if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
-      if (item.id === "ebook") return user?.email === "ashernewtonx@gmail.com";
-      
-
-      // Use centralized feature map for tier-gated views
-      const featureId = VIEW_FEATURE_MAP[item.id];
-      if (featureId) {
-        return tierHasFeature(tierKey, featureId) || user?.email === "ashernewtonx@gmail.com";
-      }
-
-      // Legacy access field fallback (admin always has access)
-      if (user?.email === "ashernewtonx@gmail.com") return true;
-      if (!item.access) return true;
-      if (item.access === "search") return hasSearchAccess(tierKey);
-      if (item.access === "pro") return hasProAccess(tierKey);
-      
-      return true;
-    }),
-  })).filter(group => group.items.length > 0);
+    subgroups: group.subgroups
+      .map(sg => ({ ...sg, items: sg.items.filter(itemAllowed) }))
+      .filter(sg => sg.items.length > 0),
+  })).filter(group => group.subgroups.length > 0);
 
   // Load archived conversations
   const loadArchived = useCallback(async () => {
@@ -487,7 +538,7 @@ const DashboardSidebar = ({
               <div data-dashboard-sidebar-nav className="px-2 py-2 border-t border-border/20 space-y-1">
                 {filteredGroups.map((group) => {
                   const isOpen = expandedGroups[group.label] ?? false;
-                  const hasActive = group.items.some(item => activeView === item.id);
+                  const hasActive = group.subgroups.some(sg => sg.items.some(item => activeView === item.id));
 
                   return (
                     <div key={group.label}>
@@ -501,19 +552,41 @@ const DashboardSidebar = ({
                         <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                       </button>
                       {isOpen && (
-                        <div className="space-y-0.5 mt-0.5 mb-1">
-                          {group.items.map((item) => (
-                            <button
-                              key={item.id}
-                              onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
-                              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                                activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                              }`}
-                            >
-                              <item.icon className="h-4 w-4" />
-                              {item.label}
-                            </button>
-                          ))}
+                        <div className="mt-0.5 mb-1 space-y-1 pl-2 border-l border-border/15 ml-3">
+                          {group.subgroups.map((sg) => {
+                            const sgKey = `${group.label}::${sg.label}`;
+                            const sgOpen = expandedGroups[sgKey] ?? false;
+                            const sgHasActive = sg.items.some(item => activeView === item.id);
+                            return (
+                              <div key={sg.label}>
+                                <button
+                                  onClick={() => toggleGroup(sgKey)}
+                                  className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1 text-[9px] font-light tracking-[0.18em] uppercase transition-colors ${
+                                    sgHasActive ? "text-foreground/80" : "text-muted-foreground/40 hover:text-muted-foreground/70"
+                                  }`}
+                                >
+                                  {sg.label}
+                                  <ChevronDown className={`h-2.5 w-2.5 transition-transform duration-200 ${sgOpen ? "rotate-180" : ""}`} />
+                                </button>
+                                {sgOpen && (
+                                  <div className="space-y-0.5 mt-0.5 mb-1">
+                                    {sg.items.map((item) => (
+                                      <button
+                                        key={item.id}
+                                        onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
+                                        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
+                                          activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                                        }`}
+                                      >
+                                        <item.icon className="h-4 w-4" />
+                                        {item.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
