@@ -111,7 +111,7 @@ const App = () => (
             <Route path="/feature/personas" element={<FeaturePersonas />} />
             <Route path="/feature/zali" element={<FeatureZali />} />
             <Route path="/feature/predictive" element={<FeaturePredictive />} />
-            <Route path="/feature/elion" element={<FeatureElion />} />
+            
             <Route path="/feature/imagine-to-code" element={<FeatureImagineToCode />} />
             <Route path="/feature/ide" element={<FeatureIde />} />
             <Route path="/feature/imagine-intelligence" element={<FeatureImagineIntelligence />} />
