@@ -296,7 +296,7 @@ const AsherDashboard = () => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {buildBranches(superOwner, brainContributor, (user?.email || "").toLowerCase() === "ashernewtonx@gmail.com", publishedTabs).map((branch) => {
+          {buildBranches(superOwner, brainContributor, (user?.email || "").toLowerCase() === "ashernewtonx@gmail.com", publishedTabs, agentStore).map((branch) => {
             const open = !!openBranches[branch.id];
             return (
               <div key={branch.id}>
