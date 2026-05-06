@@ -1550,15 +1550,55 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
 
                   {/* RIGHT — chat lanes for UI + Backend */}
                   <div className="grid grid-rows-2 gap-3 min-h-0">
-                    <ChatLane
-                      title="UI Chat"
-                      hint="e.g. 'make the table collapsible', 'use a sidebar on desktop', 'change accent to amber'"
-                      messages={uiChat}
-                      input={uiChatInput}
-                      busy={uiChatBusy}
-                      onInput={setUiChatInput}
-                      onSend={editUiViaChat}
-                    />
+                    <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col min-h-0">
+                      <div className="px-3 py-2 border-b border-border/20 flex items-center justify-between">
+                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ UI Chat</p>
+                        {uiChatBusy && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />}
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                        {uiChat.length === 0 ? (
+                          <p className="text-[10px] font-light text-muted-foreground/60 leading-relaxed">
+                            Edit the UI in chat. Attach a zip (≤100MB) of existing software, files, images, or paste links — the AI uses them as context. Always responsive · collapsible sections.
+                          </p>
+                        ) : uiChat.map((m, i) => (
+                          <div key={i} className={`text-[11px] font-light leading-relaxed rounded-md px-2.5 py-1.5 whitespace-pre-wrap ${m.role === "user" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>{m.content}</div>
+                        ))}
+                      </div>
+                      {uiAttachments.length > 0 && (
+                        <div className="border-t border-border/20 px-2 py-1.5 flex flex-wrap gap-1.5">
+                          {uiAttachments.map((a, i) => (
+                            <span key={i} className="inline-flex items-center gap-1 rounded-full border border-border/30 bg-background/50 px-2 py-0.5 text-[9px] text-foreground/80">
+                              {a.kind === "image" && <ImageIcon className="h-2.5 w-2.5" />}
+                              {a.kind === "zip" && <FileArchive className="h-2.5 w-2.5" />}
+                              {a.kind === "file" && <Paperclip className="h-2.5 w-2.5" />}
+                              {a.kind === "link" && <Link2 className="h-2.5 w-2.5" />}
+                              <span className="max-w-[140px] truncate">{a.kind === "link" ? a.url : (a as any).name}</span>
+                              <button onClick={() => removeAttachment(i)} className="text-muted-foreground hover:text-foreground"><XIcon className="h-2.5 w-2.5" /></button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="border-t border-border/20 p-2 flex items-center gap-1">
+                        <input ref={uiZipInputRef} type="file" accept=".zip" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAttachZip(f); e.currentTarget.value = ""; }} />
+                        <input ref={uiFileInputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAttachFile(f); e.currentTarget.value = ""; }} />
+                        <input ref={uiImageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAttachImage(f); e.currentTarget.value = ""; }} />
+                        <button onClick={() => uiZipInputRef.current?.click()} title="Upload zip (≤100MB)" className="rounded-md border border-border/30 px-1.5 py-1.5 text-muted-foreground hover:text-foreground"><FileArchive className="h-3 w-3" strokeWidth={1.5} /></button>
+                        <button onClick={() => uiFileInputRef.current?.click()} title="Upload file" className="rounded-md border border-border/30 px-1.5 py-1.5 text-muted-foreground hover:text-foreground"><Paperclip className="h-3 w-3" strokeWidth={1.5} /></button>
+                        <button onClick={() => uiImageInputRef.current?.click()} title="Upload image" className="rounded-md border border-border/30 px-1.5 py-1.5 text-muted-foreground hover:text-foreground"><ImageIcon className="h-3 w-3" strokeWidth={1.5} /></button>
+                        <button onClick={handleAddLink} title="Paste link" className="rounded-md border border-border/30 px-1.5 py-1.5 text-muted-foreground hover:text-foreground"><Link2 className="h-3 w-3" strokeWidth={1.5} /></button>
+                        <input
+                          value={uiChatInput}
+                          onChange={(e) => setUiChatInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); editUiViaChat(); } }}
+                          placeholder="Describe the UI change…"
+                          disabled={uiChatBusy}
+                          className="flex-1 rounded-md border border-border/30 bg-background/40 px-2.5 py-1.5 text-[11px] text-foreground focus:outline-none focus:border-foreground/50 disabled:opacity-50"
+                        />
+                        <button onClick={editUiViaChat} disabled={uiChatBusy || (!uiChatInput.trim() && uiAttachments.length === 0)} className="rounded-md border border-border/30 px-2.5 py-1.5 text-muted-foreground hover:text-foreground disabled:opacity-30">
+                          <Send className="h-3 w-3" strokeWidth={1.5} />
+                        </button>
+                      </div>
+                    </div>
                     <ChatLane
                       title="Backend Chat"
                       hint="e.g. 'add cron 0 */6 * * *', 'retry on 502 with backoff', 'switch source to Postgres'"
