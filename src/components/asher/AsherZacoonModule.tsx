@@ -328,6 +328,102 @@ const AsherZacoonModule = () => {
                     </li>
                   )}
                 </ol>
+
+                {/* ── FINDINGS / OUTPUT ── */}
+                {(active.output || active.findings || active.error) && (
+                  <div className="mt-4 space-y-3">
+                    {active.error && (
+                      <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3">
+                        <p className="text-[9px] font-light tracking-[0.25em] text-red-300/80 uppercase mb-1">Error</p>
+                        <p className="text-[11px] font-light text-red-200/90 break-words">{active.error}</p>
+                      </div>
+                    )}
+                    {active.output && (
+                      <div className="rounded-md border border-border/20 bg-background/40 p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileSearch className="h-3 w-3 text-foreground/70" strokeWidth={1.5} />
+                          <p className="text-[9px] font-light tracking-[0.25em] text-foreground uppercase">
+                            {active.mode === "recon" ? "Recon Output" : "Extracted Result"}
+                          </p>
+                        </div>
+                        {active.mode === "browser" && active.output.answer ? (
+                          <>
+                            <p className="text-[12px] font-light text-foreground/90 leading-relaxed mb-2">{active.output.answer}</p>
+                            {Array.isArray(active.output.key_facts) && active.output.key_facts.length > 0 && (
+                              <ul className="mb-2 space-y-1">
+                                {active.output.key_facts.map((f: string, i: number) => (
+                                  <li key={i} className="text-[10px] font-light text-muted-foreground/80 leading-relaxed">— {f}</li>
+                                ))}
+                              </ul>
+                            )}
+                            {Array.isArray(active.output.sources) && active.output.sources.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {active.output.sources.map((s: any, i: number) => (
+                                  <a key={i} href={s.url} target="_blank" rel="noreferrer" className="text-[9px] font-light tracking-[0.15em] text-muted-foreground/70 hover:text-foreground border border-border/20 rounded px-2 py-0.5 uppercase">
+                                    {s.title || s.url}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                            {typeof active.output.confidence === "number" && (
+                              <p className="mt-2 text-[9px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">
+                                Confidence: {Math.round(active.output.confidence * 100)}%
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <pre className="text-[10px] font-mono text-foreground/80 overflow-auto max-h-[280px] leading-relaxed">{JSON.stringify(active.output, null, 2)}</pre>
+                        )}
+                      </div>
+                    )}
+                    {active.findings && (
+                      <div className="rounded-md border border-amber-500/25 bg-amber-500/5 p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertTriangle className="h-3 w-3 text-amber-400/90" strokeWidth={1.5} />
+                          <p className="text-[9px] font-light tracking-[0.25em] text-amber-200/90 uppercase">Recon Findings</p>
+                        </div>
+                        {Array.isArray(active.findings.exposed_data) && active.findings.exposed_data.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-[9px] font-light tracking-[0.2em] text-muted-foreground/70 uppercase mb-1">Exposed Data</p>
+                            <ul className="space-y-1">
+                              {active.findings.exposed_data.map((d: any, i: number) => (
+                                <li key={i} className="text-[10px] font-light text-foreground/85">
+                                  <span className="font-mono text-foreground/95">{d.path}</span>
+                                  <span className="text-muted-foreground/70"> · {d.severity}</span>
+                                  {d.why && <span className="block text-muted-foreground/70">{d.why}</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {Array.isArray(active.findings.exploit_hypotheses) && active.findings.exploit_hypotheses.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-[9px] font-light tracking-[0.2em] text-muted-foreground/70 uppercase mb-1">Exploit Hypotheses</p>
+                            <ul className="space-y-1.5">
+                              {active.findings.exploit_hypotheses.map((h: any, i: number) => (
+                                <li key={i} className="text-[10px] font-light text-foreground/85 border-l border-amber-500/30 pl-2">
+                                  <span className="font-mono text-foreground/95">{h.vector}</span>
+                                  <span className="text-muted-foreground/70"> · {h.cwe || "—"} · {h.severity}</span>
+                                  {h.why && <span className="block text-muted-foreground/70">{h.why}</span>}
+                                  {h.next_step && <span className="block text-muted-foreground/60 italic">→ {h.next_step}</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {active.findings.shutdown_feasibility && (
+                          <div>
+                            <p className="text-[9px] font-light tracking-[0.2em] text-muted-foreground/70 uppercase mb-1">Shutdown Feasibility</p>
+                            <p className="text-[10px] font-light text-foreground/85">{active.findings.shutdown_feasibility.summary}</p>
+                          </div>
+                        )}
+                        {active.findings.raw && (
+                          <pre className="text-[10px] font-mono text-foreground/75 overflow-auto max-h-[200px]">{active.findings.raw}</pre>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             ) : (
               <p className="text-xs text-muted-foreground/60">No run selected.</p>

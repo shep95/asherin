@@ -4,7 +4,7 @@ import {
   Terminal, ExternalLink, ChevronRight, Zap, Lock, AlertCircle, AlertTriangle,
   Play, Square, RefreshCw, CheckCircle2, Loader2, FileLock2, Satellite, Users,
   Eye, Crosshair, Globe, Server, Fingerprint, Siren, Trash2, ShieldAlert,
-  Building2, Network, Radar, Award, KeyRound, Rocket, Send, Sparkles, GitFork,
+  Building2, Network, Radar, Award, KeyRound, Rocket, Send, Sparkles, GitFork, Package,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
@@ -616,6 +616,57 @@ const AsherZahtenModule = () => {
     liveTimerRef.current = window.setInterval(tick, 12000);
   };
 
+  // ─── Publish-as-Tab ───────────────────────────────────────────────
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishVis, setPublishVis] = useState<"private" | "team" | "organization" | "public">("private");
+  const [publishing, setPublishing] = useState(false);
+
+  const buildEntryHtml = (): string => {
+    const code = lastCodeBlock || "// no code generated";
+    const safeName = (activeAgent?.name || "Agent").replace(/[<>&"']/g, "");
+    const safeObjective = (objective || "").replace(/[<>&"']/g, "");
+    const stepsHtml = workflowSteps.map(s => `<li><span class="n">${String(s.n).padStart(2,"0")}</span> ${s.label.replace(/[<>&"']/g, "")}</li>`).join("");
+    const escCode = code.replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c] as string));
+    return `<!doctype html><html><head><meta charset="utf-8"/><title>${safeName}</title>
+<style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:#0a0a0a;color:#e8e8e8;padding:24px;line-height:1.6}h1{font-weight:200;letter-spacing:.18em;text-transform:uppercase;font-size:18px;margin:0 0 4px}.sub{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:#888;margin-bottom:24px}.card{border:1px solid #2a2a2a;border-radius:12px;padding:16px;margin-bottom:14px;background:#111}.label{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:#888;margin-bottom:8px}ol{margin:0;padding-left:0;list-style:none}ol li{padding:6px 0;border-bottom:1px solid #1f1f1f;font-size:12px;font-weight:300}ol li:last-child{border:0}.n{display:inline-block;width:28px;color:#666;font-family:ui-monospace,monospace;font-size:10px}pre{background:#080808;border:1px solid #1f1f1f;border-radius:8px;padding:12px;overflow:auto;font-size:11px;color:#cfcfcf;max-height:480px}p.obj{font-size:13px;font-weight:300;color:#d6d6d6}</style>
+</head><body><h1>${safeName}</h1><div class="sub">◈ Zahten Agent · Published Tab</div>
+<div class="card"><div class="label">Objective</div><p class="obj">${safeObjective}</p></div>
+${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtml}</ol></div>` : ""}
+<div class="card"><div class="label">Generated Task</div><pre>${escCode}</pre></div>
+</body></html>`;
+  };
+
+  const publishAsTab = async () => {
+    if (!passes.length) { toast.error("Build the agent before publishing"); return; }
+    setPublishing(true);
+    try {
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (!u) throw new Error("Sign in required");
+      const { error } = await supabase.from("asher_agents").insert({
+        owner_id: u.id,
+        name: activeAgent?.name || "Untitled Agent",
+        description: objective.slice(0, 280),
+        icon: "◈",
+        category: "zahten",
+        runtime: "iframe",
+        entry_html: buildEntryHtml(),
+        source_tsx: lastCodeBlock || null,
+        system_prompt: ORCHESTRATOR_SYSTEM.slice(0, 4000),
+        visibility: publishVis,
+        status: "published",
+        metadata: { workflow_steps: workflowSteps, classification } as any,
+      } as any);
+      if (error) throw error;
+      toast.success(`Published to Agent Store · ${publishVis}`);
+      setPublishOpen(false);
+      window.dispatchEvent(new CustomEvent("asher-agents-updated"));
+    } catch (e: any) {
+      toast.error(e?.message || "Publish failed");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   useEffect(() => () => { if (liveTimerRef.current) window.clearInterval(liveTimerRef.current); }, []);
 
   const TABS: { id: ViewTab; label: string }[] = [
@@ -1013,11 +1064,58 @@ const AsherZahtenModule = () => {
                     <Rocket className="h-3 w-3" strokeWidth={1.5} /> Deploy Live
                   </button>
                 )}
+                <button
+                  onClick={() => setPublishOpen(true)}
+                  disabled={!passes.length}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/30 bg-foreground/5 hover:bg-foreground/10 disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 text-[10px] font-light tracking-[0.25em] uppercase"
+                >
+                  <Package className="h-3 w-3" strokeWidth={1.5} /> Publish as Tab
+                </button>
               </div>
             </div>
           )}
         </section>
           </div>
+          )}
+
+          {/* ─── Publish-as-Tab dialog ─── */}
+          {publishOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={() => !publishing && setPublishOpen(false)}>
+              <div className="w-full max-w-md rounded-xl border border-border/30 bg-card p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+                <div>
+                  <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Agent Store</p>
+                  <p className="text-base font-extralight tracking-wide text-foreground mt-1">Publish as Tab</p>
+                  <p className="text-[11px] font-light text-muted-foreground/70 mt-1 leading-relaxed">
+                    The agent appears as a new tab in the Asher Dashboard sidebar. Choose who can see it.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {([
+                    { v: "private", label: "Private", desc: "Only you" },
+                    { v: "team", label: "Team", desc: "Members of your team" },
+                    { v: "organization", label: "Organization", desc: "All members of your org" },
+                    { v: "public", label: "Public", desc: "Every Asher operator" },
+                  ] as const).map((o) => (
+                    <button
+                      key={o.v}
+                      onClick={() => setPublishVis(o.v)}
+                      className={`w-full text-left rounded-lg border px-3 py-2.5 transition-colors ${publishVis === o.v ? "border-foreground/50 bg-foreground/5" : "border-border/25 hover:border-foreground/30"}`}
+                    >
+                      <p className="text-[11px] font-light tracking-[0.2em] text-foreground uppercase">{o.label}</p>
+                      <p className="text-[10px] font-light text-muted-foreground/70 mt-0.5">{o.desc}</p>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={() => setPublishOpen(false)} disabled={publishing} className="rounded-md border border-border/30 px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground">
+                    Cancel
+                  </button>
+                  <button onClick={publishAsTab} disabled={publishing} className="rounded-md border border-foreground/40 bg-foreground/10 hover:bg-foreground/20 px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase text-foreground disabled:opacity-40">
+                    {publishing ? <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} /> : "Publish"}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* ─────────── WORKFLOW MAP TAB ─────────── */}

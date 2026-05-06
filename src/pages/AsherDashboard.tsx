@@ -145,7 +145,7 @@ interface NavBranch { id: string; label: string; items: NavItem[] }
 
 interface PublishedTab { id: string; name: string; icon: string; entry_html: string }
 
-const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimaryAdmin: boolean, publishedTabs: PublishedTab[]): NavBranch[] => [
+const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimaryAdmin: boolean, publishedTabs: PublishedTab[], agentStore: { id: string; name: string; icon: string }[] = []): NavBranch[] => [
   ...(superOwner ? [{ id: "governance", label: "Organizations", items: [
     { id: "orgs" as AsherTab, label: "Org Management", icon: Building2, sub: "God-Mode" },
   ]}] : []),
@@ -187,6 +187,12 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     icon: Package,
     sub: "Custom",
   })) }] : []),
+  ...(agentStore.length ? [{ id: "agentstore", label: "Agent Store", items: agentStore.map((a) => ({
+    id: `agent:${a.id}` as AsherTab,
+    label: a.name,
+    icon: Package,
+    sub: "Agent",
+  })) }] : []),
   { id: "comms", label: "Secure Comms", items: [
     { id: "comms", label: "Operator Comms", icon: MessageSquare, sub: "E2EE" },
   ]},
@@ -197,10 +203,13 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
   ]},
 ];
 
+type AgentStoreEntry = { id: string; name: string; icon: string; entry_html: string | null; visibility: string };
+
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, comms: true, vault: false, governance: true, analytics: true });
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, agentstore: true, comms: true, vault: false, governance: true, analytics: true });
   const [publishedTabs, setPublishedTabs] = useState<PublishedTab[]>([]);
+  const [agentStore, setAgentStore] = useState<AgentStoreEntry[]>([]);
   const [superOwner, setSuperOwner] = useState(false);
   const [brainContributor, setBrainContributor] = useState(false);
   const [unlocked, setUnlocked] = useState<boolean>(() => {
@@ -230,6 +239,25 @@ const AsherDashboard = () => {
       if (!cancelled && data) setPublishedTabs(data as PublishedTab[]);
     })();
     return () => { cancelled = true; };
+  }, [unlocked, user?.id]);
+
+  // Load Agent Store (Zahten-published agents the operator can see — RLS does the visibility filtering).
+  useEffect(() => {
+    if (!unlocked || !user?.id) return;
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await supabase
+        .from("asher_agents" as any)
+        .select("id, name, icon, entry_html, visibility")
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (!cancelled && data) setAgentStore(data as any);
+    };
+    load();
+    const onUpd = () => load();
+    window.addEventListener("asher-agents-updated", onUpd);
+    return () => { cancelled = true; window.removeEventListener("asher-agents-updated", onUpd); };
   }, [unlocked, user?.id]);
 
   useAsherAutoLock(() => {
@@ -268,7 +296,7 @@ const AsherDashboard = () => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {buildBranches(superOwner, brainContributor, (user?.email || "").toLowerCase() === "ashernewtonx@gmail.com", publishedTabs).map((branch) => {
+          {buildBranches(superOwner, brainContributor, (user?.email || "").toLowerCase() === "ashernewtonx@gmail.com", publishedTabs, agentStore).map((branch) => {
             const open = !!openBranches[branch.id];
             return (
               <div key={branch.id}>
@@ -389,6 +417,10 @@ const AsherDashboard = () => {
           {typeof active === "string" && active.startsWith("pub:") && (() => {
             const tab = publishedTabs.find((t) => `pub:${t.id}` === active);
             return tab ? <AsherPublishedTabRenderer name={tab.name} entryHtml={tab.entry_html} /> : null;
+          })()}
+          {typeof active === "string" && active.startsWith("agent:") && (() => {
+            const a = agentStore.find((x) => `agent:${x.id}` === active);
+            return a ? <AsherPublishedTabRenderer name={a.name} entryHtml={a.entry_html || ""} /> : null;
           })()}
         </div>
       </main>
