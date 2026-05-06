@@ -300,6 +300,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   zerlal: "zerlal",
   cross: "cross",
   lavba: "lavba",
+  "vedic-astrology": "vedic",
 };
 
 // ── "What Powers Each Tier" grid config ──────────────────────────────────────
