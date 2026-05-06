@@ -62,8 +62,8 @@ const navGroups: NavGroup[] = [
     label: "Intelligence",
     items: [
       { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
-      { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
-      { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
+      { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
+      { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
 
       { id: "video-intelligence", icon: Crosshair, label: "Video Intelligence", access: "pro" },
       { id: "reverse-engineer" as DashboardView, icon: Search, label: "Reverse Engineer", access: "search" },
