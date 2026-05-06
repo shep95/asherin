@@ -538,7 +538,7 @@ const DashboardSidebar = ({
               <div data-dashboard-sidebar-nav className="px-2 py-2 border-t border-border/20 space-y-1">
                 {filteredGroups.map((group) => {
                   const isOpen = expandedGroups[group.label] ?? false;
-                  const hasActive = group.items.some(item => activeView === item.id);
+                  const hasActive = group.subgroups.some(sg => sg.items.some(item => activeView === item.id));
 
                   return (
                     <div key={group.label}>
@@ -552,19 +552,41 @@ const DashboardSidebar = ({
                         <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                       </button>
                       {isOpen && (
-                        <div className="space-y-0.5 mt-0.5 mb-1">
-                          {group.items.map((item) => (
-                            <button
-                              key={item.id}
-                              onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
-                              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                                activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                              }`}
-                            >
-                              <item.icon className="h-4 w-4" />
-                              {item.label}
-                            </button>
-                          ))}
+                        <div className="mt-0.5 mb-1 space-y-1 pl-2 border-l border-border/15 ml-3">
+                          {group.subgroups.map((sg) => {
+                            const sgKey = `${group.label}::${sg.label}`;
+                            const sgOpen = expandedGroups[sgKey] ?? false;
+                            const sgHasActive = sg.items.some(item => activeView === item.id);
+                            return (
+                              <div key={sg.label}>
+                                <button
+                                  onClick={() => toggleGroup(sgKey)}
+                                  className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1 text-[9px] font-light tracking-[0.18em] uppercase transition-colors ${
+                                    sgHasActive ? "text-foreground/80" : "text-muted-foreground/40 hover:text-muted-foreground/70"
+                                  }`}
+                                >
+                                  {sg.label}
+                                  <ChevronDown className={`h-2.5 w-2.5 transition-transform duration-200 ${sgOpen ? "rotate-180" : ""}`} />
+                                </button>
+                                {sgOpen && (
+                                  <div className="space-y-0.5 mt-0.5 mb-1">
+                                    {sg.items.map((item) => (
+                                      <button
+                                        key={item.id}
+                                        onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
+                                        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
+                                          activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                                        }`}
+                                      >
+                                        <item.icon className="h-4 w-4" />
+                                        {item.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
