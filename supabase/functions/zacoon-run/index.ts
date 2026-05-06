@@ -228,6 +228,7 @@ Deno.serve(async (req) => {
         `User task: "${task}"\nURL: ${url}\n\nPage content:\n${scrape.markdown.slice(0, 60_000)}\n\n` +
         `Extract the answer. Return strict JSON: {"answer":"","key_facts":[],"sources":[{"title":"","url":""}],"confidence":0.0}`,
         "You return ONLY valid JSON. Cite the source URL provided. No fabrication.",
+        geminiKey,
       );
       try { output = JSON.parse(extracted.replace(/^```json\s*|\s*```$/gi, "").trim()); }
       catch { output = { answer: extracted, raw: true }; }
