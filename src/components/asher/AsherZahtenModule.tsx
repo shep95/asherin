@@ -1150,9 +1150,9 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
                     <Square className="h-3 w-3" /> Pause
                   </button>
                 ) : (
-                  <button onClick={deployLive} disabled={!passes.length || missingSecrets.length > 0}
+                  <button onClick={openPublish} disabled={!passes.length || missingSecrets.length > 0}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase">
-                    <Rocket className="h-3 w-3" /> Deploy
+                    <Rocket className="h-3 w-3" /> Publish &amp; Deploy
                   </button>
                 )}
               </div>
