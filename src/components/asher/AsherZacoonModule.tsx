@@ -382,9 +382,29 @@ const AsherZacoonModule = () => {
                               </p>
                             )}
                           </>
+                        ) : active.mode === "forge" && (active.output as any)?.code_typescript ? (
+                          <>
+                            <p className="text-[12px] font-light text-foreground/90 leading-relaxed mb-1">
+                              <span className="text-foreground">{(active.output as any).name || "Forged Extractor"}</span>
+                            </p>
+                            {(active.output as any).description && (
+                              <p className="text-[10px] font-light text-muted-foreground/80 mb-2">{(active.output as any).description}</p>
+                            )}
+                            <pre className="text-[10px] font-mono text-foreground/85 overflow-auto max-h-[320px] leading-relaxed bg-background/40 border border-border/15 rounded p-2">{(active.output as any).code_typescript}</pre>
+                            <button
+                              onClick={() => {
+                                const blob = new Blob([(active.output as any).code_typescript], { type: "text/typescript" });
+                                const a = document.createElement("a");
+                                a.href = URL.createObjectURL(blob);
+                                a.download = `${((active.output as any).name || "extractor").replace(/\s+/g, "_").toLowerCase()}.ts`;
+                                a.click();
+                              }}
+                              className="mt-2 text-[9px] font-light tracking-[0.2em] text-foreground/80 hover:text-foreground border border-border/30 rounded px-2 py-1 uppercase"
+                            >
+                              Download .ts
+                            </button>
+                          </>
                         ) : (
-                          <pre className="text-[10px] font-mono text-foreground/80 overflow-auto max-h-[280px] leading-relaxed">{JSON.stringify(active.output, null, 2)}</pre>
-                        )}
                       </div>
                     )}
                     {active.findings && (
