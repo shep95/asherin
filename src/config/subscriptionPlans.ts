@@ -91,6 +91,9 @@ const AUREON_FEATURES: FeatureId[] = [
   "nomad", "briefings", "zali", "vedic",
 ];
 
+// Lifetime ($740 one-time) gets everything in Aureon ($199) and below.
+const LIFETIME_FEATURES: FeatureId[] = [...AUREON_FEATURES];
+
 const PRO_FEATURES: FeatureId[] = [
   ...AUREON_FEATURES,
   "google_intel", "tracker",
