@@ -689,19 +689,20 @@ const Index = () => {
               <tbody>
                 {[
                   { feature: "Uncensored AI Chat", lifetime: true, chat: true, aureon: true, pro: true },
-                  { feature: "Message Limit", lifetime: "Unlimited*", chat: "100 / 3h", aureon: "200 / 3h", pro: "200 / 3h" },
-                  { feature: "BYOK (Bring Your Own Key)", lifetime: "Required", chat: "Optional", aureon: "Optional", pro: "Optional" },
+                  { feature: "Message Limit", lifetime: "Unlimited", chat: "Unlimited", aureon: "Unlimited", pro: "Unlimited" },
+                  { feature: "BYOK (Bring Your Own Key)", lifetime: "Required", chat: "Required", aureon: "Required", pro: "Required" },
                   { feature: "E2E Encryption", lifetime: true, chat: true, aureon: true, pro: true },
-                  { feature: "Aureon Default Engine", lifetime: false, chat: true, aureon: true, pro: true },
-                  { feature: "Persistent Memory", lifetime: false, chat: false, aureon: true, pro: true },
-                  { feature: "Aureon IDE", lifetime: false, chat: false, aureon: true, pro: true },
-                  { feature: "Zophiel Search", lifetime: false, chat: false, aureon: true, pro: true },
-                  { feature: "Code Snippets Vault", lifetime: false, chat: false, aureon: true, pro: true },
+                  { feature: "Aureon Default Engine", lifetime: true, chat: true, aureon: true, pro: true },
+                  { feature: "Persistent Memory", lifetime: true, chat: false, aureon: true, pro: true },
+                  { feature: "Aureon IDE", lifetime: true, chat: false, aureon: true, pro: true },
+                  { feature: "Zophiel Search", lifetime: true, chat: true, aureon: true, pro: true },
+                  { feature: "Code Snippets Vault", lifetime: true, chat: false, aureon: true, pro: true },
+                  { feature: "NOMAD Public Intelligence", lifetime: true, chat: false, aureon: true, pro: true },
+                  { feature: "ZANOEM Design Lab", lifetime: true, chat: false, aureon: true, pro: true },
+                  { feature: "Daily Briefings", lifetime: true, chat: false, aureon: true, pro: true },
+                  { feature: "Vedic Strategy", lifetime: true, chat: false, aureon: true, pro: true },
                   { feature: "Azplen Data Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "NOMAD Public Intelligence", lifetime: false, chat: false, aureon: true, pro: true },
-                  { feature: "ZANOEM Design Lab", lifetime: false, chat: false, aureon: true, pro: true },
-                  { feature: "Daily Briefings", lifetime: false, chat: false, aureon: true, pro: true },
-                  { feature: "Predictive Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
+                  { feature: "Pro Advanced Modules (AXRLEN, ZEEION, ZERLAL, Lavba, Cross)", lifetime: false, chat: false, aureon: false, pro: true },
                 ].map((row, i) => (
                   <tr key={row.feature} className={`border-b border-border/10 ${i % 2 === 0 ? "bg-card/5" : ""}`}>
                     <td className="py-3 px-4 text-xs font-extralight text-foreground/90">{row.feature}</td>
