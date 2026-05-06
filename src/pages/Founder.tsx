@@ -3,7 +3,7 @@ import LandingBackground from "@/components/LandingBackground";
 import founderImg from "@/assets/founder.jpg";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye } from "lucide-react";
+import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram } from "lucide-react";
 
 const Founder = () => {
   useEffect(() => {
@@ -101,15 +101,26 @@ const Founder = () => {
             <p className="text-xs font-extralight tracking-[0.2em] text-muted-foreground/40 uppercase mb-6">
               Zorak Corp & House Of Asher
             </p>
-            <a
-              href="https://x.com/shep_newton"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
-            >
-              <Twitter className="h-4 w-4" />
-              @shep_newton on X
-            </a>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <a
+                href="https://x.com/shep_newton"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
+              >
+                <Twitter className="h-4 w-4" />
+                @shep_newton on X
+              </a>
+              <a
+                href="https://www.instagram.com/asher_united/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
+              >
+                <Instagram className="h-4 w-4" />
+                @asher_united on Instagram
+              </a>
+            </div>
           </div>
         </div>
       </div>
