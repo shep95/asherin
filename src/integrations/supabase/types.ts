@@ -745,6 +745,134 @@ export type Database = {
         }
         Relationships: []
       }
+      asher_agent_runs: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          findings: Json | null
+          finished_at: string | null
+          id: string
+          output: Json | null
+          source: string
+          status: string
+          steps: Json
+          target_url: string | null
+          task: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          findings?: Json | null
+          finished_at?: string | null
+          id?: string
+          output?: Json | null
+          source?: string
+          status?: string
+          steps?: Json
+          target_url?: string | null
+          task: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          findings?: Json | null
+          finished_at?: string | null
+          id?: string
+          output?: Json | null
+          source?: string
+          status?: string
+          steps?: Json
+          target_url?: string | null
+          task?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_agent_runs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "asher_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_agents: {
+        Row: {
+          brain_categories: string[]
+          category: string
+          created_at: string
+          description: string | null
+          entry_html: string | null
+          icon: string
+          id: string
+          install_count: number
+          metadata: Json
+          name: string
+          org_id: string | null
+          owner_id: string
+          runtime: string
+          source_tsx: string | null
+          status: string
+          system_prompt: string | null
+          team_id: string | null
+          updated_at: string
+          version: number
+          visibility: string
+        }
+        Insert: {
+          brain_categories?: string[]
+          category?: string
+          created_at?: string
+          description?: string | null
+          entry_html?: string | null
+          icon?: string
+          id?: string
+          install_count?: number
+          metadata?: Json
+          name: string
+          org_id?: string | null
+          owner_id: string
+          runtime?: string
+          source_tsx?: string | null
+          status?: string
+          system_prompt?: string | null
+          team_id?: string | null
+          updated_at?: string
+          version?: number
+          visibility?: string
+        }
+        Update: {
+          brain_categories?: string[]
+          category?: string
+          created_at?: string
+          description?: string | null
+          entry_html?: string | null
+          icon?: string
+          id?: string
+          install_count?: number
+          metadata?: Json
+          name?: string
+          org_id?: string | null
+          owner_id?: string
+          runtime?: string
+          source_tsx?: string | null
+          status?: string
+          system_prompt?: string | null
+          team_id?: string | null
+          updated_at?: string
+          version?: number
+          visibility?: string
+        }
+        Relationships: []
+      }
       asher_ai_messages: {
         Row: {
           attachments: Json

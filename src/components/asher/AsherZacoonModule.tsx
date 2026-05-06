@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import {
   Globe2, MousePointer2, Keyboard, Camera, ListChecks, Play, Square,
   Send, Loader2, Sparkles, ShieldCheck, Bot, Cpu, Network, Terminal,
-  ChevronRight, MessageSquare, X, FileSearch, Layers,
+  ChevronRight, MessageSquare, X, FileSearch, Layers, Radar, AlertTriangle,
 } from "lucide-react";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
@@ -33,27 +34,17 @@ type Run = {
   id: string;
   task: string;
   url: string;
+  mode: "browser" | "recon";
   status: "queued" | "running" | "ok" | "failed" | "stopped";
   startedAt: number;
   endedAt?: number;
   steps: Step[];
+  output?: any;
+  findings?: any;
+  error?: string;
 };
 
-const STARTER_RUNS: Run[] = [
-  {
-    id: "run-001",
-    task: "Find the number of stars on the browser-use repo",
-    url: "https://github.com/browser-use/browser-use",
-    status: "ok",
-    startedAt: Date.now() - 1000 * 60 * 12,
-    endedAt: Date.now() - 1000 * 60 * 11,
-    steps: [
-      { n: 1, kind: "navigate", label: "Navigate", detail: "github.com/browser-use/browser-use", ts: 0 },
-      { n: 2, kind: "extract", label: "Extract DOM", detail: "[data-testid='star-count']", ts: 1 },
-      { n: 3, kind: "done", label: "Result", detail: "78,402 stars", ts: 2 },
-    ],
-  },
-];
+const STARTER_RUNS: Run[] = [];
 
 const CAPABILITIES = [
   { icon: Globe2,        label: "Navigate",   detail: "Spin up Chromium, follow links, manage tabs and history." },
@@ -98,17 +89,17 @@ const AsherZacoonModule = () => {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch { /* noop */ }
     return STARTER_RUNS;
   });
-  const [activeId, setActiveId] = useState<string>(() => STARTER_RUNS[0].id);
+  const [activeId, setActiveId] = useState<string>("");
   const [task, setTask] = useState("");
   const [url, setUrl] = useState("https://");
+  const [mode, setMode] = useState<"browser" | "recon">("browser");
+  const [permission, setPermission] = useState(false);
   const [running, setRunning] = useState(false);
-  const stopRef = useRef<{ stopped: boolean }>({ stopped: false });
-
   const [chatOpen, setChatOpen] = useState(true);
 
   useEffect(() => {
@@ -118,39 +109,65 @@ const AsherZacoonModule = () => {
   const active = runs.find((r) => r.id === activeId);
 
   const startRun = async () => {
-    if (!task.trim()) {
-      toast.error("Provide a task.");
-      return;
+    if (!task.trim() && mode === "browser") { toast.error("Provide a task."); return; }
+    if (mode === "recon") {
+      if (!url || url === "https://") { toast.error("Recon requires a target URL."); return; }
+      if (!permission) { toast.error("You must attest you have permission to test the target."); return; }
     }
     const id = `run-${Date.now()}`;
-    const planned = planSteps(task.trim(), url.trim());
+    const seed: Step = { n: 1, kind: "think", label: mode === "recon" ? "Recon dispatch" : "Plan", detail: "Calling backend…", ts: Date.now() };
     const run: Run = {
-      id, task: task.trim(), url: url.trim(), status: "running",
-      startedAt: Date.now(), steps: [],
+      id, task: task.trim() || `Recon ${url}`, url: url.trim(), mode,
+      status: "running", startedAt: Date.now(), steps: [seed],
     };
     setRuns((p) => [run, ...p].slice(0, 25));
     setActiveId(id);
     setRunning(true);
-    stopRef.current = { stopped: false };
 
-    for (const s of planned) {
-      if (stopRef.current.stopped) break;
-      await new Promise((r) => setTimeout(r, 650 + Math.random() * 600));
-      setRuns((p) => p.map((r) => r.id === id ? { ...r, steps: [...r.steps, { ...s, ts: Date.now() }] } : r));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const byok = getActiveIntelMapByok();
+      const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zacoon-run`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          ...(byok ? { "x-byok-gemini-key": byok.apiKey } : {}),
+        },
+        body: JSON.stringify({
+          mode, task: task.trim(), target_url: url.trim(),
+          permission_attestation: mode === "recon" ? permission : undefined,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.ok) throw new Error(data?.error || `HTTP ${r.status}`);
+
+      const steps: Step[] = (data.steps || []).map((s: any, i: number) => ({
+        n: i + 1,
+        kind: s.type?.includes("error") ? "error"
+          : s.type?.startsWith("scrape") ? "extract"
+          : s.type?.startsWith("recon") ? (s.type === "recon.start" ? "navigate" : "extract")
+          : s.type === "plan.ok" ? "think"
+          : s.type === "extract.ok" ? "done"
+          : "think",
+        label: s.type, detail: s.detail, ts: s.ts,
+      }));
+      setRuns((p) => p.map((r) => r.id === id ? {
+        ...r, status: "ok", endedAt: Date.now(),
+        steps, output: data.output, findings: data.findings,
+      } : r));
+    } catch (e: any) {
+      const msg = e?.message || "Run failed";
+      toast.error(msg);
+      setRuns((p) => p.map((r) => r.id === id ? {
+        ...r, status: "failed", endedAt: Date.now(), error: msg,
+      } : r));
+    } finally {
+      setRunning(false);
     }
-
-    setRuns((p) => p.map((r) => r.id === id ? {
-      ...r,
-      status: stopRef.current.stopped ? "stopped" : "ok",
-      endedAt: Date.now(),
-    } : r));
-    setRunning(false);
   };
 
-  const stopRun = () => {
-    stopRef.current.stopped = true;
-    setRunning(false);
-  };
+  const stopRun = () => setRunning(false);
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
@@ -189,23 +206,46 @@ const AsherZacoonModule = () => {
           </div>
         </header>
 
+        {/* Mode toggle */}
+        <div className="flex items-center gap-2 mb-3">
+          {(["browser","recon"] as const).map((m) => (
+            <button key={m} onClick={() => setMode(m)}
+              className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase transition-colors ${
+                mode === m ? "border-foreground/40 bg-foreground/10 text-foreground" : "border-border/30 text-muted-foreground hover:text-foreground"
+              }`}>
+              {m === "browser" ? <Bot className="h-3 w-3" strokeWidth={1.5} /> : <Radar className="h-3 w-3" strokeWidth={1.5} />}
+              {m === "browser" ? "Browser Task" : "Recon (Permissioned)"}
+            </button>
+          ))}
+        </div>
+
         {/* Task console */}
         <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-xl p-5 mb-6">
-          <p className="text-[10px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase mb-3">Mission Brief</p>
+          <p className="text-[10px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase mb-3">
+            {mode === "recon" ? "Target Brief — Permissioned Recon" : "Mission Brief"}
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-3">
             <textarea
               value={task}
               onChange={(e) => setTask(e.target.value)}
-              placeholder="e.g. Find the latest pricing plans on browser-use.com and extract the table"
+              placeholder={mode === "recon"
+                ? "Notes on scope (e.g. only public surfaces, no auth bypass)…"
+                : "e.g. Find the latest pricing plans on browser-use.com and extract the table"}
               className="min-h-[88px] resize-none rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
             />
             <div className="flex flex-col gap-3">
               <input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="Start URL (optional)"
+                placeholder={mode === "recon" ? "Target URL (required)" : "Start URL (optional)"}
                 className="rounded-lg border border-border/30 bg-background/40 px-3 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
               />
+              {mode === "recon" && (
+                <label className="flex items-start gap-2 text-[10px] font-light text-muted-foreground/80 cursor-pointer">
+                  <input type="checkbox" checked={permission} onChange={(e) => setPermission(e.target.checked)} className="mt-0.5" />
+                  <span>I attest I own this target or have written authorization to test it.</span>
+                </label>
+              )}
               {running ? (
                 <button onClick={stopRun} className="flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2.5 text-[11px] font-light tracking-[0.2em] text-red-300 hover:bg-red-500/10 uppercase">
                   <Square className="h-3 w-3" strokeWidth={1.5} /> Stop
