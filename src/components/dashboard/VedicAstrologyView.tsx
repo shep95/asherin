@@ -144,6 +144,7 @@ function PlacementsStrip({ items }: { items: { name: string; symbol: string; sig
       ))}
     </div>
   );
+}
 
 const VedicAstrologyView = () => {
   const [birthDate, setBirthDate] = useState("");
