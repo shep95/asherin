@@ -1086,14 +1086,17 @@ const VedicAstrologyView = () => {
               {savedCharts.length === 0 ? (
                 <div className="px-3 py-3 text-xs text-muted-foreground">No saved charts yet.</div>
               ) : savedCharts.map((saved) => (
-                <div key={saved.id} className="flex items-center gap-3 px-3 py-2">
-                  <button onClick={() => void loadChart(saved)} className="flex-1 text-left min-w-0">
-                    <span className="block truncate text-sm text-foreground/85 font-light">{saved.name}</span>
-                    <span className="block truncate text-[10px] uppercase tracking-wider text-muted-foreground/70">{saved.birth_date} · {saved.birth_time} · {saved.city_label || `${saved.latitude}, ${saved.longitude}`}</span>
-                  </button>
-                  <button onClick={() => void deleteChart(saved.id)} className="p-1 text-muted-foreground hover:text-destructive transition" aria-label="Delete saved Vedic chart">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                <div key={saved.id} className="px-3 py-2">
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => void loadChart(saved)} className="flex-1 text-left min-w-0">
+                      <span className="block truncate text-sm text-foreground/85 font-light">{saved.name}</span>
+                      <span className="block truncate text-[10px] uppercase tracking-wider text-muted-foreground/70">{saved.birth_date} · {saved.birth_time} · {saved.city_label || `${saved.latitude}, ${saved.longitude}`}</span>
+                    </button>
+                    <button onClick={() => void deleteChart(saved.id)} className="p-1 text-muted-foreground hover:text-destructive transition" aria-label="Delete saved Vedic chart">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <PlacementsStrip items={savedPlacements[saved.id]} />
                 </div>
               ))}
             </div>
