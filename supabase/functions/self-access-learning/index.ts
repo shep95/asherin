@@ -187,7 +187,7 @@ const CODEBASE_FILES = [
   { path: "supabase/functions/zali-analyze/index.ts", domain: "Design", desc: "ZALI engineering analysis" },
   { path: "supabase/functions/zali-chat/index.ts", domain: "Design", desc: "ZALI AI chat engine" },
   { path: "supabase/functions/nomad-investigate/index.ts", domain: "Intelligence", desc: "NOMAD investigation engine" },
-  { path: "supabase/functions/elion-execute/index.ts", domain: "Intelligence", desc: "Elion forensic execution" },
+  
   { path: "supabase/functions/generate-predictions/index.ts", domain: "AI/ML", desc: "Predictive intelligence" },
   { path: "supabase/functions/generate-briefing/index.ts", domain: "Intelligence", desc: "Intelligence briefing generator" },
   { path: "supabase/functions/briefing-cron/index.ts", domain: "Backend", desc: "Briefing cron scheduler" },
