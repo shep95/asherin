@@ -867,6 +867,7 @@ const VedicAstrologyView = () => {
                               </span>
                             )}
                           </div>
+                          <PlacementsStrip items={founderPlacements[c.symbol]} />
                         </button>
                       );
                     })()}
