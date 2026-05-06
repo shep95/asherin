@@ -346,6 +346,88 @@ Deno.serve(async (req) => {
       catch { findings = { raw: stress }; }
       output = { recon, latency_samples: samples, latency_avg_ms: avg };
       log("stress.ok", "Resilience modeling complete");
+    } else if (mode === "code") {
+      // ── CODE MODE — read / edit / create / delete files inside an asher_code_projects workspace
+      const projectId: string = body.project_id || "";
+      const dryRun: boolean = body.dry_run !== false && !body.apply; // default: plan only
+      const wipeAll: boolean = !!body.wipe_all;
+      if (!projectId) throw new Error("project_id required for code mode");
+      if (!body.permission_attestation) throw new Error("permission_attestation required (you authorize file edits/deletes)");
+
+      // Use a user-scoped client so RLS enforces ownership
+      const userClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
+      });
+
+      // Verify ownership
+      const { data: proj, error: projErr } = await userClient
+        .from("asher_code_projects").select("id,name,owner_id,language").eq("id", projectId).maybeSingle();
+      if (projErr || !proj) throw new Error("project not found or not accessible");
+
+      log("code.start", `Project "${proj.name}" (${proj.language}) — ${dryRun ? "DRY RUN" : "APPLYING"}${wipeAll ? " — WIPE ALL" : ""}`);
+
+      // Total wipe shortcut (still requires apply=true)
+      if (wipeAll) {
+        if (dryRun) {
+          const { count } = await userClient.from("asher_code_files").select("id", { count: "exact", head: true }).eq("project_id", projectId);
+          output = { plan: { wipe_all: true, files_to_delete: count || 0 }, applied: false };
+          log("code.plan", `Would delete ALL ${count || 0} files`);
+        } else {
+          const { data: del, error: delErr } = await userClient.from("asher_code_files").delete().eq("project_id", projectId).select("path");
+          if (delErr) throw new Error(`wipe failed: ${delErr.message}`);
+          output = { wiped: true, deleted_files: del?.map(f => f.path) || [], deleted_count: del?.length || 0 };
+          log("code.wipe", `Deleted ${del?.length || 0} files`);
+        }
+      } else {
+        // Load all files
+        const { data: files } = await userClient.from("asher_code_files").select("path,content,language").eq("project_id", projectId).limit(500);
+        const filesArr = files || [];
+        log("code.read", `Loaded ${filesArr.length} files`);
+
+        // Build a compact tree for the AI
+        const tree = filesArr.map(f => `=== ${f.path} (${f.language}) ===\n${(f.content || "").slice(0, 8000)}`).join("\n\n");
+        const planResp = await gemini(
+          `Operator brief: "${task || "improve this codebase"}"\nProject: ${proj.name}\n\n` +
+          `CURRENT FILES (${filesArr.length}):\n${tree.slice(0, 120_000)}\n\n` +
+          `Plan a set of file operations to fulfill the brief. Return strict JSON: ` +
+          `{"summary":"","operations":[{"op":"create|edit|delete","path":"","language":"","content":"","reason":""}],"risk":"low|med|high"}`,
+          "You return ONLY valid JSON. For 'create' and 'edit' include the FULL new file content. For 'delete' omit content. Be surgical and complete.",
+          geminiKey,
+        );
+        let plan: any = {};
+        try { plan = JSON.parse(planResp.replace(/^```json\s*|\s*```$/gi, "").trim()); }
+        catch { throw new Error("AI plan was not valid JSON"); }
+        const ops = Array.isArray(plan.operations) ? plan.operations : [];
+        log("code.plan", `${ops.length} operation(s) planned (risk=${plan.risk || "?"})`, plan);
+
+        if (dryRun) {
+          output = { plan, applied: false, note: "Re-run with apply=true to execute these operations." };
+        } else {
+          const applied: any[] = [];
+          for (const o of ops) {
+            try {
+              if (o.op === "delete") {
+                const { error } = await userClient.from("asher_code_files").delete().eq("project_id", projectId).eq("path", o.path);
+                if (error) throw error;
+                applied.push({ op: "delete", path: o.path, ok: true });
+              } else if (o.op === "create" || o.op === "edit") {
+                const { error } = await userClient.from("asher_code_files").upsert({
+                  project_id: projectId, path: o.path,
+                  content: String(o.content ?? ""),
+                  language: o.language || proj.language || "plaintext",
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: "project_id,branch_id,path" });
+                if (error) throw error;
+                applied.push({ op: o.op, path: o.path, ok: true });
+              }
+            } catch (e) {
+              applied.push({ op: o.op, path: o.path, ok: false, error: e instanceof Error ? e.message : String(e) });
+            }
+          }
+          output = { plan, applied, applied_count: applied.filter(a => a.ok).length };
+          log("code.apply", `Applied ${applied.filter(a => a.ok).length}/${applied.length} ops`);
+        }
+      }
     } else {
       // Browser task mode
       log("plan", `Planning task: ${task}`);
