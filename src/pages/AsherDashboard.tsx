@@ -197,10 +197,13 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
   ]},
 ];
 
+type AgentStoreEntry = { id: string; name: string; icon: string; entry_html: string | null; visibility: string };
+
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, comms: true, vault: false, governance: true, analytics: true });
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, agentstore: true, comms: true, vault: false, governance: true, analytics: true });
   const [publishedTabs, setPublishedTabs] = useState<PublishedTab[]>([]);
+  const [agentStore, setAgentStore] = useState<AgentStoreEntry[]>([]);
   const [superOwner, setSuperOwner] = useState(false);
   const [brainContributor, setBrainContributor] = useState(false);
   const [unlocked, setUnlocked] = useState<boolean>(() => {
