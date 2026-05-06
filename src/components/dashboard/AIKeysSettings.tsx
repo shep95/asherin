@@ -300,7 +300,7 @@ const AIKeysSettings = () => {
         <Key className="h-5 w-5 text-muted-foreground" />
         <div>
           <h3 className="text-sm font-light text-foreground">AI Model Keys</h3>
-          <p className="text-[10px] text-muted-foreground/50 mt-0.5">Bring your own API keys to use your preferred AI models across all Aureon tools.</p>
+          <p className="text-[10px] text-muted-foreground/50 mt-0.5">Bring your own API keys. Aureon never lends out a shared key — every request runs on the keys you add here.</p>
         </div>
       </div>
 
@@ -313,7 +313,7 @@ const AIKeysSettings = () => {
               <p className="text-xs font-light text-foreground">Active Model</p>
               <p className="text-[10px] text-muted-foreground/50 mt-0.5">
                 {preferences.active_provider === "default"
-                  ? "Aureon Default Engine"
+                  ? "No key selected — pick a provider below"
                   : `${AI_PROVIDERS.find(p => p.id === preferences.active_provider)?.name} → ${preferences.active_model}`
                 }
               </p>
@@ -322,37 +322,11 @@ const AIKeysSettings = () => {
           {savingPref && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/40" />}
         </div>
 
-        {/* Fallback toggle */}
-        <label className="flex items-center justify-between mt-3 pt-3 border-t border-border/10 cursor-pointer">
-          <div>
-            <span className="text-[11px] text-muted-foreground">Fallback to Aureon default if key fails</span>
-            <p className="text-[9px] text-muted-foreground/40 mt-0.5">If your API key hits rate limits or errors, Aureon's built-in engine takes over.</p>
-          </div>
-          <button
-            onClick={toggleFallback}
-            className={`w-10 h-5 rounded-full transition-colors shrink-0 ml-3 ${preferences.fallback_to_default ? "bg-foreground/30" : "bg-border/30"}`}
-          >
-            <div className={`w-4 h-4 rounded-full bg-foreground transition-transform mx-0.5 ${preferences.fallback_to_default ? "translate-x-5" : ""}`} />
-          </button>
-        </label>
-      </div>
-
-      {/* Default option */}
-      <button
-        onClick={() => updatePreference("default", "default")}
-        className={`w-full flex items-center gap-3 rounded-xl border p-3 transition-all ${
-          preferences.active_provider === "default"
-            ? "border-foreground/30 bg-foreground/5"
-            : "border-border/15 bg-card/10 hover:bg-card/20"
-        }`}
-      >
-        <Zap className="h-4 w-4 text-foreground" />
-        <div className="flex-1 text-left">
-          <p className="text-xs font-light text-foreground">Aureon Default Engine</p>
-          <p className="text-[10px] text-muted-foreground/50">Built-in intelligence — no API key needed</p>
+        <div className="mt-3 pt-3 border-t border-border/10 flex items-start gap-2 text-[10px] text-muted-foreground/60">
+          <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5 text-amber-400/60" />
+          <span>You can enable multiple providers at once and toggle them per-conversation from the chat header. Aureon does not provide a shared/default key.</span>
         </div>
-        {preferences.active_provider === "default" && <Check className="h-4 w-4 text-emerald-500/70" />}
-      </button>
+      </div>
 
       {/* Provider list */}
       <div className="space-y-2">
