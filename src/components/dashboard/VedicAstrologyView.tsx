@@ -162,6 +162,13 @@ const VedicAstrologyView = () => {
   const [companyLagnas, setCompanyLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
   const [founderLagnas, setFounderLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
 
+  // Compact planet placements per chart (for inline display in cards)
+  type Placement = { name: string; symbol: string; sign: string; house: number; retro: boolean };
+  const [countryPlacements, setCountryPlacements] = useState<Record<string, Placement[]>>({});
+  const [leaderPlacements, setLeaderPlacements] = useState<Record<string, Placement[]>>({});
+  const [companyPlacements, setCompanyPlacements] = useState<Record<string, Placement[]>>({});
+  const [founderPlacements, setFounderPlacements] = useState<Record<string, Placement[]>>({});
+
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const tzDebounceRef = useRef<number | null>(null);
