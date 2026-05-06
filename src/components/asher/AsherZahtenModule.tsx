@@ -1088,41 +1088,103 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
           </div>
           )}
 
-          {/* ─── Publish-as-Tab dialog ─── */}
+          {/* ─── Publish & Deploy dialog (with live tab preview + editor) ─── */}
           {publishOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={() => !publishing && setPublishOpen(false)}>
-              <div className="w-full max-w-md rounded-xl border border-border/30 bg-card p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-                <div>
-                  <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Agent Store</p>
-                  <p className="text-base font-extralight tracking-wide text-foreground mt-1">Publish as Tab</p>
-                  <p className="text-[11px] font-light text-muted-foreground/70 mt-1 leading-relaxed">
-                    The agent appears as a new tab in the Asher Dashboard sidebar. Choose who can see it.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  {([
-                    { v: "private", label: "Private", desc: "Only you" },
-                    { v: "team", label: "Team", desc: "Members of your team" },
-                    { v: "organization", label: "Organization", desc: "All members of your org" },
-                    { v: "public", label: "Public", desc: "Every Asher operator" },
-                  ] as const).map((o) => (
-                    <button
-                      key={o.v}
-                      onClick={() => setPublishVis(o.v)}
-                      className={`w-full text-left rounded-lg border px-3 py-2.5 transition-colors ${publishVis === o.v ? "border-foreground/50 bg-foreground/5" : "border-border/25 hover:border-foreground/30"}`}
-                    >
-                      <p className="text-[11px] font-light tracking-[0.2em] text-foreground uppercase">{o.label}</p>
-                      <p className="text-[10px] font-light text-muted-foreground/70 mt-0.5">{o.desc}</p>
-                    </button>
-                  ))}
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button onClick={() => setPublishOpen(false)} disabled={publishing} className="rounded-md border border-border/30 px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4" onClick={() => !publishing && setPublishOpen(false)}>
+              <div className="w-full max-w-6xl max-h-[92vh] rounded-xl border border-border/30 bg-card flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="px-6 py-4 border-b border-border/20 flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Agent Store · Tab Preview</p>
+                    <p className="text-base font-extralight tracking-wide text-foreground mt-1">Publish &amp; Deploy</p>
+                    <p className="text-[10px] font-light text-muted-foreground/70 mt-1 leading-relaxed max-w-2xl">
+                      Live preview of how the tab will render in the dashboard. Edit the name, design (HTML/CSS), or button functions on the right — preview updates instantly.
+                    </p>
+                  </div>
+                  <button onClick={() => setPublishOpen(false)} disabled={publishing} className="rounded-md border border-border/30 px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground self-start">
                     Cancel
                   </button>
-                  <button onClick={publishAsTab} disabled={publishing} className="rounded-md border border-foreground/40 bg-foreground/10 hover:bg-foreground/20 px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase text-foreground disabled:opacity-40">
-                    {publishing ? <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} /> : "Publish"}
-                  </button>
+                </div>
+
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] min-h-0">
+                  {/* LEFT — live preview */}
+                  <div className="border-r border-border/20 bg-background/40 flex flex-col min-h-0">
+                    <div className="px-4 py-2 border-b border-border/20 flex items-center justify-between">
+                      <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ Live Tab Preview</p>
+                      <span className="text-[9px] tracking-wider text-muted-foreground/50">renders identically inside dashboard</span>
+                    </div>
+                    <iframe
+                      title="Tab preview"
+                      srcDoc={publishHtml}
+                      sandbox="allow-scripts"
+                      className="flex-1 w-full bg-[#0a0a0a]"
+                    />
+                  </div>
+
+                  {/* RIGHT — editor */}
+                  <div className="flex flex-col min-h-0 overflow-y-auto">
+                    <div className="p-4 space-y-3 border-b border-border/20">
+                      <label className="block">
+                        <span className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">Tab Name</span>
+                        <input
+                          value={publishName}
+                          onChange={(e) => setPublishName(e.target.value)}
+                          className="mt-1 w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/50"
+                          placeholder="e.g. Slack Watcher"
+                        />
+                      </label>
+                      <div>
+                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70 mb-1.5">Visibility</p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {([
+                            { v: "private", label: "Private", desc: "Only you" },
+                            { v: "team", label: "Team", desc: "Your team" },
+                            { v: "organization", label: "Organization", desc: "Your org" },
+                            { v: "public", label: "Public", desc: "Everyone" },
+                          ] as const).map((o) => (
+                            <button
+                              key={o.v}
+                              onClick={() => setPublishVis(o.v)}
+                              className={`text-left rounded-md border px-2.5 py-1.5 transition-colors ${publishVis === o.v ? "border-foreground/50 bg-foreground/5" : "border-border/25 hover:border-foreground/30"}`}
+                            >
+                              <p className="text-[10px] font-light tracking-[0.18em] text-foreground uppercase">{o.label}</p>
+                              <p className="text-[9px] font-light text-muted-foreground/70 mt-0.5">{o.desc}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 flex flex-col flex-1 min-h-[260px]">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">Tab Source · HTML / CSS / JS</span>
+                        <button
+                          onClick={() => { setPublishHtml(buildEntryHtml()); setPublishHtmlDirty(false); toast.message("Reset to AI-generated design"); }}
+                          className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/70 hover:text-foreground"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                      <textarea
+                        value={publishHtml}
+                        onChange={(e) => { setPublishHtml(e.target.value); setPublishHtmlDirty(true); }}
+                        spellCheck={false}
+                        className="flex-1 w-full font-mono text-[11px] leading-relaxed rounded-md border border-border/30 bg-background/60 px-3 py-2 text-foreground focus:outline-none focus:border-foreground/50 resize-none"
+                      />
+                      <p className="text-[9px] text-muted-foreground/60 mt-1.5 leading-relaxed">
+                        Edit any HTML, CSS, or inline JS to customize layout, button labels and onclick handlers. Sandboxed — no network access at runtime.
+                      </p>
+                    </div>
+
+                    <div className="p-4 border-t border-border/20 flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-muted-foreground/70">
+                        Publishing also <span className="text-foreground/90">deploys the agent live</span>.
+                      </p>
+                      <button onClick={publishAsTab} disabled={publishing} className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-2 text-[10px] tracking-[0.25em] uppercase text-foreground disabled:opacity-40">
+                        {publishing ? <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} /> : <Rocket className="h-3 w-3" strokeWidth={1.5} />}
+                        Publish &amp; Deploy
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
