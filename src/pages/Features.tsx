@@ -185,7 +185,7 @@ const features: Feature[] = [
   },
   {
     icon: Eye,
-    title: "NOMAD OSINT Agent",
+    title: "NOMAD Public Intelligence Agent",
     description:
       "Forensic-grade OSINT investigations across 40+ sources. Feed it a name, company, or topic — receive a structured intelligence dossier with entity resolution, relationship mapping, confidence scores, and deep-dive analysis.",
     details: [
@@ -394,7 +394,7 @@ const Features = () => {
     if (meta) {
       meta.setAttribute(
         "content",
-        "Explore Aureon's full capabilities: uncensored AI, Zophiel search, NOMAD OSINT, Azplen data intelligence, daily briefings, encryption, and private deployment."
+        "Explore Aureon's full capabilities: uncensored AI, Zophiel search, NOMAD Public Intelligence, Azplen data intelligence, daily briefings, encryption, and private deployment."
       );
     }
   }, []);
@@ -475,7 +475,7 @@ const Features = () => {
       <TierSection
         id="pro"
         title="Aureon Pro"
-        subtitle="$399/month — 200 messages per 3-hour window — Everything in Aureon plus NOMAD OSINT, daily briefings, and deep research."
+        subtitle="$399/month — 200 messages per 3-hour window — Everything in Aureon plus NOMAD Public Intelligence, daily briefings, and deep research."
         tierKey="pro"
       />
 
