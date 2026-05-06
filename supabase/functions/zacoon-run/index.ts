@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
       }
 
       // AI exploit hypotheses
-      const exploitText = await gemini(
+      const exploitText = await gemini_KEYED(
         `You are a permissioned offensive security analyst. Target: ${targetUrl}\n\n` +
         `Headers:\n${JSON.stringify(recon.headers, null, 2)}\n\n` +
         `Reachable surface:\n${recon.surface.join("\n")}\n\n` +
@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
     } else {
       // Browser task mode
       log("plan", `Planning task: ${task}`);
-      const plan = await gemini(
+      const plan = await gemini_KEYED(
         `Browser task: "${task}"${targetUrl ? `\nStart URL: ${targetUrl}` : ""}\n\n` +
         `Return strict JSON: {"start_url":"","steps":[{"action":"navigate|extract|search","detail":""}],"extraction_schema":{}}`,
         "You return ONLY valid JSON. No prose.",
@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
       }
       log("scrape.ok", `Got ${scrape.markdown.length} chars, ${scrape.links.length} links`);
 
-      const extracted = await gemini(
+      const extracted = await gemini_KEYED(
         `User task: "${task}"\nURL: ${url}\n\nPage content:\n${scrape.markdown.slice(0, 60_000)}\n\n` +
         `Extract the answer. Return strict JSON: {"answer":"","key_facts":[],"sources":[{"title":"","url":""}],"confidence":0.0}`,
         "You return ONLY valid JSON. Cite the source URL provided. No fabrication.",
