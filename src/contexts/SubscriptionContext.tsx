@@ -9,8 +9,8 @@ export const TIERS = {
     price_id: "price_1T9wBfRxgCpmPfiFgegrNIkk",
   },
   lifetime: {
-    product_id: "prod_U74tK6VXkH6S5Z",
-    price_id: "price_1T8qjNRxgCpmPfiFsv2lsvQq",
+    product_id: "prod_UTAohGxiACHvxw",
+    price_id: "price_1TUETIRxgCpmPfiFemlQMGTi",
   },
   chat: {
     product_id: "prod_U4YWDDwSXK3SGO",
