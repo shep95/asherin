@@ -5,7 +5,9 @@ import {
   Play, Square, RefreshCw, CheckCircle2, Loader2, FileLock2, Satellite, Users,
   Eye, Crosshair, Globe, Server, Fingerprint, Siren, Trash2, ShieldAlert,
   Building2, Network, Radar, Award, KeyRound, Rocket, Send, Sparkles, GitFork, Package,
+  Paperclip, Image as ImageIcon, FileArchive, Link2, X as XIcon, ShieldCheck,
 } from "lucide-react";
+import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { routeBrainsForPrompt } from "@/lib/asherBrainRouter";
@@ -197,7 +199,23 @@ type LiveRun = {
   log: string[];
 };
 
-type ViewTab = "builder" | "workflow" | "runs" | "code" | "preview" | "schedule" | "compliance";
+type ViewTab = "builder" | "workflow" | "runs" | "code" | "preview" | "schedule" | "compliance" | "admin";
+
+const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+
+type AdminAgentRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  visibility: string;
+  status: string;
+  owner_id: string;
+  install_count: number;
+  version: number;
+  created_at: string;
+  metadata: any;
+};
 
 const STARTER_AGENTS: AgentRecord[] = [
   { id: "agent-001", name: "GitHub Bug Triage", status: "scheduled", trigger: "cron: 0 7 * * *", lastRun: "2h ago", passes: [], objective: "Pull new GitHub issues labelled bug, summarise them, post digest to Slack #eng-triage." },
@@ -688,6 +706,113 @@ const AsherZahtenModule = () => {
   // Editable backend code (TS task) — defaults to lastCodeBlock
   const [backendCode, setBackendCode] = useState<string>("");
 
+  // ─── Admin: current user + all-agents registry ──────────────────────────
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+  const [adminAgents, setAdminAgents] = useState<AdminAgentRow[]>([]);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminFilter, setAdminFilter] = useState("");
+  const [adminVisFilter, setAdminVisFilter] = useState<"all" | "public" | "private" | "team" | "organization">("all");
+  const [adminSelected, setAdminSelected] = useState<AdminAgentRow | null>(null);
+  const isAdmin = (currentEmail || "").toLowerCase() === ADMIN_EMAIL;
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentEmail(data.user?.email ?? null));
+  }, []);
+
+  const loadAllAgents = async () => {
+    setAdminLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("asher_agents")
+        .select("id,name,description,category,visibility,status,owner_id,install_count,version,created_at,metadata")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      setAdminAgents((data as any) || []);
+    } catch (e: any) { toast.error(e?.message || "Failed to load agents"); }
+    finally { setAdminLoading(false); }
+  };
+
+  // ─── Tab Preview attachments (UI Chat: zip/files/images/links) ──────────
+  type Attachment =
+    | { kind: "image"; name: string; dataUrl: string; size: number }
+    | { kind: "file"; name: string; text: string; size: number }
+    | { kind: "zip"; name: string; manifest: string; fileCount: number; size: number }
+    | { kind: "link"; url: string };
+  const [uiAttachments, setUiAttachments] = useState<Attachment[]>([]);
+  const uiFileInputRef = useRef<HTMLInputElement | null>(null);
+  const uiZipInputRef = useRef<HTMLInputElement | null>(null);
+  const uiImageInputRef = useRef<HTMLInputElement | null>(null);
+
+  const TEXT_EXT = /\.(tsx?|jsx?|html?|css|scss|json|md|txt|ya?ml|toml|csv|xml|svg|sh|py|go|rs|java|kt|swift|sql|env|gitignore|lock)$/i;
+  const MAX_ZIP = 100 * 1024 * 1024; // 100MB
+  const MAX_TEXT_PER_FILE = 12_000;
+  const MAX_TOTAL_MANIFEST = 220_000;
+
+  const handleAttachZip = async (file: File) => {
+    if (file.size > MAX_ZIP) { toast.error(`Zip exceeds 100MB (${(file.size/1048576).toFixed(1)}MB)`); return; }
+    const t = toast.loading(`Extracting ${file.name}…`);
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const entries = Object.values(zip.files).filter((f: any) => !f.dir);
+      let total = 0; let count = 0;
+      const parts: string[] = [];
+      for (const entry of entries) {
+        if (total > MAX_TOTAL_MANIFEST) { parts.push(`\n…[truncated, ${entries.length - count} more files omitted]`); break; }
+        const path = (entry as any).name;
+        if (TEXT_EXT.test(path)) {
+          try {
+            const txt = await (entry as any).async("string");
+            const slice = txt.length > MAX_TEXT_PER_FILE ? txt.slice(0, MAX_TEXT_PER_FILE) + "\n…[truncated]" : txt;
+            const block = `\n\n===== FILE: ${path} =====\n${slice}`;
+            parts.push(block); total += block.length;
+          } catch {}
+        } else {
+          parts.push(`\n[binary] ${path}`); total += path.length + 10;
+        }
+        count++;
+      }
+      const manifest = parts.join("");
+      setUiAttachments(p => [...p, { kind: "zip", name: file.name, manifest, fileCount: entries.length, size: file.size }]);
+      toast.success(`Indexed ${entries.length} files from ${file.name}`, { id: t });
+    } catch (e: any) { toast.error(e?.message || "Zip extract failed", { id: t }); }
+  };
+
+  const handleAttachFile = async (file: File) => {
+    if (file.size > 4 * 1024 * 1024) { toast.error("File too large (max 4MB for inline)"); return; }
+    const text = await file.text();
+    const slice = text.length > 40_000 ? text.slice(0, 40_000) + "\n…[truncated]" : text;
+    setUiAttachments(p => [...p, { kind: "file", name: file.name, text: slice, size: file.size }]);
+  };
+
+  const handleAttachImage = async (file: File) => {
+    if (file.size > 6 * 1024 * 1024) { toast.error("Image too large (max 6MB)"); return; }
+    const dataUrl = await new Promise<string>((res, rej) => {
+      const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = () => rej(new Error("read failed")); r.readAsDataURL(file);
+    });
+    setUiAttachments(p => [...p, { kind: "image", name: file.name, dataUrl, size: file.size }]);
+  };
+
+  const handleAddLink = () => {
+    const url = window.prompt("Paste URL (reference for the AI):");
+    if (!url) return;
+    try { new URL(url); } catch { toast.error("Invalid URL"); return; }
+    setUiAttachments(p => [...p, { kind: "link", url }]);
+  };
+
+  const removeAttachment = (i: number) => setUiAttachments(p => p.filter((_, idx) => idx !== i));
+
+  const buildAttachmentsContext = (): string => {
+    if (!uiAttachments.length) return "";
+    const blocks = uiAttachments.map(a => {
+      if (a.kind === "link") return `[LINK] ${a.url}`;
+      if (a.kind === "image") return `[IMAGE] ${a.name} (data URL omitted; user attached an image as visual reference)`;
+      if (a.kind === "file") return `[FILE: ${a.name}]\n${a.text}`;
+      return `[ZIP: ${a.name} · ${a.fileCount} files]\n${a.manifest}`;
+    });
+    return `\n\n=== ATTACHMENTS (use as context for the requested UI change) ===\n${blocks.join("\n\n")}`;
+  };
+
   const buildEntryHtml = (): string => {
     const code = lastCodeBlock || "// no code generated";
     const safeName = (activeAgent?.name || "Agent").replace(/[<>&"']/g, "");
@@ -757,21 +882,25 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
   // ─── Chat-driven UI editor (Tab Preview) ──────────────────────────────────
   const editUiViaChat = async () => {
     const instr = uiChatInput.trim();
-    if (!instr || uiChatBusy) return;
+    if ((!instr && uiAttachments.length === 0) || uiChatBusy) return;
     setUiChatInput("");
-    const turn: ChatTurn = { role: "user", content: instr, ts: Date.now() };
+    const attachSummary = uiAttachments.length
+      ? `\n\n[attached: ${uiAttachments.map(a => a.kind === "link" ? a.url : (a as any).name).join(", ")}]`
+      : "";
+    const turn: ChatTurn = { role: "user", content: (instr || "(attachments only)") + attachSummary, ts: Date.now() };
     setUiChat(p => [...p, turn]);
     setUiChatBusy(true);
     const ctl = new AbortController();
     try {
       const currentHtml = publishHtml || buildEntryHtml();
-      const sys = `You are a UI editor that returns ONLY a complete, self-contained, RESPONSIVE HTML document for an iframe-mounted dashboard tab. Dark theme. Use semantic HTML, mobile-first CSS (viewport meta), collapsible <details>/<summary> sections for any list, table, or panel. Do not include external resources. Include only HTML, inline CSS and inline JS. Output the FULL revised document — no commentary, no markdown fences.`;
-      const user = `CURRENT HTML:\n\`\`\`html\n${currentHtml}\n\`\`\`\n\nUSER INSTRUCTION:\n${instr}\n\nReturn the FULL revised HTML document.`;
+      const attachCtx = buildAttachmentsContext();
+      const sys = `You are a UI editor that returns ONLY a complete, self-contained, RESPONSIVE HTML document for an iframe-mounted dashboard tab. Dark theme. Use semantic HTML, mobile-first CSS (viewport meta), collapsible <details>/<summary> sections for any list/table/panel. Do not include external resources. Inline HTML/CSS/JS only. Use any provided ATTACHMENTS (zip code, files, links, images) as context. Output the FULL revised document — no commentary, no markdown fences.`;
+      const user = `CURRENT HTML:\n\`\`\`html\n${currentHtml}\n\`\`\`\n\nUSER INSTRUCTION:\n${instr || "(see attachments)"}${attachCtx}\n\nReturn the FULL revised HTML document.`;
       const out = await callAsherAiPlain(sys, user, ctl.signal);
-      // Strip code fences if model added them
       const clean = out.replace(/^```[a-z]*\n?|\n?```$/g, "").trim();
       setPublishHtml(clean);
       setPublishHtmlDirty(true);
+      setUiAttachments([]);
       setUiChat(p => [...p, { role: "assistant", content: "✓ UI updated. Preview refreshed.", ts: Date.now() }]);
     } catch (e: any) {
       setUiChat(p => [...p, { role: "assistant", content: `Error: ${e?.message || e}`, ts: Date.now() }]);
@@ -812,7 +941,11 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
     { id: "preview",    label: "Tab Preview" },
     { id: "schedule",   label: "Schedule" },
     { id: "compliance", label: "Platform" },
+    ...(isAdmin ? [{ id: "admin" as ViewTab, label: "◈ Admin · All Agents" }] : []),
   ];
+
+  // Auto-load admin registry whenever admin opens that tab
+  useEffect(() => { if (isAdmin && viewTab === "admin") loadAllAgents(); /* eslint-disable-next-line */ }, [viewTab, isAdmin]);
 
   return (
     <div className="h-full w-full flex bg-background text-foreground overflow-hidden">
@@ -1417,15 +1550,55 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
 
                   {/* RIGHT — chat lanes for UI + Backend */}
                   <div className="grid grid-rows-2 gap-3 min-h-0">
-                    <ChatLane
-                      title="UI Chat"
-                      hint="e.g. 'make the table collapsible', 'use a sidebar on desktop', 'change accent to amber'"
-                      messages={uiChat}
-                      input={uiChatInput}
-                      busy={uiChatBusy}
-                      onInput={setUiChatInput}
-                      onSend={editUiViaChat}
-                    />
+                    <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden flex flex-col min-h-0">
+                      <div className="px-3 py-2 border-b border-border/20 flex items-center justify-between">
+                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">◈ UI Chat</p>
+                        {uiChatBusy && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />}
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                        {uiChat.length === 0 ? (
+                          <p className="text-[10px] font-light text-muted-foreground/60 leading-relaxed">
+                            Edit the UI in chat. Attach a zip (≤100MB) of existing software, files, images, or paste links — the AI uses them as context. Always responsive · collapsible sections.
+                          </p>
+                        ) : uiChat.map((m, i) => (
+                          <div key={i} className={`text-[11px] font-light leading-relaxed rounded-md px-2.5 py-1.5 whitespace-pre-wrap ${m.role === "user" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>{m.content}</div>
+                        ))}
+                      </div>
+                      {uiAttachments.length > 0 && (
+                        <div className="border-t border-border/20 px-2 py-1.5 flex flex-wrap gap-1.5">
+                          {uiAttachments.map((a, i) => (
+                            <span key={i} className="inline-flex items-center gap-1 rounded-full border border-border/30 bg-background/50 px-2 py-0.5 text-[9px] text-foreground/80">
+                              {a.kind === "image" && <ImageIcon className="h-2.5 w-2.5" />}
+                              {a.kind === "zip" && <FileArchive className="h-2.5 w-2.5" />}
+                              {a.kind === "file" && <Paperclip className="h-2.5 w-2.5" />}
+                              {a.kind === "link" && <Link2 className="h-2.5 w-2.5" />}
+                              <span className="max-w-[140px] truncate">{a.kind === "link" ? a.url : (a as any).name}</span>
+                              <button onClick={() => removeAttachment(i)} className="text-muted-foreground hover:text-foreground"><XIcon className="h-2.5 w-2.5" /></button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="border-t border-border/20 p-2 flex items-center gap-1">
+                        <input ref={uiZipInputRef} type="file" accept=".zip" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAttachZip(f); e.currentTarget.value = ""; }} />
+                        <input ref={uiFileInputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAttachFile(f); e.currentTarget.value = ""; }} />
+                        <input ref={uiImageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAttachImage(f); e.currentTarget.value = ""; }} />
+                        <button onClick={() => uiZipInputRef.current?.click()} title="Upload zip (≤100MB)" className="rounded-md border border-border/30 px-1.5 py-1.5 text-muted-foreground hover:text-foreground"><FileArchive className="h-3 w-3" strokeWidth={1.5} /></button>
+                        <button onClick={() => uiFileInputRef.current?.click()} title="Upload file" className="rounded-md border border-border/30 px-1.5 py-1.5 text-muted-foreground hover:text-foreground"><Paperclip className="h-3 w-3" strokeWidth={1.5} /></button>
+                        <button onClick={() => uiImageInputRef.current?.click()} title="Upload image" className="rounded-md border border-border/30 px-1.5 py-1.5 text-muted-foreground hover:text-foreground"><ImageIcon className="h-3 w-3" strokeWidth={1.5} /></button>
+                        <button onClick={handleAddLink} title="Paste link" className="rounded-md border border-border/30 px-1.5 py-1.5 text-muted-foreground hover:text-foreground"><Link2 className="h-3 w-3" strokeWidth={1.5} /></button>
+                        <input
+                          value={uiChatInput}
+                          onChange={(e) => setUiChatInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); editUiViaChat(); } }}
+                          placeholder="Describe the UI change…"
+                          disabled={uiChatBusy}
+                          className="flex-1 rounded-md border border-border/30 bg-background/40 px-2.5 py-1.5 text-[11px] text-foreground focus:outline-none focus:border-foreground/50 disabled:opacity-50"
+                        />
+                        <button onClick={editUiViaChat} disabled={uiChatBusy || (!uiChatInput.trim() && uiAttachments.length === 0)} className="rounded-md border border-border/30 px-2.5 py-1.5 text-muted-foreground hover:text-foreground disabled:opacity-30">
+                          <Send className="h-3 w-3" strokeWidth={1.5} />
+                        </button>
+                      </div>
+                    </div>
                     <ChatLane
                       title="Backend Chat"
                       hint="e.g. 'add cron 0 */6 * * *', 'retry on 502 with backoff', 'switch source to Postgres'"
@@ -1442,7 +1615,120 @@ ${stepsHtml ? `<div class="card"><div class="label">Workflow</div><ol>${stepsHtm
           )}
 
 
-          {/* ─────────── WORKFLOW MAP TAB ─────────── */}
+          {/* ─────────── ADMIN · ALL AGENTS REGISTRY (ashernewtonx@gmail.com only) ─────────── */}
+          {viewTab === "admin" && isAdmin && (
+            <div className="mx-auto max-w-7xl px-6 py-6 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-400" strokeWidth={1.5} />
+                  <div>
+                    <p className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Admin Console · Restricted</p>
+                    <p className="text-base font-extralight tracking-wide text-foreground mt-0.5">All Agents Registry</p>
+                    <p className="text-[10px] font-light text-muted-foreground/70 mt-0.5">Every agent ever published across all users — names, descriptions, functions, owners, visibility.</p>
+                  </div>
+                </div>
+                <button onClick={loadAllAgents} disabled={adminLoading} className="inline-flex items-center gap-1.5 rounded-md border border-border/30 hover:border-foreground/50 px-3 py-1.5 text-[10px] tracking-[0.25em] uppercase">
+                  {adminLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" strokeWidth={1.5} />} Refresh
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  value={adminFilter}
+                  onChange={(e) => setAdminFilter(e.target.value)}
+                  placeholder="Search name / description / category / owner_id…"
+                  className="flex-1 min-w-[220px] rounded-md border border-border/30 bg-background/40 px-2.5 py-1.5 text-[11px] focus:outline-none focus:border-foreground/50"
+                />
+                <select value={adminVisFilter} onChange={(e) => setAdminVisFilter(e.target.value as any)} className="rounded-md border border-border/30 bg-background/40 px-2 py-1.5 text-[10px] tracking-[0.2em] uppercase">
+                  <option value="all">All visibilities</option>
+                  <option value="public">Public</option>
+                  <option value="organization">Organization</option>
+                  <option value="team">Team</option>
+                  <option value="private">Private</option>
+                </select>
+                <span className="text-[10px] font-mono text-muted-foreground/60">{adminAgents.length} total</span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3">
+                <div className="rounded-xl border border-border/25 bg-card/30 overflow-hidden">
+                  <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
+                    <table className="w-full text-[11px]">
+                      <thead className="sticky top-0 bg-card/95 backdrop-blur z-10">
+                        <tr className="text-[9px] tracking-[0.25em] text-muted-foreground/60 uppercase border-b border-border/15">
+                          <th className="text-left py-2 px-3">Name</th>
+                          <th className="text-left py-2 px-3">Category</th>
+                          <th className="text-left py-2 px-3">Visibility</th>
+                          <th className="text-left py-2 px-3">Status</th>
+                          <th className="text-left py-2 px-3">Installs</th>
+                          <th className="text-left py-2 px-3">Owner</th>
+                          <th className="text-left py-2 px-3">Created</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminAgents
+                          .filter(a => adminVisFilter === "all" || a.visibility === adminVisFilter)
+                          .filter(a => {
+                            if (!adminFilter.trim()) return true;
+                            const q = adminFilter.toLowerCase();
+                            return (a.name + " " + (a.description || "") + " " + a.category + " " + a.owner_id).toLowerCase().includes(q);
+                          })
+                          .map(a => (
+                            <tr key={a.id} onClick={() => setAdminSelected(a)} className={`border-b border-border/10 cursor-pointer hover:bg-foreground/5 ${adminSelected?.id === a.id ? "bg-foreground/10" : ""}`}>
+                              <td className="py-2 px-3 text-foreground/90 font-light">{a.name}</td>
+                              <td className="py-2 px-3 text-muted-foreground/80">{a.category}</td>
+                              <td className="py-2 px-3"><span className={`text-[9px] tracking-[0.2em] uppercase px-1.5 py-0.5 rounded ${a.visibility === "public" ? "bg-emerald-500/15 text-emerald-300" : a.visibility === "private" ? "bg-muted/30 text-muted-foreground" : "bg-sky-500/15 text-sky-300"}`}>{a.visibility}</span></td>
+                              <td className="py-2 px-3 text-muted-foreground/80">{a.status}</td>
+                              <td className="py-2 px-3 font-mono text-muted-foreground/70">{a.install_count}</td>
+                              <td className="py-2 px-3 font-mono text-[10px] text-muted-foreground/60 truncate max-w-[120px]">{a.owner_id.slice(0, 8)}…</td>
+                              <td className="py-2 px-3 text-muted-foreground/70">{new Date(a.created_at).toLocaleDateString()}</td>
+                            </tr>
+                          ))}
+                        {!adminLoading && adminAgents.length === 0 && (
+                          <tr><td colSpan={7} className="py-8 text-center text-muted-foreground/60 text-[11px]">No agents yet.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border/25 bg-card/30 p-4 max-h-[70vh] overflow-y-auto">
+                  {adminSelected ? (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">Agent</p>
+                        <p className="text-sm font-extralight text-foreground mt-0.5">{adminSelected.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">Description / Function</p>
+                        <p className="text-[11px] font-light text-foreground/85 leading-relaxed mt-1 whitespace-pre-wrap">{adminSelected.description || "(no description)"}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-muted-foreground/80">
+                        <div><span className="text-muted-foreground/50">id:</span> {adminSelected.id.slice(0, 12)}…</div>
+                        <div><span className="text-muted-foreground/50">version:</span> v{adminSelected.version}</div>
+                        <div><span className="text-muted-foreground/50">visibility:</span> {adminSelected.visibility}</div>
+                        <div><span className="text-muted-foreground/50">status:</span> {adminSelected.status}</div>
+                        <div><span className="text-muted-foreground/50">installs:</span> {adminSelected.install_count}</div>
+                        <div><span className="text-muted-foreground/50">category:</span> {adminSelected.category}</div>
+                      </div>
+                      <div>
+                        <p className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">Owner ID</p>
+                        <p className="text-[10px] font-mono text-muted-foreground/85 mt-0.5 break-all">{adminSelected.owner_id}</p>
+                      </div>
+                      {adminSelected.metadata && Object.keys(adminSelected.metadata).length > 0 && (
+                        <details className="rounded-lg border border-border/25 bg-background/40">
+                          <summary className="px-3 py-2 cursor-pointer text-[10px] tracking-[0.25em] uppercase text-muted-foreground/70">Metadata</summary>
+                          <pre className="px-3 pb-3 pt-1 text-[10px] font-mono text-muted-foreground/70 overflow-auto">{JSON.stringify(adminSelected.metadata, null, 2)}</pre>
+                        </details>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] font-extralight text-muted-foreground/60">Select an agent to inspect its description and function.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {viewTab === "workflow" && (
             <div className="mx-auto max-w-5xl px-8 py-8 space-y-6">
               {/* Status header */}
