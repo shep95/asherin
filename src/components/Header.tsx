@@ -82,6 +82,9 @@ const Header = () => {
                 <Link to="/feature/briefings" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Daily Briefings</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/feature/vedic" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Vedic Strategy</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/feature/notebooks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Notebooks</Link>
               </DropdownMenuItem>
 
@@ -201,6 +204,7 @@ const Header = () => {
                 <Link to="/feature/oracle-locus" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Oracle Locus</Link>
                 <Link to="/feature/predictive" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Predictive Intelligence</Link>
                 <Link to="/feature/briefings" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Daily Briefings</Link>
+                <Link to="/feature/vedic" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Vedic Strategy</Link>
                 <Link to="/feature/personas" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">AI Personas</Link>
                 
                 <Link to="/feature/notebooks" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Notebooks</Link>

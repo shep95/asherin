@@ -33,6 +33,7 @@ const features = [
   { name: "NOMAD Public Intelligence", chat: false, aureon: true, pro: true, lifetime: false },
   { name: "Daily Intelligence Briefings", chat: false, aureon: true, pro: true, lifetime: false },
   { name: "ZANOEM Design Lab", chat: false, aureon: true, pro: true, lifetime: false },
+  { name: "Vedic Strategy", chat: false, aureon: true, pro: true, lifetime: false },
   { name: "Google Intelligence Suite", chat: false, aureon: false, pro: true, lifetime: false },
   { name: "Azplen Data Intelligence", chat: false, aureon: false, pro: true, lifetime: false },
   { name: "Pattern Analysis Engine", chat: false, aureon: false, pro: true, lifetime: false },

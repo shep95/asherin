@@ -51,6 +51,7 @@ export type FeatureId =
   | "axrlen"
   | "zerlal"
   | "cross"
+  | "vedic"
   | "lavba";
 
 // ── Plan Definition ──────────────────────────────────────────────────────────
@@ -87,7 +88,7 @@ const AUREON_FEATURES: FeatureId[] = [
   ...CHAT_FEATURES,
   "ide", "memory", "personas", "code_snippets", "imagine_to_code",
   "vibe_imager", "reverse_engineer", "file_scrapper", "cipher", "whiteboard",
-  "nomad", "briefings", "zali",
+  "nomad", "briefings", "zali", "vedic",
 ];
 
 const PRO_FEATURES: FeatureId[] = [
@@ -173,7 +174,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     tagline: "Full AI Suite",
     price: "$199",
     period: "/ month",
-    description: "Everything in Chat plus the Aureon IDE, persistent memory, custom personas, Imagine To Code, Vibe Imager, Reverse Engineer, File Scrapper, Cipher, Whiteboard, NOMAD Public Intelligence, Daily Intelligence Briefings, and ZANOEM Design Lab.",
+    description: "Everything in Chat plus the Aureon IDE, persistent memory, custom personas, Imagine To Code, Vibe Imager, Reverse Engineer, File Scrapper, Cipher, Whiteboard, NOMAD Public Intelligence, Daily Intelligence Briefings, ZANOEM Design Lab, and Vedic Strategy.",
     cta: "Get Aureon",
     highlight: false,
     publicVisible: true,
@@ -195,6 +196,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "NOMAD Public Intelligence Agent",
       "Daily Intelligence Briefings",
       "ZANOEM Design Lab",
+      "Vedic Strategy — astro-temporal forecasting & dasha analysis",
     ],
   },
   {
@@ -298,6 +300,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   zerlal: "zerlal",
   cross: "cross",
   lavba: "lavba",
+  "vedic-astrology": "vedic",
 };
 
 // ── "What Powers Each Tier" grid config ──────────────────────────────────────
@@ -321,6 +324,7 @@ export const TIER_FEATURE_CARDS: TierFeatureCard[] = [
   { label: "Azplen Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Pro" },
   { label: "Daily Briefings", desc: "Personalized intelligence briefings delivered every morning.", tier: "All tiers" },
   { label: "ZANOEM Design Lab", desc: "Universal design intelligence — first-principles design with FEA & thermal simulation.", tier: "All tiers" },
+  { label: "Vedic Strategy", desc: "Astro-temporal forecasting, dasha cycles, lagna analysis and timing intelligence.", tier: "All tiers" },
   { label: "Video Intelligence", desc: "Behavioral analysis, deception detection, and personality profiling from video.", tier: "Pro" },
   { label: "Security Dashboard", desc: "WAF, honeypots, threat intelligence feeds, and behavioral analytics.", tier: "Pro" },
   { label: "AXRLEN", desc: "Real-time global event prediction and policy simulation engine.", tier: "Pro" },
