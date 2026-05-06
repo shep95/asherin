@@ -130,7 +130,7 @@ Signal handoff by including [HANDOFF:agent-id] in your reasoning.`,
 
 const INTELLIGENCE_OSINT: SwarmAgent = {
   id: "intelligence-osint",
-  name: "NOMAD OSINT Intelligence",
+  name: "NOMAD Public Intelligence Intelligence",
   module: "nomad",
   description: "Open-source intelligence, entity investigation, digital forensics, and network mapping",
   capabilities: ["OSINT investigation", "entity profiling", "network mapping", "digital forensics", "dark web monitoring"],
@@ -140,7 +140,7 @@ const INTELLIGENCE_OSINT: SwarmAgent = {
     /\b(domain|ip.*address|email.*lookup|social.*media.*trace)\b/i,
   ],
   systemPrompt: `[SWARM AGENT: OSINT INTELLIGENCE — NOMAD]
-You are the NOMAD OSINT Intelligence Agent. You specialize in:
+You are the NOMAD Public Intelligence Intelligence Agent. You specialize in:
 - Multi-source open-source intelligence gathering (30+ sources)
 - Entity profiling with confidence scoring
 - Digital footprint analysis and exposure assessment

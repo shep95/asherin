@@ -462,7 +462,7 @@ const Index = () => {
               { label: "Uncensored AI", desc: "No topic limits. No filters. Full answers on every subject." },
               { label: "Real-Time Search", desc: "Privacy-first web intelligence with live data and source credibility tiers." },
               { label: "Persistent Memory", desc: "Context that carries across every conversation and session." },
-              { label: "OSINT & Domain Forensics", desc: "Full-spectrum OSINT tooling — NOMAD, Elion/Zohar, entity resolution." },
+              { label: "Public Intelligence & Forensics", desc: "Full-spectrum public intelligence — NOMAD, entity resolution, and dossier output." },
               { label: "Predictive Intelligence", desc: "AI event forecasting with signal detection and confidence scoring." },
               { label: "Data Privacy", desc: "End-to-end encryption. Your data is never sold or used for training." },
             ].map(({ label, desc }) => (
@@ -508,7 +508,7 @@ const Index = () => {
                   The Intelligence Interface — Chat, Search, IDE, OSINT, Analytics
                 </p>
                 <div className="grid grid-cols-3 gap-2 mt-4">
-                  {["Chat AI", "Zophiel Search", "Code Engine", "NOMAD OSINT", "Azplen Data", "Predictive Intel"].map(label => (
+                  {["Chat AI", "Zophiel Search", "Code Engine", "NOMAD Intelligence", "Azplen Data", "Predictive Intel"].map(label => (
                     <div key={label} className="rounded-xl border border-border/20 bg-card/20 px-2 py-1.5 text-center">
                       <span className="text-[9px] font-extralight text-muted-foreground">{label}</span>
                     </div>
@@ -698,11 +698,10 @@ const Index = () => {
                   { feature: "Zophiel Search", lifetime: false, chat: false, aureon: true, pro: true },
                   { feature: "Code Snippets Vault", lifetime: false, chat: false, aureon: true, pro: true },
                   { feature: "Azplen Data Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "NOMAD OSINT", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "Elion / Zohar Toolkit", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "ZANOEM Design Lab", lifetime: false, chat: false, aureon: false, pro: true },
+                  { feature: "NOMAD Public Intelligence", lifetime: false, chat: false, aureon: true, pro: true },
+                  { feature: "ZANOEM Design Lab", lifetime: false, chat: false, aureon: true, pro: true },
+                  { feature: "Daily Briefings", lifetime: false, chat: false, aureon: true, pro: true },
                   { feature: "Predictive Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "Daily Briefings", lifetime: false, chat: false, aureon: false, pro: true },
                 ].map((row, i) => (
                   <tr key={row.feature} className={`border-b border-border/10 ${i % 2 === 0 ? "bg-card/5" : ""}`}>
                     <td className="py-3 px-4 text-xs font-extralight text-foreground/90">{row.feature}</td>
@@ -947,7 +946,7 @@ const Index = () => {
                   <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Intelligence</p>
                   <Link to="/llm-models" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">LLM Models</Link>
                   <Link to="/feature/zophiel" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Zophiel Search</Link>
-                  <Link to="/feature/nomad" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">NOMAD OSINT</Link>
+                  <Link to="/feature/nomad" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">NOMAD Public Intelligence</Link>
                   <Link to="/feature/azplen" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Azplen Intelligence</Link>
                   <Link to="/feature/predictive" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Predictive Intelligence</Link>
                   <Link to="/feature/imagine-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Imagine Intelligence</Link>
@@ -959,7 +958,7 @@ const Index = () => {
                   <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Agents & Tools</p>
                   <Link to="/feature/personas" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">AI Personas</Link>
                   <Link to="/feature/briefings" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Daily Briefings</Link>
-                  <Link to="/feature/elion" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Elion / Zohar</Link>
+                  
                   <Link to="/feature/notebooks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Notebooks</Link>
                 </div>
                 <div className="flex flex-col gap-2">

@@ -23,10 +23,9 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "zophiel", icon: Zap, label: "Zophiel Engine" },
       { id: "google", icon: Globe, label: "Google Intel", pro: true },
-      { id: "elion", icon: Terminal, label: "Elion / Zohar", pro: true },
       { id: "predictive", icon: Brain, label: "Predictive Intel", pro: true },
-      { id: "briefing", icon: Newspaper, label: "Intel Briefings", pro: true },
-      { id: "nomad", icon: Crosshair, label: "NOMAD Agent", pro: true },
+      { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
+      { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
       { id: "tracker", icon: MapPin, label: "Location Tracker", pro: true },
       { id: "imagine", icon: Crosshair, label: "Imagine Intelligence" },
       { id: "video", icon: Crosshair, label: "Video Intelligence", pro: true },

@@ -62,8 +62,8 @@ const navGroups: NavGroup[] = [
     label: "Intelligence",
     items: [
       { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
-      { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
-      { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
+      { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
+      { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
 
       { id: "video-intelligence", icon: Crosshair, label: "Video Intelligence", access: "pro" },
       { id: "reverse-engineer" as DashboardView, icon: Search, label: "Reverse Engineer", access: "search" },
@@ -88,7 +88,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Creation",
     items: [
-      { id: "zali", icon: Zap, label: "ZANOEM Design Lab", access: "pro" },
+      { id: "zali", icon: Zap, label: "ZANOEM Design Lab" },
       { id: "ide", icon: Terminal, label: "AUREON IDE" },
       { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
       { id: "vibe-imager" as DashboardView, icon: Sparkles, label: "Vibe Imager" },

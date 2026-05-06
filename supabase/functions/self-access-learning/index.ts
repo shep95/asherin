@@ -38,7 +38,7 @@ const CODEBASE_FILES = [
   { path: "src/pages/Founder.tsx", domain: "Frontend", desc: "Founder profile page" },
   { path: "src/pages/Benchmarks.tsx", domain: "Frontend", desc: "Performance benchmarks" },
   { path: "src/pages/FeatureAzplen.tsx", domain: "Frontend", desc: "Azplen marketing page" },
-  { path: "src/pages/FeatureElion.tsx", domain: "Frontend", desc: "Elion marketing page" },
+  
   { path: "src/pages/FeatureIde.tsx", domain: "Frontend", desc: "IDE marketing page" },
   { path: "src/pages/FeatureNomad.tsx", domain: "Frontend", desc: "Nomad marketing page" },
   { path: "src/pages/FeatureZali.tsx", domain: "Frontend", desc: "Zali marketing page" },
@@ -135,8 +135,7 @@ const CODEBASE_FILES = [
   { path: "src/components/dashboard/zali/ComponentLibraryPanel.tsx", domain: "Design", desc: "Component library" },
   { path: "src/components/dashboard/zali/MaterialIntelligencePanel.tsx", domain: "Design", desc: "Material AI analysis" },
   { path: "src/components/dashboard/zali/ManufacturingVerifyPanel.tsx", domain: "Design", desc: "Manufacturing verification" },
-  // ── Intelligence: Elion, Nomad, Google ──
-  { path: "src/components/dashboard/ElionView.tsx", domain: "Intelligence", desc: "Elion/Zohar forensic toolkit" },
+  // ── Intelligence: Nomad, Google ──
   { path: "src/components/dashboard/NomadView.tsx", domain: "Intelligence", desc: "OSINT investigation agent" },
   { path: "src/components/dashboard/google/GoogleIntelligenceView.tsx", domain: "Intelligence", desc: "Google data intelligence" },
   { path: "src/components/dashboard/google/MultiAccountManager.tsx", domain: "Intelligence", desc: "Multi-account management" },
@@ -188,7 +187,7 @@ const CODEBASE_FILES = [
   { path: "supabase/functions/zali-analyze/index.ts", domain: "Design", desc: "ZALI engineering analysis" },
   { path: "supabase/functions/zali-chat/index.ts", domain: "Design", desc: "ZALI AI chat engine" },
   { path: "supabase/functions/nomad-investigate/index.ts", domain: "Intelligence", desc: "NOMAD investigation engine" },
-  { path: "supabase/functions/elion-execute/index.ts", domain: "Intelligence", desc: "Elion forensic execution" },
+  
   { path: "supabase/functions/generate-predictions/index.ts", domain: "AI/ML", desc: "Predictive intelligence" },
   { path: "supabase/functions/generate-briefing/index.ts", domain: "Intelligence", desc: "Intelligence briefing generator" },
   { path: "supabase/functions/briefing-cron/index.ts", domain: "Backend", desc: "Briefing cron scheduler" },

@@ -64,6 +64,14 @@ const AUREON_FEATURE_GROUPS = [
       { name: "File Scrapper", desc: "Extract text from any document — PDF, DOCX, images and more.", link: "/feature/file-scrapper" },
       { name: "Cipher Toolkit", desc: "Encoding, hashing, encryption, format conversion and recipe chaining — all client-side.", link: "/feature/cipher" },
       { name: "Whiteboard", desc: "Infinite canvas with Photoshop-style layers, dot/square snap grids and freeform sketching.", link: "/feature/whiteboard" },
+      { name: "ZANOEM Design Lab", desc: "Universal design intelligence — first-principles design with FEA & thermal simulation.", link: "/feature/zali" },
+    ],
+  },
+  {
+    category: "Intelligence & Briefings",
+    features: [
+      { name: "NOMAD Public Intelligence", desc: "Public intelligence agent across 40+ data sources with persistent dossier output.", link: "/feature/nomad" },
+      { name: "Daily Intelligence Briefings", desc: "Personalized morning reports covering competitors, industry, and markets.", link: "/feature/briefings" },
     ],
   },
   {
@@ -80,15 +88,13 @@ const PRO_FEATURE_GROUPS = [
     category: "Intelligence Suite",
     features: [
       { name: "Google Intelligence Suite", desc: "Multi-account Google data analysis — email, calendar, contacts, YouTube, Chrome.", link: "/feature/google-intelligence" },
-      { name: "Daily Intelligence Briefings", desc: "Personalized morning reports covering competitors, industry, and markets.", link: "/feature/briefings" },
       { name: "Pattern Analysis Engine", desc: "Detect hidden patterns and anomalies across datasets.", link: "/feature/pattern-analysis" },
       { name: "Company & Competitor Tracking", desc: "Monitor competitors, track changes, and forecast moves.", link: "/feature/tracker" },
     ],
   },
   {
-    category: "OSINT & Investigation",
+    category: "Live Intelligence & Investigation",
     features: [
-      { name: "NOMAD Public Intelligence", desc: "OSINT agent across 40+ data sources with persistent dossier output.", link: "/feature/nomad" },
       { name: "Cross — Live Screen Intelligence", desc: "Real-time screen analysis with 17 analytical modes.", link: "/feature/cross" },
       { name: "Video Intelligence", desc: "Behavioral analysis, deception detection and personality profiling from video.", link: "/feature/video-intelligence" },
     ],
@@ -108,7 +114,6 @@ const PRO_FEATURE_GROUPS = [
       { name: "AXRLEN", desc: "Real-time global event prediction and policy simulation engine.", link: "/feature/axrlen" },
       { name: "ZEEION FI", desc: "AI forensic financial intelligence and dispute resolution platform.", link: "/feature/zeeion" },
       { name: "ZERLAL", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence.", link: "/feature/zerlal" },
-      { name: "ZANOEM Design Lab", desc: "Universal design intelligence — first-principles design with FEA & thermal simulation.", link: "/feature/zali" },
       { name: "Vibe Video", desc: "Conversational AI video editing — upload, describe edits, and Aureon analyzes your footage.", link: "/feature/vibe-video" },
     ],
   },

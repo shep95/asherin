@@ -76,7 +76,7 @@ const PluginMarketplaceView = React.lazy(() => import("@/components/dashboard/Pl
 const TimeSeriesView = React.lazy(() => import("@/components/dashboard/TimeSeriesView"));
 const AuditLogView = React.lazy(() => import("@/components/dashboard/AuditLogView"));
 const PredictiveIntelligenceView = React.lazy(() => import("@/components/dashboard/PredictiveIntelligenceView"));
-const ElionView = React.lazy(() => import("@/components/dashboard/ElionView"));
+
 const ImagineToCodeView = React.lazy(() => import("@/components/dashboard/ImagineToCodeView"));
 
 const PersonaStoreView = React.lazy(() => import("@/components/dashboard/PersonaStoreView"));

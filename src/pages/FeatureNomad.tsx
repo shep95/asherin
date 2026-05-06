@@ -64,7 +64,7 @@ const investigations = [
 
 const FeatureNomad = () => {
   useEffect(() => {
-    document.title = "NOMAD OSINT Agent — Aureon";
+    document.title = "NOMAD Public Intelligence Agent — Aureon";
   }, []);
 
   return (
