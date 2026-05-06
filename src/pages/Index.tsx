@@ -508,7 +508,7 @@ const Index = () => {
                   The Intelligence Interface — Chat, Search, IDE, OSINT, Analytics
                 </p>
                 <div className="grid grid-cols-3 gap-2 mt-4">
-                  {["Chat AI", "Zophiel Search", "Code Engine", "NOMAD OSINT", "Azplen Data", "Predictive Intel"].map(label => (
+                  {["Chat AI", "Zophiel Search", "Code Engine", "NOMAD Intelligence", "Azplen Data", "Predictive Intel"].map(label => (
                     <div key={label} className="rounded-xl border border-border/20 bg-card/20 px-2 py-1.5 text-center">
                       <span className="text-[9px] font-extralight text-muted-foreground">{label}</span>
                     </div>
