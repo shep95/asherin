@@ -76,6 +76,13 @@ const AUREON_FEATURE_GROUPS = [
     ],
   },
   {
+    category: "Agents & Security",
+    features: [
+      { name: "Zahten Agent Forge", desc: "Autonomous agent builder — design, scaffold and harden production-grade automated agents.", link: null },
+      { name: "Guardian Vault", desc: "Centralized security command center with TOTP MFA and credential hygiene.", link: null },
+    ],
+  },
+  {
     category: "Foundation",
     features: [
       { name: "Everything in Chat", desc: "Zophiel Search, Notebooks, PDF / Slideshow / E-Book generators, Zahten Agent Forge and Guardian Vault.", link: null },
