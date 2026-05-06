@@ -129,6 +129,22 @@ function VedicWheel({
   );
 }
 
+function PlacementsStrip({ items }: { items: { name: string; symbol: string; sign: string; house: number; retro: boolean }[] | undefined }) {
+  if (!items) {
+    return <div className="mt-1.5 text-[9px] text-muted-foreground/40 italic">computing planets…</div>;
+  }
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-1.5 pt-1.5 border-t border-border/15 grid grid-cols-3 gap-x-1.5 gap-y-0.5 text-[9px] font-light text-muted-foreground/80 leading-tight">
+      {items.map((p) => (
+        <div key={p.name} className="flex items-baseline gap-1 truncate" title={`${p.name} in ${p.sign} · House ${p.house}${p.retro ? " (R)" : ""}`}>
+          <span className="text-foreground/70 w-3">{p.symbol}</span>
+          <span className="truncate">{p.sign.slice(0, 3)} <span className="text-muted-foreground/50">H{p.house}</span>{p.retro && <span className="text-muted-foreground/60">ʀ</span>}</span>
+        </div>
+      ))}
+    </div>
+  );
+
 const VedicAstrologyView = () => {
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("12:00");
