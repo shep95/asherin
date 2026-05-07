@@ -131,17 +131,17 @@ const ZerlalView = () => {
         return <ReportsScreen />;
       case "integrations":
         return <IntegrationsScreen />;
-      case "settings":
       case "team":
         return (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-xl bg-foreground/[0.03] border border-border/[0.06] flex items-center justify-center mx-auto mb-3">
-                {activeScreen === "team" ? <Users className="h-5 w-5 text-muted-foreground/20" /> : <Shield className="h-5 w-5 text-muted-foreground/20" />}
-              </div>
-              <p className="text-[11px] text-muted-foreground/30">{activeScreen === "team" ? "Team Management" : "Settings"} — Coming Soon</p>
-            </div>
-          </div>
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="text-[10px] text-muted-foreground/30">Loading...</div></div>}>
+            <TeamScreen />
+          </Suspense>
+        );
+      case "settings":
+        return (
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="text-[10px] text-muted-foreground/30">Loading...</div></div>}>
+            <SettingsScreen />
+          </Suspense>
         );
       default:
         return null;
