@@ -914,6 +914,7 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
               </div>
             </aside>
           );
+        })()}
       </div>
 
       {/* Floating draggable + resizable Intel Chat (viewport-fixed popout). */}
