@@ -178,6 +178,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "PDF, Slideshow & E-Book generators",
       "Zahten Agent Forge",
       "Guardian Vault",
+      "ZERLAL — Domain reconnaissance & vulnerability intelligence",
     ],
   },
   {
