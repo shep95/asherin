@@ -79,8 +79,8 @@ export interface PlanDefinition {
 const CHAT_FEATURES: FeatureId[] = [
   "chat", "encryption", "byok", "zophiel_search", "notebooks",
   "slideshow", "pdf_generator", "ebook", "zahten", "guardian_vault",
-  // Zophiel Engine modules — included in ALL paid tiers (Chat, Aureon, Lifetime, Pro)
-  "zerlal", "axrlen", "zeeion",
+  // Zophiel Engine modules included in Chat tier
+  "zerlal",
 ];
 
 const AUREON_FEATURES: FeatureId[] = [
@@ -88,6 +88,8 @@ const AUREON_FEATURES: FeatureId[] = [
   "ide", "memory", "personas", "code_snippets", "imagine_to_code",
   "vibe_imager", "reverse_engineer", "file_scrapper", "cipher", "whiteboard",
   "nomad", "briefings", "zali", "vedic",
+  // Zophiel Engine modules included from Aureon tier and up
+  "axrlen", "zeeion",
 ];
 
 // Lifetime ($740 one-time) gets everything in Aureon ($199) and below.
