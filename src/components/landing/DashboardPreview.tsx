@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Zap, Globe, Terminal, Brain, Newspaper, Crosshair, Database, Activity,
   FileText, Code2, Layers, Sparkles, Users, MessagesSquare, FolderOpen,
@@ -14,75 +15,75 @@ import {
 } from "lucide-react";
 
 /* ── Nav structure matching real DashboardSidebar ── */
-interface NavItem { id: string; icon: React.ElementType; label: string; pro?: boolean }
+interface NavItem { id: string; icon: React.ElementType; label: string; pro?: boolean; desc: string }
 interface NavGroup { label: string; items: NavItem[] }
 
 const NAV_GROUPS: NavGroup[] = [
   {
     label: "Intelligence",
     items: [
-      { id: "search", icon: Zap, label: "Zophiel Engine" },
-      { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
-      { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
-      { id: "video", icon: Crosshair, label: "Video Intelligence", pro: true },
-      { id: "reverse", icon: Search, label: "Reverse Engineer" },
-      { id: "zahten", icon: Workflow, label: "Zahten Agent Forge" },
+      { id: "search", icon: Zap, label: "Zophiel Engine", desc: "30-source OSINT search engine with Veracity Scores and cross-validation across the open and dark web." },
+      { id: "briefing", icon: Newspaper, label: "Intel Briefings", desc: "Daily truth-extracted intelligence briefings synthesized from live sources, with triple-fallback parsing." },
+      { id: "nomad", icon: Crosshair, label: "NOMAD Agent", desc: "Autonomous OSINT agent running 14-pass deep analysis with persistent dossier trees." },
+      { id: "video", icon: Crosshair, label: "Video Intelligence", pro: true, desc: "FACS-based behavioral video tracking, micro-expression detection, and frame-by-frame locus mapping." },
+      { id: "reverse", icon: Search, label: "Reverse Engineer", desc: "Architecture deconstruction from images, video, and binaries — see the blueprint behind any system." },
+      { id: "zahten", icon: Workflow, label: "Zahten Agent Forge", desc: "Build hardened autonomous agents with a Mission Console, Scope Assessor, and multi-channel delivery." },
     ],
   },
   {
     label: "Data & Analysis",
     items: [
-      { id: "azplen", icon: Database, label: "Azplen Intelligence", pro: true },
-      { id: "pattern", icon: Activity, label: "Pattern Engine", pro: true },
-      { id: "cross", icon: Crosshair, label: "Cross", pro: true },
-      { id: "zeeion", icon: Database, label: "Zeeion FI", pro: true },
-      { id: "axrlen", icon: Brain, label: "Axrlen", pro: true },
-      { id: "zerlal", icon: Shield, label: "Zerlal", pro: true },
-      { id: "timeseries", icon: Activity, label: "Time-Series", pro: true },
-      { id: "geo", icon: Globe, label: "Geospatial", pro: true },
-      { id: "notebooks", icon: FileText, label: "Notebooks", pro: true },
+      { id: "azplen", icon: Database, label: "Azplen Intelligence", pro: true, desc: "20-tab data foundry with the asha_ schema for ingest, lineage, entities, and predictions." },
+      { id: "pattern", icon: Activity, label: "Pattern Engine", pro: true, desc: "Pro-tier forecasting with fractal pattern discovery and Recharts visualizations." },
+      { id: "cross", icon: Crosshair, label: "Cross", pro: true, desc: "17 analytical modes with WebM screen recording, trading strategies, and 5-level hierarchy." },
+      { id: "zeeion", icon: Database, label: "Zeeion FI", pro: true, desc: "Live financial forensics with 10-state lifecycle, trustless arbitration, and workforce analytics." },
+      { id: "axrlen", icon: Brain, label: "Axrlen", pro: true, desc: "Nexus Prime engine — predictive probabilistic scenarios with multi-side research." },
+      { id: "zerlal", icon: Shield, label: "Zerlal", pro: true, desc: "Vulnerability scanning, Cyber Kill Chain, blast radius and takedown feasibility analysis." },
+      { id: "timeseries", icon: Activity, label: "Time-Series", pro: true, desc: "Temporal analysis and anomaly detection across event streams." },
+      { id: "geo", icon: Globe, label: "Geospatial", pro: true, desc: "Map-driven intelligence with locus correlation and movement reconstruction." },
+      { id: "notebooks", icon: FileText, label: "Notebooks", pro: true, desc: "Intelligence notebooks with SQL execution, 800ms debounce, and SECURITY DEFINER queries." },
     ],
   },
   {
     label: "Creation",
     items: [
-      { id: "zali", icon: Zap, label: "ZANOEM Design Lab" },
-      { id: "ide", icon: Terminal, label: "AUREON IDE" },
-      { id: "i2c", icon: Code2, label: "Imagine To Code" },
-      { id: "snippets", icon: Code2, label: "Code Snippets" },
-      { id: "projects", icon: Layers, label: "Projects" },
-      { id: "vibe-img", icon: Sparkles, label: "Vibe Imager" },
-      { id: "pdf", icon: FileText, label: "PDF Generator" },
-      { id: "ebook", icon: FileText, label: "E-Book Generator" },
-      { id: "slideshow", icon: Layers, label: "Slideshow Generator" },
-      { id: "file-scrapper", icon: FileText, label: "File Scrapper" },
-      { id: "cipher", icon: Shield, label: "Cipher Toolkit" },
+      { id: "zali", icon: Zap, label: "ZANOEM Design Lab", desc: "FEA / thermal simulation with material and assembly generation for engineering-grade design." },
+      { id: "ide", icon: Terminal, label: "AUREON IDE", desc: "In-dashboard Monaco IDE with BYOK across 9 providers and a sandboxed iframe for published tabs." },
+      { id: "i2c", icon: Code2, label: "Imagine To Code", desc: "Convert sketches, screenshots, and mockups directly into working component code." },
+      { id: "snippets", icon: Code2, label: "Code Snippets", desc: "Encrypted vault for reusable code blocks, scripts, and prompts." },
+      { id: "projects", icon: Layers, label: "Projects", desc: "Project workspaces with file management, ide_sessions, and constraint tracking." },
+      { id: "vibe-img", icon: Sparkles, label: "Vibe Imager", desc: "Generate on-brand imagery with style locking and prompt sanitization." },
+      { id: "pdf", icon: FileText, label: "PDF Generator", desc: "Forensic-grade PDF reports with intelligence officer formatting and tables." },
+      { id: "ebook", icon: FileText, label: "E-Book Generator", desc: "Multi-session text uploads, 500 words/chapter, and PNG cover generation." },
+      { id: "slideshow", icon: Layers, label: "Slideshow Generator", desc: "Auto-build presentation decks with consistent theme and dense data layouts." },
+      { id: "file-scrapper", icon: FileText, label: "File Scrapper", desc: "Extract unstructured documents to clean TXT via Gemini Flash." },
+      { id: "cipher", icon: Shield, label: "Cipher Toolkit", desc: "AES-256-GCM encryption, hashing, and key management utilities." },
     ],
   },
   {
     label: "Workspace",
     items: [
-      { id: "teams", icon: Users, label: "Team Workspace", pro: true },
-      { id: "community", icon: MessagesSquare, label: "Community", pro: true },
-      { id: "personas", icon: Sparkles, label: "Persona Store" },
-      { id: "library", icon: FolderOpen, label: "Library" },
-      { id: "memory", icon: Brain, label: "Memory Center" },
+      { id: "teams", icon: Users, label: "Team Workspace", pro: true, desc: "RBAC workspaces with collaborative case files and role-scoped access." },
+      { id: "community", icon: MessagesSquare, label: "Community", pro: true, desc: "Operator-only forum for shared intelligence, playbooks, and tradecraft." },
+      { id: "personas", icon: Sparkles, label: "Persona Store", desc: "Create, customize, and share AI assistants with full metadata control." },
+      { id: "library", icon: FolderOpen, label: "Library", desc: "Project Folders, Library, and Intelligence Graph for centralized knowledge." },
+      { id: "memory", icon: Brain, label: "Memory Center", desc: "Persistent memory across sessions with offline-first IndexedDB sync." },
     ],
   },
   {
     label: "System",
     items: [
-      { id: "agents", icon: Zap, label: "Agents", pro: true },
-      { id: "security", icon: ShieldCheck, label: "Security Center", pro: true },
-      { id: "guardian-vault", icon: Lock, label: "Guardian Vault" },
-      { id: "plugins", icon: Puzzle, label: "Plugins", pro: true },
-      { id: "audit", icon: ClipboardList, label: "Audit Trail", pro: true },
-      { id: "self-access", icon: FileText, label: "Self-Access Learning" },
-      { id: "bug-reports", icon: ClipboardList, label: "Bug Reports" },
-      { id: "stats", icon: BarChart3, label: "My Stats" },
-      { id: "vedic-astrology", icon: Moon, label: "Vedic Astrology" },
-      { id: "subscription", icon: CreditCard, label: "Subscription" },
-      { id: "settings", icon: Settings, label: "Settings" },
+      { id: "agents", icon: Zap, label: "Agents", pro: true, desc: "Scheduled tasks with multi-channel webhook delivery and retry logic." },
+      { id: "security", icon: ShieldCheck, label: "Security Center", pro: true, desc: "Centralized security command with RLS partitions and policy auditing." },
+      { id: "guardian-vault", icon: Lock, label: "Guardian Vault", desc: "TOTP MFA auto-cleanup, encrypted secrets, and chrooted file storage." },
+      { id: "plugins", icon: Puzzle, label: "Plugins", pro: true, desc: "Live plugin marketplace with an execution engine for 3rd party integrations." },
+      { id: "audit", icon: ClipboardList, label: "Audit Trail", pro: true, desc: "Tamper-evident logs of every action with non-repudiation hashes." },
+      { id: "self-access", icon: FileText, label: "Self-Access Learning", desc: "Personal learning hub tracking your usage patterns and skill gaps." },
+      { id: "bug-reports", icon: ClipboardList, label: "Bug Reports", desc: "Private RLS portal with AI summarization for the admin." },
+      { id: "stats", icon: BarChart3, label: "My Stats", desc: "Personal analytics — credits, runs, and module-level usage breakdown." },
+      { id: "vedic-astrology", icon: Moon, label: "Vedic Astrology", desc: "Vedic strategy module — chart-based timing analysis for decisions." },
+      { id: "subscription", icon: CreditCard, label: "Subscription", desc: "Manage Chat, Aureon, Pro, or Lifetime tier and billing." },
+      { id: "settings", icon: Settings, label: "Settings", desc: "Workspace preferences, BYOK provider keys, and security controls." },
     ],
   },
 ];
@@ -688,18 +689,30 @@ const DashboardPreview = () => {
                     <MessageSquare className="h-3 w-3" /> Chat
                   </button>
                 </div>
+                <TooltipProvider delayDuration={80} skipDelayDuration={50}>
                 {NAV_GROUPS.map(group => (
                   <div key={group.label} className="px-2 py-1.5 border-t border-border/10">
                     <p className="px-2.5 text-[7px] font-light tracking-[0.2em] text-muted-foreground/30 uppercase mb-0.5">{group.label}</p>
                     {group.items.map(item => (
-                      <button key={item.id} onMouseEnter={() => handleHover(item.id)} onMouseLeave={handleLeave} className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-[4px] text-[9px] font-light transition-all duration-100 ${activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground/60 hover:bg-foreground/5 hover:text-foreground"}`}>
-                        <item.icon className="h-2.5 w-2.5 shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                        {item.pro && <Lock className="h-2 w-2 ml-auto shrink-0 text-muted-foreground/20" />}
-                      </button>
+                      <Tooltip key={item.id}>
+                        <TooltipTrigger asChild>
+                          <button onMouseEnter={() => handleHover(item.id)} onMouseLeave={handleLeave} className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-[4px] text-[9px] font-light transition-all duration-100 ${activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground/60 hover:bg-foreground/5 hover:text-foreground"}`}>
+                            <item.icon className="h-2.5 w-2.5 shrink-0" />
+                            <span className="truncate">{item.label}</span>
+                            {item.pro && <Lock className="h-2 w-2 ml-auto shrink-0 text-muted-foreground/20" />}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" align="start" sideOffset={8} className="max-w-xs border-border/30 bg-card/90 backdrop-blur-xl">
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-light tracking-[0.18em] uppercase text-foreground">{item.label}</p>
+                            <p className="text-[10px] font-extralight leading-relaxed text-muted-foreground">{item.desc}</p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
                     ))}
                   </div>
                 ))}
+                </TooltipProvider>
               </div>
             </div>
 
