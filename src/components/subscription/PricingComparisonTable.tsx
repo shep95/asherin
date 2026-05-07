@@ -1,5 +1,7 @@
-import { Check, X } from "lucide-react";
+import { useState } from "react";
+import { Check, X, Info } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const tiers = [
   { id: "lifetime", name: "Lifetime", price: "$740", period: "one-time", highlight: true },
@@ -8,57 +10,105 @@ const tiers = [
   { id: "pro", name: "Pro", price: "$740", period: "/month", highlight: false },
 ];
 
-const features = [
-  { name: "Uncensored AI chat", chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Messages per 3-hour window", chat: "Unlimited", aureon: "Unlimited", pro: "Unlimited", lifetime: "Unlimited" },
-  { name: "Bring Your Own AI Key", chat: "Required", aureon: "Required", pro: "Required", lifetime: "Required" },
-  { name: "End-to-end encryption", chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Zophiel Search Engine", chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Intelligence Notebooks", chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "PDF Generator", chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Slideshow Generator", chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "E-Book Generator", chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Zahten Agent Forge", chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Guardian Vault", chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Aureon IDE", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Persistent memory", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Code Snippets Vault", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Custom Personas", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Vibe Imager", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Imagine To Code", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Reverse Engineering", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "File Scrapper", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Cipher Toolkit", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Whiteboard", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "NOMAD Public Intelligence", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Daily Intelligence Briefings", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "ZANOEM Design Lab", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Vedic Strategy", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Memory Center", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Persona Store", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Projects Workspace", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Library", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "My Stats", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Self-Access Learning", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Bug Reports", chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Google Intelligence Suite", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Azplen Data Intelligence", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Pattern Analysis Engine", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Time-Series Intelligence", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Geospatial Analysis", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Video Intelligence", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Vibe Video", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Cross — Live Screen Intelligence", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Lavba Strategy Engine", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Team Workspace (RBAC)", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Plugin Marketplace", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Security Dashboard", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Audit Trail", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Automated Agents", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "AXRLEN — Predictive Intelligence", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "ZEEION FI — Financial Intelligence", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "ZERLAL — Cyber Security", chat: false, aureon: false, pro: true, lifetime: false },
+type Feature = {
+  name: string;
+  desc: string;
+  chat: boolean | string;
+  aureon: boolean | string;
+  pro: boolean | string;
+  lifetime: boolean | string;
+};
+
+const features: Feature[] = [
+  { name: "Uncensored AI chat", desc: "Direct, unfiltered AI conversations. No corporate hedging — answers stay surgical and on-mission.", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "Messages per 3-hour window", desc: "How many messages you can send in a rolling 3-hour window. Unlimited on every paid tier.", chat: "Unlimited", aureon: "Unlimited", pro: "Unlimited", lifetime: "Unlimited" },
+  { name: "Bring Your Own AI Key", desc: "Use your own AI provider keys (OpenAI, Anthropic, Google, etc.). You control cost, vendor, and model.", chat: "Required", aureon: "Required", pro: "Required", lifetime: "Required" },
+  { name: "End-to-end encryption", desc: "All conversation data is encrypted in transit and at rest. Only you can read it.", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "Zophiel Search Engine", desc: "30-source OSINT search with veracity scoring and cross-validation. Goes far beyond Google.", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "Intelligence Notebooks", desc: "Run live SQL, transform data, and build reusable analytical notebooks inside your workspace.", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "PDF Generator", desc: "Turn any conversation, briefing, or notebook into a polished, paginated PDF report.", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "Slideshow Generator", desc: "Auto-build slide decks from prompts or research. Editable, exportable, presentation-ready.", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "E-Book Generator", desc: "Compile multi-chapter books from your text uploads — covers, chapters, and exports included.", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "Zahten Agent Forge", desc: "Build autonomous agents with scheduled triggers, webhook delivery, and sandboxed execution.", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "Guardian Vault", desc: "Centralized security command center: TOTP MFA, key rotation, audit log, and threat alerts.", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "Aureon IDE", desc: "Full in-browser IDE with AI pair-programming, file management, and sandboxed execution.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Persistent memory", desc: "The AI remembers your context, preferences, and prior work across sessions.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Code Snippets Vault", desc: "Save, tag, and reuse code snippets across all your projects and conversations.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Custom Personas", desc: "Create AI assistants with custom system prompts, tone, and specialized expertise.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Vibe Imager", desc: "Generate images from natural language prompts with style and composition control.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Imagine To Code", desc: "Turn screenshots, mockups, or sketches directly into working frontend code.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Reverse Engineering", desc: "Deconstruct architectures from images, video, or binaries into structured specs.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "File Scrapper", desc: "Extract clean text from any unstructured file (PDF, DOCX, images, scans) into searchable TXT.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Cipher Toolkit", desc: "Encrypt, decrypt, hash, and analyze ciphers — classical to modern cryptographic tooling.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Whiteboard", desc: "Infinite canvas with Photoshop-style layers, snap grids, and AI-assisted diagramming.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "NOMAD Public Intelligence", desc: "30-source OSINT investigation suite with persistent dossier trees and 14-pass deep analysis.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Daily Intelligence Briefings", desc: "Automated morning briefings on the topics, entities, and markets you track.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "ZANOEM Design Lab", desc: "AI-powered design lab from concept to engineering spec — materials, cost, and feasibility.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Vedic Strategy", desc: "Vedic astrology engine with company, country, and leader charts plus Dasha analysis.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Memory Center", desc: "Manage long-term recall: edit, prune, and calibrate what the AI remembers about you.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Persona Store", desc: "Browse, install, and share AI personas built by you and the community.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Projects Workspace", desc: "Group conversations, files, and assets into focused project folders with shared context.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Library", desc: "Central knowledge repository — store and search every document the AI can read from.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "My Stats", desc: "Personal usage analytics: tokens, sessions, costs, and productivity over time.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Self-Access Learning", desc: "AI-guided learning paths that adapt to your skill level and stated goals.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Bug Reports", desc: "Private, RLS-protected support channel — reports go directly to the engineering team.", chat: false, aureon: true, pro: true, lifetime: true },
+  { name: "Google Intelligence Suite", desc: "Live OAuth 2.0 modules for Gmail, Drive, Calendar, and Takeout uploads.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Azplen Data Intelligence", desc: "20-tab data intelligence suite for structured analysis, joins, and reporting.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Pattern Analysis Engine", desc: "Pro-tier forecasting that surfaces hidden patterns with Recharts visualizations.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Time-Series Intelligence", desc: "Detect trends, anomalies, and seasonality across any time-series data you upload.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Geospatial Analysis", desc: "Map, cluster, and analyze location-based data with overlays and heat maps.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Video Intelligence", desc: "Frame-by-frame video analysis: objects, faces, micro-expressions, and behavior.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Vibe Video", desc: "Generate short-form video from prompts with stylistic and motion control.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Cross — Live Screen Intelligence", desc: "Live screen recording (WebM) with 17 analytical modes for real-time analysis.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Lavba Strategy Engine", desc: "Canvas-based strategy engine with fractal pattern discovery for market and ops modeling.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Team Workspace (RBAC)", desc: "Role-based team workspaces with shared case files, permissions, and collaborative editing.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Plugin Marketplace", desc: "Install third-party plugins with a live execution engine. Extend Aureon however you need.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Security Dashboard", desc: "Real-time security posture: signins, key activity, anomaly alerts, and policy controls.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Audit Trail", desc: "Immutable log of every action across your workspace for compliance and forensics.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "Automated Agents", desc: "Scheduled autonomous tasks with multi-channel webhook delivery and retry logic.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "AXRLEN — Predictive Intelligence", desc: "Predictive probabilistic scenarios with Monte Carlo modeling and multi-side research.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "ZEEION FI — Financial Intelligence", desc: "Live-source financial tracking, dispute resolution, and workforce optimization analytics.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "ZERLAL — Cyber Security", desc: "Vulnerability scanning, infrastructure recon, exploit intelligence, and Cyber Kill Chain analysis.", chat: false, aureon: false, pro: true, lifetime: false },
 ];
+
+const FeatureLabel = ({ name, desc }: { name: string; desc: string }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setOpen(false)}
+          className="group inline-flex items-center gap-1.5 text-left text-sm font-extralight text-foreground hover:text-foreground/90 cursor-help focus:outline-none"
+          aria-label={`${name} — tap for details`}
+        >
+          <span className="border-b border-dotted border-border/40 group-hover:border-border/70">
+            {name}
+          </span>
+          <Info className="h-3 w-3 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align="start"
+        sideOffset={6}
+        className="w-72 rounded-xl border border-border/30 bg-card/95 backdrop-blur-xl p-4 shadow-2xl"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+      >
+        <p className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground/70 uppercase mb-2">
+          {name}
+        </p>
+        <p className="text-xs font-extralight leading-relaxed text-foreground/90">
+          {desc}
+        </p>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 const PricingComparisonTable = () => {
   return (
@@ -111,8 +161,8 @@ const PricingComparisonTable = () => {
               key={idx}
               className="grid grid-cols-5 gap-3 items-center rounded-lg border border-border/10 bg-card/10 backdrop-blur-sm p-4"
             >
-              <div className="col-span-1 text-sm font-extralight text-foreground">
-                {feature.name}
+              <div className="col-span-1">
+                <FeatureLabel name={feature.name} desc={feature.desc} />
               </div>
               <div className="flex justify-center">
                 {feature.lifetime === true ? (
