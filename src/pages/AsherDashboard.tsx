@@ -356,6 +356,7 @@ const AsherDashboard = () => {
                         <button
                           key={n.id}
                           onClick={() => setActive(n.id)}
+                          onMouseEnter={() => setActive(n.id)}
                           className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors ${
                             isActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                           }`}
