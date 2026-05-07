@@ -809,6 +809,17 @@ OUTPUT RULES:
               </button>
             </div>
           </div>
+
+          {/* Resize handle */}
+          <div
+            onMouseDown={startResize}
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize"
+            title="Drag to resize"
+            style={{
+              background:
+                "linear-gradient(135deg, transparent 0 50%, hsl(var(--foreground) / 0.35) 50% 60%, transparent 60% 70%, hsl(var(--foreground) / 0.35) 70% 80%, transparent 80%)",
+            }}
+          />
         </div>
       </div>
     </>
