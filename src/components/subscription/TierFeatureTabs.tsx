@@ -32,6 +32,7 @@ const CHAT_FEATURE_GROUPS = [
     features: [
       { name: "Zahten Agent Forge", desc: "Autonomous agent builder — design, scaffold and harden production-grade automated agents.", link: null },
       { name: "Guardian Vault", desc: "Centralized security command center with TOTP MFA and credential hygiene.", link: null },
+      { name: "ZERLAL Cyber Security", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence — part of the Zophiel Engine.", link: "/feature/zerlal" },
       { name: "End-to-end encryption", desc: "Every message encrypted. Your data is never stored as training data.", link: null },
       { name: "Data sovereignty", desc: "Your data is never sold, shared, or used for model improvement.", link: null },
     ],
@@ -96,6 +97,7 @@ const AUREON_FEATURE_GROUPS = [
       { name: "E-Book Generator", desc: "Compile multi-chapter books from your text uploads.", link: "/feature/ebook" },
       { name: "Zahten Agent Forge", desc: "Autonomous agent foundry — design, scaffold, harden and deploy production-grade agents.", link: "/feature/zahten" },
       { name: "Guardian Vault", desc: "Centralized security command center with TOTP MFA.", link: null },
+      { name: "ZERLAL Cyber Security", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence — included with every paid tier.", link: "/feature/zerlal" },
     ],
   },
 ];
@@ -181,6 +183,7 @@ const PRO_FEATURE_GROUPS = [
       { name: "Slideshow Generator", desc: "Auto-build editable slide decks from prompts.", link: null },
       { name: "E-Book Generator", desc: "Compile multi-chapter books from your text uploads.", link: "/feature/ebook" },
       { name: "Guardian Vault", desc: "Centralized security command center with TOTP MFA.", link: null },
+      { name: "ZERLAL Cyber Security", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence — included with every paid tier.", link: "/feature/zerlal" },
     ],
   },
 ];
