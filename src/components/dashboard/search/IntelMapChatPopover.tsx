@@ -597,22 +597,22 @@ OUTPUT RULES:
         </div>
       )}
 
-      {/* Side-docked chat — animates into a larger floating popout when `popped` */}
+      {/* Side-docked chat — sits inline as a real flex column.
+          When `popped`, detaches and floats over the map. */}
       <div
         className={[
-          "absolute z-30 pointer-events-none",
           "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
           popped
-            ? "top-6 bottom-6 right-6 left-auto w-[640px] max-w-[92vw]"
-            : "top-3 bottom-3 right-3 w-[380px] max-w-[92vw]",
+            ? "absolute z-30 top-6 bottom-6 right-6 left-auto w-[640px] max-w-[92vw] pointer-events-none"
+            : "relative h-full shrink-0 w-[360px] lg:w-[400px] border-l border-border/20 bg-card/30 backdrop-blur-2xl",
         ].join(" ")}
       >
         <div
           className={[
-            "pointer-events-auto h-full w-full flex flex-col overflow-hidden",
-            "border border-border/30 bg-card/60 backdrop-blur-2xl shadow-2xl",
-            "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-            popped ? "rounded-3xl ring-1 ring-foreground/10" : "rounded-2xl",
+            "h-full w-full flex flex-col overflow-hidden",
+            popped
+              ? "pointer-events-auto border border-border/30 bg-card/60 backdrop-blur-2xl shadow-2xl rounded-3xl ring-1 ring-foreground/10"
+              : "",
           ].join(" ")}
         >
           {/* Header */}
