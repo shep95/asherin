@@ -26,6 +26,7 @@ const FeatureAzplen = lazy(() => import("./pages/FeatureAzplen"));
 const FeatureBriefings = lazy(() => import("./pages/FeatureBriefings"));
 const FeaturePersonas = lazy(() => import("./pages/FeaturePersonas"));
 const FeatureZali = lazy(() => import("./pages/FeatureZali"));
+const FeatureZahten = lazy(() => import("./pages/FeatureZahten"));
 const FeaturePredictive = lazy(() => import("./pages/FeaturePredictive"));
 
 const FeatureImagineToCode = lazy(() => import("./pages/FeatureImagineToCode"));
@@ -111,6 +112,7 @@ const App = () => (
             <Route path="/feature/briefings" element={<FeatureBriefings />} />
             <Route path="/feature/personas" element={<FeaturePersonas />} />
             <Route path="/feature/zali" element={<FeatureZali />} />
+            <Route path="/feature/zahten" element={<FeatureZahten />} />
             <Route path="/feature/predictive" element={<FeaturePredictive />} />
             
             <Route path="/feature/imagine-to-code" element={<FeatureImagineToCode />} />
