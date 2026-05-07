@@ -689,18 +689,30 @@ const DashboardPreview = () => {
                     <MessageSquare className="h-3 w-3" /> Chat
                   </button>
                 </div>
+                <TooltipProvider delayDuration={80} skipDelayDuration={50}>
                 {NAV_GROUPS.map(group => (
                   <div key={group.label} className="px-2 py-1.5 border-t border-border/10">
                     <p className="px-2.5 text-[7px] font-light tracking-[0.2em] text-muted-foreground/30 uppercase mb-0.5">{group.label}</p>
                     {group.items.map(item => (
-                      <button key={item.id} onMouseEnter={() => handleHover(item.id)} onMouseLeave={handleLeave} className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-[4px] text-[9px] font-light transition-all duration-100 ${activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground/60 hover:bg-foreground/5 hover:text-foreground"}`}>
-                        <item.icon className="h-2.5 w-2.5 shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                        {item.pro && <Lock className="h-2 w-2 ml-auto shrink-0 text-muted-foreground/20" />}
-                      </button>
+                      <Tooltip key={item.id}>
+                        <TooltipTrigger asChild>
+                          <button onMouseEnter={() => handleHover(item.id)} onMouseLeave={handleLeave} className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-[4px] text-[9px] font-light transition-all duration-100 ${activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground/60 hover:bg-foreground/5 hover:text-foreground"}`}>
+                            <item.icon className="h-2.5 w-2.5 shrink-0" />
+                            <span className="truncate">{item.label}</span>
+                            {item.pro && <Lock className="h-2 w-2 ml-auto shrink-0 text-muted-foreground/20" />}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" align="start" sideOffset={8} className="max-w-xs border-border/30 bg-card/90 backdrop-blur-xl">
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-light tracking-[0.18em] uppercase text-foreground">{item.label}</p>
+                            <p className="text-[10px] font-extralight leading-relaxed text-muted-foreground">{item.desc}</p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
                     ))}
                   </div>
                 ))}
+                </TooltipProvider>
               </div>
             </div>
 
