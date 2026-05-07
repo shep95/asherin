@@ -338,6 +338,65 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props
     downloadTxt(`zophiel-intel-${slug(r.query)}-${r.id}.txt`, formatReportText(r));
   };
 
+  /**
+   * Ask the AI to fuse the current map subject + user-provided details into
+   * a sharper, OSINT-optimized search query, then re-run the underlying
+   * Zophiel search to refresh the Intel Map with more accurate data.
+   */
+  const handleRefine = async () => {
+    const details = input.trim();
+    if (!details || refining || busy) return;
+    if (!cfg) {
+      setError("Bring Your Own API Key required to refine the Intel Map.");
+      return;
+    }
+    if (!onRefineQuery) {
+      setError("Refinement is unavailable in this view.");
+      return;
+    }
+    setError(null);
+    setRefining(true);
+    try {
+      const refinePrompt = `You are a query refinement engine for an OSINT intelligence map.
+
+CURRENT MAP SUBJECT: "${mapQuery ?? "(none)"}"
+USER-PROVIDED DETAILS / CLARIFIERS:
+${details}
+
+TASK:
+Fuse the subject with the user's details into ONE sharpened search query that will return the correct entity (disambiguated person / org / asset). Include disambiguating tokens (employer, city, role, alias, domain, handle, etc.) when given.
+
+OUTPUT RULES:
+- Return ONLY the refined query string. No quotes, no prefix, no explanation.
+- Maximum 200 characters.
+- Plain text, no markdown.`;
+      const refined = (await callUserModel(cfg, [], refinePrompt))
+        .trim()
+        .replace(/^["'`]+|["'`]+$/g, "")
+        .split("\n")[0]
+        .slice(0, 200);
+      if (!refined) throw new Error("Refinement returned empty query");
+      const note: IntelChatMsg = {
+        id: newId(),
+        role: "assistant",
+        content: `MAP REFINED → "${refined}"\nRe-running Zophiel search with sharpened query.`,
+        ts: Date.now(),
+      };
+      setMessages((m) => [...m, {
+        id: newId(),
+        role: "user",
+        content: `[REFINE] ${details}`,
+        ts: Date.now(),
+      }, note]);
+      setInput("");
+      onRefineQuery(refined);
+    } catch (e: any) {
+      setError(e?.message || "Refinement failed");
+    } finally {
+      setRefining(false);
+    }
+  };
+
   return (
     <>
       {/* LEFT — Reports drawer */}
