@@ -23,7 +23,7 @@ const GEMINI_NON_STREAM = geminiNonStreamUrlFor(GEMINI_DEFAULT_MODEL);
 const TIER_1_DOMAINS = new Set([
   'reuters.com', 'apnews.com', 'bbc.com', 'bbc.co.uk', 'nature.com', 'science.org',
   'who.int', 'nih.gov', 'cdc.gov', 'nasa.gov', 'sec.gov', 'federalreserve.gov',
-  'worldbank.org', 'imf.org', 'un.org', 'arxiv.org', 'pubmed.ncbi.nlm.nih.gov',
+  'worldbank.org', 'imf.org', 'un.org', 'pubmed.ncbi.nlm.nih.gov',
   'ieee.org', 'ecb.europa.eu', 'bis.org', 'patents.google.com',
 ]);
 

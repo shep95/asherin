@@ -5,7 +5,7 @@ const HIGH_TRUST = new Set([
   "science.org", "nasa.gov", "noaa.gov", "cdc.gov", "who.int",
   "europa.eu", "un.org", "imf.org", "worldbank.org", "oecd.org",
   "sec.gov", "federalreserve.gov", "treasury.gov", "justice.gov",
-  "github.com", "arxiv.org", "ieee.org", "acm.org",
+  "github.com", "ieee.org", "acm.org",
 ]);
 
 const MEDIUM_TRUST = new Set([
