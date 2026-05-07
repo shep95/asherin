@@ -79,6 +79,8 @@ export interface PlanDefinition {
 const CHAT_FEATURES: FeatureId[] = [
   "chat", "encryption", "byok", "zophiel_search", "notebooks",
   "slideshow", "pdf_generator", "ebook", "zahten", "guardian_vault",
+  // Zophiel Engine modules — included in all paid tiers
+  "zerlal",
 ];
 
 const AUREON_FEATURES: FeatureId[] = [
