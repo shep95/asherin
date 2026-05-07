@@ -97,6 +97,7 @@ const AUREON_FEATURE_GROUPS = [
       { name: "E-Book Generator", desc: "Compile multi-chapter books from your text uploads.", link: "/feature/ebook" },
       { name: "Zahten Agent Forge", desc: "Autonomous agent foundry — design, scaffold, harden and deploy production-grade agents.", link: "/feature/zahten" },
       { name: "Guardian Vault", desc: "Centralized security command center with TOTP MFA.", link: null },
+      { name: "ZERLAL Cyber Security", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence — included with every paid tier.", link: "/feature/zerlal" },
     ],
   },
 ];
