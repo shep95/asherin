@@ -297,6 +297,61 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props
     if (reports.length > 0) setReportsOpen(true);
   }, [reports.length]);
 
+  // Ask the AI to generate the next single clarifying question, given the
+  // current map subject and the dossier of answers gathered so far.
+  const askNextQuestion = async (currentDossier: string[]) => {
+    if (!cfg) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const intake = currentDossier.length
+        ? currentDossier.map((d, i) => `${i + 1}. ${d}`).join("\n")
+        : "(none yet)";
+      const prompt = `You are a Zophiel Intelligence Officer running a SUBJECT INTAKE INTERVIEW to disambiguate the target on the Intel Map.
+
+CURRENT MAP SUBJECT: "${mapQuery ?? "(none)"}"
+ANSWERS GATHERED SO FAR:
+${intake}
+
+TASK:
+Ask ONE single, surgical clarifying question that will most reduce ambiguity about the subject (e.g. full name spelling, employer, city/region, role/title, age range, known aliases, social handles, email/phone fragment, domain, organization affiliation, time period, etc.).
+
+OUTPUT RULES:
+- Output ONLY the question. No preamble. No numbering. No quotes. No markdown.
+- One sentence, under 160 characters.
+- End with a question mark.
+- Always finish with: " — if you don't know, just type 'idk'."`;
+      const reply = (await callUserModel(cfg, [], prompt)).trim();
+      const question = reply.split("\n")[0].slice(0, 240);
+      setMessages((m) => [
+        ...m,
+        { id: newId(), role: "assistant", content: question, ts: Date.now() },
+      ]);
+    } catch (e: any) {
+      setError(e?.message || "Failed to fetch next question");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // When the user adds a BYOK key, automatically open the interview the first
+  // time and seed it with the opening question.
+  useEffect(() => {
+    if (!cfg || interviewStarted) return;
+    setInterviewStarted(true);
+    setInterviewActive(true);
+    setMessages([
+      {
+        id: newId(),
+        role: "assistant",
+        content: `INTAKE INTERVIEW INITIATED — Subject: "${mapQuery ?? "(unspecified)"}"\n\nI'll ask you one question at a time to sharpen the Intel Map. If you don't know an answer, just type 'idk' or 'i don't know' and I'll move on.`,
+        ts: Date.now(),
+      },
+    ]);
+    askNextQuestion([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfg]);
+
   const handleSend = async () => {
     const q = input.trim();
     if (!q || busy) return;
