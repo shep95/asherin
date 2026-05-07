@@ -149,6 +149,8 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Daily Intelligence Briefings",
       "ZANOEM Design Lab",
       "Vedic Strategy",
+      "Memory Center, Code Snippets Vault & Persona Store",
+      "Projects, Library, My Stats, Self-Access Learning & Bug Reports",
       "End-to-end encryption",
     ],
   },
