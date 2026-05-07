@@ -10,7 +10,7 @@ import {
   GitCommitHorizontal, Target, User, Building2, AtSign, Phone,
   Image, TrendingUp, Network, Clock, ShieldAlert, ShieldX, Bug,
   Radio, Skull, Server, Loader2, RefreshCw, AlertTriangle,
-  Copy, Check, Download, Keyboard, X,
+  Copy, Check, Download, Keyboard, X, Moon,
 } from "lucide-react";
 
 /* ── Nav structure matching real DashboardSidebar ── */
@@ -21,14 +21,12 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Intelligence",
     items: [
-      { id: "zophiel", icon: Zap, label: "Zophiel Engine" },
-      { id: "google", icon: Globe, label: "Google Intel", pro: true },
-      { id: "predictive", icon: Brain, label: "Predictive Intel", pro: true },
+      { id: "search", icon: Zap, label: "Zophiel Engine" },
       { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
       { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
-      { id: "tracker", icon: MapPin, label: "Location Tracker", pro: true },
-      { id: "imagine", icon: Crosshair, label: "Imagine Intelligence" },
       { id: "video", icon: Crosshair, label: "Video Intelligence", pro: true },
+      { id: "reverse", icon: Search, label: "Reverse Engineer" },
+      { id: "zahten", icon: Workflow, label: "Zahten Agent Forge" },
     ],
   },
   {
@@ -36,6 +34,10 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "azplen", icon: Database, label: "Azplen Intelligence", pro: true },
       { id: "pattern", icon: Activity, label: "Pattern Engine", pro: true },
+      { id: "cross", icon: Crosshair, label: "Cross", pro: true },
+      { id: "zeeion", icon: Database, label: "Zeeion FI", pro: true },
+      { id: "axrlen", icon: Brain, label: "Axrlen", pro: true },
+      { id: "zerlal", icon: Shield, label: "Zerlal", pro: true },
       { id: "timeseries", icon: Activity, label: "Time-Series", pro: true },
       { id: "geo", icon: Globe, label: "Geospatial", pro: true },
       { id: "notebooks", icon: FileText, label: "Notebooks", pro: true },
@@ -44,15 +46,17 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Creation",
     items: [
-      { id: "zali", icon: Zap, label: "ZANOEM Design Lab", pro: true },
+      { id: "zali", icon: Zap, label: "ZANOEM Design Lab" },
       { id: "ide", icon: Terminal, label: "AUREON IDE" },
       { id: "i2c", icon: Code2, label: "Imagine To Code" },
-      { id: "vibe-img", icon: Sparkles, label: "Vibe Imager" },
-      { id: "vibe-vid", icon: Sparkles, label: "Vibe Video", pro: true },
-      { id: "pdf", icon: FileText, label: "PDF Generator" },
-      { id: "slideshow", icon: Layers, label: "Slideshow Generator" },
       { id: "snippets", icon: Code2, label: "Code Snippets" },
       { id: "projects", icon: Layers, label: "Projects" },
+      { id: "vibe-img", icon: Sparkles, label: "Vibe Imager" },
+      { id: "pdf", icon: FileText, label: "PDF Generator" },
+      { id: "ebook", icon: FileText, label: "E-Book Generator" },
+      { id: "slideshow", icon: Layers, label: "Slideshow Generator" },
+      { id: "file-scrapper", icon: FileText, label: "File Scrapper" },
+      { id: "cipher", icon: Shield, label: "Cipher Toolkit" },
     ],
   },
   {
@@ -68,15 +72,21 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "System",
     items: [
+      { id: "agents", icon: Zap, label: "Agents", pro: true },
       { id: "security", icon: ShieldCheck, label: "Security Center", pro: true },
+      { id: "guardian-vault", icon: Lock, label: "Guardian Vault" },
       { id: "plugins", icon: Puzzle, label: "Plugins", pro: true },
       { id: "audit", icon: ClipboardList, label: "Audit Trail", pro: true },
+      { id: "self-access", icon: FileText, label: "Self-Access Learning" },
+      { id: "bug-reports", icon: ClipboardList, label: "Bug Reports" },
       { id: "stats", icon: BarChart3, label: "My Stats" },
+      { id: "vedic-astrology", icon: Moon, label: "Vedic Astrology" },
       { id: "subscription", icon: CreditCard, label: "Subscription" },
       { id: "settings", icon: Settings, label: "Settings" },
     ],
   },
 ];
+
 
 /* ════════════════════════════════════════════════════════════
    FAITHFUL MOCK VIEWS — replicating actual dashboard UIs
