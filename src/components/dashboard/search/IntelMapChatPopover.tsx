@@ -49,6 +49,8 @@ interface Props {
   mapQuery?: string;
   /** Called when user wants to open the BYOK config panel. */
   onOpenByokPanel: () => void;
+  /** Optional: re-run the underlying Zophiel search with a refined query. */
+  onRefineQuery?: (q: string) => void;
 }
 
 const SYSTEM_PROMPT = `You are ZOPHIEL — a Class-5 Intelligence Officer producing CIA / military-grade intelligence reports.
