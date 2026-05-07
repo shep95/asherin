@@ -20,6 +20,7 @@ import {
   Loader2,
   FileText,
   Trash2,
+  Crosshair,
 } from "lucide-react";
 import {
   getActiveIntelMapByok,
