@@ -302,6 +302,7 @@ const AsherDashboard = () => {
               <div key={branch.id}>
                 <button
                   onClick={() => toggleBranch(branch.id)}
+                  onMouseEnter={() => setOpenBranches(prev => ({ ...prev, [branch.id]: true }))}
                   className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-foreground/5 rounded-md"
                 >
                   {open ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
