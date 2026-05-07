@@ -37,6 +37,8 @@ interface IntelMapPanelProps {
   query: string;
   results: SearchResult[];
   onClose: () => void;
+  /** Optional: re-run the underlying Zophiel search with a refined query string. */
+  onRefineQuery?: (q: string) => void;
 }
 
 /* Theme-matched monochrome palette using semantic tokens.
@@ -251,7 +253,7 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
   return nodes;
 }
 
-const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
+const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanelProps) => {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -882,7 +884,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
       </div>
 
       {/* Floating BYOK-powered intel chat + left-side report drawer */}
-      <IntelMapChatPopover mapQuery={query} onOpenByokPanel={() => setByokOpen(true)} />
+      <IntelMapChatPopover mapQuery={query} onOpenByokPanel={() => setByokOpen(true)} onRefineQuery={onRefineQuery} />
 
       <IntelMapByokPanel open={byokOpen} onClose={() => setByokOpen(false)} onChange={refreshByok} />
 

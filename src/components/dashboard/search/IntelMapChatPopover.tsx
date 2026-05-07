@@ -20,6 +20,7 @@ import {
   Loader2,
   FileText,
   Trash2,
+  Crosshair,
 } from "lucide-react";
 import {
   getActiveIntelMapByok,
@@ -48,6 +49,8 @@ interface Props {
   mapQuery?: string;
   /** Called when user wants to open the BYOK config panel. */
   onOpenByokPanel: () => void;
+  /** Optional: re-run the underlying Zophiel search with a refined query. */
+  onRefineQuery?: (q: string) => void;
 }
 
 const SYSTEM_PROMPT = `You are ZOPHIEL — a Class-5 Intelligence Officer producing CIA / military-grade intelligence reports.
@@ -245,11 +248,13 @@ async function callUserModel(
   }
 }
 
-const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel }: Props) => {
+const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props) => {
   const [open, setOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [refining, setRefining] = useState(false);
+  const [refineMode, setRefineMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<IntelChatMsg[]>([]);
   const [reports, setReports] = useState<IntelReport[]>(() => {
@@ -331,6 +336,65 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel }: Props) => {
 
   const downloadReport = (r: IntelReport) => {
     downloadTxt(`zophiel-intel-${slug(r.query)}-${r.id}.txt`, formatReportText(r));
+  };
+
+  /**
+   * Ask the AI to fuse the current map subject + user-provided details into
+   * a sharper, OSINT-optimized search query, then re-run the underlying
+   * Zophiel search to refresh the Intel Map with more accurate data.
+   */
+  const handleRefine = async () => {
+    const details = input.trim();
+    if (!details || refining || busy) return;
+    if (!cfg) {
+      setError("Bring Your Own API Key required to refine the Intel Map.");
+      return;
+    }
+    if (!onRefineQuery) {
+      setError("Refinement is unavailable in this view.");
+      return;
+    }
+    setError(null);
+    setRefining(true);
+    try {
+      const refinePrompt = `You are a query refinement engine for an OSINT intelligence map.
+
+CURRENT MAP SUBJECT: "${mapQuery ?? "(none)"}"
+USER-PROVIDED DETAILS / CLARIFIERS:
+${details}
+
+TASK:
+Fuse the subject with the user's details into ONE sharpened search query that will return the correct entity (disambiguated person / org / asset). Include disambiguating tokens (employer, city, role, alias, domain, handle, etc.) when given.
+
+OUTPUT RULES:
+- Return ONLY the refined query string. No quotes, no prefix, no explanation.
+- Maximum 200 characters.
+- Plain text, no markdown.`;
+      const refined = (await callUserModel(cfg, [], refinePrompt))
+        .trim()
+        .replace(/^["'`]+|["'`]+$/g, "")
+        .split("\n")[0]
+        .slice(0, 200);
+      if (!refined) throw new Error("Refinement returned empty query");
+      const note: IntelChatMsg = {
+        id: newId(),
+        role: "assistant",
+        content: `MAP REFINED → "${refined}"\nRe-running Zophiel search with sharpened query.`,
+        ts: Date.now(),
+      };
+      setMessages((m) => [...m, {
+        id: newId(),
+        role: "user",
+        content: `[REFINE] ${details}`,
+        ts: Date.now(),
+      }, note]);
+      setInput("");
+      onRefineQuery(refined);
+    } catch (e: any) {
+      setError(e?.message || "Refinement failed");
+    } finally {
+      setRefining(false);
+    }
   };
 
   return (
@@ -505,6 +569,27 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel }: Props) => {
 
             {/* Composer */}
             <div className="border-t border-border/20 p-2 bg-foreground/[0.02]">
+              {onRefineQuery && (
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={refineMode}
+                      onChange={(e) => setRefineMode(e.target.checked)}
+                      className="h-3 w-3 accent-foreground"
+                    />
+                    <Crosshair className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-[9px] font-light tracking-[0.2em] uppercase text-muted-foreground">
+                      Refine Map Mode
+                    </span>
+                  </label>
+                  {refineMode && (
+                    <span className="text-[9px] font-extralight text-muted-foreground/70 italic">
+                      details → sharpened query
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex items-end gap-2">
                 <textarea
                   value={input}
@@ -512,31 +597,51 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel }: Props) => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      handleSend();
+                      if (refineMode) handleRefine();
+                      else handleSend();
                     }
                   }}
                   rows={2}
                   placeholder={
-                    cfg
-                      ? "Request intel… (Enter to send)"
-                      : "Add a BYOK key to enable…"
+                    !cfg
+                      ? "Add a BYOK key to enable…"
+                      : refineMode
+                      ? "Add details (employer, city, alias, handle…) to refine the map"
+                      : "Request intel… (Enter to send)"
                   }
-                  disabled={!cfg || busy}
+                  disabled={!cfg || busy || refining}
                   className="flex-1 resize-none rounded-xl border border-border/30 bg-background/60 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/40 disabled:opacity-50"
                 />
-                <button
-                  type="button"
-                  onClick={handleSend}
-                  disabled={!cfg || busy || !input.trim()}
-                  className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                  aria-label="Send"
-                >
-                  {busy ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Send className="h-3.5 w-3.5" />
-                  )}
-                </button>
+                {refineMode ? (
+                  <button
+                    type="button"
+                    onClick={handleRefine}
+                    disabled={!cfg || refining || busy || !input.trim()}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-foreground/40 bg-foreground/10 text-foreground hover:bg-foreground hover:text-background disabled:opacity-30 disabled:cursor-not-allowed transition"
+                    aria-label="Refine map"
+                    title="Refine Intel Map with these details"
+                  >
+                    {refining ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Crosshair className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSend}
+                    disabled={!cfg || busy || !input.trim()}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                    aria-label="Send"
+                  >
+                    {busy ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Send className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>

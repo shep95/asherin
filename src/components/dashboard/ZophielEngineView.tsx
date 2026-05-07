@@ -753,6 +753,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
             query={query}
             results={results}
             onClose={() => setIntelMapOpen(false)}
+            onRefineQuery={(q) => { setQuery(q); search(q); }}
           />
         </div>
       )}
@@ -764,6 +765,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
             query={query}
             results={results}
             onClose={() => setIntelMapOpen(false)}
+            onRefineQuery={(q) => { setQuery(q); search(q); }}
           />
         </div>
       )}
