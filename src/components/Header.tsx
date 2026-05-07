@@ -20,6 +20,7 @@ const Header = () => {
   const location = useLocation();
   const isAsherRoute = location.pathname.startsWith("/asher");
   const [showAuth, setShowAuth] = useState(false);
+  const [pagesOpen, setPagesOpen] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
