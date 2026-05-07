@@ -7789,6 +7789,87 @@ export type Database = {
           },
         ]
       }
+      zerlal_settings: {
+        Row: {
+          alert_email: string | null
+          auto_remediation: boolean
+          created_at: string
+          notify_critical: boolean
+          retention_days: number
+          scan_frequency: string
+          severity_threshold: string
+          slack_webhook: string | null
+          updated_at: string
+          user_id: string
+          weekly_report: boolean
+        }
+        Insert: {
+          alert_email?: string | null
+          auto_remediation?: boolean
+          created_at?: string
+          notify_critical?: boolean
+          retention_days?: number
+          scan_frequency?: string
+          severity_threshold?: string
+          slack_webhook?: string | null
+          updated_at?: string
+          user_id: string
+          weekly_report?: boolean
+        }
+        Update: {
+          alert_email?: string | null
+          auto_remediation?: boolean
+          created_at?: string
+          notify_critical?: boolean
+          retention_days?: number
+          scan_frequency?: string
+          severity_threshold?: string
+          slack_webhook?: string | null
+          updated_at?: string
+          user_id?: string
+          weekly_report?: boolean
+        }
+        Relationships: []
+      }
+      zerlal_team_members: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          invited_at: string
+          last_active_at: string | null
+          name: string | null
+          owner_id: string
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          invited_at?: string
+          last_active_at?: string | null
+          name?: string | null
+          owner_id: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          invited_at?: string
+          last_active_at?: string | null
+          name?: string | null
+          owner_id?: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
