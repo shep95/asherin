@@ -248,11 +248,13 @@ async function callUserModel(
   }
 }
 
-const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel }: Props) => {
+const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props) => {
   const [open, setOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [refining, setRefining] = useState(false);
+  const [refineMode, setRefineMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<IntelChatMsg[]>([]);
   const [reports, setReports] = useState<IntelReport[]>(() => {
