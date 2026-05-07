@@ -533,18 +533,52 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
         {!loading && laidOut.length > 0 && (
           <aside className="hidden md:flex w-[148px] shrink-0 flex-col border-r border-border/15 bg-card/10 backdrop-blur-xl">
             <div className="px-3 pt-3 pb-2 text-[9px] font-light tracking-[0.28em] uppercase text-muted-foreground/60">Entities</div>
-            <div className="flex-1 overflow-y-auto px-2 space-y-0.5">
+            <div className="flex-1 overflow-y-auto px-2 space-y-2">
               {(["source", "person", "organization", "location", "topic", "event"] as const).map((t) => {
                 if (!counts[t]) return null;
                 const Icon = TYPE_ICON[t];
+                const entities = laidOut.filter((n) => n.type === t);
                 return (
-                  <div key={t} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-light text-foreground/85 hover:bg-foreground/[0.04] transition-colors">
-                    <svg width="12" height="12" viewBox="-6 -6 12 12" className="shrink-0">
-                      {renderShape(NODE_SHAPE[t], 12, 12, NODE_PALETTE[t].accent, "transparent", 0)}
-                    </svg>
-                    <Icon className="h-3 w-3 text-muted-foreground/70" strokeWidth={1.5} />
-                    <span className="capitalize flex-1">{t}</span>
-                    <span className="tabular-nums text-muted-foreground/70">{counts[t]}</span>
+                  <div key={t}>
+                    <div className="flex items-center gap-2 px-2 py-1 text-[9px] font-light tracking-[0.22em] uppercase text-muted-foreground/60">
+                      <svg width="10" height="10" viewBox="-5 -5 10 10" className="shrink-0">
+                        {renderShape(NODE_SHAPE[t], 10, 10, NODE_PALETTE[t].accent, "transparent", 0)}
+                      </svg>
+                      <Icon className="h-3 w-3 text-muted-foreground/60" strokeWidth={1.5} />
+                      <span className="capitalize flex-1">{t}</span>
+                      <span className="tabular-nums text-muted-foreground/60">{counts[t]}</span>
+                    </div>
+                    <ul className="space-y-0.5 mb-1">
+                      {entities.slice(0, 12).map((n) => (
+                        <li key={n.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedId(n.id);
+                              // Center the camera on the selected node so the user
+                              // sees what they clicked instead of just the dossier.
+                              if (n.x != null && n.y != null) {
+                                setPan({ x: size.w / 2 - n.x * zoom, y: size.h / 2 - n.y * zoom });
+                              }
+                            }}
+                            className={`w-full text-left flex items-center gap-2 px-2 py-1 rounded-md text-[11px] font-light truncate transition-colors ${
+                              selectedId === n.id
+                                ? "bg-foreground/10 text-foreground ring-1 ring-foreground/20"
+                                : "text-foreground/75 hover:text-foreground hover:bg-foreground/[0.05]"
+                            }`}
+                            title={n.label}
+                          >
+                            <span className="h-1 w-1 rounded-full shrink-0" style={{ background: NODE_PALETTE[t].accent }} />
+                            <span className="truncate">{n.label}</span>
+                          </button>
+                        </li>
+                      ))}
+                      {entities.length > 12 && (
+                        <li className="px-2 py-0.5 text-[9px] font-light text-muted-foreground/50">
+                          + {entities.length - 12} more
+                        </li>
+                      )}
+                    </ul>
                   </div>
                 );
               })}
