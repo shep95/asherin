@@ -29,12 +29,24 @@ export interface FreshnessAlert {
 }
 
 export interface SearchFilters {
-  dateRange?: 'day' | 'week' | 'month' | 'year';
+  dateRange?: 'day' | 'week' | 'month' | 'year' | 'custom';
+  dateFrom?: string; // YYYY-MM-DD (custom)
+  dateTo?: string;   // YYYY-MM-DD (custom)
   domainInclude?: string[];
   domainExclude?: string[];
-  fileType?: string;
-  sourceType?: string[];
+  fileType?: string;        // pdf | doc | xls | ppt | txt | csv
+  sourceType?: string[];    // news | academic | gov | blog | forum | social | video
   credibilityMin?: SourceTier;
+  language?: string;        // ISO 639-1: en, es, fr, de, ja, zh, ar, ru…
+  region?: string;          // ISO 3166-1 alpha-2: US, GB, FR…
+  exactPhrase?: string;     // wraps as "..."
+  includeKeywords?: string[];
+  excludeKeywords?: string[];
+  contentLength?: 'short' | 'medium' | 'long';
+  sortBy?: 'relevance' | 'date' | 'credibility';
+  safeSearch?: 'off' | 'moderate' | 'strict';
+  intitle?: string;
+  inurl?: string;
 }
 
 export interface SearchResponse {
