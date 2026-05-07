@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { getPublicPlans, TIER_FEATURE_CARDS } from "@/config/subscriptionPlans";
 import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
 import PricingComparisonTable from "@/components/subscription/PricingComparisonTable";
+import SiteFooter from "@/components/SiteFooter";
 
 const tiers = getPublicPlans().map(p => ({
   id: p.id,
