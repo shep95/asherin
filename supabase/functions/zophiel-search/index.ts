@@ -258,12 +258,24 @@ interface SearchResult {
 }
 
 interface SearchFilters {
-  dateRange?: 'day' | 'week' | 'month' | 'year';
+  dateRange?: 'day' | 'week' | 'month' | 'year' | 'custom';
+  dateFrom?: string;
+  dateTo?: string;
   domainInclude?: string[];
   domainExclude?: string[];
   fileType?: string;
   sourceType?: string[];
   credibilityMin?: SourceTier;
+  language?: string;
+  region?: string;
+  exactPhrase?: string;
+  includeKeywords?: string[];
+  excludeKeywords?: string[];
+  contentLength?: 'short' | 'medium' | 'long';
+  sortBy?: 'relevance' | 'date' | 'credibility';
+  safeSearch?: 'off' | 'moderate' | 'strict';
+  intitle?: string;
+  inurl?: string;
 }
 
 interface SearchRequest {
@@ -317,6 +329,11 @@ function buildSearchQuery(query: string, mode: SearchMode, intent: SemanticInten
   if (operatorOverrides) q += ' ' + operatorOverrides;
 
   if (filters) {
+    if (filters.exactPhrase) q = `"${filters.exactPhrase.replace(/"/g, '')}" ${q}`;
+    if (filters.includeKeywords?.length) q += ' ' + filters.includeKeywords.map(k => `+${k}`).join(' ');
+    if (filters.excludeKeywords?.length) q += ' ' + filters.excludeKeywords.map(k => `-${k}`).join(' ');
+    if (filters.intitle) q += ` intitle:${filters.intitle}`;
+    if (filters.inurl) q += ` inurl:${filters.inurl}`;
     if (filters.domainInclude?.length) {
       q += ' ' + filters.domainInclude.map(d => `site:${d}`).join(' OR ');
     }
@@ -325,6 +342,11 @@ function buildSearchQuery(query: string, mode: SearchMode, intent: SemanticInten
     }
     if (filters.fileType) {
       q += ` filetype:${filters.fileType}`;
+    }
+    if (filters.language) q += ` lang:${filters.language}`;
+    if (filters.region) q += ` region:${filters.region}`;
+    if (filters.dateRange === 'custom' && filters.dateFrom && filters.dateTo) {
+      q += ` after:${filters.dateFrom} before:${filters.dateTo}`;
     }
   }
 
