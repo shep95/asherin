@@ -37,6 +37,8 @@ interface IntelMapPanelProps {
   query: string;
   results: SearchResult[];
   onClose: () => void;
+  /** Optional: re-run the underlying Zophiel search with a refined query string. */
+  onRefineQuery?: (q: string) => void;
 }
 
 /* Theme-matched monochrome palette using semantic tokens.
