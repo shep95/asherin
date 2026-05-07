@@ -402,7 +402,7 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel }: Props) => {
       )}
 
       {/* BOTTOM-RIGHT — Floating oval chat */}
-      <div className="absolute bottom-4 right-4 z-30 flex flex-col items-end gap-2 pointer-events-none">
+      <div className="absolute bottom-4 right-20 z-30 flex flex-col items-end gap-2 pointer-events-none">
         {/* Reports toggle pill (only shown when reports exist & drawer hidden) */}
         {reports.length > 0 && !reportsOpen && (
           <button
