@@ -884,7 +884,7 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
       </div>
 
       {/* Floating BYOK-powered intel chat + left-side report drawer */}
-      <IntelMapChatPopover mapQuery={query} onOpenByokPanel={() => setByokOpen(true)} />
+      <IntelMapChatPopover mapQuery={query} onOpenByokPanel={() => setByokOpen(true)} onRefineQuery={onRefineQuery} />
 
       <IntelMapByokPanel open={byokOpen} onClose={() => setByokOpen(false)} onChange={refreshByok} />
 
