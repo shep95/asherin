@@ -79,8 +79,8 @@ export interface PlanDefinition {
 const CHAT_FEATURES: FeatureId[] = [
   "chat", "encryption", "byok", "zophiel_search", "notebooks",
   "slideshow", "pdf_generator", "ebook", "zahten", "guardian_vault",
-  // Zophiel Engine modules — included in all paid tiers
-  "zerlal",
+  // Zophiel Engine modules — included in ALL paid tiers (Chat, Aureon, Lifetime, Pro)
+  "zerlal", "axrlen", "zeeion",
 ];
 
 const AUREON_FEATURES: FeatureId[] = [
@@ -147,7 +147,9 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Persistent Memory & Custom Personas",
       "Zophiel Search, Notebooks, PDF / Slideshow / E-Book",
       "Zahten Agent Forge & Guardian Vault",
-      "ZERLAL — Domain reconnaissance & vulnerability intelligence",
+      "ZERLAL — Cyber Security & vulnerability intelligence (Zophiel Engine)",
+      "AXRLEN — Predictive Intelligence (Zophiel Engine)",
+      "ZEEION FI — Financial Intelligence (Zophiel Engine)",
       "NOMAD Public Intelligence",
       "Daily Intelligence Briefings",
       "ZANOEM Design Lab",
@@ -179,7 +181,9 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "PDF, Slideshow & E-Book generators",
       "Zahten Agent Forge",
       "Guardian Vault",
-      "ZERLAL — Domain reconnaissance & vulnerability intelligence",
+      "ZERLAL — Cyber Security & vulnerability intelligence (Zophiel Engine)",
+      "AXRLEN — Predictive Intelligence (Zophiel Engine)",
+      "ZEEION FI — Financial Intelligence (Zophiel Engine)",
     ],
   },
   {
@@ -209,7 +213,9 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "File Scrapper — extract text from any document",
       "Cipher Toolkit — encoding, hashing, encryption",
       "Whiteboard — infinite canvas with layers",
-      "ZERLAL — Domain reconnaissance & vulnerability intelligence",
+      "ZERLAL — Cyber Security & vulnerability intelligence (Zophiel Engine)",
+      "AXRLEN — Predictive Intelligence (Zophiel Engine)",
+      "ZEEION FI — Financial Intelligence (Zophiel Engine)",
       "NOMAD Public Intelligence Agent",
       "Daily Intelligence Briefings",
       "ZANOEM Design Lab",
