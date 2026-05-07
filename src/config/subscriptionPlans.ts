@@ -256,7 +256,6 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Company & competitor tracking",
       "AXRLEN — Real-time global event prediction & policy simulation",
       "ZEEION FI — AI forensic financial intelligence platform",
-      "ZERLAL — Domain reconnaissance & vulnerability intelligence",
     ],
   },
 ];
