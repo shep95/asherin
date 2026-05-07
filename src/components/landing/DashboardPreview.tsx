@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Zap, Globe, Terminal, Brain, Newspaper, Crosshair, Database, Activity,
   FileText, Code2, Layers, Sparkles, Users, MessagesSquare, FolderOpen,
