@@ -83,10 +83,19 @@ const AUREON_FEATURE_GROUPS = [
     ],
   },
   {
-    category: "Foundation",
+    category: "Inherited from Chat ($47/mo)",
     features: [
-      { name: "Everything in Chat", desc: "Zophiel Search, Notebooks, PDF / Slideshow / E-Book generators, Zahten Agent Forge and Guardian Vault.", link: null },
-      { name: "Bring Your Own AI Key", desc: "Connect your own AI provider keys across every Aureon tool.", link: "/feature/byok" },
+      { name: "Uncensored AI Chat", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
+      { name: "Unlimited Messages", desc: "Bring your own AI key — message as much as you want.", link: null },
+      { name: "Bring Your Own AI Key", desc: "Connect Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more.", link: "/feature/byok" },
+      { name: "End-to-end Encryption", desc: "Every message encrypted. Never used as training data.", link: null },
+      { name: "Zophiel Search Engine", desc: "30-source OSINT search with veracity scoring.", link: "/feature/zophiel" },
+      { name: "Intelligence Notebooks", desc: "Run live SQL and build reusable analytical notebooks.", link: "/feature/notebooks" },
+      { name: "PDF Generator", desc: "Turn any conversation into a polished, paginated PDF.", link: null },
+      { name: "Slideshow Generator", desc: "Auto-build editable slide decks from prompts.", link: null },
+      { name: "E-Book Generator", desc: "Compile multi-chapter books from your text uploads.", link: "/feature/ebook" },
+      { name: "Zahten Agent Forge", desc: "Autonomous agent foundry — design, scaffold, harden and deploy production-grade agents.", link: "/feature/zahten" },
+      { name: "Guardian Vault", desc: "Centralized security command center with TOTP MFA.", link: null },
     ],
   },
 ];
