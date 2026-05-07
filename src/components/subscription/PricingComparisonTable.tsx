@@ -66,9 +66,9 @@ const features: Feature[] = [
   { name: "Security Dashboard", desc: "Real-time security posture: signins, key activity, anomaly alerts, and policy controls.", chat: false, aureon: false, pro: true, lifetime: false },
   { name: "Audit Trail", desc: "Immutable log of every action across your workspace for compliance and forensics.", chat: false, aureon: false, pro: true, lifetime: false },
   { name: "Automated Agents", desc: "Scheduled autonomous tasks with multi-channel webhook delivery and retry logic.", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "AXRLEN — Predictive Intelligence", desc: "Predictive probabilistic scenarios with Monte Carlo modeling and multi-side research.", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "ZEEION FI — Financial Intelligence", desc: "Live-source financial tracking, dispute resolution, and workforce optimization analytics.", chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "ZERLAL — Cyber Security", desc: "Vulnerability scanning, infrastructure recon, exploit intelligence, and Cyber Kill Chain analysis.", chat: false, aureon: false, pro: true, lifetime: false },
+  { name: "AXRLEN — Predictive Intelligence", desc: "Zophiel Engine module — included in every paid tier. Predictive probabilistic scenarios with Monte Carlo modeling and multi-side research.", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "ZEEION FI — Financial Intelligence", desc: "Zophiel Engine module — included in every paid tier. Live-source financial tracking, dispute resolution, and workforce optimization analytics.", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "ZERLAL — Cyber Security", desc: "Zophiel Engine module — included in every paid tier. Vulnerability scanning, infrastructure recon, exploit intelligence, and Cyber Kill Chain analysis.", chat: true, aureon: true, pro: true, lifetime: true },
 ];
 
 const FeatureLabel = ({ name, desc }: { name: string; desc: string }) => {
