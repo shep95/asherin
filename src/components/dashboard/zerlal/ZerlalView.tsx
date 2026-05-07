@@ -1,5 +1,5 @@
 import { useState, lazy, Suspense } from "react";
-import { Shield, Bell, Plus, Users } from "lucide-react";
+import { Shield, Bell, Plus } from "lucide-react";
 import ZerlalNav from "./ZerlalNav";
 import DashboardScreen from "./DashboardScreen";
 import ProjectView from "./ProjectView";
