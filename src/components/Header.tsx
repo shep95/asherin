@@ -82,6 +82,9 @@ const Header = () => {
                 <Link to="/feature/briefings" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Daily Briefings</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/feature/zahten" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zahten Agent Forge</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/feature/vedic" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Vedic Strategy</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
