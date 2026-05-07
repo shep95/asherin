@@ -26,6 +26,7 @@ const FeatureAzplen = lazy(() => import("./pages/FeatureAzplen"));
 const FeatureBriefings = lazy(() => import("./pages/FeatureBriefings"));
 const FeaturePersonas = lazy(() => import("./pages/FeaturePersonas"));
 const FeatureZali = lazy(() => import("./pages/FeatureZali"));
+const FeatureZahten = lazy(() => import("./pages/FeatureZahten"));
 const FeaturePredictive = lazy(() => import("./pages/FeaturePredictive"));
 
 const FeatureImagineToCode = lazy(() => import("./pages/FeatureImagineToCode"));
