@@ -252,6 +252,10 @@ async function callUserModel(
 
 const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props) => {
   const [open, setOpen] = useState(true);
+  // When `popped` is true, the side-docked chat detaches into a larger
+  // floating popout panel with an animated transition. When false, it's a
+  // narrow side chat docked to the right edge of the Intel Map canvas.
+  const [popped, setPopped] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
