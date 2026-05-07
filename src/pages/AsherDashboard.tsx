@@ -319,6 +319,7 @@ const AsherDashboard = () => {
                           <div key={n.id}>
                             <button
                               onClick={() => toggleBranch(subId)}
+                              onMouseEnter={() => setOpenBranches(prev => ({ ...prev, [subId]: true }))}
                               className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
                             >
                               {subOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
