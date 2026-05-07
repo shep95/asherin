@@ -21,6 +21,8 @@ import {
   FileText,
   Trash2,
   Crosshair,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import {
   getActiveIntelMapByok,
@@ -249,7 +251,7 @@ async function callUserModel(
 }
 
 const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -257,6 +259,12 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props
   const [refineMode, setRefineMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<IntelChatMsg[]>([]);
+  // Interview mode: AI asks one disambiguating question at a time so the user
+  // can incrementally sharpen the Intel Map. Each answer is folded into the
+  // accumulated dossier and used to refine the underlying Zophiel search.
+  const [interviewStarted, setInterviewStarted] = useState(false);
+  const [interviewActive, setInterviewActive] = useState(false);
+  const [dossier, setDossier] = useState<string[]>([]);
   const [reports, setReports] = useState<IntelReport[]>(() => {
     try {
       const raw = localStorage.getItem("zophiel_intel_reports_v1");
@@ -289,6 +297,72 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props
     if (reports.length > 0) setReportsOpen(true);
   }, [reports.length]);
 
+  // Ask the AI to generate the next single clarifying question, given the
+  // current map subject and the dossier of answers gathered so far.
+  const askNextQuestion = async (currentDossier: string[]) => {
+    if (!cfg) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const intake = currentDossier.length
+        ? currentDossier.map((d, i) => `${i + 1}. ${d}`).join("\n")
+        : "(none yet)";
+      const prompt = `You are a Zophiel Intelligence Officer running a SUBJECT INTAKE INTERVIEW to disambiguate the target on the Intel Map.
+
+CURRENT MAP SUBJECT: "${mapQuery ?? "(none)"}"
+ANSWERS GATHERED SO FAR:
+${intake}
+
+TASK:
+Ask ONE single, surgical clarifying question that will most reduce ambiguity about the subject (e.g. full name spelling, employer, city/region, role/title, age range, known aliases, social handles, email/phone fragment, domain, organization affiliation, time period, etc.).
+
+OUTPUT RULES:
+- Output ONLY the question. No preamble. No numbering. No quotes. No markdown.
+- One sentence, under 160 characters.
+- End with a question mark.
+- Always finish with: " — if you don't know, just type 'idk'."`;
+      const reply = (await callUserModel(cfg, [], prompt)).trim();
+      const question = reply.split("\n")[0].slice(0, 240);
+      setMessages((m) => [
+        ...m,
+        { id: newId(), role: "assistant", content: question, ts: Date.now() },
+      ]);
+    } catch (e: any) {
+      setError(e?.message || "Failed to fetch next question");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // When the user adds a BYOK key, automatically open the interview the first
+  // time and seed it with the opening question.
+  useEffect(() => {
+    if (!cfg || interviewStarted) return;
+    setInterviewStarted(true);
+    setInterviewActive(true);
+    setMessages([
+      {
+        id: newId(),
+        role: "assistant",
+        content: `INTAKE INTERVIEW INITIATED — Subject: "${mapQuery ?? "(unspecified)"}"\n\nI'll ask you one question at a time to sharpen the Intel Map. If you don't know an answer, just type 'idk' or 'i don't know' and I'll move on.`,
+        ts: Date.now(),
+      },
+    ]);
+    askNextQuestion([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfg]);
+
+  // Detect "idk" / "i don't know" style answers.
+  const isUnknown = (s: string) => /^(idk|i\s*do\s*n['’]?t\s*know|dunno|no\s*idea|unknown|unsure)\b/i.test(s.trim());
+
+  // Get the most recent assistant question so we can record the Q→A pair in the dossier.
+  const lastAssistantQuestion = (): string => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") return messages[i].content;
+    }
+    return "(initial)";
+  };
+
   const handleSend = async () => {
     const q = input.trim();
     if (!q || busy) return;
@@ -297,6 +371,60 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props
       return;
     }
     setError(null);
+
+    // ── Interview mode: treat the input as an answer to the last question.
+    if (interviewActive) {
+      const userMsg: IntelChatMsg = {
+        id: newId(),
+        role: "user",
+        content: q,
+        ts: Date.now(),
+      };
+      setMessages((m) => [...m, userMsg]);
+      setInput("");
+
+      const question = lastAssistantQuestion();
+      const unknown = isUnknown(q);
+      const dossierEntry = `Q: ${question.replace(/\s+—\s+if you don't know.*$/i, "").trim()}\nA: ${unknown ? "UNKNOWN" : q}`;
+      const nextDossier = unknown ? dossier : [...dossier, dossierEntry];
+      setDossier(nextDossier);
+
+      // Refine the underlying Zophiel search whenever we gain a new fact.
+      if (!unknown && onRefineQuery && nextDossier.length > 0) {
+        try {
+          setRefining(true);
+          const refinePrompt = `You are a query refinement engine for an OSINT intelligence map.
+
+CURRENT MAP SUBJECT: "${mapQuery ?? "(none)"}"
+DOSSIER (Q&A gathered):
+${nextDossier.join("\n\n")}
+
+TASK:
+Fuse the subject with all known dossier facts into ONE sharpened search query that returns the correct entity. Include disambiguating tokens (employer, city, role, alias, domain, handle).
+
+OUTPUT RULES:
+- Return ONLY the refined query string. No quotes, no prefix, no explanation.
+- Maximum 200 characters.
+- Plain text, no markdown.`;
+          const refined = (await callUserModel(cfg, [], refinePrompt))
+            .trim()
+            .replace(/^["'`]+|["'`]+$/g, "")
+            .split("\n")[0]
+            .slice(0, 200);
+          if (refined) onRefineQuery(refined);
+        } catch (e) {
+          // refinement failures are non-fatal — keep interviewing
+        } finally {
+          setRefining(false);
+        }
+      }
+
+      // Ask the next clarifying question.
+      await askNextQuestion(nextDossier);
+      return;
+    }
+
+    // ── Free-form intel report mode (interview ended / no BYOK auto-start).
     const userMsg: IntelChatMsg = {
       id: newId(),
       role: "user",
@@ -465,205 +593,181 @@ OUTPUT RULES:
         </div>
       )}
 
-      {/* BOTTOM-RIGHT — Floating oval chat */}
-      <div className="absolute bottom-4 right-20 z-30 flex flex-col items-end gap-2 pointer-events-none">
-        {/* Reports toggle pill (only shown when reports exist & drawer hidden) */}
-        {reports.length > 0 && !reportsOpen && (
-          <button
-            type="button"
-            onClick={() => setReportsOpen(true)}
-            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/60 backdrop-blur-xl px-4 py-2 text-[10px] font-light tracking-[0.2em] uppercase text-foreground hover:bg-card/80 transition shadow-lg"
-          >
-            <FileText className="h-3 w-3" />
-            {reports.length} Report{reports.length === 1 ? "" : "s"}
-          </button>
-        )}
-
-        {/* Chat panel */}
-        {open && (
-          <div className="pointer-events-auto w-[380px] max-w-[92vw] h-[480px] rounded-3xl border border-border/30 bg-card/60 backdrop-blur-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/20 bg-foreground/[0.03]">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="h-2 w-2 rounded-full bg-emerald-400/80 animate-pulse" />
-                <div className="min-w-0">
-                  <div className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">
-                    Intel Chat
-                  </div>
-                  <div className="text-xs font-light text-foreground truncate">
-                    {cfg
-                      ? `${providerSpec?.name ?? cfg.provider} · ${cfg.model}`
-                      : "BYOK Required"}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10"
-                aria-label="Close chat"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div
-              ref={scrollRef}
-              className="flex-1 overflow-y-auto px-3 py-3 space-y-3 text-xs"
-            >
-              {!cfg ? (
-                <div className="h-full flex flex-col items-center justify-center text-center gap-3 px-4">
-                  <KeyRound className="h-6 w-6 text-muted-foreground" />
-                  <div className="text-xs font-light text-foreground">
-                    Bring Your Own API Key
-                  </div>
-                  <div className="text-[11px] font-extralight text-muted-foreground leading-relaxed">
-                    Intel Chat runs on your own LLM key — never our infrastructure.
-                    Add a key to start generating CIA-grade intelligence reports.
-                  </div>
-                  <button
-                    type="button"
-                    onClick={onOpenByokPanel}
-                    className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-foreground/30 bg-foreground/5 px-4 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase hover:bg-foreground hover:text-background transition"
-                  >
-                    <KeyRound className="h-3 w-3" /> Configure BYOK
-                  </button>
-                </div>
-              ) : messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center gap-2 px-4 text-muted-foreground/70">
-                  <MessageSquare className="h-5 w-5" />
-                  <div className="text-[11px] font-extralight leading-relaxed">
-                    Ask about an entity, event, infrastructure, or threat.
-                    Each reply produces a downloadable intelligence report on the left.
-                  </div>
-                </div>
-              ) : (
-                messages.map((m) => (
-                  <div
-                    key={m.id}
-                    className={
-                      m.role === "user"
-                        ? "ml-auto max-w-[85%] rounded-2xl rounded-br-sm border border-foreground/20 bg-foreground/10 px-3 py-2 text-foreground"
-                        : "mr-auto max-w-[90%] rounded-2xl rounded-bl-sm border border-border/20 bg-background/40 px-3 py-2 text-foreground/90"
-                    }
-                  >
-                    <pre className="whitespace-pre-wrap font-mono text-[11px] leading-snug">
-                      {m.content}
-                    </pre>
-                  </div>
-                ))
-              )}
-              {busy && (
-                <div className="mr-auto inline-flex items-center gap-2 text-[11px] text-muted-foreground">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Composing intelligence report…
-                </div>
-              )}
-              {error && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[11px] text-destructive">
-                  {error}
-                </div>
-              )}
-            </div>
-
-            {/* Composer */}
-            <div className="border-t border-border/20 p-2 bg-foreground/[0.02]">
-              {onRefineQuery && (
-                <div className="flex items-center justify-between mb-2 px-1">
-                  <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={refineMode}
-                      onChange={(e) => setRefineMode(e.target.checked)}
-                      className="h-3 w-3 accent-foreground"
-                    />
-                    <Crosshair className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-[9px] font-light tracking-[0.2em] uppercase text-muted-foreground">
-                      Refine Map Mode
-                    </span>
-                  </label>
-                  {refineMode && (
-                    <span className="text-[9px] font-extralight text-muted-foreground/70 italic">
-                      details → sharpened query
-                    </span>
-                  )}
-                </div>
-              )}
-              <div className="flex items-end gap-2">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      if (refineMode) handleRefine();
-                      else handleSend();
-                    }
-                  }}
-                  rows={2}
-                  placeholder={
-                    !cfg
-                      ? "Add a BYOK key to enable…"
-                      : refineMode
-                      ? "Add details (employer, city, alias, handle…) to refine the map"
-                      : "Request intel… (Enter to send)"
-                  }
-                  disabled={!cfg || busy || refining}
-                  className="flex-1 resize-none rounded-xl border border-border/30 bg-background/60 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/40 disabled:opacity-50"
-                />
-                {refineMode ? (
-                  <button
-                    type="button"
-                    onClick={handleRefine}
-                    disabled={!cfg || refining || busy || !input.trim()}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-foreground/40 bg-foreground/10 text-foreground hover:bg-foreground hover:text-background disabled:opacity-30 disabled:cursor-not-allowed transition"
-                    aria-label="Refine map"
-                    title="Refine Intel Map with these details"
-                  >
-                    {refining ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Crosshair className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleSend}
-                    disabled={!cfg || busy || !input.trim()}
-                    className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                    aria-label="Send"
-                  >
-                    {busy ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Send className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Floating oval trigger */}
+      {/* RIGHT — Side popout chat (no oval button; permanently mounted) */}
+      <div
+        className={`absolute top-3 bottom-3 right-3 z-30 flex items-stretch transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "translate-x-[calc(100%-28px)]"
+        }`}
+        style={{ pointerEvents: "none" }}
+      >
+        {/* Collapse / expand rail */}
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="pointer-events-auto group relative inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground text-background px-5 py-3 text-[10px] font-medium tracking-[0.25em] uppercase shadow-2xl hover:scale-[1.03] active:scale-[0.98] transition-all"
-          aria-label={open ? "Close intel chat" : "Open intel chat"}
+          className="pointer-events-auto self-center mr-1 h-24 w-7 rounded-l-xl border border-r-0 border-border/30 bg-card/60 backdrop-blur-xl flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-card/80 transition shadow-lg"
+          aria-label={open ? "Collapse intel chat" : "Expand intel chat"}
+          title={open ? "Collapse Intel Chat" : "Expand Intel Chat"}
         >
-          <span className="absolute -inset-px rounded-full bg-foreground/30 blur-md opacity-40 group-hover:opacity-70 transition" />
-          <span className="relative inline-flex items-center gap-2">
-            {open ? (
-              <X className="h-3.5 w-3.5" />
-            ) : (
-              <MessageSquare className="h-3.5 w-3.5" />
-            )}
-            {open ? "Close" : "Intel Chat"}
+          {open ? (
+            <ChevronRight className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronLeft className="h-3.5 w-3.5" />
+          )}
+          <span className="text-[8px] font-light tracking-[0.3em] uppercase [writing-mode:vertical-rl] rotate-180">
+            Intel Chat
           </span>
         </button>
+
+        {/* The popout panel itself */}
+        <div className="pointer-events-auto w-[400px] max-w-[92vw] h-full rounded-2xl border border-border/30 bg-card/60 backdrop-blur-2xl shadow-2xl overflow-hidden flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/20 bg-foreground/[0.03]">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`h-2 w-2 rounded-full ${cfg ? "bg-emerald-400/80 animate-pulse" : "bg-muted-foreground/40"}`} />
+              <div className="min-w-0">
+                <div className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">
+                  Intel Chat
+                </div>
+                <div className="text-xs font-light text-foreground truncate">
+                  {cfg
+                    ? `${providerSpec?.name ?? cfg.provider} · ${cfg.model}`
+                    : "BYOK Required"}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {reports.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setReportsOpen((o) => !o)}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[9px] tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition"
+                  title="Toggle reports drawer"
+                >
+                  <FileText className="h-3 w-3" />
+                  {reports.length}
+                </button>
+              )}
+              {interviewActive && (
+                <button
+                  type="button"
+                  onClick={() => setInterviewActive(false)}
+                  className="px-2 py-1 rounded-md text-[9px] tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition"
+                  title="End interview and switch to free-form intel"
+                >
+                  End Q&A
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Body */}
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto px-3 py-3 space-y-3 text-xs"
+          >
+            {!cfg ? (
+              <div className="h-full flex flex-col items-center justify-center text-center gap-3 px-4">
+                <KeyRound className="h-6 w-6 text-muted-foreground" />
+                <div className="text-xs font-light text-foreground">
+                  Bring Your Own API Key
+                </div>
+                <div className="text-[11px] font-extralight text-muted-foreground leading-relaxed">
+                  Intel Chat runs on your own LLM key — never our infrastructure.
+                  Once a key is connected, the AI will start asking you
+                  questions to sharpen the Intel Map.
+                </div>
+                <button
+                  type="button"
+                  onClick={onOpenByokPanel}
+                  className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-foreground/30 bg-foreground/5 px-4 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase hover:bg-foreground hover:text-background transition"
+                >
+                  <KeyRound className="h-3 w-3" /> Configure BYOK
+                </button>
+              </div>
+            ) : (
+              messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={
+                    m.role === "user"
+                      ? "ml-auto max-w-[85%] rounded-2xl rounded-br-sm border border-foreground/20 bg-foreground/10 px-3 py-2 text-foreground"
+                      : "mr-auto max-w-[90%] rounded-2xl rounded-bl-sm border border-border/20 bg-background/40 px-3 py-2 text-foreground/90"
+                  }
+                >
+                  <pre className="whitespace-pre-wrap font-mono text-[11px] leading-snug">
+                    {m.content}
+                  </pre>
+                </div>
+              ))
+            )}
+            {(busy || refining) && (
+              <div className="mr-auto inline-flex items-center gap-2 text-[11px] text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {refining ? "Refining map…" : interviewActive ? "Thinking of next question…" : "Composing intelligence report…"}
+              </div>
+            )}
+            {error && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[11px] text-destructive">
+                {error}
+              </div>
+            )}
+          </div>
+
+          {/* Composer */}
+          <div className="border-t border-border/20 p-2 bg-foreground/[0.02]">
+            {interviewActive && (
+              <div className="mb-2 px-1 flex items-center justify-between">
+                <span className="text-[9px] font-light tracking-[0.2em] uppercase text-muted-foreground">
+                  Intake Interview · {dossier.length} fact{dossier.length === 1 ? "" : "s"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setInput("idk"); setTimeout(handleSend, 0); }}
+                  disabled={!cfg || busy || refining}
+                  className="text-[9px] font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground transition disabled:opacity-40"
+                  title="Skip this question"
+                >
+                  Skip · idk
+                </button>
+              </div>
+            )}
+            <div className="flex items-end gap-2">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                rows={2}
+                placeholder={
+                  !cfg
+                    ? "Add a BYOK key to enable…"
+                    : interviewActive
+                    ? "Type your answer — or 'idk' if you don't know"
+                    : "Request intel… (Enter to send)"
+                }
+                disabled={!cfg || busy || refining}
+                className="flex-1 resize-none rounded-xl border border-border/30 bg-background/60 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/40 disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={!cfg || busy || refining || !input.trim()}
+                className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                aria-label="Send"
+              >
+                {busy || refining ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Send className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );
