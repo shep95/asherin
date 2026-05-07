@@ -742,7 +742,8 @@ const Index = () => {
       </div>
       </ScrollSection>
 
-
+      <ScrollSection>
+      <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-center text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
             Your Words Never Leave The Room.
