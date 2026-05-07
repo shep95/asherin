@@ -147,6 +147,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Persistent Memory & Custom Personas",
       "Zophiel Search, Notebooks, PDF / Slideshow / E-Book",
       "Zahten Agent Forge & Guardian Vault",
+      "ZERLAL — Domain reconnaissance & vulnerability intelligence",
       "NOMAD Public Intelligence",
       "Daily Intelligence Briefings",
       "ZANOEM Design Lab",
