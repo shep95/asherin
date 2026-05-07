@@ -251,7 +251,7 @@ async function callUserModel(
 }
 
 const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -259,6 +259,12 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props
   const [refineMode, setRefineMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<IntelChatMsg[]>([]);
+  // Interview mode: AI asks one disambiguating question at a time so the user
+  // can incrementally sharpen the Intel Map. Each answer is folded into the
+  // accumulated dossier and used to refine the underlying Zophiel search.
+  const [interviewStarted, setInterviewStarted] = useState(false);
+  const [interviewActive, setInterviewActive] = useState(false);
+  const [dossier, setDossier] = useState<string[]>([]);
   const [reports, setReports] = useState<IntelReport[]>(() => {
     try {
       const raw = localStorage.getItem("zophiel_intel_reports_v1");
