@@ -39,8 +39,8 @@ const SettingsScreen = () => {
       setLoading(true);
       const { data } = await supabase.from("zerlal_settings").select("*").eq("user_id", user.id).maybeSingle();
       if (data) setS({
-        scan_frequency: data.scan_frequency,
-        severity_threshold: data.severity_threshold,
+        scan_frequency: data.scan_frequency as Settings["scan_frequency"],
+        severity_threshold: data.severity_threshold as Settings["severity_threshold"],
         alert_email: data.alert_email ?? "",
         slack_webhook: data.slack_webhook ?? "",
         auto_remediation: data.auto_remediation,
