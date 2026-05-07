@@ -252,10 +252,6 @@ async function callUserModel(
 
 const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props) => {
   const [open, setOpen] = useState(true);
-  // When `popped` is true, the side-docked chat detaches into a larger
-  // floating popout panel with an animated transition. When false, it's a
-  // narrow side chat docked to the right edge of the Intel Map canvas.
-  const [popped, setPopped] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -263,9 +259,6 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props
   const [refineMode, setRefineMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<IntelChatMsg[]>([]);
-  // Interview mode: AI asks one disambiguating question at a time so the user
-  // can incrementally sharpen the Intel Map. Each answer is folded into the
-  // accumulated dossier and used to refine the underlying Zophiel search.
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [interviewActive, setInterviewActive] = useState(false);
   const [dossier, setDossier] = useState<string[]>([]);
@@ -276,6 +269,69 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props
     } catch {}
     return [];
   });
+
+  // Draggable + resizable popout state. Position is viewport-fixed.
+  const POPOUT_KEY = "zophiel_intel_chat_popout_v1";
+  const [pos, setPos] = useState<{ x: number; y: number; w: number; h: number }>(() => {
+    try {
+      const raw = localStorage.getItem(POPOUT_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (typeof p?.x === "number") return p;
+      }
+    } catch {}
+    const w = 420, h = 560;
+    return {
+      x: Math.max(16, (typeof window !== "undefined" ? window.innerWidth : 1280) - w - 24),
+      y: 80,
+      w,
+      h,
+    };
+  });
+  useEffect(() => {
+    try { localStorage.setItem(POPOUT_KEY, JSON.stringify(pos)); } catch {}
+  }, [pos]);
+
+  const dragRef = useRef<{ mode: "drag" | "resize"; startX: number; startY: number; orig: typeof pos } | null>(null);
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      const dx = e.clientX - d.startX;
+      const dy = e.clientY - d.startY;
+      if (d.mode === "drag") {
+        const maxX = window.innerWidth - 80;
+        const maxY = window.innerHeight - 60;
+        setPos({
+          ...d.orig,
+          x: Math.min(maxX, Math.max(-d.orig.w + 80, d.orig.x + dx)),
+          y: Math.min(maxY, Math.max(0, d.orig.y + dy)),
+        });
+      } else {
+        setPos({
+          ...d.orig,
+          w: Math.max(280, Math.min(window.innerWidth - d.orig.x - 8, d.orig.w + dx)),
+          h: Math.max(320, Math.min(window.innerHeight - d.orig.y - 8, d.orig.h + dy)),
+        });
+      }
+    };
+    const onUp = () => { dragRef.current = null; document.body.style.userSelect = ""; };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, []);
+
+  const startDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.body.style.userSelect = "none";
+    dragRef.current = { mode: "drag", startX: e.clientX, startY: e.clientY, orig: pos };
+  };
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    document.body.style.userSelect = "none";
+    dragRef.current = { mode: "resize", startX: e.clientX, startY: e.clientY, orig: pos };
+  };
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const cfg = getActiveIntelMapByok();
@@ -597,31 +653,22 @@ OUTPUT RULES:
         </div>
       )}
 
-      {/* Side-docked chat — sits inline as a real flex column.
-          When `popped`, detaches and floats over the map. */}
+      {/* Floating popout — drag the header to move, drag bottom-right corner to resize. */}
       <div
-        className={[
-          "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-          popped
-            ? "absolute z-30 top-6 bottom-6 right-6 left-auto w-[640px] max-w-[92vw] pointer-events-none"
-            : "relative h-full shrink-0 w-[360px] lg:w-[400px] border-l border-border/20 bg-card/30 backdrop-blur-2xl",
-        ].join(" ")}
+        style={{ position: "fixed", left: pos.x, top: pos.y, width: pos.w, height: pos.h, zIndex: 60 }}
+        className="pointer-events-auto"
       >
-        <div
-          className={[
-            "h-full w-full flex flex-col overflow-hidden",
-            popped
-              ? "pointer-events-auto border border-border/30 bg-card/60 backdrop-blur-2xl shadow-2xl rounded-3xl ring-1 ring-foreground/10"
-              : "",
-          ].join(" ")}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/20 bg-foreground/[0.03]">
+        <div className="h-full w-full flex flex-col overflow-hidden border border-border/30 bg-card/70 backdrop-blur-2xl shadow-2xl rounded-2xl ring-1 ring-foreground/10 relative">
+          {/* Header — draggable */}
+          <div
+            onMouseDown={startDrag}
+            className="flex items-center justify-between px-4 py-3 border-b border-border/20 bg-foreground/[0.04] cursor-move select-none"
+          >
             <div className="flex items-center gap-2 min-w-0">
               <span className={`h-2 w-2 rounded-full ${cfg ? "bg-emerald-400/80 animate-pulse" : "bg-muted-foreground/40"}`} />
               <div className="min-w-0">
                 <div className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">
-                  Intel Chat {popped && <span className="text-foreground/60">· Popped Out</span>}
+                  Intel Chat · Drag
                 </div>
                 <div className="text-xs font-light text-foreground truncate">
                   {cfg
@@ -630,7 +677,7 @@ OUTPUT RULES:
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" onMouseDown={(e) => e.stopPropagation()}>
               {reports.length > 0 && (
                 <button
                   type="button"
@@ -652,19 +699,6 @@ OUTPUT RULES:
                   End Q&A
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => setPopped((p) => !p)}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition"
-                aria-label={popped ? "Dock chat back to side" : "Pop out chat"}
-                title={popped ? "Dock to side" : "Pop out"}
-              >
-                {popped ? (
-                  <Minimize2 className="h-3.5 w-3.5" />
-                ) : (
-                  <Maximize2 className="h-3.5 w-3.5" />
-                )}
-              </button>
             </div>
           </div>
 
@@ -775,6 +809,17 @@ OUTPUT RULES:
               </button>
             </div>
           </div>
+
+          {/* Resize handle */}
+          <div
+            onMouseDown={startResize}
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize"
+            title="Drag to resize"
+            style={{
+              background:
+                "linear-gradient(135deg, transparent 0 50%, hsl(var(--foreground) / 0.35) 50% 60%, transparent 60% 70%, hsl(var(--foreground) / 0.35) 70% 80%, transparent 80%)",
+            }}
+          />
         </div>
       </div>
     </>
