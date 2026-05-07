@@ -209,6 +209,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "File Scrapper — extract text from any document",
       "Cipher Toolkit — encoding, hashing, encryption",
       "Whiteboard — infinite canvas with layers",
+      "ZERLAL — Domain reconnaissance & vulnerability intelligence",
       "NOMAD Public Intelligence Agent",
       "Daily Intelligence Briefings",
       "ZANOEM Design Lab",
