@@ -18,17 +18,34 @@ import ForumsDropdown from "@/components/forums/ForumsDropdown";
 const Header = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isAsherRoute = location.pathname.startsWith("/asher");
   const [showAuth, setShowAuth] = useState(false);
   const [pagesOpen, setPagesOpen] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const hoverNavTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const hoverNavigate = (to: string) => {
+    if (hoverNavTimer.current) clearTimeout(hoverNavTimer.current);
+    hoverNavTimer.current = setTimeout(() => {
+      if (location.pathname !== to) navigate(to);
+    }, 180);
+  };
+
+  const cancelHoverNavigate = () => {
+    if (hoverNavTimer.current) {
+      clearTimeout(hoverNavTimer.current);
+      hoverNavTimer.current = null;
+    }
+  };
 
   const openAuth = (login: boolean) => {
     setIsLogin(login);
     setShowAuth(true);
     setMobileMenuOpen(false);
   };
+
 
   return (
     <>
