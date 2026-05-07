@@ -184,8 +184,6 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Zahten Agent Forge",
       "Guardian Vault",
       "ZERLAL — Cyber Security & vulnerability intelligence (Zophiel Engine)",
-      "AXRLEN — Predictive Intelligence (Zophiel Engine)",
-      "ZEEION FI — Financial Intelligence (Zophiel Engine)",
     ],
   },
   {
