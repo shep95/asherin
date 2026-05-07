@@ -21,6 +21,8 @@ import {
   FileText,
   Trash2,
   Crosshair,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import {
   getActiveIntelMapByok,
