@@ -137,21 +137,7 @@ const Pricing = () => {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="relative z-10 px-6 pb-8 pt-4">
-        <div className="mx-auto max-w-5xl">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-6">
-            <p className="text-sm font-light tracking-[0.2em] text-foreground">AUREON</p>
-            <div className="flex items-center gap-6 flex-wrap justify-center">
-              <Link to="/" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-              <Link to="/features" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Features</Link>
-              <Link to="/benchmarks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Benchmarks</Link>
-              <Link to="/terms" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
-            </div>
-            <p className="text-xs font-extralight tracking-wide text-muted-foreground/50">© {new Date().getFullYear()} Zorak Corp</p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter variant="compact" />
     </LandingBackground>
   );
 };
