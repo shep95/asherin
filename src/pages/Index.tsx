@@ -11,6 +11,8 @@ import ReactMarkdown from "react-markdown";
 import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
 import NeuralThinkingModal from "@/components/dashboard/NeuralThinkingModal";
 import houseOfAsherLogo from "@/assets/HouseOfAsher_Flag.png";
+import PricingComparisonTable from "@/components/subscription/PricingComparisonTable";
+import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
 
 const StatusIcon = ({ type }: { type: string }) => {
   if (type === "check") return <Check className="h-4 w-4 text-emerald-400 inline" />;
