@@ -12,7 +12,7 @@ const TIER_1_DOMAINS = new Set([
   'reuters.com', 'apnews.com', 'bbc.com', 'bbc.co.uk', 'nature.com', 'science.org',
   'who.int', 'nih.gov', 'cdc.gov', 'nasa.gov', 'sec.gov', 'federalreserve.gov',
   'supremecourt.gov', 'congress.gov', 'whitehouse.gov', 'europa.eu',
-  'worldbank.org', 'imf.org', 'un.org', 'arxiv.org', 'pubmed.ncbi.nlm.nih.gov',
+  'worldbank.org', 'imf.org', 'un.org', 'pubmed.ncbi.nlm.nih.gov',
   'scholar.google.com', 'jstor.org', 'ncbi.nlm.nih.gov', 'ieee.org',
   'ecb.europa.eu', 'bis.org', 'wto.org', 'iaea.org', 'patents.google.com',
 ]);
@@ -207,7 +207,7 @@ type SearchMode = 'web' | 'news' | 'academic' | 'code' | 'data' | 'docs';
 const MODE_DOMAIN_BOOSTS: Record<SearchMode, string[]> = {
   web: [],
   news: ['reuters.com', 'apnews.com', 'bbc.com', 'nytimes.com', 'theguardian.com', 'washingtonpost.com', 'bloomberg.com', 'cnbc.com'],
-  academic: ['arxiv.org', 'scholar.google.com', 'pubmed.ncbi.nlm.nih.gov', 'jstor.org', 'nature.com', 'science.org', 'ieee.org'],
+  academic: ['scholar.google.com', 'pubmed.ncbi.nlm.nih.gov', 'jstor.org', 'nature.com', 'science.org', 'ieee.org'],
   code: ['github.com', 'stackoverflow.com', 'developer.mozilla.org', 'docs.python.org', 'npmjs.com', 'pypi.org', 'learn.microsoft.com'],
   data: ['statista.com', 'worldbank.org', 'data.gov', 'kaggle.com', 'ourworldindata.org'],
   docs: ['developer.mozilla.org', 'docs.python.org', 'learn.microsoft.com', 'cloud.google.com', 'docs.aws.amazon.com'],
@@ -1089,7 +1089,7 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
     wikiResults, braveResults, yandexResults,
     // PANTHEON layers
     commonCrawlResults, waybackResults, githubResults, edgarResults,
-    arxivResults, crossrefResults, openalexResults,
+    crossrefResults, openalexResults,
     hnResults, redditResults,
     chainResults, breachResults, shodanResults, cveResults, booksResults,
   ] = await Promise.allSettled([
@@ -1106,7 +1106,6 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
     searchWayback(query),
     searchGitHubCode(query),
     searchEDGAR(query),
-    searchArxiv(query),
     searchCrossRef(query),
     searchOpenAlex(query),
     searchHackerNews(query),
@@ -1155,7 +1154,6 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   addResults(waybackResults, 'wayback', 'deep');
   addResults(githubResults, 'github', 'code');
   addResults(edgarResults, 'sec-edgar', 'deep');
-  addResults(arxivResults, 'arxiv', 'academic');
   addResults(crossrefResults, 'crossref', 'academic');
   addResults(openalexResults, 'openalex', 'academic');
   addResults(hnResults, 'hackernews', 'social');
