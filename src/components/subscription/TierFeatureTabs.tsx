@@ -201,6 +201,8 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
       <div className="flex rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-1 w-fit mx-auto">
         <button
           onClick={() => setActiveTab("chat")}
+          onMouseEnter={() => setActiveTab("chat")}
+          onFocus={() => setActiveTab("chat")}
           className={`px-5 py-2.5 rounded-lg text-xs font-light tracking-wide transition-all ${
             activeTab === "chat"
               ? "bg-foreground text-background"
@@ -211,6 +213,8 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
         </button>
         <button
           onClick={() => setActiveTab("aureon")}
+          onMouseEnter={() => setActiveTab("aureon")}
+          onFocus={() => setActiveTab("aureon")}
           className={`px-5 py-2.5 rounded-lg text-xs font-light tracking-wide transition-all ${
             activeTab === "aureon"
               ? "bg-foreground text-background"
@@ -221,6 +225,8 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
         </button>
         <button
           onClick={() => setActiveTab("pro")}
+          onMouseEnter={() => setActiveTab("pro")}
+          onFocus={() => setActiveTab("pro")}
           className={`px-5 py-2.5 rounded-lg text-xs font-light tracking-wide transition-all ${
             activeTab === "pro"
               ? "bg-accent text-accent-foreground"
