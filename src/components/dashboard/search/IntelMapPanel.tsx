@@ -253,7 +253,7 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
   return nodes;
 }
 
-const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
+const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanelProps) => {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
