@@ -258,12 +258,24 @@ interface SearchResult {
 }
 
 interface SearchFilters {
-  dateRange?: 'day' | 'week' | 'month' | 'year';
+  dateRange?: 'day' | 'week' | 'month' | 'year' | 'custom';
+  dateFrom?: string;
+  dateTo?: string;
   domainInclude?: string[];
   domainExclude?: string[];
   fileType?: string;
   sourceType?: string[];
   credibilityMin?: SourceTier;
+  language?: string;
+  region?: string;
+  exactPhrase?: string;
+  includeKeywords?: string[];
+  excludeKeywords?: string[];
+  contentLength?: 'short' | 'medium' | 'long';
+  sortBy?: 'relevance' | 'date' | 'credibility';
+  safeSearch?: 'off' | 'moderate' | 'strict';
+  intitle?: string;
+  inurl?: string;
 }
 
 interface SearchRequest {
