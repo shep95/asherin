@@ -940,6 +940,12 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
             </div>
           );
         })()}
+
+        {/* Floating BYOK-powered intel chat + left-side report drawer */}
+        <IntelMapChatPopover
+          mapQuery={query}
+          onOpenByokPanel={() => setByokOpen(true)}
+        />
       </div>
 
       <IntelMapByokPanel
