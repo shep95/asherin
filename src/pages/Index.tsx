@@ -650,99 +650,16 @@ const Index = () => {
           </h2>
 
           {/* Comparison Table */}
-          <div className="mt-16 max-w-5xl mx-auto overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border/20">
-                  <th className="py-4 px-4 text-xs font-light tracking-[0.2em] text-muted-foreground uppercase w-[200px]">Feature</th>
-                  <th className="py-4 px-4 text-center">
-                    <div className="inline-flex flex-col items-center gap-1">
-                      <span className="text-[10px] font-medium tracking-[0.15em] text-accent uppercase rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5">Best Value</span>
-                      <span className="text-sm font-light tracking-[0.15em] text-foreground">Lifetime</span>
-                      <span className="text-lg font-extralight text-foreground">$740</span>
-                      <span className="text-[10px] text-muted-foreground">one-time</span>
-                    </div>
-                  </th>
-                  <th className="py-4 px-4 text-center">
-                    <div className="inline-flex flex-col items-center gap-1">
-                      <span className="text-sm font-light tracking-[0.15em] text-foreground mt-5">Chat</span>
-                      <span className="text-lg font-extralight text-foreground">$47</span>
-                      <span className="text-[10px] text-muted-foreground">/month</span>
-                    </div>
-                  </th>
-                  <th className="py-4 px-4 text-center">
-                    <div className="inline-flex flex-col items-center gap-1">
-                      <span className="text-sm font-light tracking-[0.15em] text-foreground mt-5">Aureon</span>
-                      <span className="text-lg font-extralight text-foreground">$199</span>
-                      <span className="text-[10px] text-muted-foreground">/month</span>
-                    </div>
-                  </th>
-                  <th className="py-4 px-4 text-center">
-                    <div className="inline-flex flex-col items-center gap-1">
-                      <span className="text-sm font-light tracking-[0.15em] text-foreground mt-5">Pro</span>
-                      <span className="text-lg font-extralight text-foreground">$740</span>
-                      <span className="text-[10px] text-muted-foreground">/month</span>
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { feature: "Uncensored AI Chat", lifetime: true, chat: true, aureon: true, pro: true },
-                  { feature: "Message Limit", lifetime: "Unlimited", chat: "Unlimited", aureon: "Unlimited", pro: "Unlimited" },
-                  { feature: "BYOK (Bring Your Own Key)", lifetime: "Required", chat: "Required", aureon: "Required", pro: "Required" },
-                  { feature: "E2E Encryption", lifetime: true, chat: true, aureon: true, pro: true },
-                  { feature: "Persistent Memory Center", lifetime: true, chat: false, aureon: true, pro: true },
-                  { feature: "Aureon IDE", lifetime: true, chat: false, aureon: true, pro: true },
-                  { feature: "Zophiel Search", lifetime: true, chat: true, aureon: true, pro: true },
-                  { feature: "Code Snippets Vault", lifetime: true, chat: false, aureon: true, pro: true },
-                  { feature: "Custom Personas & Persona Store", lifetime: true, chat: false, aureon: true, pro: true },
-                  { feature: "Projects & Library Workspaces", lifetime: true, chat: false, aureon: true, pro: true },
-                  { feature: "My Stats & Self-Access Learning", lifetime: true, chat: false, aureon: true, pro: true },
-                  { feature: "Bug Reports (private support)", lifetime: true, chat: false, aureon: true, pro: true },
-                  { feature: "NOMAD Public Intelligence", lifetime: true, chat: false, aureon: true, pro: true },
-                  { feature: "ZANOEM Design Lab", lifetime: true, chat: false, aureon: true, pro: true },
-                  { feature: "Daily Briefings", lifetime: true, chat: false, aureon: true, pro: true },
-                  { feature: "Vedic Strategy", lifetime: true, chat: false, aureon: true, pro: true },
-                  { feature: "Azplen Data Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "Pro Advanced Modules (AXRLEN, ZEEION, ZERLAL, Lavba, Cross)", lifetime: false, chat: false, aureon: false, pro: true },
-                ].map((row, i) => (
-                  <tr key={row.feature} className={`border-b border-border/10 ${i % 2 === 0 ? "bg-card/5" : ""}`}>
-                    <td className="py-3 px-4 text-xs font-extralight text-foreground/90">{row.feature}</td>
-                    {(["lifetime", "chat", "aureon", "pro"] as const).map((tier) => (
-                      <td key={tier} className="py-3 px-4 text-center">
-                        {typeof row[tier] === "boolean" ? (
-                          row[tier] ? (
-                            <Check className="h-4 w-4 mx-auto text-accent" />
-                          ) : (
-                            <span className="text-muted-foreground/30">—</span>
-                          )
-                        ) : (
-                          <span className="text-xs font-extralight text-foreground/80">{row[tier]}</span>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td className="py-5 px-4" />
-                  {[
-                    { label: "Get Lifetime", path: "/pricing" },
-                    { label: "Get Chat", path: "/pricing" },
-                    { label: "Get Aureon", path: "/pricing" },
-                    { label: "Get Pro", path: "/pricing" },
-                  ].map((cta) => (
-                    <td key={cta.label} className="py-5 px-4 text-center">
-                      <Link to={cta.path} className="group inline-flex items-center gap-1.5 rounded-lg bg-foreground px-4 py-2 text-xs font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
-                        {cta.label} <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                      </Link>
-                    </td>
-                  ))}
-                </tr>
-              </tfoot>
-            </table>
+          <div className="mt-16 max-w-7xl mx-auto text-left">
+            <PricingComparisonTable />
+          </div>
+
+          {/* What Powers Each Tier */}
+          <div className="mt-20 max-w-5xl mx-auto text-left">
+            <h3 className="text-center text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-12">
+              What Powers Each Tier.
+            </h3>
+            <TierFeatureTabs />
           </div>
 
           {/* Why no free tier */}
