@@ -653,31 +653,22 @@ OUTPUT RULES:
         </div>
       )}
 
-      {/* Side-docked chat — sits inline as a real flex column.
-          When `popped`, detaches and floats over the map. */}
+      {/* Floating popout — drag the header to move, drag bottom-right corner to resize. */}
       <div
-        className={[
-          "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-          popped
-            ? "absolute z-30 top-6 bottom-6 right-6 left-auto w-[640px] max-w-[92vw] pointer-events-none"
-            : "relative h-full shrink-0 w-[360px] lg:w-[400px] border-l border-border/20 bg-card/30 backdrop-blur-2xl",
-        ].join(" ")}
+        style={{ position: "fixed", left: pos.x, top: pos.y, width: pos.w, height: pos.h, zIndex: 60 }}
+        className="pointer-events-auto"
       >
-        <div
-          className={[
-            "h-full w-full flex flex-col overflow-hidden",
-            popped
-              ? "pointer-events-auto border border-border/30 bg-card/60 backdrop-blur-2xl shadow-2xl rounded-3xl ring-1 ring-foreground/10"
-              : "",
-          ].join(" ")}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/20 bg-foreground/[0.03]">
+        <div className="h-full w-full flex flex-col overflow-hidden border border-border/30 bg-card/70 backdrop-blur-2xl shadow-2xl rounded-2xl ring-1 ring-foreground/10 relative">
+          {/* Header — draggable */}
+          <div
+            onMouseDown={startDrag}
+            className="flex items-center justify-between px-4 py-3 border-b border-border/20 bg-foreground/[0.04] cursor-move select-none"
+          >
             <div className="flex items-center gap-2 min-w-0">
               <span className={`h-2 w-2 rounded-full ${cfg ? "bg-emerald-400/80 animate-pulse" : "bg-muted-foreground/40"}`} />
               <div className="min-w-0">
                 <div className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">
-                  Intel Chat {popped && <span className="text-foreground/60">· Popped Out</span>}
+                  Intel Chat · Drag
                 </div>
                 <div className="text-xs font-light text-foreground truncate">
                   {cfg
@@ -686,7 +677,7 @@ OUTPUT RULES:
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" onMouseDown={(e) => e.stopPropagation()}>
               {reports.length > 0 && (
                 <button
                   type="button"
@@ -708,19 +699,6 @@ OUTPUT RULES:
                   End Q&A
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => setPopped((p) => !p)}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition"
-                aria-label={popped ? "Dock chat back to side" : "Pop out chat"}
-                title={popped ? "Dock to side" : "Pop out"}
-              >
-                {popped ? (
-                  <Minimize2 className="h-3.5 w-3.5" />
-                ) : (
-                  <Maximize2 className="h-3.5 w-3.5" />
-                )}
-              </button>
             </div>
           </div>
 
