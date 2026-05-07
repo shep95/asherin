@@ -252,10 +252,6 @@ async function callUserModel(
 
 const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props) => {
   const [open, setOpen] = useState(true);
-  // When `popped` is true, the side-docked chat detaches into a larger
-  // floating popout panel with an animated transition. When false, it's a
-  // narrow side chat docked to the right edge of the Intel Map canvas.
-  const [popped, setPopped] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -263,9 +259,6 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props
   const [refineMode, setRefineMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<IntelChatMsg[]>([]);
-  // Interview mode: AI asks one disambiguating question at a time so the user
-  // can incrementally sharpen the Intel Map. Each answer is folded into the
-  // accumulated dossier and used to refine the underlying Zophiel search.
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [interviewActive, setInterviewActive] = useState(false);
   const [dossier, setDossier] = useState<string[]>([]);
@@ -276,6 +269,69 @@ const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props
     } catch {}
     return [];
   });
+
+  // Draggable + resizable popout state. Position is viewport-fixed.
+  const POPOUT_KEY = "zophiel_intel_chat_popout_v1";
+  const [pos, setPos] = useState<{ x: number; y: number; w: number; h: number }>(() => {
+    try {
+      const raw = localStorage.getItem(POPOUT_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (typeof p?.x === "number") return p;
+      }
+    } catch {}
+    const w = 420, h = 560;
+    return {
+      x: Math.max(16, (typeof window !== "undefined" ? window.innerWidth : 1280) - w - 24),
+      y: 80,
+      w,
+      h,
+    };
+  });
+  useEffect(() => {
+    try { localStorage.setItem(POPOUT_KEY, JSON.stringify(pos)); } catch {}
+  }, [pos]);
+
+  const dragRef = useRef<{ mode: "drag" | "resize"; startX: number; startY: number; orig: typeof pos } | null>(null);
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      const dx = e.clientX - d.startX;
+      const dy = e.clientY - d.startY;
+      if (d.mode === "drag") {
+        const maxX = window.innerWidth - 80;
+        const maxY = window.innerHeight - 60;
+        setPos({
+          ...d.orig,
+          x: Math.min(maxX, Math.max(-d.orig.w + 80, d.orig.x + dx)),
+          y: Math.min(maxY, Math.max(0, d.orig.y + dy)),
+        });
+      } else {
+        setPos({
+          ...d.orig,
+          w: Math.max(280, Math.min(window.innerWidth - d.orig.x - 8, d.orig.w + dx)),
+          h: Math.max(320, Math.min(window.innerHeight - d.orig.y - 8, d.orig.h + dy)),
+        });
+      }
+    };
+    const onUp = () => { dragRef.current = null; document.body.style.userSelect = ""; };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, []);
+
+  const startDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.body.style.userSelect = "none";
+    dragRef.current = { mode: "drag", startX: e.clientX, startY: e.clientY, orig: pos };
+  };
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    document.body.style.userSelect = "none";
+    dragRef.current = { mode: "resize", startX: e.clientX, startY: e.clientY, orig: pos };
+  };
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const cfg = getActiveIntelMapByok();
