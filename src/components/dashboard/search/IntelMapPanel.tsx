@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { acquireIntelSlot } from "@/lib/intelJobQueue";
 import { getActiveIntelMapByok, isIntelMapByokEnabled, getProviderSpec } from "@/lib/intelMapByok";
 import IntelMapByokPanel from "./IntelMapByokPanel";
+import IntelMapChatPopover from "./IntelMapChatPopover";
 import SocialPostEmbed, { isSocialUrl } from "./SocialPostEmbed";
 import LocationMapPanel from "./LocationMapPanel";
 import { decodeHtmlEntities } from "@/lib/htmlDecode";
@@ -939,6 +940,12 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
             </div>
           );
         })()}
+
+        {/* Floating BYOK-powered intel chat + left-side report drawer */}
+        <IntelMapChatPopover
+          mapQuery={query}
+          onOpenByokPanel={() => setByokOpen(true)}
+        />
       </div>
 
       <IntelMapByokPanel
