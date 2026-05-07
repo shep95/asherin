@@ -914,12 +914,10 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
               </div>
             </aside>
           );
-        })()}
-
-        {/* RIGHT-DOCKED Intel Chat — sits inline as a real side column.
-            When user pops it out, it floats above the map. */}
-        <IntelMapChatPopover mapQuery={query} onOpenByokPanel={() => setByokOpen(true)} onRefineQuery={onRefineQuery} />
       </div>
+
+      {/* Floating draggable + resizable Intel Chat (viewport-fixed popout). */}
+      <IntelMapChatPopover mapQuery={query} onOpenByokPanel={() => setByokOpen(true)} onRefineQuery={onRefineQuery} />
 
       <IntelMapByokPanel open={byokOpen} onClose={() => setByokOpen(false)} onChange={refreshByok} />
 
