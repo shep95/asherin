@@ -569,6 +569,27 @@ OUTPUT RULES:
 
             {/* Composer */}
             <div className="border-t border-border/20 p-2 bg-foreground/[0.02]">
+              {onRefineQuery && (
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={refineMode}
+                      onChange={(e) => setRefineMode(e.target.checked)}
+                      className="h-3 w-3 accent-foreground"
+                    />
+                    <Crosshair className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-[9px] font-light tracking-[0.2em] uppercase text-muted-foreground">
+                      Refine Map Mode
+                    </span>
+                  </label>
+                  {refineMode && (
+                    <span className="text-[9px] font-extralight text-muted-foreground/70 italic">
+                      details → sharpened query
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex items-end gap-2">
                 <textarea
                   value={input}
@@ -576,31 +597,51 @@ OUTPUT RULES:
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      handleSend();
+                      if (refineMode) handleRefine();
+                      else handleSend();
                     }
                   }}
                   rows={2}
                   placeholder={
-                    cfg
-                      ? "Request intel… (Enter to send)"
-                      : "Add a BYOK key to enable…"
+                    !cfg
+                      ? "Add a BYOK key to enable…"
+                      : refineMode
+                      ? "Add details (employer, city, alias, handle…) to refine the map"
+                      : "Request intel… (Enter to send)"
                   }
-                  disabled={!cfg || busy}
+                  disabled={!cfg || busy || refining}
                   className="flex-1 resize-none rounded-xl border border-border/30 bg-background/60 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/40 disabled:opacity-50"
                 />
-                <button
-                  type="button"
-                  onClick={handleSend}
-                  disabled={!cfg || busy || !input.trim()}
-                  className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                  aria-label="Send"
-                >
-                  {busy ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Send className="h-3.5 w-3.5" />
-                  )}
-                </button>
+                {refineMode ? (
+                  <button
+                    type="button"
+                    onClick={handleRefine}
+                    disabled={!cfg || refining || busy || !input.trim()}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-foreground/40 bg-foreground/10 text-foreground hover:bg-foreground hover:text-background disabled:opacity-30 disabled:cursor-not-allowed transition"
+                    aria-label="Refine map"
+                    title="Refine Intel Map with these details"
+                  >
+                    {refining ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Crosshair className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSend}
+                    disabled={!cfg || busy || !input.trim()}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                    aria-label="Send"
+                  >
+                    {busy ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Send className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
