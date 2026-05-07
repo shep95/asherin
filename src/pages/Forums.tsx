@@ -125,7 +125,6 @@ const Forums = () => {
           {CATEGORIES.map(({ id, label, icon: Icon, desc }) => (
             <button
               key={id}
-              onMouseEnter={() => { setTab(id); setActivePost(null); }}
               onClick={() => { setTab(id); setActivePost(null); }}
               className={`text-left rounded-2xl border backdrop-blur-md p-4 transition-all ${
                 tab === id

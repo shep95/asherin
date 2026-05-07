@@ -73,7 +73,13 @@ import CommandPalette from "./components/CommandPalette";
 import AureonDomainGate from "./components/AureonDomainGate";
 import RouteSessionTracker from "./components/RouteSessionTracker";
 
-const PageLoader = () => null;
+const PageLoader = () => (
+  <div className="flex h-screen w-full items-center justify-center bg-background">
+    <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">
+      AUREON
+    </div>
+  </div>
+);
 
 const queryClient = new QueryClient();
 

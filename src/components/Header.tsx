@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, ChevronDown } from "lucide-react";
 import aureonLogo from "@/assets/aureon-logo.png";
@@ -18,34 +18,17 @@ import ForumsDropdown from "@/components/forums/ForumsDropdown";
 const Header = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const isAsherRoute = location.pathname.startsWith("/asher");
   const [showAuth, setShowAuth] = useState(false);
   const [pagesOpen, setPagesOpen] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const hoverNavTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const hoverNavigate = (to: string) => {
-    if (hoverNavTimer.current) clearTimeout(hoverNavTimer.current);
-    hoverNavTimer.current = setTimeout(() => {
-      if (location.pathname !== to) navigate(to);
-    }, 180);
-  };
-
-  const cancelHoverNavigate = () => {
-    if (hoverNavTimer.current) {
-      clearTimeout(hoverNavTimer.current);
-      hoverNavTimer.current = null;
-    }
-  };
 
   const openAuth = (login: boolean) => {
     setIsLogin(login);
     setShowAuth(true);
     setMobileMenuOpen(false);
   };
-
 
   return (
     <>
@@ -80,25 +63,25 @@ const Header = () => {
               {/* Intelligence Branch */}
               <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Intelligence</p>
               <DropdownMenuItem asChild>
-                <Link to="/llm-models" onMouseEnter={() => hoverNavigate("/llm-models")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">LLM Models</Link>
+                <Link to="/llm-models" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">LLM Models</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/zophiel" onMouseEnter={() => hoverNavigate("/feature/zophiel")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zophiel Search</Link>
+                <Link to="/feature/zophiel" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zophiel Search</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/nomad" onMouseEnter={() => hoverNavigate("/feature/nomad")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">NOMAD Public Intelligence</Link>
+                <Link to="/feature/nomad" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">NOMAD Public Intelligence</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/asha" onMouseEnter={() => hoverNavigate("/feature/asha")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Azplen Intelligence</Link>
+                <Link to="/feature/asha" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Azplen Intelligence</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/predictive" onMouseEnter={() => hoverNavigate("/feature/predictive")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Predictive Intelligence</Link>
+                <Link to="/feature/predictive" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Predictive Intelligence</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/oracle-locus" onMouseEnter={() => hoverNavigate("/feature/oracle-locus")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Oracle Locus</Link>
+                <Link to="/feature/oracle-locus" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Oracle Locus</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/ww3" onMouseEnter={() => hoverNavigate("/ww3")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg text-destructive">WW3 Trajectory</Link>
+                <Link to="/ww3" className="cursor-pointer text-sm font-light tracking-wide rounded-lg text-destructive">WW3 Trajectory</Link>
               </DropdownMenuItem>
 
               <div className="my-2 border-t border-border/15" />
@@ -106,19 +89,19 @@ const Header = () => {
               {/* Agents & Tools Branch */}
               <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Agents & Tools</p>
               <DropdownMenuItem asChild>
-                <Link to="/feature/personas" onMouseEnter={() => hoverNavigate("/feature/personas")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">AI Personas</Link>
+                <Link to="/feature/personas" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">AI Personas</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/briefings" onMouseEnter={() => hoverNavigate("/feature/briefings")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Daily Briefings</Link>
+                <Link to="/feature/briefings" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Daily Briefings</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/zahten" onMouseEnter={() => hoverNavigate("/feature/zahten")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zahten Agent Forge</Link>
+                <Link to="/feature/zahten" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zahten Agent Forge</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/vedic" onMouseEnter={() => hoverNavigate("/feature/vedic")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Vedic Strategy</Link>
+                <Link to="/feature/vedic" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Vedic Strategy</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/notebooks" onMouseEnter={() => hoverNavigate("/feature/notebooks")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Notebooks</Link>
+                <Link to="/feature/notebooks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Notebooks</Link>
               </DropdownMenuItem>
 
               <div className="my-2 border-t border-border/15" />
@@ -128,16 +111,16 @@ const Header = () => {
               {/* Creation Branch */}
               <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Creation</p>
               <DropdownMenuItem asChild>
-                <Link to="/whiteboard" onMouseEnter={() => hoverNavigate("/whiteboard")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Whiteboard</Link>
+                <Link to="/whiteboard" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Whiteboard</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/zali" onMouseEnter={() => hoverNavigate("/feature/zali")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">ZANOEM Design Lab</Link>
+                <Link to="/feature/zali" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">ZANOEM Design Lab</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/imagine-to-code" onMouseEnter={() => hoverNavigate("/feature/imagine-to-code")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Imagine To Code</Link>
+                <Link to="/feature/imagine-to-code" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Imagine To Code</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/ide" onMouseEnter={() => hoverNavigate("/feature/ide")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Aureon IDE</Link>
+                <Link to="/feature/ide" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Aureon IDE</Link>
               </DropdownMenuItem>
 
               <div className="my-2 border-t border-border/15" />
@@ -145,7 +128,7 @@ const Header = () => {
               {/* Platform Branch */}
               <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Platform</p>
               <DropdownMenuItem asChild>
-                <Link to="/feature/byok" onMouseEnter={() => hoverNavigate("/feature/byok")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Bring Your Own AI Key</Link>
+                <Link to="/feature/byok" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Bring Your Own AI Key</Link>
               </DropdownMenuItem>
 
               <div className="my-2 border-t border-border/15" />
@@ -153,22 +136,22 @@ const Header = () => {
               {/* Company Branch */}
               <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Company</p>
               <DropdownMenuItem asChild>
-                <Link to="/features" onMouseEnter={() => hoverNavigate("/features")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">All Features</Link>
+                <Link to="/features" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">All Features</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/founder" onMouseEnter={() => hoverNavigate("/founder")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Founder</Link>
+                <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Founder</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/pricing" onMouseEnter={() => hoverNavigate("/pricing")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Pricing</Link>
+                <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Pricing</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/prompt-engineering" onMouseEnter={() => hoverNavigate("/prompt-engineering")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Prompt Engineering</Link>
+                <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Prompt Engineering</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/benchmarks" onMouseEnter={() => hoverNavigate("/benchmarks")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Benchmarks</Link>
+                <Link to="/benchmarks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Benchmarks</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/equity" onMouseEnter={() => hoverNavigate("/equity")} onMouseLeave={cancelHoverNavigate} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Equity Ownership</Link>
+                <Link to="/equity" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Equity Ownership</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
