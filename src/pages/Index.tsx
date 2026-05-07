@@ -676,8 +676,73 @@ const Index = () => {
       </div>
       </ScrollSection>
 
+      {/* Build Your Own Software — Zahten Pitch */}
       <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-5xl">
+          <div className="rounded-3xl border border-border/20 bg-card/30 backdrop-blur-md px-8 py-16 sm:px-16 sm:py-20">
+            <div className="text-center">
+              <p className="text-[10px] font-medium tracking-[0.3em] text-muted-foreground/60 uppercase mb-4">
+                Zahten Agent Forge
+              </p>
+              <h2 className="text-3xl sm:text-5xl font-extralight tracking-wide text-foreground leading-tight">
+                Don't see the software you need?
+                <br />
+                <span className="text-muted-foreground">Build it. Ship it. Run it inside Aureon.</span>
+              </h2>
+              <p className="mt-8 max-w-2xl mx-auto text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+                If we don't ship the tool you want, build it yourself with <span className="text-foreground">Zahten</span> — our autonomous agent forge.
+                Spin up your own tab, your own module, your own intelligence engine inside Aureon and wire it directly to your own LLM API key.
+                We strip the safety filters off the model for you, so the software you build runs uncensored — no guardrails, no apologies, no refusals.
+              </p>
+              <p className="mt-6 max-w-2xl mx-auto text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+                Build any kind of software you want — research engines, trading bots, OSINT pipelines, creative tools, simulators, forensic systems —
+                no matter the depth, no matter the use case. If you can describe it, Zahten can scaffold it, harden it, and dock it into your Aureon dashboard
+                as a permanent custom tab.
+              </p>
+
+              <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
+                <div className="rounded-xl border border-border/20 bg-background/30 p-5">
+                  <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/60 uppercase mb-2">01 — Forge</p>
+                  <p className="text-xs font-extralight leading-relaxed text-foreground">
+                    Describe the software. Zahten plans the architecture, scaffolds the code, and hardens it for production.
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border/20 bg-background/30 p-5">
+                  <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/60 uppercase mb-2">02 — Wire</p>
+                  <p className="text-xs font-extralight leading-relaxed text-foreground">
+                    Plug in your own API key from any major provider. We uncensor the model so your tool answers anything.
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border/20 bg-background/30 p-5">
+                  <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/60 uppercase mb-2">03 — Dock</p>
+                  <p className="text-xs font-extralight leading-relaxed text-foreground">
+                    Publish it as a custom tab inside your Aureon dashboard. Yours forever — runs sandboxed, side-by-side with everything else.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link
+                  to="/feature/zahten"
+                  className="inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 px-7 py-3 text-xs font-light tracking-[0.15em] text-foreground hover:bg-foreground hover:text-background transition-all uppercase"
+                >
+                  Explore Zahten <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+                <Link
+                  to="/feature/byok"
+                  className="inline-flex items-center gap-2 rounded-full border border-border/30 px-7 py-3 text-xs font-light tracking-[0.15em] text-muted-foreground hover:text-foreground transition-all uppercase"
+                >
+                  Bring Your Own Key
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </ScrollSection>
+
+
         <div className="mx-auto max-w-5xl">
           <h2 className="text-center text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
             Your Words Never Leave The Room.
