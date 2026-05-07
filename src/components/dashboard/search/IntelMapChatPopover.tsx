@@ -352,6 +352,17 @@ OUTPUT RULES:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cfg]);
 
+  // Detect "idk" / "i don't know" style answers.
+  const isUnknown = (s: string) => /^(idk|i\s*do\s*n['’]?t\s*know|dunno|no\s*idea|unknown|unsure)\b/i.test(s.trim());
+
+  // Get the most recent assistant question so we can record the Q→A pair in the dossier.
+  const lastAssistantQuestion = (): string => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") return messages[i].content;
+    }
+    return "(initial)";
+  };
+
   const handleSend = async () => {
     const q = input.trim();
     if (!q || busy) return;
@@ -360,6 +371,60 @@ OUTPUT RULES:
       return;
     }
     setError(null);
+
+    // ── Interview mode: treat the input as an answer to the last question.
+    if (interviewActive) {
+      const userMsg: IntelChatMsg = {
+        id: newId(),
+        role: "user",
+        content: q,
+        ts: Date.now(),
+      };
+      setMessages((m) => [...m, userMsg]);
+      setInput("");
+
+      const question = lastAssistantQuestion();
+      const unknown = isUnknown(q);
+      const dossierEntry = `Q: ${question.replace(/\s+—\s+if you don't know.*$/i, "").trim()}\nA: ${unknown ? "UNKNOWN" : q}`;
+      const nextDossier = unknown ? dossier : [...dossier, dossierEntry];
+      setDossier(nextDossier);
+
+      // Refine the underlying Zophiel search whenever we gain a new fact.
+      if (!unknown && onRefineQuery && nextDossier.length > 0) {
+        try {
+          setRefining(true);
+          const refinePrompt = `You are a query refinement engine for an OSINT intelligence map.
+
+CURRENT MAP SUBJECT: "${mapQuery ?? "(none)"}"
+DOSSIER (Q&A gathered):
+${nextDossier.join("\n\n")}
+
+TASK:
+Fuse the subject with all known dossier facts into ONE sharpened search query that returns the correct entity. Include disambiguating tokens (employer, city, role, alias, domain, handle).
+
+OUTPUT RULES:
+- Return ONLY the refined query string. No quotes, no prefix, no explanation.
+- Maximum 200 characters.
+- Plain text, no markdown.`;
+          const refined = (await callUserModel(cfg, [], refinePrompt))
+            .trim()
+            .replace(/^["'`]+|["'`]+$/g, "")
+            .split("\n")[0]
+            .slice(0, 200);
+          if (refined) onRefineQuery(refined);
+        } catch (e) {
+          // refinement failures are non-fatal — keep interviewing
+        } finally {
+          setRefining(false);
+        }
+      }
+
+      // Ask the next clarifying question.
+      await askNextQuestion(nextDossier);
+      return;
+    }
+
+    // ── Free-form intel report mode (interview ended / no BYOK auto-start).
     const userMsg: IntelChatMsg = {
       id: newId(),
       role: "user",
