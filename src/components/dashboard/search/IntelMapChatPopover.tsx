@@ -597,40 +597,31 @@ OUTPUT RULES:
         </div>
       )}
 
-      {/* RIGHT — Side popout chat (no oval button; permanently mounted) */}
+      {/* Side-docked chat — animates into a larger floating popout when `popped` */}
       <div
-        className={`absolute top-3 bottom-3 right-3 z-30 flex items-stretch transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "translate-x-[calc(100%-28px)]"
-        }`}
-        style={{ pointerEvents: "none" }}
+        className={[
+          "absolute z-30 pointer-events-none",
+          "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          popped
+            ? "top-6 bottom-6 right-6 left-auto w-[640px] max-w-[92vw]"
+            : "top-3 bottom-3 right-3 w-[380px] max-w-[92vw]",
+        ].join(" ")}
       >
-        {/* Collapse / expand rail */}
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="pointer-events-auto self-center mr-1 h-24 w-7 rounded-l-xl border border-r-0 border-border/30 bg-card/60 backdrop-blur-xl flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-card/80 transition shadow-lg"
-          aria-label={open ? "Collapse intel chat" : "Expand intel chat"}
-          title={open ? "Collapse Intel Chat" : "Expand Intel Chat"}
+        <div
+          className={[
+            "pointer-events-auto h-full w-full flex flex-col overflow-hidden",
+            "border border-border/30 bg-card/60 backdrop-blur-2xl shadow-2xl",
+            "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            popped ? "rounded-3xl ring-1 ring-foreground/10" : "rounded-2xl",
+          ].join(" ")}
         >
-          {open ? (
-            <ChevronRight className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronLeft className="h-3.5 w-3.5" />
-          )}
-          <span className="text-[8px] font-light tracking-[0.3em] uppercase [writing-mode:vertical-rl] rotate-180">
-            Intel Chat
-          </span>
-        </button>
-
-        {/* The popout panel itself */}
-        <div className="pointer-events-auto w-[400px] max-w-[92vw] h-full rounded-2xl border border-border/30 bg-card/60 backdrop-blur-2xl shadow-2xl overflow-hidden flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/20 bg-foreground/[0.03]">
             <div className="flex items-center gap-2 min-w-0">
               <span className={`h-2 w-2 rounded-full ${cfg ? "bg-emerald-400/80 animate-pulse" : "bg-muted-foreground/40"}`} />
               <div className="min-w-0">
                 <div className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">
-                  Intel Chat
+                  Intel Chat {popped && <span className="text-foreground/60">· Popped Out</span>}
                 </div>
                 <div className="text-xs font-light text-foreground truncate">
                   {cfg
@@ -661,6 +652,19 @@ OUTPUT RULES:
                   End Q&A
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => setPopped((p) => !p)}
+                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition"
+                aria-label={popped ? "Dock chat back to side" : "Pop out chat"}
+                title={popped ? "Dock to side" : "Pop out"}
+              >
+                {popped ? (
+                  <Minimize2 className="h-3.5 w-3.5" />
+                ) : (
+                  <Maximize2 className="h-3.5 w-3.5" />
+                )}
+              </button>
             </div>
           </div>
 
