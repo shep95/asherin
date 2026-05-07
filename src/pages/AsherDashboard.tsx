@@ -302,6 +302,7 @@ const AsherDashboard = () => {
               <div key={branch.id}>
                 <button
                   onClick={() => toggleBranch(branch.id)}
+                  onMouseEnter={() => setOpenBranches(prev => ({ ...prev, [branch.id]: true }))}
                   className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-foreground/5 rounded-md"
                 >
                   {open ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
@@ -318,6 +319,7 @@ const AsherDashboard = () => {
                           <div key={n.id}>
                             <button
                               onClick={() => toggleBranch(subId)}
+                              onMouseEnter={() => setOpenBranches(prev => ({ ...prev, [subId]: true }))}
                               className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
                             >
                               {subOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
@@ -333,6 +335,7 @@ const AsherDashboard = () => {
                                     <button
                                       key={c.id}
                                       onClick={() => setActive(c.id)}
+                                      onMouseEnter={() => setActive(c.id)}
                                       className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors ${
                                         cActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                                       }`}
@@ -353,6 +356,7 @@ const AsherDashboard = () => {
                         <button
                           key={n.id}
                           onClick={() => setActive(n.id)}
+                          onMouseEnter={() => setActive(n.id)}
                           className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors ${
                             isActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                           }`}
