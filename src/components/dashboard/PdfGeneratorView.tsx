@@ -166,10 +166,10 @@ ${rawData.slice(0, 12000)}`
           {/* Wallpaper Selector */}
           <div>
             <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Background Theme</p>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
               {WALLPAPERS.map(wp => (
                 <button key={wp.key} onClick={() => setSelectedWallpaper(wp.key)}
-                  className={`relative rounded-lg overflow-hidden border-2 transition-all w-16 h-10 ${selectedWallpaper === wp.key ? "border-accent/50 ring-1 ring-accent/20" : "border-border/20 hover:border-border/40"}`}>
+                  className={`relative rounded-lg overflow-hidden border-2 transition-all h-12 ${selectedWallpaper === wp.key ? "border-accent/50 ring-1 ring-accent/20" : "border-border/20 hover:border-border/40"}`}>
                   <img src={wp.src} alt={wp.label} className="w-full h-full object-cover" />
                   <span className="absolute inset-0 flex items-end justify-center pb-0.5 bg-gradient-to-t from-black/60 to-transparent">
                     <span className="text-[8px] font-light text-white/90">{wp.label}</span>
