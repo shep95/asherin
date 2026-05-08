@@ -1298,6 +1298,20 @@ const Dashboard = () => {
       return <FeatureGate title={title} description={description} onUpgrade={() => setActiveView("subscription")} />;
     };
 
+    // Dynamic Zahten-published agent tabs (id format: "agent:<uuid>")
+    if (typeof activeView === "string" && (activeView as string).startsWith("agent:")) {
+      const a = publishedAgents.find((x) => `agent:${x.id}` === activeView);
+      if (a) {
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <AsherPublishedTabRenderer name={a.name} entryHtml={a.entry_html || ""} />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      }
+    }
+
     switch (activeView) {
       case "search": return gatedView("search", ZophielEngineView, "Zophiel Engine", "The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans.");
       case "zali": return gatedView("zali", ZaliView, "ZANOEM Design Lab", "Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro plans.");
