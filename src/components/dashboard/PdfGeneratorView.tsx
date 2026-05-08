@@ -202,139 +202,30 @@ const PdfGeneratorView = () => {
   const removeSection = (id: string) =>
     setSections(prev => prev.filter(s => s.id !== id));
 
+  // Live-paginated preview pages (re-runs whenever content changes)
+  const [previewPages, setPreviewPages] = useState<string[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      if (cancelled) return;
+      const pages = paginateSections(sections, title, author);
+      if (!cancelled) setPreviewPages(pages.length ? pages : [""]);
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [sections, title, author]);
+
   const exportPdf = useCallback(async () => {
     setGenerating(true);
     try {
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
-
-      const PAGE_PAD_Y = 56;
-      const PAGE_PAD_X = 48;
-      const INNER_H = PAGE_H - PAGE_PAD_Y * 2;
-
-      // Build offscreen measuring container at exact page width
-      const measure = document.createElement("div");
-      measure.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_W - PAGE_PAD_X * 2}px;visibility:hidden;`;
-      document.body.appendChild(measure);
-
-      // Render the title block + each section into individual elements to measure
-      const renderToHtml = (s: PdfSection): string => {
-        const t = String(s.content ?? "").replace(/</g, "&lt;");
-        switch (s.type) {
-          case "heading":
-            return `<h2 style="font-family:${FONT_HEAD};font-size:24px;font-weight:700;line-height:1.2;margin:24px 0 12px;color:#f5f1e8;letter-spacing:0;text-align:left;">${t}</h2>`;
-          case "subheading":
-            return `<h3 style="font-family:${FONT_HEAD};font-size:16px;font-weight:600;font-style:italic;margin:18px 0 6px;color:#e8dfc9;text-align:left;letter-spacing:0;">${t}</h3>`;
-          case "paragraph":
-            return `<p style="font-family:${FONT_BODY};font-size:12.5px;line-height:1.75;margin-bottom:14px;color:#e8e3d6;text-align:left;">${t}</p>`;
-          case "quote":
-            return `<blockquote style="font-family:${FONT_HEAD};font-size:14px;font-style:italic;line-height:1.7;margin:20px 28px;padding:8px 0 8px 18px;color:#d8c89a;border-left:2px solid rgba(216,200,154,0.6);">"${t}"</blockquote>`;
-          case "list": {
-            const items = t.split("\n").filter(l => l.trim()).map(l =>
-              `<li style="font-family:${FONT_BODY};font-size:12.5px;line-height:1.7;color:#e8e3d6;margin-bottom:6px;position:relative;padding-left:14px;list-style:none;"><span style="position:absolute;left:0;color:#d8c89a;">◆</span>${l.replace(/^([-•*]|\d+[.)])\s*/, "")}</li>`
-            ).join("");
-            return `<ul style="padding-left:22px;margin:10px 0 16px;list-style:none;">${items}</ul>`;
-          }
-          case "divider":
-            return `<div style="display:flex;justify-content:center;margin:24px 0;color:#a89968;"><span style="font-family:${FONT_HEAD};font-size:16px;letter-spacing:1em;">◈ ◈ ◈</span></div>`;
-          default:
-            return "";
-        }
-      };
-
-      // Title block (only on first page)
-      let titleBlockHtml = "";
-      if (title || author) {
-        titleBlockHtml = `<div style="text-align:center;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid rgba(216,200,154,0.25);">
-          ${title ? `<div style="font-family:${FONT_HEAD};font-size:22px;font-weight:700;color:#f5f1e8;letter-spacing:0.02em;">${title}</div>` : ""}
-          ${author ? `<div style="font-family:${FONT_HEAD};font-style:italic;font-size:11px;color:#d8c89a;margin-top:6px;letter-spacing:0.15em;text-transform:uppercase;">${author}</div>` : ""}
-        </div>`;
-      }
-
-      const measureHtml = (html: string) => {
-        measure.innerHTML = html;
-        return measure.scrollHeight || measure.offsetHeight;
-      };
-
-      const splitOversizedSection = (section: PdfSection): { html: string; height: number }[] => {
-        const html = renderToHtml(section);
-        const height = measureHtml(html);
-        if (height <= INNER_H) return [{ html, height }];
-
-        const chunks: { html: string; height: number }[] = [];
-        const pushChunk = (content: string, type: PdfSection["type"] = section.type) => {
-          const chunkHtml = renderToHtml({ ...section, type, content: content.trim() });
-          chunks.push({ html: chunkHtml, height: measureHtml(chunkHtml) });
-        };
-
-        if (section.type === "list") {
-          const lines = section.content.split("\n").filter(line => line.trim());
-          let chunk: string[] = [];
-          for (const line of lines) {
-            const next = [...chunk, line];
-            const nextHtml = renderToHtml({ ...section, content: next.join("\n") });
-            if (chunk.length && measureHtml(nextHtml) > INNER_H) {
-              pushChunk(chunk.join("\n"));
-              chunk = [line];
-            } else {
-              chunk = next;
-            }
-          }
-          if (chunk.length) pushChunk(chunk.join("\n"));
-          return chunks;
-        }
-
-        const words = section.content.split(/\s+/).filter(Boolean);
-        let index = 0;
-        while (index < words.length) {
-          let low = 1;
-          let high = words.length - index;
-          let fit = 1;
-          while (low <= high) {
-            const mid = Math.floor((low + high) / 2);
-            const candidate = words.slice(index, index + mid).join(" ");
-            const candidateType = section.type === "heading" || section.type === "subheading" ? "paragraph" : section.type;
-            const candidateHtml = renderToHtml({ ...section, type: candidateType, content: candidate });
-            if (measureHtml(candidateHtml) <= INNER_H) {
-              fit = mid;
-              low = mid + 1;
-            } else {
-              high = mid - 1;
-            }
-          }
-          const chunkType = section.type === "heading" || section.type === "subheading" ? "paragraph" : section.type;
-          pushChunk(words.slice(index, index + fit).join(" "), chunkType);
-          index += fit;
-        }
-        return chunks;
-      };
-
-      // Measure each section's height, splitting oversized text into unlimited pages.
-      const all: { html: string; height: number }[] = [];
-      if (titleBlockHtml) all.push({ html: titleBlockHtml, height: measureHtml(titleBlockHtml) });
-      for (const s of sections) all.push(...splitOversizedSection(s));
-      document.body.removeChild(measure);
-
-      // Paginate by accumulating heights
-      const pages: string[] = [];
-      let curHtml = "";
-      let curH = 0;
-      for (const { html, height } of all) {
-        if (curH + height > INNER_H) {
-          if (curHtml) pages.push(curHtml);
-          curHtml = html;
-          curH = height;
-        } else {
-          curHtml += html;
-          curH += height;
-        }
-      }
-      if (curHtml) pages.push(curHtml);
+      const pages = paginateSections(sections, title, author);
       if (pages.length === 0) pages.push("");
 
       const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [432, 648] });
 
       for (let i = 0; i < pages.length; i++) {
-        // Build a real page DOM with wallpaper + overlay + content
         const pageEl = document.createElement("div");
         pageEl.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_W}px;height:${PAGE_H}px;overflow:hidden;background:#0a0a0a;`;
         pageEl.innerHTML = `
@@ -349,7 +240,6 @@ const PdfGeneratorView = () => {
         `;
         document.body.appendChild(pageEl);
 
-        // Wait for background image to load
         await new Promise<void>((resolve) => {
           const img = new Image();
           img.onload = () => resolve();
@@ -378,9 +268,6 @@ const PdfGeneratorView = () => {
     setGenerating(false);
   }, [title, author, sections, wallpaperSrc, bgOpacity, overlayOpacity]);
 
-  // Modern fancy typography (Playfair display headings + Lora body)
-  const FONT_HEAD = "'Playfair Display', 'Cormorant Garamond', Georgia, serif";
-  const FONT_BODY = "'Lora', Georgia, 'Times New Roman', serif";
 
   const renderSectionPreview = (section: PdfSection) => {
     const text = String(section.content ?? "");
