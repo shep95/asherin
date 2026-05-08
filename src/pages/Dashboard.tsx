@@ -765,7 +765,7 @@ const Dashboard = () => {
     return () => { cancelled = true; window.removeEventListener("asher-agents-updated", onUpd); };
   }, [user?.id]);
 
-
+  const trackUsage = useCallback(async (modeUsed: ChatMode) => {
     if (!user) return;
     const modeCol = `${modeUsed}_prompts`;
     const { data: stats } = await supabase.from("usage_stats").select("*").eq("user_id", user.id).single();
