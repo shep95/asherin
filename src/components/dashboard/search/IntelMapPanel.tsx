@@ -614,18 +614,27 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
           onMouseLeave={onMouseUp}
           style={{ cursor: dragging ? "grabbing" : "grab" }}
         >
-          {/* grid backdrop */}
+          {/* dotted grid backdrop — whiteboard aesthetic */}
           <div
-            className="absolute inset-0 opacity-[0.06] pointer-events-none"
+            className="absolute inset-0 opacity-[0.18] pointer-events-none"
             style={{
               backgroundImage:
-                "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)",
-              backgroundSize: "48px 48px",
-              maskImage: "radial-gradient(ellipse at center, black 40%, transparent 80%)",
-              WebkitMaskImage: "radial-gradient(ellipse at center, black 40%, transparent 80%)",
+                "radial-gradient(hsl(var(--foreground) / 0.55) 1px, transparent 1px)",
+              backgroundSize: "22px 22px",
+              maskImage: "radial-gradient(ellipse at center, black 35%, transparent 85%)",
+              WebkitMaskImage: "radial-gradient(ellipse at center, black 35%, transparent 85%)",
             }}
           />
-          {/* corner crosshairs */}
+          {/* soft center highlight */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(60% 50% at 50% 45%, hsl(var(--foreground) / 0.05), transparent 70%)",
+            }}
+          />
+          {/* corner brackets */}
           <div className="pointer-events-none absolute inset-0">
             {[
               "top-3 left-3 border-t border-l",
@@ -633,7 +642,7 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
               "bottom-3 left-3 border-b border-l",
               "bottom-3 right-3 border-b border-r",
             ].map((cls) => (
-              <div key={cls} className={`absolute h-3 w-3 border-foreground/25 ${cls}`} />
+              <div key={cls} className={`absolute h-3 w-3 border-foreground/20 ${cls}`} />
             ))}
           </div>
 
