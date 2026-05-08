@@ -614,18 +614,27 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
           onMouseLeave={onMouseUp}
           style={{ cursor: dragging ? "grabbing" : "grab" }}
         >
-          {/* grid backdrop */}
+          {/* dotted grid backdrop — whiteboard aesthetic */}
           <div
-            className="absolute inset-0 opacity-[0.06] pointer-events-none"
+            className="absolute inset-0 opacity-[0.18] pointer-events-none"
             style={{
               backgroundImage:
-                "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)",
-              backgroundSize: "48px 48px",
-              maskImage: "radial-gradient(ellipse at center, black 40%, transparent 80%)",
-              WebkitMaskImage: "radial-gradient(ellipse at center, black 40%, transparent 80%)",
+                "radial-gradient(hsl(var(--foreground) / 0.55) 1px, transparent 1px)",
+              backgroundSize: "22px 22px",
+              maskImage: "radial-gradient(ellipse at center, black 35%, transparent 85%)",
+              WebkitMaskImage: "radial-gradient(ellipse at center, black 35%, transparent 85%)",
             }}
           />
-          {/* corner crosshairs */}
+          {/* soft center highlight */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(60% 50% at 50% 45%, hsl(var(--foreground) / 0.05), transparent 70%)",
+            }}
+          />
+          {/* corner brackets */}
           <div className="pointer-events-none absolute inset-0">
             {[
               "top-3 left-3 border-t border-l",
@@ -633,7 +642,7 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
               "bottom-3 left-3 border-b border-l",
               "bottom-3 right-3 border-b border-r",
             ].map((cls) => (
-              <div key={cls} className={`absolute h-3 w-3 border-foreground/25 ${cls}`} />
+              <div key={cls} className={`absolute h-3 w-3 border-foreground/20 ${cls}`} />
             ))}
           </div>
 
@@ -682,88 +691,114 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
               </defs>
               <rect x="0" y="0" width="100%" height="100%" fill="url(#intel-bg-glow)" />
               <g transform={`translate(${pan.x + size.w / 2 - (size.w / 2) * zoom}, ${pan.y + size.h / 2 - (size.h / 2) * zoom})`}>
+                {/* Whiteboard-style edges: thin dashed gray, no arrowheads */}
                 {edges.map((e, i) => {
                   const a = idMap.get(e.source); const b = idMap.get(e.target);
                   if (!a || !b) return null;
                   const ax = a.x! * zoom, ay = a.y! * zoom;
                   const bx = b.x! * zoom, by = b.y! * zoom;
                   const isHighlighted = !selectedId || (connectedIds.has(e.source) && connectedIds.has(e.target));
-                  const isMention = e.label === "mentions";
-                  const opacity = isHighlighted ? (isMention ? 0.25 : 0.55) : 0.08;
-                  const stroke = isMention ? "hsl(var(--muted-foreground))" : "hsl(var(--accent))";
-                  const dash = isMention ? "3 4" : undefined;
+                  const opacity = isHighlighted ? 0.45 : 0.08;
                   const mx = (ax + bx) / 2; const my = (ay + by) / 2;
                   return (
                     <g key={i} opacity={opacity}>
-                      <line x1={ax} y1={ay} x2={bx} y2={by} stroke={stroke} strokeWidth={isMention ? 1 : 1.5} strokeDasharray={dash} markerEnd={isMention ? undefined : "url(#intel-arrow)"} />
-                      {!isMention && isHighlighted && selectedId && connectedIds.has(e.source) && connectedIds.has(e.target) && (
+                      <line
+                        x1={ax} y1={ay} x2={bx} y2={by}
+                        stroke="hsl(var(--muted-foreground))"
+                        strokeWidth={1}
+                        strokeDasharray="3 5"
+                        strokeLinecap="round"
+                      />
+                      {isHighlighted && selectedId && connectedIds.has(e.source) && connectedIds.has(e.target) && (
                         <text x={mx} y={my - 4} textAnchor="middle" fontSize="9" fill="hsl(var(--muted-foreground))" fontWeight="300" className="pointer-events-none">{e.label}</text>
                       )}
                     </g>
                   );
                 })}
+                {/* Whiteboard-style nodes: colored pill, thin border, label inside */}
                 {laidOut.map((n) => {
                   const basePalette = NODE_PALETTE[n.type];
                   const isOnionSource = n.type === "source" && n.tier === 5;
                   const palette = isOnionSource ? { ...basePalette, accent: "hsl(25, 90%, 60%)" } : basePalette;
-                  const { w, h } = NODE_SIZE[n.type];
-                  const Icon = TYPE_ICON[n.type];
                   const isSelected = selectedId === n.id;
                   const isDimmed = selectedId && !connectedIds.has(n.id);
-                  const opacity = isDimmed ? 0.2 : 1;
-                  const corner = 14;
+                  const opacity = isDimmed ? 0.25 : 1;
+                  // Pill geometry sized to label
+                  const labelText = (n.label.length > 22 ? n.label.slice(0, 21) + "…" : n.label).toUpperCase();
+                  const charW = 6.2;          // approximate uppercase char width @ 10px
+                  const padX = 14;
+                  const pillH = 28;
+                  const pillW = Math.max(64, Math.round(labelText.length * charW + padX * 2));
+                  const rx = pillH / 2;
                   return (
                     <g key={n.id} data-node transform={`translate(${n.x! * zoom}, ${n.y! * zoom})`}
                        style={{ cursor: "pointer", opacity, transition: "opacity 200ms ease" }}
                        onClick={(e) => { e.stopPropagation(); setSelectedId(isSelected ? null : n.id); }}>
+                      {/* selection halo */}
                       {isSelected && (
-                        <rect x={-w / 2 - 6} y={-h / 2 - 6} width={w + 12} height={h + 12} rx={corner + 4} ry={corner + 4} fill="none" stroke={palette.accent} strokeWidth="1.5" opacity="0.5">
+                        <rect
+                          x={-pillW / 2 - 5} y={-pillH / 2 - 5}
+                          width={pillW + 10} height={pillH + 10}
+                          rx={rx + 5} ry={rx + 5}
+                          fill="none" stroke={palette.accent} strokeWidth={1} opacity={0.5}
+                        >
                           <animate attributeName="opacity" values="0.5;0.15;0.5" dur="2s" repeatCount="indefinite" />
                         </rect>
                       )}
-                      {renderShape(NODE_SHAPE[n.type], w, h, "hsl(var(--card))", isSelected ? palette.accent : "hsl(var(--border))", isSelected ? 1.5 : 1)}
-                      {(NODE_SHAPE[n.type] === "rounded-square" || NODE_SHAPE[n.type] === "pill") && (
-                        <rect x={-w / 2 + 8} y={-h / 2 + (NODE_SHAPE[n.type] === "pill" ? -h * 0.7 / 2 + 4 : 6)} width={w - 16} height={2} rx={1} ry={1} fill={palette.accent} opacity={isSelected ? 0.9 : 0.55} />
+                      {/* pill body — translucent fill tinted by accent, thin colored border */}
+                      <rect
+                        x={-pillW / 2} y={-pillH / 2}
+                        width={pillW} height={pillH}
+                        rx={rx} ry={rx}
+                        fill="hsl(var(--background) / 0.85)"
+                        stroke={palette.accent}
+                        strokeWidth={isSelected ? 1.4 : 1}
+                        opacity={1}
+                      />
+                      {/* tinted glow underlay */}
+                      <rect
+                        x={-pillW / 2} y={-pillH / 2}
+                        width={pillW} height={pillH}
+                        rx={rx} ry={rx}
+                        fill={palette.accent}
+                        opacity={isSelected ? 0.16 : 0.08}
+                        className="pointer-events-none"
+                      />
+                      {/* label */}
+                      {n.url ? (
+                        <a href={n.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                          <text x={0} y={3.5} textAnchor="middle"
+                                fontSize="10"
+                                fontWeight="500"
+                                fill={palette.accent}
+                                style={{ letterSpacing: "0.08em" }}>
+                            {labelText}
+                          </text>
+                        </a>
+                      ) : (
+                        <text x={0} y={3.5} textAnchor="middle"
+                              fontSize="10"
+                              fontWeight="500"
+                              fill={palette.accent}
+                              style={{ letterSpacing: "0.08em" }}
+                              className="pointer-events-none">
+                          {labelText}
+                        </text>
                       )}
-                      <foreignObject x={-10} y={-10} width="20" height="20" className="pointer-events-none">
-                        <div className="flex items-center justify-center w-full h-full">
-                          <Icon className="h-[18px] w-[18px]" style={{ color: palette.accent, opacity: 0.85 }} strokeWidth={1.5} />
-                        </div>
-                      </foreignObject>
+                      {/* country flag — bottom-right corner indicator */}
                       {(() => {
                         const flag = detectFlag(n);
                         if (!flag) return null;
                         return (
-                          <g className="pointer-events-none">
-                            <circle cx={-w / 2 + 9} cy={h / 2 - 9} r={9} fill="hsl(var(--background))" stroke="hsl(var(--border))" strokeWidth={0.75} />
-                            <foreignObject x={-w / 2 + 1} y={h / 2 - 17} width={16} height={16}>
-                              <div className="flex items-center justify-center w-full h-full" style={{ fontSize: "12px", lineHeight: 1 }}>{flag}</div>
-                            </foreignObject>
-                          </g>
+                          <foreignObject
+                            x={pillW / 2 - 14} y={pillH / 2 - 6}
+                            width={16} height={14}
+                            className="pointer-events-none"
+                          >
+                            <div className="flex items-center justify-center w-full h-full" style={{ fontSize: "11px", lineHeight: 1 }}>{flag}</div>
+                          </foreignObject>
                         );
                       })()}
-                      {n.url && (
-                        <a href={n.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} aria-label={`Open ${n.label}`}>
-                          <rect x={w / 2 - 18} y={-h / 2 + 4} width={14} height={14} rx={4} fill="hsl(var(--muted) / 0.4)" stroke="hsl(var(--border))" strokeWidth={0.5} />
-                          <foreignObject x={w / 2 - 16} y={-h / 2 + 6} width="10" height="10" className="pointer-events-none">
-                            <div className="flex items-center justify-center w-full h-full">
-                              <ExternalLink className="h-[9px] w-[9px]" style={{ color: "hsl(var(--foreground))", opacity: 0.7 }} strokeWidth={2} />
-                            </div>
-                          </foreignObject>
-                        </a>
-                      )}
-                      {n.url ? (
-                        <a href={n.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                          <text x={0} y={h / 2 + 14} textAnchor="middle" fontSize="10.5" fontWeight="300" fill="hsl(var(--foreground))"
-                            style={{ letterSpacing: "0.02em", textDecoration: "underline", textDecorationColor: "hsl(var(--border))", textUnderlineOffset: "2px" }}>
-                            {n.label.length > 24 ? n.label.slice(0, 23) + "…" : n.label}
-                          </text>
-                        </a>
-                      ) : (
-                        <text x={0} y={h / 2 + 14} textAnchor="middle" fontSize="10.5" fontWeight="300" fill="hsl(var(--foreground))" className="pointer-events-none" style={{ letterSpacing: "0.02em" }}>
-                          {n.label.length > 24 ? n.label.slice(0, 23) + "…" : n.label}
-                        </text>
-                      )}
                     </g>
                   );
                 })}
