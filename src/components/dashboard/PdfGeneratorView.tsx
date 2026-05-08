@@ -158,38 +158,46 @@ const PdfGeneratorView = () => {
     return s.trim();
   };
 
-  // Pure deterministic parser — NO AI. Splits text into sections by structure only.
+  // Pure deterministic parser — NO AI. Walks the text LINE BY LINE in the exact
+  // order the user typed it. Only blank lines and ASCII decorator lines are removed;
+  // every other line becomes its own section, preserving sequence 1:1.
   const parseRawText = useCallback(() => {
     if (!rawData.trim()) return;
-    const blocks = rawData.replace(/\r\n/g, "\n").split(/\n\s*\n+/).map(b => b.trim()).filter(Boolean);
+    const stamp = Date.now();
+    const rawLines = rawData.replace(/\r\n/g, "\n").split("\n");
     const out: PdfSection[] = [];
-    blocks.forEach((block, i) => {
-      const lines = block.split("\n").map(normalizeLine).filter(Boolean);
-      if (lines.length === 0) return;
-      if (/^#{1,2}\s/.test(lines[0])) {
-        out.push({ id: `s-${i}-${Date.now()}`, type: "heading", content: lines[0].replace(/^#{1,2}\s+/, "") });
-        if (lines.length > 1) out.push({ id: `s-${i}b-${Date.now()}`, type: "paragraph", content: lines.slice(1).join(" ") });
+    let listBuf: string[] = [];
+    const flushList = () => {
+      if (!listBuf.length) return;
+      out.push({ id: `s-${out.length}-${stamp}`, type: "list", content: listBuf.join("\n") });
+      listBuf = [];
+    };
+    rawLines.forEach((raw) => {
+      const line = normalizeLine(raw);
+      if (!line) { flushList(); return; }
+
+      // List items accumulate so consecutive bullets stay one list block
+      if (/^[-•*]\s/.test(line) || /^\d+[.)]\s/.test(line)) {
+        listBuf.push(line);
         return;
       }
-      if (/^#{3,6}\s/.test(lines[0])) {
-        out.push({ id: `s-${i}-${Date.now()}`, type: "subheading", content: lines[0].replace(/^#{3,6}\s+/, "") });
-        if (lines.length > 1) out.push({ id: `s-${i}b-${Date.now()}`, type: "paragraph", content: lines.slice(1).join(" ") });
+      flushList();
+
+      if (/^#{1,2}\s/.test(line)) {
+        out.push({ id: `s-${out.length}-${stamp}`, type: "heading", content: line.replace(/^#{1,2}\s+/, "") });
         return;
       }
-      if (lines.every(l => /^[-•*]\s/.test(l) || /^\d+[.)]\s/.test(l))) {
-        out.push({ id: `s-${i}-${Date.now()}`, type: "list", content: lines.join("\n") });
+      if (/^#{3,6}\s/.test(line)) {
+        out.push({ id: `s-${out.length}-${stamp}`, type: "subheading", content: line.replace(/^#{3,6}\s+/, "") });
         return;
       }
-      if (lines.every(l => /^>\s?/.test(l))) {
-        out.push({ id: `s-${i}-${Date.now()}`, type: "quote", content: lines.map(l => l.replace(/^>\s?/, "")).join(" ") });
+      if (/^>\s?/.test(line)) {
+        out.push({ id: `s-${out.length}-${stamp}`, type: "quote", content: line.replace(/^>\s?/, "") });
         return;
       }
-      if (lines.length === 1 && lines[0].length < 80 && !/[.!?]$/.test(lines[0])) {
-        out.push({ id: `s-${i}-${Date.now()}`, type: "heading", content: lines[0] });
-        return;
-      }
-      out.push({ id: `s-${i}-${Date.now()}`, type: "paragraph", content: lines.join(" ") });
+      out.push({ id: `s-${out.length}-${stamp}`, type: "paragraph", content: line });
     });
+    flushList();
     setSections(out);
   }, [rawData]);
 
