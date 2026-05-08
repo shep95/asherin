@@ -274,24 +274,19 @@ const PdfGeneratorView = () => {
         `;
         document.body.appendChild(pageEl);
 
-        await new Promise<void>((resolve) => {
-          const img = new Image();
-          img.onload = () => resolve();
-          img.onerror = () => resolve();
-          img.src = wallpaperSrc;
-        });
-
         const canvas = await html2canvas(pageEl, {
           backgroundColor: "#0a0a0a",
-          scale: 2,
+          scale: 1.5,
           useCORS: true,
           windowWidth: PAGE_W,
+          logging: false,
+          imageTimeout: 0,
         });
         document.body.removeChild(pageEl);
 
-        const imgData = canvas.toDataURL("image/png");
+        const imgData = canvas.toDataURL("image/jpeg", 0.82);
         if (i > 0) pdf.addPage([432, 648], "portrait");
-        pdf.addImage(imgData, "PNG", 0, 0, 432, 648, undefined, "FAST");
+        pdf.addImage(imgData, "JPEG", 0, 0, 432, 648, undefined, "FAST");
       }
 
       const safeTitle = (title || "aureon-document").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
