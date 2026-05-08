@@ -50,6 +50,7 @@ interface DashboardSidebarProps {
   onAddCustomPersona?: (persona: Persona) => void;
   onEditCustomPersona?: (persona: Persona) => void;
   onDeleteCustomPersona?: (id: string) => void;
+  publishedAgents?: { id: string; name: string }[];
 }
 
 type NavItem = { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "pro" };
