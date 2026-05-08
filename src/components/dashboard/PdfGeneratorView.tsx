@@ -242,22 +242,22 @@ const PdfGeneratorView = () => {
       case "heading":
         return (
           <h2 style={{
-            fontFamily: FONT_HEAD, fontSize: 26, fontWeight: 700, lineHeight: 1.15,
-            margin: "28px 0 14px", color: "#f5f1e8", letterSpacing: "-0.01em",
+            fontFamily: FONT_HEAD, fontSize: 24, fontWeight: 700, lineHeight: 1.2,
+            margin: "24px 0 12px", color: "#f5f1e8", letterSpacing: 0, textAlign: "left",
           }}>{text}</h2>
         );
       case "subheading":
         return (
           <h3 style={{
-            fontFamily: FONT_HEAD, fontSize: 17, fontWeight: 600, fontStyle: "italic",
-            margin: "20px 0 8px", color: "#e8dfc9", letterSpacing: "0.01em",
+            fontFamily: FONT_HEAD, fontSize: 16, fontWeight: 600, fontStyle: "italic",
+            margin: "18px 0 6px", color: "#e8dfc9", letterSpacing: 0, textAlign: "left",
           }}>{text}</h3>
         );
       case "paragraph":
         return (
           <p style={{
             fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 400, lineHeight: 1.75,
-            marginBottom: 14, color: "#e8e3d6", textAlign: "justify", textIndent: "1.2em",
+            marginBottom: 14, color: "#e8e3d6", textAlign: "left",
           }}>{text}</p>
         );
       case "quote":
