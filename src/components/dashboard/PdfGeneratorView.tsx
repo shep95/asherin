@@ -102,7 +102,6 @@ const PdfGeneratorView = () => {
   const exportPdf = useCallback(async () => {
     setGenerating(true);
     try {
-      // @ts-ignore
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
       const PAGE_PAD_Y = 56;
@@ -115,7 +114,6 @@ const PdfGeneratorView = () => {
       document.body.appendChild(measure);
 
       // Render the title block + each section into individual elements to measure
-      const sectionEls: HTMLElement[] = [];
       const renderToHtml = (s: PdfSection): string => {
         const t = String(s.content ?? "").replace(/</g, "&lt;");
         switch (s.type) {
