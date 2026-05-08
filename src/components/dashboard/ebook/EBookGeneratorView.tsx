@@ -51,6 +51,7 @@ const DEFAULT_METADATA: EBookMetadata = {
 };
 
 const DEFAULT_SETTINGS: EBookSettings = {
+  buildMode: "ai",
   wallpaper: "default", pageSize: "a4", fontSize: 12, lineSpacing: 1.5,
   chapterCount: "auto", tone: "formal",
   includeTableOfContents: true, includeChapterSummaries: true,
