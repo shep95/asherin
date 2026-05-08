@@ -441,56 +441,51 @@ const PdfGeneratorView = () => {
           </div>
         </div>
 
-        {/* Right: Preview Panel — fixed 6×9 ebook page */}
-        <div className="w-full lg:w-1/2 overflow-y-auto p-4 flex flex-col items-center">
-          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-3 self-start">
-            Live Preview · 6×9″ eBook Page
+        {/* Right: Preview Panel — paginated 6×9 ebook pages */}
+        <div className="w-full lg:w-1/2 overflow-y-auto p-4 flex flex-col items-center gap-6">
+          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-1 self-start">
+            Live Preview · 6×9″ eBook · {Math.max(previewPages.length, 1)} page{Math.max(previewPages.length, 1) === 1 ? "" : "s"}
           </p>
-          <div
-            className="relative shadow-2xl rounded-sm overflow-hidden"
-            style={{ width: "100%", maxWidth: PAGE_W, aspectRatio: `${PAGE_W} / ${PAGE_H}` }}
-          >
-            {/* Visible background image */}
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${wallpaperSrc})`, opacity: bgOpacity }}
-            />
-            {/* Subtle dark overlay for text legibility */}
-            <div className="absolute inset-0" style={{ background: `rgba(10,10,10, ${overlayOpacity})` }} />
-            {/* Decorative inner frame */}
-            {/* Visible safe-area frames — text must not pass these borders */}
-            <div className="absolute pointer-events-none rounded-sm" style={{ top: "5.1%", left: "6.1%", right: "6.1%", bottom: "5.1%", border: "1px solid rgba(216,200,154,0.45)" }} />
-            <div className="absolute pointer-events-none" style={{ top: "5.7%", left: "6.9%", right: "6.9%", bottom: "5.7%", border: "1px solid rgba(216,200,154,0.18)" }} />
 
-            <div ref={previewRef} className="absolute z-10 overflow-hidden"
-              style={{ top: "6.5%", left: "8.3%", right: "8.3%", bottom: "6.5%", wordWrap: "break-word", overflowWrap: "break-word" }}>
-              {/* Title block */}
-              {(title || author) && (
-                <div style={{ textAlign: "center", marginBottom: 28, paddingBottom: 18, borderBottom: "1px solid rgba(216, 200, 154, 0.25)" }}>
-                  {title && (
-                    <div style={{ fontFamily: FONT_HEAD, fontSize: 22, fontWeight: 700, color: "#f5f1e8", letterSpacing: "0.02em" }}>
-                      {title}
-                    </div>
-                  )}
-                  {author && (
-                    <div style={{ fontFamily: FONT_HEAD, fontStyle: "italic", fontSize: 11, color: "#d8c89a", marginTop: 6, letterSpacing: "0.15em", textTransform: "uppercase" }}>
-                      {author}
-                    </div>
-                  )}
-                </div>
-              )}
-              {sections.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-60 text-muted-foreground/20">
-                  <ImageIcon className="h-10 w-10 mb-3" />
-                  <p className="text-xs font-light">Your eBook page will appear here</p>
-                </div>
-              ) : (
-                sections.map(section => (
-                  <div key={section.id}>{renderSectionPreview(section)}</div>
-                ))
-              )}
+          {sections.length === 0 ? (
+            <div
+              className="relative shadow-2xl rounded-sm overflow-hidden flex flex-col items-center justify-center"
+              style={{ width: "100%", maxWidth: PAGE_W, aspectRatio: `${PAGE_W} / ${PAGE_H}` }}
+            >
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${wallpaperSrc})`, opacity: bgOpacity }} />
+              <div className="absolute inset-0" style={{ background: `rgba(10,10,10, ${overlayOpacity})` }} />
+              <div className="relative z-10 flex flex-col items-center text-muted-foreground/30">
+                <ImageIcon className="h-10 w-10 mb-3" />
+                <p className="text-xs font-light">Your eBook pages will appear here</p>
+              </div>
             </div>
-          </div>
+          ) : (
+            previewPages.map((pageHtml, idx) => (
+              <div key={idx} className="w-full flex flex-col items-center">
+                <div
+                  ref={idx === 0 ? previewRef : undefined}
+                  className="relative shadow-2xl rounded-sm overflow-hidden"
+                  style={{ width: "100%", maxWidth: PAGE_W, aspectRatio: `${PAGE_W} / ${PAGE_H}` }}
+                >
+                  <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${wallpaperSrc})`, opacity: bgOpacity }} />
+                  <div className="absolute inset-0" style={{ background: `rgba(10,10,10, ${overlayOpacity})` }} />
+                  <div className="absolute pointer-events-none rounded-sm" style={{ top: "5.1%", left: "6.1%", right: "6.1%", bottom: "5.1%", border: "1px solid rgba(216,200,154,0.45)" }} />
+                  <div className="absolute pointer-events-none" style={{ top: "5.7%", left: "6.9%", right: "6.9%", bottom: "5.7%", border: "1px solid rgba(216,200,154,0.18)" }} />
+                  <div
+                    className="absolute z-10 overflow-hidden"
+                    style={{ top: "6.5%", left: "8.3%", right: "8.3%", bottom: "6.5%", wordWrap: "break-word", overflowWrap: "break-word" }}
+                    dangerouslySetInnerHTML={{ __html: pageHtml }}
+                  />
+                  <div className="absolute z-10 left-0 right-0 text-center" style={{ bottom: "3.2%", fontFamily: FONT_BODY, fontSize: 9, color: "#a89968", letterSpacing: "0.2em" }}>
+                    — {idx + 1} —
+                  </div>
+                </div>
+                <p className="text-[9px] font-light tracking-[0.2em] text-muted-foreground/40 uppercase mt-2">
+                  Page {idx + 1} of {previewPages.length}
+                </p>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
