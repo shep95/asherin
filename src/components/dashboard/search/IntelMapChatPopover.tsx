@@ -255,6 +255,54 @@ async function callUserModel(
   }
 }
 
+// ── Aureon Brain selector ───────────────────────────────────────────────────
+// Pulls active brains from the asher_brains table (admin/operator-curated)
+// and picks the most relevant ones for the current query using keyword overlap.
+type LoadedBrain = { name: string; category: string; content: string };
+let _brainCache: { ts: number; brains: LoadedBrain[] } | null = null;
+const BRAIN_CACHE_MS = 60_000;
+
+async function getCachedBrains(): Promise<LoadedBrain[]> {
+  const now = Date.now();
+  if (_brainCache && now - _brainCache.ts < BRAIN_CACHE_MS) return _brainCache.brains;
+  // Pull only intel-relevant categories first, fall back to all
+  const cats: AsherBrainCategory[] = ["map", "general", "personality", "azplen"];
+  const brains = (await loadActiveBrains(cats)) as LoadedBrain[];
+  _brainCache = { ts: now, brains };
+  return brains;
+}
+
+function pickRelevantBrains(brains: LoadedBrain[], query: string, maxBrains = 4, maxCharsEach = 4000): LoadedBrain[] {
+  if (!brains.length) return [];
+  const q = (query || "").toLowerCase();
+  const tokens = Array.from(new Set(q.split(/[^a-z0-9]+/).filter((t) => t.length >= 4))).slice(0, 24);
+  if (!tokens.length) return brains.slice(0, maxBrains).map((b) => ({ ...b, content: b.content.slice(0, maxCharsEach) }));
+  const scored = brains.map((b) => {
+    const hay = `${b.name}\n${b.content}`.toLowerCase();
+    let score = 0;
+    for (const t of tokens) {
+      const matches = hay.split(t).length - 1;
+      score += matches;
+    }
+    // Category boosts
+    if (b.category === "map") score += 3;
+    if (b.category === "personality") score += 1;
+    return { brain: b, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  // If nothing matched, still include a small default set
+  const top = scored.filter((s) => s.score > 0).slice(0, maxBrains);
+  const final = (top.length ? top : scored.slice(0, maxBrains)).map((s) => s.brain);
+  return final.map((b) => ({ ...b, content: b.content.slice(0, maxCharsEach) }));
+}
+
+function formatBrainsForPrompt(brains: LoadedBrain[]): string {
+  if (!brains.length) return "";
+  return brains
+    .map((b, i) => `[BRAIN ${i + 1}] (${b.category}) ${b.name}\n---\n${b.content}\n---`)
+    .join("\n\n");
+}
+
 const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props) => {
   const [open, setOpen] = useState(true);
   const [reportsOpen, setReportsOpen] = useState(false);
