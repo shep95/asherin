@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Lock, MessageSquare, X, AlertOctagon } from "lucide-react";
+import { Lock, MessageSquare, X, AlertOctagon, ArrowUpRight, Sparkles } from "lucide-react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
@@ -109,20 +109,46 @@ const ZophielFree = () => {
           Zophiel — Free Private AI Search Engine
         </h1>
 
-        {/* Pre-search hero overlay — sits above the engine's own empty state.
+        {/* Pre-search hero overlay — sits above the engine's empty state.
             Once the user searches, the engine takes over the full viewport. */}
         {!hasSearched && (
-          <div className="pointer-events-none absolute inset-x-0 top-28 z-[5] flex flex-col items-center px-4">
-            <div className="text-center">
-              <p className="text-[10px] font-light tracking-[0.4em] text-muted-foreground/50 uppercase">
-                Aureon Intelligence · Search Engine
-              </p>
-              <h2 className="mt-4 text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight text-foreground/90">
+          <div className="pointer-events-none absolute inset-x-0 top-24 z-[5] flex flex-col items-center px-4">
+            {/* Aurora glow */}
+            <div aria-hidden className="absolute -top-10 left-1/2 -translate-x-1/2 w-[80vw] max-w-[1100px] h-[420px] zophiel-aurora rounded-full" />
+
+            {/* Orbital reticle behind badge */}
+            <div className="relative">
+              <div aria-hidden className="absolute -inset-3 rounded-full opacity-50">
+                <div className="absolute inset-0 rounded-full zophiel-orbit-ring [mask:radial-gradient(circle,transparent_55%,black_56%,black_70%,transparent_71%)]" />
+              </div>
+              <div className="relative inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/50 backdrop-blur-xl px-3.5 py-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                </span>
+                <Sparkles className="h-2.5 w-2.5 text-foreground/70" strokeWidth={1.5} />
+                <span className="text-[9px] font-light tracking-[0.4em] text-foreground/70 uppercase">
+                  Aureon Intelligence · Live
+                </span>
+              </div>
+            </div>
+
+            <div className="text-center mt-6 relative">
+              <h2 className="text-[2.75rem] sm:text-6xl md:text-7xl font-extralight tracking-tight leading-[1.05] zophiel-shimmer-text">
                 See what others miss.
               </h2>
-              <p className="mt-3 text-sm sm:text-base font-light tracking-wide text-muted-foreground/70 max-w-xl mx-auto">
-                30 sources. Veracity-ranked. Cross-validated. No tracking.
+              <p className="mt-4 text-sm sm:text-base font-light tracking-wide text-muted-foreground/75 max-w-xl mx-auto">
+                30 sources. Veracity-ranked. Cross-validated.
+                <span className="text-foreground/60"> Zero tracking.</span>
               </p>
+
+              {/* Soft prompt arrow toward the search bar */}
+              <div aria-hidden className="mt-8 flex flex-col items-center gap-1.5 opacity-60">
+                <div className="h-px w-px rounded-full bg-foreground/40 animate-ping" />
+                <div className="text-[8px] font-light tracking-[0.4em] text-muted-foreground/50 uppercase">
+                  Ask anything
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -159,11 +185,18 @@ const ZophielFree = () => {
       {!chatOpen && (
         <button
           onClick={() => setChatOpen(true)}
-          className="fixed bottom-6 right-20 z-40 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-border/30 bg-card/60 backdrop-blur-xl px-4 py-2.5 text-[10px] font-light tracking-[0.22em] uppercase text-foreground/80 hover:text-foreground hover:bg-card/80 hover:border-border/50 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
+          className="zophiel-sheen group fixed bottom-6 right-20 z-40 inline-flex items-center gap-2.5 whitespace-nowrap rounded-full border border-border/40 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl pl-3 pr-2 py-2 text-[10px] font-light tracking-[0.24em] uppercase text-foreground/85 hover:text-foreground hover:border-foreground/30 transition-all shadow-[0_10px_40px_-10px_rgba(0,0,0,0.6)] hover:shadow-[0_14px_50px_-10px_rgba(0,0,0,0.8)] hover:-translate-y-0.5"
           aria-label="Open Aureon chat"
         >
-          <MessageSquare className="h-3.5 w-3.5" />
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          </span>
+          <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.5} />
           Talk to Aureon
+          <span className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-foreground/10 group-hover:bg-foreground/20 transition-colors">
+            <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" strokeWidth={1.6} />
+          </span>
         </button>
       )}
 
