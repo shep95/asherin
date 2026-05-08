@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { VoiceAlertEngine } from "./voiceEngine";
 import CrossSettingsPanel from "./CrossSettings";
 import CrossAlertFeed from "./CrossAlertFeed";
-import CrossModeSelector from "./CrossModeSelector";
 import CrossActivityFeed from "./CrossActivityFeed";
 import CrossAnalyticsSummary from "./CrossAnalyticsSummary";
 import CrossSalesIntelligence from "./CrossSalesIntelligence";
