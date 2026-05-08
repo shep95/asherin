@@ -1013,6 +1013,22 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
 
   const renderSettingsStep = () => (
     <div className="space-y-6">
+      {/* Build mode toggle */}
+      <div>
+        <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Build Mode</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => setSettings(prev => ({ ...prev, buildMode: "ai" }))}
+            className={`rounded-xl border p-3 text-left transition-colors ${settings.buildMode !== "manual" ? "border-accent/40 bg-accent/10" : "border-border/20 bg-card/20 hover:border-border/40"}`}>
+            <p className="text-xs font-light text-foreground flex items-center gap-1.5"><Sparkles className="h-3 w-3" /> AI Structured</p>
+            <p className="text-[10px] font-light text-muted-foreground/60 mt-1">Aureon organizes your text into chapters, fixes grammar, and polishes.</p>
+          </button>
+          <button onClick={() => setSettings(prev => ({ ...prev, buildMode: "manual" }))}
+            className={`rounded-xl border p-3 text-left transition-colors ${settings.buildMode === "manual" ? "border-accent/40 bg-accent/10" : "border-border/20 bg-card/20 hover:border-border/40"}`}>
+            <p className="text-xs font-light text-foreground flex items-center gap-1.5"><BookOpen className="h-3 w-3" /> Manual</p>
+            <p className="text-[10px] font-light text-muted-foreground/60 mt-1">Use your text exactly as-is. Each upload becomes a chapter. No AI.</p>
+          </button>
+        </div>
+      </div>
       <div>
         <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Cover Wallpaper</p>
         <div className="grid grid-cols-7 gap-2">
