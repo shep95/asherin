@@ -167,14 +167,17 @@ const Index = () => {
 
       <ScrollSection>
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/40 backdrop-blur-md px-3 py-1 mb-6">
+        {/* Aurora glow behind hero */}
+        <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[1200px] h-[520px] zophiel-aurora rounded-full" />
+
+        <div className="relative inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/40 backdrop-blur-md px-3 py-1 mb-6">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
           </span>
           <span className="text-[9px] font-medium tracking-[0.3em] text-muted-foreground/70 uppercase">All systems operational</span>
         </div>
-        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-7xl font-extralight tracking-wide leading-[1.05] text-foreground">
+        <h1 className="relative max-w-3xl text-4xl sm:text-5xl md:text-7xl font-extralight tracking-wide leading-[1.05] zophiel-shimmer-text">
           See what others miss.
         </h1>
         <p className="mt-6 max-w-2xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
