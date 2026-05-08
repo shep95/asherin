@@ -137,10 +137,6 @@ const ZophielFree = () => {
               <h2 className="text-[2.75rem] sm:text-6xl md:text-7xl font-extralight tracking-tight leading-[1.05] zophiel-shimmer-text">
                 See what others miss.
               </h2>
-              <p className="mt-4 text-sm sm:text-base font-light tracking-wide text-muted-foreground/75 max-w-xl mx-auto">
-                30 sources. Veracity-ranked. Cross-validated.
-                <span className="text-foreground/60"> Zero tracking.</span>
-              </p>
 
               {/* Soft prompt arrow toward the search bar */}
               <div aria-hidden className="mt-8 flex flex-col items-center gap-1.5 opacity-60">
