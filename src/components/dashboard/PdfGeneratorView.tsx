@@ -124,7 +124,7 @@ const PdfGeneratorView = () => {
           case "subheading":
             return `<h3 style="font-family:${FONT_HEAD};font-size:16px;font-weight:600;font-style:italic;margin:18px 0 6px;color:#e8dfc9;text-align:left;letter-spacing:0;">${t}</h3>`;
           case "paragraph":
-            return `<p style="font-family:${FONT_BODY};font-size:12.5px;line-height:1.75;margin-bottom:14px;color:#e8e3d6;text-align:justify;text-indent:1.2em;">${t}</p>`;
+            return `<p style="font-family:${FONT_BODY};font-size:12.5px;line-height:1.75;margin-bottom:14px;color:#e8e3d6;text-align:left;">${t}</p>`;
           case "quote":
             return `<blockquote style="font-family:${FONT_HEAD};font-size:14px;font-style:italic;line-height:1.7;margin:20px 28px;padding:8px 0 8px 18px;color:#d8c89a;border-left:2px solid rgba(216,200,154,0.6);">"${t}"</blockquote>`;
           case "list": {
