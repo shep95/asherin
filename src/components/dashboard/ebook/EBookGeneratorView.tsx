@@ -51,6 +51,7 @@ const DEFAULT_METADATA: EBookMetadata = {
 };
 
 const DEFAULT_SETTINGS: EBookSettings = {
+  buildMode: "ai",
   wallpaper: "default", pageSize: "a4", fontSize: 12, lineSpacing: 1.5,
   chapterCount: "auto", tone: "formal",
   includeTableOfContents: true, includeChapterSummaries: true,
@@ -903,9 +904,36 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
     return false;
   };
 
+  const buildManually = useCallback(() => {
+    if (textUploads.length === 0) return;
+    const newChapters: EBookChapter[] = textUploads.map((u, i) => {
+      const rawTitle = (u.fileName || `Chapter ${i + 1}`)
+        .replace(/\.[^/.]+$/, "")
+        .replace(/^pasted_text_\d+$/, `Chapter ${i + 1}`)
+        .replace(/[_-]+/g, " ")
+        .trim();
+      return {
+        id: `ch-${i}-${Date.now()}`,
+        title: rawTitle || `Chapter ${i + 1}`,
+        content: u.content,
+        type: "text" as const,
+      };
+    });
+    setChapters(newChapters);
+    setProgress("");
+    setStep("preview");
+  }, [textUploads]);
+
   const handleNext = () => {
     if (step === "upload") setStep("settings");
-    else if (step === "settings") { setStep("processing"); structureBook(); }
+    else if (step === "settings") {
+      if (settings.buildMode === "manual") {
+        buildManually();
+      } else {
+        setStep("processing");
+        structureBook();
+      }
+    }
   };
 
   const handleBack = () => {
@@ -985,6 +1013,22 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
 
   const renderSettingsStep = () => (
     <div className="space-y-6">
+      {/* Build mode toggle */}
+      <div>
+        <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Build Mode</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => setSettings(prev => ({ ...prev, buildMode: "ai" }))}
+            className={`rounded-xl border p-3 text-left transition-colors ${settings.buildMode !== "manual" ? "border-accent/40 bg-accent/10" : "border-border/20 bg-card/20 hover:border-border/40"}`}>
+            <p className="text-xs font-light text-foreground flex items-center gap-1.5"><Sparkles className="h-3 w-3" /> AI Structured</p>
+            <p className="text-[10px] font-light text-muted-foreground/60 mt-1">Aureon organizes your text into chapters, fixes grammar, and polishes.</p>
+          </button>
+          <button onClick={() => setSettings(prev => ({ ...prev, buildMode: "manual" }))}
+            className={`rounded-xl border p-3 text-left transition-colors ${settings.buildMode === "manual" ? "border-accent/40 bg-accent/10" : "border-border/20 bg-card/20 hover:border-border/40"}`}>
+            <p className="text-xs font-light text-foreground flex items-center gap-1.5"><BookOpen className="h-3 w-3" /> Manual</p>
+            <p className="text-[10px] font-light text-muted-foreground/60 mt-1">Use your text exactly as-is. Each upload becomes a chapter. No AI.</p>
+          </button>
+        </div>
+      </div>
       <div>
         <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Cover Wallpaper</p>
         <div className="grid grid-cols-7 gap-2">
@@ -1031,33 +1075,45 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
         </div>
       </div>
 
-      <div>
-        <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Chapter Count</p>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setSettings(prev => ({ ...prev, chapterCount: "auto" }))}
-            className={`rounded-lg px-4 py-2 text-xs font-light transition-colors ${settings.chapterCount === "auto" ? "bg-accent/20 text-accent" : "bg-card/30 text-muted-foreground border border-border/20"}`}>
-            Auto-detect
-          </button>
-          <input type="number" min={1} max={50} value={settings.chapterCount === "auto" ? "" : settings.chapterCount}
-            placeholder="Custom #"
-            onChange={e => setSettings(prev => ({ ...prev, chapterCount: e.target.value ? Number(e.target.value) : "auto" }))}
-            className="w-24 bg-card/30 border border-border/20 rounded-xl px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none" />
+      {settings.buildMode !== "manual" && (
+        <div>
+          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Chapter Count</p>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSettings(prev => ({ ...prev, chapterCount: "auto" }))}
+              className={`rounded-lg px-4 py-2 text-xs font-light transition-colors ${settings.chapterCount === "auto" ? "bg-accent/20 text-accent" : "bg-card/30 text-muted-foreground border border-border/20"}`}>
+              Auto-detect
+            </button>
+            <input type="number" min={1} max={50} value={settings.chapterCount === "auto" ? "" : settings.chapterCount}
+              placeholder="Custom #"
+              onChange={e => setSettings(prev => ({ ...prev, chapterCount: e.target.value ? Number(e.target.value) : "auto" }))}
+              className="w-24 bg-card/30 border border-border/20 rounded-xl px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none" />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="space-y-2">
-        <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Content Processing</p>
-        {([
-          ["rewriteForConsistency", "Rewrite for consistency"],
-          ["fixGrammar", "Fix grammar & spelling"],
-          ["removeDuplicates", "Remove duplicates"],
-          ["includeTableOfContents", "Table of Contents"],
-          ["includeChapterSummaries", "Chapter summaries"],
-          ["includeDiagrams", "Generate diagrams & workflow pages"],
-          ["includeCopyright", "Copyright page"],
-          ["includeDedication", "Dedication page"],
-          ["includeAboutAuthor", "About the Author page"],
-        ] as const).map(([key, label]) => (
+        <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">
+          {settings.buildMode === "manual" ? "Front & Back Matter" : "Content Processing"}
+        </p>
+        {(settings.buildMode === "manual"
+          ? ([
+              ["includeTableOfContents", "Table of Contents"],
+              ["includeCopyright", "Copyright page"],
+              ["includeDedication", "Dedication page"],
+              ["includeAboutAuthor", "About the Author page"],
+            ] as const)
+          : ([
+              ["rewriteForConsistency", "Rewrite for consistency"],
+              ["fixGrammar", "Fix grammar & spelling"],
+              ["removeDuplicates", "Remove duplicates"],
+              ["includeTableOfContents", "Table of Contents"],
+              ["includeChapterSummaries", "Chapter summaries"],
+              ["includeDiagrams", "Generate diagrams & workflow pages"],
+              ["includeCopyright", "Copyright page"],
+              ["includeDedication", "Dedication page"],
+              ["includeAboutAuthor", "About the Author page"],
+            ] as const)
+        ).map(([key, label]) => (
           <label key={key} className="flex items-center gap-3 cursor-pointer group">
             <div className={`w-8 h-4 rounded-full transition-colors relative ${settings[key] ? "bg-accent/60" : "bg-border/30"}`}
               onClick={() => setSettings(prev => ({ ...prev, [key]: !prev[key] }))}>
@@ -1330,7 +1386,11 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
             {(step === "upload" || step === "settings") && (
               <button onClick={handleNext} disabled={!canProceed()}
                 className="flex items-center gap-2 rounded-lg bg-accent/20 px-5 py-2 text-xs text-accent hover:bg-accent/30 transition-colors disabled:opacity-40">
-                {step === "settings" ? <><Sparkles className="h-3.5 w-3.5" /> Generate Book</> : <><ArrowRight className="h-3.5 w-3.5" /> Next</>}
+                {step === "settings"
+                  ? (settings.buildMode === "manual"
+                      ? <><BookOpen className="h-3.5 w-3.5" /> Build Book</>
+                      : <><Sparkles className="h-3.5 w-3.5" /> Generate Book</>)
+                  : <><ArrowRight className="h-3.5 w-3.5" /> Next</>}
               </button>
             )}
             {step === "preview" && (

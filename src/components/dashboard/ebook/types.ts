@@ -18,6 +18,7 @@ export interface EBookMetadata {
 }
 
 export interface EBookSettings {
+  buildMode?: "ai" | "manual";
   wallpaper: string;
   pageSize: "a4" | "letter" | "paperback";
   fontSize: 10 | 12 | 14;
