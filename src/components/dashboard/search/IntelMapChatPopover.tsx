@@ -434,7 +434,9 @@ OUTPUT RULES:
 - One sentence, under 160 characters.
 - End with a question mark.
 - Always finish with: " — if you don't know, just type 'idk'."`;
-      const reply = (await callUserModel(cfg, [], prompt)).trim();
+      const brains = pickRelevantBrains(await getCachedBrains(), `${mapQuery ?? ""} ${currentDossier.join(" ")}`, 3, 2000);
+      const brainCtx = formatBrainsForPrompt(brains);
+      const reply = (await callUserModel(cfg, [], prompt, brainCtx)).trim();
       const question = reply.split("\n")[0].slice(0, 240);
       setMessages((m) => [
         ...m,
@@ -551,7 +553,9 @@ OUTPUT RULES:
     setInput("");
     setBusy(true);
     try {
-      const reply = await callUserModel(cfg, messages, queryWithContext);
+      const brains = pickRelevantBrains(await getCachedBrains(), `${mapQuery ?? ""} ${q}`, 4, 4000);
+      const brainCtx = formatBrainsForPrompt(brains);
+      const reply = await callUserModel(cfg, messages, queryWithContext, brainCtx);
       const aiMsg: IntelChatMsg = {
         id: newId(),
         role: "assistant",
