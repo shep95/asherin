@@ -109,20 +109,46 @@ const ZophielFree = () => {
           Zophiel — Free Private AI Search Engine
         </h1>
 
-        {/* Pre-search hero overlay — sits above the engine's own empty state.
+        {/* Pre-search hero overlay — sits above the engine's empty state.
             Once the user searches, the engine takes over the full viewport. */}
         {!hasSearched && (
-          <div className="pointer-events-none absolute inset-x-0 top-28 z-[5] flex flex-col items-center px-4">
-            <div className="text-center">
-              <p className="text-[10px] font-light tracking-[0.4em] text-muted-foreground/50 uppercase">
-                Aureon Intelligence · Search Engine
-              </p>
-              <h2 className="mt-4 text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight text-foreground/90">
+          <div className="pointer-events-none absolute inset-x-0 top-24 z-[5] flex flex-col items-center px-4">
+            {/* Aurora glow */}
+            <div aria-hidden className="absolute -top-10 left-1/2 -translate-x-1/2 w-[80vw] max-w-[1100px] h-[420px] zophiel-aurora rounded-full" />
+
+            {/* Orbital reticle behind badge */}
+            <div className="relative">
+              <div aria-hidden className="absolute -inset-3 rounded-full opacity-50">
+                <div className="absolute inset-0 rounded-full zophiel-orbit-ring [mask:radial-gradient(circle,transparent_55%,black_56%,black_70%,transparent_71%)]" />
+              </div>
+              <div className="relative inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/50 backdrop-blur-xl px-3.5 py-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                </span>
+                <Sparkles className="h-2.5 w-2.5 text-foreground/70" strokeWidth={1.5} />
+                <span className="text-[9px] font-light tracking-[0.4em] text-foreground/70 uppercase">
+                  Aureon Intelligence · Live
+                </span>
+              </div>
+            </div>
+
+            <div className="text-center mt-6 relative">
+              <h2 className="text-[2.75rem] sm:text-6xl md:text-7xl font-extralight tracking-tight leading-[1.05] zophiel-shimmer-text">
                 See what others miss.
               </h2>
-              <p className="mt-3 text-sm sm:text-base font-light tracking-wide text-muted-foreground/70 max-w-xl mx-auto">
-                30 sources. Veracity-ranked. Cross-validated. No tracking.
+              <p className="mt-4 text-sm sm:text-base font-light tracking-wide text-muted-foreground/75 max-w-xl mx-auto">
+                30 sources. Veracity-ranked. Cross-validated.
+                <span className="text-foreground/60"> Zero tracking.</span>
               </p>
+
+              {/* Soft prompt arrow toward the search bar */}
+              <div aria-hidden className="mt-8 flex flex-col items-center gap-1.5 opacity-60">
+                <div className="h-px w-px rounded-full bg-foreground/40 animate-ping" />
+                <div className="text-[8px] font-light tracking-[0.4em] text-muted-foreground/50 uppercase">
+                  Ask anything
+                </div>
+              </div>
             </div>
           </div>
         )}
