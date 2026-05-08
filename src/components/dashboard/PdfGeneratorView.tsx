@@ -149,17 +149,68 @@ const PdfGeneratorView = () => {
         </div>`;
       }
 
-      // Measure each section's height
-      const all: { html: string; height: number }[] = [];
-      if (titleBlockHtml) {
-        measure.innerHTML = titleBlockHtml;
-        all.push({ html: titleBlockHtml, height: measure.offsetHeight });
-      }
-      for (const s of sections) {
-        const html = renderToHtml(s);
+      const measureHtml = (html: string) => {
         measure.innerHTML = html;
-        all.push({ html, height: measure.offsetHeight });
-      }
+        return measure.scrollHeight || measure.offsetHeight;
+      };
+
+      const splitOversizedSection = (section: PdfSection): { html: string; height: number }[] => {
+        const html = renderToHtml(section);
+        const height = measureHtml(html);
+        if (height <= INNER_H) return [{ html, height }];
+
+        const chunks: { html: string; height: number }[] = [];
+        const pushChunk = (content: string, type: PdfSection["type"] = section.type) => {
+          const chunkHtml = renderToHtml({ ...section, type, content: content.trim() });
+          chunks.push({ html: chunkHtml, height: measureHtml(chunkHtml) });
+        };
+
+        if (section.type === "list") {
+          const lines = section.content.split("\n").filter(line => line.trim());
+          let chunk: string[] = [];
+          for (const line of lines) {
+            const next = [...chunk, line];
+            const nextHtml = renderToHtml({ ...section, content: next.join("\n") });
+            if (chunk.length && measureHtml(nextHtml) > INNER_H) {
+              pushChunk(chunk.join("\n"));
+              chunk = [line];
+            } else {
+              chunk = next;
+            }
+          }
+          if (chunk.length) pushChunk(chunk.join("\n"));
+          return chunks;
+        }
+
+        const words = section.content.split(/\s+/).filter(Boolean);
+        let index = 0;
+        while (index < words.length) {
+          let low = 1;
+          let high = words.length - index;
+          let fit = 1;
+          while (low <= high) {
+            const mid = Math.floor((low + high) / 2);
+            const candidate = words.slice(index, index + mid).join(" ");
+            const candidateType = section.type === "heading" || section.type === "subheading" ? "paragraph" : section.type;
+            const candidateHtml = renderToHtml({ ...section, type: candidateType, content: candidate });
+            if (measureHtml(candidateHtml) <= INNER_H) {
+              fit = mid;
+              low = mid + 1;
+            } else {
+              high = mid - 1;
+            }
+          }
+          const chunkType = section.type === "heading" || section.type === "subheading" ? "paragraph" : section.type;
+          pushChunk(words.slice(index, index + fit).join(" "), chunkType);
+          index += fit;
+        }
+        return chunks;
+      };
+
+      // Measure each section's height, splitting oversized text into unlimited pages.
+      const all: { html: string; height: number }[] = [];
+      if (titleBlockHtml) all.push({ html: titleBlockHtml, height: measureHtml(titleBlockHtml) });
+      for (const s of sections) all.push(...splitOversizedSection(s));
       document.body.removeChild(measure);
 
       // Paginate by accumulating heights
@@ -167,14 +218,8 @@ const PdfGeneratorView = () => {
       let curHtml = "";
       let curH = 0;
       for (const { html, height } of all) {
-        if (height > INNER_H) {
-          // Oversized single block — flush current and place alone (will be clipped, but better than overlap)
-          if (curHtml) { pages.push(curHtml); curHtml = ""; curH = 0; }
-          pages.push(html);
-          continue;
-        }
         if (curH + height > INNER_H) {
-          pages.push(curHtml);
+          if (curHtml) pages.push(curHtml);
           curHtml = html;
           curH = height;
         } else {
