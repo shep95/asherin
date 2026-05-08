@@ -29,6 +29,7 @@ import {
   getProviderSpec,
   type IntelMapByok,
 } from "@/lib/intelMapByok";
+import { loadActiveBrains, type AsherBrainCategory } from "@/lib/asherBrains";
 
 interface IntelChatMsg {
   id: string;
