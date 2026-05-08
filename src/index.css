@@ -206,12 +206,12 @@ header[data-aureon-header] > a {
   50%      { transform: translate3d(8%, 6%, 0) scale(1.15); opacity: .9; }
 }
 .zophiel-aurora {
-  background:
-    radial-gradient(60% 50% at 50% 50%, hsl(0 0% 92% / 0.10), transparent 70%),
-    radial-gradient(40% 35% at 70% 40%, hsl(275 95% 55% / 0.10), transparent 70%),
-    radial-gradient(35% 30% at 30% 60%, hsl(200 80% 60% / 0.06), transparent 70%);
-  filter: blur(60px);
-  animation: zophiel-aurora 14s ease-in-out infinite;
+  /* Aurora glow disabled per design preference. Keep class as a no-op so
+     existing markup stays valid and we can revive the effect later. */
+  background: none;
+  filter: none;
+  animation: none;
+  display: none;
 }
 
 @keyframes zophiel-shimmer {
