@@ -105,13 +105,14 @@ const TierComparisonMatrix = () => {
                   {t.price}
                 </span>
                 <span className="text-[9px] tracking-wider text-muted-foreground/60">{t.cadence}</span>
-      </div>
+              </div>
 
-      {/* Lifetime clarifier */}
-      <div className="mb-3 flex items-center justify-end gap-2 px-2 text-[10px] tracking-[0.18em] uppercase text-amber-200/70">
-        <Crown className="h-3 w-3" />
-        <span>Lifetime = everything in Aureon ($199/mo) — forever, one payment of $470</span>
-      </div>
+              {t.highlight && (
+                <span className="px-1 text-[9px] tracking-wide text-amber-200/60 normal-case text-center leading-snug">
+                  Aureon, paid once.
+                </span>
+              )}
+
               <Link
                 to={t.href}
                 className={`mt-1 hidden sm:inline-flex w-full justify-center rounded-lg px-2 py-1 text-[10px] tracking-[0.2em] uppercase transition-colors ${
