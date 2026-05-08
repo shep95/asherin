@@ -674,10 +674,6 @@ const CrossView: React.FC = () => {
         </div>
       </div>
 
-      {/* Mode Selector */}
-      <div className="px-4 sm:px-6 py-2 border-b border-border/10 overflow-x-auto">
-        <CrossModeSelector currentMode={settings.mode} onModeChange={handleModeChange} compact />
-      </div>
 
       {/* Privacy Warning */}
       {privacyWarning && (
