@@ -41,14 +41,28 @@ const PdfGeneratorView = () => {
     e.target.value = "";
   };
 
+  // Collapse "spaced-out" titles like "T H E  B O O K" → "THE BOOK"
+  // and strip ASCII decorator lines (═══, ───, ===, ***, ___)
+  const normalizeLine = (raw: string) => {
+    let s = raw.replace(/[═━─–—=*_]{3,}/g, "").trim();
+    if (!s) return "";
+    const toks = s.split(/\s+/).filter(Boolean);
+    if (toks.length >= 4 && toks.filter(t => t.length === 1).length / toks.length > 0.6) {
+      // Detect double-space groups → word boundaries
+      const groups = s.split(/\s{2,}/).map(g => g.replace(/\s+/g, ""));
+      s = groups.join(" ");
+    }
+    return s.trim();
+  };
+
   // Pure deterministic parser — NO AI. Splits text into sections by structure only.
   const parseRawText = useCallback(() => {
     if (!rawData.trim()) return;
     const blocks = rawData.replace(/\r\n/g, "\n").split(/\n\s*\n+/).map(b => b.trim()).filter(Boolean);
     const out: PdfSection[] = [];
     blocks.forEach((block, i) => {
-      const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
-      // Markdown headings
+      const lines = block.split("\n").map(normalizeLine).filter(Boolean);
+      if (lines.length === 0) return;
       if (/^#{1,2}\s/.test(lines[0])) {
         out.push({ id: `s-${i}-${Date.now()}`, type: "heading", content: lines[0].replace(/^#{1,2}\s+/, "") });
         if (lines.length > 1) out.push({ id: `s-${i}b-${Date.now()}`, type: "paragraph", content: lines.slice(1).join(" ") });
@@ -59,22 +73,18 @@ const PdfGeneratorView = () => {
         if (lines.length > 1) out.push({ id: `s-${i}b-${Date.now()}`, type: "paragraph", content: lines.slice(1).join(" ") });
         return;
       }
-      // Bullet list
       if (lines.every(l => /^[-•*]\s/.test(l) || /^\d+[.)]\s/.test(l))) {
         out.push({ id: `s-${i}-${Date.now()}`, type: "list", content: lines.join("\n") });
         return;
       }
-      // Blockquote
       if (lines.every(l => /^>\s?/.test(l))) {
         out.push({ id: `s-${i}-${Date.now()}`, type: "quote", content: lines.map(l => l.replace(/^>\s?/, "")).join(" ") });
         return;
       }
-      // Short standalone line → heading
       if (lines.length === 1 && lines[0].length < 80 && !/[.!?]$/.test(lines[0])) {
         out.push({ id: `s-${i}-${Date.now()}`, type: "heading", content: lines[0] });
         return;
       }
-      // Default paragraph
       out.push({ id: `s-${i}-${Date.now()}`, type: "paragraph", content: lines.join(" ") });
     });
     setSections(out);
