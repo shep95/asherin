@@ -249,7 +249,15 @@ const PdfGeneratorView = () => {
       const pages = paginateSections(pdfSections, title, author);
       if (pages.length === 0) pages.push("");
 
-      const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [432, 648] });
+      const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [432, 648], compress: true });
+
+      // Preload wallpaper once
+      await new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+        img.src = wallpaperSrc;
+      });
 
       for (let i = 0; i < pages.length; i++) {
         const pageEl = document.createElement("div");
