@@ -41,14 +41,28 @@ const PdfGeneratorView = () => {
     e.target.value = "";
   };
 
+  // Collapse "spaced-out" titles like "T H E  B O O K" → "THE BOOK"
+  // and strip ASCII decorator lines (═══, ───, ===, ***, ___)
+  const normalizeLine = (raw: string) => {
+    let s = raw.replace(/[═━─–—=*_]{3,}/g, "").trim();
+    if (!s) return "";
+    const toks = s.split(/\s+/).filter(Boolean);
+    if (toks.length >= 4 && toks.filter(t => t.length === 1).length / toks.length > 0.6) {
+      // Detect double-space groups → word boundaries
+      const groups = s.split(/\s{2,}/).map(g => g.replace(/\s+/g, ""));
+      s = groups.join(" ");
+    }
+    return s.trim();
+  };
+
   // Pure deterministic parser — NO AI. Splits text into sections by structure only.
   const parseRawText = useCallback(() => {
     if (!rawData.trim()) return;
     const blocks = rawData.replace(/\r\n/g, "\n").split(/\n\s*\n+/).map(b => b.trim()).filter(Boolean);
     const out: PdfSection[] = [];
     blocks.forEach((block, i) => {
-      const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
-      // Markdown headings
+      const lines = block.split("\n").map(normalizeLine).filter(Boolean);
+      if (lines.length === 0) return;
       if (/^#{1,2}\s/.test(lines[0])) {
         out.push({ id: `s-${i}-${Date.now()}`, type: "heading", content: lines[0].replace(/^#{1,2}\s+/, "") });
         if (lines.length > 1) out.push({ id: `s-${i}b-${Date.now()}`, type: "paragraph", content: lines.slice(1).join(" ") });
@@ -59,22 +73,18 @@ const PdfGeneratorView = () => {
         if (lines.length > 1) out.push({ id: `s-${i}b-${Date.now()}`, type: "paragraph", content: lines.slice(1).join(" ") });
         return;
       }
-      // Bullet list
       if (lines.every(l => /^[-•*]\s/.test(l) || /^\d+[.)]\s/.test(l))) {
         out.push({ id: `s-${i}-${Date.now()}`, type: "list", content: lines.join("\n") });
         return;
       }
-      // Blockquote
       if (lines.every(l => /^>\s?/.test(l))) {
         out.push({ id: `s-${i}-${Date.now()}`, type: "quote", content: lines.map(l => l.replace(/^>\s?/, "")).join(" ") });
         return;
       }
-      // Short standalone line → heading
       if (lines.length === 1 && lines[0].length < 80 && !/[.!?]$/.test(lines[0])) {
         out.push({ id: `s-${i}-${Date.now()}`, type: "heading", content: lines[0] });
         return;
       }
-      // Default paragraph
       out.push({ id: `s-${i}-${Date.now()}`, type: "paragraph", content: lines.join(" ") });
     });
     setSections(out);
@@ -110,11 +120,11 @@ const PdfGeneratorView = () => {
         const t = String(s.content ?? "").replace(/</g, "&lt;");
         switch (s.type) {
           case "heading":
-            return `<h2 style="font-family:${FONT_HEAD};font-size:26px;font-weight:700;line-height:1.15;margin:28px 0 14px;color:#f5f1e8;letter-spacing:-0.01em;">${t}</h2>`;
+            return `<h2 style="font-family:${FONT_HEAD};font-size:24px;font-weight:700;line-height:1.2;margin:24px 0 12px;color:#f5f1e8;letter-spacing:0;text-align:left;">${t}</h2>`;
           case "subheading":
-            return `<h3 style="font-family:${FONT_HEAD};font-size:17px;font-weight:600;font-style:italic;margin:20px 0 8px;color:#e8dfc9;">${t}</h3>`;
+            return `<h3 style="font-family:${FONT_HEAD};font-size:16px;font-weight:600;font-style:italic;margin:18px 0 6px;color:#e8dfc9;text-align:left;letter-spacing:0;">${t}</h3>`;
           case "paragraph":
-            return `<p style="font-family:${FONT_BODY};font-size:12.5px;line-height:1.75;margin-bottom:14px;color:#e8e3d6;text-align:justify;text-indent:1.2em;">${t}</p>`;
+            return `<p style="font-family:${FONT_BODY};font-size:12.5px;line-height:1.75;margin-bottom:14px;color:#e8e3d6;text-align:left;">${t}</p>`;
           case "quote":
             return `<blockquote style="font-family:${FONT_HEAD};font-size:14px;font-style:italic;line-height:1.7;margin:20px 28px;padding:8px 0 8px 18px;color:#d8c89a;border-left:2px solid rgba(216,200,154,0.6);">"${t}"</blockquote>`;
           case "list": {
@@ -232,22 +242,22 @@ const PdfGeneratorView = () => {
       case "heading":
         return (
           <h2 style={{
-            fontFamily: FONT_HEAD, fontSize: 26, fontWeight: 700, lineHeight: 1.15,
-            margin: "28px 0 14px", color: "#f5f1e8", letterSpacing: "-0.01em",
+            fontFamily: FONT_HEAD, fontSize: 24, fontWeight: 700, lineHeight: 1.2,
+            margin: "24px 0 12px", color: "#f5f1e8", letterSpacing: 0, textAlign: "left",
           }}>{text}</h2>
         );
       case "subheading":
         return (
           <h3 style={{
-            fontFamily: FONT_HEAD, fontSize: 17, fontWeight: 600, fontStyle: "italic",
-            margin: "20px 0 8px", color: "#e8dfc9", letterSpacing: "0.01em",
+            fontFamily: FONT_HEAD, fontSize: 16, fontWeight: 600, fontStyle: "italic",
+            margin: "18px 0 6px", color: "#e8dfc9", letterSpacing: 0, textAlign: "left",
           }}>{text}</h3>
         );
       case "paragraph":
         return (
           <p style={{
             fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 400, lineHeight: 1.75,
-            marginBottom: 14, color: "#e8e3d6", textAlign: "justify", textIndent: "1.2em",
+            marginBottom: 14, color: "#e8e3d6", textAlign: "left",
           }}>{text}</p>
         );
       case "quote":
