@@ -9,8 +9,8 @@ export const TIERS = {
     price_id: "price_1T9wBfRxgCpmPfiFgegrNIkk",
   },
   lifetime: {
-    product_id: "prod_UTAohGxiACHvxw",
-    price_id: "price_1TUETIRxgCpmPfiFemlQMGTi",
+    product_id: "prod_UTrNsrxIQGTBQR",
+    price_id: "price_1TUtfDRxgCpmPfiFNYa092Zu",
   },
   chat: {
     product_id: "prod_U4YWDDwSXK3SGO",
@@ -91,7 +91,7 @@ export function hasSearchAccess(tierKey: TierKey | null): boolean {
   return tierKey === "chat" || tierKey === "starter" || tierKey === "lifetime" || tierKey === "aureon" || tierKey === "pro";
 }
 
-/** Check if user has Aureon-tier ($199) access — required for NOMAD, Briefings, ZANOEM Design Lab, Vedic Strategy. Lifetime ($740) also grants this. */
+/** Check if user has Aureon-tier ($199) access — required for NOMAD, Briefings, ZANOEM Design Lab, Vedic Strategy. Lifetime ($470) also grants this. */
 export function hasAureonAccess(tierKey: TierKey | null): boolean {
   return tierKey === "aureon" || tierKey === "pro" || tierKey === "lifetime";
 }

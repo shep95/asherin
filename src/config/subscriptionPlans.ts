@@ -92,7 +92,7 @@ const AUREON_FEATURES: FeatureId[] = [
   "axrlen", "zeeion",
 ];
 
-// Lifetime ($740 one-time) gets everything in Aureon ($199) and below.
+// Lifetime ($470 one-time) gets everything in Aureon ($199) and below.
 const LIFETIME_FEATURES: FeatureId[] = [...AUREON_FEATURES];
 
 const PRO_FEATURES: FeatureId[] = [
@@ -133,7 +133,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     id: "lifetime",
     name: "AUREON LIFETIME",
     tagline: "One-Time Purchase",
-    price: "$740",
+    price: "$470",
     period: "one-time",
     description: "Lifetime access to everything in the Aureon $199/mo tier and below — IDE, persistent memory, personas, NOMAD, Briefings, ZANOEM Design Lab, Vedic Strategy, Zophiel Search, Notebooks, generators, Zahten and Guardian Vault. Unlimited messages. Bring your own AI key — one payment, forever.",
     cta: "Get Lifetime Access",
