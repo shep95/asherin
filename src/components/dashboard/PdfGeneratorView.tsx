@@ -206,7 +206,7 @@ ${rawData.slice(0, 12000)}`
             </div>
             <input ref={fileInputRef} type="file" className="hidden" accept=".txt,.md,.csv,.json,.xml" onChange={handleFileUpload} />
             <textarea value={rawData} onChange={e => setRawData(e.target.value)}
-              placeholder="Paste or upload your raw data here… The AI will structure it into a professional PDF document."
+              placeholder="Paste or upload your text here… AI will only fix grammar, spelling and punctuation — your wording is preserved exactly."
               className="w-full h-40 bg-card/30 border border-border/20 rounded-xl p-3 text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-accent/30 resize-none" />
           </div>
 
