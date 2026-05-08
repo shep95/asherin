@@ -184,11 +184,12 @@ const PdfGeneratorView = () => {
         pageEl.innerHTML = `
           <div style="position:absolute;inset:0;background-image:url(${wallpaperSrc});background-size:cover;background-position:center;opacity:${bgOpacity};"></div>
           <div style="position:absolute;inset:0;background:rgba(10,10,10,${overlayOpacity});"></div>
-          <div style="position:absolute;inset:12px;border:1px solid rgba(255,255,255,0.1);border-radius:2px;pointer-events:none;"></div>
-          <div style="position:relative;z-index:10;padding:${PAGE_PAD_Y}px ${PAGE_PAD_X}px;height:${PAGE_H}px;box-sizing:border-box;overflow:hidden;">
+          <div style="position:absolute;top:${PAGE_PAD_Y - 14}px;left:${PAGE_PAD_X - 14}px;right:${PAGE_PAD_X - 14}px;bottom:${PAGE_PAD_Y - 14}px;border:1px solid rgba(216,200,154,0.45);border-radius:2px;pointer-events:none;"></div>
+          <div style="position:absolute;top:${PAGE_PAD_Y - 8}px;left:${PAGE_PAD_X - 8}px;right:${PAGE_PAD_X - 8}px;bottom:${PAGE_PAD_Y - 8}px;border:1px solid rgba(216,200,154,0.18);pointer-events:none;"></div>
+          <div style="position:absolute;top:${PAGE_PAD_Y}px;left:${PAGE_PAD_X}px;width:${PAGE_W - PAGE_PAD_X * 2}px;height:${PAGE_H - PAGE_PAD_Y * 2}px;overflow:hidden;z-index:10;word-wrap:break-word;overflow-wrap:break-word;">
             ${pages[i]}
-            <div style="position:absolute;bottom:18px;left:0;right:0;text-align:center;font-family:${FONT_BODY};font-size:9px;color:#a89968;letter-spacing:0.2em;">${i + 1}</div>
           </div>
+          <div style="position:absolute;bottom:${PAGE_PAD_Y - 28}px;left:0;right:0;text-align:center;font-family:${FONT_BODY};font-size:9px;color:#a89968;letter-spacing:0.2em;z-index:10;">— ${i + 1} —</div>
         `;
         document.body.appendChild(pageEl);
 
@@ -414,7 +415,9 @@ const PdfGeneratorView = () => {
             {/* Subtle dark overlay for text legibility */}
             <div className="absolute inset-0" style={{ background: `rgba(10,10,10, ${overlayOpacity})` }} />
             {/* Decorative inner frame */}
-            <div className="absolute inset-3 border border-white/10 rounded-sm pointer-events-none" />
+            {/* Visible safe-area frames — text must not pass these borders */}
+            <div className="absolute pointer-events-none rounded-sm" style={{ top: "5.1%", left: "6.1%", right: "6.1%", bottom: "5.1%", border: "1px solid rgba(216,200,154,0.45)" }} />
+            <div className="absolute pointer-events-none" style={{ top: "5.7%", left: "6.9%", right: "6.9%", bottom: "5.7%", border: "1px solid rgba(216,200,154,0.18)" }} />
 
             <div ref={previewRef} className="relative z-10 h-full overflow-hidden"
               style={{ padding: "56px 48px", width: PAGE_W }}>
