@@ -90,30 +90,136 @@ const PdfGeneratorView = () => {
     setSections(prev => prev.filter(s => s.id !== id));
 
   const exportPdf = useCallback(async () => {
-    if (!previewRef.current) return;
     setGenerating(true);
     try {
-      // Wait for fonts to be ready so html2canvas captures the fancy typeface
       // @ts-ignore
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
-      const canvas = await html2canvas(previewRef.current, {
-        backgroundColor: "#0a0a0a",
-        scale: 2,
-        useCORS: true,
-        windowWidth: PAGE_W,
-      });
-      // Standard 6×9 ebook: 432 × 648 pt
+      const PAGE_PAD_Y = 56;
+      const PAGE_PAD_X = 48;
+      const INNER_H = PAGE_H - PAGE_PAD_Y * 2;
+
+      // Build offscreen measuring container at exact page width
+      const measure = document.createElement("div");
+      measure.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_W - PAGE_PAD_X * 2}px;visibility:hidden;`;
+      document.body.appendChild(measure);
+
+      // Render the title block + each section into individual elements to measure
+      const sectionEls: HTMLElement[] = [];
+      const renderToHtml = (s: PdfSection): string => {
+        const t = String(s.content ?? "").replace(/</g, "&lt;");
+        switch (s.type) {
+          case "heading":
+            return `<h2 style="font-family:${FONT_HEAD};font-size:26px;font-weight:700;line-height:1.15;margin:28px 0 14px;color:#f5f1e8;letter-spacing:-0.01em;">${t}</h2>`;
+          case "subheading":
+            return `<h3 style="font-family:${FONT_HEAD};font-size:17px;font-weight:600;font-style:italic;margin:20px 0 8px;color:#e8dfc9;">${t}</h3>`;
+          case "paragraph":
+            return `<p style="font-family:${FONT_BODY};font-size:12.5px;line-height:1.75;margin-bottom:14px;color:#e8e3d6;text-align:justify;text-indent:1.2em;">${t}</p>`;
+          case "quote":
+            return `<blockquote style="font-family:${FONT_HEAD};font-size:14px;font-style:italic;line-height:1.7;margin:20px 28px;padding:8px 0 8px 18px;color:#d8c89a;border-left:2px solid rgba(216,200,154,0.6);">"${t}"</blockquote>`;
+          case "list": {
+            const items = t.split("\n").filter(l => l.trim()).map(l =>
+              `<li style="font-family:${FONT_BODY};font-size:12.5px;line-height:1.7;color:#e8e3d6;margin-bottom:6px;position:relative;padding-left:14px;list-style:none;"><span style="position:absolute;left:0;color:#d8c89a;">◆</span>${l.replace(/^([-•*]|\d+[.)])\s*/, "")}</li>`
+            ).join("");
+            return `<ul style="padding-left:22px;margin:10px 0 16px;list-style:none;">${items}</ul>`;
+          }
+          case "divider":
+            return `<div style="display:flex;justify-content:center;margin:24px 0;color:#a89968;"><span style="font-family:${FONT_HEAD};font-size:16px;letter-spacing:1em;">◈ ◈ ◈</span></div>`;
+          default:
+            return "";
+        }
+      };
+
+      // Title block (only on first page)
+      let titleBlockHtml = "";
+      if (title || author) {
+        titleBlockHtml = `<div style="text-align:center;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid rgba(216,200,154,0.25);">
+          ${title ? `<div style="font-family:${FONT_HEAD};font-size:22px;font-weight:700;color:#f5f1e8;letter-spacing:0.02em;">${title}</div>` : ""}
+          ${author ? `<div style="font-family:${FONT_HEAD};font-style:italic;font-size:11px;color:#d8c89a;margin-top:6px;letter-spacing:0.15em;text-transform:uppercase;">${author}</div>` : ""}
+        </div>`;
+      }
+
+      // Measure each section's height
+      const all: { html: string; height: number }[] = [];
+      if (titleBlockHtml) {
+        measure.innerHTML = titleBlockHtml;
+        all.push({ html: titleBlockHtml, height: measure.offsetHeight });
+      }
+      for (const s of sections) {
+        const html = renderToHtml(s);
+        measure.innerHTML = html;
+        all.push({ html, height: measure.offsetHeight });
+      }
+      document.body.removeChild(measure);
+
+      // Paginate by accumulating heights
+      const pages: string[] = [];
+      let curHtml = "";
+      let curH = 0;
+      for (const { html, height } of all) {
+        if (height > INNER_H) {
+          // Oversized single block — flush current and place alone (will be clipped, but better than overlap)
+          if (curHtml) { pages.push(curHtml); curHtml = ""; curH = 0; }
+          pages.push(html);
+          continue;
+        }
+        if (curH + height > INNER_H) {
+          pages.push(curHtml);
+          curHtml = html;
+          curH = height;
+        } else {
+          curHtml += html;
+          curH += height;
+        }
+      }
+      if (curHtml) pages.push(curHtml);
+      if (pages.length === 0) pages.push("");
+
       const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [432, 648] });
-      const imgData = canvas.toDataURL("image/png");
-      pdf.addImage(imgData, "PNG", 0, 0, 432, 648, undefined, "FAST");
+
+      for (let i = 0; i < pages.length; i++) {
+        // Build a real page DOM with wallpaper + overlay + content
+        const pageEl = document.createElement("div");
+        pageEl.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_W}px;height:${PAGE_H}px;overflow:hidden;background:#0a0a0a;`;
+        pageEl.innerHTML = `
+          <div style="position:absolute;inset:0;background-image:url(${wallpaperSrc});background-size:cover;background-position:center;opacity:${bgOpacity};"></div>
+          <div style="position:absolute;inset:0;background:rgba(10,10,10,${overlayOpacity});"></div>
+          <div style="position:absolute;inset:12px;border:1px solid rgba(255,255,255,0.1);border-radius:2px;pointer-events:none;"></div>
+          <div style="position:relative;z-index:10;padding:${PAGE_PAD_Y}px ${PAGE_PAD_X}px;height:${PAGE_H}px;box-sizing:border-box;overflow:hidden;">
+            ${pages[i]}
+            <div style="position:absolute;bottom:18px;left:0;right:0;text-align:center;font-family:${FONT_BODY};font-size:9px;color:#a89968;letter-spacing:0.2em;">${i + 1}</div>
+          </div>
+        `;
+        document.body.appendChild(pageEl);
+
+        // Wait for background image to load
+        await new Promise<void>((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          img.src = wallpaperSrc;
+        });
+
+        const canvas = await html2canvas(pageEl, {
+          backgroundColor: "#0a0a0a",
+          scale: 2,
+          useCORS: true,
+          windowWidth: PAGE_W,
+        });
+        document.body.removeChild(pageEl);
+
+        const imgData = canvas.toDataURL("image/png");
+        if (i > 0) pdf.addPage([432, 648], "portrait");
+        pdf.addImage(imgData, "PNG", 0, 0, 432, 648, undefined, "FAST");
+      }
+
       const safeTitle = (title || "aureon-document").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
       pdf.save(`${safeTitle}.pdf`);
     } catch (e) {
       console.error("PDF export error:", e);
     }
     setGenerating(false);
-  }, [title]);
+  }, [title, author, sections, wallpaperSrc, bgOpacity, overlayOpacity]);
 
   // Modern fancy typography (Playfair display headings + Lora body)
   const FONT_HEAD = "'Playfair Display', 'Cormorant Garamond', Georgia, serif";
