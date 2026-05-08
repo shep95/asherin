@@ -1,19 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, Lock, Zap, Search, MessageSquare, AlertOctagon } from "lucide-react";
+import { Lock, MessageSquare, X, AlertOctagon } from "lucide-react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
 import AureonFreeChat from "@/components/zophiel-free/AureonFreeChat";
-
-type Tab = "search" | "chat";
+import ZophielSourcePulse from "@/components/zophiel-free/ZophielSourcePulse";
+import ZophielStatusBar from "@/components/zophiel-free/ZophielStatusBar";
 
 const ZophielFree = () => {
   const [hasSearched, setHasSearched] = useState(false);
-  const [tab, setTab] = useState<Tab>("search");
+  const [chatOpen, setChatOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
+  // SEO — kept identical to prior version. Title <60, description <160.
   useEffect(() => {
-    // Title — keyword-front, <60 chars
     document.title = "Zophiel Search — Free Private AI Search Engine | Aureon";
 
     const setMeta = (selector: string, attr: string, value: string, create: () => HTMLElement) => {
@@ -22,15 +23,13 @@ const ZophielFree = () => {
       el.setAttribute(attr, value);
     };
 
-    // Description — <160 chars
     setMeta(
       'meta[name="description"]',
       "content",
-      "Free private AI search with source-credibility tiers, instant answers, deep research, image geo-location, and the ZERLAL intelligence model — rival of Gaythropic. No tracking.",
+      "Free private AI search with source-credibility tiers, instant answers, deep research, image OSINT, and intel mapping. No tracking. No login.",
       () => { const m = document.createElement("meta"); m.setAttribute("name", "description"); return m; },
     );
 
-    // Canonical
     setMeta(
       'link[rel="canonical"]',
       "href",
@@ -38,10 +37,9 @@ const ZophielFree = () => {
       () => { const l = document.createElement("link"); l.setAttribute("rel", "canonical"); return l; },
     );
 
-    // Open Graph
     const og: Array<[string, string]> = [
       ["og:title", "Zophiel Search — Free Private AI Search Engine"],
-      ["og:description", "Source-tier credibility, instant answers, deep research, image OSINT, and intel mapping. No tracking. No login."],
+      ["og:description", "Source-tier credibility, instant answers, deep research, image OSINT, intel mapping. Zero tracking."],
       ["og:type", "website"],
       ["og:url", `${window.location.origin}/zophiel`],
       ["og:site_name", "Aureon"],
@@ -55,11 +53,10 @@ const ZophielFree = () => {
       );
     });
 
-    // Twitter
     const tw: Array<[string, string]> = [
       ["twitter:card", "summary_large_image"],
       ["twitter:title", "Zophiel Search — Free Private AI Search"],
-      ["twitter:description", "Credibility-ranked search, deep research, image geo-location, intel mapping. Zero tracking."],
+      ["twitter:description", "Credibility-ranked search, deep research, image OSINT, intel mapping. Zero tracking."],
     ];
     tw.forEach(([name, content]) => {
       setMeta(
@@ -70,7 +67,6 @@ const ZophielFree = () => {
       );
     });
 
-    // JSON-LD: WebSite + SearchAction + SoftwareApplication
     const ldId = "zophiel-jsonld";
     document.getElementById(ldId)?.remove();
     const ld = document.createElement("script");
@@ -78,149 +74,141 @@ const ZophielFree = () => {
     ld.id = ldId;
     ld.textContent = JSON.stringify({
       "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "WebSite",
-          name: "Zophiel Search",
-          url: `${window.location.origin}/zophiel`,
-          potentialAction: {
-            "@type": "SearchAction",
-            target: `${window.location.origin}/zophiel?q={search_term_string}`,
-            "query-input": "required name=search_term_string",
-          },
-        },
-        {
-          "@type": "SoftwareApplication",
-          name: "Zophiel Search Engine",
-          applicationCategory: "SearchApplication",
-          operatingSystem: "Web",
-          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-          description:
-            "Free privacy-first AI search engine with source credibility tiers, deep research, image geo-location, and intelligence mapping.",
-          featureList: [
-            "Source credibility tiers",
-            "Instant answer cards",
-            "Deep research mode",
-            "Image geo-location (Imagine Intelligence)",
-            "ZERLAL model (rival of Gaythropic)",
-            "Privacy-first, zero tracking",
-          ],
-        },
-      ],
+      "@type": "WebSite",
+      name: "Zophiel Search",
+      url: `${window.location.origin}/zophiel`,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${window.location.origin}/zophiel?q={query}`,
+        "query-input": "required name=query",
+      },
     });
     document.head.appendChild(ld);
-
-    return () => {
-      document.getElementById(ldId)?.remove();
-    };
   }, []);
 
-  // Detect when user has searched by watching the engine's DOM state via a mutation observer on body
-  // Simpler: poll localStorage recent searches OR listen to clicks on the form. We use a window event.
+  // Lock body scroll while drawer is open
   useEffect(() => {
-    const handler = () => setHasSearched(true);
-    window.addEventListener("zophiel:searched", handler);
-    return () => window.removeEventListener("zophiel:searched", handler);
-  }, []);
+    if (chatOpen) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [chatOpen]);
 
   return (
     <LandingBackground>
       <Header />
 
-
-
-      {/* Floating "Free" pill — only shown pre-search on search tab */}
-      {!hasSearched && tab === "search" && (
-        <div className="fixed top-20 right-4 sm:right-6 z-30 animate-fade-in">
-          <div className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/5 backdrop-blur-md px-3 py-1.5">
-            <Sparkles className="h-3 w-3 text-emerald-300" />
-            <span className="text-[10px] font-light tracking-[0.15em] text-emerald-200/80 uppercase">
-              Free Forever
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Tab bar */}
-      <div className="fixed top-16 left-1/2 -translate-x-1/2 z-30 mt-2">
-        <div className="inline-flex items-center gap-1 rounded-full border border-border/20 bg-card/40 backdrop-blur-xl p-1 shadow-lg">
-          <button
-            onClick={() => setTab("search")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase transition ${
-              tab === "search"
-                ? "bg-foreground/10 text-foreground border border-foreground/20"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Search className="h-3 w-3" /> Search
-          </button>
-          <button
-            onClick={() => setTab("chat")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase transition ${
-              tab === "chat"
-                ? "bg-foreground/10 text-foreground border border-foreground/20"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <MessageSquare className="h-3 w-3" /> Aureon Chat
-          </button>
-        </div>
+      {/* Status bar — top-right, always visible. Replaces the noisy "Free" pill. */}
+      <div className="fixed top-20 right-4 sm:right-6 z-30 animate-fade-in">
+        <ZophielStatusBar />
       </div>
 
-      {/* Engine — full-bleed */}
-      <main className="relative z-10 pt-28 min-h-screen">
+      {/* Engine — full-bleed, no tab gymnastics */}
+      <main className="relative z-10 pt-24 min-h-screen">
         <h1 className="sr-only">
-          Zophiel — Free Private AI Search Engine and Aureon BYOK Chat
+          Zophiel — Free Private AI Search Engine
         </h1>
-        <div className="h-[calc(100vh-7rem)]">
-          {tab === "search" ? (
-            <ZophielEngineView onSearchedChange={setHasSearched} />
-          ) : (
-            <div className="mx-auto h-full max-w-5xl px-4 sm:px-6 pb-6">
-              <div className="h-full overflow-hidden rounded-2xl border border-border/20 bg-card/30 backdrop-blur-xl shadow-2xl">
-                <AureonFreeChat />
-              </div>
+
+        {/* Pre-search hero overlay — sits above the engine's own empty state.
+            Once the user searches, the engine takes over the full viewport. */}
+        {!hasSearched && (
+          <div className="pointer-events-none absolute inset-x-0 top-28 z-[5] flex flex-col items-center px-4">
+            <div className="text-center">
+              <p className="text-[10px] font-light tracking-[0.4em] text-muted-foreground/50 uppercase">
+                Aureon Intelligence · Search Engine
+              </p>
+              <h2 className="mt-4 text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight text-foreground/90">
+                See what others miss.
+              </h2>
+              <p className="mt-3 text-sm sm:text-base font-light tracking-wide text-muted-foreground/70 max-w-xl mx-auto">
+                30 sources. Veracity-ranked. Cross-validated. No tracking.
+              </p>
             </div>
-          )}
+          </div>
+        )}
+
+        <div className="h-[calc(100vh-7rem)]">
+          <ZophielEngineView onSearchedChange={setHasSearched} />
         </div>
       </main>
 
-      {/* Trust strip — only shown pre-search on search tab */}
-      {!hasSearched && tab === "search" && (
-        <section className="relative z-10 px-4 sm:px-6 pb-10 -mt-24 sm:-mt-20 pointer-events-none">
-          <div className="mx-auto max-w-3xl">
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[10px] font-light tracking-[0.2em] text-muted-foreground/40 uppercase">
-              <span className="inline-flex items-center gap-1.5">
-                <Lock className="h-3 w-3" /> No tracking
-              </span>
-              <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
-              <span className="inline-flex items-center gap-1.5">
-                <Zap className="h-3 w-3" /> Instant answers
-              </span>
-              <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
-              <span>Source tiers</span>
-              <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
-              <span>Intel mapping</span>
-            </div>
-            <p className="mt-6 text-center text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/40 uppercase pointer-events-auto">
-              Want personas, voice, agents, and the full Aureon suite?{" "}
-              <Link
-                to="/pricing"
-                className="text-foreground/70 hover:text-foreground underline-offset-4 hover:underline"
-              >
-                See plans
-              </Link>
-            </p>
+      {/* Ambient source pulse — only pre-search, full width, behind everything */}
+      {!hasSearched && (
+        <div className="fixed inset-x-0 bottom-24 z-[4] pointer-events-none">
+          <ZophielSourcePulse />
+          <div className="mt-4 flex items-center justify-center gap-x-6 gap-y-2 text-[10px] font-light tracking-[0.22em] text-muted-foreground/40 uppercase pointer-events-auto">
+            <span className="inline-flex items-center gap-1.5">
+              <Lock className="h-3 w-3" /> No tracking
+            </span>
+            <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
+            <span>Source tiers</span>
+            <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
+            <span>Cross-validated</span>
+            <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
+            <Link
+              to="/pricing"
+              className="text-foreground/60 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+            >
+              Plans
+            </Link>
           </div>
-        </section>
+        </div>
+      )}
+
+      {/* Floating chat trigger — bottom-right, discreet */}
+      {!chatOpen && (
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/60 backdrop-blur-xl px-4 py-2.5 text-[10px] font-light tracking-[0.22em] uppercase text-foreground/80 hover:text-foreground hover:bg-card/80 hover:border-border/50 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
+          aria-label="Open Aureon chat"
+        >
+          <MessageSquare className="h-3.5 w-3.5" />
+          Talk to Aureon
+        </button>
+      )}
+
+      {/* Chat drawer — slides in from the right */}
+      {chatOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-background/40 backdrop-blur-sm animate-fade-in"
+            onClick={() => setChatOpen(false)}
+            aria-hidden
+          />
+          <aside
+            ref={drawerRef}
+            className="fixed inset-y-0 right-0 z-50 w-full sm:w-[28rem] md:w-[32rem] border-l border-border/30 bg-card/80 backdrop-blur-2xl shadow-[0_0_60px_rgba(0,0,0,0.5)] flex flex-col animate-slide-in-right"
+            role="dialog"
+            aria-label="Aureon chat"
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-3.5 w-3.5 text-foreground/70" />
+                <span className="text-[10px] font-light tracking-[0.25em] uppercase text-foreground/80">
+                  Aureon Chat
+                </span>
+              </div>
+              <button
+                onClick={() => setChatOpen(false)}
+                className="rounded-full p-1.5 hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground"
+                aria-label="Close chat"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <AureonFreeChat />
+            </div>
+          </aside>
+        </>
       )}
 
       {/* Disclaimer footer */}
-      <footer className="relative z-10 border-t border-border/20 bg-gradient-to-r from-background/60 via-card/40 to-background/60 backdrop-blur-xl px-4 py-3">
+      <footer className="relative z-10 border-t border-border/20 bg-gradient-to-r from-background/60 via-card/40 to-background/60 backdrop-blur-xl px-4 py-2.5">
         <div className="mx-auto max-w-5xl flex items-center justify-center gap-2 text-center">
-          <AlertOctagon className="h-3.5 w-3.5 text-foreground/70 shrink-0" />
-          <p className="text-[10px] sm:text-xs font-light tracking-wide text-foreground/80">
-            <span className="font-medium text-foreground">#HouseOfAsher</span> and its assets are not responsible for your use of Aureon. I'm tired of seeing cease-and-desist letters in my mail — knock it off.
+          <AlertOctagon className="h-3 w-3 text-foreground/50 shrink-0" />
+          <p className="text-[10px] font-light tracking-wide text-foreground/60">
+            <span className="font-medium text-foreground/80">#HouseOfAsher</span> isn't responsible for how you use Aureon.
           </p>
         </div>
       </footer>

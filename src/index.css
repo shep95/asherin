@@ -169,6 +169,16 @@ body.zophiel-panel-open [data-header-right] {
   mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
 }
 
+.mask-fade-x {
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+@keyframes zophiel-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 /* Header — sticky shrink behavior */
 header[data-aureon-header].header-scrolled {
   --header-pad-y: 0.4rem;
