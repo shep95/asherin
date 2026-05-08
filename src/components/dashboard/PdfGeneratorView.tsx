@@ -267,65 +267,6 @@ const PdfGeneratorView = () => {
     }
     setGenerating(false);
   }, [title, author, sections, wallpaperSrc, bgOpacity, overlayOpacity]);
-
-
-  const renderSectionPreview = (section: PdfSection) => {
-    const text = String(section.content ?? "");
-    switch (section.type) {
-      case "heading":
-        return (
-          <h2 style={{
-            fontFamily: FONT_HEAD, fontSize: 24, fontWeight: 700, lineHeight: 1.2,
-            margin: "24px 0 12px", color: "#f5f1e8", letterSpacing: 0, textAlign: "left",
-          }}>{text}</h2>
-        );
-      case "subheading":
-        return (
-          <h3 style={{
-            fontFamily: FONT_HEAD, fontSize: 16, fontWeight: 600, fontStyle: "italic",
-            margin: "18px 0 6px", color: "#e8dfc9", letterSpacing: 0, textAlign: "left",
-          }}>{text}</h3>
-        );
-      case "paragraph":
-        return (
-          <p style={{
-            fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 400, lineHeight: 1.75,
-            marginBottom: 14, color: "#e8e3d6", textAlign: "left",
-          }}>{text}</p>
-        );
-      case "quote":
-        return (
-          <blockquote style={{
-            fontFamily: FONT_HEAD, fontSize: 14, fontStyle: "italic", lineHeight: 1.7,
-            margin: "20px 28px", padding: "8px 0 8px 18px", color: "#d8c89a",
-            borderLeft: "2px solid rgba(216, 200, 154, 0.6)",
-          }}>"{text}"</blockquote>
-        );
-      case "list":
-        return (
-          <ul style={{ paddingLeft: 22, margin: "10px 0 16px", listStyle: "none" }}>
-            {text.split("\n").filter(l => l.trim()).map((item, i) => (
-              <li key={i} style={{
-                fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 400, lineHeight: 1.7,
-                color: "#e8e3d6", marginBottom: 6, position: "relative", paddingLeft: 14,
-              }}>
-                <span style={{ position: "absolute", left: 0, color: "#d8c89a" }}>◆</span>
-                {item.replace(/^([-•*]|\d+[.)])\s*/, "")}
-              </li>
-            ))}
-          </ul>
-        );
-      case "divider":
-        return (
-          <div style={{ display: "flex", justifyContent: "center", margin: "24px 0", color: "#a89968" }}>
-            <span style={{ fontFamily: FONT_HEAD, fontSize: 16, letterSpacing: "1em" }}>◈ ◈ ◈</span>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
