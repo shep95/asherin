@@ -234,18 +234,18 @@ const PdfGeneratorView = () => {
     const run = async () => {
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
       if (cancelled) return;
-      const pages = paginateSections(sections, title, author);
+      const pages = paginateSections(pdfSections, title, author);
       if (!cancelled) setPreviewPages(pages.length ? pages : [""]);
     };
     run();
     return () => { cancelled = true; };
-  }, [sections, title, author]);
+  }, [pdfSections, title, author]);
 
   const exportPdf = useCallback(async () => {
     setGenerating(true);
     try {
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
-      const pages = paginateSections(sections, title, author);
+      const pages = paginateSections(pdfSections, title, author);
       if (pages.length === 0) pages.push("");
 
       const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [432, 648] });
@@ -291,7 +291,7 @@ const PdfGeneratorView = () => {
       console.error("PDF export error:", e);
     }
     setGenerating(false);
-  }, [title, author, sections, wallpaperSrc, bgOpacity, overlayOpacity]);
+  }, [title, author, pdfSections, wallpaperSrc, bgOpacity, overlayOpacity]);
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -304,7 +304,7 @@ const PdfGeneratorView = () => {
               <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">6×9″ eBook · Manual · No AI</p>
             </div>
           </div>
-          <button onClick={exportPdf} disabled={sections.length === 0 || generating}
+          <button onClick={exportPdf} disabled={pdfSections.length === 0 || generating}
             className="flex items-center gap-2 rounded-lg bg-accent/20 px-4 py-2 text-xs text-accent hover:bg-accent/30 transition-colors disabled:opacity-40">
             {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
             Export PDF
@@ -413,7 +413,7 @@ const PdfGeneratorView = () => {
             Live Preview · 6×9″ eBook · {Math.max(previewPages.length, 1)} page{Math.max(previewPages.length, 1) === 1 ? "" : "s"}
           </p>
 
-          {sections.length === 0 ? (
+          {pdfSections.length === 0 ? (
             <div
               className="relative shadow-2xl rounded-sm overflow-hidden flex flex-col items-center justify-center"
               style={{ width: "100%", maxWidth: PAGE_W, aspectRatio: `${PAGE_W} / ${PAGE_H}` }}
