@@ -55,7 +55,7 @@ const DEFAULT_SETTINGS: EBookSettings = {
   chapterCount: "auto", tone: "formal",
   includeTableOfContents: true, includeChapterSummaries: true,
   includeDedication: false, includeAboutAuthor: false, includeCopyright: true,
-  rewriteForConsistency: true, fixGrammar: true, removeDuplicates: true,
+  rewriteForConsistency: false, fixGrammar: true, removeDuplicates: false,
   includeDiagrams: false,
 };
 
