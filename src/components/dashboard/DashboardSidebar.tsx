@@ -553,7 +553,7 @@ const DashboardSidebar = ({
               </div>
 
               <div data-dashboard-sidebar-nav className="px-2 py-2 border-t border-border/20 space-y-1">
-                {filteredGroups.map((group) => {
+                {allGroups.map((group) => {
                   const isOpen = expandedGroups[group.label] ?? false;
                   const hasActive = group.subgroups.some(sg => sg.items.some(item => activeView === item.id));
 
