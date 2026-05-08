@@ -14,6 +14,12 @@ import houseOfAsherLogo from "@/assets/HouseOfAsher_Flag.png";
 import PricingComparisonTable from "@/components/subscription/PricingComparisonTable";
 import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
 import SiteFooter from "@/components/SiteFooter";
+import LiveDemoStrip from "@/components/landing/LiveDemoStrip";
+import TrustBand from "@/components/landing/TrustBand";
+import TierComparisonMatrix from "@/components/landing/TierComparisonMatrix";
+import CommandPaletteHint from "@/components/landing/CommandPaletteHint";
+import MagneticSpotlightButton from "@/components/landing/MagneticSpotlightButton";
+import CountUp from "@/components/landing/CountUp";
 
 const StatusIcon = ({ type }: { type: string }) => {
   if (type === "check") return <Check className="h-4 w-4 text-emerald-400 inline" />;
