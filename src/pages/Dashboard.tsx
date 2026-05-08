@@ -45,6 +45,7 @@ const WALLPAPER_MAP: Record<string, string> = {
 };
 import React, { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Conversation, ChatMode, DashboardView, Message, Persona, FileAttachment } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
