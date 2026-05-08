@@ -1386,7 +1386,11 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
             {(step === "upload" || step === "settings") && (
               <button onClick={handleNext} disabled={!canProceed()}
                 className="flex items-center gap-2 rounded-lg bg-accent/20 px-5 py-2 text-xs text-accent hover:bg-accent/30 transition-colors disabled:opacity-40">
-                {step === "settings" ? <><Sparkles className="h-3.5 w-3.5" /> Generate Book</> : <><ArrowRight className="h-3.5 w-3.5" /> Next</>}
+                {step === "settings"
+                  ? (settings.buildMode === "manual"
+                      ? <><BookOpen className="h-3.5 w-3.5" /> Build Book</>
+                      : <><Sparkles className="h-3.5 w-3.5" /> Generate Book</>)
+                  : <><ArrowRight className="h-3.5 w-3.5" /> Next</>}
               </button>
             )}
             {step === "preview" && (
