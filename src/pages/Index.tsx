@@ -957,6 +957,7 @@ const Index = () => {
 
       <ScrollSection>
       <SiteFooter />
+      <CommandPaletteHint />
 
       </ScrollSection>
       {showAuth && (
