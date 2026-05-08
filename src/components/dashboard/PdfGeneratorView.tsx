@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { FileText, Upload, Download, Image as ImageIcon, Loader2, Trash2, Plus, Wand2 } from "lucide-react";
@@ -9,6 +9,109 @@ const wallpaperDefault = WALLPAPERS[0].src;
 // jsPDF uses points: 6" × 9" = 432pt × 648pt
 const PAGE_W = 576;
 const PAGE_H = 864;
+const PAGE_PAD_Y = 56;
+const PAGE_PAD_X = 48;
+const FONT_HEAD = "'Playfair Display', 'Cormorant Garamond', Georgia, serif";
+const FONT_BODY = "'Lora', Georgia, 'Times New Roman', serif";
+
+const renderSectionToHtml = (s: { type: string; content: string }): string => {
+  const t = String(s.content ?? "").replace(/</g, "&lt;");
+  switch (s.type) {
+    case "heading":
+      return `<h2 style="font-family:${FONT_HEAD};font-size:24px;font-weight:700;line-height:1.2;margin:24px 0 12px;color:#f5f1e8;letter-spacing:0;text-align:left;">${t}</h2>`;
+    case "subheading":
+      return `<h3 style="font-family:${FONT_HEAD};font-size:16px;font-weight:600;font-style:italic;margin:18px 0 6px;color:#e8dfc9;text-align:left;letter-spacing:0;">${t}</h3>`;
+    case "paragraph":
+      return `<p style="font-family:${FONT_BODY};font-size:12.5px;line-height:1.75;margin-bottom:14px;color:#e8e3d6;text-align:left;">${t}</p>`;
+    case "quote":
+      return `<blockquote style="font-family:${FONT_HEAD};font-size:14px;font-style:italic;line-height:1.7;margin:20px 28px;padding:8px 0 8px 18px;color:#d8c89a;border-left:2px solid rgba(216,200,154,0.6);">"${t}"</blockquote>`;
+    case "list": {
+      const items = t.split("\n").filter(l => l.trim()).map(l =>
+        `<li style="font-family:${FONT_BODY};font-size:12.5px;line-height:1.7;color:#e8e3d6;margin-bottom:6px;position:relative;padding-left:14px;list-style:none;"><span style="position:absolute;left:0;color:#d8c89a;">◆</span>${l.replace(/^([-•*]|\d+[.)])\s*/, "")}</li>`
+      ).join("");
+      return `<ul style="padding-left:22px;margin:10px 0 16px;list-style:none;">${items}</ul>`;
+    }
+    case "divider":
+      return `<div style="display:flex;justify-content:center;margin:24px 0;color:#a89968;"><span style="font-family:${FONT_HEAD};font-size:16px;letter-spacing:1em;">◈ ◈ ◈</span></div>`;
+    default:
+      return "";
+  }
+};
+
+const buildTitleBlockHtml = (title: string, author: string) => {
+  if (!title && !author) return "";
+  return `<div style="text-align:center;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid rgba(216,200,154,0.25);">
+    ${title ? `<div style="font-family:${FONT_HEAD};font-size:22px;font-weight:700;color:#f5f1e8;letter-spacing:0.02em;">${title}</div>` : ""}
+    ${author ? `<div style="font-family:${FONT_HEAD};font-style:italic;font-size:11px;color:#d8c89a;margin-top:6px;letter-spacing:0.15em;text-transform:uppercase;">${author}</div>` : ""}
+  </div>`;
+};
+
+// Paginate sections into ebook-sized pages of HTML strings.
+const paginateSections = (sections: PdfSection[], title: string, author: string): string[] => {
+  const INNER_H = PAGE_H - PAGE_PAD_Y * 2;
+  const measure = document.createElement("div");
+  measure.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_W - PAGE_PAD_X * 2}px;visibility:hidden;`;
+  document.body.appendChild(measure);
+  const measureHtml = (html: string) => { measure.innerHTML = html; return measure.scrollHeight || measure.offsetHeight; };
+
+  const splitOversized = (section: PdfSection): { html: string; height: number }[] => {
+    const html = renderSectionToHtml(section);
+    const height = measureHtml(html);
+    if (height <= INNER_H) return [{ html, height }];
+    const chunks: { html: string; height: number }[] = [];
+    const pushChunk = (content: string, type: PdfSection["type"] = section.type) => {
+      const h = renderSectionToHtml({ ...section, type, content: content.trim() });
+      chunks.push({ html: h, height: measureHtml(h) });
+    };
+    if (section.type === "list") {
+      const lines = section.content.split("\n").filter(l => l.trim());
+      let chunk: string[] = [];
+      for (const line of lines) {
+        const next = [...chunk, line];
+        if (chunk.length && measureHtml(renderSectionToHtml({ ...section, content: next.join("\n") })) > INNER_H) {
+          pushChunk(chunk.join("\n"));
+          chunk = [line];
+        } else chunk = next;
+      }
+      if (chunk.length) pushChunk(chunk.join("\n"));
+      return chunks;
+    }
+    const words = section.content.split(/\s+/).filter(Boolean);
+    let index = 0;
+    while (index < words.length) {
+      let low = 1, high = words.length - index, fit = 1;
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const candidate = words.slice(index, index + mid).join(" ");
+        const candidateType = section.type === "heading" || section.type === "subheading" ? "paragraph" : section.type;
+        if (measureHtml(renderSectionToHtml({ ...section, type: candidateType, content: candidate })) <= INNER_H) {
+          fit = mid; low = mid + 1;
+        } else high = mid - 1;
+      }
+      const chunkType = section.type === "heading" || section.type === "subheading" ? "paragraph" : section.type;
+      pushChunk(words.slice(index, index + fit).join(" "), chunkType);
+      index += fit;
+    }
+    return chunks;
+  };
+
+  const all: { html: string; height: number }[] = [];
+  const titleHtml = buildTitleBlockHtml(title, author);
+  if (titleHtml) all.push({ html: titleHtml, height: measureHtml(titleHtml) });
+  for (const s of sections) all.push(...splitOversized(s));
+  document.body.removeChild(measure);
+
+  const pages: string[] = [];
+  let curHtml = "", curH = 0;
+  for (const { html, height } of all) {
+    if (curH + height > INNER_H) {
+      if (curHtml) pages.push(curHtml);
+      curHtml = html; curH = height;
+    } else { curHtml += html; curH += height; }
+  }
+  if (curHtml) pages.push(curHtml);
+  return pages;
+};
 
 interface PdfSection {
   id: string;
