@@ -145,9 +145,13 @@ async function callUserModel(
   cfg: IntelMapByok,
   history: IntelChatMsg[],
   userQuery: string,
+  extraSystem?: string,
 ): Promise<string> {
+  const fullSystem = extraSystem
+    ? `${SYSTEM_PROMPT}\n\n=== AUREON BRAIN CONTEXT (curated knowledge) ===\n${extraSystem}\n=== END BRAIN CONTEXT ===`
+    : SYSTEM_PROMPT;
   const messages = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: fullSystem },
     ...history.map((h) => ({ role: h.role, content: h.content })),
     { role: "user", content: userQuery },
   ];
