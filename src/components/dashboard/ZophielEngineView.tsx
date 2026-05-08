@@ -350,30 +350,23 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         {/* Search Header */}
         <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[12vh] sm:pt-[18vh] pb-4 sm:pb-6"}`}>
           <div className="max-w-2xl mx-auto px-3 sm:px-6">
-            {!searched && (
-              <div className="text-center mb-6 animate-fade-in">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Zap className="h-6 w-6 text-accent" />
-                  <h1 className="text-2xl font-extralight tracking-[0.15em] text-foreground">ZOPHIEL ENGINE</h1>
-                </div>
-                <p className="text-sm font-extralight text-muted-foreground">Private search. No tracking. No profiling. Full control.</p>
-              </div>
-            )}
+            {/* Pre-search title intentionally omitted — landing hero already presents the brand */}
 
             {/* Mode selector */}
             <div className="mb-3">
               <SearchModeSelector active={mode} onChange={setMode} />
             </div>
 
-            {/* Scope toggle: Safe / Mix / Dark — applies to standard search modes */}
-            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "deep" && (
+            {/* Scope toggle: Safe / Mix / Dark — compact, only relevant for standard search modes,
+                and only after a search to keep the pre-search view calm. */}
+            {searched && mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "deep" && (
               <div className="mb-3 flex items-center gap-2">
                 <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground/50">Scope</span>
                 <div className="inline-flex rounded-xl border border-border/30 bg-card/40 backdrop-blur-xl p-0.5">
                   {([
-                    { id: "safe", label: "Safe Search", hint: "Clearnet only" },
-                    { id: "mix", label: "Mix Search", hint: "Clearnet + dark web" },
-                    { id: "dark", label: "Dark Search", hint: "Onion sources only" },
+                    { id: "safe", label: "Safe", hint: "Clearnet only" },
+                    { id: "mix", label: "Mix", hint: "Clearnet + dark web" },
+                    { id: "dark", label: "Dark", hint: "Onion sources only" },
                   ] as const).map((opt) => (
                     <button
                       key={opt.id}
