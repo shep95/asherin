@@ -159,7 +159,7 @@ const ZophielFree = () => {
       {!chatOpen && (
         <button
           onClick={() => setChatOpen(true)}
-          className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/60 backdrop-blur-xl px-4 py-2.5 text-[10px] font-light tracking-[0.22em] uppercase text-foreground/80 hover:text-foreground hover:bg-card/80 hover:border-border/50 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
+          className="fixed bottom-6 right-20 z-40 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-border/30 bg-card/60 backdrop-blur-xl px-4 py-2.5 text-[10px] font-light tracking-[0.22em] uppercase text-foreground/80 hover:text-foreground hover:bg-card/80 hover:border-border/50 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
           aria-label="Open Aureon chat"
         >
           <MessageSquare className="h-3.5 w-3.5" />
