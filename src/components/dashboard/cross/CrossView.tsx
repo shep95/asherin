@@ -1091,12 +1091,6 @@ const CrossView: React.FC = () => {
           <CrossAlertFeed alerts={alerts} onDismiss={handleDismissAlert} isSharing={isSharing} />
           {activities.length > 0 && <CrossActivityFeed activities={activities} />}
 
-          {!isSharing && (
-            <div className="mt-2">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/40 mb-2">Select Analysis Mode</p>
-              <CrossModeSelector currentMode={settings.mode} onModeChange={handleModeChange} />
-            </div>
-          )}
         </div>
 
         {/* Side Panels */}
