@@ -543,7 +543,7 @@ const VibeImagerView = () => {
         </Button>
 
         {projects.length > 0 && (
-          <div className="w-full max-w-md space-y-3">
+          <div className="relative w-full max-w-3xl space-y-3">
             <p className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/50 uppercase px-1">Recent Projects</p>
             <div className="space-y-1 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-2">
               {projects.slice(0, 6).map((p) => (
