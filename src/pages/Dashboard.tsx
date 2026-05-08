@@ -1491,6 +1491,7 @@ const Dashboard = () => {
             onAddCustomPersona={addCustomPersona}
             onEditCustomPersona={editCustomPersona}
             onDeleteCustomPersona={deleteCustomPersona}
+            publishedAgents={publishedAgents}
           />
         )}
 
