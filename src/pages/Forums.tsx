@@ -115,7 +115,7 @@ const Forums = () => {
           <MessageSquare className="h-5 w-5 text-foreground/70" strokeWidth={1.3} />
           <p className="text-[10px] font-light tracking-[0.4em] text-muted-foreground/60 uppercase">Community Forums</p>
         </div>
-        <h1 className="text-5xl sm:text-6xl font-extralight tracking-[0.1em] text-foreground mb-3">FORUMS</h1>
+        <h1 className="text-5xl sm:text-6xl font-extralight tracking-[0.1em] zophiel-shimmer-text mb-3">FORUMS</h1>
         <p className="max-w-xl text-sm font-extralight leading-relaxed text-muted-foreground/80 mb-10">
           Share ideas, drop leaks, and report bugs that need to be fixed. Text only — no file uploads.
         </p>

@@ -92,7 +92,7 @@ const FeatureImagineToCode = () => {
           </span>
         </div>
 
-        <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
+        <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
           Paint an Idea.
           <br />
           <span className="text-muted-foreground">AUREON Builds It.</span>

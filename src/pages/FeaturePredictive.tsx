@@ -81,7 +81,7 @@ const FeaturePredictive = () => {
         <div className="rounded-full border border-accent/20 bg-accent/5 backdrop-blur-md px-4 py-1.5 mb-8">
           <span className="text-[10px] font-light tracking-[0.3em] text-accent uppercase">Pro & Advisor</span>
         </div>
-        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
+        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
           Predict Events
           <br />
           <span className="text-muted-foreground">Before They Happen.</span>

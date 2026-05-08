@@ -76,7 +76,7 @@ const ProjAureon = () => {
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-extralight tracking-wide text-foreground mb-8">
+          <h1 className="text-4xl sm:text-5xl font-extralight tracking-wide zophiel-shimmer-text mb-8">
             Proj Aureon
           </h1>
 

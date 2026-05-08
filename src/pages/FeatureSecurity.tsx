@@ -75,7 +75,7 @@ const FeatureSecurity = () => {
         <div className="rounded-full border border-border/20 bg-card/30 backdrop-blur-md px-4 py-1.5 mb-8">
           <span className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase">Defensive Intelligence</span>
         </div>
-        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
+        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
           Know Every Threat
           <br />
           <span className="text-muted-foreground">Before It Lands.</span>

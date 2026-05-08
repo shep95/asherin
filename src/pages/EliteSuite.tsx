@@ -53,7 +53,7 @@ export default function EliteSuite() {
           </button>
           <Sparkles className="h-5 w-5 text-foreground" />
           <div>
-            <h1 className="text-lg font-light tracking-wide">ELITE RESEARCH SUITE</h1>
+            <h1 className="text-lg font-light tracking-wide zophiel-shimmer-text">ELITE RESEARCH SUITE</h1>
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Power tools • Forensic-grade • Court-admissible</p>
           </div>
           <div className="ml-auto text-[10px] text-muted-foreground">

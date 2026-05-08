@@ -68,7 +68,7 @@ const FeatureVedic = () => {
           <Moon className="h-3 w-3 text-foreground/70" />
           <span className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase">Astro-Temporal Intelligence</span>
         </div>
-        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
+        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
           Vedic Strategy.
           <br />
           <span className="text-muted-foreground">Time the Decision, Not Just the Move.</span>

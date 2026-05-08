@@ -24,7 +24,7 @@ const PrivacyPolicy = () => {
           </Link>
 
           <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-12">
-            <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide text-foreground mb-2">Privacy Policy</h1>
+            <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide zophiel-shimmer-text mb-2">Privacy Policy</h1>
             <p className="text-sm font-extralight text-muted-foreground mb-12">Last updated: February 14, 2026</p>
 
             <div className="space-y-10 text-sm font-extralight leading-relaxed text-muted-foreground">

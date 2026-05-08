@@ -47,7 +47,7 @@ const FeatureBYOK = () => {
           <Key className="h-3.5 w-3.5 text-accent" />
           <span className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground uppercase">All Tiers</span>
         </div>
-        <h1 className="max-w-3xl mx-auto text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+        <h1 className="max-w-3xl mx-auto text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
           Bring Your Own AI Key.
         </h1>
         <p className="mt-6 max-w-xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">

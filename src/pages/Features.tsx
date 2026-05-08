@@ -436,7 +436,7 @@ const Features = () => {
         <p className="text-xs font-extralight tracking-[0.35em] text-muted-foreground/50 uppercase mb-5">
           Platform Capabilities
         </p>
-        <h1 className="max-w-4xl text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+        <h1 className="max-w-4xl text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
           Every Tool In The
           <br />
           <span className="text-muted-foreground">Intelligence Arsenal.</span>

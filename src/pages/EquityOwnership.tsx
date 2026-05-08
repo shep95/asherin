@@ -42,7 +42,7 @@ const EquityOwnership = () => {
           Back to Home
         </Link>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
           Equity Ownership
         </h1>
         <p className="mt-3 text-sm font-extralight tracking-[0.25em] text-muted-foreground/50 uppercase">

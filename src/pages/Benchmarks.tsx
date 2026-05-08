@@ -172,7 +172,7 @@ const Benchmarks = () => {
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <div className="relative z-10 pt-8 pb-16 px-6 text-center">
         <p className="text-sm font-light tracking-[0.3em] text-muted-foreground uppercase mb-4">Technical Benchmark</p>
-        <h1 className="max-w-4xl mx-auto text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+        <h1 className="max-w-4xl mx-auto text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
           Aureon vs Claude Opus 4.6
         </h1>
         <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">

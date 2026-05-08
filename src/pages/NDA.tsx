@@ -27,7 +27,7 @@ const NDA = () => {
               <Shield className="h-4 w-4 text-purple-400" />
               <span className="text-xs font-light tracking-[0.15em] text-purple-400 uppercase">Confidential</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide text-foreground">
+            <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide zophiel-shimmer-text">
               Non-Disclosure Agreement
             </h1>
             <p className="mt-4 text-sm font-extralight text-muted-foreground">

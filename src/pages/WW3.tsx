@@ -106,7 +106,7 @@ const WW3 = () => {
         <div className="rounded-full border border-destructive/30 bg-destructive/5 backdrop-blur-md px-4 py-1.5 mb-8">
           <span className="text-[10px] font-light tracking-[0.3em] text-destructive uppercase">🔴 Eyes Only — Classified Intelligence</span>
         </div>
-        <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
+        <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
           WW3 Trajectory
           <br />
           <span className="text-muted-foreground">Analysis.</span>
