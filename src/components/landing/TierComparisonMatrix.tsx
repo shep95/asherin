@@ -92,11 +92,6 @@ const TierComparisonMatrix = () => {
                   : "border border-border/20 bg-card/30"
               }`}
             >
-              {t.highlight && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-background/90 px-2 py-0.5 text-[8px] tracking-[0.25em] uppercase text-amber-300">
-                  <Crown className="h-2.5 w-2.5" /> Best Value
-                </span>
-              )}
               <span className="text-[10px] sm:text-xs font-light tracking-[0.2em] text-foreground uppercase">
                 {t.name}
               </span>
