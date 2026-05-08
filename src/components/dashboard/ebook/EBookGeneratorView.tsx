@@ -8,36 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { EBookChapter, EBookMetadata, EBookSettings, EBookStep, EBookSession, EBookTextUpload } from "./types";
 
 import heroBgDefault from "@/assets/hero-bg.png";
-import wallpaperRaven from "@/assets/wallpaper-raven.png";
-import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
-import wallpaperGlitch from "@/assets/wallpaper-glitch.png";
-import wallpaperAureon from "@/assets/wallpaper-aureon.png";
-import wallpaperSeraph from "@/assets/wallpaper-seraph.png";
-import wallpaperProphet from "@/assets/wallpaper-prophet.png";
-import wallpaperNexus from "@/assets/wallpaper-nexus.png";
-import wallpaperSentinel from "@/assets/wallpaper-sentinel.png";
-import wallpaperInferno from "@/assets/wallpaper-inferno.png";
-import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
-import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
-import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
-import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
-
-const WALLPAPERS = [
-  { key: "default", label: "Original", src: heroBgDefault },
-  { key: "raven", label: "Raven", src: wallpaperRaven },
-  { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
-  { key: "glitch", label: "Glitch", src: wallpaperGlitch },
-  { key: "aureon", label: "Aureon", src: wallpaperAureon },
-  { key: "seraph", label: "Seraph", src: wallpaperSeraph },
-  { key: "prophet", label: "Prophet", src: wallpaperProphet },
-  { key: "nexus", label: "Nexus", src: wallpaperNexus },
-  { key: "sentinel", label: "Sentinel", src: wallpaperSentinel },
-  { key: "inferno", label: "Inferno", src: wallpaperInferno },
-  { key: "sorrow", label: "Sorrow", src: wallpaperSorrow },
-  { key: "silhouette", label: "Silhouette", src: wallpaperSilhouette },
-  { key: "phantom", label: "Phantom", src: wallpaperPhantom },
-  { key: "abyss", label: "Abyss", src: wallpaperAbyss },
-];
+import { ALL_WALLPAPERS as WALLPAPERS } from "@/lib/wallpapers";
 
 const PAGE_SIZES = {
   a4: { w: 595.28, h: 841.89, label: "A4 (210×297mm)" },
