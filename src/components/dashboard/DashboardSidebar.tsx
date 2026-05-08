@@ -220,7 +220,7 @@ const DashboardSidebar = ({
   conversations, activeConversationId, activeView, onSelectConversation,
   onNewConversation, onDeleteConversation, onArchiveConversation, onRenameConversation, onTogglePin, onViewChange,
   sidebarOpen, onToggleSidebar, personaId: externalPersonaId, onPersonaChange,
-  customPersonas, onAddCustomPersona, onEditCustomPersona, onDeleteCustomPersona,
+  customPersonas, onAddCustomPersona, onEditCustomPersona, onDeleteCustomPersona, publishedAgents = [],
 }: DashboardSidebarProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
