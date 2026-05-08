@@ -103,6 +103,7 @@ const FileScrapperView = React.lazy(() => import("@/components/dashboard/scrappe
 
 const CipherView = React.lazy(() => import("@/components/dashboard/cipher/CipherToolkit"));
 const AsherZahtenModule = React.lazy(() => import("@/components/asher/AsherZahtenModule"));
+const AsherPublishedTabRenderer = React.lazy(() => import("@/components/asher/AsherPublishedTabRenderer"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
@@ -196,6 +197,7 @@ const Dashboard = () => {
   const [consensusModels, setConsensusModels] = useState<SelectedModel[]>([]);
   const [storedProviders, setStoredProviders] = useState<string[]>([]);
   const [splitPanes, setSplitPanes] = useState<SplitPane[]>([]);
+  const [publishedAgents, setPublishedAgents] = useState<{ id: string; name: string; entry_html: string | null }[]>([]);
   const [isDraggingConvo, setIsDraggingConvo] = useState(false);
   const [activeBrainId, setActiveBrainId] = useState<string | null>(() => {
     try { return localStorage.getItem("aureon_active_brain_id") || null; } catch { return null; }
@@ -744,6 +746,25 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  // Load Zahten-published agents so they surface as dynamic dashboard tabs (mirrors Asher Dashboard).
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await supabase
+        .from("asher_agents" as any)
+        .select("id, name, entry_html")
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (!cancelled && data) setPublishedAgents(data as any);
+    };
+    load();
+    const onUpd = () => load();
+    window.addEventListener("asher-agents-updated", onUpd);
+    return () => { cancelled = true; window.removeEventListener("asher-agents-updated", onUpd); };
+  }, [user?.id]);
+
   const trackUsage = useCallback(async (modeUsed: ChatMode) => {
     if (!user) return;
     const modeCol = `${modeUsed}_prompts`;
@@ -1277,6 +1298,20 @@ const Dashboard = () => {
       return <FeatureGate title={title} description={description} onUpgrade={() => setActiveView("subscription")} />;
     };
 
+    // Dynamic Zahten-published agent tabs (id format: "agent:<uuid>")
+    if (typeof activeView === "string" && (activeView as string).startsWith("agent:")) {
+      const a = publishedAgents.find((x) => `agent:${x.id}` === activeView);
+      if (a) {
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <AsherPublishedTabRenderer name={a.name} entryHtml={a.entry_html || ""} />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      }
+    }
+
     switch (activeView) {
       case "search": return gatedView("search", ZophielEngineView, "Zophiel Engine", "The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans.");
       case "zali": return gatedView("zali", ZaliView, "ZANOEM Design Lab", "Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro plans.");
@@ -1456,6 +1491,7 @@ const Dashboard = () => {
             onAddCustomPersona={addCustomPersona}
             onEditCustomPersona={editCustomPersona}
             onDeleteCustomPersona={deleteCustomPersona}
+            publishedAgents={publishedAgents}
           />
         )}
 

@@ -50,6 +50,7 @@ interface DashboardSidebarProps {
   onAddCustomPersona?: (persona: Persona) => void;
   onEditCustomPersona?: (persona: Persona) => void;
   onDeleteCustomPersona?: (id: string) => void;
+  publishedAgents?: { id: string; name: string }[];
 }
 
 type NavItem = { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "pro" };
@@ -219,7 +220,7 @@ const DashboardSidebar = ({
   conversations, activeConversationId, activeView, onSelectConversation,
   onNewConversation, onDeleteConversation, onArchiveConversation, onRenameConversation, onTogglePin, onViewChange,
   sidebarOpen, onToggleSidebar, personaId: externalPersonaId, onPersonaChange,
-  customPersonas, onAddCustomPersona, onEditCustomPersona, onDeleteCustomPersona,
+  customPersonas, onAddCustomPersona, onEditCustomPersona, onDeleteCustomPersona, publishedAgents = [],
 }: DashboardSidebarProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -265,6 +266,22 @@ const DashboardSidebar = ({
       .map(sg => ({ ...sg, items: sg.items.filter(itemAllowed) }))
       .filter(sg => sg.items.length > 0),
   })).filter(group => group.subgroups.length > 0);
+
+  // Append Zahten-published agents as a dynamic nav group (mirrors Asher Dashboard).
+  const dynamicGroups: NavGroup[] = publishedAgents.length
+    ? [{
+        label: "Deployed Agents",
+        subgroups: [{
+          label: "Zahten",
+          items: publishedAgents.map((a) => ({
+            id: `agent:${a.id}` as DashboardView,
+            icon: Workflow,
+            label: a.name,
+          })),
+        }],
+      }]
+    : [];
+  const allGroups = [...filteredGroups, ...dynamicGroups];
 
   // Load archived conversations
   const loadArchived = useCallback(async () => {
@@ -536,7 +553,7 @@ const DashboardSidebar = ({
               </div>
 
               <div data-dashboard-sidebar-nav className="px-2 py-2 border-t border-border/20 space-y-1">
-                {filteredGroups.map((group) => {
+                {allGroups.map((group) => {
                   const isOpen = expandedGroups[group.label] ?? false;
                   const hasActive = group.subgroups.some(sg => sg.items.some(item => activeView === item.id));
 
