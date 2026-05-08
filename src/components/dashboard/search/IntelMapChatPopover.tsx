@@ -171,7 +171,7 @@ async function callUserModel(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            systemInstruction: { parts: [{ text: fullSystem }] },
             contents,
             generationConfig: { temperature: 0.3, maxOutputTokens: 3000 },
           }),
@@ -221,7 +221,7 @@ async function callUserModel(
       return txt;
     }
     case "anthropic": {
-      const sys = SYSTEM_PROMPT;
+      const sys = fullSystem;
       const ant = messages
         .filter((m) => m.role !== "system")
         .map((m) => ({ role: m.role, content: m.content }));
