@@ -103,6 +103,7 @@ const FileScrapperView = React.lazy(() => import("@/components/dashboard/scrappe
 
 const CipherView = React.lazy(() => import("@/components/dashboard/cipher/CipherToolkit"));
 const AsherZahtenModule = React.lazy(() => import("@/components/asher/AsherZahtenModule"));
+const AsherPublishedTabRenderer = React.lazy(() => import("@/components/asher/AsherPublishedTabRenderer"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
