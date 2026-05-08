@@ -15,6 +15,58 @@ const PAGE_SAFE_GAP = 18;
 const FONT_HEAD = "'Playfair Display', 'Cormorant Garamond', Georgia, serif";
 const FONT_BODY = "'Lora', Georgia, 'Times New Roman', serif";
 
+// Collapse spaced-out titles like "T H E  B O O K" → "THE BOOK"
+// and strip ASCII decorator lines (═══, ───, ===, ***, ___) without reordering text.
+const normalizePdfLine = (raw: string) => {
+  let s = raw.replace(/[═━─–—=*_]{3,}/g, "").trim();
+  if (!s) return "";
+  const toks = s.split(/\s+/).filter(Boolean);
+  if (toks.length >= 4 && toks.filter(t => t.length === 1).length / toks.length > 0.6) {
+    const groups = s.split(/\s{2,}/).map(g => g.replace(/\s+/g, ""));
+    s = groups.join(" ");
+  }
+  return s.trim();
+};
+
+const parseTextIntoSections = (text: string, stamp = Date.now()): PdfSection[] => {
+  const rawLines = text.replace(/\r\n/g, "\n").split("\n");
+  const out: PdfSection[] = [];
+  let listBuf: string[] = [];
+
+  const flushList = () => {
+    if (!listBuf.length) return;
+    out.push({ id: `s-${out.length}-${stamp}`, type: "list", content: listBuf.join("\n") });
+    listBuf = [];
+  };
+
+  rawLines.forEach((raw) => {
+    const line = normalizePdfLine(raw);
+    if (!line) { flushList(); return; }
+
+    if (/^[-•*]\s/.test(line) || /^\d+[.)]\s/.test(line)) {
+      listBuf.push(line);
+      return;
+    }
+    flushList();
+
+    if (/^#{1,2}\s/.test(line)) {
+      out.push({ id: `s-${out.length}-${stamp}`, type: "heading", content: line.replace(/^#{1,2}\s+/, "") });
+      return;
+    }
+    if (/^#{3,6}\s/.test(line)) {
+      out.push({ id: `s-${out.length}-${stamp}`, type: "subheading", content: line.replace(/^#{3,6}\s+/, "") });
+      return;
+    }
+    if (/^>\s?/.test(line)) {
+      out.push({ id: `s-${out.length}-${stamp}`, type: "quote", content: line.replace(/^>\s?/, "") });
+      return;
+    }
+    out.push({ id: `s-${out.length}-${stamp}`, type: "paragraph", content: line });
+  });
+  flushList();
+  return out;
+};
+
 const renderSectionToHtml = (s: { type: string; content: string }): string => {
   const t = String(s.content ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   switch (s.type) {
@@ -99,25 +151,28 @@ const paginateSections = (sections: PdfSection[], title: string, author: string)
     return chunks;
   };
 
-  const all: { html: string; height: number }[] = [];
-  const titleHtml = buildTitleBlockHtml(title, author);
-  if (titleHtml) all.push({ html: titleHtml, height: measureHtml(titleHtml) });
-  for (const s of sections) all.push(...splitOversized(s));
-  document.body.removeChild(measure);
+  try {
+    const all: { html: string; height: number }[] = [];
+    const titleHtml = buildTitleBlockHtml(title, author);
+    if (titleHtml) all.push({ html: titleHtml, height: measureHtml(titleHtml) });
+    for (const s of sections) all.push(...splitOversized(s));
 
-  const pages: string[] = [];
-  let curHtml = "";
-  for (const { html } of all) {
-    const candidate = curHtml + html;
-    if (curHtml && measureHtml(candidate) > INNER_H) {
-      pages.push(curHtml);
-      curHtml = html;
-    } else {
-      curHtml = candidate;
+    const pages: string[] = [];
+    let curHtml = "";
+    for (const { html } of all) {
+      const candidate = curHtml + html;
+      if (curHtml && measureHtml(candidate) > INNER_H) {
+        pages.push(curHtml);
+        curHtml = html;
+      } else {
+        curHtml = candidate;
+      }
     }
+    if (curHtml) pages.push(curHtml);
+    return pages;
+  } finally {
+    document.body.removeChild(measure);
   }
-  if (curHtml) pages.push(curHtml);
-  return pages;
 };
 
 interface PdfSection {
@@ -141,6 +196,10 @@ const PdfGeneratorView = () => {
 
   const bgOpacity = useMemo(() => ({ subtle: 0.25, medium: 0.5, bold: 0.75 }[bgIntensity]), [bgIntensity]);
   const overlayOpacity = useMemo(() => ({ subtle: 0.78, medium: 0.6, bold: 0.42 }[bgIntensity]), [bgIntensity]);
+  const pdfSections = useMemo(
+    () => sections.length ? sections : (rawData.trim() ? parseTextIntoSections(rawData, 0) : []),
+    [sections, rawData]
+  );
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,61 +210,12 @@ const PdfGeneratorView = () => {
     e.target.value = "";
   };
 
-  // Collapse "spaced-out" titles like "T H E  B O O K" → "THE BOOK"
-  // and strip ASCII decorator lines (═══, ───, ===, ***, ___)
-  const normalizeLine = (raw: string) => {
-    let s = raw.replace(/[═━─–—=*_]{3,}/g, "").trim();
-    if (!s) return "";
-    const toks = s.split(/\s+/).filter(Boolean);
-    if (toks.length >= 4 && toks.filter(t => t.length === 1).length / toks.length > 0.6) {
-      // Detect double-space groups → word boundaries
-      const groups = s.split(/\s{2,}/).map(g => g.replace(/\s+/g, ""));
-      s = groups.join(" ");
-    }
-    return s.trim();
-  };
-
   // Pure deterministic parser — NO AI. Walks the text LINE BY LINE in the exact
   // order the user typed it. Only blank lines and ASCII decorator lines are removed;
   // every other line becomes its own section, preserving sequence 1:1.
   const parseRawText = useCallback(() => {
     if (!rawData.trim()) return;
-    const stamp = Date.now();
-    const rawLines = rawData.replace(/\r\n/g, "\n").split("\n");
-    const out: PdfSection[] = [];
-    let listBuf: string[] = [];
-    const flushList = () => {
-      if (!listBuf.length) return;
-      out.push({ id: `s-${out.length}-${stamp}`, type: "list", content: listBuf.join("\n") });
-      listBuf = [];
-    };
-    rawLines.forEach((raw) => {
-      const line = normalizeLine(raw);
-      if (!line) { flushList(); return; }
-
-      // List items accumulate so consecutive bullets stay one list block
-      if (/^[-•*]\s/.test(line) || /^\d+[.)]\s/.test(line)) {
-        listBuf.push(line);
-        return;
-      }
-      flushList();
-
-      if (/^#{1,2}\s/.test(line)) {
-        out.push({ id: `s-${out.length}-${stamp}`, type: "heading", content: line.replace(/^#{1,2}\s+/, "") });
-        return;
-      }
-      if (/^#{3,6}\s/.test(line)) {
-        out.push({ id: `s-${out.length}-${stamp}`, type: "subheading", content: line.replace(/^#{3,6}\s+/, "") });
-        return;
-      }
-      if (/^>\s?/.test(line)) {
-        out.push({ id: `s-${out.length}-${stamp}`, type: "quote", content: line.replace(/^>\s?/, "") });
-        return;
-      }
-      out.push({ id: `s-${out.length}-${stamp}`, type: "paragraph", content: line });
-    });
-    flushList();
-    setSections(out);
+    setSections(parseTextIntoSections(rawData));
   }, [rawData]);
 
   const addSection = (type: PdfSection["type"]) =>
