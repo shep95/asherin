@@ -694,7 +694,7 @@ const Index = () => {
 
           {/* Comparison Table */}
           <div className="mt-16 max-w-7xl mx-auto text-left">
-            <PricingComparisonTable />
+            <TierComparisonMatrix />
           </div>
 
           {/* What Powers Each Tier */}
