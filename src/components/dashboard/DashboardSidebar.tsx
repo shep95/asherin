@@ -267,6 +267,22 @@ const DashboardSidebar = ({
       .filter(sg => sg.items.length > 0),
   })).filter(group => group.subgroups.length > 0);
 
+  // Append Zahten-published agents as a dynamic nav group (mirrors Asher Dashboard).
+  const dynamicGroups: NavGroup[] = publishedAgents.length
+    ? [{
+        label: "Deployed Agents",
+        subgroups: [{
+          label: "Zahten",
+          items: publishedAgents.map((a) => ({
+            id: `agent:${a.id}` as DashboardView,
+            icon: Workflow,
+            label: a.name,
+          })),
+        }],
+      }]
+    : [];
+  const allGroups = [...filteredGroups, ...dynamicGroups];
+
   // Load archived conversations
   const loadArchived = useCallback(async () => {
     if (!user) return;
