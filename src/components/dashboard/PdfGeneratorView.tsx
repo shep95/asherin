@@ -415,7 +415,9 @@ const PdfGeneratorView = () => {
             {/* Subtle dark overlay for text legibility */}
             <div className="absolute inset-0" style={{ background: `rgba(10,10,10, ${overlayOpacity})` }} />
             {/* Decorative inner frame */}
-            <div className="absolute inset-3 border border-white/10 rounded-sm pointer-events-none" />
+            {/* Visible safe-area frames — text must not pass these borders */}
+            <div className="absolute pointer-events-none rounded-sm" style={{ top: "5.1%", left: "6.1%", right: "6.1%", bottom: "5.1%", border: "1px solid rgba(216,200,154,0.45)" }} />
+            <div className="absolute pointer-events-none" style={{ top: "5.7%", left: "6.9%", right: "6.9%", bottom: "5.7%", border: "1px solid rgba(216,200,154,0.18)" }} />
 
             <div ref={previewRef} className="relative z-10 h-full overflow-hidden"
               style={{ padding: "56px 48px", width: PAGE_W }}>
