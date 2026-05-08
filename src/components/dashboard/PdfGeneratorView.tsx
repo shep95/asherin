@@ -419,8 +419,8 @@ const PdfGeneratorView = () => {
             <div className="absolute pointer-events-none rounded-sm" style={{ top: "5.1%", left: "6.1%", right: "6.1%", bottom: "5.1%", border: "1px solid rgba(216,200,154,0.45)" }} />
             <div className="absolute pointer-events-none" style={{ top: "5.7%", left: "6.9%", right: "6.9%", bottom: "5.7%", border: "1px solid rgba(216,200,154,0.18)" }} />
 
-            <div ref={previewRef} className="relative z-10 h-full overflow-hidden"
-              style={{ padding: "56px 48px", width: PAGE_W }}>
+            <div ref={previewRef} className="absolute z-10 overflow-hidden"
+              style={{ top: "6.5%", left: "8.3%", right: "8.3%", bottom: "6.5%", wordWrap: "break-word", overflowWrap: "break-word" }}>
               {/* Title block */}
               {(title || author) && (
                 <div style={{ textAlign: "center", marginBottom: 28, paddingBottom: 18, borderBottom: "1px solid rgba(216, 200, 154, 0.25)" }}>
