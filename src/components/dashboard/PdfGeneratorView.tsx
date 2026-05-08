@@ -120,9 +120,9 @@ const PdfGeneratorView = () => {
         const t = String(s.content ?? "").replace(/</g, "&lt;");
         switch (s.type) {
           case "heading":
-            return `<h2 style="font-family:${FONT_HEAD};font-size:26px;font-weight:700;line-height:1.15;margin:28px 0 14px;color:#f5f1e8;letter-spacing:-0.01em;">${t}</h2>`;
+            return `<h2 style="font-family:${FONT_HEAD};font-size:24px;font-weight:700;line-height:1.2;margin:24px 0 12px;color:#f5f1e8;letter-spacing:0;text-align:left;">${t}</h2>`;
           case "subheading":
-            return `<h3 style="font-family:${FONT_HEAD};font-size:17px;font-weight:600;font-style:italic;margin:20px 0 8px;color:#e8dfc9;">${t}</h3>`;
+            return `<h3 style="font-family:${FONT_HEAD};font-size:16px;font-weight:600;font-style:italic;margin:18px 0 6px;color:#e8dfc9;text-align:left;letter-spacing:0;">${t}</h3>`;
           case "paragraph":
             return `<p style="font-family:${FONT_BODY};font-size:12.5px;line-height:1.75;margin-bottom:14px;color:#e8e3d6;text-align:justify;text-indent:1.2em;">${t}</p>`;
           case "quote":
