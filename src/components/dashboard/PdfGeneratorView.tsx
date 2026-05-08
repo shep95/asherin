@@ -432,7 +432,7 @@ const PdfGeneratorView = () => {
                 <div
                   ref={idx === 0 ? previewRef : undefined}
                   className="relative shadow-2xl rounded-sm overflow-hidden"
-                  style={{ width: "100%", maxWidth: PAGE_W, aspectRatio: `${PAGE_W} / ${PAGE_H}` }}
+                  style={{ width: PAGE_W, height: PAGE_H, maxWidth: "100%", transformOrigin: "top center" }}
                 >
                   <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${wallpaperSrc})`, opacity: bgOpacity }} />
                   <div className="absolute inset-0" style={{ background: `rgba(10,10,10, ${overlayOpacity})` }} />
@@ -440,7 +440,7 @@ const PdfGeneratorView = () => {
                   <div className="absolute pointer-events-none" style={{ top: "5.7%", left: "6.9%", right: "6.9%", bottom: "5.7%", border: "1px solid rgba(216,200,154,0.18)" }} />
                   <div
                     className="absolute z-10 overflow-hidden"
-                    style={{ top: PAGE_PAD_Y, left: PAGE_PAD_X, right: PAGE_PAD_X, height: PAGE_H - PAGE_PAD_Y * 2 - PAGE_SAFE_GAP, wordWrap: "break-word", overflowWrap: "break-word" }}
+                    style={{ top: PAGE_PAD_Y, left: PAGE_PAD_X, width: PAGE_INNER_W, height: PAGE_INNER_H, wordWrap: "break-word", overflowWrap: "break-word" }}
                     dangerouslySetInnerHTML={{ __html: pageHtml }}
                   />
                   <div className="absolute z-10 left-0 right-0 text-center" style={{ bottom: "3.2%", fontFamily: FONT_BODY, fontSize: 9, color: "#a89968", letterSpacing: "0.2em" }}>
