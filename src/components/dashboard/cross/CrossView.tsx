@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { VoiceAlertEngine } from "./voiceEngine";
 import CrossSettingsPanel from "./CrossSettings";
 import CrossAlertFeed from "./CrossAlertFeed";
-import CrossModeSelector from "./CrossModeSelector";
 import CrossActivityFeed from "./CrossActivityFeed";
 import CrossAnalyticsSummary from "./CrossAnalyticsSummary";
 import CrossSalesIntelligence from "./CrossSalesIntelligence";
@@ -675,10 +674,6 @@ const CrossView: React.FC = () => {
         </div>
       </div>
 
-      {/* Mode Selector */}
-      <div className="px-4 sm:px-6 py-2 border-b border-border/10 overflow-x-auto">
-        <CrossModeSelector currentMode={settings.mode} onModeChange={handleModeChange} compact />
-      </div>
 
       {/* Privacy Warning */}
       {privacyWarning && (
@@ -1092,12 +1087,6 @@ const CrossView: React.FC = () => {
           <CrossAlertFeed alerts={alerts} onDismiss={handleDismissAlert} isSharing={isSharing} />
           {activities.length > 0 && <CrossActivityFeed activities={activities} />}
 
-          {!isSharing && (
-            <div className="mt-2">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/40 mb-2">Select Analysis Mode</p>
-              <CrossModeSelector currentMode={settings.mode} onModeChange={handleModeChange} />
-            </div>
-          )}
         </div>
 
         {/* Side Panels */}

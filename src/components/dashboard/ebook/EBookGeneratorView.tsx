@@ -55,7 +55,7 @@ const DEFAULT_SETTINGS: EBookSettings = {
   chapterCount: "auto", tone: "formal",
   includeTableOfContents: true, includeChapterSummaries: true,
   includeDedication: false, includeAboutAuthor: false, includeCopyright: true,
-  rewriteForConsistency: true, fixGrammar: true, removeDuplicates: true,
+  rewriteForConsistency: false, fixGrammar: true, removeDuplicates: false,
   includeDiagrams: false,
 };
 
@@ -302,30 +302,24 @@ const EBookGeneratorView = () => {
       await streamChat({
         messages: [{
           role: "user",
-          content: `You are a professional book editor and author. Your task is to take raw, unstructured text and organize it into a complete, well-structured book.
+          content: `You are a strict copy-editor preparing a manuscript for publication. You are NOT a ghostwriter, rewriter, or summarizer.
 
 BOOK TITLE: "${metadata.title}"
 BOOK DESCRIPTION: "${metadata.description}"
-TONE: ${toneMap[settings.tone]}
 
-CRITICAL RULE — PRESERVE ALL DETAILS:
-- You MUST include EVERY piece of information, data point, fact, example, explanation, and detail from the raw text.
-- Do NOT summarize, condense, shorten, or skip any content. NOTHING gets left out.
-- Your job is to REWRITE and REORGANIZE — not to reduce. The output should be LONGER or EQUAL in length to the input.
-- If the raw text mentions a specific number, name, date, process, step, or technical detail — it MUST appear in the final chapters.
-- Think of yourself as a ghostwriter: every idea the author wrote must be in the book, just polished and restructured.
+ABSOLUTE RULES — DO NOT VIOLATE:
+1. PRESERVE THE AUTHOR'S WORDING VERBATIM. Do NOT rewrite, paraphrase, restructure sentences, "improve" style, change voice, or substitute synonyms.
+2. The ONLY edits you may make are: grammar errors, spelling errors, punctuation errors, capitalization, and obvious typos.
+3. Do NOT add new sentences, examples, transitions, or content that was not already in the source.
+4. Do NOT remove, summarize, condense, or shorten any content. Every sentence the author wrote must remain.
+5. Do NOT merge or split paragraphs unless required to fix a clear punctuation/structure error.
+6. ${settings.removeDuplicates ? "If a paragraph is repeated word-for-word, you may remove the exact duplicate. Otherwise keep everything." : "Keep all paragraphs even if they overlap."}
 
-INSTRUCTIONS:
-1. ${chapterCountInstruction}
-2. ${settings.removeDuplicates ? "Merge truly identical duplicate paragraphs, but keep all unique details even if topics overlap." : "Keep all content as-is."}
-3. ${settings.rewriteForConsistency ? "Rewrite content for consistency in tone, style, and voice throughout — but preserve every fact, detail, and data point." : "Preserve original wording as much as possible."}
-4. ${settings.fixGrammar ? "Fix all grammar, spelling, and punctuation errors." : "Keep original grammar."}
-5. ${settings.includeChapterSummaries ? "Write a brief 2-3 sentence summary for each chapter." : "No chapter summaries needed."}
-6. Each chapter must have a compelling title.
-7. Organize content logically — group related topics, ensure flow between chapters.
-8. Ensure each chapter has substantial content (minimum 500 words per chapter). Longer chapters are preferred — do not artificially shorten content.
-9. DO NOT limit yourself by page count, word count, or number of chapters. Write as much as the content demands. There is NO maximum length. Output the COMPLETE book — every chapter in full — in a single response.
-10. If the source material is extensive, create MORE chapters rather than condensing. Never say "this is too long" or truncate content.${diagramInstruction}
+CHAPTER SPLITTING:
+7. ${chapterCountInstruction}
+8. Split the corrected text into chapters at natural topic boundaries that ALREADY exist in the source (existing headings, section breaks, or clear topic shifts). Do not invent transitions.
+9. Each chapter title should be drawn from or directly summarize the source's existing heading for that section. Use a short, neutral title — do not embellish.
+10. ${settings.includeChapterSummaries ? "Write a 2-3 sentence summary for each chapter that paraphrases (does not editorialize) what the chapter contains." : "No summaries."}${diagramInstruction}
 
 OUTPUT FORMAT: Return ONLY a valid JSON array. Each element:
 {

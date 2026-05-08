@@ -478,45 +478,72 @@ const VibeImagerView = () => {
   // ── Landing ─────────────────────────────────────────────────
   if (!activeProject) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center px-4 py-8 sm:py-12 gap-8 overflow-y-auto">
-        <div className="text-center space-y-3 max-w-lg">
-          <div className="flex items-center justify-center gap-3">
-            <div className="p-3 rounded-2xl bg-accent/10 border border-accent/20">
-              <Wand2 className="h-7 w-7 text-accent" />
+      <div className="relative flex flex-1 flex-col items-center justify-start px-4 py-10 sm:py-16 gap-10 overflow-y-auto">
+        {/* Ambient backdrop */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[420px] w-[720px] rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute top-40 left-10 h-64 w-64 rounded-full bg-foreground/5 blur-3xl" />
+          <div className="absolute top-20 right-10 h-72 w-72 rounded-full bg-accent/5 blur-3xl" />
+        </div>
+
+        {/* Hero */}
+        <div className="relative text-center space-y-5 max-w-2xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/40 backdrop-blur-md px-3 py-1">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
+            </span>
+            <span className="text-[9px] font-medium tracking-[0.25em] text-muted-foreground uppercase">Beta · Image Studio</span>
+          </div>
+          <div className="flex items-center justify-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-2xl bg-accent/20 blur-xl" />
+              <div className="relative p-3.5 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30 backdrop-blur-md">
+                <Wand2 className="h-7 w-7 text-accent" />
+              </div>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extralight tracking-[0.15em] text-foreground">VIBE IMAGER</h1>
+            <h1 className="text-3xl sm:text-5xl font-extralight tracking-[0.18em] bg-gradient-to-b from-foreground to-foreground/60 bg-clip-text text-transparent">
+              VIBE IMAGER
+            </h1>
           </div>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1">
-            <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" /></span>
-            <span className="text-[10px] font-medium tracking-[0.15em] text-amber-400 uppercase">Beta Testing</span>
-          </div>
-          <p className="text-sm font-extralight text-muted-foreground max-w-md mx-auto leading-relaxed">
-            Upload an image, describe your edits in plain language, and Aureon AI transforms it for you. Every edit is versioned.
+          <p className="text-sm sm:text-[15px] font-extralight text-muted-foreground/90 max-w-lg mx-auto leading-relaxed">
+            Drop an image. Describe the change. Aureon transforms it — every edit branched and versioned.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 w-full max-w-md">
+        {/* Template grid */}
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-3xl">
           {TEMPLATES.map((t) => (
             <button
               key={t.id}
               onClick={() => createProject(t.id)}
-              className="flex flex-col items-center gap-2.5 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-md p-5 hover:bg-card/60 hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 transition-all duration-200 group"
+              className="relative flex flex-col items-start gap-3 rounded-2xl border border-border/30 bg-gradient-to-br from-card/60 to-card/20 backdrop-blur-md p-4 hover:border-accent/40 hover:from-card/80 hover:to-accent/5 transition-all duration-300 group overflow-hidden"
             >
-              <div className="p-2.5 rounded-xl bg-muted/50 group-hover:bg-accent/10 transition-colors">
-                <t.icon className="h-5 w-5 text-muted-foreground group-hover:text-accent transition-colors" />
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/0 to-accent/0 group-hover:from-accent/5 group-hover:to-transparent transition-all" />
+              <div className="relative p-2 rounded-xl bg-foreground/5 border border-border/20 group-hover:bg-accent/10 group-hover:border-accent/30 transition-colors">
+                <t.icon className="h-4 w-4 text-muted-foreground group-hover:text-accent transition-colors" />
               </div>
-              <span className="text-xs font-light text-foreground">{t.label}</span>
-              <span className="text-[10px] text-muted-foreground/60 leading-tight text-center">{t.desc}</span>
+              <div className="relative space-y-0.5">
+                <div className="text-xs font-light tracking-wide text-foreground">{t.label}</div>
+                <div className="text-[10px] text-muted-foreground/60 leading-tight">{t.desc}</div>
+              </div>
+              <ChevronRight className="absolute top-3 right-3 h-3 w-3 text-muted-foreground/30 group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
             </button>
           ))}
         </div>
 
-        <Button onClick={() => createProject()} variant="outline" className="gap-2 text-xs font-light rounded-xl px-5 h-10">
-          <Plus className="h-3.5 w-3.5" /> Blank Project
+        <div className="relative flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-muted-foreground/40">
+          <span className="h-px w-10 bg-border/40" />
+          <span>or</span>
+          <span className="h-px w-10 bg-border/40" />
+        </div>
+
+        <Button onClick={() => createProject()} variant="outline" className="relative gap-2 text-xs font-light rounded-xl px-6 h-10 border-border/40 hover:border-accent/40 hover:bg-accent/5">
+          <Plus className="h-3.5 w-3.5" /> Start Blank Project
         </Button>
 
         {projects.length > 0 && (
-          <div className="w-full max-w-md space-y-3">
+          <div className="relative w-full max-w-3xl space-y-3">
             <p className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/50 uppercase px-1">Recent Projects</p>
             <div className="space-y-1 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-2">
               {projects.slice(0, 6).map((p) => (
