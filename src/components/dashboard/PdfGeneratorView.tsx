@@ -11,11 +11,12 @@ const PAGE_W = 576;
 const PAGE_H = 864;
 const PAGE_PAD_Y = 56;
 const PAGE_PAD_X = 48;
+const PAGE_SAFE_GAP = 18;
 const FONT_HEAD = "'Playfair Display', 'Cormorant Garamond', Georgia, serif";
 const FONT_BODY = "'Lora', Georgia, 'Times New Roman', serif";
 
 const renderSectionToHtml = (s: { type: string; content: string }): string => {
-  const t = String(s.content ?? "").replace(/</g, "&lt;");
+  const t = String(s.content ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   switch (s.type) {
     case "heading":
       return `<h2 style="font-family:${FONT_HEAD};font-size:24px;font-weight:700;line-height:1.2;margin:24px 0 12px;color:#f5f1e8;letter-spacing:0;text-align:left;">${t}</h2>`;
@@ -48,11 +49,14 @@ const buildTitleBlockHtml = (title: string, author: string) => {
 
 // Paginate sections into ebook-sized pages of HTML strings.
 const paginateSections = (sections: PdfSection[], title: string, author: string): string[] => {
-  const INNER_H = PAGE_H - PAGE_PAD_Y * 2;
+  const INNER_H = PAGE_H - PAGE_PAD_Y * 2 - PAGE_SAFE_GAP;
   const measure = document.createElement("div");
-  measure.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_W - PAGE_PAD_X * 2}px;visibility:hidden;`;
+  measure.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_W - PAGE_PAD_X * 2}px;visibility:hidden;overflow:visible;box-sizing:border-box;`;
   document.body.appendChild(measure);
-  const measureHtml = (html: string) => { measure.innerHTML = html; return measure.scrollHeight || measure.offsetHeight; };
+  const measureHtml = (html: string) => {
+    measure.innerHTML = html;
+    return Math.ceil(measure.getBoundingClientRect().height || measure.scrollHeight || measure.offsetHeight);
+  };
 
   const splitOversized = (section: PdfSection): { html: string; height: number }[] => {
     const html = renderSectionToHtml(section);
@@ -102,12 +106,15 @@ const paginateSections = (sections: PdfSection[], title: string, author: string)
   document.body.removeChild(measure);
 
   const pages: string[] = [];
-  let curHtml = "", curH = 0;
-  for (const { html, height } of all) {
-    if (curH + height > INNER_H) {
-      if (curHtml) pages.push(curHtml);
-      curHtml = html; curH = height;
-    } else { curHtml += html; curH += height; }
+  let curHtml = "";
+  for (const { html } of all) {
+    const candidate = curHtml + html;
+    if (curHtml && measureHtml(candidate) > INNER_H) {
+      pages.push(curHtml);
+      curHtml = html;
+    } else {
+      curHtml = candidate;
+    }
   }
   if (curHtml) pages.push(curHtml);
   return pages;
@@ -241,7 +248,7 @@ const PdfGeneratorView = () => {
           <div style="position:absolute;inset:0;background:rgba(10,10,10,${overlayOpacity});"></div>
           <div style="position:absolute;top:${PAGE_PAD_Y - 14}px;left:${PAGE_PAD_X - 14}px;right:${PAGE_PAD_X - 14}px;bottom:${PAGE_PAD_Y - 14}px;border:1px solid rgba(216,200,154,0.45);border-radius:2px;pointer-events:none;"></div>
           <div style="position:absolute;top:${PAGE_PAD_Y - 8}px;left:${PAGE_PAD_X - 8}px;right:${PAGE_PAD_X - 8}px;bottom:${PAGE_PAD_Y - 8}px;border:1px solid rgba(216,200,154,0.18);pointer-events:none;"></div>
-          <div style="position:absolute;top:${PAGE_PAD_Y}px;left:${PAGE_PAD_X}px;width:${PAGE_W - PAGE_PAD_X * 2}px;height:${PAGE_H - PAGE_PAD_Y * 2}px;overflow:hidden;z-index:10;word-wrap:break-word;overflow-wrap:break-word;">
+          <div style="position:absolute;top:${PAGE_PAD_Y}px;left:${PAGE_PAD_X}px;width:${PAGE_W - PAGE_PAD_X * 2}px;height:${PAGE_H - PAGE_PAD_Y * 2 - PAGE_SAFE_GAP}px;overflow:hidden;z-index:10;word-wrap:break-word;overflow-wrap:break-word;">
             ${pages[i]}
           </div>
           <div style="position:absolute;bottom:${PAGE_PAD_Y - 28}px;left:0;right:0;text-align:center;font-family:${FONT_BODY};font-size:9px;color:#a89968;letter-spacing:0.2em;z-index:10;">— ${i + 1} —</div>
@@ -422,7 +429,7 @@ const PdfGeneratorView = () => {
                   <div className="absolute pointer-events-none" style={{ top: "5.7%", left: "6.9%", right: "6.9%", bottom: "5.7%", border: "1px solid rgba(216,200,154,0.18)" }} />
                   <div
                     className="absolute z-10 overflow-hidden"
-                    style={{ top: "6.5%", left: "8.3%", right: "8.3%", bottom: "6.5%", wordWrap: "break-word", overflowWrap: "break-word" }}
+                    style={{ top: PAGE_PAD_Y, left: PAGE_PAD_X, right: PAGE_PAD_X, height: PAGE_H - PAGE_PAD_Y * 2 - PAGE_SAFE_GAP, wordWrap: "break-word", overflowWrap: "break-word" }}
                     dangerouslySetInnerHTML={{ __html: pageHtml }}
                   />
                   <div className="absolute z-10 left-0 right-0 text-center" style={{ bottom: "3.2%", fontFamily: FONT_BODY, fontSize: 9, color: "#a89968", letterSpacing: "0.2em" }}>
