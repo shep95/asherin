@@ -88,6 +88,10 @@ export default {
           "0%": { transform: "rotate(0deg)" },
           "100%": { transform: "rotate(360deg)" },
         },
+        "marquee": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-33.333%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -95,6 +99,7 @@ export default {
         "fade-in": "fade-in 0.2s ease-out",
         "scale-in": "scale-in 0.15s ease-out",
         "slide-up": "slide-up 0.25s ease-out",
+        "marquee": "marquee 40s linear infinite",
       },
     },
   },

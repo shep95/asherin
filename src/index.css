@@ -162,3 +162,35 @@ body.zophiel-panel-open [data-header-right] {
   margin-left: 2px;
   border-radius: 2px;
 }
+
+/* Landing — marquee fade mask for trust band */
+.mask-fade {
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+}
+
+/* Header — sticky shrink behavior */
+header[data-aureon-header].header-scrolled {
+  --header-pad-y: 0.4rem;
+}
+header[data-aureon-header].header-scrolled > div,
+header[data-aureon-header].header-scrolled > a {
+  transform: scale(0.94);
+  transform-origin: top center;
+  background-color: hsl(var(--card) / 0.85) !important;
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.45);
+}
+header[data-aureon-header] {
+  transition: padding 220ms cubic-bezier(.2,.7,.3,1);
+}
+header[data-aureon-header] > div,
+header[data-aureon-header] > a {
+  transition: transform 220ms cubic-bezier(.2,.7,.3,1), background-color 220ms ease, box-shadow 220ms ease;
+}
+
+/* Reduced motion respect */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee { animation: none !important; }
+}
