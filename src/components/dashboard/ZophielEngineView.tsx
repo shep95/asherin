@@ -462,15 +462,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               </div>
             )}
 
-            {/* Keyboard hint */}
-            {!searched && (
-              <div className="mt-4 text-center">
-                <button onClick={() => setShowShortcuts(true)} className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors">
-                  <Keyboard className="h-3 w-3" />
-                  Press ? for keyboard shortcuts
-                </button>
-              </div>
-            )}
+            {/* Keyboard shortcuts available via "?" — hint removed to declutter */}
           </div>
         </div>
 
