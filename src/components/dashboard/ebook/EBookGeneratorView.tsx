@@ -1075,33 +1075,45 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
         </div>
       </div>
 
-      <div>
-        <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Chapter Count</p>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setSettings(prev => ({ ...prev, chapterCount: "auto" }))}
-            className={`rounded-lg px-4 py-2 text-xs font-light transition-colors ${settings.chapterCount === "auto" ? "bg-accent/20 text-accent" : "bg-card/30 text-muted-foreground border border-border/20"}`}>
-            Auto-detect
-          </button>
-          <input type="number" min={1} max={50} value={settings.chapterCount === "auto" ? "" : settings.chapterCount}
-            placeholder="Custom #"
-            onChange={e => setSettings(prev => ({ ...prev, chapterCount: e.target.value ? Number(e.target.value) : "auto" }))}
-            className="w-24 bg-card/30 border border-border/20 rounded-xl px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none" />
+      {settings.buildMode !== "manual" && (
+        <div>
+          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Chapter Count</p>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSettings(prev => ({ ...prev, chapterCount: "auto" }))}
+              className={`rounded-lg px-4 py-2 text-xs font-light transition-colors ${settings.chapterCount === "auto" ? "bg-accent/20 text-accent" : "bg-card/30 text-muted-foreground border border-border/20"}`}>
+              Auto-detect
+            </button>
+            <input type="number" min={1} max={50} value={settings.chapterCount === "auto" ? "" : settings.chapterCount}
+              placeholder="Custom #"
+              onChange={e => setSettings(prev => ({ ...prev, chapterCount: e.target.value ? Number(e.target.value) : "auto" }))}
+              className="w-24 bg-card/30 border border-border/20 rounded-xl px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none" />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="space-y-2">
-        <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Content Processing</p>
-        {([
-          ["rewriteForConsistency", "Rewrite for consistency"],
-          ["fixGrammar", "Fix grammar & spelling"],
-          ["removeDuplicates", "Remove duplicates"],
-          ["includeTableOfContents", "Table of Contents"],
-          ["includeChapterSummaries", "Chapter summaries"],
-          ["includeDiagrams", "Generate diagrams & workflow pages"],
-          ["includeCopyright", "Copyright page"],
-          ["includeDedication", "Dedication page"],
-          ["includeAboutAuthor", "About the Author page"],
-        ] as const).map(([key, label]) => (
+        <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">
+          {settings.buildMode === "manual" ? "Front & Back Matter" : "Content Processing"}
+        </p>
+        {(settings.buildMode === "manual"
+          ? ([
+              ["includeTableOfContents", "Table of Contents"],
+              ["includeCopyright", "Copyright page"],
+              ["includeDedication", "Dedication page"],
+              ["includeAboutAuthor", "About the Author page"],
+            ] as const)
+          : ([
+              ["rewriteForConsistency", "Rewrite for consistency"],
+              ["fixGrammar", "Fix grammar & spelling"],
+              ["removeDuplicates", "Remove duplicates"],
+              ["includeTableOfContents", "Table of Contents"],
+              ["includeChapterSummaries", "Chapter summaries"],
+              ["includeDiagrams", "Generate diagrams & workflow pages"],
+              ["includeCopyright", "Copyright page"],
+              ["includeDedication", "Dedication page"],
+              ["includeAboutAuthor", "About the Author page"],
+            ] as const)
+        ).map(([key, label]) => (
           <label key={key} className="flex items-center gap-3 cursor-pointer group">
             <div className={`w-8 h-4 rounded-full transition-colors relative ${settings[key] ? "bg-accent/60" : "bg-border/30"}`}
               onClick={() => setSettings(prev => ({ ...prev, [key]: !prev[key] }))}>
