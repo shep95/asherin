@@ -904,9 +904,36 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
     return false;
   };
 
+  const buildManually = useCallback(() => {
+    if (textUploads.length === 0) return;
+    const newChapters: EBookChapter[] = textUploads.map((u, i) => {
+      const rawTitle = (u.fileName || `Chapter ${i + 1}`)
+        .replace(/\.[^/.]+$/, "")
+        .replace(/^pasted_text_\d+$/, `Chapter ${i + 1}`)
+        .replace(/[_-]+/g, " ")
+        .trim();
+      return {
+        id: `ch-${i}-${Date.now()}`,
+        title: rawTitle || `Chapter ${i + 1}`,
+        content: u.content,
+        type: "text" as const,
+      };
+    });
+    setChapters(newChapters);
+    setProgress("");
+    setStep("preview");
+  }, [textUploads]);
+
   const handleNext = () => {
     if (step === "upload") setStep("settings");
-    else if (step === "settings") { setStep("processing"); structureBook(); }
+    else if (step === "settings") {
+      if (settings.buildMode === "manual") {
+        buildManually();
+      } else {
+        setStep("processing");
+        structureBook();
+      }
+    }
   };
 
   const handleBack = () => {
