@@ -29,6 +29,7 @@ import {
   getProviderSpec,
   type IntelMapByok,
 } from "@/lib/intelMapByok";
+import { loadActiveBrains, type AsherBrainCategory } from "@/lib/asherBrains";
 
 interface IntelChatMsg {
   id: string;
@@ -144,9 +145,13 @@ async function callUserModel(
   cfg: IntelMapByok,
   history: IntelChatMsg[],
   userQuery: string,
+  extraSystem?: string,
 ): Promise<string> {
+  const fullSystem = extraSystem
+    ? `${SYSTEM_PROMPT}\n\n=== AUREON BRAIN CONTEXT (curated knowledge) ===\n${extraSystem}\n=== END BRAIN CONTEXT ===`
+    : SYSTEM_PROMPT;
   const messages = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: fullSystem },
     ...history.map((h) => ({ role: h.role, content: h.content })),
     { role: "user", content: userQuery },
   ];
@@ -166,7 +171,7 @@ async function callUserModel(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            systemInstruction: { parts: [{ text: fullSystem }] },
             contents,
             generationConfig: { temperature: 0.3, maxOutputTokens: 3000 },
           }),
@@ -216,7 +221,7 @@ async function callUserModel(
       return txt;
     }
     case "anthropic": {
-      const sys = SYSTEM_PROMPT;
+      const sys = fullSystem;
       const ant = messages
         .filter((m) => m.role !== "system")
         .map((m) => ({ role: m.role, content: m.content }));
@@ -248,6 +253,54 @@ async function callUserModel(
     default:
       throw new Error(`Unsupported provider: ${cfg.provider}`);
   }
+}
+
+// ── Aureon Brain selector ───────────────────────────────────────────────────
+// Pulls active brains from the asher_brains table (admin/operator-curated)
+// and picks the most relevant ones for the current query using keyword overlap.
+type LoadedBrain = { name: string; category: string; content: string };
+let _brainCache: { ts: number; brains: LoadedBrain[] } | null = null;
+const BRAIN_CACHE_MS = 60_000;
+
+async function getCachedBrains(): Promise<LoadedBrain[]> {
+  const now = Date.now();
+  if (_brainCache && now - _brainCache.ts < BRAIN_CACHE_MS) return _brainCache.brains;
+  // Pull only intel-relevant categories first, fall back to all
+  const cats: AsherBrainCategory[] = ["map", "general", "personality", "azplen"];
+  const brains = (await loadActiveBrains(cats)) as LoadedBrain[];
+  _brainCache = { ts: now, brains };
+  return brains;
+}
+
+function pickRelevantBrains(brains: LoadedBrain[], query: string, maxBrains = 4, maxCharsEach = 4000): LoadedBrain[] {
+  if (!brains.length) return [];
+  const q = (query || "").toLowerCase();
+  const tokens = Array.from(new Set(q.split(/[^a-z0-9]+/).filter((t) => t.length >= 4))).slice(0, 24);
+  if (!tokens.length) return brains.slice(0, maxBrains).map((b) => ({ ...b, content: b.content.slice(0, maxCharsEach) }));
+  const scored = brains.map((b) => {
+    const hay = `${b.name}\n${b.content}`.toLowerCase();
+    let score = 0;
+    for (const t of tokens) {
+      const matches = hay.split(t).length - 1;
+      score += matches;
+    }
+    // Category boosts
+    if (b.category === "map") score += 3;
+    if (b.category === "personality") score += 1;
+    return { brain: b, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  // If nothing matched, still include a small default set
+  const top = scored.filter((s) => s.score > 0).slice(0, maxBrains);
+  const final = (top.length ? top : scored.slice(0, maxBrains)).map((s) => s.brain);
+  return final.map((b) => ({ ...b, content: b.content.slice(0, maxCharsEach) }));
+}
+
+function formatBrainsForPrompt(brains: LoadedBrain[]): string {
+  if (!brains.length) return "";
+  return brains
+    .map((b, i) => `[BRAIN ${i + 1}] (${b.category}) ${b.name}\n---\n${b.content}\n---`)
+    .join("\n\n");
 }
 
 const IntelMapChatPopover = ({ mapQuery, onOpenByokPanel, onRefineQuery }: Props) => {
@@ -381,7 +434,9 @@ OUTPUT RULES:
 - One sentence, under 160 characters.
 - End with a question mark.
 - Always finish with: " — if you don't know, just type 'idk'."`;
-      const reply = (await callUserModel(cfg, [], prompt)).trim();
+      const brains = pickRelevantBrains(await getCachedBrains(), `${mapQuery ?? ""} ${currentDossier.join(" ")}`, 3, 2000);
+      const brainCtx = formatBrainsForPrompt(brains);
+      const reply = (await callUserModel(cfg, [], prompt, brainCtx)).trim();
       const question = reply.split("\n")[0].slice(0, 240);
       setMessages((m) => [
         ...m,
@@ -498,7 +553,9 @@ OUTPUT RULES:
     setInput("");
     setBusy(true);
     try {
-      const reply = await callUserModel(cfg, messages, queryWithContext);
+      const brains = pickRelevantBrains(await getCachedBrains(), `${mapQuery ?? ""} ${q}`, 4, 4000);
+      const brainCtx = formatBrainsForPrompt(brains);
+      const reply = await callUserModel(cfg, messages, queryWithContext, brainCtx);
       const aiMsg: IntelChatMsg = {
         id: newId(),
         role: "assistant",

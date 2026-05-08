@@ -213,18 +213,18 @@ const Dashboard = () => {
     } catch { return []; }
   });
   const [wallpaperKey, setWallpaperKey] = useState(() => {
-    try { return localStorage.getItem("aureon_wallpaper") || "default"; } catch { return "default"; }
+    try { return localStorage.getItem("aureon_wallpaper") || "aureon"; } catch { return "aureon"; }
   });
   const [prevDashWallpaper, setPrevDashWallpaper] = useState<string | null>(null);
   const [isDashTransitioning, setIsDashTransitioning] = useState(false);
   const dashTransRef = useRef<ReturnType<typeof setTimeout>>();
-  const activeWallpaper = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.default;
+  const activeWallpaper = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.aureon || WALLPAPER_MAP.default;
 
   useEffect(() => {
     const handler = () => {
-      const newKey = localStorage.getItem("aureon_wallpaper") || "default";
-      const newSrc = WALLPAPER_MAP[newKey] || WALLPAPER_MAP.default;
-      const oldSrc = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.default;
+      const newKey = localStorage.getItem("aureon_wallpaper") || "aureon";
+      const newSrc = WALLPAPER_MAP[newKey] || WALLPAPER_MAP.aureon || WALLPAPER_MAP.default;
+      const oldSrc = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.aureon || WALLPAPER_MAP.default;
       if (newSrc !== oldSrc) {
         setPrevDashWallpaper(oldSrc);
         setIsDashTransitioning(true);
