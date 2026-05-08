@@ -12,6 +12,8 @@ const PAGE_H = 864;
 const PAGE_PAD_Y = 56;
 const PAGE_PAD_X = 48;
 const PAGE_SAFE_GAP = 18;
+const PAGE_INNER_H = PAGE_H - PAGE_PAD_Y * 2 - PAGE_SAFE_GAP;
+const PAGE_INNER_W = PAGE_W - PAGE_PAD_X * 2;
 const FONT_HEAD = "'Playfair Display', 'Cormorant Garamond', Georgia, serif";
 const FONT_BODY = "'Lora', Georgia, 'Times New Roman', serif";
 
@@ -101,9 +103,8 @@ const buildTitleBlockHtml = (title: string, author: string) => {
 
 // Paginate sections into ebook-sized pages of HTML strings.
 const paginateSections = (sections: PdfSection[], title: string, author: string): string[] => {
-  const INNER_H = PAGE_H - PAGE_PAD_Y * 2 - PAGE_SAFE_GAP;
   const measure = document.createElement("div");
-  measure.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_W - PAGE_PAD_X * 2}px;visibility:hidden;overflow:visible;box-sizing:border-box;`;
+  measure.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_INNER_W}px;visibility:hidden;overflow:visible;box-sizing:border-box;`;
   document.body.appendChild(measure);
   const measureHtml = (html: string) => {
     measure.innerHTML = html;
@@ -113,7 +114,7 @@ const paginateSections = (sections: PdfSection[], title: string, author: string)
   const splitOversized = (section: PdfSection): { html: string; height: number }[] => {
     const html = renderSectionToHtml(section);
     const height = measureHtml(html);
-    if (height <= INNER_H) return [{ html, height }];
+    if (height <= PAGE_INNER_H) return [{ html, height }];
     const chunks: { html: string; height: number }[] = [];
     const pushChunk = (content: string, type: PdfSection["type"] = section.type) => {
       const h = renderSectionToHtml({ ...section, type, content: content.trim() });
@@ -124,7 +125,7 @@ const paginateSections = (sections: PdfSection[], title: string, author: string)
       let chunk: string[] = [];
       for (const line of lines) {
         const next = [...chunk, line];
-        if (chunk.length && measureHtml(renderSectionToHtml({ ...section, content: next.join("\n") })) > INNER_H) {
+        if (chunk.length && measureHtml(renderSectionToHtml({ ...section, content: next.join("\n") })) > PAGE_INNER_H) {
           pushChunk(chunk.join("\n"));
           chunk = [line];
         } else chunk = next;
@@ -140,7 +141,7 @@ const paginateSections = (sections: PdfSection[], title: string, author: string)
         const mid = Math.floor((low + high) / 2);
         const candidate = words.slice(index, index + mid).join(" ");
         const candidateType = section.type === "heading" || section.type === "subheading" ? "paragraph" : section.type;
-        if (measureHtml(renderSectionToHtml({ ...section, type: candidateType, content: candidate })) <= INNER_H) {
+        if (measureHtml(renderSectionToHtml({ ...section, type: candidateType, content: candidate })) <= PAGE_INNER_H) {
           fit = mid; low = mid + 1;
         } else high = mid - 1;
       }
@@ -161,7 +162,7 @@ const paginateSections = (sections: PdfSection[], title: string, author: string)
     let curHtml = "";
     for (const { html } of all) {
       const candidate = curHtml + html;
-      if (curHtml && measureHtml(candidate) > INNER_H) {
+      if (curHtml && measureHtml(candidate) > PAGE_INNER_H) {
         pages.push(curHtml);
         curHtml = html;
       } else {
