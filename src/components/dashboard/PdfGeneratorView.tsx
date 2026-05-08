@@ -54,12 +54,18 @@ const PdfGeneratorView = () => {
       await streamChat({
         messages: [{
           role: "user",
-          content: `You are a document architect. Take this raw data and structure it into a professional PDF document. Return ONLY a valid JSON array of sections. Each section has: type ("heading" | "paragraph" | "diagram" | "table" | "list"), content (string - for diagram type, describe the architecture in text that could be visualized; for table use markdown table format; for list use bullet points with "- " prefix).
+          content: `You are a strict copy-editor. Your ONLY job is to fix grammar, spelling, punctuation, and capitalization in the text below. You MUST NOT rewrite, paraphrase, summarize, restructure, or change the author's wording, voice, or meaning in any way. Preserve every sentence and paragraph break exactly as written — only correct mechanical errors.
 
-Raw data:
-${rawData.slice(0, 8000)}
+Then split the corrected text into sections by its existing paragraph/heading breaks. Detect type per block:
+- "heading": a short standalone line (under ~12 words) that titles content below it
+- "list": consecutive lines starting with "-", "*", "•", or numbered bullets
+- "table": markdown-style pipe tables
+- "paragraph": everything else
 
-Return ONLY the JSON array, no markdown wrapping.`
+Return ONLY a valid JSON array. Each element: { "type": "heading"|"paragraph"|"list"|"table", "content": "..." }. The "content" must be the grammar-corrected version of the original block, verbatim otherwise. No markdown wrapping, no commentary.
+
+TEXT:
+${rawData.slice(0, 12000)}`
         }],
         mode: "chat",
         onDelta: (chunk) => { result += chunk; },
