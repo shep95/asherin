@@ -200,7 +200,64 @@ header[data-aureon-header] > a {
   transition: transform 220ms cubic-bezier(.2,.7,.3,1), background-color 220ms ease, box-shadow 220ms ease;
 }
 
+/* Zophiel — premium hero polish */
+@keyframes zophiel-aurora {
+  0%, 100% { transform: translate3d(-8%, -4%, 0) scale(1); opacity: .55; }
+  50%      { transform: translate3d(8%, 6%, 0) scale(1.15); opacity: .9; }
+}
+.zophiel-aurora {
+  background:
+    radial-gradient(60% 50% at 50% 50%, hsl(0 0% 92% / 0.10), transparent 70%),
+    radial-gradient(40% 35% at 70% 40%, hsl(275 95% 55% / 0.10), transparent 70%),
+    radial-gradient(35% 30% at 30% 60%, hsl(200 80% 60% / 0.06), transparent 70%);
+  filter: blur(60px);
+  animation: zophiel-aurora 14s ease-in-out infinite;
+}
+
+@keyframes zophiel-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.zophiel-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--foreground) / 0.85) 0%,
+    hsl(var(--foreground)) 45%,
+    hsl(var(--foreground) / 0.55) 50%,
+    hsl(var(--foreground)) 55%,
+    hsl(var(--foreground) / 0.85) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: zophiel-shimmer 7s linear infinite;
+}
+
+@keyframes zophiel-orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.zophiel-orbit-ring {
+  background: conic-gradient(from 0deg, transparent 0%, hsl(var(--foreground) / 0.35) 18%, transparent 36%, transparent 100%);
+  animation: zophiel-orbit 9s linear infinite;
+}
+
+/* Subtle CTA hover sheen */
+.zophiel-sheen { position: relative; overflow: hidden; }
+.zophiel-sheen::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(115deg, transparent 30%, hsl(0 0% 100% / 0.12) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform .9s ease;
+  pointer-events: none;
+}
+.zophiel-sheen:hover::after { transform: translateX(120%); }
+
 /* Reduced motion respect */
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee { animation: none !important; }
+  .zophiel-aurora, .zophiel-shimmer-text, .zophiel-orbit-ring { animation: none !important; }
+  .zophiel-sheen::after { display: none; }
 }
