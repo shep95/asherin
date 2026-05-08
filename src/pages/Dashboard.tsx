@@ -746,7 +746,26 @@ const Dashboard = () => {
     }
   }, [user]);
 
-  const trackUsage = useCallback(async (modeUsed: ChatMode) => {
+  // Load Zahten-published agents so they surface as dynamic dashboard tabs (mirrors Asher Dashboard).
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await supabase
+        .from("asher_agents" as any)
+        .select("id, name, entry_html")
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (!cancelled && data) setPublishedAgents(data as any);
+    };
+    load();
+    const onUpd = () => load();
+    window.addEventListener("asher-agents-updated", onUpd);
+    return () => { cancelled = true; window.removeEventListener("asher-agents-updated", onUpd); };
+  }, [user?.id]);
+
+
     if (!user) return;
     const modeCol = `${modeUsed}_prompts`;
     const { data: stats } = await supabase.from("usage_stats").select("*").eq("user_id", user.id).single();
