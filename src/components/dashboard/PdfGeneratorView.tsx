@@ -200,7 +200,7 @@ ${rawData.slice(0, 12000)}`
                 <button onClick={structureWithAI} disabled={!rawData.trim() || aiStructuring}
                   className="flex items-center gap-1.5 rounded-lg bg-accent/15 px-3 py-1.5 text-[10px] text-accent hover:bg-accent/25 transition-colors disabled:opacity-40">
                   {aiStructuring ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                  Structure with AI
+                  Fix Grammar Only
                 </button>
               </div>
             </div>
