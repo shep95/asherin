@@ -24,6 +24,12 @@ const LandingBackground = ({ children, overlayOpacity = "bg-black/80" }: Props) 
         style={{ backgroundImage: `url(${currentWallpaper})`, zIndex: 0 }}
       />
       <div className={`fixed inset-0 ${overlayOpacity} pointer-events-none`} style={{ zIndex: 1 }} />
+      {/* Ambient aurora glow — applies across all landing-connected pages */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed left-1/2 top-[18vh] -translate-x-1/2 w-[95vw] max-w-[1300px] h-[560px] zophiel-aurora rounded-full"
+        style={{ zIndex: 2 }}
+      />
       <div className="relative" style={{ zIndex: 10 }}>
         {children}
       </div>

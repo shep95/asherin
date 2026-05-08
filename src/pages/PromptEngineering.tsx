@@ -58,7 +58,7 @@ const PromptEngineering = () => {
               <p className="text-xs font-extralight tracking-[0.3em] uppercase text-muted-foreground/60 mb-4">
                 Master the Art
               </p>
-              <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide text-foreground mb-4">
+              <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide zophiel-shimmer-text mb-4">
                 Prompt Engineering
               </h1>
               <p className="text-sm font-extralight leading-relaxed text-muted-foreground max-w-xl mx-auto">

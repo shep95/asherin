@@ -103,7 +103,7 @@ const FeatureTracker = () => {
             Geolocation & Address Intelligence
           </span>
         </div>
-        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
+        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
           Coordinates Resolved.
           <br />
           <span className="text-muted-foreground">Location Recorded.</span>

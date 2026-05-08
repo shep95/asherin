@@ -28,7 +28,7 @@ const Founder = () => {
           <img src={founderImg} alt="Asher Newton" className="w-full h-full object-cover" />
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
           Asher Newton
         </h1>
         <p className="mt-3 text-sm font-extralight tracking-[0.25em] text-muted-foreground/50 uppercase">

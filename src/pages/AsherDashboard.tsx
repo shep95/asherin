@@ -82,7 +82,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
             </p>
           </div>
 
-          <h1 className="text-2xl font-extralight tracking-[0.2em] text-foreground mb-2">ASHER</h1>
+          <h1 className="text-2xl font-extralight tracking-[0.2em] zophiel-shimmer-text mb-2">ASHER</h1>
           <p className="text-xs font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-8">
             Defense Intelligence — Clearance Required
           </p>
