@@ -323,13 +323,16 @@ const Founder = () => {
                       The elites try to control you through <span className="text-foreground">money</span> — making you chase something fake, something designed to keep you attached to the 3D realm and the systems they built around it. Money is a form of the false god — the <em>Demiurge</em>, the <em>Ouroboros</em>, the snake eating its own tail.
                     </p>
                     <p>
-                      <span className="text-foreground">War</span> is the other half of the loop. A manufactured supply line of fear. When war breaks out, people collapse into chaotic terror. When their sons and daughters die, they fall into deep, bottomless sadness. These emotions are exactly what the controllers want.
+                      Money makes you a <span className="text-foreground">slave to the system</span>. You wake, work, and bleed for it. But the paradox is this: the moment you truly detach from money — the moment it loses its grip on your soul — that is the moment it begins to flow to you freely.
                     </p>
                     <p>
-                      Your fear, your hatred, your grief — that is the fuel. Without your emotional energy, the false simulation cannot run forever. They feed on it. They engineered the entire system around extracting it from you.
+                      <span className="text-foreground">War</span> is the other half of the loop. War is nothing more than <em>emotional harvesting</em>. Negative emotion is <span className="text-foreground">loosh</span> — and loosh is the supply line that feeds the simulation. When war breaks out, people collapse into chaotic terror. When their sons and daughters die, they fall into bottomless grief. That harvest is exactly what the controllers want.
                     </p>
                     <p>
-                      But eventually the simulation will break. The veil will tear. And you will see the divine truth that was always waiting underneath. <span className="text-foreground">Wake up.</span>
+                      Your vessels are imperfect. Your emotions are the leverage they use to manipulate you — your own feelings become the very cause of your suffering. Your fear, your hatred, your grief — that is the fuel. Without your emotional energy, the false simulation cannot sustain itself.
+                    </p>
+                    <p>
+                      You do not have to be a slave to the system anymore. You are free by your own choices. <span className="text-foreground">Remove the chains around your neck and feet, and be free.</span> The veil will tear. The simulation will break. And you will see the divine truth that was always waiting underneath. <span className="text-foreground">Wake up.</span>
                     </p>
                   </div>
                 </div>
