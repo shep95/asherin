@@ -3,11 +3,6 @@ import LandingBackground from "@/components/LandingBackground";
 import founderImg from "@/assets/founder.jpg";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
-import { useEffect } from "react";
-import LandingBackground from "@/components/LandingBackground";
-import founderImg from "@/assets/founder.jpg";
-import Header from "@/components/Header";
-import { Link } from "react-router-dom";
 import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube } from "lucide-react";
 
 const bookPages = Array.from(
