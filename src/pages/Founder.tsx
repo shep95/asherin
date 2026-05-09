@@ -3,8 +3,9 @@ import LandingBackground from "@/components/LandingBackground";
 import founderImg from "@/assets/founder.jpg";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube } from "lucide-react";
+import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube, Sparkles } from "lucide-react";
 import FounderVideos from "@/components/founder/FounderVideos";
+import imagineMaterialVsDivine from "@/assets/founder-imagine-material-vs-divine-love.png";
 
 const bookPages = Array.from(
   { length: 116 },
@@ -67,6 +68,17 @@ const Founder = () => {
           >
             <Youtube className="h-3.5 w-3.5" />
             Videos
+          </a>
+          <a
+            href="#imagines"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById("imagines")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Imagines
           </a>
         </div>
       </div>
@@ -232,6 +244,59 @@ const Founder = () => {
           </div>
 
           <FounderVideos />
+        </div>
+      </div>
+
+      {/* Founders Imagines Lessons */}
+      <div id="imagines" className="relative z-10 px-6 py-24 sm:py-32 scroll-mt-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">
+              Teachings
+            </p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+              Founders Imagines Lessons
+            </h2>
+            <p className="mt-6 max-w-2xl mx-auto text-sm font-extralight leading-relaxed text-muted-foreground">
+              Hand-drawn lessons from Asher — visual meditations on the hidden architecture of reality.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+              <div className="rounded-xl overflow-hidden border border-border/20 bg-background/40">
+                <img
+                  src={imagineMaterialVsDivine}
+                  alt="Material Love vs Divine Love — a hand-drawn lesson by Asher Newton"
+                  className="w-full h-auto"
+                  loading="lazy"
+                />
+              </div>
+
+              <div className="space-y-5">
+                <p className="text-xs font-extralight tracking-[0.25em] text-muted-foreground/50 uppercase">
+                  Lesson 01
+                </p>
+                <h3 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground leading-tight">
+                  Material Love vs. Divine Love
+                </h3>
+                <div className="space-y-4 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+                  <p>
+                    Material love is <em>tainted</em> — corrupted by cheating, adultery, betrayal, and conditional attachment. It mirrors the material world itself: a realm engineered by the elites who control humanity through money, fear, and manufactured scarcity.
+                  </p>
+                  <p>
+                    But there is a perfect world. That perfect world exists <em>outside</em> the simulation of the 3D realm — beyond the veil that the controllers have built around your perception.
+                  </p>
+                  <p>
+                    Every human carries a <span className="text-foreground">divine spark</span> and access to <span className="text-foreground">divine love</span>, even when you cannot feel it. It was never lost — only buried beneath layers of programming, trauma, and distraction.
+                  </p>
+                  <p>
+                    When you wake up — when you truly realize what you are — you reconnect to the Source of that divine love. And in that moment, you disconnect from the false signal of material love forever.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
