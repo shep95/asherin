@@ -4,6 +4,7 @@ import founderImg from "@/assets/founder.jpg";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube } from "lucide-react";
+import FounderVideos from "@/components/founder/FounderVideos";
 
 const bookPages = Array.from(
   { length: 116 },
@@ -205,41 +206,7 @@ const Founder = () => {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              "g7FmttXtyEw",
-              "Bng9dGp3444",
-              "pTA9aOdd6iw",
-              "HcvAEtC4wRw",
-              "xM3zKp_oYwo",
-              "RxvLmhZJ8kU",
-              "DFSLspaEMn0",
-              "FcKzSP7_g1w",
-              "hBhldKwbH6Q",
-              "UispvssxFdo",
-              "w_K7UrDEp98",
-              "q98IqcFco9A",
-              "Ak6PVkHM2cE",
-              "OEksMhZ8R-Q",
-              "ZecS7rqIkDc",
-            ].map((id) => (
-              <div
-                key={id}
-                className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/30"
-              >
-                <div className="aspect-video">
-                  <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1`}
-                    title="Founder Video"
-                    className="h-full w-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    loading="lazy"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          <FounderVideos />
         </div>
       </div>
 
