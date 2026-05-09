@@ -3,7 +3,7 @@ import LandingBackground from "@/components/LandingBackground";
 import founderImg from "@/assets/founder.jpg";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram } from "lucide-react";
+import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download } from "lucide-react";
 
 const Founder = () => {
   useEffect(() => {
