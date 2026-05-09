@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube, Sparkles } from "lucide-react";
 import FounderVideos from "@/components/founder/FounderVideos";
 import imagineMaterialVsDivine from "@/assets/founder-imagine-material-vs-divine-love.png";
+import imagineMoneyWarControl from "@/assets/founder-imagine-money-war-control.png";
 
 const bookPages = Array.from(
   { length: 116 },
@@ -262,37 +263,75 @@ const Founder = () => {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-              <div className="rounded-xl overflow-hidden border border-border/20 bg-background/40">
-                <img
-                  src={imagineMaterialVsDivine}
-                  alt="Material Love vs Divine Love — a hand-drawn lesson by Asher Newton"
-                  className="w-full h-auto"
-                  loading="lazy"
-                />
-              </div>
+          <div className="space-y-8">
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                <div className="rounded-xl overflow-hidden border border-border/20 bg-background/40">
+                  <img
+                    src={imagineMaterialVsDivine}
+                    alt="Material Love vs Divine Love — a hand-drawn lesson by Asher Newton"
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
 
-              <div className="space-y-5">
-                <p className="text-xs font-extralight tracking-[0.25em] text-muted-foreground/50 uppercase">
-                  Lesson 01
-                </p>
-                <h3 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground leading-tight">
-                  Material Love vs. Divine Love
-                </h3>
-                <div className="space-y-4 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
-                  <p>
-                    Material love is <em>tainted</em> — corrupted by cheating, adultery, betrayal, and conditional attachment. It mirrors the material world itself: a realm engineered by the elites who control humanity through money, fear, and manufactured scarcity.
+                <div className="space-y-5">
+                  <p className="text-xs font-extralight tracking-[0.25em] text-muted-foreground/50 uppercase">
+                    Lesson 01
                   </p>
-                  <p>
-                    But there is a perfect world. That perfect world exists <em>outside</em> the simulation of the 3D realm — beyond the veil that the controllers have built around your perception.
+                  <h3 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground leading-tight">
+                    Material Love vs. Divine Love
+                  </h3>
+                  <div className="space-y-4 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+                    <p>
+                      Material love is <em>tainted</em> — corrupted by cheating, adultery, betrayal, and conditional attachment. It mirrors the material world itself: a realm engineered by the elites who control humanity through money, fear, and manufactured scarcity.
+                    </p>
+                    <p>
+                      But there is a perfect world. That perfect world exists <em>outside</em> the simulation of the 3D realm — beyond the veil that the controllers have built around your perception.
+                    </p>
+                    <p>
+                      Every human carries a <span className="text-foreground">divine spark</span> and access to <span className="text-foreground">divine love</span>, even when you cannot feel it. It was never lost — only buried beneath layers of programming, trauma, and distraction.
+                    </p>
+                    <p>
+                      When you wake up — when you truly realize what you are — you reconnect to the Source of that divine love. And in that moment, you disconnect from the false signal of material love forever.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                <div className="rounded-xl overflow-hidden border border-border/20 bg-background/40 lg:order-2">
+                  <img
+                    src={imagineMoneyWarControl}
+                    alt="Money + War — Control Tactics, a hand-drawn lesson by Asher Newton"
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+
+                <div className="space-y-5 lg:order-1">
+                  <p className="text-xs font-extralight tracking-[0.25em] text-muted-foreground/50 uppercase">
+                    Lesson 02
                   </p>
-                  <p>
-                    Every human carries a <span className="text-foreground">divine spark</span> and access to <span className="text-foreground">divine love</span>, even when you cannot feel it. It was never lost — only buried beneath layers of programming, trauma, and distraction.
-                  </p>
-                  <p>
-                    When you wake up — when you truly realize what you are — you reconnect to the Source of that divine love. And in that moment, you disconnect from the false signal of material love forever.
-                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground leading-tight">
+                    Control Tactics — Money &amp; War
+                  </h3>
+                  <div className="space-y-4 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+                    <p>
+                      The elites try to control you through <span className="text-foreground">money</span> — making you chase something fake, something designed to keep you attached to the 3D realm and the systems they built around it. Money is a form of the false god — the <em>Demiurge</em>, the <em>Ouroboros</em>, the snake eating its own tail.
+                    </p>
+                    <p>
+                      <span className="text-foreground">War</span> is the other half of the loop. A manufactured supply line of fear. When war breaks out, people collapse into chaotic terror. When their sons and daughters die, they fall into deep, bottomless sadness. These emotions are exactly what the controllers want.
+                    </p>
+                    <p>
+                      Your fear, your hatred, your grief — that is the fuel. Without your emotional energy, the false simulation cannot run forever. They feed on it. They engineered the entire system around extracting it from you.
+                    </p>
+                    <p>
+                      But eventually the simulation will break. The veil will tear. And you will see the divine truth that was always waiting underneath. <span className="text-foreground">Wake up.</span>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
