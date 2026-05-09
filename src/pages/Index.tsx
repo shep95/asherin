@@ -863,10 +863,37 @@ const Index = () => {
       </ScrollSection>
 
       <ScrollSection>
-      <SiteFooter />
-      <CommandPaletteHint />
-
+        <div className="relative z-10 px-6 py-24 sm:py-32">
+          <div className="mx-auto max-w-4xl">
+            <div className="rounded-3xl border border-border/20 bg-card/30 backdrop-blur-md p-10 sm:p-16 text-center">
+              <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-5">
+                From The Founder
+              </p>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+                Watch The Founder's Videos.
+                <br />
+                <span className="text-muted-foreground">Read His E-Book.</span>
+              </h2>
+              <p className="mt-8 max-w-2xl mx-auto text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+                Step inside the mind behind Aureon. Asher Newton's archives, philosophy, and the full text of <em>The Book of Asher Aureon Elion</em> — all in one place.
+              </p>
+              <Link
+                to="/founder"
+                className="mt-10 inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-7 py-3.5 text-sm font-light tracking-[0.15em] text-foreground uppercase transition-all hover:bg-foreground/10"
+              >
+                Visit The Founder's Page
+                <span aria-hidden>→</span>
+              </Link>
+            </div>
+          </div>
+        </div>
       </ScrollSection>
+
+      <ScrollSection>
+        <SiteFooter />
+        <CommandPaletteHint />
+      </ScrollSection>
+
       {showAuth && (
         <AuthOverlay
           isLogin={authIsLogin}
