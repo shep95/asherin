@@ -44,6 +44,31 @@ const Founder = () => {
         <p className="mt-10 max-w-2xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
           "I didn't build Aureon for investors or corporations. I built it because the tools humanity deserves don't exist yet — and no one else was going to make them."
         </p>
+
+        <div className="mt-12 inline-flex items-center gap-1 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-md p-1.5">
+          <a
+            href="#ebook"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById("ebook")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Ebook
+          </a>
+          <a
+            href="#videos"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById("videos")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
+          >
+            <Youtube className="h-3.5 w-3.5" />
+            Videos
+          </a>
+        </div>
       </div>
 
       {/* Philosophy Cards */}
@@ -141,7 +166,7 @@ const Founder = () => {
       </div>
 
       {/* Books Written By Asher */}
-      <div className="relative z-10 px-6 py-24 sm:py-32">
+      <div id="ebook" className="relative z-10 px-6 py-24 sm:py-32 scroll-mt-24">
         <div className="mx-auto max-w-5xl">
           <div className="text-center mb-12">
             <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">
@@ -195,7 +220,7 @@ const Founder = () => {
       </div>
 
       {/* Founders Videos Archives */}
-      <div className="relative z-10 px-6 py-24 sm:py-32">
+      <div id="videos" className="relative z-10 px-6 py-24 sm:py-32 scroll-mt-24">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">
