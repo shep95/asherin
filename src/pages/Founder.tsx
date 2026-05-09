@@ -125,6 +125,15 @@ const Founder = () => {
                 <Instagram className="h-4 w-4" />
                 @asher_united on Instagram
               </a>
+              <a
+                href="https://www.youtube.com/@asher_newton"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
+              >
+                <Youtube className="h-4 w-4" />
+                @asher_newton on YouTube
+              </a>
             </div>
           </div>
         </div>
