@@ -889,10 +889,11 @@ const Index = () => {
         </div>
       </ScrollSection>
 
-      <SiteFooter />
-      <CommandPaletteHint />
-
+      <ScrollSection>
+        <SiteFooter />
+        <CommandPaletteHint />
       </ScrollSection>
+
       {showAuth && (
         <AuthOverlay
           isLogin={authIsLogin}
