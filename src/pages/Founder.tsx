@@ -193,6 +193,56 @@ const Founder = () => {
         </div>
       </div>
 
+      {/* Founders Videos Archives */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">
+              Media
+            </p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+              Founders Videos Archives
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[
+              "g7FmttXtyEw",
+              "Bng9dGp3444",
+              "pTA9aOdd6iw",
+              "HcvAEtC4wRw",
+              "xM3zKp_oYwo",
+              "RxvLmhZJ8kU",
+              "DFSLspaEMn0",
+              "FcKzSP7_g1w",
+              "hBhldKwbH6Q",
+              "UispvssxFdo",
+              "w_K7UrDEp98",
+              "q98IqcFco9A",
+              "Ak6PVkHM2cE",
+              "OEksMhZ8R-Q",
+              "ZecS7rqIkDc",
+            ].map((id) => (
+              <div
+                key={id}
+                className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/30"
+              >
+                <div className="aspect-video">
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1`}
+                    title="Founder Video"
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Spacer */}
       <div className="relative z-10 h-24" />
     </LandingBackground>
