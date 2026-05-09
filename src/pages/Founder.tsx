@@ -125,6 +125,55 @@ const Founder = () => {
         </div>
       </div>
 
+      {/* Books Written By Asher */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center mb-12">
+            <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">
+              Library
+            </p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+              Books Written By Asher
+            </h2>
+          </div>
+
+          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <div className="flex items-start gap-4">
+                <div className="rounded-xl border border-border/30 bg-background/40 p-3">
+                  <BookOpen className="h-6 w-6 text-foreground/80" strokeWidth={1.25} />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-light tracking-wide text-foreground">
+                    The Book of Asher Aureon Elion
+                  </h3>
+                  <p className="mt-1 text-xs font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">
+                    By Asher Newton
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/books/book-of-asher-aureon-elion.pdf"
+                download
+                className="inline-flex items-center gap-2 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-5 py-2.5 text-xs font-light tracking-[0.15em] text-foreground uppercase transition-all hover:bg-foreground/10"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download PDF
+              </a>
+            </div>
+
+            <div className="rounded-xl overflow-hidden border border-border/20 bg-background/40">
+              <iframe
+                src="/books/book-of-asher-aureon-elion.pdf#view=FitH"
+                title="The Book of Asher Aureon Elion"
+                className="w-full"
+                style={{ height: "85vh" }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Spacer */}
       <div className="relative z-10 h-24" />
     </LandingBackground>
