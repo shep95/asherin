@@ -5,6 +5,11 @@ import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download } from "lucide-react";
 
+const bookPages = Array.from(
+  { length: 116 },
+  (_, index) => `/books/asher-aureon-elion-pages/page-${String(index + 1).padStart(3, "0")}.jpg`
+);
+
 const Founder = () => {
   useEffect(() => {
     document.title = "Asher Newton — Founder of Aureon";
@@ -162,13 +167,18 @@ const Founder = () => {
               </a>
             </div>
 
-            <div className="rounded-xl overflow-hidden border border-border/20 bg-background/40">
-              <iframe
-                src="/books/book-of-asher-aureon-elion.pdf#view=FitH"
-                title="The Book of Asher Aureon Elion"
-                className="w-full"
-                style={{ height: "85vh" }}
-              />
+            <div className="max-h-[85vh] overflow-y-auto rounded-xl border border-border/20 bg-background/40 p-3 sm:p-5">
+              <div className="mx-auto flex max-w-3xl flex-col gap-5">
+                {bookPages.map((pageSrc, index) => (
+                  <img
+                    key={pageSrc}
+                    src={pageSrc}
+                    alt={`The Book of Asher Aureon Elion page ${index + 1}`}
+                    loading={index < 2 ? "eager" : "lazy"}
+                    className="w-full rounded-lg border border-border/20 bg-background shadow-2xl shadow-black/30"
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
