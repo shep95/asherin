@@ -133,15 +133,15 @@ function popularityScore(g: ParsedGame): number {
   return s;
 }
 
-async function callGemini(games: ParsedGame[]): Promise<any> {
+async function callGeminiOnce(games: ParsedGame[], model: string, temperature: number): Promise<any> {
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) throw new Error("GEMINI_API_KEY missing");
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const userPrompt = `LIVE GAMES DATA (next 24h, sourced from ESPN aggregating DraftKings, FanDuel, BetMGM, Caesars, ESPN BET, Circa Sports, Bet365, William Hill where available):\n\n${JSON.stringify(games, null, 2)}\n\nSelect the TOP 2 picks per the rules. Return only the JSON object.`;
   const body = {
     contents: [{ role: "user", parts: [{ text: userPrompt }] }],
     systemInstruction: { parts: [{ text: AVA_SYSTEM_PROMPT }] },
-    generationConfig: { temperature: 0.4, responseMimeType: "application/json" },
+    generationConfig: { temperature, responseMimeType: "application/json" },
   };
   const res = await fetch(url, {
     method: "POST",
@@ -150,11 +150,45 @@ async function callGemini(games: ParsedGame[]): Promise<any> {
   });
   if (!res.ok) {
     const t = await res.text();
-    throw new Error(`Gemini ${res.status}: ${t}`);
+    throw new Error(`Gemini(${model}) ${res.status}: ${t}`);
   }
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
   return JSON.parse(text);
+}
+
+// MULTI-MODEL CONSENSUS: Run two independent Gemini analyses (Pro + Flash with different temps).
+// Only pick games where BOTH models agree on the winner. Bumps confidence to HIGH on agreement.
+async function callGeminiConsensus(games: ParsedGame[]): Promise<any> {
+  const [resA, resB] = await Promise.allSettled([
+    callGeminiOnce(games, "gemini-2.5-pro", 0.3),
+    callGeminiOnce(games, "gemini-2.5-flash", 0.5),
+  ]);
+  const a = resA.status === "fulfilled" ? (resA.value?.picks ?? []) : [];
+  const b = resB.status === "fulfilled" ? (resB.value?.picks ?? []) : [];
+  // If one model failed entirely, fall back to the other
+  if (a.length === 0) return { picks: b, consensus_mode: "single" };
+  if (b.length === 0) return { picks: a, consensus_mode: "single" };
+
+  const consensus: any[] = [];
+  for (const pa of a) {
+    const match = b.find((pb: any) => pb.game_id === pa.game_id && pb.predicted_winner === pa.predicted_winner);
+    if (match) {
+      consensus.push({
+        ...pa,
+        confidence: "HIGH", // both agreed → upgrade
+        odds_analysis: {
+          ...(pa.odds_analysis ?? {}),
+          consensus_mode: "dual_agreement",
+          model_a: "gemini-2.5-pro",
+          model_b: "gemini-2.5-flash",
+        },
+      });
+    }
+  }
+  // If no agreement, fall back to Pro picks (more conservative model)
+  if (consensus.length === 0) return { picks: a, consensus_mode: "no_agreement_fallback_pro" };
+  return { picks: consensus, consensus_mode: "dual_agreement" };
 }
 
 Deno.serve(async (req) => {
