@@ -222,8 +222,8 @@ Deno.serve(async (req) => {
       .slice(0, 20)
       .map(x => ({ ...x.g, popularity_score: x.score }));
 
-    // 4. Gemini analysis
-    const ai = await callGemini(ranked);
+    // 4. Multi-model Gemini consensus analysis
+    const ai = await callGeminiConsensus(ranked);
     const picks: any[] = ai?.picks ?? [];
     if (picks.length === 0) {
       return new Response(JSON.stringify({ ok: false, reason: "AI returned no picks" }),
