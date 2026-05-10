@@ -153,6 +153,9 @@ const Header = () => {
               <DropdownMenuItem asChild>
                 <Link to="/equity" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Equity Ownership</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/openvpn" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">OpenVPN · Free</Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
