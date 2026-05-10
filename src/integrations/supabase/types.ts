@@ -2230,6 +2230,108 @@ export type Database = {
         }
         Relationships: []
       }
+      ava_picks: {
+        Row: {
+          actual_winner: string | null
+          away_team: string
+          confidence: string
+          created_at: string
+          final_score: string | null
+          game_id: string
+          game_time: string
+          home_team: string
+          id: string
+          league: string
+          odds_analysis: Json | null
+          pick_date: string
+          picked_at: string
+          popularity_score: number | null
+          predicted_winner: string
+          reasoning: string
+          sharp_angle: string | null
+          sport: string
+          status: string
+          updated_at: string
+          validated_at: string | null
+        }
+        Insert: {
+          actual_winner?: string | null
+          away_team: string
+          confidence?: string
+          created_at?: string
+          final_score?: string | null
+          game_id: string
+          game_time: string
+          home_team: string
+          id?: string
+          league: string
+          odds_analysis?: Json | null
+          pick_date?: string
+          picked_at?: string
+          popularity_score?: number | null
+          predicted_winner: string
+          reasoning: string
+          sharp_angle?: string | null
+          sport: string
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+        }
+        Update: {
+          actual_winner?: string | null
+          away_team?: string
+          confidence?: string
+          created_at?: string
+          final_score?: string | null
+          game_id?: string
+          game_time?: string
+          home_team?: string
+          id?: string
+          league?: string
+          odds_analysis?: Json | null
+          pick_date?: string
+          picked_at?: string
+          popularity_score?: number | null
+          predicted_winner?: string
+          reasoning?: string
+          sharp_angle?: string | null
+          sport?: string
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+        }
+        Relationships: []
+      }
+      ava_win_stats: {
+        Row: {
+          id: string
+          losses: number
+          pending: number
+          total_picks: number
+          updated_at: string
+          win_rate: number
+          wins: number
+        }
+        Insert: {
+          id?: string
+          losses?: number
+          pending?: number
+          total_picks?: number
+          updated_at?: string
+          win_rate?: number
+          wins?: number
+        }
+        Update: {
+          id?: string
+          losses?: number
+          pending?: number
+          total_picks?: number
+          updated_at?: string
+          win_rate?: number
+          wins?: number
+        }
+        Relationships: []
+      }
       axrlen_brains: {
         Row: {
           content: string
