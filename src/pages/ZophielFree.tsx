@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Lock, MessageSquare, X, AlertOctagon, ArrowUpRight, Sparkles } from "lucide-react";
+import { Lock, MessageSquare, X, AlertOctagon, ArrowUpRight, Sparkles, Shield, Github } from "lucide-react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
@@ -102,6 +102,26 @@ const ZophielFree = () => {
       <div className="fixed top-20 right-4 sm:right-6 z-30 animate-fade-in">
         <ZophielStatusBar />
       </div>
+
+      <a
+        href="/openvpn"
+        target="_blank"
+        rel="noreferrer"
+        className="zophiel-sheen group fixed left-4 top-20 z-30 hidden max-w-[18rem] items-center gap-3 rounded-2xl border border-border/35 bg-card/55 px-4 py-3 text-foreground/85 shadow-[0_18px_55px_-25px_hsl(var(--foreground)/0.45)] backdrop-blur-2xl transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:bg-card/75 hover:text-foreground sm:flex"
+        aria-label="Open Aureon OpenVPN software in a new tab"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/25 bg-background/35">
+          <Shield className="h-4 w-4" strokeWidth={1.5} />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[9px] font-light uppercase tracking-[0.28em] text-muted-foreground/60">Free Security Layer</span>
+          <span className="mt-0.5 flex items-center gap-1.5 text-xs font-light tracking-wide">
+            Check out our OpenVPN software
+            <Github className="h-3 w-3 opacity-60" strokeWidth={1.5} />
+          </span>
+        </span>
+        <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" strokeWidth={1.5} />
+      </a>
 
       {/* Engine — full-bleed, no tab gymnastics */}
       <main className="relative z-10 pt-24 min-h-screen">
