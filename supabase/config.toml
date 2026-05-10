@@ -161,3 +161,9 @@ verify_jwt = false
 
 [functions.zophiel-code-audit]
 verify_jwt = false
+
+[functions.ava-generate-picks]
+verify_jwt = false
+
+[functions.ava-validate-results]
+verify_jwt = false
