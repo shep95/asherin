@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
@@ -6,9 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, Trophy, Target, Activity, Sparkles, Clock, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import {
+  TrendingUp, Trophy, Target, Activity, Sparkles, Clock,
+  CheckCircle2, XCircle, RefreshCw, Timer, Flame, Zap,
+} from "lucide-react";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import { toast } from "sonner";
+import { ResponsiveContainer, AreaChart, Area, Tooltip, XAxis, YAxis } from "recharts";
 
 interface Pick {
   id: string;
@@ -41,6 +45,7 @@ interface Stats {
 const AvaPicks = () => {
   const [today, setToday] = useState<Pick[]>([]);
   const [recent, setRecent] = useState<Pick[]>([]);
+  const [history14, setHistory14] = useState<Pick[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -67,13 +72,16 @@ const AvaPicks = () => {
   const load = async () => {
     const todayStr = new Date().toISOString().slice(0, 10);
     const sevenAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
-    const [picksRes, statsRes] = await Promise.all([
+    const fourteenAgo = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    const [picksRes, statsRes, hist14Res] = await Promise.all([
       supabase.from("ava_picks").select("*").gte("pick_date", sevenAgo).order("picked_at", { ascending: false }),
       supabase.from("ava_win_stats").select("*").order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("ava_picks").select("*").gte("pick_date", fourteenAgo).order("pick_date", { ascending: true }),
     ]);
     const all = (picksRes.data ?? []) as Pick[];
     setToday(all.filter(p => p.pick_date === todayStr));
     setRecent(all.filter(p => p.pick_date !== todayStr));
+    setHistory14((hist14Res.data ?? []) as Pick[]);
     setStats((statsRes.data as Stats) ?? { total_picks: 0, wins: 0, losses: 0, pending: 0, win_rate: 0 });
     setLoading(false);
   };
@@ -96,6 +104,38 @@ const AvaPicks = () => {
     }
   };
 
+  // ---- Derived analytics ----
+  const streak = useMemo(() => {
+    const decided = [...history14].filter(p => p.status === "WIN" || p.status === "LOSS")
+      .sort((a, b) => new Date(b.picked_at).getTime() - new Date(a.picked_at).getTime());
+    if (decided.length === 0) return { type: "—", count: 0 };
+    const first = decided[0].status;
+    let count = 0;
+    for (const p of decided) {
+      if (p.status === first) count++; else break;
+    }
+    return { type: first, count };
+  }, [history14]);
+
+  const sparkData = useMemo(() => {
+    // Cumulative net units (W = +1, L = -1) across last 14 days
+    const decided = [...history14]
+      .filter(p => p.status === "WIN" || p.status === "LOSS")
+      .sort((a, b) => new Date(a.picked_at).getTime() - new Date(b.picked_at).getTime());
+    let cum = 0;
+    return decided.map((p, i) => {
+      cum += p.status === "WIN" ? 1 : -1;
+      return { i, units: cum, date: p.pick_date };
+    });
+  }, [history14]);
+
+  const recentResults = useMemo(() => {
+    return [...history14]
+      .filter(p => p.status === "WIN" || p.status === "LOSS")
+      .sort((a, b) => new Date(b.picked_at).getTime() - new Date(a.picked_at).getTime())
+      .slice(0, 20);
+  }, [history14]);
+
   return (
     <div className="relative min-h-screen text-foreground">
       <div
@@ -106,6 +146,9 @@ const AvaPicks = () => {
       <div aria-hidden className="fixed inset-0 -z-10 bg-background/70 backdrop-blur-[2px]" />
       <Header />
 
+      {/* Result Ticker */}
+      {recentResults.length > 0 && <ResultTicker items={recentResults} />}
+
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-border/40">
         <div
@@ -115,19 +158,20 @@ const AvaPicks = () => {
               "radial-gradient(ellipse at top, hsl(var(--primary)/0.25), transparent 60%), radial-gradient(ellipse at bottom right, hsl(var(--primary)/0.15), transparent 50%)",
           }}
         />
-        <div className="relative mx-auto max-w-6xl px-6 pt-32 pb-16 text-center">
+        <div className="relative mx-auto max-w-6xl px-6 pt-24 pb-16 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground backdrop-blur-sm">
             <Sparkles className="h-3 w-3" />
-            AVA Sports Brain · Live
+            AVA Sports Brain · Dual-Model Consensus · Live
           </div>
           <h1 className="mt-8 text-5xl md:text-7xl font-extralight tracking-tight">
             AvaPicks
           </h1>
           <p className="mt-6 text-lg md:text-xl text-muted-foreground font-light max-w-2xl mx-auto">
-            Two AI-selected sports picks. Every day. Fully tracked, fully transparent —
-            powered by sharp moneyline consensus from DraftKings, FanDuel, BetMGM, ESPN BET, Circa & Bet365.
+            Two AI-selected sports picks. Every day. Validated by two independent Gemini models —
+            we only post when both agree.
           </p>
-          <div className="mt-8 flex items-center justify-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <NextDropCountdown />
             <Button onClick={generateNow} disabled={generating} variant="outline" className="border-border/60 backdrop-blur-sm">
               <RefreshCw className={`h-4 w-4 ${generating ? "animate-spin" : ""}`} />
               {generating ? "AVA Analyzing…" : "Run AVA Now"}
@@ -136,14 +180,62 @@ const AvaPicks = () => {
         </div>
       </section>
 
-      {/* Stats */}
+      {/* Stats Overview */}
       <section className="mx-auto max-w-6xl px-6 -mt-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatTile icon={<Target className="h-4 w-4" />} label="Win Rate" value={`${stats?.win_rate?.toFixed(1) ?? "0.0"}%`} accent />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <WinRateTile winRate={stats?.win_rate ?? 0} />
           <StatTile icon={<Trophy className="h-4 w-4" />} label="Wins" value={stats?.wins ?? 0} />
           <StatTile icon={<XCircle className="h-4 w-4" />} label="Losses" value={stats?.losses ?? 0} />
-          <StatTile icon={<Activity className="h-4 w-4" />} label="Total Picks" value={stats?.total_picks ?? 0} />
+          <StreakTile streak={streak} />
+          <StatTile icon={<Activity className="h-4 w-4" />} label="Total" value={stats?.total_picks ?? 0} />
         </div>
+
+        {/* Sparkline */}
+        <Card className="mt-3 p-5 border-border/40 bg-card/40 backdrop-blur-md">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+              <Zap className="h-3 w-3" /> 14-Day Net Units
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {sparkData.length > 0
+                ? <span className={sparkData[sparkData.length - 1].units >= 0 ? "text-emerald-400" : "text-red-400"}>
+                    {sparkData[sparkData.length - 1].units >= 0 ? "+" : ""}{sparkData[sparkData.length - 1].units}u
+                  </span>
+                : "No data"}
+            </div>
+          </div>
+          <div className="h-24">
+            {sparkData.length > 1 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={sparkData} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+                  <defs>
+                    <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="i" hide />
+                  <YAxis hide domain={["auto", "auto"]} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(v: any) => [`${v >= 0 ? "+" : ""}${v}u`, "Net"]}
+                    labelFormatter={() => ""}
+                  />
+                  <Area type="monotone" dataKey="units" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#sparkGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
+                Awaiting graded picks…
+              </div>
+            )}
+          </div>
+        </Card>
       </section>
 
       {/* Today's Picks */}
@@ -195,16 +287,163 @@ const AvaPicks = () => {
   );
 };
 
-const StatTile = ({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: any; accent?: boolean }) => (
-  <Card className={`p-5 border-border/40 backdrop-blur-md ${accent ? "bg-primary/5" : "bg-card/40"}`}>
+// ---------- Result Ticker (marquee) ----------
+const ResultTicker = ({ items }: { items: Pick[] }) => {
+  const loop = [...items, ...items];
+  return (
+    <div className="relative overflow-hidden border-b border-border/40 bg-card/30 backdrop-blur-md">
+      <div className="flex animate-[ticker_45s_linear_infinite] whitespace-nowrap py-2">
+        {loop.map((p, i) => (
+          <div key={i} className="flex items-center gap-2 px-5 text-xs">
+            {p.status === "WIN"
+              ? <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+              : <XCircle className="h-3 w-3 text-red-400" />}
+            <span className={`uppercase tracking-[0.15em] ${p.status === "WIN" ? "text-emerald-400" : "text-red-400"}`}>
+              {p.status}
+            </span>
+            <span className="text-muted-foreground">{p.league}</span>
+            <span className="text-foreground/80">{p.predicted_winner}</span>
+            <span className="text-muted-foreground/40">·</span>
+          </div>
+        ))}
+      </div>
+      <style>{`@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }`}</style>
+    </div>
+  );
+};
+
+// ---------- Countdown to next 11 AM ET drop ----------
+const NextDropCountdown = () => {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  // 11 AM America/New_York → 15:00 or 16:00 UTC depending on DST. Approximate via offset detection.
+  const nextDrop = useMemo(() => {
+    const d = new Date(now);
+    // Build today's 11AM ET via formatter trick
+    const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", hour12: false });
+    const etHour = parseInt(fmt.format(d), 10);
+    const target = new Date(d);
+    // shift by difference: we want ET hour to be 11
+    target.setHours(target.getHours() + (11 - etHour));
+    target.setMinutes(0, 0, 0);
+    if (target.getTime() <= now) target.setTime(target.getTime() + 24 * 3600 * 1000);
+    return target.getTime();
+  }, [now]);
+  const diff = Math.max(0, nextDrop - now);
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return (
+    <div className="inline-flex items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-4 py-2 text-sm backdrop-blur-sm">
+      <Timer className="h-4 w-4 text-primary" />
+      <span className="text-muted-foreground text-xs uppercase tracking-[0.18em]">Next Drop</span>
+      <span className="font-mono tabular-nums text-foreground">
+        {String(h).padStart(2, "0")}:{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}
+      </span>
+    </div>
+  );
+};
+
+// ---------- Animated win-rate tile w/ radial ring ----------
+const WinRateTile = ({ winRate }: { winRate: number }) => {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    const start = performance.now();
+    const from = display;
+    const to = winRate;
+    const dur = 900;
+    let raf = 0;
+    const step = (t: number) => {
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(from + (to - from) * eased);
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [winRate]); // eslint-disable-line
+
+  return (
+    <Card className="relative p-5 border-border/40 bg-primary/5 backdrop-blur-md overflow-hidden">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+        <Target className="h-4 w-4" />
+        Win Rate
+      </div>
+      <div className="mt-3 flex items-end justify-between">
+        <div className="text-3xl font-extralight tracking-tight text-primary tabular-nums">
+          {display.toFixed(1)}%
+        </div>
+        <RadialGauge value={winRate} size={48} />
+      </div>
+    </Card>
+  );
+};
+
+const RadialGauge = ({ value, size = 64, label }: { value: number; size?: number; label?: string }) => {
+  const r = size / 2 - 4;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, value));
+  const dash = (pct / 100) * c;
+  return (
+    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--border))" strokeWidth={3} />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} fill="none"
+          stroke="hsl(var(--primary))" strokeWidth={3} strokeLinecap="round"
+          strokeDasharray={`${dash} ${c}`}
+          style={{ transition: "stroke-dasharray 0.8s ease-out" }}
+        />
+      </svg>
+      {label && (
+        <span className="absolute text-[10px] font-mono tabular-nums text-foreground">
+          {Math.round(pct)}
+        </span>
+      )}
+    </div>
+  );
+};
+
+const StreakTile = ({ streak }: { streak: { type: string; count: number } }) => {
+  const isWin = streak.type === "WIN";
+  return (
+    <Card className="p-5 border-border/40 bg-card/40 backdrop-blur-md">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+        <Flame className={`h-4 w-4 ${isWin ? "text-emerald-400" : streak.type === "LOSS" ? "text-red-400" : ""}`} />
+        Streak
+      </div>
+      <div className="mt-3 text-3xl font-extralight tracking-tight">
+        {streak.count > 0 ? (
+          <span className={isWin ? "text-emerald-400" : "text-red-400"}>
+            {streak.count}{isWin ? "W" : "L"}
+          </span>
+        ) : "—"}
+      </div>
+    </Card>
+  );
+};
+
+const StatTile = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: any }) => (
+  <Card className="p-5 border-border/40 bg-card/40 backdrop-blur-md">
     <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
       {icon}
       {label}
     </div>
-    <div className={`mt-3 text-3xl font-extralight tracking-tight ${accent ? "text-primary" : ""}`}>{value}</div>
+    <div className="mt-3 text-3xl font-extralight tracking-tight">{value}</div>
   </Card>
 );
 
+const confidenceValue = (c: string) => {
+  switch (c?.toUpperCase()) {
+    case "HIGH": return 90;
+    case "MEDIUM": return 65;
+    case "LOW": return 35;
+    default: return 50;
+  }
+};
 const confidenceStyle = (c: string) => {
   switch (c?.toUpperCase()) {
     case "HIGH": return "border-emerald-500/40 bg-emerald-500/10 text-emerald-400";
@@ -217,18 +456,38 @@ const PickCard = ({ pick, hero }: { pick: Pick; hero?: boolean }) => {
   const time = new Date(pick.game_time).toLocaleString("en-US", {
     weekday: "short", hour: "numeric", minute: "2-digit", timeZoneName: "short",
   });
+  const consensusMode = pick.odds_analysis?.consensus_mode;
+  const isDualConsensus = consensusMode === "dual_agreement";
+
+  const statusGlow = pick.status === "WIN"
+    ? "border-emerald-500/40 shadow-[0_0_40px_-10px_hsl(142_71%_45%/0.4)]"
+    : pick.status === "LOSS"
+      ? "border-red-500/30 opacity-80"
+      : "border-border/40 hover:border-primary/40";
+
   return (
-    <Card className={`group relative overflow-hidden border-border/40 backdrop-blur-md transition-all hover:border-primary/40 ${hero ? "bg-card/50" : "bg-card/30"}`}>
+    <Card className={`group relative overflow-hidden backdrop-blur-md transition-all ${hero ? "bg-card/50" : "bg-card/30"} ${statusGlow}`}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      {pick.status === "PENDING" && (
+        <div className="absolute top-3 right-3 h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+      )}
       <div className="p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{pick.league}</div>
             <div className="mt-1 text-xs text-muted-foreground/70">{pick.sport}</div>
+            {isDualConsensus && (
+              <Badge variant="outline" className="mt-2 border-primary/40 bg-primary/10 text-primary text-[9px] uppercase tracking-[0.15em]">
+                <Sparkles className="h-2.5 w-2.5 mr-1" /> Dual-Model Consensus
+              </Badge>
+            )}
           </div>
-          <Badge variant="outline" className={`border ${confidenceStyle(pick.confidence)} text-[10px] uppercase tracking-[0.15em]`}>
-            {pick.confidence}
-          </Badge>
+          <div className="flex flex-col items-end gap-2">
+            <Badge variant="outline" className={`border ${confidenceStyle(pick.confidence)} text-[10px] uppercase tracking-[0.15em]`}>
+              {pick.confidence}
+            </Badge>
+            <RadialGauge value={confidenceValue(pick.confidence)} size={56} label={String(confidenceValue(pick.confidence))} />
+          </div>
         </div>
 
         <div className="mt-5">
