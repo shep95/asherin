@@ -486,7 +486,7 @@ const PickCard = ({ pick, hero }: { pick: Pick; hero?: boolean }) => {
             <Badge variant="outline" className={`border ${confidenceStyle(pick.confidence)} text-[10px] uppercase tracking-[0.15em]`}>
               {pick.confidence}
             </Badge>
-            <RadialGauge value={confidenceValue(pick.confidence)} size={56} label />
+            <RadialGauge value={confidenceValue(pick.confidence)} size={56} label={String(confidenceValue(pick.confidence))} />
           </div>
         </div>
 
