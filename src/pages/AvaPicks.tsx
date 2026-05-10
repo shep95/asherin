@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, Trophy, Target, Activity, Sparkles, Clock, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import { toast } from "sonner";
 
 interface Pick {
@@ -96,7 +97,13 @@ const AvaPicks = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="relative min-h-screen text-foreground">
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${wallpaperAureon})` }}
+      />
+      <div aria-hidden className="fixed inset-0 -z-10 bg-background/70 backdrop-blur-[2px]" />
       <Header />
 
       {/* Hero */}
