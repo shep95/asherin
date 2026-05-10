@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity,
@@ -113,6 +113,20 @@ const INSTALL_STEPS = [
 const rawUrl = (path: string) => `${RAW_BASE}/${path}`;
 const blobUrl = (path: string) => `${REPO_URL}/blob/master/${path}`;
 
+const fetchIp = async (): Promise<IpState> => {
+  const res = await fetch("https://ipapi.co/json/");
+  if (!res.ok) throw new Error("IP intelligence endpoint unavailable");
+  const data = await res.json();
+  return {
+    ip: data.ip || "Unknown",
+    city: data.city || "Unknown",
+    region: data.region || "Unknown",
+    country: data.country_name || data.country || "Unknown",
+    org: data.org || data.asn || "Unknown network",
+    timezone: data.timezone || "Unknown",
+  };
+};
+
 const OpenVpn = () => {
   const [beforeIp, setBeforeIp] = useState<IpState | null>(null);
   const [afterIp, setAfterIp] = useState<IpState | null>(null);
@@ -120,27 +134,7 @@ const OpenVpn = () => {
   const [repo, setRepo] = useState<RepoState | null>(null);
   const [repoError, setRepoError] = useState<string | null>(null);
 
-  useEffect(() => {
-    document.title = "OpenVPN — Aureon Free Forever";
-    refreshIp("before");
-    syncRepo();
-  }, []);
-
-  const fetchIp = async (): Promise<IpState> => {
-    const res = await fetch("https://ipapi.co/json/");
-    if (!res.ok) throw new Error("IP intelligence endpoint unavailable");
-    const data = await res.json();
-    return {
-      ip: data.ip || "Unknown",
-      city: data.city || "Unknown",
-      region: data.region || "Unknown",
-      country: data.country_name || data.country || "Unknown",
-      org: data.org || data.asn || "Unknown network",
-      timezone: data.timezone || "Unknown",
-    };
-  };
-
-  const refreshIp = async (slot: "before" | "after") => {
+  const refreshIp = useCallback(async (slot: "before" | "after") => {
     setLoadingIp(true);
     try {
       const ip = await fetchIp();
@@ -152,9 +146,9 @@ const OpenVpn = () => {
     } finally {
       setLoadingIp(false);
     }
-  };
+  }, []);
 
-  const syncRepo = async () => {
+  const syncRepo = useCallback(async () => {
     try {
       const [repoRes, toolsRes] = await Promise.all([
         fetch(API_BASE),
@@ -177,7 +171,13 @@ const OpenVpn = () => {
     } catch (error) {
       setRepoError(error instanceof Error ? error.message : "GitHub sync failed");
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    document.title = "OpenVPN — Aureon Free Forever";
+    refreshIp("before");
+    syncRepo();
+  }, [refreshIp, syncRepo]);
 
   const copy = async (value: string) => {
     await navigator.clipboard.writeText(value);
