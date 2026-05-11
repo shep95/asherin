@@ -1,5 +1,8 @@
 project_id = "xpgxgzqbtrrrbtjcemci"
 
+[functions.aureon-shield-analyze]
+verify_jwt = false
+
 [functions.asher-eyes-proxy]
 verify_jwt = false
 
