@@ -81,7 +81,15 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userErr } = await supabase.auth.getUser(token);
     if (userErr || !user) throw new Error("Unauthorized");
 
-    const { project_id, scan_profile, code_content, file_name, github_url } = await req.json();
+    const { project_id, scan_profile, code_content, file_name, github_url, byok = null } = await req.json();
+
+    // STRICT BYOK GATE — non-admin must supply a BYOK config.
+    let _resolved;
+    try {
+      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, byok);
+    } catch (e: any) {
+      return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
+    }
     if (!project_id) throw new Error("project_id is required");
 
     console.log("[ZERLAL] Starting scan for project:", project_id, "profile:", scan_profile, "github_url:", github_url || "none");
