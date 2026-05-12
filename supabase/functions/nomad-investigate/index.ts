@@ -2847,7 +2847,7 @@ serve(async (req) => {
     // PRE-FLIGHT: QUERY TRIAGE — Determine if the query has enough specificity
     // ══════════════════════════════════════════════════════════════════════════
 
-    const GEMINI_API_KEY_TRIAGE = Deno.env.get('GEMINI_API_KEY_APP');
+    const GEMINI_API_KEY_TRIAGE = (globalThis as any).__NOMAD_KEY__ || Deno.env.get('GEMINI_API_KEY_APP');
     
     // Only triage if this looks like a first message (no prior assistant responses)
     const hasConversationContext = messages.some((m: any) => m.role === 'assistant' && m.content && m.content.length > 100);
