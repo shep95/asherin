@@ -106,16 +106,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate BYOK if provided. When valid, we skip the platform Gemini key entirely
-    // and route the AI call through the user's own provider — bypassing the queue.
-    const useByok = !!(byok && byok.apiKey && byok.provider && byok.model);
-    const GEMINI_API_KEY = useByok ? '' : (Deno.env.get('GEMINI_API_KEY_APP') || Deno.env.get('GEMINI_API_KEY') || '');
-    if (!useByok && !GEMINI_API_KEY) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'GEMINI_API_KEY_APP not configured' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+    // STRICT BYOK GATE — only the admin may consume the platform Gemini key.
+    // Every other caller MUST send a BYOK config or get a 403.
+    let _resolved;
+    try {
+      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, byok);
+    } catch (e: any) {
+      return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
     }
+    const useByok = _resolved.mode === 'byok';
+    const GEMINI_API_KEY = _resolved.geminiKey || '';
 
     // Sequential scrape with 8s delay between pages.
     // Edge functions cap at 150s wall-clock — at 8s/page we cap input at 8 pages
