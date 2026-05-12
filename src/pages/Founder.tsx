@@ -161,9 +161,9 @@ const Founder = () => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
               >
-                <Twitter className="h-4 w-4 text-zophiel-gold" />
-                <span className="text-zophiel-gold">@aureon_elion on X</span>
-                <span className="ml-1 rounded-md border border-zophiel-gold/40 bg-background/40 px-1.5 py-0.5 text-[9px] font-extralight tracking-[0.22em] uppercase text-zophiel-gold">Backup</span>
+                <Twitter className="h-4 w-4 text-[hsl(43_90%_60%)]" />
+                <span className="text-[hsl(43_90%_60%)]">@aureon_elion on X</span>
+                <span className="ml-1 rounded-md border border-[hsl(43_90%_55%/0.4)] bg-background/40 px-1.5 py-0.5 text-[9px] font-extralight tracking-[0.22em] uppercase text-[hsl(43_90%_60%)]">Backup</span>
               </a>
               <a
                 href="https://www.instagram.com/asher_united/"
