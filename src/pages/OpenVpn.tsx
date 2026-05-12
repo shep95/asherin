@@ -461,8 +461,8 @@ const AureonShield = () => {
                 <div className={`text-lg font-light tracking-wide ${verdictColor}`}>{analysis?.verdict || "AWAITING ANALYSIS"}</div>
               </div>
             </div>
-            <Stat label="Public IP" value={identity?.ip || "—"} />
-            <Stat label="Geo / ISP" value={identity ? `${identity.city}, ${identity.country}` : "—"} />
+            <Stat label="Public IP" value={identity?.ip || "—"} sensitive />
+            <Stat label="Geo / ISP" value={identity ? `${identity.city}, ${identity.country}` : "—"} sensitive />
             <Stat label="WebRTC Leak" value={webrtc?.leaked ? <span className="text-red-400">{webrtc.ips.length} IPs exposed</span> : <span className="text-emerald-400">None detected</span>} />
             <Stat label="DNS Resolver" value={dns ? `${dns.colo} · ${dns.loc}` : "—"} />
             <Stat label="Leak Score" value={<span className={bandColor(leakScore.band)}>{leakScore.score}/100 · {leakScore.band}</span>} />
