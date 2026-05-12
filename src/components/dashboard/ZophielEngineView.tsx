@@ -208,7 +208,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     }
 
     // Imagine / Extract / Audit / Face modes — handled by their own panels, do not run text search
-    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face" || mode === "darkweb" || mode === "leaks" || mode === "archive") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn") {
       setSearched(true);
       setShowSuggestions(false);
       return;
