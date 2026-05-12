@@ -118,10 +118,10 @@ const FounderVideos = () => {
           >
             <div className="aspect-video w-full overflow-hidden rounded-2xl border border-border/20 bg-black shadow-2xl">
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${activeId}?autoplay=1&rel=0&modestbranding=1`}
+                src={`https://www.youtube.com/embed/${activeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=0&enablejsapi=1`}
                 title={titles[activeId] || "Founder video"}
                 className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                 allowFullScreen
               />
             </div>

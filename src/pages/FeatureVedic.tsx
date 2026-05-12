@@ -6,6 +6,7 @@ import {
   Moon, Star, Compass, Clock, Layers, TrendingUp,
   ArrowRight, ArrowLeft, Sparkles, Globe2,
 } from "lucide-react";
+import VedicGodsCompat from "@/components/vedic/VedicGodsCompat";
 
 const capabilities = [
   {
@@ -129,6 +130,9 @@ const FeatureVedic = () => {
           </div>
         </div>
       </section>
+
+      {/* Greek + Roman Mythology Compatibility */}
+      <VedicGodsCompat />
 
       {/* CTA */}
       <section className="relative z-10 px-6 py-24 text-center">

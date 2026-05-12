@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity, AlertTriangle, ArrowUpRight, CheckCircle2, Cpu, Eye, Fingerprint,
-  Github, Globe, HardDrive, KeyRound, Loader2, Lock, MapPin, Network, Power,
-  RefreshCw, Search, Shield, ShieldCheck, ShieldOff, Wifi, X, Zap,
+  Github, Globe, HardDrive, KeyRound, Loader2, Lock, MapPin, Monitor, Network, Power,
+  RefreshCw, Search, Server, Shield, ShieldCheck, ShieldOff, Wifi, X, Zap,
 } from "lucide-react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,6 +20,13 @@ const REPO_URL = "https://github.com/ZorakCorp/openvpn";
 
 // ────────────────────────────────────────────────────────────────────────────
 // REAL audit primitives — no simulation
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371, toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
 // ────────────────────────────────────────────────────────────────────────────
 
 type NetIdentity = {
@@ -215,6 +223,82 @@ const AureonShield = () => {
   const [pwResult, setPwResult] = useState<number | null>(null);
   const [pwChecking, setPwChecking] = useState(false);
 
+  // Precise geolocation (browser API — only with explicit user consent)
+  const [geo, setGeo] = useState<{ lat: number; lon: number; acc: number; ts: number } | null>(null);
+  const [geoTracking, setGeoTracking] = useState(false);
+  const geoWatchRef = useRef<number | null>(null);
+
+  const captureGeo = useCallback(() => {
+    if (!navigator.geolocation) { toast.error("Geolocation API unavailable"); return; }
+    navigator.geolocation.getCurrentPosition(
+      (p) => { setGeo({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp }); toast.success(`Precise position captured · ±${Math.round(p.coords.accuracy)}m`); },
+      (err) => toast.error(`Geolocation denied: ${err.message}`),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
+
+  const toggleGeoTracking = useCallback((on: boolean) => {
+    if (on) {
+      if (!navigator.geolocation) { toast.error("Geolocation API unavailable"); return; }
+      const id = navigator.geolocation.watchPosition(
+        (p) => setGeo({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp }),
+        (err) => toast.error(`Tracking failed: ${err.message}`),
+        { enableHighAccuracy: true, maximumAge: 5000 }
+      );
+      geoWatchRef.current = id; setGeoTracking(true);
+    } else {
+      if (geoWatchRef.current != null) navigator.geolocation.clearWatch(geoWatchRef.current);
+      geoWatchRef.current = null; setGeoTracking(false); setGeo(null);
+      toast.info("Tracking stopped — position cleared from memory");
+    }
+  }, []);
+
+  useEffect(() => () => { if (geoWatchRef.current != null) navigator.geolocation?.clearWatch(geoWatchRef.current); }, []);
+
+  // Multi-layer device protection signals (browser-derivable subset of full OS audit)
+  const layers = useMemo(() => {
+    const ua = device?.ua || "";
+    const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+    const grantedSensors = perms ? Object.entries(perms).filter(([, v]) => v === "granted").length : 0;
+    const cookieOk = device?.cookiesEnabled;
+    const dnt = device?.doNotTrack === "1";
+    const storageBig = (device?.storageQuotaMB ?? 0) > 1024;
+    return [
+      { id: 7, name: "User & Application", scope: "Browser tab",
+        ok: !webrtc?.leaked && isHttps,
+        signal: webrtc?.leaked ? `${webrtc.ips.length} IPs leak via WebRTC` : isHttps ? "TLS active · WebRTC clean" : "Mixed content risk",
+        nativeOnly: false },
+      { id: 6, name: "Operating System", scope: device?.platform || "Unknown",
+        ok: !!device?.platform,
+        signal: `${device?.platform || "?"} · ${device?.cores || "?"} cores · ${device?.memoryGB ?? "?"} GB`,
+        nativeOnly: true, note: "Hardening (RDP, SMBv1, AutoRun, Telemetry) requires native client" },
+      { id: 5, name: "Kernel & Drivers", scope: "Privileged ring",
+        ok: false, signal: "Sandbox blocks kernel inspection",
+        nativeOnly: true, note: "Rootkit / driver / syscall-table audit ships in ZorakCorp/openvpn" },
+      { id: 4, name: "Firmware (BIOS/UEFI)", scope: "Pre-OS",
+        ok: false, signal: "No web access to SPI flash",
+        nativeOnly: true, note: "Secure-Boot + TPM verification via native client" },
+      { id: 3, name: "Hardware (CPU/RAM)", scope: device?.vendor || "—",
+        ok: !!device?.cores, signal: `${device?.cores || "?"} cores · RAM ${device?.memoryGB ? `${device.memoryGB} GB` : "hidden"} · DPR ${device?.dpr ?? "—"}`,
+        nativeOnly: true, note: "Spectre/Meltdown/Rowhammer probes require native client" },
+      { id: 2, name: "Network & Communication", scope: identity?.org || "—",
+        ok: !!identity && !webrtc?.leaked,
+        signal: identity ? `${identity.country} · ${identity.org} · DNS ${dns?.colo || "?"}` : "—",
+        nativeOnly: false },
+      { id: 1, name: "Physical & Sensors", scope: `${grantedSensors} permissions granted`,
+        ok: grantedSensors === 0,
+        signal: cookieOk ? `Cookies on · DNT ${dnt ? "set" : "off"} · ${storageBig ? "Persistent storage" : "Ephemeral"}` : "Cookies blocked",
+        nativeOnly: false },
+    ];
+  }, [device, perms, webrtc, dns, identity]);
+
+  const overallScore = useMemo(() => {
+    if (!device) return 0;
+    const browserOk = layers.filter((l) => !l.nativeOnly).every((l) => l.ok);
+    const base = browserOk ? 70 : 45;
+    return Math.min(100, base + (analysis?.score ? analysis.score * 0.3 : 0));
+  }, [layers, device, analysis]);
+
   const runFullScan = useCallback(async () => {
     setScanning(true);
     try {
@@ -365,16 +449,105 @@ const AureonShield = () => {
         </Glass>
 
         {/* Tabs */}
-        <Tabs defaultValue="network" className="space-y-4">
-          <TabsList className="bg-card/40 backdrop-blur-xl border border-border/30 p-1 rounded-xl">
+        <Tabs defaultValue="layers" className="space-y-4">
+          <TabsList className="bg-card/40 backdrop-blur-xl border border-border/30 p-1 rounded-xl flex-wrap h-auto">
+            <TabsTrigger value="layers">Layers</TabsTrigger>
             <TabsTrigger value="network">Network</TabsTrigger>
             <TabsTrigger value="device">Device</TabsTrigger>
             <TabsTrigger value="privacy">Privacy</TabsTrigger>
+            <TabsTrigger value="location">Location</TabsTrigger>
             <TabsTrigger value="breach">Breach</TabsTrigger>
             <TabsTrigger value="tunnel">Tunnel</TabsTrigger>
             <TabsTrigger value="threats">Threats</TabsTrigger>
             <TabsTrigger value="native">Native VPN</TabsTrigger>
           </TabsList>
+
+          {/* LAYERS — multi-layer device protection (browser-derivable signals) */}
+          <TabsContent value="layers" className="space-y-4">
+            <Glass className="p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2"><Server className="h-4 w-4" /><h2 className="text-sm font-light tracking-wide">Multi-Layer Device Protection</h2></div>
+                <div className="text-right">
+                  <div className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Aureon Shield Score</div>
+                  <div className="text-2xl font-extralight">{Math.round(overallScore)}<span className="text-sm text-muted-foreground">/100</span></div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {layers.map((l) => (
+                  <div key={l.id} className="flex items-start gap-3 rounded-xl border border-border/30 bg-background/30 p-4">
+                    <div className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-lg border ${l.ok ? "border-emerald-400/40 bg-emerald-400/5 text-emerald-300" : l.nativeOnly ? "border-border/40 bg-card/40 text-muted-foreground" : "border-yellow-400/40 bg-yellow-400/5 text-yellow-300"}`}>
+                      <span className="text-[10px] font-mono">L{l.id}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-light text-foreground">{l.name}</span>
+                        <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">{l.scope}</span>
+                        {l.nativeOnly && <Badge variant="outline" className="border-border/40 text-[9px] font-light">Native client only</Badge>}
+                      </div>
+                      <div className="mt-1 text-xs font-light text-muted-foreground">{l.signal}</div>
+                      {"note" in l && (l as any).note && (
+                        <div className="mt-1 text-[10px] font-light text-foreground/60 italic">{(l as any).note}</div>
+                      )}
+                    </div>
+                    {l.ok && <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-[11px] font-light text-muted-foreground">
+                Browsers run inside a strict sandbox. Layers L3-L5 (kernel · firmware · hardware) cannot be inspected from a webpage by design — those scans require the open-source <a className="underline" href={REPO_URL} target="_blank" rel="noreferrer">ZorakCorp/openvpn</a> native client which performs rootkit detection, BIOS/UEFI verification, Spectre/Meltdown probes, USB monitoring and chassis-intrusion logging.
+              </p>
+            </Glass>
+          </TabsContent>
+
+          {/* LOCATION — precise geolocation with revoke */}
+          <TabsContent value="location">
+            <Glass className="p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /><h2 className="text-sm font-light tracking-wide">Precise Device Location</h2></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Live tracking</span>
+                  <Switch checked={geoTracking} onCheckedChange={toggleGeoTracking} />
+                </div>
+              </div>
+              <p className="mb-4 text-xs font-light text-muted-foreground">
+                Granted, the browser exposes GPS/Wi-Fi-fused coordinates within a few metres. Live tracking is opt-in and stored only in this tab — toggling off clears it from memory.
+              </p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Button onClick={captureGeo} className="bg-foreground/90 text-background hover:bg-foreground"><MapPin className="h-4 w-4" /> Capture once</Button>
+                {geo && (
+                  <Button variant="outline" onClick={() => { setGeo(null); toast.info("Position cleared"); }} className="border-border/40 bg-card/40">
+                    <X className="h-4 w-4" /> Clear
+                  </Button>
+                )}
+              </div>
+              {geo ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-xl border border-border/30 bg-background/30 p-4">
+                  <Stat label="Latitude" value={geo.lat.toFixed(5)} />
+                  <Stat label="Longitude" value={geo.lon.toFixed(5)} />
+                  <Stat label="Accuracy" value={`±${Math.round(geo.acc)} m`} />
+                  <Stat label="Captured" value={new Date(geo.ts).toLocaleTimeString()} />
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border/30 bg-background/30 p-4 text-xs text-muted-foreground">No precise position captured.</div>
+              )}
+              <div className="mt-4 grid md:grid-cols-2 gap-3">
+                <div className="rounded-xl border border-border/30 bg-background/30 p-4">
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-1">Coarse (IP-derived)</div>
+                  <div className="text-sm font-light">{identity ? `${identity.city}, ${identity.country}` : "—"}</div>
+                  <div className="text-[10px] text-muted-foreground mt-1">{identity?.latitude?.toFixed(2)}, {identity?.longitude?.toFixed(2)}</div>
+                </div>
+                <div className="rounded-xl border border-border/30 bg-background/30 p-4">
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-1">Drift vs IP geo</div>
+                  <div className="text-sm font-light">
+                    {geo && identity?.latitude != null && identity?.longitude != null
+                      ? `${Math.round(haversineKm(geo.lat, geo.lon, identity.latitude, identity.longitude))} km`
+                      : "—"}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-1">Large drift = VPN/proxy active or IP geolocation is stale.</div>
+                </div>
+              </div>
+            </Glass>
+          </TabsContent>
 
           {/* NETWORK */}
           <TabsContent value="network" className="grid gap-4 md:grid-cols-2">
