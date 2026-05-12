@@ -122,9 +122,6 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
     }
   };
 
-  const toggleBrain = (id: string) => {
-    setActiveBrainIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
-  };
 
   return (
     <div
