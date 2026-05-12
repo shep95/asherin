@@ -66,19 +66,8 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
   };
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from("axrlen_brains")
-          .select("id, name")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(20);
-        setBrains((data as any) || []);
-      } catch { /* ignore */ }
-    })();
-  }, []);
+  // Brains are loaded server-side and applied silently — never exposed in the UI.
+  // (House of Asher: classified.)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
