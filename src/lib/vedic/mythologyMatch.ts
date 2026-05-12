@@ -178,3 +178,49 @@ export function matchMythology(date: Date): Match[] {
   }));
   return scored.sort((a, b) => b.percent - a.percent);
 }
+
+// Material vs Spiritual axis split — derived from the same profile weights.
+// Material = worldly leverage (wealth, authority, war, craft, persuasion, speed, sea, sky).
+// Spiritual = inner / sacred current (wisdom, healing, justice, focus, beauty, love, chaos as transcendence).
+const MATERIAL_KEYS = ["wealth", "authority", "war", "craft", "persuasion", "speed", "sea", "sky"];
+const SPIRITUAL_KEYS = ["wisdom", "healing", "justice", "focus", "beauty", "love", "chaos"];
+
+export type PowerSplit = {
+  material: number;   // 0-100
+  spiritual: number;  // 0-100
+  materialBlurb: string;
+  spiritualBlurb: string;
+};
+
+function bandBlurb(score: number, axis: "material" | "spiritual"): string {
+  if (axis === "material") {
+    if (score >= 80) return "Empire-grade leverage. Builds, owns, and routes capital like infrastructure.";
+    if (score >= 60) return "Operator-class. Converts attention and time into compounding assets.";
+    if (score >= 40) return "Balanced earner. Worldly traction without losing the inner thread.";
+    if (score >= 20) return "Light material draw. Money serves the mission, not the other way around.";
+    return "Detached from worldly metrics. Currency is meaning, not coin.";
+  }
+  if (score >= 80) return "Mystic-tier signal. Reads unseen architecture; others feel the field shift around you.";
+  if (score >= 60) return "Initiated current. Wisdom and inner stillness are the real assets you carry.";
+  if (score >= 40) return "Reflective practitioner. Material and sacred operate in steady dialogue.";
+  if (score >= 20) return "Latent spiritual line. Awakens under pressure, ritual, or grief.";
+  return "Worldly-first signature. Sacred shows up through craft, not contemplation.";
+}
+
+export function computePowers(date: Date): PowerSplit {
+  const profile = deriveProfile(date);
+  const sumKeys = (keys: string[]) =>
+    keys.reduce((acc, k) => acc + (profile[k] ?? 0), 0);
+  const mat = sumKeys(MATERIAL_KEYS);
+  const spi = sumKeys(SPIRITUAL_KEYS);
+  const total = mat + spi || 1;
+  // Express each as % of combined energy, but scale so a flat profile reads ~50/50.
+  const material = Math.round((mat / total) * 100);
+  const spiritual = 100 - material;
+  return {
+    material,
+    spiritual,
+    materialBlurb: bandBlurb(material, "material"),
+    spiritualBlurb: bandBlurb(spiritual, "spiritual"),
+  };
+}
