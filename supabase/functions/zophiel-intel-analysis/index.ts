@@ -375,16 +375,23 @@ Deno.serve(async (req) => {
       );
     }
 
+    // STRICT BYOK GATE — only the admin may use the platform Gemini key.
+    let _resolved;
+    try {
+      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, byok);
+    } catch (e: any) {
+      return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
+    }
+
     let analysis: unknown;
-    if (isValidByok(byok)) {
-      // BYOK: emit a JSON-mode prompt with the schema baked in, then route through the user's provider.
+    if (_resolved.mode === 'byok') {
       const t = type as AnalysisType;
       const schema = SCHEMAS[t];
       const sys = SYSTEM_PROMPTS[t] +
         `\n\nReturn ONLY a single valid JSON object that matches this schema (no extra prose, no markdown):\n` +
         JSON.stringify({ name: schema.name, parameters: schema.parameters });
       try {
-        const raw = await callByokJsonWithRetry(byok as ZophielByokConfig, sys, buildUserPrompt(query, results as ResultIn[]), {
+        const raw = await callByokJsonWithRetry(_resolved.byok as ZophielByokConfig, sys, buildUserPrompt(query, results as ResultIn[]), {
           timeoutMs: 60_000,
           temperature: 0.25,
           maxOutputTokens: 8192,
