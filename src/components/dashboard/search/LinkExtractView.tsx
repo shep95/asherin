@@ -2,12 +2,13 @@ import { useState, useCallback } from "react";
 import {
   Crosshair, Loader2, Globe, Link2, Sparkles, Shield, Zap,
   Server, Cpu, Plug, Network, Building2, AlertTriangle, ExternalLink,
-  Copy, Check, ChevronRight, ChevronDown, KeyRound, Eye, EyeOff, Database,
+  Copy, Check, ChevronRight, ChevronDown, KeyRound, Eye, EyeOff, Database, Brain,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import EmergencyOpsPanel from "@/components/asher/EmergencyOpsPanel";
+import LinkExtractIntelPanel from "@/components/dashboard/search/LinkExtractIntelPanel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tone = "neutral" | "good" | "warn" | "critical";
@@ -283,7 +284,7 @@ const LinkExtractView = () => {
   })();
 
   return (
-    <div className="w-full animate-fade-in space-y-4">
+    <div className="relative w-full animate-fade-in space-y-4">
       {/* Hero / Input */}
       <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/[0.04] via-card/30 to-card/10 backdrop-blur-xl px-5 py-4">
         <div className="flex items-center gap-3 mb-2">
@@ -358,6 +359,9 @@ const LinkExtractView = () => {
                   <ScorePip label="CPLX" value={blueprint.score.complexity} />
                 </>
               )}
+              <button onClick={() => setIntelOpen(true)} className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-foreground/[0.03] px-2 py-1 text-[10px] font-light tracking-wider text-foreground/80 hover:bg-foreground/[0.06] transition" title="Intel Map + Brain Chat">
+                <Brain className="h-3 w-3" /> INTEL + CHAT
+              </button>
               <button onClick={handleCopy} className="p-1.5 rounded-lg hover:bg-foreground/5 transition text-muted-foreground/50 hover:text-foreground/80" title="Copy JSON">
                 {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
               </button>
@@ -425,6 +429,15 @@ const LinkExtractView = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* Intel Map + Brain Chat side panel */}
+      {intelOpen && blueprint && (
+        <LinkExtractIntelPanel
+          targetUrl={normalizeUrl(url)}
+          dossier={{ blueprint, secrets, forensics }}
+          onClose={() => setIntelOpen(false)}
+        />
       )}
 
       {/* Empty state */}
