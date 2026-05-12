@@ -324,7 +324,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
   return (
     <div
-      className="flex h-full relative"
+      className="zophiel-gold flex h-full relative"
       style={isAsher ? {
         backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)), url(${wallpaperAureon})`,
         backgroundSize: "cover",
