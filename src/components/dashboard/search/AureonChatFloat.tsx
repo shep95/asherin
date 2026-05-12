@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, Loader2, X, Send, Brain, Minus } from "lucide-react";
+import { MessageSquare, Loader2, X, Send, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import ReactMarkdown from "react-markdown";
@@ -20,8 +20,6 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
   const [size, setSize] = useState({ w: 420, h: 520 });
   const [minimized, setMinimized] = useState(false);
 
-  const [brains, setBrains] = useState<{ id: string; name: string }[]>([]);
-  const [activeBrainIds, setActiveBrainIds] = useState<string[]>([]);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -66,19 +64,8 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
   };
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from("axrlen_brains")
-          .select("id, name")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(20);
-        setBrains((data as any) || []);
-      } catch { /* ignore */ }
-    })();
-  }, []);
+  // Brains are loaded server-side and applied silently — never exposed in the UI.
+  // (House of Asher: classified.)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -106,7 +93,7 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
           messages: next,
           dossier,
           intelMap,
-          brainIds: activeBrainIds,
+          brainIds: [],
           byok,
         }),
       });
@@ -135,9 +122,6 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
     }
   };
 
-  const toggleBrain = (id: string) => {
-    setActiveBrainIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
-  };
 
   return (
     <div
@@ -169,30 +153,6 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
 
       {!minimized && (
         <>
-          {/* Brain selector */}
-          <div className="border-b border-border/20 px-3 py-2">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Brain className="h-3 w-3 text-muted-foreground" />
-              <span className="text-[9px] font-light tracking-[0.2em] uppercase text-muted-foreground">Active Brains</span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {brains.length === 0 && <span className="text-[10px] font-light text-muted-foreground/60">No brains saved.</span>}
-              {brains.map((b) => (
-                <button
-                  key={b.id}
-                  onClick={() => toggleBrain(b.id)}
-                  className={`rounded-md border px-1.5 py-0.5 text-[9px] font-light transition-colors ${
-                    activeBrainIds.includes(b.id)
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-border/40 bg-background/50 text-foreground/80 hover:border-foreground/40"
-                  }`}
-                >
-                  {b.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
             {messages.length === 0 && (
               <div className="text-[11px] font-light text-muted-foreground">
