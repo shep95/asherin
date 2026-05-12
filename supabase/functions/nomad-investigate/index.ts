@@ -2819,14 +2819,35 @@ serve(async (req) => {
 
   try {
     const startTime = Date.now();
-    const { messages, userId } = await req.json();
+    const { messages, userId, byok = null } = await req.json();
     const lastUserMessage = messages[messages.length - 1]?.content || '';
+
+    // STRICT BYOK GATE — non-admin must supply BYOK config.
+    let _resolved;
+    try {
+      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, byok);
+    } catch (e: any) {
+      return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
+    }
+    // Make resolved key available to downstream helpers via globalThis (avoids
+    // restructuring this 3000-line file). Helpers below already read GEMINI_API_KEY*.
+    if (_resolved.mode === 'admin' && _resolved.geminiKey) {
+      (globalThis as any).__NOMAD_KEY__ = _resolved.geminiKey;
+    } else if (_resolved.mode === 'byok' && _resolved.byok?.provider === 'google') {
+      (globalThis as any).__NOMAD_KEY__ = _resolved.byok.apiKey;
+    } else {
+      // Non-google BYOK isn't supported by this function's Gemini-specific calls.
+      return new Response(
+        JSON.stringify({ error: 'BYOK_REQUIRED', message: 'NOMAD requires a Google/Gemini BYOK key.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // PRE-FLIGHT: QUERY TRIAGE — Determine if the query has enough specificity
     // ══════════════════════════════════════════════════════════════════════════
 
-    const GEMINI_API_KEY_TRIAGE = Deno.env.get('GEMINI_API_KEY_APP');
+    const GEMINI_API_KEY_TRIAGE = (globalThis as any).__NOMAD_KEY__ || Deno.env.get('GEMINI_API_KEY_APP');
     
     // Only triage if this looks like a first message (no prior assistant responses)
     const hasConversationContext = messages.some((m: any) => m.role === 'assistant' && m.content && m.content.length > 100);
@@ -3062,7 +3083,7 @@ Processing: ${Date.now() - startTime}ms | Sources: ${activeNodes.length}/${nodes
     // Pass 13: Red Team adversarial review (post-synthesis)
     // ══════════════════════════════════════════════════════════════════════════
 
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP');
+    const GEMINI_API_KEY = (globalThis as any).__NOMAD_KEY__ || Deno.env.get('GEMINI_API_KEY_APP');
     if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY_APP not configured');
 
     // Detect if this is a person investigation for deep analysis passes

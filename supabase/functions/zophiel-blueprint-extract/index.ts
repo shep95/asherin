@@ -1429,14 +1429,14 @@ serve(async (req) => {
     const isSubdomainMode = mode === "subdomain";
     const activeSystemPrompt = isSubdomainMode ? SUBDOMAIN_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
-    const useByok = isValidByok(byok);
-    const GEMINI_API_KEY = useByok ? "" : (Deno.env.get("GEMINI_API_KEY_APP") || "");
-    if (!useByok && !GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ error: "GEMINI_API_KEY_APP missing" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let _resolved;
+    try {
+      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, byok);
+    } catch (e: any) {
+      return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
     }
+    const useByok = _resolved.mode === 'byok';
+    const GEMINI_API_KEY = _resolved.geminiKey || '';
 
     // Live recon + secret scan + forensics — pull real, observable facts
     let recon: ReconBundle | null = null;

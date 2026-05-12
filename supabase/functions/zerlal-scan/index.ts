@@ -81,7 +81,15 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userErr } = await supabase.auth.getUser(token);
     if (userErr || !user) throw new Error("Unauthorized");
 
-    const { project_id, scan_profile, code_content, file_name, github_url } = await req.json();
+    const { project_id, scan_profile, code_content, file_name, github_url, byok = null } = await req.json();
+
+    // STRICT BYOK GATE — non-admin must supply a BYOK config.
+    let _resolved;
+    try {
+      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, byok);
+    } catch (e: any) {
+      return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
+    }
     if (!project_id) throw new Error("project_id is required");
 
     console.log("[ZERLAL] Starting scan for project:", project_id, "profile:", scan_profile, "github_url:", github_url || "none");
@@ -123,8 +131,8 @@ Deno.serve(async (req) => {
     console.log("[ZERLAL] Scan record created:", scan.id, "Code size:", codeToAnalyze.length);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY_APP") || Deno.env.get("GEMINI_API_KEY");
-    if (!LOVABLE_API_KEY && !GEMINI_KEY) {
+    const GEMINI_KEY = _resolved.mode === 'admin' ? (_resolved.geminiKey || '') : '';
+    if (_resolved.mode === 'admin' && !LOVABLE_API_KEY && !GEMINI_KEY) {
       await failScan(supabase, scan.id, project_id, "No AI API key configured");
       throw new Error("No AI API key configured");
     }
