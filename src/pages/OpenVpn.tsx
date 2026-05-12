@@ -21,6 +21,9 @@ import { StorageTab } from "@/components/aureon-shield/StorageTab";
 import { ExtensionsTab } from "@/components/aureon-shield/ExtensionsTab";
 import { DohAuditTab } from "@/components/aureon-shield/DohAuditTab";
 import { ShutoffTab } from "@/components/aureon-shield/ShutoffTab";
+import { RelayCanaryTab } from "@/components/aureon-shield/RelayCanaryTab";
+import { computeLeakScore, bandColor } from "@/lib/aureonShield/leakScore";
+import { recordFix } from "@/lib/aureonShield/locationHistory";
 
 const REPO_URL = "https://github.com/ZorakCorp/openvpn";
 
@@ -237,7 +240,12 @@ const AureonShield = () => {
   const captureGeo = useCallback(() => {
     if (!navigator.geolocation) { toast.error("Geolocation API unavailable"); return; }
     navigator.geolocation.getCurrentPosition(
-      (p) => { setGeo({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp }); toast.success(`Precise position captured · ±${Math.round(p.coords.accuracy)}m`); },
+      (p) => {
+        const fix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp };
+        setGeo(fix);
+        recordFix({ ...fix, source: "manual" }).catch(() => {});
+        toast.success(`Precise position captured · ±${Math.round(p.coords.accuracy)}m`);
+      },
       (err) => toast.error(`Geolocation denied: ${err.message}`),
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -247,7 +255,11 @@ const AureonShield = () => {
     if (on) {
       if (!navigator.geolocation) { toast.error("Geolocation API unavailable"); return; }
       const id = navigator.geolocation.watchPosition(
-        (p) => setGeo({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp }),
+        (p) => {
+          const fix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp };
+          setGeo(fix);
+          recordFix({ ...fix, source: "watch" }).catch(() => {});
+        },
         (err) => toast.error(`Tracking failed: ${err.message}`),
         { enableHighAccuracy: true, maximumAge: 5000 }
       );
@@ -371,6 +383,12 @@ const AureonShield = () => {
     return "text-red-400";
   }, [analysis]);
 
+  // Live Geo-Drift Leak Score (re-used by status strip + Relay tab)
+  const leakScore = useMemo(
+    () => computeLeakScore({ identity, baseline, webrtc, dns, perms, device, fp }),
+    [identity, baseline, webrtc, dns, perms, device, fp],
+  );
+
   return (
     <LandingBackground>
       <Header />
@@ -421,7 +439,7 @@ const AureonShield = () => {
 
         {/* Status strip */}
         <Glass className="mb-6 p-6">
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-5">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-6">
             <div className="col-span-2 flex items-center gap-4 md:col-span-1">
               <div className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${analysis?.verdict === "PROTECTED" ? "border-emerald-400/40 bg-emerald-400/5" : "border-border/40 bg-background/40"}`}>
                 {analysis?.verdict === "PROTECTED" ? <ShieldCheck className="h-6 w-6 text-emerald-400" /> :
@@ -437,6 +455,7 @@ const AureonShield = () => {
             <Stat label="Geo / ISP" value={identity ? `${identity.city}, ${identity.country}` : "—"} />
             <Stat label="WebRTC Leak" value={webrtc?.leaked ? <span className="text-red-400">{webrtc.ips.length} IPs exposed</span> : <span className="text-emerald-400">None detected</span>} />
             <Stat label="DNS Resolver" value={dns ? `${dns.colo} · ${dns.loc}` : "—"} />
+            <Stat label="Leak Score" value={<span className={bandColor(leakScore.band)}>{leakScore.score}/100 · {leakScore.band}</span>} />
           </div>
           {analysis && (
             <div className="mt-6 border-t border-border/30 pt-5">
@@ -471,6 +490,7 @@ const AureonShield = () => {
             <TabsTrigger value="tunnel">Tunnel</TabsTrigger>
             <TabsTrigger value="threats">Threats</TabsTrigger>
             <TabsTrigger value="native">Native VPN</TabsTrigger>
+            <TabsTrigger value="relay">Relay & Canary</TabsTrigger>
             <TabsTrigger value="shutoff">Shutoff</TabsTrigger>
           </TabsList>
 
@@ -479,6 +499,7 @@ const AureonShield = () => {
           <TabsContent value="storage"><StorageTab /></TabsContent>
           <TabsContent value="extensions"><ExtensionsTab /></TabsContent>
           <TabsContent value="doh"><DohAuditTab /></TabsContent>
+          <TabsContent value="relay"><RelayCanaryTab leakScore={leakScore} recentGeo={geo} /></TabsContent>
           <TabsContent value="shutoff"><ShutoffTab onPauseAudit={stopProxy} /></TabsContent>
 
 
