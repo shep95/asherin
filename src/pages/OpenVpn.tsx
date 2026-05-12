@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity, AlertTriangle, ArrowUpRight, CheckCircle2, Cpu, Eye, Fingerprint,
-  Github, Globe, HardDrive, KeyRound, Loader2, Lock, MapPin, Network, Power,
-  RefreshCw, Search, Shield, ShieldCheck, ShieldOff, Wifi, X, Zap,
+  Github, Globe, HardDrive, KeyRound, Loader2, Lock, MapPin, Monitor, Network, Power,
+  RefreshCw, Search, Server, Shield, ShieldCheck, ShieldOff, Wifi, X, Zap,
 } from "lucide-react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
