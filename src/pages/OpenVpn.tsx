@@ -439,7 +439,7 @@ const AureonShield = () => {
 
         {/* Status strip */}
         <Glass className="mb-6 p-6">
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-5">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-6">
             <div className="col-span-2 flex items-center gap-4 md:col-span-1">
               <div className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${analysis?.verdict === "PROTECTED" ? "border-emerald-400/40 bg-emerald-400/5" : "border-border/40 bg-background/40"}`}>
                 {analysis?.verdict === "PROTECTED" ? <ShieldCheck className="h-6 w-6 text-emerald-400" /> :
@@ -455,6 +455,7 @@ const AureonShield = () => {
             <Stat label="Geo / ISP" value={identity ? `${identity.city}, ${identity.country}` : "—"} />
             <Stat label="WebRTC Leak" value={webrtc?.leaked ? <span className="text-red-400">{webrtc.ips.length} IPs exposed</span> : <span className="text-emerald-400">None detected</span>} />
             <Stat label="DNS Resolver" value={dns ? `${dns.colo} · ${dns.loc}` : "—"} />
+            <Stat label="Leak Score" value={<span className={bandColor(leakScore.band)}>{leakScore.score}/100 · {leakScore.band}</span>} />
           </div>
           {analysis && (
             <div className="mt-6 border-t border-border/30 pt-5">
