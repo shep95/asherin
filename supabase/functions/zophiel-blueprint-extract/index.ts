@@ -1487,30 +1487,42 @@ serve(async (req) => {
         );
       }
     } else {
-      const aiResp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: activeSystemPrompt }] },
-            contents: [
-              { role: "user", parts: [{ text: userPrompt }] },
-            ],
-            generationConfig: {
-              responseMimeType: "application/json",
-              temperature: 0.3,
-              maxOutputTokens: 16384,
-            },
-          }),
+      const modelChain = ["gemini-2.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+      const body = JSON.stringify({
+        systemInstruction: { parts: [{ text: activeSystemPrompt }] },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.3,
+          maxOutputTokens: 16384,
         },
-      );
-      if (!aiResp.ok) {
-        const errText = await aiResp.text();
-        console.error("[blueprint] AI error", aiResp.status, errText);
+      });
+
+      let aiResp: Response | null = null;
+      let lastStatus = 0;
+      let lastErrText = "";
+      for (let i = 0; i < modelChain.length; i++) {
+        const model = modelChain[i];
+        const resp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+          { method: "POST", headers: { "Content-Type": "application/json" }, body },
+        );
+        if (resp.ok) { aiResp = resp; break; }
+        lastStatus = resp.status;
+        lastErrText = await resp.text();
+        console.error(`[blueprint] AI ${model} error`, resp.status, lastErrText.slice(0, 200));
+        // Retry only on transient upstream errors
+        if (resp.status !== 503 && resp.status !== 429 && resp.status !== 500 && resp.status !== 502) break;
+        await new Promise((r) => setTimeout(r, 800 * Math.pow(2, i))); // 800ms, 1.6s, 3.2s
+      }
+
+      if (!aiResp) {
+        const friendly = lastStatus === 503
+          ? "AI is overloaded. Please retry in a moment."
+          : `Gemini: ${lastStatus}`;
         return new Response(
-          JSON.stringify({ error: `Gemini: ${aiResp.status}` }),
-          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          JSON.stringify({ error: friendly, upstream_status: lastStatus }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
       const aiData = await aiResp.json();
