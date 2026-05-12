@@ -6,6 +6,7 @@ import {
   Moon, Star, Compass, Clock, Layers, TrendingUp,
   ArrowRight, ArrowLeft, Sparkles, Globe2,
 } from "lucide-react";
+import VedicGodsCompat from "@/components/vedic/VedicGodsCompat";
 
 const capabilities = [
   {
