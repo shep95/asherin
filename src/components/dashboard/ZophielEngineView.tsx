@@ -124,7 +124,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
   // Auto-activate "searched" view when entering Imagine, Extract, Audit, or Face mode (no query needed)
   useEffect(() => {
-    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face" || mode === "darkweb" || mode === "leaks" || mode === "archive") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn") {
       setSearched(true);
       setShowSuggestions(false);
     }
