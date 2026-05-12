@@ -178,10 +178,20 @@ const Glass = ({ className = "", children }: { className?: string; children: Rea
   <div className={`rounded-2xl border border-border/35 bg-card/55 backdrop-blur-2xl shadow-[0_18px_55px_-25px_hsl(var(--foreground)/0.45)] ${className}`}>{children}</div>
 );
 
-const Stat = ({ label, value, accent }: { label: string; value: React.ReactNode; accent?: string }) => (
-  <div className="flex flex-col gap-1">
+const Stat = ({ label, value, accent, sensitive }: { label: string; value: React.ReactNode; accent?: string; sensitive?: boolean }) => (
+  <div className="flex flex-col gap-1 min-w-0">
     <div className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground/70 font-light">{label}</div>
-    <div className={`text-sm font-light tracking-wide ${accent || "text-foreground"}`}>{value}</div>
+    <div className={`text-sm font-light tracking-wide break-all ${accent || "text-foreground"}`}>
+      {sensitive ? (
+        <span
+          title="Hover to reveal"
+          tabIndex={0}
+          className="inline-block max-w-full break-all blur-[6px] hover:blur-none focus:blur-none transition-[filter] duration-200 cursor-pointer select-all"
+        >
+          {value}
+        </span>
+      ) : value}
+    </div>
   </div>
 );
 
@@ -451,8 +461,8 @@ const AureonShield = () => {
                 <div className={`text-lg font-light tracking-wide ${verdictColor}`}>{analysis?.verdict || "AWAITING ANALYSIS"}</div>
               </div>
             </div>
-            <Stat label="Public IP" value={identity?.ip || "—"} />
-            <Stat label="Geo / ISP" value={identity ? `${identity.city}, ${identity.country}` : "—"} />
+            <Stat label="Public IP" value={identity?.ip || "—"} sensitive />
+            <Stat label="Geo / ISP" value={identity ? `${identity.city}, ${identity.country}` : "—"} sensitive />
             <Stat label="WebRTC Leak" value={webrtc?.leaked ? <span className="text-red-400">{webrtc.ips.length} IPs exposed</span> : <span className="text-emerald-400">None detected</span>} />
             <Stat label="DNS Resolver" value={dns ? `${dns.colo} · ${dns.loc}` : "—"} />
             <Stat label="Leak Score" value={<span className={bandColor(leakScore.band)}>{leakScore.score}/100 · {leakScore.band}</span>} />
