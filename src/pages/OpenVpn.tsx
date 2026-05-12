@@ -457,6 +457,11 @@ const AureonShield = () => {
         <Tabs defaultValue="layers" className="space-y-4">
           <TabsList className="bg-card/40 backdrop-blur-xl border border-border/30 p-1 rounded-xl flex-wrap h-auto">
             <TabsTrigger value="layers">Layers</TabsTrigger>
+            <TabsTrigger value="hardening">Hardening</TabsTrigger>
+            <TabsTrigger value="trackers">Trackers</TabsTrigger>
+            <TabsTrigger value="storage">Storage</TabsTrigger>
+            <TabsTrigger value="extensions">Extensions</TabsTrigger>
+            <TabsTrigger value="doh">DoH + Log</TabsTrigger>
             <TabsTrigger value="network">Network</TabsTrigger>
             <TabsTrigger value="device">Device</TabsTrigger>
             <TabsTrigger value="privacy">Privacy</TabsTrigger>
@@ -466,6 +471,13 @@ const AureonShield = () => {
             <TabsTrigger value="threats">Threats</TabsTrigger>
             <TabsTrigger value="native">Native VPN</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="hardening"><HardeningTab /></TabsContent>
+          <TabsContent value="trackers"><TrackersTab /></TabsContent>
+          <TabsContent value="storage"><StorageTab /></TabsContent>
+          <TabsContent value="extensions"><ExtensionsTab /></TabsContent>
+          <TabsContent value="doh"><DohAuditTab /></TabsContent>
+
 
           {/* LAYERS — multi-layer device protection (browser-derivable signals) */}
           <TabsContent value="layers" className="space-y-4">
