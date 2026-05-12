@@ -490,6 +490,7 @@ const AureonShield = () => {
             <TabsTrigger value="tunnel">Tunnel</TabsTrigger>
             <TabsTrigger value="threats">Threats</TabsTrigger>
             <TabsTrigger value="native">Native VPN</TabsTrigger>
+            <TabsTrigger value="relay">Relay & Canary</TabsTrigger>
             <TabsTrigger value="shutoff">Shutoff</TabsTrigger>
           </TabsList>
 
@@ -498,6 +499,7 @@ const AureonShield = () => {
           <TabsContent value="storage"><StorageTab /></TabsContent>
           <TabsContent value="extensions"><ExtensionsTab /></TabsContent>
           <TabsContent value="doh"><DohAuditTab /></TabsContent>
+          <TabsContent value="relay"><RelayCanaryTab leakScore={leakScore} recentGeo={geo} /></TabsContent>
           <TabsContent value="shutoff"><ShutoffTab onPauseAudit={stopProxy} /></TabsContent>
 
 
