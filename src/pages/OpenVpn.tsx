@@ -216,6 +216,82 @@ const AureonShield = () => {
   const [pwResult, setPwResult] = useState<number | null>(null);
   const [pwChecking, setPwChecking] = useState(false);
 
+  // Precise geolocation (browser API — only with explicit user consent)
+  const [geo, setGeo] = useState<{ lat: number; lon: number; acc: number; ts: number } | null>(null);
+  const [geoTracking, setGeoTracking] = useState(false);
+  const geoWatchRef = useRef<number | null>(null);
+
+  const captureGeo = useCallback(() => {
+    if (!navigator.geolocation) { toast.error("Geolocation API unavailable"); return; }
+    navigator.geolocation.getCurrentPosition(
+      (p) => { setGeo({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp }); toast.success(`Precise position captured · ±${Math.round(p.coords.accuracy)}m`); },
+      (err) => toast.error(`Geolocation denied: ${err.message}`),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
+
+  const toggleGeoTracking = useCallback((on: boolean) => {
+    if (on) {
+      if (!navigator.geolocation) { toast.error("Geolocation API unavailable"); return; }
+      const id = navigator.geolocation.watchPosition(
+        (p) => setGeo({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp }),
+        (err) => toast.error(`Tracking failed: ${err.message}`),
+        { enableHighAccuracy: true, maximumAge: 5000 }
+      );
+      geoWatchRef.current = id; setGeoTracking(true);
+    } else {
+      if (geoWatchRef.current != null) navigator.geolocation.clearWatch(geoWatchRef.current);
+      geoWatchRef.current = null; setGeoTracking(false); setGeo(null);
+      toast.info("Tracking stopped — position cleared from memory");
+    }
+  }, []);
+
+  useEffect(() => () => { if (geoWatchRef.current != null) navigator.geolocation?.clearWatch(geoWatchRef.current); }, []);
+
+  // Multi-layer device protection signals (browser-derivable subset of full OS audit)
+  const layers = useMemo(() => {
+    const ua = device?.ua || "";
+    const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+    const grantedSensors = perms ? Object.entries(perms).filter(([, v]) => v === "granted").length : 0;
+    const cookieOk = device?.cookiesEnabled;
+    const dnt = device?.doNotTrack === "1";
+    const storageBig = (device?.storageQuotaMB ?? 0) > 1024;
+    return [
+      { id: 7, name: "User & Application", scope: "Browser tab",
+        ok: !webrtc?.leaked && isHttps,
+        signal: webrtc?.leaked ? `${webrtc.ips.length} IPs leak via WebRTC` : isHttps ? "TLS active · WebRTC clean" : "Mixed content risk",
+        nativeOnly: false },
+      { id: 6, name: "Operating System", scope: device?.platform || "Unknown",
+        ok: !!device?.platform,
+        signal: `${device?.platform || "?"} · ${device?.cores || "?"} cores · ${device?.memoryGB ?? "?"} GB`,
+        nativeOnly: true, note: "Hardening (RDP, SMBv1, AutoRun, Telemetry) requires native client" },
+      { id: 5, name: "Kernel & Drivers", scope: "Privileged ring",
+        ok: false, signal: "Sandbox blocks kernel inspection",
+        nativeOnly: true, note: "Rootkit / driver / syscall-table audit ships in ZorakCorp/openvpn" },
+      { id: 4, name: "Firmware (BIOS/UEFI)", scope: "Pre-OS",
+        ok: false, signal: "No web access to SPI flash",
+        nativeOnly: true, note: "Secure-Boot + TPM verification via native client" },
+      { id: 3, name: "Hardware (CPU/RAM)", scope: device?.vendor || "—",
+        ok: !!device?.cores, signal: `${device?.cores || "?"} cores · RAM ${device?.memoryGB ? `${device.memoryGB} GB` : "hidden"} · DPR ${device?.dpr ?? "—"}`,
+        nativeOnly: true, note: "Spectre/Meltdown/Rowhammer probes require native client" },
+      { id: 2, name: "Network & Communication", scope: identity?.org || "—",
+        ok: !!identity && !webrtc?.leaked,
+        signal: identity ? `${identity.country} · ${identity.org} · DNS ${dns?.colo || "?"}` : "—",
+        nativeOnly: false },
+      { id: 1, name: "Physical & Sensors", scope: `${grantedSensors} permissions granted`,
+        ok: grantedSensors === 0,
+        signal: cookieOk ? `Cookies on · DNT ${dnt ? "set" : "off"} · ${storageBig ? "Persistent storage" : "Ephemeral"}` : "Cookies blocked",
+        nativeOnly: false },
+    ];
+  }, [device, perms, webrtc, dns, identity]);
+
+  const overallScore = useMemo(() => {
+    if (!device) return 0;
+    const browserOk = layers.filter((l) => !l.nativeOnly).every((l) => l.ok);
+    const base = browserOk ? 70 : 45;
+    return Math.min(100, base + (analysis?.score ? analysis.score * 0.3 : 0));
+  }, [layers, device, analysis]);
+
   const runFullScan = useCallback(async () => {
     setScanning(true);
     try {
