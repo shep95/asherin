@@ -154,6 +154,7 @@ const Founder = () => {
               >
                 <Twitter className="h-4 w-4" />
                 @shep_newton on X
+                <span className="ml-1 rounded-md border border-border/40 bg-background/40 px-1.5 py-0.5 text-[9px] font-extralight tracking-[0.22em] uppercase text-muted-foreground">Primary</span>
               </a>
               <a
                 href="https://x.com/aureon_elion"
