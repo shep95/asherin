@@ -240,7 +240,12 @@ const AureonShield = () => {
   const captureGeo = useCallback(() => {
     if (!navigator.geolocation) { toast.error("Geolocation API unavailable"); return; }
     navigator.geolocation.getCurrentPosition(
-      (p) => { setGeo({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp }); toast.success(`Precise position captured · ±${Math.round(p.coords.accuracy)}m`); },
+      (p) => {
+        const fix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp };
+        setGeo(fix);
+        recordFix({ ...fix, source: "manual" }).catch(() => {});
+        toast.success(`Precise position captured · ±${Math.round(p.coords.accuracy)}m`);
+      },
       (err) => toast.error(`Geolocation denied: ${err.message}`),
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -250,7 +255,11 @@ const AureonShield = () => {
     if (on) {
       if (!navigator.geolocation) { toast.error("Geolocation API unavailable"); return; }
       const id = navigator.geolocation.watchPosition(
-        (p) => setGeo({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp }),
+        (p) => {
+          const fix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, ts: p.timestamp };
+          setGeo(fix);
+          recordFix({ ...fix, source: "watch" }).catch(() => {});
+        },
         (err) => toast.error(`Tracking failed: ${err.message}`),
         { enableHighAccuracy: true, maximumAge: 5000 }
       );
