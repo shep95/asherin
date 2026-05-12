@@ -93,7 +93,7 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
           messages: next,
           dossier,
           intelMap,
-          brainIds: activeBrainIds,
+          brainIds: [],
           byok,
         }),
       });
