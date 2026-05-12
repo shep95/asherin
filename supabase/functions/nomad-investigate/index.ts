@@ -2819,8 +2819,29 @@ serve(async (req) => {
 
   try {
     const startTime = Date.now();
-    const { messages, userId } = await req.json();
+    const { messages, userId, byok = null } = await req.json();
     const lastUserMessage = messages[messages.length - 1]?.content || '';
+
+    // STRICT BYOK GATE — non-admin must supply BYOK config.
+    let _resolved;
+    try {
+      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, byok);
+    } catch (e: any) {
+      return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
+    }
+    // Make resolved key available to downstream helpers via globalThis (avoids
+    // restructuring this 3000-line file). Helpers below already read GEMINI_API_KEY*.
+    if (_resolved.mode === 'admin' && _resolved.geminiKey) {
+      (globalThis as any).__NOMAD_KEY__ = _resolved.geminiKey;
+    } else if (_resolved.mode === 'byok' && _resolved.byok?.provider === 'google') {
+      (globalThis as any).__NOMAD_KEY__ = _resolved.byok.apiKey;
+    } else {
+      // Non-google BYOK isn't supported by this function's Gemini-specific calls.
+      return new Response(
+        JSON.stringify({ error: 'BYOK_REQUIRED', message: 'NOMAD requires a Google/Gemini BYOK key.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // PRE-FLIGHT: QUERY TRIAGE — Determine if the query has enough specificity
