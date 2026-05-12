@@ -141,7 +141,6 @@ const ZophielFree = () => {
 
             </div>
 
-            </div>
           </div>
         )}
 
