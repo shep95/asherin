@@ -131,8 +131,8 @@ Deno.serve(async (req) => {
     console.log("[ZERLAL] Scan record created:", scan.id, "Code size:", codeToAnalyze.length);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY_APP") || Deno.env.get("GEMINI_API_KEY");
-    if (!LOVABLE_API_KEY && !GEMINI_KEY) {
+    const GEMINI_KEY = _resolved.mode === 'admin' ? (_resolved.geminiKey || '') : '';
+    if (_resolved.mode === 'admin' && !LOVABLE_API_KEY && !GEMINI_KEY) {
       await failScan(supabase, scan.id, project_id, "No AI API key configured");
       throw new Error("No AI API key configured");
     }
