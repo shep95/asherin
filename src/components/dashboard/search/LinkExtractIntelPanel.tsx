@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { Network, MessageSquare, Loader2, X, Send, Brain } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Network, Loader2, X, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
-import ReactMarkdown from "react-markdown";
+import AureonChatFloat from "./AureonChatFloat";
 
 interface Props {
   targetUrl: string;
@@ -12,20 +12,12 @@ interface Props {
 }
 
 interface IntelMap { nodes: any[]; edges: any[]; usedModel?: string | null; aiError?: string | null; }
-interface ChatMsg { role: "user" | "assistant"; content: string; }
 
 const LinkExtractIntelPanel = ({ targetUrl, dossier, onClose }: Props) => {
-  const [tab, setTab] = useState<"map" | "chat">("map");
   const [map, setMap] = useState<IntelMap | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-
-  const [brains, setBrains] = useState<{ id: string; name: string }[]>([]);
-  const [activeBrainIds, setActiveBrainIds] = useState<string[]>([]);
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   // Build intel map on mount
   useEffect(() => {
