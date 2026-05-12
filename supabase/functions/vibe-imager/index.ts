@@ -40,6 +40,20 @@ When the request is clear enough to execute, respond with:
 When just chatting (no image loaded, general advice), respond normally in plain text. Be concise (1-3 sentences).`;
 
 serve(async (req) => {
+
+  // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
+  if (req.method !== 'OPTIONS') {
+    try {
+      const _b = await req.clone().json().catch(() => ({} as any));
+      const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
+      const _gate = await import('../_shared/adminGate.ts');
+      await _gate.resolveKey(req, _byok);
+    } catch (_e) {
+      const _gate = await import('../_shared/adminGate.ts');
+      return _gate.byokErrorResponse(_e, (globalThis as any).corsHeaders ?? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' });
+    }
+  }
+
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
 

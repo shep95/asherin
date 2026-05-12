@@ -30,6 +30,20 @@ Generate exactly 3 follow-up questions that a Seeker (user) would naturally want
 Return ONLY a JSON array of 3 strings. No markdown, no explanation.`;
 
 serve(async (req) => {
+
+  // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
+  if (req.method !== 'OPTIONS') {
+    try {
+      const _b = await req.clone().json().catch(() => ({} as any));
+      const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
+      const _gate = await import('../_shared/adminGate.ts');
+      await _gate.resolveKey(req, _byok);
+    } catch (_e) {
+      const _gate = await import('../_shared/adminGate.ts');
+      return _gate.byokErrorResponse(_e, (globalThis as any).corsHeaders ?? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' });
+    }
+  }
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
