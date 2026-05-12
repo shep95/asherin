@@ -409,7 +409,7 @@ Deno.serve(async (req) => {
         });
       }
     } else {
-      analysis = await callGateway(type as AnalysisType, query, results as ResultIn[]);
+      analysis = await callGateway(type as AnalysisType, query, results as ResultIn[], _resolved.geminiKey || '');
     }
 
     return new Response(
