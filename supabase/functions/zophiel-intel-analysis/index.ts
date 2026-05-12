@@ -313,9 +313,8 @@ function sanitizeForGemini(node: any): any {
   return node;
 }
 
-async function callGateway(type: AnalysisType, query: string, results: ResultIn[]) {
-  const apiKey = Deno.env.get('GEMINI_API_KEY_APP') || Deno.env.get('GEMINI_API_KEY');
-  if (!apiKey) throw new Error('GEMINI_API_KEY_APP not configured');
+async function callGateway(type: AnalysisType, query: string, results: ResultIn[], apiKey: string) {
+  if (!apiKey) throw new Error('GEMINI key missing');
 
   const schema = SCHEMAS[type];
   const systemPrompt = SYSTEM_PROMPTS[type];
