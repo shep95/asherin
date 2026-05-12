@@ -20,6 +20,7 @@ import { TrackersTab } from "@/components/aureon-shield/TrackersTab";
 import { StorageTab } from "@/components/aureon-shield/StorageTab";
 import { ExtensionsTab } from "@/components/aureon-shield/ExtensionsTab";
 import { DohAuditTab } from "@/components/aureon-shield/DohAuditTab";
+import { ShutoffTab } from "@/components/aureon-shield/ShutoffTab";
 
 const REPO_URL = "https://github.com/ZorakCorp/openvpn";
 
