@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, Loader2, X, Send, Brain, Minus } from "lucide-react";
+import { MessageSquare, Loader2, X, Send, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import ReactMarkdown from "react-markdown";
