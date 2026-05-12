@@ -131,6 +131,10 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
                 <a href="https://x.com/shep_newton" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="X / Twitter">
                   <Twitter className="h-4 w-4" />
                 </a>
+                <a href="https://x.com/aureon_elion" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors" aria-label="X / Twitter — Backup">
+                  <Twitter className="h-4 w-4" />
+                  <span className="text-[10px] font-extralight tracking-[0.2em] uppercase">Backup</span>
+                </a>
                 <a href="https://github.com/ZorakCorp" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="GitHub">
                   <Github className="h-4 w-4" />
                 </a>

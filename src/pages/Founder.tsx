@@ -156,6 +156,16 @@ const Founder = () => {
                 @shep_newton on X
               </a>
               <a
+                href="https://x.com/aureon_elion"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
+              >
+                <Twitter className="h-4 w-4" />
+                @aureon_elion on X
+                <span className="ml-1 rounded-md border border-border/40 bg-background/40 px-1.5 py-0.5 text-[9px] font-extralight tracking-[0.22em] uppercase text-muted-foreground">Backup</span>
+              </a>
+              <a
                 href="https://www.instagram.com/asher_united/"
                 target="_blank"
                 rel="noopener noreferrer"
