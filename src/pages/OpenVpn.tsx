@@ -20,6 +20,7 @@ import { TrackersTab } from "@/components/aureon-shield/TrackersTab";
 import { StorageTab } from "@/components/aureon-shield/StorageTab";
 import { ExtensionsTab } from "@/components/aureon-shield/ExtensionsTab";
 import { DohAuditTab } from "@/components/aureon-shield/DohAuditTab";
+import { ShutoffTab } from "@/components/aureon-shield/ShutoffTab";
 
 const REPO_URL = "https://github.com/ZorakCorp/openvpn";
 
@@ -470,6 +471,7 @@ const AureonShield = () => {
             <TabsTrigger value="tunnel">Tunnel</TabsTrigger>
             <TabsTrigger value="threats">Threats</TabsTrigger>
             <TabsTrigger value="native">Native VPN</TabsTrigger>
+            <TabsTrigger value="shutoff">Shutoff</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hardening"><HardeningTab /></TabsContent>
@@ -477,6 +479,7 @@ const AureonShield = () => {
           <TabsContent value="storage"><StorageTab /></TabsContent>
           <TabsContent value="extensions"><ExtensionsTab /></TabsContent>
           <TabsContent value="doh"><DohAuditTab /></TabsContent>
+          <TabsContent value="shutoff"><ShutoffTab onPauseAudit={stopProxy} /></TabsContent>
 
 
           {/* LAYERS — multi-layer device protection (browser-derivable signals) */}

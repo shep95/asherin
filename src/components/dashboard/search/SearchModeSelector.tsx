@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Brain, Image as ImageIcon, Crosshair, ShieldAlert, Scan, Skull, FileArchive, ChevronDown } from "lucide-react";
+import { Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Brain, Image as ImageIcon, Crosshair, ShieldAlert, Scan, Skull, FileArchive, ChevronDown, ShieldCheck } from "lucide-react";
 import type { SearchMode } from "./types";
 
 type ModeDef = { id: SearchMode; label: string; icon: React.ReactNode; accent?: boolean };
@@ -11,6 +11,7 @@ const primaryModes: ModeDef[] = [
   { id: "imagine", label: "Imagine", icon: <ImageIcon className="h-3.5 w-3.5" />, accent: true },
   { id: "darkweb", label: "Dark Web", icon: <Skull className="h-3.5 w-3.5" />, accent: true },
   { id: "audit", label: "ZERLAL", icon: <ShieldAlert className="h-3.5 w-3.5" />, accent: true },
+  { id: "vpn", label: "OpenVPN", icon: <ShieldCheck className="h-3.5 w-3.5" />, accent: true },
 ];
 
 const secondaryModes: ModeDef[] = [
