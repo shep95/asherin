@@ -131,6 +131,9 @@ const FeatureVedic = () => {
         </div>
       </section>
 
+      {/* Greek + Roman Mythology Compatibility */}
+      <VedicGodsCompat />
+
       {/* CTA */}
       <section className="relative z-10 px-6 py-24 text-center">
         <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
