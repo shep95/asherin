@@ -3083,7 +3083,7 @@ Processing: ${Date.now() - startTime}ms | Sources: ${activeNodes.length}/${nodes
     // Pass 13: Red Team adversarial review (post-synthesis)
     // ══════════════════════════════════════════════════════════════════════════
 
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP');
+    const GEMINI_API_KEY = (globalThis as any).__NOMAD_KEY__ || Deno.env.get('GEMINI_API_KEY_APP');
     if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY_APP not configured');
 
     // Detect if this is a person investigation for deep analysis passes
