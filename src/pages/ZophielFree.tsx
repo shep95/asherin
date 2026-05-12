@@ -139,13 +139,8 @@ const ZophielFree = () => {
                 See what others miss.
               </h2>
 
-              {/* Soft prompt arrow toward the search bar */}
-              <div aria-hidden className="mt-8 flex flex-col items-center gap-1.5 opacity-60">
-                <div className="h-px w-px rounded-full bg-foreground/40 animate-ping" />
-                <div className="text-[8px] font-light tracking-[0.4em] text-muted-foreground/50 uppercase">
-                  Ask anything
-                </div>
-              </div>
+            </div>
+
             </div>
           </div>
         )}
