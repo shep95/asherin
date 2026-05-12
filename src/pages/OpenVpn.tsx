@@ -15,6 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { HardeningTab } from "@/components/aureon-shield/HardeningTab";
+import { TrackersTab } from "@/components/aureon-shield/TrackersTab";
+import { StorageTab } from "@/components/aureon-shield/StorageTab";
+import { ExtensionsTab } from "@/components/aureon-shield/ExtensionsTab";
+import { DohAuditTab } from "@/components/aureon-shield/DohAuditTab";
 
 const REPO_URL = "https://github.com/ZorakCorp/openvpn";
 
