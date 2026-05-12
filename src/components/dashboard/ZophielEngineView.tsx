@@ -25,6 +25,7 @@ const FaceRecognitionView = lazy(() => import("./search/FaceRecognitionView"));
 const DarkWebPanel = lazy(() => import("./search/DarkWebPanel"));
 const LeaksPanel = lazy(() => import("./search/LeaksPanel"));
 const ArchivePanel = lazy(() => import("./search/ArchivePanel"));
+const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 import ArchivesHarvesterPanel from "./search/ArchivesHarvesterPanel";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 
