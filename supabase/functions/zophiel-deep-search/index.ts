@@ -319,19 +319,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // BYOK: when the user supplies a Google (Gemini) key, swap it in directly
-    // and bypass the platform key + queue. Other providers fall back to the
-    // platform Gemini key (deep-search streams Gemini-specific SSE format).
-    const useGoogleByok = isValidByok(byok) && byok.provider === 'google';
-    const PLATFORM_GEMINI_KEY = Deno.env.get('GEMINI_API_KEY_APP');
-    const GEMINI_KEY = useGoogleByok ? byok.apiKey : (PLATFORM_GEMINI_KEY || '');
-    const ACTIVE_MODEL = useGoogleByok ? byok.model : GEMINI_DEFAULT_MODEL;
+    // STRICT BYOK GATE — non-admins MUST supply BYOK; admin may use platform key.
+    let _resolved;
+    try {
+      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, byok);
+    } catch (e: any) {
+      return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
+    }
+    const useGoogleByok = _resolved.mode === 'byok' && _resolved.byok?.provider === 'google';
+    const GEMINI_KEY = useGoogleByok ? _resolved.byok!.apiKey : (_resolved.geminiKey || '');
+    const ACTIVE_MODEL = useGoogleByok ? _resolved.byok!.model : GEMINI_DEFAULT_MODEL;
     const ACTIVE_STREAM_URL = geminiStreamUrlFor(ACTIVE_MODEL);
     const ACTIVE_NON_STREAM_URL = geminiNonStreamUrlFor(ACTIVE_MODEL);
     if (!GEMINI_KEY) {
       return new Response(
-        JSON.stringify({ error: 'GEMINI_API_KEY_APP not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'BYOK_REQUIRED', message: 'Add your Gemini API key.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     if (isValidByok(byok) && byok.provider !== 'google') {
