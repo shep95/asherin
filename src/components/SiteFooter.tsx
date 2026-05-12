@@ -128,8 +128,9 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
                 AUREON — Founded Nov 18, 2025 · 8:38 AM
               </p>
               <div className="flex items-center gap-3">
-                <a href="https://x.com/shep_newton" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="X / Twitter">
+                <a href="https://x.com/shep_newton" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors" aria-label="X / Twitter — Primary">
                   <Twitter className="h-4 w-4" />
+                  <span className="text-[10px] font-extralight tracking-[0.2em] uppercase">Primary</span>
                 </a>
                 <a href="https://x.com/aureon_elion" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[hsl(43_90%_60%)] hover:text-[hsl(43_90%_70%)] transition-colors" aria-label="X / Twitter — Backup">
                   <Twitter className="h-4 w-4" />
