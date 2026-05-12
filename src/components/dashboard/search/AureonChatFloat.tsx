@@ -158,30 +158,6 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
 
       {!minimized && (
         <>
-          {/* Brain selector */}
-          <div className="border-b border-border/20 px-3 py-2">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Brain className="h-3 w-3 text-muted-foreground" />
-              <span className="text-[9px] font-light tracking-[0.2em] uppercase text-muted-foreground">Active Brains</span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {brains.length === 0 && <span className="text-[10px] font-light text-muted-foreground/60">No brains saved.</span>}
-              {brains.map((b) => (
-                <button
-                  key={b.id}
-                  onClick={() => toggleBrain(b.id)}
-                  className={`rounded-md border px-1.5 py-0.5 text-[9px] font-light transition-colors ${
-                    activeBrainIds.includes(b.id)
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-border/40 bg-background/50 text-foreground/80 hover:border-foreground/40"
-                  }`}
-                >
-                  {b.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
             {messages.length === 0 && (
               <div className="text-[11px] font-light text-muted-foreground">
