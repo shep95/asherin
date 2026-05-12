@@ -168,7 +168,7 @@ const VedicAstrologyView = () => {
   const [chartName, setChartName] = useState("");
   const [showSaved, setShowSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<"mine" | "country" | "companies" | "predictions" | "custom">("mine");
+  const [tab, setTab] = useState<"mine" | "country" | "companies" | "predictions" | "custom" | "mythology">("mine");
   const [showCompat, setShowCompat] = useState(false);
   const [activeCountry, setActiveCountry] = useState<CountryFoundation | null>(null);
   const [activeSavedId, setActiveSavedId] = useState<string | null>(null);
