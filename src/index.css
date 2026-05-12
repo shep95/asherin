@@ -261,3 +261,16 @@ header[data-aureon-header] > a {
   .zophiel-aurora, .zophiel-shimmer-text, .zophiel-orbit-ring { animation: none !important; }
   .zophiel-sheen::after { display: none; }
 }
+
+/* Zophiel Engine — Gold theme override.
+   Scoped remap of accent token so all `accent`-driven UI in the engine
+   (mode selector chips, glows, borders) renders in gold instead of purple. */
+.zophiel-gold,
+.zophiel-gold * {
+  --accent: 43 90% 55%;
+  --accent-foreground: 0 0% 8%;
+}
+.zophiel-gold .text-violet-300,
+.zophiel-gold .text-violet-300\/80 { color: hsl(43 90% 65%); }
+.zophiel-gold .border-violet-400\/25 { border-color: hsl(43 90% 55% / 0.25); }
+.zophiel-gold .bg-violet-500\/\[0\.04\] { background-color: hsl(43 90% 55% / 0.06); }
