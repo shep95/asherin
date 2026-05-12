@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity, AlertTriangle, ArrowUpRight, CheckCircle2, Cpu, Eye, Fingerprint,
@@ -208,7 +208,7 @@ type AnalysisResult = {
   recommendations: string[];
 };
 
-const AureonShield = () => {
+const AureonShield = ({ embed = false }: { embed?: boolean } = {}) => {
   // SEO
   useEffect(() => {
     document.title = "Aureon Shield — Free Browser-Grade VPN & Cyber Audit | Aureon";
@@ -399,11 +399,17 @@ const AureonShield = () => {
     [identity, baseline, webrtc, dns, perms, device, fp],
   );
 
-  return (
-    <LandingBackground>
-      <Header />
+  const Shell = embed
+    ? ({ children }: { children: React.ReactNode }) => <>{children}</>
+    : LandingBackground;
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 pb-24 pt-28 sm:px-6">
+  return (
+    <Shell>
+      {!embed && <Header />}
+
+      <main className={embed
+        ? "relative z-10 mx-auto max-w-7xl px-3 pb-10 pt-2 sm:px-4"
+        : "relative z-10 mx-auto max-w-7xl px-4 pb-24 pt-28 sm:px-6"}>
         {/* Hero */}
         <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -862,7 +868,7 @@ sudo openvpn --config aureon.ovpn`}</pre>
           </p>
         </Glass>
       </main>
-    </LandingBackground>
+    </Shell>
   );
 };
 
