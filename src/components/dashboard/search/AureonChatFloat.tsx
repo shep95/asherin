@@ -20,8 +20,6 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
   const [size, setSize] = useState({ w: 420, h: 520 });
   const [minimized, setMinimized] = useState(false);
 
-  const [brains, setBrains] = useState<{ id: string; name: string }[]>([]);
-  const [activeBrainIds, setActiveBrainIds] = useState<string[]>([]);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
