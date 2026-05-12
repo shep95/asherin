@@ -383,6 +383,12 @@ const AureonShield = () => {
     return "text-red-400";
   }, [analysis]);
 
+  // Live Geo-Drift Leak Score (re-used by status strip + Relay tab)
+  const leakScore = useMemo(
+    () => computeLeakScore({ identity, baseline, webrtc, dns, perms, device, fp }),
+    [identity, baseline, webrtc, dns, perms, device, fp],
+  );
+
   return (
     <LandingBackground>
       <Header />
