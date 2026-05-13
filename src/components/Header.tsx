@@ -204,7 +204,7 @@ const Header = () => {
           </div>
         </div>
 
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="sm:hidden rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5">
+        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="sm:hidden rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5" aria-label="Toggle navigation menu">
           {mobileMenuOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
         </button>
 

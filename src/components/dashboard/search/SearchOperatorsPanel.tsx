@@ -43,6 +43,7 @@ const SearchOperatorsPanel = ({ filters, onFiltersChange, onOperatorString }: Se
         onClick={() => setOpen(true)}
         className="p-2 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0"
         title="Search operators"
+        aria-label="Search operators"
       >
         <Settings2 className="h-4 w-4" />
       </button>
