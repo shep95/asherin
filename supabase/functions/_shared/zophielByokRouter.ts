@@ -65,7 +65,7 @@ export async function callByokJson(
       });
     case 'openai':
       return callOpenAICompat('https://api.openai.com/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, jsonMode,
+        timeoutMs, temperature, maxOutputTokens, jsonMode,
       });
     case 'anthropic':
       return callAnthropic(cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
@@ -73,20 +73,20 @@ export async function callByokJson(
       });
     case 'xai':
       return callOpenAICompat('https://api.x.ai/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, jsonMode,
+        timeoutMs, temperature, maxOutputTokens, jsonMode,
       });
     case 'deepseek':
       return callOpenAICompat('https://api.deepseek.com/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, jsonMode,
+        timeoutMs, temperature, maxOutputTokens, jsonMode,
       });
     case 'mistral':
       return callOpenAICompat('https://api.mistral.ai/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, jsonMode,
+        timeoutMs, temperature, maxOutputTokens, jsonMode,
       });
     case 'perplexity':
       // Perplexity does not honor response_format=json_object; rely on prompt discipline.
       return callOpenAICompat('https://api.perplexity.ai', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, jsonMode: false,
+        timeoutMs, temperature, maxOutputTokens, jsonMode: false,
       });
     default:
       throw new Error(`unsupported_byok_provider_${(cfg as { provider: string }).provider}`);
@@ -137,7 +137,7 @@ async function callOpenAICompat(
   model: string,
   systemPrompt: string,
   userPrompt: string,
-  opts: { timeoutMs: number; temperature: number; jsonMode: boolean },
+  opts: { timeoutMs: number; temperature: number; maxOutputTokens?: number; jsonMode: boolean },
 ): Promise<string> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), opts.timeoutMs);
@@ -145,6 +145,8 @@ async function callOpenAICompat(
     const sys = opts.jsonMode
       ? systemPrompt + '\n\nReturn ONLY valid JSON. No prose, no markdown, no code fences.'
       : systemPrompt;
+    const maxTok = opts.maxOutputTokens ?? 8192;
+    const isGpt5Plus = /^gpt-5/i.test(model) || /^o\d/i.test(model);
     const r = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -158,7 +160,10 @@ async function callOpenAICompat(
           { role: 'system', content: sys },
           { role: 'user', content: userPrompt },
         ],
-        temperature: opts.temperature,
+        // gpt-5 / o-series only accept max_completion_tokens and fixed temperature
+        ...(isGpt5Plus
+          ? { max_completion_tokens: maxTok }
+          : { temperature: opts.temperature, max_tokens: maxTok }),
         ...(opts.jsonMode ? { response_format: { type: 'json_object' } } : {}),
       }),
     });
