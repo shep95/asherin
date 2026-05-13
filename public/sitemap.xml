@@ -53,4 +53,10 @@
   <url><loc>https://aureonai.app/feature/library</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://aureonai.app/feature/whiteboard-info</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://aureonai.app/feature/vedic</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/i</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://aureonai.app/elite</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://aureonai.app/asher</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://aureonai.app/avapicks</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://aureonai.app/openvpn</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
 </urlset>
+
