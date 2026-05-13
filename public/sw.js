@@ -18,9 +18,24 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network-first strategy
+  // Only handle GET requests; let the browser handle the rest
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    (async () => {
+      try {
+        const networkResponse = await fetch(event.request);
+        return networkResponse;
+      } catch (err) {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        return new Response('', {
+          status: 504,
+          statusText: 'Gateway Timeout (offline)',
+          headers: { 'Content-Type': 'text/plain' },
+        });
+      }
+    })()
   );
 });
 
