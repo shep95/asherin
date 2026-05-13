@@ -3,12 +3,15 @@ import LandingBackground from "@/components/LandingBackground";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
+import { applySeoHead } from "@/lib/seoHead";
 
 const PrivacyPolicy = () => {
   useEffect(() => {
-    document.title = "Privacy Policy — Aureon";
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Aureon Privacy Policy — how we protect your data with end-to-end encryption and zero-training guarantees.");
+    applySeoHead({
+      title: "Privacy Policy — Aureon",
+      description: "Aureon Privacy Policy — how we protect your data with end-to-end encryption and zero-training guarantees.",
+      path: "/privacy",
+    });
   }, []);
 
   return (

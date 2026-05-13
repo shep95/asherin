@@ -84,9 +84,14 @@ const trajectoryData = [
 
 const WW3 = () => {
   useEffect(() => {
-    document.title = "WW3 Trajectory Analysis — Aureon";
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Aureon Predictive Intelligence WW3 trajectory analysis — Sanghatta Rashi Protocol + geopolitical convergence modeling. Eyes Only.");
+    import("@/lib/seoHead").then(({ applySeoHead }) =>
+      applySeoHead({
+        title: "WW3 Trajectory Analysis — Aureon Predictive Intelligence",
+        description:
+          "Aureon WW3 trajectory analysis — Sanghatta Rashi Protocol with geopolitical convergence modeling. Eyes Only intelligence report.",
+        path: "/ww3",
+      })
+    );
     const ld = document.createElement("script");
     ld.type = "application/ld+json";
     ld.id = "ww3-jsonld";

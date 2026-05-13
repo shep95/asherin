@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { applySeoHead } from "@/lib/seoHead";
 import {
   ArrowLeft, ArrowRight, Crosshair, Radar, Satellite, Shield,
   BookLock, Archive, Lock, FileCheck2, ServerCog, Eye, Brain, Activity,
@@ -96,9 +97,11 @@ const capabilities = [
 
 const Asher = () => {
   useEffect(() => {
-    document.title = "Asher — Military Intelligence Model";
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Asher — Aureon's forthcoming AI model purpose-built for defense, intelligence services, and military command. In active development for restricted, audited deployment.");
+    applySeoHead({
+      title: "Asher — Military Intelligence Model | Aureon",
+      description: "Asher — Aureon's forthcoming AI model purpose-built for defense, intelligence services, and military command. Restricted, audited deployment.",
+      path: "/asher",
+    });
   }, []);
 
   return (
