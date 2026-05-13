@@ -41,7 +41,36 @@ const FeaturePageShell = ({
 }: FeaturePageShellProps) => {
   useEffect(() => {
     document.title = documentTitle;
-  }, [documentTitle]);
+
+    const path = typeof window !== "undefined" ? window.location.pathname : "/";
+    const url = `https://aureonai.app${path}`;
+    const desc = subheadline.length > 160 ? subheadline.slice(0, 157).trimEnd() + "..." : subheadline;
+
+    const upsertMeta = (selector: string, attr: "name" | "property", key: string, content: string) => {
+      let el = document.head.querySelector<HTMLMetaElement>(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, key);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+
+    upsertMeta(`meta[name="description"]`, "name", "description", desc);
+    upsertMeta(`meta[property="og:title"]`, "property", "og:title", documentTitle);
+    upsertMeta(`meta[property="og:description"]`, "property", "og:description", desc);
+    upsertMeta(`meta[property="og:url"]`, "property", "og:url", url);
+    upsertMeta(`meta[name="twitter:title"]`, "name", "twitter:title", documentTitle);
+    upsertMeta(`meta[name="twitter:description"]`, "name", "twitter:description", desc);
+
+    let canonical = document.head.querySelector<HTMLLinkElement>(`link[rel="canonical"]`);
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute("href", url);
+  }, [documentTitle, subheadline]);
 
   return (
     <LandingBackground>
