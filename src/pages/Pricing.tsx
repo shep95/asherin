@@ -3,6 +3,7 @@ import LandingBackground from "@/components/LandingBackground";
 import { Check, ArrowRight, Zap, Search, Brain, Code, Shield, Users, Globe, BarChart3, Lock, Server, Cpu, Database, Network, Eye, Newspaper, TrendingUp, ArrowLeft, ScanLine } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
+import { applySeoHead } from "@/lib/seoHead";
 import { getPublicPlans, TIER_FEATURE_CARDS } from "@/config/subscriptionPlans";
 import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
 import PricingComparisonTable from "@/components/subscription/PricingComparisonTable";
@@ -21,9 +22,12 @@ const tiers = getPublicPlans().map(p => ({
 }));
 const Pricing = () => {
   useEffect(() => {
-    document.title = "Pricing — Aureon | Uncensored AI Intelligence";
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Aureon pricing: $47/mo Chat, $199/mo Aureon, $740/mo Pro. No free tier. Full access from day one.");
+    applySeoHead({
+      title: "Pricing — Aureon | Uncensored AI Intelligence",
+      description:
+        "Aureon pricing: $47/mo Chat, $199/mo Aureon, $740/mo Pro. No free tier. Full access from day one.",
+      path: "/pricing",
+    });
     const faqs = [
       { q: "Can I upgrade from Aureon to Pro or Advisor?", a: "Yes. Upgrade anytime from your dashboard. Changes take effect immediately with prorated billing." },
       { q: "What are the message limits?", a: "Unlimited messages on every paid tier. You bring your own AI key, so usage is bound only by your provider's quota." },

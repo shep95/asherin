@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { applySeoHead } from "@/lib/seoHead";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
@@ -389,14 +390,12 @@ const TierSection = ({
 /* ─── Page ─── */
 const Features = () => {
   useEffect(() => {
-    document.title = "Features — Aureon | AI Intelligence Platform";
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) {
-      meta.setAttribute(
-        "content",
-        "Explore Aureon's full capabilities: uncensored AI, Zophiel search, NOMAD Public Intelligence, Azplen data intelligence, daily briefings, encryption, and private deployment."
-      );
-    }
+    applySeoHead({
+      title: "Features — Aureon | AI Intelligence Platform",
+      description:
+        "Uncensored AI, Zophiel search, NOMAD OSINT, Azplen data intelligence, daily briefings, end-to-end encryption, and private deployment.",
+      path: "/features",
+    });
   }, []);
 
   return (
