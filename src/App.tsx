@@ -97,6 +97,7 @@ const App = () => (
           <RouteSessionTracker />
           <ByokRequiredDialog />
           <Suspense fallback={<PageLoader />}>
+          <main>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/pricing" element={<Pricing />} />
@@ -169,6 +170,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </main>
           </Suspense>
         </BrowserRouter>
       </TooltipProvider>

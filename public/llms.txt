@@ -1,0 +1,62 @@
+# Aureon
+
+> Aureon is an uncensored AI intelligence platform: truth-telling chat, OSINT search, elite coding engine, predictive analytics, and end-to-end encrypted intelligence tooling.
+
+Aureon ships a suite of intelligence modules — Zophiel OSINT search, NOMAD investigation, ZALI engineering simulation, ZERLAL vulnerability scanning, Cross screen-intelligence, Vedic analysis, predictive forecasting, and an in-dashboard IDE. Bring-your-own-key (BYOK) is supported across all AI modules.
+
+## Pages
+
+- [Home](/): Product overview and entry point.
+- [Pricing](/pricing): Chat ($47/mo), Aureon ($199/mo), Pro ($740/mo), Lifetime ($470).
+- [Features](/features): Full feature catalog.
+- [Benchmarks](/benchmarks): Performance comparisons.
+- [LLM Models](/llm-models): Supported models and BYOK providers.
+- [Founder](/founder): About the founder.
+- [Prompt Engineering](/prompt-engineering): Prompting guidance.
+- [Equity](/equity): Ownership and equity information.
+- [Project Aureon](/proj-aureon): Project background.
+- [Forums](/forums): Community forums.
+
+## Feature pages
+
+- [Zophiel OSINT Search](/feature/zophiel): 30-source OSINT investigation.
+- [NOMAD](/feature/nomad): Persistent dossier intelligence suite.
+- [Azplen Foundry](/feature/azplen): Data foundry and analytics.
+- [ZALI Design Suite](/feature/zali): FEA, thermal, material simulation.
+- [ZERLAL](/feature/zerlal): Vulnerability scanning and exploit intelligence.
+- [Zeeion](/feature/zeeion): Dispute resolution and platform forensics.
+- [AZIION](/feature/aziion): Trading intelligence.
+- [AXRLEN](/feature/axrlen): Predictive Nexus Prime engine.
+- [Cross](/feature/cross): Universal screen intelligence and screen-recording analysis.
+- [Predictive](/feature/predictive): Corporate event forecasting and Monte Carlo modeling.
+- [Pattern Analysis](/feature/pattern-analysis): Pro-tier forecasting with visualizations.
+- [Reverse Engineer](/feature/reverse-engineer): Architecture deconstruction from images and video.
+- [Imagine to Code](/feature/imagine-to-code): Visual-to-code generation.
+- [Aureon IDE](/feature/ide): In-dashboard Monaco IDE with BYOK.
+- [Notebooks](/feature/notebooks): Intelligence notebooks with SQL.
+- [Vibe Imager](/feature/vibe-imager): Image generation.
+- [Vibe Video](/feature/vibe-video): Video generation.
+- [Video Intelligence](/feature/video-intelligence): Behavioral video tracking.
+- [BYOK](/feature/byok): Bring-your-own-key configuration.
+- [Personas](/feature/personas): Custom AI assistants.
+- [Briefings](/feature/briefings): Intelligence briefings.
+- [Zahten](/feature/zahten): Specialized intelligence module.
+- [Zaplen War Scenarios](/feature/zaplen): Dual-AI scenario engine.
+- [Cipher](/feature/cipher): Encryption tooling.
+- [File Scrapper](/feature/file-scrapper): Document extraction.
+- [E-book Generator](/feature/ebook): Multi-session book authoring.
+- [Plugin Marketplace](/feature/plugin-marketplace): Third-party integrations.
+- [Coding Laws](/feature/coding-laws): Coding standards engine.
+- [Automated Agents](/feature/automated-agents): Scheduled tasks and webhooks.
+- [Memory Center](/feature/memory-center): Persistent memory management.
+- [Brains](/feature/brains): Knowledge brain configuration.
+- [Library](/feature/library): Knowledge library.
+- [Whiteboard](/feature/whiteboard-info): Infinite-canvas whiteboard.
+- [Vedic](/feature/vedic): Vedic analysis.
+- [Lavba](/feature/lavba): Specialized module.
+
+## Optional
+
+- [Terms of Service](/terms)
+- [Privacy Policy](/privacy)
+- [NDA](/nda)
