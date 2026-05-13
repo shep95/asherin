@@ -426,6 +426,6 @@ export default function EpsteinFiles() {
           established fact without corroboration.
         </p>
       </main>
-    </div>
+    </LandingBackground>
   );
 }
