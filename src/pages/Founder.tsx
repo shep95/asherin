@@ -18,6 +18,19 @@ const Founder = () => {
     document.title = "Asher Newton — Founder of Aureon";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Meet Asher Newton, the founder of Aureon — the uncensored AI intelligence platform built for researchers, developers, and truth-seekers.");
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = "founder-jsonld";
+    ld.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: "Asher Newton",
+      jobTitle: "Founder of Aureon",
+      url: "https://aureonai.app/founder",
+      description: "Founder of Aureon — uncensored AI intelligence platform.",
+    });
+    document.head.appendChild(ld);
+    return () => { document.getElementById("founder-jsonld")?.remove(); };
   }, []);
 
   return (

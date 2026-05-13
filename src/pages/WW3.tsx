@@ -87,6 +87,20 @@ const WW3 = () => {
     document.title = "WW3 Trajectory Analysis — Aureon";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Aureon Predictive Intelligence WW3 trajectory analysis — Sanghatta Rashi Protocol + geopolitical convergence modeling. Eyes Only.");
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = "ww3-jsonld";
+    ld.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Report",
+      headline: "WW3 Trajectory Analysis — Sanghatta Rashi Protocol",
+      author: { "@type": "Organization", name: "Aureon" },
+      publisher: { "@type": "Organization", name: "Aureon", logo: { "@type": "ImageObject", url: "https://aureonai.app/favicon.png" } },
+      url: "https://aureonai.app/ww3",
+      datePublished: "2026-01-01",
+    });
+    document.head.appendChild(ld);
+    return () => { document.getElementById("ww3-jsonld")?.remove(); };
   }, []);
 
   return (

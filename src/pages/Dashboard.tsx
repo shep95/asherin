@@ -224,6 +224,22 @@ const Dashboard = () => {
   const activeWallpaper = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.aureon || WALLPAPER_MAP.default;
 
   useEffect(() => {
+    const prevTitle = document.title;
+    const prevDesc = document.querySelector('meta[name="description"]')?.getAttribute("content") || "";
+    document.title = "Dashboard — Aureon Workspace";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", "Your Aureon workspace — chats, agents, projects, intelligence modules, and BYOK controls in one private dashboard.");
+    let canon = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    const prevHref = canon?.getAttribute("href") || "";
+    if (canon) canon.setAttribute("href", "https://aureonai.app/dashboard");
+    return () => {
+      document.title = prevTitle;
+      if (meta && prevDesc) meta.setAttribute("content", prevDesc);
+      if (canon && prevHref) canon.setAttribute("href", prevHref);
+    };
+  }, []);
+
+  useEffect(() => {
     const handler = () => {
       const newKey = localStorage.getItem("aureon_wallpaper") || "aureon";
       const newSrc = WALLPAPER_MAP[newKey] || WALLPAPER_MAP.aureon || WALLPAPER_MAP.default;
@@ -1409,6 +1425,7 @@ const Dashboard = () => {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
+      <h1 className="sr-only">Aureon Dashboard — Your Intelligence Workspace</h1>
       {/* Previous wallpaper (fades out during transition) */}
       {prevDashWallpaper && isDashTransitioning && (
         <div className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${prevDashWallpaper})`, zIndex: 0 }} />
