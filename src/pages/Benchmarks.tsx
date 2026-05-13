@@ -154,6 +154,16 @@ const WinnerDot = ({ winner }: { winner: "aureon" | "claude" | "tie" }) => {
 const Benchmarks = () => {
   useEffect(() => {
     document.title = "Benchmarks — Aureon vs Claude Opus 4.6";
+    const meta = document.querySelector('meta[name="description"]');
+    const prevDesc = meta?.getAttribute("content") || "";
+    if (meta) meta.setAttribute("content", "Side-by-side benchmark: Aureon's coding engine vs Claude Opus 4.6 across modularity, security, performance, and 12 other criteria.");
+    const canon = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    const prevHref = canon?.getAttribute("href") || "";
+    if (canon) canon.setAttribute("href", "https://aureonai.app/benchmarks");
+    return () => {
+      if (meta && prevDesc) meta.setAttribute("content", prevDesc);
+      if (canon && prevHref) canon.setAttribute("href", prevHref);
+    };
   }, []);
 
   const scores = computeScores();
