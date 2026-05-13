@@ -59,7 +59,7 @@ const PromptEngineering = () => {
                 Master the Art
               </p>
               <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide zophiel-shimmer-text mb-4">
-                Prompt Engineering
+                AI Prompt Engineering Mastery — Aureon
               </h1>
               <p className="text-sm font-extralight leading-relaxed text-muted-foreground max-w-xl mx-auto">
                 Learn how to craft effective instructions for AI models and unlock their full potential.

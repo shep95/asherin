@@ -108,7 +108,7 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
             <span className="text-[11px] font-light text-muted-foreground/50 truncate">{result.source || domain(result.url)}</span>
           </div>
           {!isOnion && (
-            <a href={cleanUrl(result.url)} target="_blank" rel="noopener noreferrer" className="shrink-0 p-1">
+            <a href={cleanUrl(result.url)} target="_blank" rel="noopener noreferrer" className="shrink-0 p-1" aria-label="Open in new tab">
               <ExternalLink className="h-3 w-3 text-muted-foreground/30" />
             </a>
           )}
