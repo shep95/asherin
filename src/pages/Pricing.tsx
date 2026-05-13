@@ -24,6 +24,27 @@ const Pricing = () => {
     document.title = "Pricing — Aureon | Uncensored AI Intelligence";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Aureon pricing: $47/mo Chat, $199/mo Aureon, $740/mo Pro. No free tier. Full access from day one.");
+    const faqs = [
+      { q: "Can I upgrade from Aureon to Pro or Advisor?", a: "Yes. Upgrade anytime from your dashboard. Changes take effect immediately with prorated billing." },
+      { q: "What are the message limits?", a: "Unlimited messages on every paid tier. You bring your own AI key, so usage is bound only by your provider's quota." },
+      { q: "What payment methods do you accept?", a: "All major credit cards and wire transfers for Advisor. Billing is handled securely — we never store card details." },
+      { q: "Can I use my own AI models?", a: "Yes — all tiers support Bring Your Own Key. Connect API keys from Google, OpenAI, Anthropic, Meta, Venice, xAI, Mistral, DeepSeek, or Perplexity and switch models from Settings." },
+      { q: "What do Daily Intelligence Briefings include?", a: "Personalized morning reports covering your competitors, industry, key markets, regulatory changes, and news — generated from 100+ sources and delivered in-app." },
+    ];
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = "pricing-faq-jsonld";
+    ld.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faqs.map(({ q, a }) => ({
+        "@type": "Question",
+        name: q,
+        acceptedAnswer: { "@type": "Answer", text: a },
+      })),
+    });
+    document.head.appendChild(ld);
+    return () => { document.getElementById("pricing-faq-jsonld")?.remove(); };
   }, []);
 
   return (
