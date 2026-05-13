@@ -97,6 +97,7 @@ const App = () => (
           <RouteSessionTracker />
           <ByokRequiredDialog />
           <Suspense fallback={<PageLoader />}>
+          <main>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/pricing" element={<Pricing />} />
