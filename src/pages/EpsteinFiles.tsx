@@ -240,8 +240,7 @@ export default function EpsteinFiles() {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <LandingBackground />
+    <LandingBackground>
       <Header />
       <main className="relative z-10 pt-20 pb-10 px-4 md:px-8 max-w-[1600px] mx-auto">
         {/* Header */}
