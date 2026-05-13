@@ -3,12 +3,15 @@ import LandingBackground from "@/components/LandingBackground";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
+import { applySeoHead } from "@/lib/seoHead";
 
 const TermsOfService = () => {
   useEffect(() => {
-    document.title = "Terms of Service — Aureon";
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Aureon Terms of Service — our commitments to data privacy, encryption, and uncensored AI.");
+    applySeoHead({
+      title: "Terms of Service — Aureon",
+      description: "Aureon Terms of Service — our commitments to data privacy, encryption, and uncensored AI.",
+      path: "/terms",
+    });
   }, []);
 
   return (

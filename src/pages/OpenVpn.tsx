@@ -211,15 +211,14 @@ type AnalysisResult = {
 const AureonShield = ({ embed = false }: { embed?: boolean } = {}) => {
   // SEO
   useEffect(() => {
-    document.title = "Aureon Shield — Free Browser-Grade VPN & Cyber Audit | Aureon";
-    const setMeta = (sel: string, attr: string, val: string, make: () => HTMLElement) => {
-      let el = document.querySelector(sel) as HTMLElement | null;
-      if (!el) { el = make(); document.head.appendChild(el); }
-      el.setAttribute(attr, val);
-    };
-    setMeta('meta[name="description"]', "content",
-      "Free military-grade browser audit, leak detection, breach checks, AI threat analysis, and OpenVPN client. No download required.",
-      () => { const m = document.createElement("meta"); m.setAttribute("name", "description"); return m; });
+    import("@/lib/seoHead").then(({ applySeoHead }) =>
+      applySeoHead({
+        title: "Aureon Shield — Free Browser VPN & Cyber Audit",
+        description:
+          "Free browser audit, leak detection, breach checks, AI threat analysis, and OpenVPN client. No download required.",
+        path: "/openvpn",
+      })
+    );
   }, []);
 
   const [identity, setIdentity] = useState<NetIdentity | null>(null);
