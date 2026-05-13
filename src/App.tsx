@@ -151,6 +151,8 @@ const App = () => (
             <Route path="/search" element={<ZophielFree />} />
             <Route path="/i" element={<TrackPage />} />
             <Route path="/ww3" element={<WW3 />} />
+            <Route path="/epstein-files" element={<EpsteinFiles />} />
+            <Route path="/epstein" element={<EpsteinFiles />} />
             <Route path="/proj-aureon" element={<ProjAureon />} />
             <Route path="/whiteboard" element={<Whiteboard />} />
             <Route path="/elite" element={<ProtectedRoute><EliteSuite /></ProtectedRoute>} />
