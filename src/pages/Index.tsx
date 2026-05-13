@@ -63,6 +63,55 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
 const Index = () => {
   useEffect(() => {
     document.title = "Aureon — Uncensored AI Intelligence";
+
+    const faqs = [
+      { q: "What makes Aureon different?", a: "Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },
+      { q: "How good is the coding engine?", a: "Aureon holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." },
+      { q: 'What does "never trains our models" mean?', a: "Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." },
+      { q: "Can I cancel anytime?", a: 'Yes. One click. No retention flow. No "are you sure?" loop. Your access ends at the billing cycle. Your data is deleted on request.' },
+      { q: "What is the live web search powered by?", a: "Privacy-first search infrastructure. Aureon pulls live data without tracking your search behavior or feeding it to ad networks." },
+      { q: "Is Aureon available in multiple languages?", a: "Yes. Aureon processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language." },
+    ];
+
+    const schemas = [
+      {
+        id: "home-website-jsonld",
+        data: {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Aureon",
+          url: "https://aureonai.app",
+          description: "Uncensored AI intelligence platform with elite coding engine, live web search, and end-to-end encryption.",
+        },
+      },
+      {
+        id: "home-faq-jsonld",
+        data: {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqs.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+          })),
+        },
+      },
+    ];
+
+    schemas.forEach(({ id, data }) => {
+      let el = document.getElementById(id) as HTMLScriptElement | null;
+      if (!el) {
+        el = document.createElement("script");
+        el.id = id;
+        el.type = "application/ld+json";
+        document.head.appendChild(el);
+      }
+      el.textContent = JSON.stringify(data);
+    });
+
+    return () => {
+      schemas.forEach(({ id }) => document.getElementById(id)?.remove());
+    };
   }, []);
   const [demoQuery, setDemoQuery] = useState("");
   const [demoResponse, setDemoResponse] = useState("");
