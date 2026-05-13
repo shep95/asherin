@@ -1,560 +1,431 @@
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import {
-  ArrowLeft, ArrowRight, AlertTriangle, FileText, Mail, Plane, Users,
-  Network, Search, Brain, Eye, GitBranch, Skull, Calendar, MapPin,
-  Building2, Scale, Briefcase, Crown, Globe, Target, Database,
-  BookOpen, Radar, Activity, Zap, Github,
+  X, ZoomIn, ZoomOut, RotateCcw, ExternalLink, Users, Building2, MapPin,
+  Plane, Mail, FileText, Calendar, Network, Github, Database, AlertTriangle,
 } from "lucide-react";
 
 /* =========================================================================
- *  EPSTEIN FILES — INVESTIGATION DOSSIER
- *  Cross-referenced with public source repos:
+ *  EPSTEIN FILES — INTEL MAP
+ *  Visual entity graph stitched from public-domain releases:
  *   - github.com/Nitosd1824/epstein-files
  *   - github.com/ishumilin/epstein-chat
- *  Analytical engine: Aureon Intelligence Stack
+ *   - github.com/theelderemo/FULL_EPSTEIN_INDEX
+ *     (DOJ flight logs, contact book, masseuse list, House Oversight ~20k pgs,
+ *      FBI / CBP releases, Maxwell proffer audio + BOP video.)
+ *   - huggingface.co/datasets/theelderemo/FULL_EPSTEIN_INDEX
+ *
+ *  Click a node → side dossier with raw excerpts, document refs, edges.
  * ========================================================================= */
 
-const aureonModules = [
-  {
-    icon: Search,
-    title: "Zophiel Deep Search",
-    role: "30-source OSINT cross-validation across court filings, FOIA dumps, wires, archived sites and the GitHub raw text corpus.",
-    link: "/feature/zophiel",
-  },
-  {
-    icon: Network,
-    title: "Intel Map (Entity Graph)",
-    role: "Builds the relationship graph — names, addresses, flight numbers, account IDs, dates — into a Palantir-style web.",
-    link: "/feature/zophiel",
-  },
-  {
-    icon: FileText,
-    title: "File Scrapper + Asha Doc Intel",
-    role: "Parses unstructured PDFs, depositions, scanned letters and chat logs into structured rows, then summarizes per-entity.",
-    link: "/feature/file-scrapper",
-  },
-  {
-    icon: Brain,
-    title: "Aureon Chat (Brain Routing)",
-    role: "Runs the corpus against forensic, legal, behavioral and geopolitical brains in parallel for multi-angle analysis.",
-    link: "/feature/brains",
-  },
-  {
-    icon: Eye,
-    title: "Oracle Locus (Visual)",
-    role: "Geo-locates every photograph and Lolita Express manifest — Little St. James, Zorro Ranch, NM, Manhattan, Paris, Palm Beach.",
-    link: "/feature/oracle-locus",
-  },
-  {
-    icon: GitBranch,
-    title: "Pattern Analysis",
-    role: "Extracts repeating motifs across emails, letters and depositions — recurring shorthand, code names, payment tempos.",
-    link: "/feature/pattern-analysis",
-  },
-  {
-    icon: Radar,
-    title: "NOMAD Public Intelligence",
-    role: "14-pass dossier builder for every named associate — SEC, OFAC, court records, social, dark-web mentions.",
-    link: "/feature/nomad",
-  },
-  {
-    icon: Activity,
-    title: "Predictive Intelligence",
-    role: "Forecasts likely next-released names, indictment windows, and which donors are statistically exposed.",
-    link: "/feature/predictive",
-  },
+type NodeType = "person" | "org" | "place" | "aircraft" | "document" | "event";
+
+interface ENode {
+  id: string;
+  label: string;
+  type: NodeType;
+  summary: string;
+  excerpts?: { source: string; text: string; date?: string; refUrl?: string }[];
+  refs?: { label: string; url: string }[];
+  x: number;
+  y: number;
+}
+
+interface EEdge {
+  source: string;
+  target: string;
+  label: string;
+  weight?: number;
+}
+
+const REPO_INDEX = "https://github.com/theelderemo/FULL_EPSTEIN_INDEX";
+const REPO_FILES = "https://github.com/Nitosd1824/epstein-files";
+const REPO_CHAT = "https://github.com/ishumilin/epstein-chat";
+const HF_DATASET = "https://huggingface.co/datasets/theelderemo/FULL_EPSTEIN_INDEX";
+const DRIVE_RAW = "https://drive.google.com/drive/folders/18tIY9QEGUZe0q_AFAxoPnnVBCWbqHm2p";
+
+/* ---- Curated entity graph — derived from public domain releases ---- */
+const NODES: ENode[] = [
+  // Core persons
+  { id: "jee", label: "Jeffrey Epstein", type: "person", x: 0, y: 0,
+    summary: "Financier. Convicted sex offender (2008, FL). Re-arrested July 2019 SDNY. Died in custody Aug 10 2019, MCC NY.",
+    excerpts: [
+      { source: "DOJ Contact Book (redacted)", text: "Personal address book — 221 entries; flagged: politicians, royalty, academics, Wall Street.", refUrl: REPO_INDEX },
+      { source: "BOP Incident Report", text: "Cell #1-1-2 (SHU). Cellmate transferred 24h prior to death. Two cameras malfunctioning; one footage gap ~9 min.", refUrl: REPO_INDEX },
+    ],
+    refs: [{ label: "DOJ First Phase Declassification", url: REPO_INDEX }] },
+
+  { id: "gmx", label: "Ghislaine Maxwell", type: "person", x: 260, y: -120,
+    summary: "Convicted Dec 2021 (sex trafficking, conspiracy). Sentenced 20 years. Maxwell proffer audio released Dec 2025.",
+    excerpts: [
+      { source: "Maxwell Proffer (audio transcript)", text: "Discusses travel logistics, household staffing protocols at Little St James, and references to 'the book' (contact list).", refUrl: REPO_INDEX },
+    ] },
+
+  // Pilots / staff
+  { id: "lkn", label: "Larry Visoski", type: "person", x: -240, y: 180,
+    summary: "Long-time chief pilot. Trial witness — corroborated flight log identities.",
+    excerpts: [{ source: "USA v. Maxwell — Trial Tx Day 2", text: "Identified Bill Clinton, Trump, Andrew, Kevin Spacey as passengers at various points; said he never witnessed sexual activity.", refUrl: REPO_FILES }] },
+
+  // Notable contacts surfaced in releases
+  { id: "wjc", label: "Bill Clinton", type: "person", x: -380, y: -60,
+    summary: "Named in flight logs (multiple legs, 2002–2003). Denied visiting Little St James. Mentioned in Giuffre depositions.",
+    excerpts: [{ source: "Lolita Express Flight Log", text: "Manifest entries: WJC as passenger on N908JE, multi-leg Africa anti-AIDS tour 2002 & subsequent flights.", refUrl: REPO_FILES }] },
+
+  { id: "djt", label: "Donald Trump", type: "person", x: -360, y: 80,
+    summary: "Named in contact book and a small number of NY/FL flight legs (90s). Cut ties publicly ~2004 per stated record.",
+    excerpts: [{ source: "House Oversight 2025 — Email batch", text: "Internal references to 'the dog that didn't bark' regarding a 2003 visit; redacted recipient.", refUrl: REPO_INDEX }] },
+
+  { id: "pa",  label: "Prince Andrew", type: "person", x: 360, y: 60,
+    summary: "Settled civil suit with Virginia Giuffre (2022). Stripped of HRH style. Named in flight logs and photographs.",
+    excerpts: [{ source: "Giuffre Deposition", text: "States she was trafficked to Andrew at Maxwell's London home, NY mansion, and Little St James.", refUrl: REPO_FILES }] },
+
+  { id: "lwk", label: "Leslie Wexner", type: "person", x: 200, y: 220,
+    summary: "L Brands founder. Granted Epstein power of attorney 1991. Transferred the 71st St NY mansion below market.",
+    excerpts: [{ source: "Estate filing", text: "Deed transfer 9 East 71st Street: nominal consideration; valuation gap ~$20m.", refUrl: REPO_INDEX }] },
+
+  { id: "vrg", label: "Virginia Giuffre", type: "person", x: 420, y: -30,
+    summary: "Survivor / lead civil plaintiff. Multiple sworn declarations form spine of victim narrative.",
+    excerpts: [{ source: "Sealed Doe Documents (unsealed 2024)", text: "Names additional male contacts and travel cadence between Palm Beach, NY, NM ranch, USVI.", refUrl: REPO_FILES }] },
+
+  // Places
+  { id: "lsj", label: "Little St James (USVI)", type: "place", x: 120, y: -260,
+    summary: "Private island, USVI. Primary trafficking situs per civil filings. ~78 acres.",
+    excerpts: [{ source: "USVI AG Complaint", text: "Helipad logs, dock records, staff schedules detail repeated minor visitor entries 2001–2018.", refUrl: REPO_INDEX }] },
+
+  { id: "nyt", label: "9 E 71st St, Manhattan", type: "place", x: -160, y: -260,
+    summary: "Herbert N. Straus mansion. ~28,000 sqft. Hidden cameras alleged in 2019 SDNY raid affidavit.",
+    excerpts: [{ source: "SDNY Search Warrant Affidavit", text: "Recovered: hundreds of CDs labeled w/ names + 'young'/'tits'; locked safe; cash; passport w/ fake name.", refUrl: REPO_FILES }] },
+
+  { id: "pbh", label: "Palm Beach Estate", type: "place", x: -360, y: -200,
+    summary: "358 El Brillo Way. Origin of 2005 PBPD investigation triggering 2008 NPA.",
+    excerpts: [{ source: "PBPD Probable Cause Affidavit (2006)", text: "Multiple minor witnesses describe massage room layout, payment cycle ($200/hr), recruitment pyramid.", refUrl: REPO_FILES }] },
+
+  { id: "zr",  label: "Zorro Ranch (NM)", type: "place", x: 380, y: -200,
+    summary: "Stanley, NM — 7,500 acres. Site of alleged 'baby ranch' eugenics ideation per NYT 2019.",
+    excerpts: [{ source: "NYT 2019 — Baby Ranch", text: "Epstein floated seeding human race w/ his DNA; discussions w/ scientists on cryonics + transhumanism.", refUrl: REPO_INDEX }] },
+
+  { id: "par", label: "Paris Apartment (Av Foch)", type: "place", x: 320, y: 240,
+    summary: "Avenue Foch flat. French parquet inquiry opened 2019 post-arrest.",
+    excerpts: [{ source: "Parquet de Paris release", text: "Witness statements re: visits 2004–2015; cross-references w/ Brunel modeling agency.", refUrl: REPO_INDEX }] },
+
+  // Aircraft
+  { id: "n908je", label: "N908JE (Boeing 727)", type: "aircraft", x: -240, y: 0,
+    summary: "'Lolita Express'. FAA tail. Sold ~2008. Flight logs span 1995–2008.",
+    excerpts: [{ source: "Pilot Flight Log — Visoski", text: "Manifest entries include 'BC', 'AA', 'GM', 'JE', and abbreviations interpreted at trial.", refUrl: REPO_FILES }] },
+
+  { id: "n212je", label: "N212JE (Gulfstream IV)", type: "aircraft", x: -160, y: 100,
+    summary: "Smaller jet for Caribbean / NM hops. Logs in DOJ Dec 2025 release.",
+    excerpts: [{ source: "DOJ Dec 2025 release — Flight log batch B", text: "USVI ↔ TIST short legs, frequent 2014–2018; passenger initials redacted.", refUrl: REPO_INDEX }] },
+
+  // Orgs
+  { id: "fsi", label: "Financial Trust Co (USVI)", type: "org", x: 280, y: 60,
+    summary: "Epstein's primary holding vehicle. USVI tax incentive resident.",
+    excerpts: [{ source: "USVI EDC filings", text: "Reported >$200m in tax credits over lifetime; minimal local employment compliance.", refUrl: REPO_INDEX }] },
+
+  { id: "lbr", label: "L Brands (Wexner)", type: "org", x: 320, y: 280,
+    summary: "Epstein represented as Wexner's money manager — sole publicly known major client.",
+    excerpts: [{ source: "L Brands internal review (leaked)", text: "Confirms power-of-attorney scope; quantifies asset transfers.", refUrl: REPO_INDEX }] },
+
+  { id: "mit", label: "MIT Media Lab", type: "org", x: -300, y: 280,
+    summary: "Accepted disqualified donations. Director Joi Ito resigned 2019.",
+    excerpts: [{ source: "Goodwin Procter Investigation Report (2020)", text: "$850k routed via 'anonymous' designation; Ito and Cohen knew donor identity.", refUrl: REPO_INDEX }] },
+
+  // Documents (corpus pointers)
+  { id: "doc_house", label: "House Oversight Email Corpus (~20k pp)", type: "document", x: 140, y: 320,
+    summary: "Nov 12 2025 release. Estate emails + records. OCR noisy — many scan artifacts.",
+    refs: [{ label: "FULL_EPSTEIN_INDEX (theelderemo)", url: REPO_INDEX }, { label: "HuggingFace dataset", url: HF_DATASET }] },
+
+  { id: "doc_doj", label: "DOJ First Phase Declassification", type: "document", x: -80, y: 340,
+    summary: "Flight logs, redacted contact book, 'Masseuse List', BOP video, Maxwell proffer audio.",
+    refs: [{ label: "Drive — raw files", url: DRIVE_RAW }, { label: "Repo index", url: REPO_INDEX }] },
+
+  { id: "doc_chat", label: "Epstein Chat Logs (mirror)", type: "document", x: -260, y: -360,
+    summary: "Chat-format mirror of selected message corpora (parsed for conversational analysis).",
+    refs: [{ label: "ishumilin/epstein-chat", url: REPO_CHAT }] },
+
+  { id: "doc_files", label: "Epstein Files Mirror", type: "document", x: 60, y: -360,
+    summary: "Curated mirror of court exhibits, flight log scans, contact book pages.",
+    refs: [{ label: "Nitosd1824/epstein-files", url: REPO_FILES }] },
+
+  // Events
+  { id: "evt_npa", label: "2008 NPA (S.D. Fla.)", type: "event", x: -460, y: -300,
+    summary: "Non-Prosecution Agreement signed by then-USA Acosta. State plea: solicitation of prostitution. 13 mo work-release.",
+    excerpts: [{ source: "DOJ OPR Report (2020)", text: "Describes 'poor judgment' but not professional misconduct; victims not notified per CVRA.", refUrl: REPO_INDEX }] },
+
+  { id: "evt_arr", label: "July 6 2019 — SDNY Arrest", type: "event", x: 480, y: -260,
+    summary: "Arrested at Teterboro returning from Paris. Charged: sex trafficking of minors, conspiracy.",
+    excerpts: [{ source: "SDNY Indictment 19 Cr. 490", text: "Counts I–II; enterprise allegations spanning 2002–2005, NY + FL.", refUrl: REPO_INDEX }] },
+
+  { id: "evt_death", label: "Aug 10 2019 — MCC Death", type: "event", x: 480, y: 260,
+    summary: "Pronounced dead at MCC NY. ME ruled suicide by hanging; defense pathologist disputed.",
+    excerpts: [{ source: "DOJ OIG Report (2023)", text: "Documented systemic BOP failures: no 30-min checks, falsified logs, broken cameras.", refUrl: REPO_INDEX }] },
 ];
 
-const sourceRepos = [
-  {
-    repo: "Nitosd1824/epstein-files",
-    desc: "Raw mirror of the released Epstein document set — court exhibits, flight logs, address books, deposition transcripts, scanned correspondence.",
-    url: "https://github.com/Nitosd1824/epstein-files",
-  },
-  {
-    repo: "ishumilin/epstein-chat",
-    desc: "Structured email + message corpus extracted from the released archive — searchable JSON of correspondence between Epstein, Maxwell, and the network.",
-    url: "https://github.com/ishumilin/epstein-chat",
-  },
-];
+const EDGES: EEdge[] = [
+  ["jee","gmx","co-conspirator (USA v. Maxwell)"], ["jee","lkn","employer / pilot"],
+  ["jee","wjc","contact book + flight log"], ["jee","djt","contact book + early NY/FL legs"],
+  ["jee","pa","named in Giuffre filings"], ["jee","lwk","power of attorney 1991"],
+  ["jee","vrg","named in civil filings"], ["jee","lsj","owner / situs"],
+  ["jee","nyt","owner (transferred from Wexner)"], ["jee","pbh","owner"],
+  ["jee","zr","owner"], ["jee","par","tenant"],
+  ["jee","n908je","owner"], ["jee","n212je","owner"],
+  ["jee","fsi","beneficial owner"], ["lwk","lbr","founder"], ["lwk","nyt","prior owner"],
+  ["jee","mit","donor"], ["gmx","pa","alleged trafficking nexus"],
+  ["gmx","vrg","alleged recruiter"], ["lkn","n908je","chief pilot"],
+  ["wjc","n908je","passenger entries"], ["pa","lsj","alleged visits"],
+  ["djt","n908je","passenger entries (90s)"],
+  ["jee","evt_npa","subject"], ["jee","evt_arr","subject"], ["jee","evt_death","subject"],
+  ["doc_house","jee","corpus references"], ["doc_doj","jee","corpus references"],
+  ["doc_chat","jee","corpus references"], ["doc_files","jee","corpus references"],
+  ["doc_doj","n908je","flight logs"], ["doc_doj","gmx","proffer audio"],
+  ["doc_house","lwk","email mentions"], ["doc_house","mit","email mentions"],
+].map(([s,t,l]) => ({ source: s, target: t, label: l }));
 
-const corpusStats = [
-  { label: "Documents Indexed", value: "33,295" },
-  { label: "Named Entities Extracted", value: "1,847" },
-  { label: "Emails / Messages Parsed", value: "12,430" },
-  { label: "Flight Manifest Entries", value: "1,021" },
-  { label: "Geo-Located Properties", value: "7" },
-  { label: "Deposition Transcripts", value: "92" },
-];
-
-const properties = [
-  { name: "Little St. James Island", loc: "U.S. Virgin Islands", role: "Primary compound — guest house, temple structure, dock.", icon: MapPin },
-  { name: "Great St. James Island", loc: "U.S. Virgin Islands", role: "Adjacent island — construction phase, undeveloped guest cabanas.", icon: MapPin },
-  { name: "Zorro Ranch", loc: "Stanley, New Mexico", role: "10,000-acre ranch — main lodge with airstrip, guest cottages.", icon: Building2 },
-  { name: "9 East 71st Street", loc: "Manhattan, NY", role: "Former Wexner mansion — 21,000 sq ft, transferred 1996 for $0 documented consideration.", icon: Building2 },
-  { name: "358 El Brillo Way", loc: "Palm Beach, FL", role: "Origin of 2005 Palm Beach PD investigation. Demolished 2021.", icon: Building2 },
-  { name: "Avenue Foch Apartment", loc: "Paris, France", role: "Unit on one of Paris's most exclusive avenues. Searched by French authorities 2019.", icon: Building2 },
-  { name: "Ranch in Stanley", loc: "New Mexico (secondary parcel)", role: "Adjacent landholding — never publicly disclosed in court filings.", icon: Building2 },
-];
-
-const aircraft = [
-  { tail: "N908JE", type: "Boeing 727-200 'Lolita Express'", note: "Primary long-haul — international flights, most-cited in manifests." },
-  { tail: "N909JE", type: "Gulfstream IV", note: "Mid-range jet — domestic transfers between FL, NY, NM, USVI." },
-  { tail: "N212JE", type: "Cessna 421", note: "Island-hopper — STT to Little St. James shuttle." },
-  { tail: "N474AW", type: "Bell 430 Helicopter", note: "STT-to-island rotor — circumvents commercial flight records." },
-];
-
-const associates = [
-  { name: "Ghislaine Maxwell", role: "Convicted co-conspirator (2021). 20-year federal sentence.", tag: "convicted" },
-  { name: "Jean-Luc Brunel", role: "Modeling agent (MC2). Found dead in French custody, Feb 2022.", tag: "deceased" },
-  { name: "Sarah Kellen", role: "Personal scheduler / 'Maxwell's lieutenant'. Granted non-prosecution under 2008 Acosta deal.", tag: "immunity" },
-  { name: "Nadia Marcinkova", role: "Co-conspirator named in non-prosecution agreement.", tag: "immunity" },
-  { name: "Adriana Ross", role: "Co-conspirator named in non-prosecution agreement.", tag: "immunity" },
-  { name: "Lesley Groff", role: "Co-conspirator named in non-prosecution agreement.", tag: "immunity" },
-  { name: "Leslie Wexner", role: "L Brands founder. Sole client of Epstein financial empire 1986–2007. Transferred 9 E 71st mansion.", tag: "financial" },
-  { name: "Prince Andrew", role: "Settled Giuffre civil suit 2022 (~$12M). Stripped of military titles.", tag: "civil" },
-  { name: "Bill Clinton", role: "26+ Lolita Express flights per logs. Visited Little St. James (per Giuffre deposition).", tag: "manifest" },
-  { name: "Donald Trump", role: "Photographed with Epstein 1992–2000. Mar-a-Lago birthday album entries. Banned Epstein from MAL post-2004.", tag: "manifest" },
-  { name: "Alan Dershowitz", role: "2008 plea deal architect. Named in Giuffre filings; later partially retracted.", tag: "legal" },
-  { name: "Les Wexner / L Brands", role: "Power-of-attorney granted to Epstein 1991. Source of the bulk of Epstein's known wealth.", tag: "financial" },
-  { name: "Glenn Dubin", role: "Hedge fund (Highbridge). Flight log appearances. Cited in Maria Farmer affidavit.", tag: "financial" },
-  { name: "Leon Black", role: "Apollo Global Mgmt. Paid Epstein ~$158M for tax advice 2012–2017 (Dechert report).", tag: "financial" },
-  { name: "Bill Gates", role: "Met Epstein 2011–2014 post-conviction. Multiple NYC residence visits documented.", tag: "post2008" },
-  { name: "Stephen Hawking", role: "2006 Little St. James science gathering — appears in 2014 unsealed manifest.", tag: "manifest" },
-  { name: "Kevin Spacey", role: "2002 Africa trip aboard N908JE with Clinton + Epstein.", tag: "manifest" },
-  { name: "Naomi Campbell", role: "Birthday party attendee — Paris and NYC residences.", tag: "social" },
-  { name: "Ehud Barak", role: "Former Israeli PM. Multiple documented visits to NY mansion 2013–2017.", tag: "post2008" },
-];
-
-const emailSignals = [
-  { code: "MM", meaning: "Recurring shorthand referenced across 200+ emails — preliminary linguistic clustering points to a repeat-use scheduling token." },
-  { code: "the chef", meaning: "Non-literal reference appearing in 41 emails coordinated around incoming-guest dates." },
-  { code: "tea at 4", meaning: "Recurring scheduling phrase preceding Manhattan-residence visits in 67 messages 2013–2017." },
-  { code: "massage", meaning: "Most-flagged keyword — 1,290+ hits across the corpus. Direct correlation in Palm Beach PD evidence." },
-  { code: "the island", meaning: "Used in lieu of 'Little St. James' in 88% of post-2008 correspondence — suggests deliberate name-avoidance." },
-  { code: "JE", meaning: "Self-reference handle — appears in metadata and signature blocks across 4,200 messages." },
-];
-
-const timeline = [
-  { year: "1953", event: "Jeffrey Edward Epstein born — Coney Island, Brooklyn." },
-  { year: "1974–76", event: "Hired at Dalton School (no degree). Met William Barr's father, Donald Barr (headmaster)." },
-  { year: "1976–81", event: "Bear Stearns — rises from junior trader to limited partner in 5 years." },
-  { year: "1982", event: "Founds J. Epstein & Co. — clients allegedly limited to billionaires only." },
-  { year: "1986", event: "Begins managing Leslie Wexner's personal finances." },
-  { year: "1991", event: "Wexner grants Epstein full power of attorney over his estate." },
-  { year: "1996", event: "Wexner transfers 9 E 71st St mansion to Epstein for $0 documented." },
-  { year: "1998–2005", event: "Lolita Express log period — N908JE registered, hundreds of high-profile flights." },
-  { year: "2005", event: "Palm Beach PD opens investigation following parent of 14-year-old victim's complaint." },
-  { year: "2008", event: "Acosta non-prosecution agreement — 13-month state sentence, 18-hour-day work release." },
-  { year: "2015", event: "Virginia Giuffre files civil suit against Maxwell — Prince Andrew named." },
-  { year: "Jul 6, 2019", event: "Federal sex trafficking arrest — Teterboro Airport." },
-  { year: "Aug 10, 2019", event: "Found dead — MCC Manhattan. Cameras malfunctioned. Guards asleep." },
-  { year: "Dec 29, 2021", event: "Ghislaine Maxwell convicted — 5 of 6 federal charges." },
-  { year: "Jan 2024", event: "First Doe documents unsealed — 943 pages, 187 names." },
-  { year: "2024–2025", event: "Phased document releases continue — flight logs, depositions, financial transfers." },
-];
-
-const flightStats = [
-  { metric: "Total logged flights", value: "1,021" },
-  { metric: "Bill Clinton entries", value: "26 (per logs); 17 (per Secret Service)" },
-  { metric: "Prince Andrew entries", value: "11" },
-  { metric: "Trump entries", value: "7 (all pre-2004)" },
-  { metric: "Unique passengers", value: "412" },
-  { metric: "Most-flown route", value: "TIST (USVI) ↔ KPBI (Palm Beach)" },
-  { metric: "International destinations", value: "37 countries" },
-  { metric: "Aircraft used", value: "4 (N908JE, N909JE, N212JE, N474AW)" },
-];
-
-const tagColor: Record<string, string> = {
-  convicted: "bg-destructive/10 text-destructive border-destructive/20",
-  deceased: "bg-muted/20 text-muted-foreground border-border/30",
-  immunity: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-  financial: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  civil: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  manifest: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  legal: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  post2008: "bg-pink-500/10 text-pink-400 border-pink-500/20",
-  social: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+const TYPE_META: Record<NodeType, { accent: string; label: string; Icon: typeof Users }> = {
+  person:   { accent: "hsl(265, 60%, 65%)", label: "Person",   Icon: Users },
+  org:      { accent: "hsl(200, 55%, 60%)", label: "Org",      Icon: Building2 },
+  place:    { accent: "hsl(160, 45%, 55%)", label: "Place",    Icon: MapPin },
+  aircraft: { accent: "hsl(40, 70%, 60%)",  label: "Aircraft", Icon: Plane },
+  document: { accent: "hsl(0, 0%, 78%)",    label: "Document", Icon: FileText },
+  event:    { accent: "hsl(0, 55%, 62%)",   label: "Event",    Icon: Calendar },
 };
 
-const EpsteinFiles = () => {
+const NODE_W = 150;
+const NODE_H = 44;
+
+export default function EpsteinFiles() {
   useEffect(() => {
-    document.title = "Epstein Files — Aureon Intelligence Dossier";
+    document.title = "Epstein Files — Intel Map | Aureon";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) {
-      meta.setAttribute(
-        "content",
-        "Aureon Intelligence Stack analyzes the released Epstein file corpus — flight logs, emails, depositions, address books — connecting names, dates, properties and financial flows.",
-      );
-    }
+    const desc = "Interactive entity graph of the Epstein files: persons, places, aircraft, documents and events stitched from DOJ, FBI, House Oversight and public mirrors.";
+    if (meta) meta.setAttribute("content", desc);
+    else { const m = document.createElement("meta"); m.name = "description"; m.content = desc; document.head.appendChild(m); }
+  }, []);
+
+  const [scale, setScale] = useState(0.9);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [selected, setSelected] = useState<string | null>("jee");
+  const [filter, setFilter] = useState<NodeType | "all">("all");
+  const dragRef = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
+
+  const visibleNodes = useMemo(
+    () => filter === "all" ? NODES : NODES.filter(n => n.type === filter || n.id === "jee"),
+    [filter]
+  );
+  const visibleIds = useMemo(() => new Set(visibleNodes.map(n => n.id)), [visibleNodes]);
+  const visibleEdges = useMemo(
+    () => EDGES.filter(e => visibleIds.has(e.source) && visibleIds.has(e.target)),
+    [visibleIds]
+  );
+
+  const nodeMap = useMemo(() => Object.fromEntries(NODES.map(n => [n.id, n])) as Record<string, ENode>, []);
+  const selectedNode = selected ? nodeMap[selected] : null;
+  const selectedEdges = useMemo(
+    () => selected ? EDGES.filter(e => e.source === selected || e.target === selected) : [],
+    [selected]
+  );
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    dragRef.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
+  }, [pan]);
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragRef.current) return;
+    setPan({ x: dragRef.current.px + (e.clientX - dragRef.current.x), y: dragRef.current.py + (e.clientY - dragRef.current.y) });
+  }, []);
+  const onMouseUp = useCallback(() => { dragRef.current = null; }, []);
+  const onWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    setScale(s => Math.max(0.35, Math.min(2.2, s * (e.deltaY < 0 ? 1.1 : 0.9))));
   }, []);
 
   return (
     <LandingBackground>
       <Header />
-
-      {/* Back link */}
-      <div className="relative z-10 pt-24 px-6">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-xs font-light tracking-wide text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Home
-        </Link>
-      </div>
-
-      {/* Hero */}
-      <section className="relative z-10 flex min-h-[60vh] flex-col items-center justify-center px-6 pt-8 text-center">
-        <div className="rounded-full border border-destructive/30 bg-destructive/5 backdrop-blur-md px-4 py-1.5 mb-8">
-          <span className="text-[10px] font-light tracking-[0.3em] text-destructive uppercase">
-            🔴 Eyes Only — Investigative Dossier
-          </span>
+      <main className="relative z-10 pt-20 pb-10 px-4 md:px-8 max-w-[1600px] mx-auto">
+        {/* Header */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">
+            <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+            <span>Classified · Public Domain Aggregate · Intel Map</span>
+          </div>
+          <h1 className="mt-2 text-3xl md:text-5xl font-light tracking-tight">
+            Epstein Files <span className="text-destructive">Intel Map</span>
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm md:text-base text-muted-foreground">
+            Click any node for the underlying excerpts, document refs, and edges. Sources: House Oversight (Nov 2025),
+            DOJ First Phase Declassification (Dec 2025), FBI &amp; CBP releases, plus public mirrors.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <a href={REPO_INDEX} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-card/50 backdrop-blur border border-border/50 hover:bg-card/80"><Github className="w-3 h-3" /> FULL_EPSTEIN_INDEX</a>
+            <a href={REPO_FILES} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-card/50 backdrop-blur border border-border/50 hover:bg-card/80"><Github className="w-3 h-3" /> Nitosd1824/epstein-files</a>
+            <a href={REPO_CHAT} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-card/50 backdrop-blur border border-border/50 hover:bg-card/80"><Github className="w-3 h-3" /> ishumilin/epstein-chat</a>
+            <a href={HF_DATASET} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-card/50 backdrop-blur border border-border/50 hover:bg-card/80"><Database className="w-3 h-3" /> HuggingFace dataset</a>
+            <a href={DRIVE_RAW} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-card/50 backdrop-blur border border-border/50 hover:bg-card/80"><ExternalLink className="w-3 h-3" /> Raw archive (Drive)</a>
+          </div>
         </div>
-        <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
-          The Epstein Files
-          <br />
-          <span className="text-muted-foreground">Connected.</span>
-        </h1>
-        <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground">
-          Every page of the released Epstein corpus — flight logs, emails, depositions, the black book — ingested,
-          parsed, geo-located and graphed by the full Aureon intelligence stack. Names, dates, properties,
-          financial flows, and the recurring shorthand inside the correspondence. Connecting the dots that the
-          official narrative leaves disconnected.
-        </p>
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <Link
-            to="/feature/zophiel"
-            className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90"
+
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground mr-2"><Network className="w-3.5 h-3.5" /> Filter</div>
+          {(["all","person","org","place","aircraft","document","event"] as const).map(t => (
+            <button key={t} onClick={() => setFilter(t)}
+              className={`text-xs px-2.5 py-1 rounded-md border transition ${filter===t ? "bg-foreground text-background border-foreground" : "bg-card/40 border-border/50 hover:bg-card/70"}`}>
+              {t === "all" ? "All" : TYPE_META[t].label}
+            </button>
+          ))}
+          <div className="ml-auto flex gap-1">
+            <button onClick={() => setScale(s => Math.min(2.2, s*1.15))} className="p-1.5 rounded-md bg-card/50 border border-border/50 hover:bg-card/80"><ZoomIn className="w-4 h-4" /></button>
+            <button onClick={() => setScale(s => Math.max(0.35, s/1.15))} className="p-1.5 rounded-md bg-card/50 border border-border/50 hover:bg-card/80"><ZoomOut className="w-4 h-4" /></button>
+            <button onClick={() => { setScale(0.9); setPan({x:0,y:0}); }} className="p-1.5 rounded-md bg-card/50 border border-border/50 hover:bg-card/80"><RotateCcw className="w-4 h-4" /></button>
+          </div>
+        </div>
+
+        {/* Graph + Dossier */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-3">
+          {/* Graph */}
+          <div
+            className="relative h-[72vh] rounded-2xl border border-border/50 bg-background/40 backdrop-blur overflow-hidden cursor-grab active:cursor-grabbing"
+            onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp} onWheel={onWheel}
           >
-            Run Your Own Investigation
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-          <Link
-            to="/pricing"
-            className="rounded-xl border border-border/30 px-8 py-3 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/5"
-          >
-            Get Access
-          </Link>
-        </div>
-      </section>
-
-      {/* Source Repos */}
-      <section className="relative z-10 px-6 py-16">
-        <div className="mx-auto max-w-4xl text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-3">
-            Public Source Corpus
-          </h2>
-          <p className="text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
-            Indexed live from these open mirrors. All data shown below derives from the released public record.
-          </p>
-        </div>
-        <div className="mx-auto max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4">
-          {sourceRepos.map((s) => (
-            <a
-              key={s.repo}
-              href={s.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 transition-all hover:border-accent/30 hover:bg-card/30"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <Github className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-light tracking-wide text-foreground">{s.repo}</span>
-              </div>
-              <p className="text-xs font-extralight text-muted-foreground leading-relaxed">{s.desc}</p>
-            </a>
-          ))}
-        </div>
-      </section>
-
-      {/* Corpus Stats */}
-      <section className="relative z-10 px-6 py-16">
-        <div className="mx-auto max-w-5xl">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {corpusStats.map((s) => (
-              <div
-                key={s.label}
-                className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-5 text-center"
-              >
-                <div className="text-xl sm:text-2xl font-extralight tracking-wide text-foreground">
-                  {s.value}
+            <svg className="absolute inset-0 w-full h-full select-none">
+              <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="hsl(var(--muted-foreground))" opacity="0.5" />
+                </marker>
+                <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                  <path d="M 32 0 L 0 0 0 32" fill="none" stroke="hsl(var(--border))" strokeWidth="0.4" opacity="0.3"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+              <g transform={`translate(${pan.x + 700}, ${pan.y + 360}) scale(${scale})`}>
+                {/* Edges */}
+                {visibleEdges.map((e, i) => {
+                  const a = nodeMap[e.source], b = nodeMap[e.target];
+                  if (!a || !b) return null;
+                  const isHot = selected && (e.source === selected || e.target === selected);
+                  return (
+                    <g key={i} opacity={selected && !isHot ? 0.18 : 0.7}>
+                      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                        stroke={isHot ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground))"}
+                        strokeWidth={isHot ? 1.6 : 0.9} markerEnd="url(#arrow)" />
+                    </g>
+                  );
+                })}
+                {/* Nodes */}
+                {visibleNodes.map(n => {
+                  const meta = TYPE_META[n.type];
+                  const Icon = meta.Icon;
+                  const isSel = selected === n.id;
+                  return (
+                    <g key={n.id} transform={`translate(${n.x},${n.y})`} className="cursor-pointer"
+                      onClick={(ev) => { ev.stopPropagation(); setSelected(n.id); }}>
+                      <rect x={-NODE_W/2} y={-NODE_H/2} width={NODE_W} height={NODE_H} rx={10}
+                        fill="hsl(var(--card))" stroke={isSel ? "hsl(var(--foreground))" : "hsl(var(--border))"} strokeWidth={isSel ? 2 : 1} />
+                      <rect x={-NODE_W/2} y={-NODE_H/2} width={4} height={NODE_H} rx={2} fill={meta.accent} />
+                      <foreignObject x={-NODE_W/2 + 10} y={-NODE_H/2} width={NODE_W - 14} height={NODE_H}>
+                        <div className="h-full w-full flex items-center gap-2 px-1">
+                          <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: meta.accent }} />
+                          <div className="text-[11px] leading-tight font-medium text-foreground truncate">{n.label}</div>
+                        </div>
+                      </foreignObject>
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+            {/* Legend */}
+            <div className="absolute bottom-3 left-3 flex flex-wrap gap-2 text-[10px] text-muted-foreground bg-background/60 backdrop-blur rounded-md px-2 py-1.5 border border-border/40">
+              {(Object.keys(TYPE_META) as NodeType[]).map(t => (
+                <div key={t} className="flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-sm" style={{ background: TYPE_META[t].accent }} />
+                  {TYPE_META[t].label}
                 </div>
-                <div className="mt-1 text-[10px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">
-                  {s.label}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
 
-      {/* Aureon Stack */}
-      <section className="relative z-10 px-6 py-24">
-        <div className="mx-auto max-w-4xl text-center mb-16">
-          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
-            The Aureon Intelligence Stack — Applied
-          </h2>
-          <p className="text-sm font-extralight text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Eight purpose-built modules running in parallel against the corpus. Each one isolates a different
-            signal layer; the convergence between them is where the real names surface.
-          </p>
-        </div>
-        <div className="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {aureonModules.map((m) => (
-            <Link
-              key={m.title}
-              to={m.link}
-              className="group rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 transition-all hover:border-accent/30 hover:bg-card/30"
-            >
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 border border-accent/20">
-                <m.icon className="h-4 w-4 text-accent" />
-              </div>
-              <h3 className="text-sm font-light tracking-wide text-foreground mb-2">{m.title}</h3>
-              <p className="text-xs font-extralight text-muted-foreground leading-relaxed">{m.role}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Properties */}
-      <section className="relative z-10 px-6 py-24">
-        <div className="mx-auto max-w-4xl text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-3">
-            Geo-Located Properties
-          </h2>
-          <p className="text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
-            Every fixed location referenced in the corpus, mapped through Oracle Locus.
-          </p>
-        </div>
-        <div className="mx-auto max-w-4xl space-y-3">
-          {properties.map((p) => (
-            <div
-              key={p.name}
-              className="flex items-start gap-4 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-5"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 border border-accent/20">
-                <p.icon className="h-4 w-4 text-accent" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-x-3">
-                  <p className="text-sm font-light text-foreground">{p.name}</p>
-                  <span className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">
-                    {p.loc}
-                  </span>
+          {/* Dossier popup */}
+          <aside className="rounded-2xl border border-border/50 bg-background/60 backdrop-blur p-4 h-[72vh] overflow-y-auto">
+            {selectedNode ? (
+              <>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground" style={{ color: TYPE_META[selectedNode.type].accent }}>
+                      {TYPE_META[selectedNode.type].label}
+                    </div>
+                    <h2 className="text-lg font-semibold leading-tight">{selectedNode.label}</h2>
+                  </div>
+                  <button onClick={() => setSelected(null)} className="p-1 rounded-md hover:bg-card/70"><X className="w-4 h-4" /></button>
                 </div>
-                <p className="text-xs font-extralight text-muted-foreground mt-1 leading-relaxed">{p.role}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+                <p className="text-sm text-muted-foreground leading-relaxed">{selectedNode.summary}</p>
 
-      {/* Aircraft */}
-      <section className="relative z-10 px-6 py-24">
-        <div className="mx-auto max-w-4xl text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-3">
-            Aircraft Registry
-          </h2>
-          <p className="text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
-            The four tail numbers that appear across every flight log in the released archive.
-          </p>
-        </div>
-        <div className="mx-auto max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4">
-          {aircraft.map((a) => (
-            <div
-              key={a.tail}
-              className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <Plane className="h-4 w-4 text-accent" />
-                <span className="text-sm font-light tracking-[0.15em] text-foreground">{a.tail}</span>
-                <span className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">
-                  {a.type}
-                </span>
+                {selectedNode.excerpts && selectedNode.excerpts.length > 0 && (
+                  <section className="mt-4">
+                    <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2 flex items-center gap-1"><Mail className="w-3 h-3" /> Excerpts &amp; Records</div>
+                    <div className="space-y-2">
+                      {selectedNode.excerpts.map((x, i) => (
+                        <div key={i} className="rounded-md border border-border/40 bg-card/40 p-2.5">
+                          <div className="text-[10px] text-muted-foreground mb-1 flex items-center justify-between">
+                            <span className="truncate">{x.source}{x.date ? ` · ${x.date}` : ""}</span>
+                            {x.refUrl && <a href={x.refUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 hover:text-foreground"><ExternalLink className="w-3 h-3" /></a>}
+                          </div>
+                          <div className="text-xs leading-relaxed text-foreground/90">{x.text}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {selectedNode.refs && selectedNode.refs.length > 0 && (
+                  <section className="mt-4">
+                    <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Sources</div>
+                    <div className="flex flex-col gap-1">
+                      {selectedNode.refs.map((r, i) => (
+                        <a key={i} href={r.url} target="_blank" rel="noreferrer" className="text-xs inline-flex items-center gap-1 text-foreground/90 hover:text-foreground">
+                          <ExternalLink className="w-3 h-3" /> {r.label}
+                        </a>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                <section className="mt-4">
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2 flex items-center gap-1"><Network className="w-3 h-3" /> Connections ({selectedEdges.length})</div>
+                  <div className="space-y-1">
+                    {selectedEdges.map((e, i) => {
+                      const otherId = e.source === selected ? e.target : e.source;
+                      const other = nodeMap[otherId];
+                      if (!other) return null;
+                      const meta = TYPE_META[other.type];
+                      return (
+                        <button key={i} onClick={() => setSelected(otherId)}
+                          className="w-full text-left rounded-md border border-border/40 bg-card/30 hover:bg-card/60 p-2 transition">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: meta.accent }} />
+                            <div className="text-xs font-medium truncate">{other.label}</div>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5">{e.label}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              </>
+            ) : (
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground text-center px-4">
+                Select a node to open its dossier.
               </div>
-              <p className="text-xs font-extralight text-muted-foreground leading-relaxed">{a.note}</p>
-            </div>
-          ))}
+            )}
+          </aside>
         </div>
 
-        {/* Flight stats grid */}
-        <div className="mx-auto max-w-4xl mt-8 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md overflow-hidden">
-          {flightStats.map((row, i) => (
-            <div
-              key={row.metric}
-              className={`flex items-center justify-between px-6 py-4 ${
-                i < flightStats.length - 1 ? "border-b border-border/10" : ""
-              }`}
-            >
-              <span className="text-xs font-light text-muted-foreground">{row.metric}</span>
-              <span className="text-xs font-light text-foreground text-right max-w-[60%]">{row.value}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Named Network */}
-      <section className="relative z-10 px-6 py-24">
-        <div className="mx-auto max-w-4xl text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-3">
-            The Named Network
-          </h2>
-          <p className="text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
-            Entities surfaced by the entity-graph pass — every name with a court filing, deposition, or
-            manifest entry attached.
-          </p>
-        </div>
-        <div className="mx-auto max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-3">
-          {associates.map((a) => (
-            <div
-              key={a.name}
-              className="flex items-start gap-3 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-5"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <p className="text-sm font-light text-foreground">{a.name}</p>
-                  <span
-                    className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-light tracking-[0.15em] uppercase ${tagColor[a.tag] || tagColor.social}`}
-                  >
-                    {a.tag}
-                  </span>
-                </div>
-                <p className="text-xs font-extralight text-muted-foreground leading-relaxed">{a.role}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="mx-auto max-w-3xl mt-8 text-center text-[10px] font-light tracking-[0.2em] text-muted-foreground/40 uppercase">
-          Source: Doe-1 unsealing (Jan 2024) · Giuffre v. Maxwell exhibits · Lolita Express manifests · DOJ filings
+        <p className="mt-4 text-[11px] text-muted-foreground max-w-4xl">
+          Disclaimer: Aggregated from public domain government releases and public mirrors. Many entries contain unverified
+          allegations, OCR noise, or redactions. Treat all victim information with care; do not present raw evidence as
+          established fact without corroboration.
         </p>
-      </section>
-
-      {/* Email Signals */}
-      <section className="relative z-10 px-6 py-24">
-        <div className="mx-auto max-w-4xl text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <Mail className="h-4 w-4 text-accent" />
-            <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground">
-              Linguistic Signals — Emails & Letters
-            </h2>
-          </div>
-          <p className="text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
-            Pattern Analysis surfaces the recurring shorthand and code-language inside the correspondence
-            corpus. Frequency counts derive from the ishumilin/epstein-chat dataset.
-          </p>
-        </div>
-        <div className="mx-auto max-w-4xl space-y-3">
-          {emailSignals.map((s) => (
-            <div
-              key={s.code}
-              className="flex items-start gap-4 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-5"
-            >
-              <div className="shrink-0 rounded-lg border border-accent/20 bg-accent/5 px-3 py-1.5">
-                <span className="text-xs font-light tracking-[0.15em] text-accent">"{s.code}"</span>
-              </div>
-              <p className="text-xs font-extralight text-muted-foreground leading-relaxed flex-1">
-                {s.meaning}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Timeline */}
-      <section className="relative z-10 px-6 py-24">
-        <div className="mx-auto max-w-4xl text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-3">
-            Operational Timeline
-          </h2>
-          <p className="text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
-            Reconstructed by Predictive Intelligence from court filings, FBI 302s, and SEC records.
-          </p>
-        </div>
-        <div className="mx-auto max-w-3xl space-y-3">
-          {timeline.map((e, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-4 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-5"
-            >
-              <div className="shrink-0 w-24">
-                <span className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">
-                  {e.year}
-                </span>
-              </div>
-              <p className="text-sm font-extralight text-foreground/90 leading-relaxed flex-1">{e.event}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* The Open Question */}
-      <section className="relative z-10 px-6 py-24">
-        <div className="mx-auto max-w-3xl">
-          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 backdrop-blur-md p-8 sm:p-12">
-            <div className="flex items-center gap-3 mb-6">
-              <Skull className="h-5 w-5 text-destructive" />
-              <h2 className="text-lg font-light tracking-wide text-foreground">The Open Question</h2>
-            </div>
-            <div className="space-y-4 text-sm font-extralight leading-relaxed text-muted-foreground">
-              <p>
-                Where did the money come from. Forensic accountants have never reconciled Epstein's reported
-                wealth ($577M+ at death) against any documented client base outside Wexner. The
-                "money-manager-to-billionaires" cover story has zero corroborating client list.
-              </p>
-              <p className="text-foreground font-light">
-                The corpus shows a logistics operation. The financials show an intelligence operation.
-              </p>
-              <p>
-                Aureon's NOMAD pass on the financial trail surfaces three open threads: the 1996 mansion
-                transfer (zero recorded consideration), the Apollo $158M payment (described by Apollo's own
-                Dechert-led internal review as "tax advice"), and the Hyperion / DB Trust offshore vehicle
-                routings post-2008. None of the three reconcile under standard money-management practice.
-              </p>
-              <p className="text-xs text-muted-foreground/60 mt-6">
-                Continue the trace inside Aureon: open Zophiel Search → query "Apollo Dechert Epstein 158M" →
-                run Intel Map → attach to a Notebook for the full audit.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="relative z-10 px-6 py-24">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
-            Run Your Own Pass
-          </h2>
-          <p className="text-sm font-extralight text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-10">
-            This dossier is the static surface. The full corpus is queryable inside the Aureon stack —
-            entity graphs, geo-maps, financial trails, and the email body text are all addressable from
-            Zophiel Search, NOMAD, and Notebooks.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link
-              to="/zophiel"
-              className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90"
-            >
-              Open Zophiel Search
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-            <Link
-              to="/feature/nomad"
-              className="rounded-xl border border-border/30 px-8 py-3 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/5"
-            >
-              NOMAD Dossier Builder
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <div className="h-24" />
+      </main>
     </LandingBackground>
   );
-};
-
-export default EpsteinFiles;
+}
