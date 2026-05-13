@@ -65,7 +65,7 @@ export async function callByokJson(
       });
     case 'openai':
       return callOpenAICompat('https://api.openai.com/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, jsonMode,
+        timeoutMs, temperature, maxOutputTokens, jsonMode,
       });
     case 'anthropic':
       return callAnthropic(cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
@@ -73,20 +73,20 @@ export async function callByokJson(
       });
     case 'xai':
       return callOpenAICompat('https://api.x.ai/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, jsonMode,
+        timeoutMs, temperature, maxOutputTokens, jsonMode,
       });
     case 'deepseek':
       return callOpenAICompat('https://api.deepseek.com/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, jsonMode,
+        timeoutMs, temperature, maxOutputTokens, jsonMode,
       });
     case 'mistral':
       return callOpenAICompat('https://api.mistral.ai/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, jsonMode,
+        timeoutMs, temperature, maxOutputTokens, jsonMode,
       });
     case 'perplexity':
       // Perplexity does not honor response_format=json_object; rely on prompt discipline.
       return callOpenAICompat('https://api.perplexity.ai', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, jsonMode: false,
+        timeoutMs, temperature, maxOutputTokens, jsonMode: false,
       });
     default:
       throw new Error(`unsupported_byok_provider_${(cfg as { provider: string }).provider}`);
