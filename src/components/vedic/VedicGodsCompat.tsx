@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles, Crown, Skull, Flame, Coins, Infinity as InfinityIcon } from "lucide-react";
-import { matchMythology, computePowers, type Match } from "@/lib/vedic/mythologyMatch";
+import {
+  matchMythology, computePowers,
+  matchMythologyFromChart, computePowersFromChart,
+  type Match, type ChartPlacement,
+} from "@/lib/vedic/mythologyMatch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
