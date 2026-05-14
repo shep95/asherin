@@ -1174,6 +1174,17 @@ const VedicAstrologyView = () => {
           </div>
         )}
 
+        {chart && birthDate && (
+          <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-2 sm:p-4">
+            <div className="flex items-center gap-2 border-b border-border/15 pb-3 px-3 pt-2">
+              <Crown className="h-4 w-4 text-foreground/70" />
+              <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Mythological Archetype — Greek &amp; Roman Gods / Monsters</h3>
+              <span className="text-[10px] font-light text-muted-foreground/70 italic ml-auto">Deterministic · derived from house placements</span>
+            </div>
+            <VedicGodsCompat defaultDate={birthDate} hideHeader />
+          </div>
+        )}
+
         {chart && <WealthHousesPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} />}
 
         {chart && <SwvPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} label={activeName || undefined} />}
