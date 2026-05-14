@@ -35,16 +35,28 @@ const Row = ({ m }: { m: Match }) => (
 );
 
 interface Props {
-  defaultDate?: string; // YYYY-MM-DD
+  defaultDate?: string;
   hideHeader?: boolean;
+  ascendantSidDeg?: number;
+  placements?: ChartPlacement[];
 }
 
-const VedicGodsCompat = ({ defaultDate = "", hideHeader = false }: Props) => {
+const VedicGodsCompat = ({ defaultDate = "", hideHeader = false, ascendantSidDeg, placements }: Props) => {
   const [date, setDate] = useState(defaultDate);
   useEffect(() => { if (defaultDate) setDate(defaultDate); }, [defaultDate]);
 
-  const matches = useMemo(() => date ? matchMythology(new Date(date)) : [], [date]);
-  const powers = useMemo(() => date ? computePowers(new Date(date)) : null, [date]);
+  const hasChart = typeof ascendantSidDeg === "number" && Array.isArray(placements) && placements.length > 0;
+
+  const matches = useMemo(() => {
+    if (hasChart) return matchMythologyFromChart(ascendantSidDeg!, placements!);
+    return date ? matchMythology(new Date(date)) : [];
+  }, [hasChart, ascendantSidDeg, placements, date]);
+
+  const powers = useMemo(() => {
+    if (hasChart) return computePowersFromChart(ascendantSidDeg!, placements!);
+    return date ? computePowers(new Date(date)) : null;
+  }, [hasChart, ascendantSidDeg, placements, date]);
+
   const top = matches[0];
   const filterBy = (p: string) => matches.filter((m) => m.pantheon === p).slice(0, 6);
 
