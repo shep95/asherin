@@ -7,7 +7,7 @@ import {
 } from "@/lib/vedic/mythologyMatch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 const PantheonIcon = ({ p }: { p: Match["pantheon"] }) => {
   if (p === "Greek") return <Crown className="h-3.5 w-3.5 text-amber-300/80" strokeWidth={1.5} />;
