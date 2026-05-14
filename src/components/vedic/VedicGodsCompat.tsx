@@ -78,17 +78,24 @@ const VedicGodsCompat = ({ defaultDate = "", hideHeader = false, ascendantSidDeg
           </div>
         )}
 
-        <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-end gap-3 w-full max-w-md">
-          <div className="flex-1">
-            <label className="text-[10px] font-extralight tracking-[0.25em] uppercase text-muted-foreground">Birth Date</label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="mt-1 bg-card/30 border-border/30 backdrop-blur-md" />
+        {!hasChart && (
+          <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-end gap-3 w-full max-w-md">
+            <div className="flex-1">
+              <label className="text-[10px] font-extralight tracking-[0.25em] uppercase text-muted-foreground">Birth Date</label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+                className="mt-1 bg-card/30 border-border/30 backdrop-blur-md" />
+            </div>
+            <Button onClick={() => date && setDate(date)} disabled={!date}
+              className="bg-foreground text-background hover:bg-foreground/90 font-light">
+              Reveal Archetypes
+            </Button>
           </div>
-          <Button onClick={() => date && setDate(date)} disabled={!date}
-            className="bg-foreground text-background hover:bg-foreground/90 font-light">
-            Reveal Archetypes
-          </Button>
-        </div>
+        )}
+        {hasChart && (
+          <div className="mb-6 text-[10px] font-extralight tracking-[0.25em] uppercase text-muted-foreground/70">
+            Derived from live placements · Lagna + 9 grahas across signs &amp; whole-sign houses
+          </div>
+        )}
 
         {top && powers && (
           <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
