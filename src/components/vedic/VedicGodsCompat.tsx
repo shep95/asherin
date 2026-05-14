@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles, Crown, Skull, Flame, Coins, Infinity as InfinityIcon } from "lucide-react";
-import { matchMythology, computePowers, type Match } from "@/lib/vedic/mythologyMatch";
+import {
+  matchMythology, computePowers,
+  matchMythologyFromChart, computePowersFromChart,
+  type Match, type ChartPlacement,
+} from "@/lib/vedic/mythologyMatch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,16 +35,28 @@ const Row = ({ m }: { m: Match }) => (
 );
 
 interface Props {
-  defaultDate?: string; // YYYY-MM-DD
+  defaultDate?: string;
   hideHeader?: boolean;
+  ascendantSidDeg?: number;
+  placements?: ChartPlacement[];
 }
 
-const VedicGodsCompat = ({ defaultDate = "", hideHeader = false }: Props) => {
+const VedicGodsCompat = ({ defaultDate = "", hideHeader = false, ascendantSidDeg, placements }: Props) => {
   const [date, setDate] = useState(defaultDate);
   useEffect(() => { if (defaultDate) setDate(defaultDate); }, [defaultDate]);
 
-  const matches = useMemo(() => date ? matchMythology(new Date(date)) : [], [date]);
-  const powers = useMemo(() => date ? computePowers(new Date(date)) : null, [date]);
+  const hasChart = typeof ascendantSidDeg === "number" && Array.isArray(placements) && placements.length > 0;
+
+  const matches = useMemo(() => {
+    if (hasChart) return matchMythologyFromChart(ascendantSidDeg!, placements!);
+    return date ? matchMythology(new Date(date)) : [];
+  }, [hasChart, ascendantSidDeg, placements, date]);
+
+  const powers = useMemo(() => {
+    if (hasChart) return computePowersFromChart(ascendantSidDeg!, placements!);
+    return date ? computePowers(new Date(date)) : null;
+  }, [hasChart, ascendantSidDeg, placements, date]);
+
   const top = matches[0];
   const filterBy = (p: string) => matches.filter((m) => m.pantheon === p).slice(0, 6);
 
@@ -62,17 +78,24 @@ const VedicGodsCompat = ({ defaultDate = "", hideHeader = false }: Props) => {
           </div>
         )}
 
-        <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-end gap-3 w-full max-w-md">
-          <div className="flex-1">
-            <label className="text-[10px] font-extralight tracking-[0.25em] uppercase text-muted-foreground">Birth Date</label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="mt-1 bg-card/30 border-border/30 backdrop-blur-md" />
+        {!hasChart && (
+          <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-end gap-3 w-full max-w-md">
+            <div className="flex-1">
+              <label className="text-[10px] font-extralight tracking-[0.25em] uppercase text-muted-foreground">Birth Date</label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+                className="mt-1 bg-card/30 border-border/30 backdrop-blur-md" />
+            </div>
+            <Button onClick={() => date && setDate(date)} disabled={!date}
+              className="bg-foreground text-background hover:bg-foreground/90 font-light">
+              Reveal Archetypes
+            </Button>
           </div>
-          <Button onClick={() => date && setDate(date)} disabled={!date}
-            className="bg-foreground text-background hover:bg-foreground/90 font-light">
-            Reveal Archetypes
-          </Button>
-        </div>
+        )}
+        {hasChart && (
+          <div className="mb-6 text-[10px] font-extralight tracking-[0.25em] uppercase text-muted-foreground/70">
+            Derived from live placements · Lagna + 9 grahas across signs &amp; whole-sign houses
+          </div>
+        )}
 
         {top && powers && (
           <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">

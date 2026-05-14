@@ -1174,14 +1174,24 @@ const VedicAstrologyView = () => {
           </div>
         )}
 
-        {chart && birthDate && (
+        {chart && (
           <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-2 sm:p-4">
             <div className="flex items-center gap-2 border-b border-border/15 pb-3 px-3 pt-2">
               <Crown className="h-4 w-4 text-foreground/70" />
               <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Mythological Archetype — Greek &amp; Roman Gods / Monsters</h3>
-              <span className="text-[10px] font-light text-muted-foreground/70 italic ml-auto">Deterministic · derived from house placements</span>
+              <span className="text-[10px] font-light text-muted-foreground/70 italic ml-auto">Deterministic · derived from house, sign &amp; planet placements</span>
             </div>
-            <VedicGodsCompat defaultDate={birthDate} hideHeader />
+            <VedicGodsCompat
+              defaultDate={birthDate}
+              hideHeader
+              ascendantSidDeg={chart.ascendant}
+              placements={chart.planets.map((p) => ({
+                name: p.name,
+                sid: p.sid,
+                house: houseFromAsc(p.sid, chart.ascendant),
+                retrograde: p.retrograde,
+              }))}
+            />
           </div>
         )}
 
