@@ -7,7 +7,7 @@ import {
 } from "@/lib/vedic/mythologyMatch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 const PantheonIcon = ({ p }: { p: Match["pantheon"] }) => {
   if (p === "Greek") return <Crown className="h-3.5 w-3.5 text-amber-300/80" strokeWidth={1.5} />;
@@ -145,30 +145,12 @@ const VedicGodsCompat = ({ defaultDate = "", hideHeader = false, ascendantSidDeg
         )}
 
         {matches.length > 0 && (
-          <Tabs defaultValue="all" className="space-y-6">
-            <TabsList className="bg-card/30 backdrop-blur-md border border-border/20 p-1 rounded-xl">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="greek">Greek Gods</TabsTrigger>
-              <TabsTrigger value="roman">Roman Gods</TabsTrigger>
-              <TabsTrigger value="gmonster">Greek Monsters</TabsTrigger>
-              <TabsTrigger value="rmonster">Roman Monsters</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {matches.slice(0, 12).map((m) => <Row key={m.name} m={m} />)}
-            </TabsContent>
-            <TabsContent value="greek" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filterBy("Greek").map((m) => <Row key={m.name} m={m} />)}
-            </TabsContent>
-            <TabsContent value="roman" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filterBy("Roman").map((m) => <Row key={m.name} m={m} />)}
-            </TabsContent>
-            <TabsContent value="gmonster" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filterBy("Greek-Monster").map((m) => <Row key={m.name} m={m} />)}
-            </TabsContent>
-            <TabsContent value="rmonster" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filterBy("Roman-Monster").map((m) => <Row key={m.name} m={m} />)}
-            </TabsContent>
-          </Tabs>
+          <div className="space-y-4">
+            <div className="text-[10px] font-extralight tracking-[0.3em] uppercase text-muted-foreground/70">Other Resonances</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {matches.slice(1, 10).map((m) => <Row key={m.name} m={m} />)}
+            </div>
+          </div>
         )}
         {!matches.length && (
           <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-10 text-center">
