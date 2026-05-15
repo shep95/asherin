@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Play, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Play, X, Sparkles } from "lucide-react";
 
 const VIDEO_IDS = [
   "bUxrY21xGDw",
@@ -20,8 +20,29 @@ const VIDEO_IDS = [
   "ZecS7rqIkDc",
 ];
 
+interface VideoMeta {
+  title: string;
+  publishedAt?: string; // ISO
+}
+
+const TOPIC_RULES: { topic: string; match: RegExp }[] = [
+  { topic: "AI & Aureon", match: /\b(aureon|ai|gpt|claude|gemini|llm|model|agent|prompt)\b/i },
+  { topic: "Trading & Markets", match: /\b(trade|trading|market|stock|crypto|bitcoin|btc|eth|forex|chart|invest)\b/i },
+  { topic: "Astrology & Vedic", match: /\b(vedic|astrology|chart|nakshatra|zodiac|planet|jyotish|horoscope)\b/i },
+  { topic: "Security & Intelligence", match: /\b(security|osint|intel|hack|cyber|privacy|surveillance|forensic)\b/i },
+  { topic: "Philosophy & Mindset", match: /\b(truth|god|mind|philosophy|life|reality|consciousness|spiritual)\b/i },
+  { topic: "Build & Product", match: /\b(build|launch|release|update|feature|demo|tutorial|how to|how i)\b/i },
+];
+
+function classify(title: string): string {
+  for (const r of TOPIC_RULES) if (r.match.test(title)) return r.topic;
+  return "Other";
+}
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
 const FounderVideos = () => {
-  const [titles, setTitles] = useState<Record<string, string>>({});
+  const [meta, setMeta] = useState<Record<string, VideoMeta>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,20 +50,35 @@ const FounderVideos = () => {
     (async () => {
       const entries = await Promise.all(
         VIDEO_IDS.map(async (id) => {
+          let title = "";
+          let publishedAt: string | undefined;
+          // Title via oEmbed (reliable)
           try {
-            const res = await fetch(
+            const r = await fetch(
               `https://www.youtube.com/oembed?url=https://youtu.be/${id}&format=json`
             );
-            if (!res.ok) return [id, ""] as const;
-            const data = await res.json();
-            return [id, (data?.title as string) || ""] as const;
-          } catch {
-            return [id, ""] as const;
-          }
+            if (r.ok) {
+              const d = await r.json();
+              title = (d?.title as string) || "";
+            }
+          } catch {}
+          // PublishedAt via unofficial no-key YouTube API
+          try {
+            const r = await fetch(
+              `https://yt.lemnoslife.com/noKey/videos?part=snippet&id=${id}`
+            );
+            if (r.ok) {
+              const d = await r.json();
+              const item = d?.items?.[0]?.snippet;
+              if (item?.publishedAt) publishedAt = item.publishedAt as string;
+              if (!title && item?.title) title = item.title as string;
+            }
+          } catch {}
+          return [id, { title, publishedAt }] as const;
         })
       );
       if (cancelled) return;
-      setTitles(Object.fromEntries(entries));
+      setMeta(Object.fromEntries(entries));
     })();
     return () => {
       cancelled = true;
@@ -62,41 +98,98 @@ const FounderVideos = () => {
     };
   }, [activeId]);
 
+  const { newIds, branches } = useMemo(() => {
+    const now = Date.now();
+    const newIds: string[] = [];
+    const branchesMap = new Map<string, string[]>();
+    for (const id of VIDEO_IDS) {
+      const m = meta[id];
+      const t = m?.title || "";
+      if (m?.publishedAt) {
+        const ts = new Date(m.publishedAt).getTime();
+        if (!isNaN(ts) && now - ts <= SEVEN_DAYS_MS) newIds.push(id);
+      }
+      const topic = classify(t);
+      if (!branchesMap.has(topic)) branchesMap.set(topic, []);
+      branchesMap.get(topic)!.push(id);
+    }
+    // Sort branches: known order first, "Other" last
+    const order = [...TOPIC_RULES.map((r) => r.topic), "Other"];
+    const branches = order
+      .filter((t) => branchesMap.has(t))
+      .map((t) => ({ topic: t, ids: branchesMap.get(t)! }));
+    return { newIds, branches };
+  }, [meta]);
+
+  const renderCard = (id: string) => (
+    <button
+      key={id}
+      type="button"
+      onClick={() => setActiveId(id)}
+      className="group text-left rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/30 transition-all hover:border-foreground/30 hover:bg-card/50"
+    >
+      <div className="relative aspect-video overflow-hidden bg-background">
+        <img
+          src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
+          alt={meta[id]?.title || "Founder video"}
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/50 backdrop-blur-md transition-all group-hover:scale-110 group-hover:bg-black/70">
+            <Play className="h-5 w-5 text-white" strokeWidth={1.5} fill="currentColor" />
+          </div>
+        </div>
+      </div>
+      <div className="p-4">
+        <p className="text-sm font-light leading-snug text-foreground line-clamp-2 min-h-[2.5rem]">
+          {meta[id]?.title || "Loading…"}
+        </p>
+        <p className="mt-2 text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/50 uppercase">
+          Asher Newton
+        </p>
+      </div>
+    </button>
+  );
+
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {VIDEO_IDS.map((id) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setActiveId(id)}
-            className="group text-left rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/30 transition-all hover:border-foreground/30 hover:bg-card/50"
-          >
-            <div className="relative aspect-video overflow-hidden bg-background">
-              <img
-                src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
-                alt={titles[id] || "Founder video"}
-                loading="lazy"
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/50 backdrop-blur-md transition-all group-hover:scale-110 group-hover:bg-black/70">
-                  <Play className="h-5 w-5 text-white" strokeWidth={1.5} fill="currentColor" />
-                </div>
-              </div>
-            </div>
-            <div className="p-4">
-              <p className="text-sm font-light leading-snug text-foreground line-clamp-2 min-h-[2.5rem]">
-                {titles[id] || "Loading…"}
-              </p>
-              <p className="mt-2 text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/50 uppercase">
-                Asher Newton
-              </p>
-            </div>
-          </button>
-        ))}
-      </div>
+      {newIds.length > 0 && (
+        <section className="mb-14">
+          <div className="flex items-center gap-3 mb-5">
+            <Sparkles className="h-4 w-4 text-foreground/80" strokeWidth={1.5} />
+            <h3 className="text-xs font-light tracking-[0.3em] uppercase text-foreground/80">
+              New · Last 7 Days
+            </h3>
+            <span className="text-[10px] font-extralight tracking-widest text-muted-foreground/50">
+              {newIds.length}
+            </span>
+            <div className="flex-1 h-px bg-border/20" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {newIds.map(renderCard)}
+          </div>
+        </section>
+      )}
+
+      {branches.map(({ topic, ids }) => (
+        <section key={topic} className="mb-12">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="text-foreground/60 text-sm">◈</span>
+            <h3 className="text-xs font-light tracking-[0.3em] uppercase text-foreground/80">
+              {topic}
+            </h3>
+            <span className="text-[10px] font-extralight tracking-widest text-muted-foreground/50">
+              {ids.length}
+            </span>
+            <div className="flex-1 h-px bg-border/15" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {ids.map(renderCard)}
+          </div>
+        </section>
+      ))}
 
       {activeId && (
         <div
@@ -113,22 +206,19 @@ const FounderVideos = () => {
           >
             <X className="h-4 w-4" />
           </button>
-          <div
-            className="w-full max-w-5xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
             <div className="aspect-video w-full overflow-hidden rounded-2xl border border-border/20 bg-black shadow-2xl">
               <iframe
                 src={`https://www.youtube.com/embed/${activeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=0&enablejsapi=1`}
-                title={titles[activeId] || "Founder video"}
+                title={meta[activeId]?.title || "Founder video"}
                 className="h-full w-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                 allowFullScreen
               />
             </div>
-            {titles[activeId] && (
+            {meta[activeId]?.title && (
               <p className="mt-4 text-center text-sm font-light tracking-wide text-foreground">
-                {titles[activeId]}
+                {meta[activeId]?.title}
               </p>
             )}
           </div>
