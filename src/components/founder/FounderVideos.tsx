@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Play, X } from "lucide-react";
 
 const VIDEO_IDS = [
+  "bUxrY21xGDw",
   "g7FmttXtyEw",
   "Bng9dGp3444",
   "pTA9aOdd6iw",
