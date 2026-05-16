@@ -9,6 +9,10 @@ const logStep = (step: string, details?: any) => {
 };
 
 serve(async (req) => {
+  // Webhook is server-to-server (Stripe → us). CORS is irrelevant for the
+  // actual POST (no browser), but keep correct headers for the OPTIONS
+  // preflight Stripe may send and so that any dashboard tooling works.
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
