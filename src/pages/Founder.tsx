@@ -16,7 +16,11 @@ const bookPages = Array.from(
 
 const Founder = () => {
   useEffect(() => {
-    document.title = "Asher Newton — Founder of Aureon";
+    applySeoHead({
+      title: "Asher Newton — Founder of Aureon",
+      description: "Meet Asher Newton, founder of Aureon — the uncensored AI intelligence platform. Vision, mission, and videos from the founder.",
+      path: "/founder",
+    });
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Meet Asher Newton, the founder of Aureon — the uncensored AI intelligence platform built for researchers, developers, and truth-seekers.");
     const ld = document.createElement("script");
