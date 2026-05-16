@@ -1,6 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { Play, X, Sparkles } from "lucide-react";
 
+interface LocalVideo {
+  id: string; // unique key, prefixed with "local:"
+  src: string;
+  poster?: string;
+  title: string;
+  publishedAt: string; // ISO
+}
+
+// Local self-hosted videos (mp4). Use ISO `publishedAt` so they appear in
+// "New · Last 7 Days" and the topic branches just like YouTube videos.
+const LOCAL_VIDEOS: LocalVideo[] = [
+  {
+    id: "local:humanity-vs-mankind",
+    src: "/videos/founder/humanity-vs-mankind.mp4",
+    poster: "/videos/founder/humanity-vs-mankind.jpg",
+    title: "The Difference Between the Humanity Species and the Mankind Species",
+    publishedAt: new Date().toISOString(),
+  },
+];
+
 const VIDEO_IDS = [
   "bUxrY21xGDw",
   "g7FmttXtyEw",
@@ -23,6 +43,7 @@ const VIDEO_IDS = [
 interface VideoMeta {
   title: string;
   publishedAt?: string; // ISO
+  local?: LocalVideo;
 }
 
 const TOPIC_RULES: { topic: string; match: RegExp }[] = [
@@ -48,11 +69,13 @@ const FounderVideos = () => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const entries = await Promise.all(
+      const localEntries = LOCAL_VIDEOS.map(
+        (v) => [v.id, { title: v.title, publishedAt: v.publishedAt, local: v }] as const,
+      );
+      const ytEntries = await Promise.all(
         VIDEO_IDS.map(async (id) => {
           let title = "";
           let publishedAt: string | undefined;
-          // Title via oEmbed (reliable)
           try {
             const r = await fetch(
               `https://www.youtube.com/oembed?url=https://youtu.be/${id}&format=json`
@@ -62,7 +85,6 @@ const FounderVideos = () => {
               title = (d?.title as string) || "";
             }
           } catch {}
-          // PublishedAt via unofficial no-key YouTube API
           try {
             const r = await fetch(
               `https://yt.lemnoslife.com/noKey/videos?part=snippet&id=${id}`
@@ -78,7 +100,7 @@ const FounderVideos = () => {
         })
       );
       if (cancelled) return;
-      setMeta(Object.fromEntries(entries));
+      setMeta(Object.fromEntries([...localEntries, ...ytEntries]));
     })();
     return () => {
       cancelled = true;
@@ -100,9 +122,10 @@ const FounderVideos = () => {
 
   const { newIds, branches } = useMemo(() => {
     const now = Date.now();
+    const allIds = [...LOCAL_VIDEOS.map((v) => v.id), ...VIDEO_IDS];
     const newIds: string[] = [];
     const branchesMap = new Map<string, string[]>();
-    for (const id of VIDEO_IDS) {
+    for (const id of allIds) {
       const m = meta[id];
       const t = m?.title || "";
       if (m?.publishedAt) {
@@ -113,7 +136,6 @@ const FounderVideos = () => {
       if (!branchesMap.has(topic)) branchesMap.set(topic, []);
       branchesMap.get(topic)!.push(id);
     }
-    // Sort branches: known order first, "Other" last
     const order = [...TOPIC_RULES.map((r) => r.topic), "Other"];
     const branches = order
       .filter((t) => branchesMap.has(t))
@@ -121,37 +143,42 @@ const FounderVideos = () => {
     return { newIds, branches };
   }, [meta]);
 
-  const renderCard = (id: string) => (
-    <button
-      key={id}
-      type="button"
-      onClick={() => setActiveId(id)}
-      className="group text-left rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/30 transition-all hover:border-foreground/30 hover:bg-card/50"
-    >
-      <div className="relative aspect-video overflow-hidden bg-background">
-        <img
-          src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
-          alt={meta[id]?.title || "Founder video"}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/50 backdrop-blur-md transition-all group-hover:scale-110 group-hover:bg-black/70">
-            <Play className="h-5 w-5 text-white" strokeWidth={1.5} fill="currentColor" />
+  const renderCard = (id: string) => {
+    const m = meta[id];
+    const local = m?.local;
+    const thumb = local?.poster || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    return (
+      <button
+        key={id}
+        type="button"
+        onClick={() => setActiveId(id)}
+        className="group text-left rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/30 transition-all hover:border-foreground/30 hover:bg-card/50"
+      >
+        <div className="relative aspect-video overflow-hidden bg-background">
+          <img
+            src={thumb}
+            alt={m?.title || "Founder video"}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/50 backdrop-blur-md transition-all group-hover:scale-110 group-hover:bg-black/70">
+              <Play className="h-5 w-5 text-white" strokeWidth={1.5} fill="currentColor" />
+            </div>
           </div>
         </div>
-      </div>
-      <div className="p-4">
-        <p className="text-sm font-light leading-snug text-foreground line-clamp-2 min-h-[2.5rem]">
-          {meta[id]?.title || "Loading…"}
-        </p>
-        <p className="mt-2 text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/50 uppercase">
-          Asher Newton
-        </p>
-      </div>
-    </button>
-  );
+        <div className="p-4">
+          <p className="text-sm font-light leading-snug text-foreground line-clamp-2 min-h-[2.5rem]">
+            {m?.title || "Loading…"}
+          </p>
+          <p className="mt-2 text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/50 uppercase">
+            Asher Newton
+          </p>
+        </div>
+      </button>
+    );
+  };
 
   return (
     <>
@@ -208,13 +235,24 @@ const FounderVideos = () => {
           </button>
           <div className="w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
             <div className="aspect-video w-full overflow-hidden rounded-2xl border border-border/20 bg-black shadow-2xl">
-              <iframe
-                src={`https://www.youtube.com/embed/${activeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=0&enablejsapi=1`}
-                title={meta[activeId]?.title || "Founder video"}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                allowFullScreen
-              />
+              {meta[activeId]?.local ? (
+                <video
+                  src={meta[activeId]!.local!.src}
+                  poster={meta[activeId]!.local!.poster}
+                  className="h-full w-full"
+                  controls
+                  autoPlay
+                  playsInline
+                />
+              ) : (
+                <iframe
+                  src={`https://www.youtube.com/embed/${activeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=0&enablejsapi=1`}
+                  title={meta[activeId]?.title || "Founder video"}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                  allowFullScreen
+                />
+              )}
             </div>
             {meta[activeId]?.title && (
               <p className="mt-4 text-center text-sm font-light tracking-wide text-foreground">
