@@ -1,8 +1,5 @@
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 const HL_API = "https://api.hyperliquid.xyz";
@@ -10,6 +7,12 @@ const LEVERAGE = 10;
 const CAPITAL_PERCENT = 0.90;
 const COINS = ["BTC", "ETH"];
 const ASSET_MAP: Record<string, number> = { BTC: 0, ETH: 1 };
+
+// SECURITY: pre-trade risk caps (audit C-06)
+const MAX_LOSS_PCT_OF_EQUITY = 0.02; // refuse any signal that risks >2% equity
+const MAX_DRAWDOWN_HALT_PCT = 0.15;  // halt bot when 15% below peak equity
+const MIN_SL_DISTANCE_PCT = 0.001;   // SL must be at least 0.1% away from entry
+const MAX_SL_DISTANCE_PCT = 0.10;    // and at most 10% (else position too large for risk cap)
 
 // Hyperliquid precision rules per asset
 const SZ_DECIMALS: Record<string, number> = { BTC: 5, ETH: 4 };
@@ -190,6 +193,7 @@ function estimateFees(sizeUsd: number): number {
 // ── MAIN HANDLER ──
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
