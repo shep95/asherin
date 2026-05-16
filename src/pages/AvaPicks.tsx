@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { applySeoHead } from "@/lib/seoHead";
 import {
   TrendingUp, Trophy, Target, Activity, Sparkles, Clock,
   CheckCircle2, XCircle, RefreshCw, Timer, Flame, Zap,
