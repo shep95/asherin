@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { applySeoHead } from "@/lib/seoHead";
 
 const sections = [
   {
