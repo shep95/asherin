@@ -267,7 +267,11 @@ const ModelSection = ({
 
 const LLMModels = () => {
   useEffect(() => {
-    document.title = "LLM Models — Aureon";
+    applySeoHead({
+      title: "LLM Models — Aureon",
+      description: "The AI models powering Aureon — multi-model consensus, vision, reasoning, and coding engines. Compare capabilities across providers.",
+      path: "/llm-models",
+    });
   }, []);
 
   return (
