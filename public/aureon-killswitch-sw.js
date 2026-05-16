@@ -17,7 +17,14 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// SECURITY (H-12): only accept ARM/DISARM from our own origin. Any iframed
+// page or cross-origin script attempting to control the kill-switch is
+// rejected. self.origin reflects the SW's registration origin (i.e. the app).
 self.addEventListener("message", (event) => {
+  if (event.origin && event.origin !== self.origin) {
+    // Cross-origin postMessage — ignore silently.
+    return;
+  }
   const data = event.data || {};
   if (data.type === "ARM") {
     STATE.armed = true;

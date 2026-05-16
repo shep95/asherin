@@ -1,8 +1,5 @@
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 const HL_API = "https://api.hyperliquid.xyz";
@@ -10,6 +7,12 @@ const LEVERAGE = 10;
 const CAPITAL_PERCENT = 0.90;
 const COINS = ["BTC", "ETH"];
 const ASSET_MAP: Record<string, number> = { BTC: 0, ETH: 1 };
+
+// SECURITY: pre-trade risk caps (audit C-06)
+const MAX_LOSS_PCT_OF_EQUITY = 0.02; // refuse any signal that risks >2% equity
+const MAX_DRAWDOWN_HALT_PCT = 0.15;  // halt bot when 15% below peak equity
+const MIN_SL_DISTANCE_PCT = 0.001;   // SL must be at least 0.1% away from entry
+const MAX_SL_DISTANCE_PCT = 0.10;    // and at most 10% (else position too large for risk cap)
 
 // Hyperliquid precision rules per asset
 const SZ_DECIMALS: Record<string, number> = { BTC: 5, ETH: 4 };
@@ -190,6 +193,7 @@ function estimateFees(sizeUsd: number): number {
 // ── MAIN HANDLER ──
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -388,6 +392,47 @@ Deno.serve(async (req) => {
       const roundedEntry = roundPrice(entryPrice, cleanSymbol);
       const roundedSL = signal.stopLoss ? roundPrice(parseFloat(signal.stopLoss), cleanSymbol) : undefined;
       const roundedTP1 = signal.takeProfit1 ? roundPrice(parseFloat(signal.takeProfit1), cleanSymbol) : undefined;
+
+      // ── SECURITY (C-06): PRE-TRADE RISK CIRCUIT BREAKERS ──
+      // 1. Stop-loss is mandatory. No SL = no trade.
+      if (!signal.stopLoss || !roundedSL) {
+        return new Response(JSON.stringify({
+          error: "RISK_GATE: Stop-loss is required. Refusing market order with no SL.",
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const slPriceNum = parseFloat(roundedSL);
+      const slDistancePct = Math.abs(entryPrice - slPriceNum) / entryPrice;
+      if (slDistancePct < MIN_SL_DISTANCE_PCT || slDistancePct > MAX_SL_DISTANCE_PCT) {
+        return new Response(JSON.stringify({
+          error: `RISK_GATE: SL distance ${(slDistancePct * 100).toFixed(2)}% out of bounds [${MIN_SL_DISTANCE_PCT * 100}%–${MAX_SL_DISTANCE_PCT * 100}%].`,
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // 2. Implied loss at SL must not exceed MAX_LOSS_PCT_OF_EQUITY of total equity.
+      const positionNotional = parseFloat(posSize) * entryPrice;
+      const impliedLoss = positionNotional * slDistancePct;
+      const maxAllowedLoss = totalCapital * MAX_LOSS_PCT_OF_EQUITY;
+      if (impliedLoss > maxAllowedLoss) {
+        return new Response(JSON.stringify({
+          error: `RISK_GATE: Implied SL loss $${impliedLoss.toFixed(2)} exceeds max $${maxAllowedLoss.toFixed(2)} (${MAX_LOSS_PCT_OF_EQUITY * 100}% of $${totalCapital.toFixed(2)} equity). Reduce position size or tighten SL.`,
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // 3. Drawdown circuit breaker: halt bot if current equity < peak * (1 - MAX_DRAWDOWN_HALT_PCT).
+      const peakEquity = (state as any).peak_equity ? parseFloat((state as any).peak_equity) : totalCapital;
+      if (peakEquity > 0 && totalCapital < peakEquity * (1 - MAX_DRAWDOWN_HALT_PCT)) {
+        await serviceDb.from("lavba_bot_state").update({
+          enabled: false,
+          emergency_stopped: true,
+          emergency_reason: `DRAWDOWN_HALT: equity $${totalCapital.toFixed(2)} fell ${(((peakEquity - totalCapital) / peakEquity) * 100).toFixed(2)}% below peak $${peakEquity.toFixed(2)}`,
+        }).eq("user_id", user.id);
+        return new Response(JSON.stringify({
+          error: `RISK_GATE: Drawdown circuit breaker triggered. Bot halted. Manual restart required.`,
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // Track peak equity going forward
+      if (totalCapital > peakEquity) {
+        await serviceDb.from("lavba_bot_state").update({ peak_equity: totalCapital } as any).eq("user_id", user.id).then(() => {}, () => {});
+      }
+
 
       // Place the trade
       const result = await placeOrder({

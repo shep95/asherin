@@ -1,21 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const ALLOWED_ORIGINS = [
-  "https://ziali-magic-pixels.lovable.app",
-  "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app",
-  "http://localhost:5173",
-  "http://localhost:8080",
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get("origin") || "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-    "Vary": "Origin",
-  };
-}
+import { getCorsHeaders, getClientIp } from "../_shared/cors.ts";
+import { requireAdmin, authErrorResponse, AuthError } from "../_shared/authMiddleware.ts";
 
 // ============================================================
 // AUREON SECURITY GATEWAY
@@ -192,7 +177,9 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { action, payload, source_ip, user_agent, request_path, request_method, geo_country, user_id } = body;
+    const { action, payload, user_agent, request_path, request_method, geo_country, user_id } = body;
+    // SECURITY: never trust source_ip from request body — derive from infra headers
+    const source_ip = getClientIp(req);
 
     // ACTION: scan — Full WAF + IDS scan
     if (action === "scan") {
@@ -532,11 +519,12 @@ Deno.serve(async (req) => {
       }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
 
-    // ACTION: add_threat — Add to threat intelligence
+    // ACTION: add_threat — Admin-only write to threat intelligence
     if (action === "add_threat") {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader?.startsWith("Bearer ")) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(req) });
+      try {
+        await requireAdmin(req);
+      } catch (e) {
+        return authErrorResponse(e, getCorsHeaders(req));
       }
 
       const { indicator_type, indicator_value, threat_category, confidence } = body;
