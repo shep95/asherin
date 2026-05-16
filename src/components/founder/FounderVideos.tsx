@@ -1,6 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { Play, X, Sparkles } from "lucide-react";
 
+interface LocalVideo {
+  id: string; // unique key, prefixed with "local:"
+  src: string;
+  poster?: string;
+  title: string;
+  publishedAt: string; // ISO
+}
+
+// Local self-hosted videos (mp4). Use ISO `publishedAt` so they appear in
+// "New · Last 7 Days" and the topic branches just like YouTube videos.
+const LOCAL_VIDEOS: LocalVideo[] = [
+  {
+    id: "local:humanity-vs-mankind",
+    src: "/videos/founder/humanity-vs-mankind.mp4",
+    poster: "/videos/founder/humanity-vs-mankind.jpg",
+    title: "The Difference Between the Humanity Species and the Mankind Species",
+    publishedAt: new Date().toISOString(),
+  },
+];
+
 const VIDEO_IDS = [
   "bUxrY21xGDw",
   "g7FmttXtyEw",
@@ -23,6 +43,7 @@ const VIDEO_IDS = [
 interface VideoMeta {
   title: string;
   publishedAt?: string; // ISO
+  local?: LocalVideo;
 }
 
 const TOPIC_RULES: { topic: string; match: RegExp }[] = [
