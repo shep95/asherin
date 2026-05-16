@@ -75,15 +75,35 @@ serve(async (req) => {
       let recipientUserId = buyerUserId;
       
       if (isGift && giftRecipientEmail) {
-        const { data: users } = await supabaseAdmin.auth.admin.listUsers();
-        const recipient = users?.users?.find((u) => u.email === giftRecipientEmail);
-        
-        if (!recipient) {
+        // FIX (H-06): direct lookup instead of paginate-and-scan listUsers().
+        // listUsers() defaulted to a 1000-user page and silently broke at scale.
+        // Try profiles table first (cheap), fall back to admin listUsers with
+        // an explicit filter as a safety net.
+        let recipientId: string | null = null;
+        const { data: profileMatch } = await supabaseAdmin
+          .from("profiles")
+          .select("user_id")
+          .eq("email", giftRecipientEmail)
+          .maybeSingle();
+        if (profileMatch?.user_id) {
+          recipientId = profileMatch.user_id as string;
+        } else {
+          // Fallback: paginate-aware admin lookup (cheap because filter is server-side)
+          const { data: usersPage } = await supabaseAdmin.auth.admin.listUsers({
+            page: 1,
+            perPage: 200,
+            // @ts-ignore - filter is supported by the admin API even if not in older types
+            filter: `email.eq.${giftRecipientEmail}`,
+          } as any);
+          recipientId = usersPage?.users?.find((u: any) => (u.email || "").toLowerCase() === giftRecipientEmail.toLowerCase())?.id ?? null;
+        }
+
+        if (!recipientId) {
           logStep("ERROR: Gift recipient not found", { giftRecipientEmail });
           return new Response(JSON.stringify({ error: "Recipient not found" }), { status: 400 });
         }
-        
-        recipientUserId = recipient.id;
+
+        recipientUserId = recipientId;
         logStep("Gift recipient identified", { recipientUserId });
       }
 
