@@ -3,6 +3,7 @@ import LandingBackground from "@/components/LandingBackground";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Trophy, Target, Shield, Code, Database, AlertTriangle, FileCode, Lock, Cpu, Twitter, ArrowLeft } from "lucide-react";
+import { applySeoHead } from "@/lib/seoHead";
 
 // ── Benchmark Data ──────────────────────────────────────────────────────────
 
