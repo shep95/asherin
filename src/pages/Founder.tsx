@@ -14,6 +14,11 @@ const bookPages = Array.from(
   (_, index) => `/books/asher-aureon-elion-pages/page-${String(index + 1).padStart(3, "0")}.jpg`
 );
 
+const symbolismBookPages = Array.from(
+  { length: 62 },
+  (_, index) => `/books/asher-aureon-elion-symbolism-pages/page-${String(index + 1).padStart(3, "0")}.jpg`
+);
+
 const Founder = () => {
   useEffect(() => {
     applySeoHead({
