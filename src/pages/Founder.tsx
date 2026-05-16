@@ -4,7 +4,7 @@ import founderImg from "@/assets/founder.jpg";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { applySeoHead } from "@/lib/seoHead";
-import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube, Sparkles } from "lucide-react";
+import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube, Sparkles, MessageCircle } from "lucide-react";
 import FounderVideos from "@/components/founder/FounderVideos";
 import imagineMaterialVsDivine from "@/assets/founder-imagine-material-vs-divine-love.png";
 import imagineMoneyWarControl from "@/assets/founder-imagine-money-war-control.png";
