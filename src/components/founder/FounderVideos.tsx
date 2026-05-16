@@ -235,13 +235,24 @@ const FounderVideos = () => {
           </button>
           <div className="w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
             <div className="aspect-video w-full overflow-hidden rounded-2xl border border-border/20 bg-black shadow-2xl">
-              <iframe
-                src={`https://www.youtube.com/embed/${activeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=0&enablejsapi=1`}
-                title={meta[activeId]?.title || "Founder video"}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                allowFullScreen
-              />
+              {meta[activeId]?.local ? (
+                <video
+                  src={meta[activeId]!.local!.src}
+                  poster={meta[activeId]!.local!.poster}
+                  className="h-full w-full"
+                  controls
+                  autoPlay
+                  playsInline
+                />
+              ) : (
+                <iframe
+                  src={`https://www.youtube.com/embed/${activeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=0&enablejsapi=1`}
+                  title={meta[activeId]?.title || "Founder video"}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                  allowFullScreen
+                />
+              )}
             </div>
             {meta[activeId]?.title && (
               <p className="mt-4 text-center text-sm font-light tracking-wide text-foreground">
