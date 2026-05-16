@@ -122,9 +122,10 @@ const FounderVideos = () => {
 
   const { newIds, branches } = useMemo(() => {
     const now = Date.now();
+    const allIds = [...LOCAL_VIDEOS.map((v) => v.id), ...VIDEO_IDS];
     const newIds: string[] = [];
     const branchesMap = new Map<string, string[]>();
-    for (const id of VIDEO_IDS) {
+    for (const id of allIds) {
       const m = meta[id];
       const t = m?.title || "";
       if (m?.publishedAt) {
@@ -135,7 +136,6 @@ const FounderVideos = () => {
       if (!branchesMap.has(topic)) branchesMap.set(topic, []);
       branchesMap.get(topic)!.push(id);
     }
-    // Sort branches: known order first, "Other" last
     const order = [...TOPIC_RULES.map((r) => r.topic), "Other"];
     const branches = order
       .filter((t) => branchesMap.has(t))
