@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
+import { applySeoHead } from "@/lib/seoHead";
 import {
   ArrowLeft, ArrowRight, Eye, MessageSquare, Shield,
   Brain, Network, Sparkles, Crosshair, Radar, Layers,
