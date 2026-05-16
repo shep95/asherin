@@ -207,6 +207,15 @@ const Founder = () => {
                 <Youtube className="h-4 w-4" />
                 @asher_newton on YouTube
               </a>
+              <a
+                href="https://bosley.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
+              >
+                <Sparkles className="h-4 w-4" />
+                Join Asher on Bosley
+              </a>
             </div>
           </div>
         </div>
