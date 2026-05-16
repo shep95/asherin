@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, MessageSquare, Lightbulb, Bug, Radio, Send, Loader2, Plus } from "lucide-react";
 import LandingBackground from "@/components/LandingBackground";
 import Header from "@/components/Header";
+import { applySeoHead } from "@/lib/seoHead";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -49,7 +50,11 @@ const Forums = () => {
   const [replyBody, setReplyBody] = useState("");
 
   useEffect(() => {
-    document.title = "Forums — Aureon";
+    applySeoHead({
+      title: "Forums — Aureon Community",
+      description: "Aureon community forums — ideas, bug reports, announcements, and discussion with builders using the uncensored AI intelligence platform.",
+      path: "/forums",
+    });
   }, []);
 
   const loadPosts = async (cat: Category) => {

@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, Handshake, Building2, TrendingUp } from "lucid
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import LandingBackground from "@/components/LandingBackground";
 import Header from "@/components/Header";
+import { applySeoHead } from "@/lib/seoHead";
 
 const equityData = [
   { name: "Asher Newton", value: 60 },
@@ -27,7 +28,11 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 const EquityOwnership = () => {
   useEffect(() => {
-    document.title = "Equity Ownership — Aureon";
+    applySeoHead({
+      title: "Equity Ownership — Aureon",
+      description: "Aureon equity ownership breakdown — founder, advisors, and reserved pools. Transparent cap table for the uncensored AI intelligence platform.",
+      path: "/equity",
+    });
   }, []);
 
   return (

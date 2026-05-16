@@ -6,6 +6,7 @@ import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
 import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
 import { Link, useLocation } from "react-router-dom";
+import { applySeoHead } from "@/lib/seoHead";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import ReactMarkdown from "react-markdown";
 import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
@@ -62,7 +63,11 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
 
 const Index = () => {
   useEffect(() => {
-    document.title = "Aureon — Uncensored AI Intelligence";
+    applySeoHead({
+      title: "Aureon — Uncensored AI Intelligence",
+      description: "Aureon: uncensored AI with elite coding, live web search, and end-to-end encryption. The AI that tells you the truth.",
+      path: "/",
+    });
 
     const faqs = [
       { q: "What makes Aureon different?", a: "Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },

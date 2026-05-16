@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { applySeoHead } from "@/lib/seoHead";
 
 const sections = [
   {
@@ -37,6 +39,13 @@ const sections = [
 ];
 
 const PromptEngineering = () => {
+  useEffect(() => {
+    applySeoHead({
+      title: "Prompt Engineering — Aureon Guide",
+      description: "Master prompt engineering: clarity, specificity, chain-of-thought, and advanced techniques for getting elite output from large language models.",
+      path: "/prompt-engineering",
+    });
+  }, []);
   return (
     <LandingBackground>
 

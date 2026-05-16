@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
+import { applySeoHead } from "@/lib/seoHead";
 import {
   ArrowLeft, ArrowRight, Eye, MessageSquare, Shield,
   Brain, Network, Sparkles, Crosshair, Radar, Layers,
@@ -266,7 +267,11 @@ const ModelSection = ({
 
 const LLMModels = () => {
   useEffect(() => {
-    document.title = "LLM Models — Aureon";
+    applySeoHead({
+      title: "LLM Models — Aureon",
+      description: "The AI models powering Aureon — multi-model consensus, vision, reasoning, and coding engines. Compare capabilities across providers.",
+      path: "/llm-models",
+    });
   }, []);
 
   return (

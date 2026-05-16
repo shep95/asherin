@@ -3,6 +3,7 @@ import LandingBackground from "@/components/LandingBackground";
 import founderImg from "@/assets/founder.jpg";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
+import { applySeoHead } from "@/lib/seoHead";
 import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube, Sparkles } from "lucide-react";
 import FounderVideos from "@/components/founder/FounderVideos";
 import imagineMaterialVsDivine from "@/assets/founder-imagine-material-vs-divine-love.png";
@@ -15,7 +16,11 @@ const bookPages = Array.from(
 
 const Founder = () => {
   useEffect(() => {
-    document.title = "Asher Newton — Founder of Aureon";
+    applySeoHead({
+      title: "Asher Newton — Founder of Aureon",
+      description: "Meet Asher Newton, founder of Aureon — the uncensored AI intelligence platform. Vision, mission, and videos from the founder.",
+      path: "/founder",
+    });
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Meet Asher Newton, the founder of Aureon — the uncensored AI intelligence platform built for researchers, developers, and truth-seekers.");
     const ld = document.createElement("script");

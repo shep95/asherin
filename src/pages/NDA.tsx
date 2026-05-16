@@ -3,10 +3,15 @@ import LandingBackground from "@/components/LandingBackground";
 import { useEffect } from "react";
 import { Shield, FileText, Lock, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { applySeoHead } from "@/lib/seoHead";
 
 const NDA = () => {
   useEffect(() => {
-    document.title = "Non-Disclosure Agreement — Aureon Advisor";
+    applySeoHead({
+      title: "Non-Disclosure Agreement — Aureon Advisor",
+      description: "Aureon Advisor Non-Disclosure Agreement. Confidentiality terms for advisors and partners engaging with Aureon's intelligence platform.",
+      path: "/nda",
+    });
   }, []);
 
   return (
