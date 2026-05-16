@@ -50,7 +50,11 @@ const Forums = () => {
   const [replyBody, setReplyBody] = useState("");
 
   useEffect(() => {
-    document.title = "Forums — Aureon";
+    applySeoHead({
+      title: "Forums — Aureon Community",
+      description: "Aureon community forums — ideas, bug reports, announcements, and discussion with builders using the uncensored AI intelligence platform.",
+      path: "/forums",
+    });
   }, []);
 
   const loadPosts = async (cat: Category) => {
