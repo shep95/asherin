@@ -216,6 +216,15 @@ const Founder = () => {
                 <Sparkles className="h-4 w-4" />
                 Join Asher on Bosley
               </a>
+              <a
+                href="https://discord.gg/M9hnebRwvk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Join Asher on Discord
+              </a>
             </div>
           </div>
         </div>
