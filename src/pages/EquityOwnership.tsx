@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, Handshake, Building2, TrendingUp } from "lucid
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import LandingBackground from "@/components/LandingBackground";
 import Header from "@/components/Header";
+import { applySeoHead } from "@/lib/seoHead";
 
 const equityData = [
   { name: "Asher Newton", value: 60 },
