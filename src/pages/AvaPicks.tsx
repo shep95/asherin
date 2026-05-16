@@ -52,15 +52,11 @@ const AvaPicks = () => {
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    document.title = "AvaPicks — AI Sports Betting Predictions";
-    const meta = document.querySelector('meta[name="description"]');
-    const desc = "AVA AI-powered daily sports picks with live win-rate tracking. Two predictions per day, fully transparent.";
-    if (meta) meta.setAttribute("content", desc);
-    else {
-      const m = document.createElement("meta");
-      m.name = "description"; m.content = desc;
-      document.head.appendChild(m);
-    }
+    applySeoHead({
+      title: "AvaPicks — AI Sports Betting Predictions",
+      description: "AVA AI-powered daily sports picks with live win-rate tracking. Two predictions per day, fully transparent.",
+      path: "/avapicks",
+    });
     load();
     const ch = supabase.channel("ava-picks-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "ava_picks" }, () => load())
