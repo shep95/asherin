@@ -39,6 +39,13 @@ const sections = [
 ];
 
 const PromptEngineering = () => {
+  useEffect(() => {
+    applySeoHead({
+      title: "Prompt Engineering — Aureon Guide",
+      description: "Master prompt engineering: clarity, specificity, chain-of-thought, and advanced techniques for getting elite output from large language models.",
+      path: "/prompt-engineering",
+    });
+  }, []);
   return (
     <LandingBackground>
 
