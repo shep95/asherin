@@ -56,8 +56,12 @@ const MAGIC_BYTES: Record<string, number[]> = {
   ".db": [0x53, 0x51, 0x4C, 0x69],   // SQLi
 };
 
-// Dangerous CSV/Excel formula prefixes
-const FORMULA_PREFIXES = ["=", "+", "-", "@", "\t", "\r", "|"];
+// Dangerous CSV/Excel formula prefixes (audit H-15: \t and \r removed —
+// they're line/field terminators, not formula indicators; including them
+// produced false positives on clean files).
+const FORMULA_PREFIXES = ["=", "+", "-", "@", "|"];
+// Tab / pipe / semicolon delimiters all need cell-by-cell formula scanning
+const CELL_DELIMITERS = /[,\t;|]/;
 
 export const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 export const MAX_FILE_SIZE_DISPLAY = "500MB";
@@ -141,28 +145,28 @@ export async function validateFile(file: File): Promise<FileValidationResult> {
     }
   }
 
-  // STEP 5 — CSV/text formula injection check (for text-based data files)
-  const textExts = new Set([".csv", ".txt", ".json", ".jsonl", ".xml", ".yaml", ".yml", ".toml", ".sql", ".log"]);
+  // STEP 5 — CSV/text formula injection check (for text-based data files).
+  // Audit H-15: split on any common delimiter (comma, tab, semicolon, pipe)
+  // and strip wrapping quotes BEFORE testing the cell.
+  const textExts = new Set([".csv", ".tsv", ".txt", ".json", ".jsonl", ".xml", ".yaml", ".yml", ".toml", ".sql", ".log"]);
   if (textExts.has(ext) && file.size < 10 * 1024 * 1024) {
-    // Only scan files under 10MB for formula injection
     try {
       const sample = await file.slice(0, 1024 * 100).text(); // First 100KB
-      const lines = sample.split("\n");
+      const lines = sample.split(/\r?\n/);
+      const formulaCallPattern = /^[=@|+\-]\s*(HYPERLINK|DDE|EXEC|CMD|IMPORTXML|IMPORTDATA|IMPORTRANGE|WEBSERVICE|RTD)\s*\(/i;
       for (const line of lines) {
-        const cells = line.split(",");
+        const cells = line.split(CELL_DELIMITERS);
         for (const cell of cells) {
-          const trimmed = cell.trim().replace(/^["']/, "");
-          if (FORMULA_PREFIXES.some((p) => trimmed.startsWith(p) && trimmed.length > 1)) {
-            // Check for actual formula patterns, not just minus signs in numbers
-            if (trimmed.startsWith("=") || trimmed.startsWith("@") || trimmed.startsWith("|")) {
-              const formulaPatterns = /^[=@|+\-]\s*(HYPERLINK|DDE|EXEC|CMD|IMPORTXML|IMPORTDATA|IMPORTRANGE)\s*\(/i;
-              if (formulaPatterns.test(trimmed)) {
-                return {
-                  valid: false,
-                  error: "File contains potentially dangerous formula injection patterns",
-                };
-              }
-            }
+          // Strip wrapping quotes (', ", or both) before checking
+          const trimmed = cell.trim().replace(/^["'`]+|["'`]+$/g, "");
+          if (trimmed.length < 2) continue;
+          if (!FORMULA_PREFIXES.some((p) => trimmed.startsWith(p))) continue;
+          // Only flag actual dangerous formula invocations, not numeric "-5" etc.
+          if (formulaCallPattern.test(trimmed)) {
+            return {
+              valid: false,
+              error: "File contains potentially dangerous formula injection patterns",
+            };
           }
         }
       }

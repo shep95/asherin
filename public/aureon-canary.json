@@ -17,5 +17,12 @@
     "rationale": "These are public, time-bound signals embedded by the operator at issuance time so the canary cannot be pre-signed."
   },
   "signed_by": "ashernewtonx@gmail.com",
-  "signature_method": "manual-rotation"
+  "signature_method": "ed25519-detached",
+  "verification": {
+    "public_key_url": "https://aureonai.app/.well-known/aureon-canary-pubkey.txt",
+    "signature_url": "https://aureonai.app/aureon-canary.sig",
+    "procedure": "Download the canary JSON, the .sig file, and the public key. Run: openssl pkeyutl -verify -pubin -inkey aureon-canary-pubkey.txt -rawin -in aureon-canary.json -sigfile aureon-canary.sig",
+    "timestamping": "Issuance hash is also anchored to the Bitcoin chain via OpenTimestamps. See https://aureonai.app/.well-known/aureon-canary.ots"
+  },
+  "warning": "Until verification.public_key_url and signature_url resolve to real artifacts, treat this canary as informational only — it is not yet cryptographically verifiable."
 }

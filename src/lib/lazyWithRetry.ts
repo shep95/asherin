@@ -13,28 +13,40 @@ export function lazyWithRetry<T extends React.ComponentType<any>>(
 ): React.LazyExoticComponent<T> {
   return React.lazy(async () => {
     const reloadKey = `__chunk_reload__${name}`;
-    try {
-      return await factory();
-    } catch (err: any) {
-      const msg = String(err?.message || err);
-      const isChunkError =
-        msg.includes("Failed to fetch dynamically imported module") ||
-        msg.includes("Importing a module script failed") ||
-        msg.includes("error loading dynamically imported module") ||
-        msg.includes("ChunkLoadError");
-      if (!isChunkError) throw err;
-      // retry once
+    const MAX_ATTEMPTS = 3;
+    let lastErr: unknown;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
         return await factory();
-      } catch (err2) {
-        if (typeof window !== "undefined" && !sessionStorage.getItem(reloadKey)) {
-          sessionStorage.setItem(reloadKey, "1");
-          window.location.reload();
-          // return a pending promise so React stays in Suspense until reload
-          return new Promise(() => {}) as any;
+      } catch (err: any) {
+        lastErr = err;
+        const msg = String(err?.message || err);
+        const isChunkError =
+          msg.includes("Failed to fetch dynamically imported module") ||
+          msg.includes("Importing a module script failed") ||
+          msg.includes("error loading dynamically imported module") ||
+          msg.includes("ChunkLoadError");
+        const is404 = msg.includes("404") || msg.toLowerCase().includes("not found");
+
+        // 404 means the chunk was permanently removed (deploy churn). One
+        // reload may help, but loop-reloading is worse than showing an error.
+        if (!isChunkError) throw err;
+        if (is404 && attempt > 1) break; // give up after one retry on 404
+
+        // Exponential backoff between attempts
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, 250 * 2 ** (attempt - 1)));
         }
-        throw err2;
       }
     }
+
+    // Exhausted retries — try ONE hard reload, then surface the error.
+    if (typeof window !== "undefined" && !sessionStorage.getItem(reloadKey)) {
+      sessionStorage.setItem(reloadKey, "1");
+      window.location.reload();
+      return new Promise(() => {}) as any;
+    }
+    throw lastErr;
   });
 }
