@@ -3,6 +3,7 @@ import LandingBackground from "@/components/LandingBackground";
 import { useEffect } from "react";
 import { Shield, FileText, Lock, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { applySeoHead } from "@/lib/seoHead";
 
 const NDA = () => {
   useEffect(() => {
