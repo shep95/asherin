@@ -143,37 +143,42 @@ const FounderVideos = () => {
     return { newIds, branches };
   }, [meta]);
 
-  const renderCard = (id: string) => (
-    <button
-      key={id}
-      type="button"
-      onClick={() => setActiveId(id)}
-      className="group text-left rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/30 transition-all hover:border-foreground/30 hover:bg-card/50"
-    >
-      <div className="relative aspect-video overflow-hidden bg-background">
-        <img
-          src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
-          alt={meta[id]?.title || "Founder video"}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/50 backdrop-blur-md transition-all group-hover:scale-110 group-hover:bg-black/70">
-            <Play className="h-5 w-5 text-white" strokeWidth={1.5} fill="currentColor" />
+  const renderCard = (id: string) => {
+    const m = meta[id];
+    const local = m?.local;
+    const thumb = local?.poster || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    return (
+      <button
+        key={id}
+        type="button"
+        onClick={() => setActiveId(id)}
+        className="group text-left rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/30 transition-all hover:border-foreground/30 hover:bg-card/50"
+      >
+        <div className="relative aspect-video overflow-hidden bg-background">
+          <img
+            src={thumb}
+            alt={m?.title || "Founder video"}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/50 backdrop-blur-md transition-all group-hover:scale-110 group-hover:bg-black/70">
+              <Play className="h-5 w-5 text-white" strokeWidth={1.5} fill="currentColor" />
+            </div>
           </div>
         </div>
-      </div>
-      <div className="p-4">
-        <p className="text-sm font-light leading-snug text-foreground line-clamp-2 min-h-[2.5rem]">
-          {meta[id]?.title || "Loading…"}
-        </p>
-        <p className="mt-2 text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/50 uppercase">
-          Asher Newton
-        </p>
-      </div>
-    </button>
-  );
+        <div className="p-4">
+          <p className="text-sm font-light leading-snug text-foreground line-clamp-2 min-h-[2.5rem]">
+            {m?.title || "Loading…"}
+          </p>
+          <p className="mt-2 text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/50 uppercase">
+            Asher Newton
+          </p>
+        </div>
+      </button>
+    );
+  };
 
   return (
     <>
