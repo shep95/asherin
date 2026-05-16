@@ -39,15 +39,22 @@ serve(async (req) => {
 
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     if (!webhookSecret) {
-      logStep("WARNING: No webhook secret set, skipping signature verification");
+      logStep("FATAL: STRIPE_WEBHOOK_SECRET is not configured — refusing to process webhook");
+      return new Response(
+        JSON.stringify({ error: "Webhook secret not configured. Refusing unverified payloads." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     let event: Stripe.Event;
-    
-    if (webhookSecret) {
+    try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } else {
-      event = JSON.parse(body);
+    } catch (verifyErr) {
+      logStep("Signature verification failed", { error: String(verifyErr) });
+      return new Response(
+        JSON.stringify({ error: "Invalid signature" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     logStep("Event type", { type: event.type });
