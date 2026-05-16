@@ -69,11 +69,13 @@ const FounderVideos = () => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const entries = await Promise.all(
+      const localEntries = LOCAL_VIDEOS.map(
+        (v) => [v.id, { title: v.title, publishedAt: v.publishedAt, local: v }] as const,
+      );
+      const ytEntries = await Promise.all(
         VIDEO_IDS.map(async (id) => {
           let title = "";
           let publishedAt: string | undefined;
-          // Title via oEmbed (reliable)
           try {
             const r = await fetch(
               `https://www.youtube.com/oembed?url=https://youtu.be/${id}&format=json`
@@ -83,7 +85,6 @@ const FounderVideos = () => {
               title = (d?.title as string) || "";
             }
           } catch {}
-          // PublishedAt via unofficial no-key YouTube API
           try {
             const r = await fetch(
               `https://yt.lemnoslife.com/noKey/videos?part=snippet&id=${id}`
@@ -99,7 +100,7 @@ const FounderVideos = () => {
         })
       );
       if (cancelled) return;
-      setMeta(Object.fromEntries(entries));
+      setMeta(Object.fromEntries([...localEntries, ...ytEntries]));
     })();
     return () => {
       cancelled = true;
