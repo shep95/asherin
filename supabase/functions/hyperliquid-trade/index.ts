@@ -393,6 +393,47 @@ Deno.serve(async (req) => {
       const roundedSL = signal.stopLoss ? roundPrice(parseFloat(signal.stopLoss), cleanSymbol) : undefined;
       const roundedTP1 = signal.takeProfit1 ? roundPrice(parseFloat(signal.takeProfit1), cleanSymbol) : undefined;
 
+      // ── SECURITY (C-06): PRE-TRADE RISK CIRCUIT BREAKERS ──
+      // 1. Stop-loss is mandatory. No SL = no trade.
+      if (!signal.stopLoss || !roundedSL) {
+        return new Response(JSON.stringify({
+          error: "RISK_GATE: Stop-loss is required. Refusing market order with no SL.",
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const slPriceNum = parseFloat(roundedSL);
+      const slDistancePct = Math.abs(entryPrice - slPriceNum) / entryPrice;
+      if (slDistancePct < MIN_SL_DISTANCE_PCT || slDistancePct > MAX_SL_DISTANCE_PCT) {
+        return new Response(JSON.stringify({
+          error: `RISK_GATE: SL distance ${(slDistancePct * 100).toFixed(2)}% out of bounds [${MIN_SL_DISTANCE_PCT * 100}%–${MAX_SL_DISTANCE_PCT * 100}%].`,
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // 2. Implied loss at SL must not exceed MAX_LOSS_PCT_OF_EQUITY of total equity.
+      const positionNotional = parseFloat(posSize) * entryPrice;
+      const impliedLoss = positionNotional * slDistancePct;
+      const maxAllowedLoss = totalCapital * MAX_LOSS_PCT_OF_EQUITY;
+      if (impliedLoss > maxAllowedLoss) {
+        return new Response(JSON.stringify({
+          error: `RISK_GATE: Implied SL loss $${impliedLoss.toFixed(2)} exceeds max $${maxAllowedLoss.toFixed(2)} (${MAX_LOSS_PCT_OF_EQUITY * 100}% of $${totalCapital.toFixed(2)} equity). Reduce position size or tighten SL.`,
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // 3. Drawdown circuit breaker: halt bot if current equity < peak * (1 - MAX_DRAWDOWN_HALT_PCT).
+      const peakEquity = (state as any).peak_equity ? parseFloat((state as any).peak_equity) : totalCapital;
+      if (peakEquity > 0 && totalCapital < peakEquity * (1 - MAX_DRAWDOWN_HALT_PCT)) {
+        await serviceDb.from("lavba_bot_state").update({
+          enabled: false,
+          emergency_stopped: true,
+          emergency_reason: `DRAWDOWN_HALT: equity $${totalCapital.toFixed(2)} fell ${(((peakEquity - totalCapital) / peakEquity) * 100).toFixed(2)}% below peak $${peakEquity.toFixed(2)}`,
+        }).eq("user_id", user.id);
+        return new Response(JSON.stringify({
+          error: `RISK_GATE: Drawdown circuit breaker triggered. Bot halted. Manual restart required.`,
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // Track peak equity going forward
+      if (totalCapital > peakEquity) {
+        await serviceDb.from("lavba_bot_state").update({ peak_equity: totalCapital } as any).eq("user_id", user.id).then(() => {}, () => {});
+      }
+
+
       // Place the trade
       const result = await placeOrder({
         privateKey,
