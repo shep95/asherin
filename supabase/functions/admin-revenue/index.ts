@@ -1,28 +1,20 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireAdmin, authErrorResponse } from "../_shared/authMiddleware.ts";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
-    const auth = req.headers.get("Authorization") || "";
-    const { data: { user } } = await supabase.auth.getUser(auth.replace("Bearer ", ""));
-    if (!user || (user.email || "").toLowerCase() !== ADMIN_EMAIL) {
-      return new Response(JSON.stringify({ error: "admin only" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    try {
+      await requireAdmin(req);
+    } catch (e) {
+      return authErrorResponse(e, corsHeaders);
     }
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
