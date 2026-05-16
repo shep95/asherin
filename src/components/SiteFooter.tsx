@@ -136,6 +136,9 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
                   <Twitter className="h-4 w-4" />
                   <span className="text-[10px] font-extralight tracking-[0.2em] uppercase">Backup</span>
                 </a>
+                <a href="https://bosley.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors" aria-label="Join Asher on Bosley">
+                  <span className="text-[10px] font-extralight tracking-[0.2em] uppercase">Bosley</span>
+                </a>
                 <a href="https://github.com/ZorakCorp" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="GitHub">
                   <Github className="h-4 w-4" />
                 </a>
