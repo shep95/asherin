@@ -28,7 +28,11 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 const EquityOwnership = () => {
   useEffect(() => {
-    document.title = "Equity Ownership — Aureon";
+    applySeoHead({
+      title: "Equity Ownership — Aureon",
+      description: "Aureon equity ownership breakdown — founder, advisors, and reserved pools. Transparent cap table for the uncensored AI intelligence platform.",
+      path: "/equity",
+    });
   }, []);
 
   return (
