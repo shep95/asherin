@@ -62,7 +62,11 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
 
 const Index = () => {
   useEffect(() => {
-    document.title = "Aureon — Uncensored AI Intelligence";
+    import("@/lib/seoHead").then(({ applySeoHead }) => applySeoHead({
+      title: "Aureon — Uncensored AI Intelligence",
+      description: "Aureon: uncensored AI with elite coding, live web search, and end-to-end encryption. The AI that tells you the truth.",
+      path: "/",
+    }));
 
     const faqs = [
       { q: "What makes Aureon different?", a: "Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },
