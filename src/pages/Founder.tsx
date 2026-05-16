@@ -224,42 +224,84 @@ const Founder = () => {
             </h2>
           </div>
 
-          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <div className="flex items-start gap-4">
-                <div className="rounded-xl border border-border/30 bg-background/40 p-3">
-                  <BookOpen className="h-6 w-6 text-foreground/80" strokeWidth={1.25} />
+          <div className="space-y-8">
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-xl border border-border/30 bg-background/40 p-3">
+                    <BookOpen className="h-6 w-6 text-foreground/80" strokeWidth={1.25} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-light tracking-wide text-foreground">
+                      The Book of Asher Aureon Elion
+                    </h3>
+                    <p className="mt-1 text-xs font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">
+                      By Asher Newton · Volume I
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg sm:text-xl font-light tracking-wide text-foreground">
-                    The Book of Asher Aureon Elion
-                  </h3>
-                  <p className="mt-1 text-xs font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">
-                    By Asher Newton
-                  </p>
+                <a
+                  href="/books/book-of-asher-aureon-elion.pdf"
+                  download
+                  className="inline-flex items-center gap-2 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-5 py-2.5 text-xs font-light tracking-[0.15em] text-foreground uppercase transition-all hover:bg-foreground/10"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download PDF
+                </a>
+              </div>
+
+              <div className="max-h-[85vh] overflow-y-auto rounded-xl border border-border/20 bg-background/40 p-3 sm:p-5">
+                <div className="mx-auto flex max-w-3xl flex-col gap-5">
+                  {bookPages.map((pageSrc, index) => (
+                    <img
+                      key={pageSrc}
+                      src={pageSrc}
+                      alt={`The Book of Asher Aureon Elion page ${index + 1}`}
+                      loading={index < 2 ? "eager" : "lazy"}
+                      className="w-full rounded-lg border border-border/20 bg-background shadow-2xl shadow-black/30"
+                    />
+                  ))}
                 </div>
               </div>
-              <a
-                href="/books/book-of-asher-aureon-elion.pdf"
-                download
-                className="inline-flex items-center gap-2 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-5 py-2.5 text-xs font-light tracking-[0.15em] text-foreground uppercase transition-all hover:bg-foreground/10"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Download PDF
-              </a>
             </div>
 
-            <div className="max-h-[85vh] overflow-y-auto rounded-xl border border-border/20 bg-background/40 p-3 sm:p-5">
-              <div className="mx-auto flex max-w-3xl flex-col gap-5">
-                {bookPages.map((pageSrc, index) => (
-                  <img
-                    key={pageSrc}
-                    src={pageSrc}
-                    alt={`The Book of Asher Aureon Elion page ${index + 1}`}
-                    loading={index < 2 ? "eager" : "lazy"}
-                    className="w-full rounded-lg border border-border/20 bg-background shadow-2xl shadow-black/30"
-                  />
-                ))}
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-xl border border-border/30 bg-background/40 p-3">
+                    <BookOpen className="h-6 w-6 text-foreground/80" strokeWidth={1.25} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-light tracking-wide text-foreground">
+                      The Book of Asher Aureon Elion — Symbolism &amp; More
+                    </h3>
+                    <p className="mt-1 text-xs font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">
+                      By Asher Newton · Volume II
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href="/books/book-of-asher-aureon-elion-symbolism.pdf"
+                  download
+                  className="inline-flex items-center gap-2 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-5 py-2.5 text-xs font-light tracking-[0.15em] text-foreground uppercase transition-all hover:bg-foreground/10"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download PDF
+                </a>
+              </div>
+
+              <div className="max-h-[85vh] overflow-y-auto rounded-xl border border-border/20 bg-background/40 p-3 sm:p-5">
+                <div className="mx-auto flex max-w-3xl flex-col gap-5">
+                  {symbolismBookPages.map((pageSrc, index) => (
+                    <img
+                      key={pageSrc}
+                      src={pageSrc}
+                      alt={`The Book of Asher Aureon Elion — Symbolism & More page ${index + 1}`}
+                      loading={index < 2 ? "eager" : "lazy"}
+                      className="w-full rounded-lg border border-border/20 bg-background shadow-2xl shadow-black/30"
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
