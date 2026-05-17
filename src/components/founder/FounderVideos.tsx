@@ -13,6 +13,13 @@ interface LocalVideo {
 // "New · Last 7 Days" and the topic branches just like YouTube videos.
 const LOCAL_VIDEOS: LocalVideo[] = [
   {
+    id: "local:divine-truth-of-lucifer",
+    src: "/videos/founder/divine-truth-of-lucifer.mp4",
+    poster: "/videos/founder/divine-truth-of-lucifer.jpg",
+    title: "The Divine Truth of Lucifer",
+    publishedAt: new Date().toISOString(),
+  },
+  {
     id: "local:humanity-vs-mankind",
     src: "/videos/founder/humanity-vs-mankind.mp4",
     poster: "/videos/founder/humanity-vs-mankind.jpg",
