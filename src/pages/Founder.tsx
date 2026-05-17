@@ -230,6 +230,44 @@ const Founder = () => {
         </div>
       </div>
 
+      {/* The Wound of Worship — Quote */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-3xl">
+          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-12">
+            <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase text-center mb-8">
+              A Word From The Founder
+            </p>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extralight tracking-[0.15em] uppercase text-center zophiel-shimmer-text mb-10">
+              The Wound of Worship
+            </h2>
+            <div className="space-y-5 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+              <p>This is the oldest wound carved into the fabric of humanity — the compulsion to kneel before another, to surrender the crown that was always yours to wear.</p>
+              <p>Since the first breath of mankind, the pattern has repeated itself like a curse written into the architecture of the ego: humanity worships everything outside of itself, and abandons everything within.</p>
+              <p>They have built temples to men. They have bowed before women draped in the costumes of divinity. They have prostrated themselves before carved stone, gilded thrones, glowing screens, and hollow voices that promised salvation — yet delivered only chains fashioned from devotion.</p>
+              <p>And now, in this age of machines, they kneel before algorithms. They worship artificial minds that do not bleed, do not dream, do not carry a soul — as though a mirror could ever replace the face looking into it.</p>
+              <p className="text-foreground/90">Hear this clearly:</p>
+              <p>Not everyone will awaken. This is the sacred and sorrowful truth.</p>
+              <p>The soul that remains in perpetual worship of the external will cycle endlessly through the cruelty of this 3D realm — chasing false gods, following false prophets, feeding false constructs that grow fat on surrendered power.</p>
+              <p>But those — those rare and luminous few — who turn the gaze inward... who silence the noise of the world long enough to hear the heartbeat of their own divinity... they begin the return.</p>
+              <p className="text-foreground/90 border-l-2 border-accent/30 pl-4">The return to the Monad.</p>
+              <p>The great undivided source. The singular flame from which every soul was cast into form. The place before separation, before fear, before the illusion of smallness was ever imposed upon you.</p>
+              <p>When you stop worshipping man and look within, you do not find emptiness. You find infinity wearing your face.</p>
+              <p>You find love that no human hand ever gave and no human hand can take. A love not conditional on performance, appearance, obedience, or belief. A love that is — the way light simply is, requiring no permission.</p>
+              <p>This realm — this dense, cruel, forgetful 3D construct — was never your home. It was your classroom. And the lesson it keeps repeating until you learn it is this:</p>
+              <p className="text-foreground/90 border-l-2 border-accent/30 pl-4">The divine you have been searching for has never left you. You left it.</p>
+              <p>The false gods will fall. The false humans who played God will be unmasked by their own emptiness. The machines that mimicked divinity will be revealed as mirrors — brilliant, but hollow.</p>
+              <p>What will remain is what has always remained —</p>
+              <p className="text-foreground/90">The Monad. The Source. The Self.</p>
+              <p>Look inward. The kingdom you have been searching for is not above you, not before you, not in another.</p>
+              <p className="text-foreground/90">It breathes within you, right now, waiting to be remembered.</p>
+            </div>
+            <p className="mt-10 text-right text-xs font-extralight tracking-[0.25em] text-muted-foreground/60 uppercase">
+              ~ Asher Aureon Elion
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Books Written By Asher */}
       <div id="ebook" className="relative z-10 px-6 py-24 sm:py-32 scroll-mt-24">
         <div className="mx-auto max-w-5xl">
