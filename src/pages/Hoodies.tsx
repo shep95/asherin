@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
-import LandingBackground from "@/components/LandingBackground";
 import { Droplets, Feather, Shield, Package, Check, X, Loader2 } from "lucide-react";
 import hoodieModels from "@/assets/hoodies/hoodie-models.jpg";
 import hoodieFolded from "@/assets/hoodies/hoodie-folded.jpg";
@@ -64,7 +63,6 @@ export default function Hoodies() {
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
-      <LandingBackground />
       <Header />
 
       <main className="relative z-10 px-4 sm:px-6 pt-28 sm:pt-32 pb-24 max-w-6xl mx-auto">
