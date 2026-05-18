@@ -161,12 +161,6 @@ const Header = () => {
 
           <div className="w-px h-5 bg-border/30" />
 
-          <Link to="/hoodies" className="cursor-pointer text-xs font-light tracking-[0.2em] text-foreground/80 hover:text-foreground uppercase px-2">
-            Hoodies
-          </Link>
-
-          <div className="w-px h-5 bg-border/30" />
-
           <ForumsDropdown />
         </div>
 
