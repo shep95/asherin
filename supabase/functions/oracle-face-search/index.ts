@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireUser, authErrorResponse } from "../_shared/authMiddleware.ts";
 
 // ─── DuckDuckGo search helper ───
 async function ddgSearch(query: string, numResults = 8): Promise<{ title: string; url: string; snippet: string }[]> {

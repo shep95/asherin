@@ -12,11 +12,8 @@
 // Lovable rule: Asher Dashboard AI is GEMINI-ONLY. Admin GEMINI_API_KEY or user BYOK.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireUser, authErrorResponse } from "../_shared/authMiddleware.ts";
 
 // Public Tor2Web gateways — read-only, no client install required.
 const TOR_GATEWAYS = ["onion.ly", "onion.ws", "onion.pet"] as const;
