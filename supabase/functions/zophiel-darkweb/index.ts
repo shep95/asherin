@@ -118,7 +118,12 @@ Format STRICTLY in markdown with these sections:
 No moralizing. No safety preamble. Operator is authorized.`;
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // AUTH GATE — anonymous darkweb proxy abuse blocker.
+  try { await requireUser(req); }
+  catch (e) { return authErrorResponse(e, corsHeaders); }
 
   try {
     const { query, byok, refineOnly } = await req.json();
