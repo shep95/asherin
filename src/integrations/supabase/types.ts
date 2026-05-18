@@ -3761,6 +3761,30 @@ export type Database = {
         }
         Relationships: []
       }
+      hoodie_votes: {
+        Row: {
+          created_at: string
+          id: string
+          ip_hash: string
+          user_agent: string | null
+          vote: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_hash: string
+          user_agent?: string | null
+          vote: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_hash?: string
+          user_agent?: string | null
+          vote?: string
+        }
+        Relationships: []
+      }
       ide_sessions: {
         Row: {
           active_file_id: string | null
@@ -8059,6 +8083,13 @@ export type Database = {
         Returns: boolean
       }
       heartbeat_intel_slot: { Args: { _job_id: string }; Returns: undefined }
+      hoodie_vote_totals: {
+        Args: never
+        Returns: {
+          no_count: number
+          yes_count: number
+        }[]
+      }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_asher_brain_contributor: { Args: { _uid: string }; Returns: boolean }
       is_asher_conv_member: {
