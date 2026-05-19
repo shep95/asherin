@@ -641,7 +641,25 @@ const Dashboard = () => {
           sources: (m.sources as { title: string; url: string }[]) ?? [],
         } as Message)));
         if (cancelled) return;
-        setConversations(prev => prev.map(c => c.id === cid ? { ...c, messages: decrypted } : c));
+        // Merge — don't overwrite optimistic messages added during hydration.
+        setConversations(prev => prev.map(c => {
+          if (c.id !== cid) return c;
+          const existingById = new Map(c.messages.map(m => [m.id, m]));
+          const merged = [...decrypted];
+          for (const m of c.messages) {
+            if (!existingById.has(m.id) || !decrypted.find(d => d.id === m.id)) {
+              if (!merged.find(d => d.id === m.id)) merged.push(m);
+            }
+          }
+          // Preserve any optimistic message not yet in DB
+          for (const m of c.messages) {
+            if (!decrypted.find(d => d.id === m.id)) {
+              if (!merged.find(d => d.id === m.id)) merged.push(m);
+            }
+          }
+          merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+          return { ...c, messages: merged };
+        }));
       };
 
       (async () => {
