@@ -1,3 +1,4 @@
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -40,7 +41,7 @@ import { useAsherAutoLock } from "@/components/asher/useAsherAutoLock";
 
 // Authorized clearance codes (each tied to an admin operator).
 const ASHER_ACCESS_CODES: Record<string, string> = {
-  "Asher092625": "ashernewtonx@gmail.com",
+  "Asher092625": ADMIN_EMAIL,
   "Elias011023": "ekk447@gmail.com",
 };
 const ASHER_GATE_KEY = "asher_dashboard_unlocked";
@@ -221,7 +222,7 @@ const AsherDashboard = () => {
   useEffect(() => { isSuperOwner().then(setSuperOwner); }, [user?.id]);
   useEffect(() => {
     const email = (user?.email || "").toLowerCase();
-    setBrainContributor(email === "ashernewtonx@gmail.com" || email === "ekk447@gmail.com");
+    setBrainContributor(email === ADMIN_EMAIL || email === "ekk447@gmail.com");
   }, [user?.email]);
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
@@ -296,7 +297,7 @@ const AsherDashboard = () => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {buildBranches(superOwner, brainContributor, (user?.email || "").toLowerCase() === "ashernewtonx@gmail.com", publishedTabs, agentStore).map((branch) => {
+          {buildBranches(superOwner, brainContributor, (user?.email || "").toLowerCase() === ADMIN_EMAIL, publishedTabs, agentStore).map((branch) => {
             const open = !!openBranches[branch.id];
             return (
               <div key={branch.id}>

@@ -1,10 +1,9 @@
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Shield, Atom, Brain, Leaf, Syringe, Pill, Zap, Sparkles, FlaskConical, Dna, Eye, Lock } from "lucide-react";
 import Header from "@/components/Header";
 import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiagram";
-
-const ALLOWED_EMAIL = "ashernewtonx@gmail.com";
 
 const layers = [
   {

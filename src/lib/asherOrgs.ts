@@ -1,3 +1,4 @@
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 import { supabase } from "@/integrations/supabase/client";
 
 export type AsherRole =
@@ -15,8 +16,6 @@ export const ROLE_LABEL: Record<AsherRole, string> = {
   officer: "Officer",
   analyst: "Analyst",
 };
-
-const SUPER_OWNER_EMAIL = "ashernewtonx@gmail.com";
 
 export async function isSuperOwner(): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
