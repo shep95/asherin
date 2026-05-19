@@ -323,8 +323,6 @@ export default function AsherCodeModule() {
   // Keep refs to "latest" state so the queue handlers (which run outside React)
   // always see fresh data, even if the user closes the tab and reopens later.
   const filesRef = useRef(files);
-  const dirtyRef = useRef(dirty);
-  const activeFileIdRef = useRef(activeFileId);
   const activeProjectRef = useRef(activeProject);
   const previewRefForVision = previewRef;
   const autopilotZanoemRef = useRef(autopilotZanoem);
@@ -334,8 +332,6 @@ export default function AsherCodeModule() {
   const lastAssistantRef = useRef<string>("");
   const autopilotEnqueueGuardRef = useRef(false);
   useEffect(() => { filesRef.current = files; }, [files]);
-  useEffect(() => { dirtyRef.current = dirty; }, [dirty]);
-  useEffect(() => { activeFileIdRef.current = activeFileId; }, [activeFileId]);
   useEffect(() => { activeProjectRef.current = activeProject; }, [activeProject]);
   useEffect(() => { autopilotZanoemRef.current = autopilotZanoem; }, [autopilotZanoem]);
   useEffect(() => { autoDebugRef.current = autoDebug; }, [autoDebug]);
@@ -744,8 +740,8 @@ export default function AsherCodeModule() {
       setRecoverySnap(snap); setRecoveryAge(age); setRecoveryOpen(true);
     }
     const dispose = startAutoSaveLoop(sid, () => ({
-      files: filesRef.current.map(f => ({ id: f.id, path: f.path, content: dirtyRef.current[f.id] ?? f.content, language: f.language })),
-      activeFileId: activeFileIdRef.current,
+      files: files.map(f => ({ id: f.id, path: f.path, content: dirty[f.id] ?? f.content, language: f.language })),
+      activeFileId,
       savedAt: Date.now(),
     }));
     return dispose;
@@ -812,10 +808,7 @@ export default function AsherCodeModule() {
 
   async function switchBranch(branchId: string | null) {
     if (!activeProject) return;
-    // Only count dirty entries that match a current open file (deleted files leave stale dirty keys).
-    const validFileIds = new Set(files.map(f => f.id));
-    const hasRealUnsaved = Object.keys(dirty).some(id => validFileIds.has(id));
-    if (hasRealUnsaved && !confirm("You have unsaved changes. Switch branch and discard?")) return;
+    if (Object.keys(dirty).length && !confirm("You have unsaved changes. Switch branch and discard?")) return;
     let q = supabase.from("asher_code_files").select("*").eq("project_id", activeProject.id).order("path");
     q = branchId ? q.eq("branch_id", branchId) : q.is("branch_id", null);
     const { data, error } = await q;

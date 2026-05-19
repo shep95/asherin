@@ -69,7 +69,7 @@ const AsherCommsModule = () => {
     } finally { setBusy(false); }
   };
 
-  // Load messages on conv change + realtime subscribe (append-on-INSERT, not full refetch)
+  // Load messages on conv change + realtime subscribe
   useEffect(() => {
     if (!activeConv || !userId) return;
     let mounted = true;
@@ -81,18 +81,7 @@ const AsherCommsModule = () => {
     load();
     const ch = supabase.channel(`asher-msgs-${activeConv}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "asher_messages", filter: `conversation_id=eq.${activeConv}` },
-        async (payload) => {
-          const row = payload.new as any;
-          if (!row) return;
-          try {
-            const dec = await decryptInbox(userId, passRef.current, [row]);
-            if (!mounted || !dec.length) return;
-            setMsgs(prev => prev.some(m => (m as any).id === (dec[0] as any).id) ? prev : [...prev, dec[0]]);
-          } catch {
-            // Fallback to full reload on decrypt failure
-            if (mounted) await load();
-          }
-        })
+        () => load())
       .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
   }, [activeConv, userId]);

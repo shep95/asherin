@@ -164,8 +164,6 @@ const Dashboard = () => {
   const [activeConvId, setActiveConvId] = useState<string | null>(() => {
     try { return localStorage.getItem("aureon_active_conv_id") || null; } catch { return null; }
   });
-  const hydratedConvsRef = useRef<Set<string>>(new Set());
-  const hydrateConvRef = useRef<((cid: string) => Promise<void>) | null>(null);
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>("chat");
   const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
@@ -193,9 +191,7 @@ const Dashboard = () => {
   const attachmentMapRef = useRef<Map<string, FileAttachment[]>>(new Map());
   const [online, setOnline] = useState(navigator.onLine);
   const [messageStatuses, setMessageStatuses] = useState<Record<string, MessageStatus>>({});
-  // Two independent locks — offline-sync drain and live send queue must not block each other.
-  const processingQueue = useRef(false);          // live send queue (processQueue)
-  const processingOfflineQueue = useRef(false);   // offline-sync drain (processMessageQueue)
+  const processingQueue = useRef(false);
   const pendingQueue = useRef<string[]>([]);
   const isStreamingRef = useRef(false);
   const [queueItems, setQueueItems] = useState<{ id: string; content: string }[]>([]);
@@ -342,8 +338,8 @@ const Dashboard = () => {
 
   // Process queued messages — actually persist to DB and trigger AI
   const processMessageQueue = useCallback(async () => {
-    if (processingOfflineQueue.current || !user) return;
-    processingOfflineQueue.current = true;
+    if (processingQueue.current || !user) return;
+    processingQueue.current = true;
     try {
       const pending = await getPendingMessages();
       for (const msg of pending.sort((a, b) => a.createdAt - b.createdAt)) {
@@ -438,7 +434,7 @@ const Dashboard = () => {
         }
       }
     } finally {
-      processingOfflineQueue.current = false;
+      processingQueue.current = false;
     }
   }, [user, conversations, customPersonas, personaId, mode, depth, userProfile]);
 
@@ -636,45 +632,17 @@ const Dashboard = () => {
           .limit(500);
         const rows = data ?? [];
         hydrateMessageBranches(rows.map(m => ({ id: m.id, branch_id: (m as any).branch_id })));
-        let decryptFailures = 0;
-        const decrypted = await Promise.all(rows.map(async (m) => {
-          let content: string;
-          try {
-            content = await decryptText(m.content, user.id);
-          } catch {
-            decryptFailures += 1;
-            content = "🔒 [Encrypted on another device — cannot be read here]";
-          }
-          return {
-            id: m.id,
-            role: m.role as "user" | "assistant",
-            content,
-            timestamp: new Date(m.created_at),
-            truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
-            sources: (m.sources as { title: string; url: string }[]) ?? [],
-          } as Message;
-        }));
-        if (decryptFailures > 0 && !sessionStorage.getItem("aureon_decrypt_warned")) {
-          sessionStorage.setItem("aureon_decrypt_warned", "1");
-          toast({
-            title: "Some messages can't be decrypted here",
-            description: `${decryptFailures} message(s) were encrypted on a different device or browser. They're safe — but unreadable from this device. Sign in on the original device to view them.`,
-            variant: "default",
-          });
-        }
+        const decrypted = await Promise.all(rows.map(async (m) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: await decryptText(m.content, user.id),
+          timestamp: new Date(m.created_at),
+          truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
+          sources: (m.sources as { title: string; url: string }[]) ?? [],
+        } as Message)));
         if (cancelled) return;
-        // Merge — don't overwrite optimistic messages added during hydration.
-        setConversations(prev => prev.map(c => {
-          if (c.id !== cid) return c;
-          const byId = new Map<string, Message>();
-          for (const m of decrypted) byId.set(m.id, m);
-          for (const m of c.messages) if (!byId.has(m.id)) byId.set(m.id, m);
-          const merged = Array.from(byId.values()).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-          return { ...c, messages: merged };
-        }));
-        hydratedConvsRef.current.add(cid);
+        setConversations(prev => prev.map(c => c.id === cid ? { ...c, messages: decrypted } : c));
       };
-      hydrateConvRef.current = hydrateConv;
 
       (async () => {
         if (initialActiveId) await hydrateConv(initialActiveId);
@@ -682,7 +650,6 @@ const Dashboard = () => {
         for (const c of convRows) {
           if (cancelled) return;
           if (c.id === initialActiveId) continue;
-          if (hydratedConvsRef.current.has(c.id)) continue;
           await hydrateConv(c.id);
         }
       })();
@@ -701,21 +668,6 @@ const Dashboard = () => {
       localStorage.setItem("aureon_active_conv_id", activeConvId);
     }
   }, [activeConvId]);
-
-  // On-demand hydration: if the user switches to a conversation that hasn't
-  // been hydrated yet (still empty), fetch it immediately rather than waiting
-  // for the sequential background loop to reach it.
-  useEffect(() => {
-    if (!activeConvId) return;
-    if (hydratedConvsRef.current.has(activeConvId)) return;
-    const conv = conversations.find(c => c.id === activeConvId);
-    if (!conv) return;
-    if (conv.messages.length > 0) return;
-    const fn = hydrateConvRef.current;
-    if (!fn) return;
-    void fn(activeConvId);
-  }, [activeConvId, conversations]);
-
 
   // Persist active brain id
   useEffect(() => {
@@ -776,19 +728,14 @@ const Dashboard = () => {
               const localCount = localConv?.messages.length ?? 0;
               if (freshMsgs.length >= localCount) {
                 const decrypted = await Promise.all(
-                  freshMsgs.map(async (m) => {
-                    let content: string;
-                    try { content = await decryptText(m.content, user.id); }
-                    catch { content = "🔒 [Encrypted on another device — cannot be read here]"; }
-                    return {
-                      id: m.id,
-                      role: m.role as "user" | "assistant",
-                      content,
-                      timestamp: new Date(m.created_at),
-                      truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
-                      sources: (m.sources as { title: string; url: string }[]) ?? [],
-                    };
-                  })
+                  freshMsgs.map(async (m) => ({
+                    id: m.id,
+                    role: m.role as "user" | "assistant",
+                    content: await decryptText(m.content, user.id),
+                    timestamp: new Date(m.created_at),
+                    truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
+                    sources: (m.sources as { title: string; url: string }[]) ?? [],
+                  }))
                 );
                 setConversations(prev => prev.map(c => {
                   if (c.id !== currentConvId) return c;

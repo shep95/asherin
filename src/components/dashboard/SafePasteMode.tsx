@@ -9,23 +9,14 @@ interface DetectedSecret {
   redact: boolean;
 }
 
-// Tightened patterns — avoid false-positive matches on ordinary technical prose
-// like "the api key for authentication" or variable names like `apiKey`. We
-// require a clear prefix (sk_/pk_/AKIA/ghp_/xoxb_/Bearer ) or an assignment
-// (api_key="..."), not just any alphanumeric blob containing the word "key".
 const PATTERNS: { type: string; regex: RegExp; replacement: string }[] = [
-  { type: "OpenAI/Stripe Key", regex: /\b(sk|pk|rk)_(?:test|live|proj)_[A-Za-z0-9]{16,}\b/g, replacement: "[REDACTED_KEY]" },
-  { type: "GitHub Token", regex: /\b(ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b/g, replacement: "[REDACTED_GITHUB_TOKEN]" },
-  { type: "Slack Token", regex: /\bxox[abprs]-[A-Za-z0-9-]{10,}\b/g, replacement: "[REDACTED_SLACK_TOKEN]" },
-  { type: "Bearer Token", regex: /\bBearer\s+[A-Za-z0-9._~+/-]{20,}=*/g, replacement: "Bearer [REDACTED]" },
-  { type: "API Key Assignment", regex: /\b(api[_-]?key|access[_-]?token|auth[_-]?token|secret[_-]?key)\s*[:=]\s*["']?[A-Za-z0-9._-]{16,}["']?/gi, replacement: "[REDACTED_KEY_ASSIGNMENT]" },
+  { type: "API Key", regex: /(sk|pk|api|key|token|bearer)[-_]?[a-zA-Z0-9]{16,}/gi, replacement: "[REDACTED_KEY]" },
   { type: "Email", regex: /[\w.-]+@[\w.-]+\.\w{2,}/g, replacement: "[REDACTED_EMAIL]" },
-  { type: "Password Assignment", regex: /\b(password|passwd|pwd)\s*[:=]\s*\S{6,}/gi, replacement: "[REDACTED_PASSWORD]" },
-  { type: "IP Address", regex: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g, replacement: "[REDACTED_IP]" },
-  { type: "AWS Key", regex: /\bAKIA[0-9A-Z]{16}\b/g, replacement: "[REDACTED_AWS_KEY]" },
-  { type: "AWS Secret", regex: /\baws_secret[_a-z]*\s*[:=]\s*["']?[A-Za-z0-9/+=]{40}["']?/gi, replacement: "[REDACTED_AWS_SECRET]" },
-  { type: "JWT", regex: /\beyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\b/g, replacement: "[REDACTED_JWT]" },
-  { type: "Private Key Block", regex: /-----BEGIN[ A-Z]+PRIVATE KEY-----[\s\S]+?-----END[ A-Z]+PRIVATE KEY-----/g, replacement: "[REDACTED_PRIVATE_KEY]" },
+  { type: "Password", regex: /(password|secret|credential)\s*[:=]\s*\S+/gi, replacement: "[REDACTED_SECRET]" },
+  { type: "IP Address", regex: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, replacement: "[REDACTED_IP]" },
+  { type: "Phone", regex: /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, replacement: "[REDACTED_PHONE]" },
+  { type: "AWS Key", regex: /AKIA[0-9A-Z]{16}/g, replacement: "[REDACTED_AWS_KEY]" },
+  { type: "JWT", regex: /eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}/g, replacement: "[REDACTED_JWT]" },
 ];
 
 interface SafePasteModeProps {

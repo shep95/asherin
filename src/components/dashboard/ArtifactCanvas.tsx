@@ -62,7 +62,7 @@ const ArtifactCanvas = ({ open, onClose, initialContent = "", persistKey }: Arti
   // Persist versions whenever they change
   useEffect(() => { saveVersions(persistKey, versions); }, [versions, persistKey]);
 
-  // When persistKey changes (different message), rehydrate from storage.
+  // When persistKey changes (different message), rehydrate
   useEffect(() => {
     const restored = loadVersions(persistKey);
     if (restored && restored.length) {
@@ -71,25 +71,6 @@ const ArtifactCanvas = ({ open, onClose, initialContent = "", persistKey }: Arti
       setContent(restored[restored.length - 1].content);
     }
   }, [persistKey]);
-
-  // Live-update: if the source message keeps streaming new content while the
-  // canvas is open, push the latest content into the active version so the
-  // canvas reflects what the user sees in chat.
-  useEffect(() => {
-    if (!open || !initialContent) return;
-    setContent(prev => (prev === initialContent ? prev : initialContent));
-    setVersions(prev => {
-      if (!prev.length) {
-        return [{ id: "v1", content: initialContent, label: "v1", timestamp: new Date() }];
-      }
-      const next = [...prev];
-      const idx = next.length - 1;
-      if (next[idx].content !== initialContent) {
-        next[idx] = { ...next[idx], content: initialContent, timestamp: new Date() };
-      }
-      return next;
-    });
-  }, [initialContent, open]);
 
   // On small screens, default to preview-only and auto-fullscreen
   useEffect(() => {
