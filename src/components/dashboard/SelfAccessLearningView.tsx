@@ -10,6 +10,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
 interface Finding {
   id: string;
@@ -146,7 +147,7 @@ const SelfAccessLearningView = () => {
     approved: findings.filter(f => f.status === "approved").length,
   };
 
-  if (user?.email !== "ashernewtonx@gmail.com") {
+  if (user?.email !== ADMIN_EMAIL) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <p className="text-sm text-muted-foreground">Access restricted.</p>

@@ -4,6 +4,7 @@ import { Brain, Trash2, Upload, Loader2, X, ToggleLeft, ToggleRight, FileText } 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
 interface AxrlenBrain {
   id: string;
@@ -15,7 +16,7 @@ interface AxrlenBrain {
   created_at: string;
 }
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 const FILE_INPUT_ID = "axrlen-brains-upload";
 
 const extractTextFromPdf = async (file: File): Promise<string> => {

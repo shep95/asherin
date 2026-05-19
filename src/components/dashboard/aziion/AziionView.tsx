@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Brain, Droplets, Loader2, Power, PowerOff, AlertTriangle, TrendingUp, TrendingDown, Clock, RefreshCw, Trash2, X, DollarSign, BarChart3, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 
 interface BotState {
   enabled: boolean;

@@ -8,8 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 const ALEPH = "https://search.libraryofleaks.org/api/2";
 const UI = "https://search.libraryofleaks.org";
 const PROXY = `https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1/asher-eyes-proxy?url=`;

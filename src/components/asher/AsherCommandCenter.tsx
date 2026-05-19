@@ -16,6 +16,7 @@ import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { routeBrainsForPrompt, type SwarmRouteResult } from "@/lib/asherBrainRouter";
 import { useAuth } from "@/contexts/AuthContext";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
 interface Attachment {
   name: string;
@@ -38,7 +39,7 @@ interface Session {
   updated_at: string;
 }
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 const ACCEPT = "image/*,video/mp4,video/quicktime,video/webm,application/pdf,text/plain,text/markdown,application/json";
 const MAX_FILE_MB = 18; // Gemini inline limit ~20MB total
 

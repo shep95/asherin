@@ -6,8 +6,9 @@ import { Loader2, Database, Download, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 
 const PRESETS: { label: string; domain: string; category: string; years: number }[] = [
   { label: "Modern Cybersecurity",        domain: "modern cybersecurity threats exploits CVE zero-day", category: "general", years: 4 },
