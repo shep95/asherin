@@ -740,9 +740,20 @@ const Dashboard = () => {
                     sources: (m.sources as { title: string; url: string }[]) ?? [],
                   }))
                 );
-                setConversations(prev => prev.map(c =>
-                  c.id === currentConvId ? { ...c, messages: decrypted } : c
-                ));
+                setConversations(prev => prev.map(c => {
+                  if (c.id !== currentConvId) return c;
+                  // Merge fresh DB rows with existing in-memory entries so we
+                  // don't wipe attachments / consensusData / branch metadata
+                  // that only live in memory.
+                  const existingById = Object.fromEntries(c.messages.map(m => [m.id, m]));
+                  return {
+                    ...c,
+                    messages: decrypted.map(dm => ({
+                      ...existingById[dm.id],
+                      ...dm,
+                    })),
+                  };
+                }));
               }
             }
           } catch {
