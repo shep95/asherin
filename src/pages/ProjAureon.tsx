@@ -57,7 +57,7 @@ const ProjAureon = () => {
     );
   }
 
-  if (!user || user.email !== ALLOWED_EMAIL) {
+  if (!user || user.email !== ADMIN_EMAIL) {
     return <Navigate to="/" replace />;
   }
 

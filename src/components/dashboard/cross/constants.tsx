@@ -2,6 +2,7 @@ import React from "react";
 import { AlertTriangle, Eye, Zap, Bug, Shield, Palette, Search, Clock, MessageCircle, Users, Scale, Brain } from "lucide-react";
 import { AlertType, VerdictAction } from "./types";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
+export { ADMIN_EMAIL };
 
 export const ALERT_COLORS: Record<AlertType, { bg: string; border: string; icon: React.ReactNode }> = {
   WARNING: { bg: "bg-muted/30", border: "border-border", icon: <AlertTriangle className="h-4 w-4 text-muted-foreground" /> },
@@ -59,5 +60,3 @@ export const OVERLAY_POSITIONS: Record<string, string> = {
   "bottom-left": "bottom-12 left-3",
   "bottom-right": "bottom-12 right-3",
 };
-
-export const ADMIN_EMAIL = ADMIN_EMAIL;

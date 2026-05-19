@@ -19,7 +19,7 @@ export const ROLE_LABEL: Record<AsherRole, string> = {
 
 export async function isSuperOwner(): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
-  return !!user && user.email?.toLowerCase() === SUPER_OWNER_EMAIL;
+  return !!user && user.email?.toLowerCase() === ADMIN_EMAIL;
 }
 
 export async function listOrgs() {

@@ -741,8 +741,6 @@ const PatternMiniChart = ({ data, startIdx, endIdx, type }: PatternMiniChartProp
 };
 
 /* ──────────── AUTO-TRADE LOGIC (Admin only) ──────────── */
-const ADMIN_EMAIL = ADMIN_EMAIL;
-
 const executeAutoTrade = async (sig: LiveSignal, sym: string, leverage: number, sizeUsd: number) => {
   try {
     const headers = await getAuthHeaders();

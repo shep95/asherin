@@ -23,8 +23,6 @@ interface ApiKey {
 }
 
 const STORAGE_KEY = "asher_vedic_keys_v2";
-const ADMIN_EMAIL = ADMIN_EMAIL;
-
 // Latest available models per provider (Feb 2026 lineup)
 const MODELS: Record<Provider, { value: string; label: string }[]> = {
   gemini: [

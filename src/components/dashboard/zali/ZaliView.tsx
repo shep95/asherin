@@ -60,9 +60,6 @@ const TABS: { id: ZaliTab; label: string }[] = [
   { id: "god-mode", label: "God Mode" },
   { id: "community", label: "Community" },
 ];
-
-const ADMIN_EMAIL = ADMIN_EMAIL;
-
 const ZaliView = () => {
   const { user } = useAuth();
   const { toast } = useToast();

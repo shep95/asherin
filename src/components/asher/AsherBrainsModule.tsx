@@ -22,8 +22,6 @@ import { scanFileForThreats, scanContentForThreats } from "@/lib/brainSafetyScan
 import { ShieldCheck } from "lucide-react";
 import JSZip from "jszip";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
-
-const ADMIN_EMAIL = ADMIN_EMAIL;
 const CONTRIBUTOR_EMAILS = [ADMIN_EMAIL, "ekk447@gmail.com"];
 const BRAINS_PASSCODE = "HOS080825";
 const BRAINS_GATE_KEY = "asher_brains_unlocked";

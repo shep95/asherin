@@ -38,8 +38,6 @@ interface Session {
   title: string;
   updated_at: string;
 }
-
-const ADMIN_EMAIL = ADMIN_EMAIL;
 const ACCEPT = "image/*,video/mp4,video/quicktime,video/webm,application/pdf,text/plain,text/markdown,application/json";
 const MAX_FILE_MB = 18; // Gemini inline limit ~20MB total
 

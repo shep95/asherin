@@ -202,9 +202,6 @@ type LiveRun = {
 };
 
 type ViewTab = "builder" | "workflow" | "runs" | "code" | "preview" | "schedule" | "compliance" | "admin";
-
-const ADMIN_EMAIL = ADMIN_EMAIL;
-
 type AdminAgentRow = {
   id: string;
   name: string;

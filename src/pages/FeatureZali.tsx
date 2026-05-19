@@ -55,9 +55,6 @@ const designTypes = [
   { title: "Architectural Concepts", desc: "Structural elements, spatial layouts, and building system integration." },
   { title: "Electronics & PCB", desc: "Component placement, thermal management, and connector design specifications." },
 ];
-
-const ADMIN_EMAIL = ADMIN_EMAIL;
-
 const FeatureZali = () => {
   const { user } = useAuth();
   const [downloading, setDownloading] = useState(false);

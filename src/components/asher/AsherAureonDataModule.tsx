@@ -13,9 +13,6 @@ import {
 import { format, subDays, startOfDay, formatDistanceToNow } from "date-fns";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
-
-const ADMIN_EMAIL = ADMIN_EMAIL;
-
 type Range = 7 | 14 | 30 | 90;
 
 const fmt = (n: number) => new Intl.NumberFormat().format(n);
