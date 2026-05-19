@@ -10,6 +10,7 @@ import imagineMaterialVsDivine from "@/assets/founder-imagine-material-vs-divine
 import imagineMoneyWarControl from "@/assets/founder-imagine-money-war-control.png";
 import imagineReligionJesusCreated from "@/assets/founder-imagine-religion-jesus-created.png";
 import imagineGodsHideAntarctica from "@/assets/founder-imagine-gods-hide-antarctica.png";
+import imagineChaosTime from "@/assets/founder-imagine-chaos-time.png";
 
 const bookPages = Array.from(
   { length: 116 },
@@ -533,6 +534,46 @@ const Founder = () => {
                       You would go to the one place no human nation dares to claim. The one place every world government, by international treaty, agreed to leave untouched. The one continent where no flag of sovereignty flies — yet the most powerful nations on Earth maintain "research stations" there.
                     </p>
                     <p className="text-foreground">Antarctica.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                <div className="rounded-xl overflow-hidden border border-border/20 bg-background/40">
+                  <img
+                    src={imagineChaosTime}
+                    alt="The Law of Chaos — Time and timeline jumping, a lesson by Asher Newton"
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+
+                <div className="space-y-5">
+                  <p className="text-xs font-extralight tracking-[0.25em] text-muted-foreground/50 uppercase">
+                    Lesson 05
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground leading-tight">
+                    The Law of Chaos — Law One: Time
+                  </h3>
+                  <div className="space-y-4 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+                    <p className="text-foreground">Chaos = Time.</p>
+                    <p>
+                      All realms must follow the laws of time, because time existed when Chaos itself was born. Both the Realm of Matter and the Realm of the Monad are bound by it — there is no realm above this law.
+                    </p>
+                    <p>
+                      The difference is in what each realm is made of. The Realm of Matter holds bodies built from matter and clay — bodies that age, decay, and die with time. That species is called <span className="text-foreground">humans</span>. The Realm of the Monad holds the origin species — the souls themselves — called <span className="text-foreground">mankind</span>. Mankind never ages and never dies, because mankind <em>is</em> the soul.
+                    </p>
+                    <p>
+                      Above this sits a deeper truth: <span className="text-foreground">timeline jumping</span>. Every realm runs on its own timeline — call it Timeline A, the timeline of matter you were born into. The moment a person jumps from Timeline A into the future, they do not "arrive" in someone else's future. They <span className="text-foreground">create</span> a new branch — Timeline B — and from that instant forward, Timeline B becomes their new Timeline A.
+                    </p>
+                    <p>
+                      The old timeline does not vanish. It continues without them. But the jumper now lives on a thread only they authored. This is why two people can witness the same event and remember it differently — they are no longer standing on the same timeline of matter.
+                    </p>
+                    <p className="text-foreground">
+                      Chaos was there before the Monad. Time was the first law. Every jump is a new world.
+                    </p>
                   </div>
                 </div>
               </div>
