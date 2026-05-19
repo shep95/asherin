@@ -170,3 +170,7 @@ verify_jwt = false
 
 [functions.ava-validate-results]
 verify_jwt = false
+
+[functions.verify-brains-passcode]
+verify_jwt = false
+

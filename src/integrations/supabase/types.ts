@@ -6580,6 +6580,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_key_material: {
+        Row: {
+          created_at: string
+          device_secret_b64: string
+          salt_b64: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_secret_b64: string
+          salt_b64: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_secret_b64?: string
+          salt_b64?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_model_preferences: {
         Row: {
           active_model: string | null

@@ -1,5 +1,6 @@
 // ASHER BRAINS — admin-only personality + knowledge file vault.
-// Gated by passcode "HOS080825" in addition to the super-owner RLS check.
+// Gated by a server-side passcode (ASHER_BRAINS_PASSCODE secret) in addition
+// to the super-owner RLS check. The passcode is NEVER stored in client code.
 // Files uploaded here are injected into ASHER AI's system prompt at runtime.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -23,23 +24,36 @@ import { ShieldCheck } from "lucide-react";
 import JSZip from "jszip";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
 const CONTRIBUTOR_EMAILS = [ADMIN_EMAIL, "ekk447@gmail.com"];
-const BRAINS_PASSCODE = "HOS080825";
 const BRAINS_GATE_KEY = "asher_brains_unlocked";
 
 const BrainsPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (code === BRAINS_PASSCODE) {
-      try { sessionStorage.setItem(BRAINS_GATE_KEY, "1"); } catch {}
-      logAsherEvent("module_open", { module: "asher_brains_unlocked" });
-      onUnlock();
-    } else {
-      logAsherEvent("passcode_failure", { module: "asher_brains" });
-      setError("ACCESS DENIED — Invalid brain vault code.");
-      setCode("");
+    if (verifying) return;
+    setVerifying(true);
+    setError("");
+    try {
+      const { data, error: invokeErr } = await supabase.functions.invoke(
+        "verify-brains-passcode",
+        { body: { code } },
+      );
+      if (invokeErr || !data?.ok) {
+        logAsherEvent("passcode_failure", { module: "asher_brains" });
+        setError("ACCESS DENIED — Invalid brain vault code.");
+        setCode("");
+      } else {
+        try { sessionStorage.setItem(BRAINS_GATE_KEY, "1"); } catch {}
+        logAsherEvent("module_open", { module: "asher_brains_unlocked" });
+        onUnlock();
+      }
+    } catch {
+      setError("ACCESS DENIED — Verification service unreachable.");
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -82,9 +96,10 @@ const BrainsPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
             )}
             <button
               type="submit"
-              className="w-full rounded-lg bg-foreground/90 px-4 py-3 text-xs font-light tracking-[0.2em] text-background hover:bg-foreground transition-colors uppercase"
+              disabled={verifying}
+              className="w-full rounded-lg bg-foreground/90 px-4 py-3 text-xs font-light tracking-[0.2em] text-background hover:bg-foreground transition-colors uppercase disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Authenticate
+              {verifying ? "Verifying…" : "Authenticate"}
             </button>
           </form>
         </div>
