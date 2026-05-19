@@ -1,15 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Aureon Cross — Universal Screen Intelligence",
-  "version": "2.0.0",
-  "description": "Real-time AI screen analysis with recording, chat overlay, visual annotations, and instant alerts on any tab.",
+  "version": "2.1.0",
+  "description": "Real-time AI screen analysis with chat overlay, visual annotations, and instant alerts on supported trading domains.",
   "permissions": [
     "activeTab",
     "storage",
-    "tabs",
-    "tabCapture",
-    "offscreen",
-    "desktopCapture"
+    "tabs"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -43,7 +40,8 @@
       ],
       "js": ["content.js"],
       "css": ["overlay.css"],
-      "run_at": "document_end"
+      "run_at": "document_end",
+      "all_frames": false
     }
   ],
   "background": {

@@ -358,9 +358,12 @@
   }
 
   // ── LOAD CONFIG ──
+  // Token is NEVER exposed to the content script — only `hasToken` boolean.
+  // All API calls go through the background service worker which holds the
+  // encrypted token in chrome.storage.session-keyed AES-GCM.
   chrome.runtime.sendMessage({ type: "getConfig" }, (data) => {
     if (data?.settings) settings = { ...settings, ...data.settings };
-    if (data?.aureonEnabled) toggleActive();
+    if (data?.aureonEnabled && data?.hasToken) toggleActive();
   });
 
   // ── KEYBOARD SHORTCUT ──

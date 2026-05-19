@@ -1,4 +1,5 @@
-// Popup script
+// Popup script — never reads or writes the token directly; all token ops go
+// through the background service worker which encrypts at rest.
 document.addEventListener("DOMContentLoaded", () => {
   const tokenInput = document.getElementById("tokenInput");
   const modeSelect = document.getElementById("modeSelect");
@@ -10,15 +11,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusText = document.getElementById("statusText");
   const tokenSaved = document.getElementById("tokenSaved");
 
-  // Load existing config
-  chrome.storage.local.get(["aureonToken", "aureonEnabled", "settings"], (data) => {
-    if (data.aureonToken) tokenInput.value = "••••••••••••••••";
+  // Load existing config via background (token never leaves the service worker)
+  chrome.runtime.sendMessage({ type: "getConfig" }, (data) => {
+    if (!data) return;
+    if (data.hasToken) tokenInput.placeholder = "Token stored (re-enter to replace)";
     if (data.settings?.mode) modeSelect.value = data.settings.mode;
     if (data.settings?.sensitivity) sensitivitySelect.value = data.settings.sensitivity;
     if (data.settings?.frameRate) frameRateSelect.value = String(data.settings.frameRate);
-    if (data.aureonEnabled) {
+    if (data.aureonEnabled && data.hasToken) {
       statusDot.classList.add("active");
       statusText.textContent = "Active — watching tabs";
+    } else if (!data.hasToken) {
+      statusText.textContent = "Locked — token required";
     }
   });
 
@@ -31,12 +35,11 @@ document.addEventListener("DOMContentLoaded", () => {
       quality: "medium",
     };
 
-    const saveData = { settings, aureonEnabled: true };
-    if (token && !token.startsWith("••")) {
-      saveData.aureonToken = token;
-    }
+    const payload = { settings, aureonEnabled: true };
+    if (token) payload.aureonToken = token;
 
-    chrome.storage.local.set(saveData, () => {
+    chrome.runtime.sendMessage({ type: "saveConfig", data: payload }, () => {
+      tokenInput.value = "";
       tokenSaved.style.display = "block";
       statusDot.classList.add("active");
       statusText.textContent = "Active — watching tabs";
@@ -45,9 +48,12 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   deactivateBtn.onclick = () => {
-    chrome.storage.local.set({ aureonEnabled: false }, () => {
-      statusDot.classList.remove("active");
-      statusText.textContent = "Inactive";
-    });
+    chrome.runtime.sendMessage(
+      { type: "saveConfig", data: { aureonEnabled: false } },
+      () => {
+        statusDot.classList.remove("active");
+        statusText.textContent = "Inactive";
+      }
+    );
   };
 });

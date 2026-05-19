@@ -4,12 +4,104 @@
 const AUREON_API_BASE = "https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1";
 
 // Allowed setting values (whitelist for backend validation)
-const VALID_MODES = ["trading", "general", "analysis"];
+const VALID_MODES = ["trading", "general", "analysis", "coding", "design"];
 const VALID_SENSITIVITIES = ["low", "medium", "high"];
 const MAX_FRAME_RATE = 10;
 const MIN_FRAME_RATE = 1;
+const VALID_MESSAGE_TYPES = new Set(["chat", "analyze", "getConfig", "saveConfig", "clearToken"]);
+
+// ============================================================================
+// SECURITY: AES-GCM token encryption at rest
+// Token is encrypted using a per-install key stored in chrome.storage.session
+// (session storage is cleared on browser restart, RAM-only, not on disk)
+// ============================================================================
+
+async function getOrCreateSessionKey() {
+  const { _sessionKeyRaw } = await chrome.storage.session.get("_sessionKeyRaw");
+  if (_sessionKeyRaw) {
+    return crypto.subtle.importKey(
+      "raw",
+      new Uint8Array(_sessionKeyRaw),
+      { name: "AES-GCM" },
+      false,
+      ["encrypt", "decrypt"]
+    );
+  }
+  const key = await crypto.subtle.generateKey(
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"]
+  );
+  const raw = await crypto.subtle.exportKey("raw", key);
+  await chrome.storage.session.set({ _sessionKeyRaw: Array.from(new Uint8Array(raw)) });
+  return key;
+}
+
+async function encryptToken(plain) {
+  const key = await getOrCreateSessionKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = new TextEncoder().encode(plain);
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data);
+  return { iv: Array.from(iv), ct: Array.from(new Uint8Array(ct)) };
+}
+
+async function decryptToken(blob) {
+  if (!blob || !blob.iv || !blob.ct) return null;
+  try {
+    const key = await getOrCreateSessionKey();
+    const pt = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: new Uint8Array(blob.iv) },
+      key,
+      new Uint8Array(blob.ct)
+    );
+    return new TextDecoder().decode(pt);
+  } catch {
+    // Session key rotated (browser restart) — encrypted token unreadable, force re-entry
+    return null;
+  }
+}
+
+async function getStoredToken() {
+  const { aureonTokenEnc } = await chrome.storage.local.get("aureonTokenEnc");
+  return decryptToken(aureonTokenEnc);
+}
+
+async function setStoredToken(plain) {
+  if (!plain || typeof plain !== "string") return;
+  const enc = await encryptToken(plain.trim());
+  await chrome.storage.local.set({ aureonTokenEnc: enc });
+}
+
+// ============================================================================
+// SECURITY: sender validation — reject messages not from this extension's own
+// content scripts / popup. Cross-extension messaging is disabled (no
+// externally_connectable), so sender.id must equal our runtime id.
+// ============================================================================
+
+function isTrustedSender(sender) {
+  if (!sender || sender.id !== chrome.runtime.id) return false;
+  // If sender has a tab/url, ensure it's an http(s) origin (defense in depth)
+  if (sender.url) {
+    try {
+      const u = new URL(sender.url);
+      if (!["https:", "http:", "chrome-extension:"].includes(u.protocol)) return false;
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!isTrustedSender(sender)) {
+    sendResponse({ error: "Untrusted sender" });
+    return false;
+  }
+  if (!message || typeof message.type !== "string" || !VALID_MESSAGE_TYPES.has(message.type)) {
+    sendResponse({ error: "Invalid message" });
+    return false;
+  }
+
   if (message.type === "chat") {
     handleChat(message, sendResponse);
     return true;
@@ -19,15 +111,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message.type === "getConfig") {
-    chrome.storage.local.get(["aureonToken", "aureonEnabled", "settings"], (data) => {
-      sendResponse(data);
-    });
+    (async () => {
+      const { aureonEnabled, settings } = await chrome.storage.local.get(["aureonEnabled", "settings"]);
+      const token = await getStoredToken();
+      sendResponse({ hasToken: !!token, aureonEnabled, settings });
+    })();
     return true;
   }
   if (message.type === "saveConfig") {
-    chrome.storage.local.set(message.data, () => {
+    (async () => {
+      const data = message.data || {};
+      const toStore = {};
+      if (data.settings) toStore.settings = sanitizeSettings(data.settings);
+      if (typeof data.aureonEnabled === "boolean") toStore.aureonEnabled = data.aureonEnabled;
+      if (Object.keys(toStore).length) await chrome.storage.local.set(toStore);
+      if (data.aureonToken && typeof data.aureonToken === "string") {
+        await setStoredToken(data.aureonToken);
+      }
       sendResponse({ ok: true });
-    });
+    })();
+    return true;
+  }
+  if (message.type === "clearToken") {
+    (async () => {
+      await chrome.storage.local.remove("aureonTokenEnc");
+      await chrome.storage.session.remove("_sessionKeyRaw");
+      sendResponse({ ok: true });
+    })();
     return true;
   }
 });
@@ -35,15 +145,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Input sanitization: strip control chars, limit length
 function sanitizeInput(str, maxLen = 2000) {
   if (typeof str !== "string") return "";
-  // Remove control characters except newlines/tabs
   const cleaned = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   return cleaned.slice(0, maxLen);
 }
 
-// Validate and sanitize settings to prevent client-side tampering
 function sanitizeSettings(settings) {
   if (!settings || typeof settings !== "object") {
-    return { mode: "trading", sensitivity: "medium" };
+    return { mode: "trading", sensitivity: "medium", frameRate: 3, quality: "medium" };
   }
   return {
     mode: VALID_MODES.includes(settings.mode) ? settings.mode : "trading",
@@ -53,20 +161,18 @@ function sanitizeSettings(settings) {
   };
 }
 
-// Sanitize context — cap size and strip potential PII patterns
 function sanitizeContext(ctx, maxLen = 4000) {
   if (typeof ctx !== "string") return "";
   let cleaned = ctx.slice(0, maxLen);
-  // Strip control chars
   cleaned = cleaned.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   return cleaned;
 }
 
 async function handleChat(message, sendResponse) {
   try {
-    const { aureonToken } = await chrome.storage.local.get("aureonToken");
-    if (!aureonToken) {
-      sendResponse({ text: "Please set your Aureon token in the extension popup first." });
+    const token = await getStoredToken();
+    if (!token) {
+      sendResponse({ text: "Session locked. Re-enter your Aureon token in the extension popup." });
       return;
     }
 
@@ -82,7 +188,7 @@ async function handleChat(message, sendResponse) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${aureonToken}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         frame: null,
@@ -107,13 +213,12 @@ async function handleChat(message, sendResponse) {
 
 async function handleAnalyze(message, sendResponse) {
   try {
-    const { aureonToken } = await chrome.storage.local.get("aureonToken");
-    if (!aureonToken) {
+    const token = await getStoredToken();
+    if (!token) {
       sendResponse({ error: "No token" });
       return;
     }
 
-    // Validate frame data — must be a data URL and within size limits (2MB max)
     const frame = message.frame;
     if (frame && (typeof frame !== "string" || !frame.startsWith("data:image/") || frame.length > 2 * 1024 * 1024)) {
       sendResponse({ error: "Invalid frame data" });
@@ -124,7 +229,7 @@ async function handleAnalyze(message, sendResponse) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${aureonToken}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         frame: frame || null,
