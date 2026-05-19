@@ -15,6 +15,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { getCorsHeaders } from "../_shared/cors.ts";
 // libphonenumber-js — full metadata build for accurate global parsing
 import {
   parsePhoneNumberFromString,
@@ -22,10 +23,12 @@ import {
   getCountries,
 } from "https://esm.sh/libphonenumber-js@1.11.11/max";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+let corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "https://aureonai.app",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Vary": "Origin",
 };
 
 const UA =
@@ -167,6 +170,7 @@ const COUNTRY_CENTROIDS: Record<string, { lat: number; lng: number; name: string
 };
 
 serve(async (req) => {
+  corsHeaders = getCorsHeaders(req);
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   if (req.method !== 'OPTIONS') {

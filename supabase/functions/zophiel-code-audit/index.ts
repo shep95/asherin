@@ -3,9 +3,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+import { getCorsHeaders } from "../_shared/cors.ts";
+// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+let corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "https://aureonai.app",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Vary": "Origin",
 };
 
 const MAX_BYTES = 600 * 1024; // 600KB hard cap (matches client-side bundling)
@@ -405,6 +409,7 @@ Rules:
 
 
 serve(async (req) => {
+  corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

@@ -4,9 +4,13 @@
 // • Nothing is persisted to the database under any circumstance.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+import { getCorsHeaders } from "../_shared/cors.ts";
+// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+let corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "https://aureonai.app",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Vary": "Origin",
 };
 
 // In-memory rate limiter (per-IP, 5 msgs / 3 hours). Resets on cold start — acceptable for free tier.
@@ -162,6 +166,7 @@ async function routeByok(byok: ByokConfig, messages: ChatMessage[]): Promise<str
 }
 
 serve(async (req) => {
+  corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

@@ -4,9 +4,12 @@
 // Jargon Mode: every advanced term is written as `Term (plain-English description of what it is, does, and why it matters)`.
 // GEMINI ONLY (per Asher Dashboard policy).
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+let corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "https://aureonai.app",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Vary": "Origin",
 };
 
 const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
@@ -40,6 +43,7 @@ async function fetchBody(id: string): Promise<string> {
 }
 
 Deno.serve(async (req) => {
+  corsHeaders = getCorsHeaders(req);
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   if (req.method !== 'OPTIONS') {
