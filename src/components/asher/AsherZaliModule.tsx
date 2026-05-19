@@ -25,6 +25,7 @@ import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 import { extractZanoemCodeFiles } from "@/components/dashboard/zali/zanoemOutput";
 import React from "react";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
 const ZaliWorkspace = lazy(() => import("@/components/dashboard/zali/ZaliWorkspace"));
 const ZaliChatPanel = lazy(() => import("@/components/dashboard/zali/ZaliChatPanel"));
@@ -39,7 +40,7 @@ const ManufacturingVerifyPanel = lazy(() => import("@/components/dashboard/zali/
 const OptimizationPanel = lazy(() => import("@/components/dashboard/zali/OptimizationPanel"));
 const GodModePanel = lazy(() => import("@/components/dashboard/zali/GodModePanel"));
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 
 // Asher-themed tab definitions — Unicode markers, no colored icons
 const TABS: { id: ZaliTab; label: string; mark: string }[] = [

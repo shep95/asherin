@@ -5,8 +5,9 @@ import {
   StopCircle, X, ChevronDown, ChevronUp, Wallet, Percent,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 
 interface Trade {
   id: string;

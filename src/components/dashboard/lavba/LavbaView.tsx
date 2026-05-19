@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { streamChat } from "@/lib/ai";
 import { useAuth } from "@/contexts/AuthContext";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 const LavbaAutoTradeComponent = lazy(() => import("./LavbaAutoTrade"));
 
 interface ChartBar {
@@ -740,7 +741,7 @@ const PatternMiniChart = ({ data, startIdx, endIdx, type }: PatternMiniChartProp
 };
 
 /* ──────────── AUTO-TRADE LOGIC (Admin only) ──────────── */
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 
 const executeAutoTrade = async (sig: LiveSignal, sym: string, leverage: number, sizeUsd: number) => {
   try {

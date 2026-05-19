@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiagram";
 import { useAuth } from "@/contexts/AuthContext";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
 const capabilities = [
   {
@@ -55,7 +56,7 @@ const designTypes = [
   { title: "Electronics & PCB", desc: "Component placement, thermal management, and connector design specifications." },
 ];
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 
 const FeatureZali = () => {
   const { user } = useAuth();

@@ -3,6 +3,7 @@ import { Loader2, MessageSquare, Send, Settings, StickyNote, Trash2, X, Plus, Sh
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
 interface Note {
   id: string;
@@ -22,7 +23,7 @@ interface ApiKey {
 }
 
 const STORAGE_KEY = "asher_vedic_keys_v2";
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 
 // Latest available models per provider (Feb 2026 lineup)
 const MODELS: Record<Provider, { value: string; label: string }[]> = {

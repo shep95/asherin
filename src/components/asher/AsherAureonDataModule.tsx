@@ -12,8 +12,9 @@ import {
 } from "recharts";
 import { format, subDays, startOfDay, formatDistanceToNow } from "date-fns";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 
 type Range = 7 | 14 | 30 | 90;
 

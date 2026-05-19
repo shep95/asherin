@@ -24,6 +24,7 @@ import OptimizationPanel from "./OptimizationPanel";
 import GodModePanel from "./GodModePanel";
 import EncryptionBadge from "../EncryptionBadge";
 import React from "react";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
 // Error boundary for ZALI panels
 class ZaliErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -60,7 +61,7 @@ const TABS: { id: ZaliTab; label: string }[] = [
   { id: "community", label: "Community" },
 ];
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 
 const ZaliView = () => {
   const { user } = useAuth();

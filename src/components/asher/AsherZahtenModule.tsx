@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { routeBrainsForPrompt } from "@/lib/asherBrainRouter";
 import { toast } from "sonner";
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
 /**
  * ZAHTEN — House of Asher
@@ -202,7 +203,7 @@ type LiveRun = {
 
 type ViewTab = "builder" | "workflow" | "runs" | "code" | "preview" | "schedule" | "compliance" | "admin";
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAIL = ADMIN_EMAIL;
 
 type AdminAgentRow = {
   id: string;
