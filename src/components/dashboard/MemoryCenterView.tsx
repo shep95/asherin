@@ -66,14 +66,28 @@ const MemoryCenterView = () => {
   };
 
   const saveEdit = async (id: string) => {
-    await supabase.from("memory_entries").update({ content: editContent }).eq("id", id);
-    setMemories((prev) => prev.map((m) => m.id === id ? { ...m, content: editContent } : m));
+    const trimmed = editContent.trim();
     setEditId(null);
+    const { error } = await supabase.from("memory_entries").update({ content: trimmed }).eq("id", id);
+    if (error) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    setMemories((prev) => prev.map((m) => m.id === id ? { ...m, content: trimmed } : m));
   };
 
-  const toggleEnabled = (id: string) => {
-    setMemories(prev => prev.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m));
-    toast({ title: "Memory toggled" });
+  const toggleEnabled = async (id: string) => {
+    const target = memories.find(m => m.id === id);
+    if (!target) return;
+    const next = !target.enabled;
+    setMemories(prev => prev.map(m => m.id === id ? { ...m, enabled: next } : m));
+    const { error } = await (supabase.from("memory_entries") as any)
+      .update({ enabled: next }).eq("id", id);
+    if (error) {
+      // Roll back on failure so the UI doesn't lie.
+      setMemories(prev => prev.map(m => m.id === id ? { ...m, enabled: !next } : m));
+      toast({ title: "Toggle failed", description: error.message, variant: "destructive" });
+    }
   };
 
   const wipeAll = async () => {
