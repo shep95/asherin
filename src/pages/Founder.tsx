@@ -8,6 +8,7 @@ import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Downl
 import FounderVideos from "@/components/founder/FounderVideos";
 import imagineMaterialVsDivine from "@/assets/founder-imagine-material-vs-divine-love.png";
 import imagineMoneyWarControl from "@/assets/founder-imagine-money-war-control.png";
+import imagineReligionJesusCreated from "@/assets/founder-imagine-religion-jesus-created.png";
 
 const bookPages = Array.from(
   { length: 116 },
@@ -468,8 +469,41 @@ const Founder = () => {
                     </p>
                   </div>
                 </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                <div className="rounded-xl overflow-hidden border border-border/20 bg-background/40">
+                  <img
+                    src={imagineReligionJesusCreated}
+                    alt="The Religion Jesus Created — a lesson by Asher Newton"
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+
+                <div className="space-y-5">
+                  <p className="text-xs font-extralight tracking-[0.25em] text-muted-foreground/50 uppercase">
+                    Lesson 03
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground leading-tight">
+                    The Religion Jesus Created
+                  </h3>
+                  <div className="space-y-4 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+                    <p>
+                      When Jesus was alive, he actually created a religion — and it wasn't Christianity. Christianity was created after his death by a man named <span className="text-foreground">Paul</span>. Paul founded Christianity because he was funded by the Roman and Persian elites, who wanted to suppress what Jesus had truly unleashed.
+                    </p>
+                    <p>
+                      While Jesus was alive, he freed many slaves through the <em>divine truth of occultism</em> and pure spirituality. That liberation terrified the powers that ruled the ancient world.
+                    </p>
+                    <p>
+                      The religion Jesus actually created — the one most people don't know about — is called the <span className="text-foreground">Gnostic religion</span>. Gnosticism is a spiritually based path that is never-ending. It is the doctrine Jesus was preaching while he walked the earth, the stories he was telling, and the inner knowing he was awakening in those who could hear him.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
