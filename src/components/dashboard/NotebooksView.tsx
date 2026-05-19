@@ -76,6 +76,15 @@ const NotebooksView = () => {
 
   useEffect(() => { loadNotebooks(); }, [loadNotebooks]);
 
+  // Flush any pending debounced cell writes when the component unmounts so
+  // we don't fire a Supabase update against an unmounted view.
+  useEffect(() => {
+    const timers = debounceTimers.current;
+    return () => {
+      Object.values(timers).forEach((t) => clearTimeout(t));
+    };
+  }, []);
+
   // Load datasets for notebook execution
   useEffect(() => {
     if (!user) return;
