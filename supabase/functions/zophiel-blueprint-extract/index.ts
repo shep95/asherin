@@ -1,10 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+import { getCorsHeaders } from "../_shared/cors.ts";
+// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+let corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "https://aureonai.app",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Vary": "Origin",
 };
 
 // ─── LIVE RECON ──────────────────────────────────────────────────────────────
@@ -1413,6 +1416,7 @@ Rules:
 
 
 serve(async (req) => {
+  corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

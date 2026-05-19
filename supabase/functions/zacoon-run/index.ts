@@ -3,9 +3,13 @@
 // Also exposes a "recon" mode that returns infrastructure intelligence (DNS / TLS / WAF / headers / surface).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-byok-gemini-key",
+import { getCorsHeaders } from "../_shared/cors.ts";
+// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+let corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "https://aureonai.app",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Vary": "Origin",
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -120,6 +124,7 @@ async function reconTarget(url: string): Promise<{ infra: Record<string, unknown
 }
 
 Deno.serve(async (req) => {
+  corsHeaders = getCorsHeaders(req);
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   if (req.method !== 'OPTIONS') {

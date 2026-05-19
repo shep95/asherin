@@ -366,6 +366,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [chatError, setChatError] = useState<string | null>(null);
   const [artifactOpen, setArtifactOpen] = useState(false);
   const [artifactContent, setArtifactContent] = useState("");
+  const [artifactKey, setArtifactKey] = useState<string | undefined>(undefined);
   const [previousResponses, setPreviousResponses] = useState<Record<string, string>>({});
   const [blocksOpen, setBlocksOpen] = useState(false);
   const [blockSaveContent, setBlockSaveContent] = useState<string | undefined>();
@@ -917,7 +918,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                           )}
                           {/* Open in Canvas */}
                           <button
-                            onClick={() => { setArtifactContent(msg.content); setArtifactOpen(true); }}
+                            onClick={() => { setArtifactContent(msg.content); setArtifactKey(`${conversation.id}::${msg.id}`); setArtifactOpen(true); }}
                             className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                           >
                             <PanelRight className="h-3 w-3" />
@@ -1107,6 +1108,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           open={artifactOpen}
           onClose={() => setArtifactOpen(false)}
           initialContent={artifactContent}
+          persistKey={artifactKey}
         />
       )}
 
