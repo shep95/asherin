@@ -592,54 +592,26 @@ const Dashboard = () => {
 
       bootstrapConversationRef.current = true;
 
-      const convIds = convRows.map((c) => c.id);
-      // Fetch messages per-conversation to avoid Supabase 1000-row global limit
-      const msgRowsBatches = await Promise.all(
-        convIds.map(async (cid) => {
-          const { data } = await supabase
-            .from("messages")
-            .select("*")
-            .eq("conversation_id", cid)
-            .order("created_at", { ascending: true })
-            .limit(500);
-          return data ?? [];
-        })
-      );
-      const msgRows = msgRowsBatches.flat();
-
-      // Hydrate branch map from DB branch_id column
-      hydrateMessageBranches(msgRows.map(m => ({ id: m.id, branch_id: (m as any).branch_id })));
-
-      const msgMap = new Map<string, Message[]>();
-      const decryptPromises = (msgRows ?? []).map(async (m) => {
-        const decryptedContent = await decryptText(m.content, user.id);
-        return { ...m, content: decryptedContent };
-      });
-      const decryptedMsgs = await Promise.all(decryptPromises);
-      decryptedMsgs.forEach((m) => {
-        const list = msgMap.get(m.conversation_id) ?? [];
-        list.push({
-          id: m.id,
-          role: m.role as "user" | "assistant",
-          content: m.content,
-          timestamp: new Date(m.created_at),
-          truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
-          sources: (m.sources as { title: string; url: string }[]) ?? [],
-        });
-        msgMap.set(m.conversation_id, list);
-      });
-
-      const convs: Conversation[] = convRows.map((c) => ({
+      // FAST PATH: render dashboard immediately with conversation list (no messages yet),
+      // then lazy-hydrate messages in the background. Cuts loading screen from 10s+ to <1s.
+      const preferredConvId = activeConvIdRef.current ?? localStorage.getItem("aureon_active_conv_id");
+      const shellConvs: Conversation[] = convRows.map((c) => ({
         id: c.id,
         title: c.title,
-        messages: msgMap.get(c.id) ?? [],
+        messages: [],
         createdAt: new Date(c.created_at),
         pinned: c.pinned,
         mode: c.mode as ChatMode,
         projectId: c.project_id ?? undefined,
       }));
+      setConversations(shellConvs);
+      const initialActiveId = (preferredConvId && shellConvs.find(c => c.id === preferredConvId))
+        ? preferredConvId
+        : (shellConvs[0]?.id ?? null);
+      setActiveConvId(initialActiveId);
+      setLoaded(true);
 
-      // Restore branches from DB for each conversation and heal missing default branch persistence
+      // Restore branches in background
       convRows.forEach((c) => {
         restoreBranchesFromDB(c.id, (c as any).branches);
         const restored = localStorage.getItem("aureon_conv_branches");
@@ -650,12 +622,37 @@ const Dashboard = () => {
         }
       });
 
-      setConversations(convs);
-      // Restore the current conversation if it still exists, otherwise fall back to the newest real one
-      const preferredConvId = activeConvIdRef.current ?? localStorage.getItem("aureon_active_conv_id");
-      const restoredConv = preferredConvId ? convs.find(c => c.id === preferredConvId) : null;
-      setActiveConvId(restoredConv ? restoredConv.id : (convs[0]?.id ?? null));
-      setLoaded(true);
+      // Hydrate messages: active conversation FIRST, then the rest in the background.
+      const hydrateConv = async (cid: string) => {
+        const { data } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("conversation_id", cid)
+          .order("created_at", { ascending: true })
+          .limit(500);
+        const rows = data ?? [];
+        hydrateMessageBranches(rows.map(m => ({ id: m.id, branch_id: (m as any).branch_id })));
+        const decrypted = await Promise.all(rows.map(async (m) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: await decryptText(m.content, user.id),
+          timestamp: new Date(m.created_at),
+          truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
+          sources: (m.sources as { title: string; url: string }[]) ?? [],
+        } as Message)));
+        if (cancelled) return;
+        setConversations(prev => prev.map(c => c.id === cid ? { ...c, messages: decrypted } : c));
+      };
+
+      (async () => {
+        if (initialActiveId) await hydrateConv(initialActiveId);
+        if (cancelled) return;
+        for (const c of convRows) {
+          if (cancelled) return;
+          if (c.id === initialActiveId) continue;
+          await hydrateConv(c.id);
+        }
+      })();
     };
 
     load();
