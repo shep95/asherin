@@ -191,7 +191,9 @@ const Dashboard = () => {
   const attachmentMapRef = useRef<Map<string, FileAttachment[]>>(new Map());
   const [online, setOnline] = useState(navigator.onLine);
   const [messageStatuses, setMessageStatuses] = useState<Record<string, MessageStatus>>({});
-  const processingQueue = useRef(false);
+  // Two independent locks — offline-sync drain and live send queue must not block each other.
+  const processingQueue = useRef(false);          // live send queue (processQueue)
+  const processingOfflineQueue = useRef(false);   // offline-sync drain (processMessageQueue)
   const pendingQueue = useRef<string[]>([]);
   const isStreamingRef = useRef(false);
   const [queueItems, setQueueItems] = useState<{ id: string; content: string }[]>([]);
@@ -338,8 +340,8 @@ const Dashboard = () => {
 
   // Process queued messages — actually persist to DB and trigger AI
   const processMessageQueue = useCallback(async () => {
-    if (processingQueue.current || !user) return;
-    processingQueue.current = true;
+    if (processingOfflineQueue.current || !user) return;
+    processingOfflineQueue.current = true;
     try {
       const pending = await getPendingMessages();
       for (const msg of pending.sort((a, b) => a.createdAt - b.createdAt)) {
@@ -434,7 +436,7 @@ const Dashboard = () => {
         }
       }
     } finally {
-      processingQueue.current = false;
+      processingOfflineQueue.current = false;
     }
   }, [user, conversations, customPersonas, personaId, mode, depth, userProfile]);
 
