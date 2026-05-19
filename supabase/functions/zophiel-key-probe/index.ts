@@ -392,9 +392,20 @@ async function dispatch(
   }
 }
 
+import { requireUser, authErrorResponse } from "../_shared/authMiddleware.ts";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "POST only" });
+
+  // MANDATORY auth — this endpoint executes live calls against third-party
+  // provider APIs using user-supplied keys. Anonymous access turns it into a
+  // free credential-validation proxy for attackers.
+  try {
+    await requireUser(req);
+  } catch (e) {
+    try { return authErrorResponse(e, corsHeaders); } catch { return json(401, { error: "Unauthorized" }); }
+  }
 
   let body: any;
   try { body = await req.json(); } catch { return json(400, { error: "Invalid JSON" }); }
