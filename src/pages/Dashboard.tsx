@@ -164,6 +164,8 @@ const Dashboard = () => {
   const [activeConvId, setActiveConvId] = useState<string | null>(() => {
     try { return localStorage.getItem("aureon_active_conv_id") || null; } catch { return null; }
   });
+  const hydratedConvsRef = useRef<Set<string>>(new Set());
+  const hydrateConvRef = useRef<((cid: string) => Promise<void>) | null>(null);
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>("chat");
   const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
@@ -664,23 +666,15 @@ const Dashboard = () => {
         // Merge — don't overwrite optimistic messages added during hydration.
         setConversations(prev => prev.map(c => {
           if (c.id !== cid) return c;
-          const existingById = new Map(c.messages.map(m => [m.id, m]));
-          const merged = [...decrypted];
-          for (const m of c.messages) {
-            if (!existingById.has(m.id) || !decrypted.find(d => d.id === m.id)) {
-              if (!merged.find(d => d.id === m.id)) merged.push(m);
-            }
-          }
-          // Preserve any optimistic message not yet in DB
-          for (const m of c.messages) {
-            if (!decrypted.find(d => d.id === m.id)) {
-              if (!merged.find(d => d.id === m.id)) merged.push(m);
-            }
-          }
-          merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+          const byId = new Map<string, Message>();
+          for (const m of decrypted) byId.set(m.id, m);
+          for (const m of c.messages) if (!byId.has(m.id)) byId.set(m.id, m);
+          const merged = Array.from(byId.values()).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
           return { ...c, messages: merged };
         }));
+        hydratedConvsRef.current.add(cid);
       };
+      hydrateConvRef.current = hydrateConv;
 
       (async () => {
         if (initialActiveId) await hydrateConv(initialActiveId);
@@ -688,6 +682,7 @@ const Dashboard = () => {
         for (const c of convRows) {
           if (cancelled) return;
           if (c.id === initialActiveId) continue;
+          if (hydratedConvsRef.current.has(c.id)) continue;
           await hydrateConv(c.id);
         }
       })();
@@ -706,6 +701,21 @@ const Dashboard = () => {
       localStorage.setItem("aureon_active_conv_id", activeConvId);
     }
   }, [activeConvId]);
+
+  // On-demand hydration: if the user switches to a conversation that hasn't
+  // been hydrated yet (still empty), fetch it immediately rather than waiting
+  // for the sequential background loop to reach it.
+  useEffect(() => {
+    if (!activeConvId) return;
+    if (hydratedConvsRef.current.has(activeConvId)) return;
+    const conv = conversations.find(c => c.id === activeConvId);
+    if (!conv) return;
+    if (conv.messages.length > 0) return;
+    const fn = hydrateConvRef.current;
+    if (!fn) return;
+    void fn(activeConvId);
+  }, [activeConvId, conversations]);
+
 
   // Persist active brain id
   useEffect(() => {
