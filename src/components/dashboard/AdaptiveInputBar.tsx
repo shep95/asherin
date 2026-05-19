@@ -171,7 +171,18 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
   const [online, setOnline] = useState(navigator.onLine);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const isMobile = useMemo(() => /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768, []);
+  const [isMobile, setIsMobile] = useState(() =>
+    /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    window.innerWidth < 768
+  );
+  useEffect(() => {
+    const onResize = () => setIsMobile(
+      /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      window.innerWidth < 768
+    );
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -266,17 +277,18 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
 
   // Handle paste from clipboard (images)
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    if (!onAttachmentsChange) return;
-    const items = e.clipboardData?.items;
-    if (!items) return;
-
-    // Check for long text paste first
-    const textData = e.clipboardData.getData("text/plain");
-    if (textData && textData.length > LONG_PASTE_THRESHOLD) {
+    // Detect long-text paste first so we still surface the Safe Paste UI even
+    // in contexts that don't support attachments.
+    const textData = e.clipboardData?.getData("text/plain") || "";
+    if (textData.length > LONG_PASTE_THRESHOLD) {
       e.preventDefault();
       setLongPasteText(textData);
       return;
     }
+
+    if (!onAttachmentsChange) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
 
     const imageItems: DataTransferItem[] = [];
     for (const item of Array.from(items)) {

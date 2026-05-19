@@ -69,7 +69,7 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, sending]);
+  }, [messages, sending, minimized]);
 
   const send = async () => {
     const text = input.trim();
@@ -116,7 +116,18 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
         });
       }
     } catch (e: any) {
-      setMessages((prev) => [...prev, { role: "assistant", content: `_Chat failed: ${e?.message || e}_` }]);
+      setMessages((prev) => {
+        const copy = [...prev];
+        const last = copy[copy.length - 1];
+        const msg = `_Chat failed: ${e?.message || e}_`;
+        // If we already appended an empty assistant bubble before streaming
+        // failed, replace it instead of leaving an orphan.
+        if (last?.role === "assistant" && !last.content) {
+          copy[copy.length - 1] = { role: "assistant", content: msg };
+          return copy;
+        }
+        return [...copy, { role: "assistant", content: msg }];
+      });
     } finally {
       setSending(false);
     }

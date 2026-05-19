@@ -170,6 +170,9 @@ const Dashboard = () => {
   const setActiveView = (v: DashboardView) => {
     if (asherEmbed && v !== "chat") return;
     setActiveViewRaw(v);
+    // Stale follow-up suggestions from a previous response should not survive
+    // a view switch.
+    setSuggestions([]);
   };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("chat");
@@ -737,9 +740,20 @@ const Dashboard = () => {
                     sources: (m.sources as { title: string; url: string }[]) ?? [],
                   }))
                 );
-                setConversations(prev => prev.map(c =>
-                  c.id === currentConvId ? { ...c, messages: decrypted } : c
-                ));
+                setConversations(prev => prev.map(c => {
+                  if (c.id !== currentConvId) return c;
+                  // Merge fresh DB rows with existing in-memory entries so we
+                  // don't wipe attachments / consensusData / branch metadata
+                  // that only live in memory.
+                  const existingById = Object.fromEntries(c.messages.map(m => [m.id, m]));
+                  return {
+                    ...c,
+                    messages: decrypted.map(dm => ({
+                      ...existingById[dm.id],
+                      ...dm,
+                    })),
+                  };
+                }));
               }
             }
           } catch {
@@ -825,6 +839,9 @@ const Dashboard = () => {
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort();
     setIsStreaming(false);
+    // The queue processor polls the ref — without this, queued messages get
+    // stuck behind a "still streaming" lock even after the user hit Stop.
+    isStreamingRef.current = false;
   }, []);
 
   // Core send logic (called sequentially by queue processor)
@@ -1236,23 +1253,28 @@ const Dashboard = () => {
 
   const newConversation = async () => {
     if (!user) return;
-    const { data: newConv } = await supabase
+    const { data: newConv, error } = await supabase
       .from("conversations")
       .insert({ user_id: user.id, title: "New conversation", mode })
       .select()
       .single();
-    if (newConv) {
-      const conv: Conversation = {
-        id: newConv.id, title: newConv.title, messages: [],
-        createdAt: new Date(newConv.created_at), pinned: newConv.pinned,
-        mode: newConv.mode as ChatMode,
-      };
-      setConversations((prev) => [conv, ...prev]);
-      setActiveConvId(newConv.id);
-      setActiveView("chat");
-      setSidebarOpen(false);
-      setSuggestions([]);
+    if (error || !newConv) {
+      toast({ title: "Failed to create conversation", description: error?.message, variant: "destructive" });
+      return;
     }
+    const conv: Conversation = {
+      id: newConv.id, title: newConv.title, messages: [],
+      createdAt: new Date(newConv.created_at), pinned: newConv.pinned,
+      mode: newConv.mode as ChatMode,
+    };
+    // CRITICAL: sync the ref synchronously so any sendMessage fired before
+    // React commits the state still routes to the new conversation.
+    activeConvIdRef.current = newConv.id;
+    setConversations((prev) => [conv, ...prev]);
+    setActiveConvId(newConv.id);
+    setActiveView("chat");
+    setSidebarOpen(false);
+    setSuggestions([]);
   };
 
   const deleteConversation = async (id: string) => {

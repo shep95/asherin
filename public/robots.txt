@@ -14,3 +14,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://aureonai.app/sitemap.xml
+Disallow: /docs/

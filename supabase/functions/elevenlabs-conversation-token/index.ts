@@ -1,14 +1,22 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireUser, authErrorResponse } from "../_shared/authMiddleware.ts";
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Auth required — ElevenLabs conversation tokens consume real billing.
+  try {
+    await requireUser(req);
+  } catch (e) {
+    try { return authErrorResponse(e, corsHeaders); } catch {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   }
 
   try {
@@ -22,7 +30,7 @@ serve(async (req) => {
 
     const { agentId } = await req.json().catch(() => ({ agentId: null }));
 
-    if (!agentId) {
+    if (!agentId || typeof agentId !== "string" || agentId.length > 200) {
       return new Response(JSON.stringify({ error: "agentId is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -30,7 +38,7 @@ serve(async (req) => {
     }
 
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${agentId}`,
+      `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${encodeURIComponent(agentId)}`,
       {
         headers: {
           "xi-api-key": ELEVENLABS_API_KEY,
