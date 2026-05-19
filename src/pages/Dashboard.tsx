@@ -1236,23 +1236,28 @@ const Dashboard = () => {
 
   const newConversation = async () => {
     if (!user) return;
-    const { data: newConv } = await supabase
+    const { data: newConv, error } = await supabase
       .from("conversations")
       .insert({ user_id: user.id, title: "New conversation", mode })
       .select()
       .single();
-    if (newConv) {
-      const conv: Conversation = {
-        id: newConv.id, title: newConv.title, messages: [],
-        createdAt: new Date(newConv.created_at), pinned: newConv.pinned,
-        mode: newConv.mode as ChatMode,
-      };
-      setConversations((prev) => [conv, ...prev]);
-      setActiveConvId(newConv.id);
-      setActiveView("chat");
-      setSidebarOpen(false);
-      setSuggestions([]);
+    if (error || !newConv) {
+      toast({ title: "Failed to create conversation", description: error?.message, variant: "destructive" });
+      return;
     }
+    const conv: Conversation = {
+      id: newConv.id, title: newConv.title, messages: [],
+      createdAt: new Date(newConv.created_at), pinned: newConv.pinned,
+      mode: newConv.mode as ChatMode,
+    };
+    // CRITICAL: sync the ref synchronously so any sendMessage fired before
+    // React commits the state still routes to the new conversation.
+    activeConvIdRef.current = newConv.id;
+    setConversations((prev) => [conv, ...prev]);
+    setActiveConvId(newConv.id);
+    setActiveView("chat");
+    setSidebarOpen(false);
+    setSuggestions([]);
   };
 
   const deleteConversation = async (id: string) => {
