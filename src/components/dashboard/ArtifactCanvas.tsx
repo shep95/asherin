@@ -13,16 +13,42 @@ interface ArtifactCanvasProps {
   open: boolean;
   onClose: () => void;
   initialContent?: string;
+  /** Stable key (e.g. `${conversationId}::${messageId}`). When set, versions
+   *  persist to localStorage and survive close/reopen. */
+  persistKey?: string;
 }
 
 const MIN_WIDTH = 280;
 const MAX_WIDTH_RATIO = 0.8;
+const STORAGE_PREFIX = "aureon_artifact_v1::";
 
-const ArtifactCanvas = ({ open, onClose, initialContent = "" }: ArtifactCanvasProps) => {
+type StoredVersion = { id: string; content: string; label: string; timestamp: string };
+
+const loadVersions = (key?: string): ArtifactVersion[] | null => {
+  if (!key) return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + key);
+    if (!raw) return null;
+    const arr = JSON.parse(raw) as StoredVersion[];
+    return arr.map(v => ({ ...v, timestamp: new Date(v.timestamp) }));
+  } catch { return null; }
+};
+
+const saveVersions = (key: string | undefined, versions: ArtifactVersion[]) => {
+  if (!key) return;
+  try {
+    const serializable: StoredVersion[] = versions.map(v => ({ ...v, timestamp: v.timestamp.toISOString() }));
+    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(serializable));
+  } catch { /* quota — ignore */ }
+};
+
+const ArtifactCanvas = ({ open, onClose, initialContent = "", persistKey }: ArtifactCanvasProps) => {
   const [content, setContent] = useState(initialContent);
-  const [versions, setVersions] = useState<ArtifactVersion[]>(() =>
-    initialContent ? [{ id: "v1", content: initialContent, label: "v1", timestamp: new Date() }] : []
-  );
+  const [versions, setVersions] = useState<ArtifactVersion[]>(() => {
+    const restored = loadVersions(persistKey);
+    if (restored && restored.length) return restored;
+    return initialContent ? [{ id: "v1", content: initialContent, label: "v1", timestamp: new Date() }] : [];
+  });
   const [activeVersionIdx, setActiveVersionIdx] = useState(0);
   const [viewMode, setViewMode] = useState<"edit" | "preview" | "split">("split");
   const [showHistory, setShowHistory] = useState(false);
@@ -32,6 +58,19 @@ const ArtifactCanvas = ({ open, onClose, initialContent = "" }: ArtifactCanvasPr
   const [isResizing, setIsResizing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Persist versions whenever they change
+  useEffect(() => { saveVersions(persistKey, versions); }, [versions, persistKey]);
+
+  // When persistKey changes (different message), rehydrate
+  useEffect(() => {
+    const restored = loadVersions(persistKey);
+    if (restored && restored.length) {
+      setVersions(restored);
+      setActiveVersionIdx(restored.length - 1);
+      setContent(restored[restored.length - 1].content);
+    }
+  }, [persistKey]);
 
   // On small screens, default to preview-only and auto-fullscreen
   useEffect(() => {
