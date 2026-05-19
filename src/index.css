@@ -12,7 +12,18 @@ h1, h2, h3, h4, h5, h6 { overflow-wrap: anywhere; word-break: break-word; }
 @media (max-width: 640px) {
   .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .table-scroll > table { min-width: 100%; }
+  /* Auto-scroll any tight grid/flex row instead of overflowing the viewport */
+  [class*="grid-cols-"]:not(.no-mobile-scroll) > * { min-width: 0; }
+  /* Tame wide tables that aren't already wrapped */
+  table { display: block; max-width: 100%; overflow-x: auto; }
+  /* Force dialogs/sheets to respect viewport */
+  [role="dialog"] { max-width: calc(100vw - 1rem) !important; }
 }
+@media (max-width: 480px) {
+  /* On phones, collapse fixed-width side rails so content gets room */
+  aside.w-64, aside.w-72 { width: 100% !important; max-width: 14rem; }
+}
+
 
 
 @layer base {
