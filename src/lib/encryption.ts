@@ -18,6 +18,8 @@
  * (future work: passphrase-derived recovery key).
  */
 
+import { supabase } from "@/integrations/supabase/client";
+
 const DB_NAME = "aureon_e2e_db";
 const DB_VERSION = 1;
 const STORE = "keystore";
@@ -64,14 +66,71 @@ async function writeKeyMaterial(userId: string, material: DeviceKeyMaterial): Pr
   });
 }
 
+function bytesToB64(b: Uint8Array): string {
+  let bin = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < b.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(null, Array.from(b.subarray(i, i + CHUNK)));
+  }
+  return btoa(bin);
+}
+function b64ToBytes(s: string): Uint8Array {
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+}
+
+/**
+ * Fetch key material from the server (RLS-locked to the owning user).
+ * Returns null if no row exists OR if the request fails (e.g. offline).
+ */
+async function fetchRemoteKeyMaterial(userId: string): Promise<DeviceKeyMaterial | null> {
+  try {
+    const { data, error } = await supabase
+      .from("user_key_material" as any)
+      .select("salt_b64, device_secret_b64")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error || !data) return null;
+    return {
+      salt: b64ToBytes((data as any).salt_b64),
+      deviceSecret: b64ToBytes((data as any).device_secret_b64),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function pushRemoteKeyMaterial(userId: string, m: DeviceKeyMaterial): Promise<void> {
+  try {
+    await supabase.from("user_key_material" as any).upsert({
+      user_id: userId,
+      salt_b64: bytesToB64(m.salt),
+      device_secret_b64: bytesToB64(m.deviceSecret),
+      updated_at: new Date().toISOString(),
+    });
+  } catch {
+    /* best-effort */
+  }
+}
+
 async function getOrCreateKeyMaterial(userId: string): Promise<DeviceKeyMaterial> {
-  const existing = await readKeyMaterial(userId);
-  if (existing) return existing;
+  // 1. Local IndexedDB first (fastest, works offline)
+  const local = await readKeyMaterial(userId);
+  if (local) return local;
+
+  // 2. Fall back to server-synced copy (restores after browser storage wipe / new browser)
+  const remote = await fetchRemoteKeyMaterial(userId);
+  if (remote) {
+    await writeKeyMaterial(userId, remote);
+    return remote;
+  }
+
+  // 3. First time on any device — generate fresh material and persist both places
   const material: DeviceKeyMaterial = {
     salt: crypto.getRandomValues(new Uint8Array(32)),
     deviceSecret: crypto.getRandomValues(new Uint8Array(32)),
   };
   await writeKeyMaterial(userId, material);
+  await pushRemoteKeyMaterial(userId, material);
   return material;
 }
 
