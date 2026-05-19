@@ -165,6 +165,7 @@ const Dashboard = () => {
     try { return localStorage.getItem("aureon_active_conv_id") || null; } catch { return null; }
   });
   const hydratedConvsRef = useRef<Set<string>>(new Set());
+  const hydrateConvRef = useRef<((cid: string) => Promise<void>) | null>(null);
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>("chat");
   const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
