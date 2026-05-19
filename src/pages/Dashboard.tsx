@@ -632,14 +632,22 @@ const Dashboard = () => {
           .limit(500);
         const rows = data ?? [];
         hydrateMessageBranches(rows.map(m => ({ id: m.id, branch_id: (m as any).branch_id })));
-        const decrypted = await Promise.all(rows.map(async (m) => ({
-          id: m.id,
-          role: m.role as "user" | "assistant",
-          content: await decryptText(m.content, user.id),
-          timestamp: new Date(m.created_at),
-          truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
-          sources: (m.sources as { title: string; url: string }[]) ?? [],
-        } as Message)));
+        const decrypted = await Promise.all(rows.map(async (m) => {
+          let content = "";
+          try {
+            content = await decryptText(m.content, user.id);
+          } catch {
+            content = "_[Encrypted on another device — unable to decrypt here.]_";
+          }
+          return {
+            id: m.id,
+            role: m.role as "user" | "assistant",
+            content,
+            timestamp: new Date(m.created_at),
+            truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
+            sources: (m.sources as { title: string; url: string }[]) ?? [],
+          } as Message;
+        }));
         if (cancelled) return;
         setConversations(prev => prev.map(c => c.id === cid ? { ...c, messages: decrypted } : c));
       };
