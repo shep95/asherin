@@ -69,7 +69,7 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, sending]);
+  }, [messages, sending, minimized]);
 
   const send = async () => {
     const text = input.trim();
