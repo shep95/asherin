@@ -170,6 +170,9 @@ const Dashboard = () => {
   const setActiveView = (v: DashboardView) => {
     if (asherEmbed && v !== "chat") return;
     setActiveViewRaw(v);
+    // Stale follow-up suggestions from a previous response should not survive
+    // a view switch.
+    setSuggestions([]);
   };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("chat");
