@@ -673,6 +673,7 @@ const Dashboard = () => {
         }));
         hydratedConvsRef.current.add(cid);
       };
+      hydrateConvRef.current = hydrateConv;
 
       (async () => {
         if (initialActiveId) await hydrateConv(initialActiveId);
@@ -680,6 +681,7 @@ const Dashboard = () => {
         for (const c of convRows) {
           if (cancelled) return;
           if (c.id === initialActiveId) continue;
+          if (hydratedConvsRef.current.has(c.id)) continue;
           await hydrateConv(c.id);
         }
       })();
