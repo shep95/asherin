@@ -93,10 +93,14 @@ const AureonFreeChat = () => {
       });
 
       const data = await resp.json();
+      // Always reflect server-reported quota/reset, even on 429 — otherwise the
+      // counter goes stale and misleads the user.
+      if (typeof data.remaining === "number") setRemaining(data.remaining);
+      if (data.resetAt) setResetAt(data.resetAt);
+
       if (!resp.ok) {
         if (resp.status === 429) {
           setError(data.message || "Free tier limit reached.");
-          setResetAt(data.resetAt || null);
         } else {
           setError(data.error || `Request failed (${resp.status})`);
         }
@@ -105,8 +109,6 @@ const AureonFreeChat = () => {
       }
 
       setMessages([...next, { role: "assistant", content: data.reply }]);
-      if (typeof data.remaining === "number") setRemaining(data.remaining);
-      if (data.resetAt) setResetAt(data.resetAt);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Network error");
     } finally {
