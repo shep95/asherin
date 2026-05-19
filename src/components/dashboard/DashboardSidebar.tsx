@@ -561,7 +561,6 @@ const DashboardSidebar = ({
                     <div key={group.label}>
                       <button
                         onClick={() => toggleGroup(group.label)}
-                        onMouseEnter={() => setExpandedGroups(prev => ({ ...prev, [group.label]: true }))}
                         className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-1.5 text-[10px] font-medium tracking-[0.12em] uppercase transition-colors ${
                           hasActive ? "text-foreground" : "text-muted-foreground/50 hover:text-muted-foreground"
                         }`}
@@ -579,7 +578,6 @@ const DashboardSidebar = ({
                               <div key={sg.label}>
                                 <button
                                   onClick={() => toggleGroup(sgKey)}
-                                  onMouseEnter={() => setExpandedGroups(prev => ({ ...prev, [sgKey]: true }))}
                                   className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1 text-[9px] font-light tracking-[0.18em] uppercase transition-colors ${
                                     sgHasActive ? "text-foreground/80" : "text-muted-foreground/40 hover:text-muted-foreground/70"
                                   }`}
@@ -593,7 +591,6 @@ const DashboardSidebar = ({
                                       <button
                                         key={item.id}
                                         onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
-                                        onMouseEnter={() => onViewChange(item.id)}
                                         className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
                                           activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                                         }`}
