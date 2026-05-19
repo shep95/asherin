@@ -28,8 +28,9 @@ function saveToggles(convId: string, toggles: Record<string, boolean>) {
 
 export function getActiveProviders(conversationId: string, storedProviders: string[]): string[] {
   const toggles = loadToggles(conversationId);
-  // Providers are OFF by default until explicitly enabled
-  return storedProviders.filter(p => toggles[p] === true);
+  // Providers default ON unless explicitly disabled (=== false) — matches the
+  // semantics enforced in src/lib/ai.ts.
+  return storedProviders.filter(p => toggles[p] !== false);
 }
 
 const ConversationApiToggles = ({ conversationId, storedProviders }: Props) => {
@@ -40,7 +41,8 @@ const ConversationApiToggles = ({ conversationId, storedProviders }: Props) => {
     setToggles(loadToggles(conversationId));
   }, [conversationId]);
 
-  const isActive = (providerId: string) => toggles[providerId] === true;
+  // Default ON unless the user has explicitly toggled OFF (=== false).
+  const isActive = (providerId: string) => toggles[providerId] !== false;
 
   const handleToggle = (providerId: string) => {
     const updated = { ...toggles, [providerId]: !isActive(providerId) };
