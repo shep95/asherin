@@ -738,14 +738,22 @@ const Dashboard = () => {
               const localCount = localConv?.messages.length ?? 0;
               if (freshMsgs.length >= localCount) {
                 const decrypted = await Promise.all(
-                  freshMsgs.map(async (m) => ({
-                    id: m.id,
-                    role: m.role as "user" | "assistant",
-                    content: await decryptText(m.content, user.id),
-                    timestamp: new Date(m.created_at),
-                    truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
-                    sources: (m.sources as { title: string; url: string }[]) ?? [],
-                  }))
+                  freshMsgs.map(async (m) => {
+                    let content = "";
+                    try {
+                      content = await decryptText(m.content, user.id);
+                    } catch {
+                      content = "_[Encrypted on another device — unable to decrypt here.]_";
+                    }
+                    return {
+                      id: m.id,
+                      role: m.role as "user" | "assistant",
+                      content,
+                      timestamp: new Date(m.created_at),
+                      truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
+                      sources: (m.sources as { title: string; url: string }[]) ?? [],
+                    };
+                  })
                 );
                 setConversations(prev => prev.map(c => {
                   if (c.id !== currentConvId) return c;
