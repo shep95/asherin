@@ -29,18 +29,21 @@ const LOCAL_VIDEOS: LocalVideo[] = [
   {
     id: "local:secret-history-three-messiahs",
     src: "/videos/founder/secret-history-three-messiahs.mp4",
+    poster: "/videos/founder/secret-history-three-messiahs.jpg",
     title: "Secret History: The Three Messiahs",
     publishedAt: new Date().toISOString(),
   },
   {
     id: "local:truth-about-jesus",
     src: "/videos/founder/truth-about-jesus.mp4",
+    poster: "/videos/founder/truth-about-jesus.jpg",
     title: "The Truth About Jesus",
     publishedAt: new Date().toISOString(),
   },
   {
     id: "local:soulmates-karmic-relationships",
     src: "/videos/founder/soulmates-karmic-relationships.mp4",
+    poster: "/videos/founder/soulmates-karmic-relationships.jpg",
     title: "Soulmates and Karmic Relationships Explained",
     publishedAt: new Date().toISOString(),
   },
