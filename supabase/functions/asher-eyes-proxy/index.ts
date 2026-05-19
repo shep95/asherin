@@ -1,9 +1,11 @@
 // Asher Eyes proxy — fetches Aleph (libraryofleaks.org) resources server-side
 // to bypass browser CORS for file downloads and search API calls.
-const cors = {
-  "Access-Control-Allow-Origin": "*",
+import { getCorsHeaders } from "../_shared/cors.ts";
+let cors: Record<string, string> = {
+  "Access-Control-Allow-Origin": "https://aureonai.app",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Vary": "Origin",
 };
 
 const ALLOWED = /^https:\/\/(search\.)?libraryofleaks\.org\//i;
