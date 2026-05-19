@@ -89,6 +89,9 @@ const SelfLearningLoopView = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [timescale, setTimescale] = useState<"hours" | "days" | "weeks" | "months" | "years">("days");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const runsRef = useRef<Run[]>([]);
+  useEffect(() => { runsRef.current = runs; }, [runs]);
+  const autoIterateInFlight = useRef(false);
 
   const fetchData = useCallback(async (showSpinner = false) => {
     if (showSpinner) setRefreshing(true);
@@ -126,16 +129,19 @@ const SelfLearningLoopView = () => {
     if (loopRunning) {
       const poll = async () => {
         await fetchData();
-        // Auto-trigger a new iteration if last run completed > 2 min ago
-        const lastRun = runs[0];
-        if (lastRun?.status === "completed" && lastRun.completed_at) {
+        // Read freshest runs via ref (avoids stale closure spamming duplicate iterations)
+        const lastRun = runsRef.current[0];
+        if (lastRun?.status === "completed" && lastRun.completed_at && !autoIterateInFlight.current) {
           const elapsed = Date.now() - new Date(lastRun.completed_at).getTime();
           if (elapsed > 2 * 60 * 1000) {
+            autoIterateInFlight.current = true;
             try {
               await supabase.functions.invoke("self-learning-loop", { body: { action: "run" } });
               await fetchData();
             } catch (e) {
               console.error("Auto-iteration error:", e);
+            } finally {
+              autoIterateInFlight.current = false;
             }
           }
         }
@@ -148,7 +154,7 @@ const SelfLearningLoopView = () => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [loopRunning, fetchData, runs]);
+  }, [loopRunning, fetchData]);
 
   const startLoop = async () => {
     setStarting(true);
