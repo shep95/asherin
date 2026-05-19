@@ -1,3 +1,4 @@
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
@@ -246,14 +247,14 @@ const DashboardSidebar = ({
   };
 
   const itemAllowed = (item: NavItem) => {
-    if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
-    if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
-    if (item.id === "ebook") return user?.email === "ashernewtonx@gmail.com";
+    if (item.id === "security") return user?.email === ADMIN_EMAIL;
+    if (item.id === "self-access") return user?.email === ADMIN_EMAIL;
+    if (item.id === "ebook") return user?.email === ADMIN_EMAIL;
     const featureId = VIEW_FEATURE_MAP[item.id];
     if (featureId) {
-      return tierHasFeature(tierKey, featureId) || user?.email === "ashernewtonx@gmail.com";
+      return tierHasFeature(tierKey, featureId) || user?.email === ADMIN_EMAIL;
     }
-    if (user?.email === "ashernewtonx@gmail.com") return true;
+    if (user?.email === ADMIN_EMAIL) return true;
     if (!item.access) return true;
     if (item.access === "search") return hasSearchAccess(tierKey);
     if (item.access === "pro") return hasProAccess(tierKey);

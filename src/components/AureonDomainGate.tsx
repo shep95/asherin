@@ -1,10 +1,10 @@
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, LogOut } from "lucide-react";
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
-const ALLOWED_EMAILS = new Set(["ashernewtonx@gmail.com", "ekk447@gmail.com"]);
+const ALLOWED_EMAILS = new Set([ADMIN_EMAIL, "ekk447@gmail.com"]);
 const RESTRICTED_HOSTS = new Set(["aureonai.app", "www.aureonai.app"]);
 
 /**

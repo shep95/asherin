@@ -1,3 +1,4 @@
+import { ADMIN_EMAIL } from "@/lib/adminEmail";
 import type { ChatMode, FileAttachment } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import { detectRelevantSkills, buildSkillInjectionPrompt } from "@/lib/autoSkillInjection";
@@ -100,8 +101,7 @@ export async function streamChat({
   } catch { /* fallback to anon key */ }
 
   // BYOK enforcement: non-admin users MUST bring their own API key.
-  const ADMIN_EMAIL = "ashernewtonx@gmail.com";
-  if (userEmail !== ADMIN_EMAIL && !byokProvider) {
+    if (userEmail !== ADMIN_EMAIL && !byokProvider) {
     try {
       const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
       triggerByokRequired({
