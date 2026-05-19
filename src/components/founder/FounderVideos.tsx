@@ -26,6 +26,12 @@ const LOCAL_VIDEOS: LocalVideo[] = [
     title: "The Difference Between the Humanity Species and the Mankind Species",
     publishedAt: new Date().toISOString(),
   },
+  {
+    id: "local:secret-history-three-messiahs",
+    src: "/videos/founder/secret-history-three-messiahs.mp4",
+    title: "Secret History: The Three Messiahs",
+    publishedAt: new Date().toISOString(),
+  },
 ];
 
 const VIDEO_IDS = [
