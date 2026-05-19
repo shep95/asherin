@@ -51,8 +51,8 @@ const SmartSelectionMenu = ({ containerRef, onAction }: SmartSelectionMenuProps)
 
     setMenu({
       visible: true,
-      x: rect.left - containerRect.left + rect.width / 2,
-      y: rect.top - containerRect.top - 8,
+      x: rect.left - containerRect.left + container.scrollLeft + rect.width / 2,
+      y: rect.top - containerRect.top + container.scrollTop - 8,
       text,
       isCode,
     });

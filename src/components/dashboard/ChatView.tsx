@@ -385,6 +385,10 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const setMessageRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
+    if (el) messageRefs.current[id] = el;
+    else delete messageRefs.current[id];
+  }, []);
 
   // Reset branch when conversation changes and recover from invalid/deleted branch ids
   useEffect(() => {

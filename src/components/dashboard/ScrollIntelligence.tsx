@@ -37,7 +37,7 @@ const ScrollIntelligence = ({ containerRef, isStreaming, messagesEndRef }: Scrol
     requestAnimationFrame(() => {
       isAutoScrolling.current = false;
     });
-  });
+  }, [isStreaming, userScrolledUp, messagesEndRef]);
 
   const jumpToLatest = useCallback(() => {
     setUserScrolledUp(false);
