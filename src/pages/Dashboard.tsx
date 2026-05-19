@@ -634,14 +634,32 @@ const Dashboard = () => {
           .limit(500);
         const rows = data ?? [];
         hydrateMessageBranches(rows.map(m => ({ id: m.id, branch_id: (m as any).branch_id })));
-        const decrypted = await Promise.all(rows.map(async (m) => ({
-          id: m.id,
-          role: m.role as "user" | "assistant",
-          content: await decryptText(m.content, user.id),
-          timestamp: new Date(m.created_at),
-          truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
-          sources: (m.sources as { title: string; url: string }[]) ?? [],
-        } as Message)));
+        let decryptFailures = 0;
+        const decrypted = await Promise.all(rows.map(async (m) => {
+          let content: string;
+          try {
+            content = await decryptText(m.content, user.id);
+          } catch {
+            decryptFailures += 1;
+            content = "🔒 [Encrypted on another device — cannot be read here]";
+          }
+          return {
+            id: m.id,
+            role: m.role as "user" | "assistant",
+            content,
+            timestamp: new Date(m.created_at),
+            truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
+            sources: (m.sources as { title: string; url: string }[]) ?? [],
+          } as Message;
+        }));
+        if (decryptFailures > 0 && !sessionStorage.getItem("aureon_decrypt_warned")) {
+          sessionStorage.setItem("aureon_decrypt_warned", "1");
+          toast({
+            title: "Some messages can't be decrypted here",
+            description: `${decryptFailures} message(s) were encrypted on a different device or browser. They're safe — but unreadable from this device. Sign in on the original device to view them.`,
+            variant: "default",
+          });
+        }
         if (cancelled) return;
         // Merge — don't overwrite optimistic messages added during hydration.
         setConversations(prev => prev.map(c => {
