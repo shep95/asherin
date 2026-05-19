@@ -825,6 +825,9 @@ const Dashboard = () => {
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort();
     setIsStreaming(false);
+    // The queue processor polls the ref — without this, queued messages get
+    // stuck behind a "still streaming" lock even after the user hit Stop.
+    isStreamingRef.current = false;
   }, []);
 
   // Core send logic (called sequentially by queue processor)
