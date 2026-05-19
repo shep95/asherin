@@ -702,6 +702,21 @@ const Dashboard = () => {
     }
   }, [activeConvId]);
 
+  // On-demand hydration: if the user switches to a conversation that hasn't
+  // been hydrated yet (still empty), fetch it immediately rather than waiting
+  // for the sequential background loop to reach it.
+  useEffect(() => {
+    if (!activeConvId) return;
+    if (hydratedConvsRef.current.has(activeConvId)) return;
+    const conv = conversations.find(c => c.id === activeConvId);
+    if (!conv) return;
+    if (conv.messages.length > 0) return;
+    const fn = hydrateConvRef.current;
+    if (!fn) return;
+    void fn(activeConvId);
+  }, [activeConvId, conversations]);
+
+
   // Persist active brain id
   useEffect(() => {
     if (activeBrainId) {
