@@ -11,6 +11,7 @@ let cors: Record<string, string> = {
 const ALLOWED = /^https:\/\/(search\.)?libraryofleaks\.org\//i;
 
 Deno.serve(async (req) => {
+  cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
     const u = new URL(req.url);
