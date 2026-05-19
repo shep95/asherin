@@ -96,9 +96,10 @@ const BrainsPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
             )}
             <button
               type="submit"
-              className="w-full rounded-lg bg-foreground/90 px-4 py-3 text-xs font-light tracking-[0.2em] text-background hover:bg-foreground transition-colors uppercase"
+              disabled={verifying}
+              className="w-full rounded-lg bg-foreground/90 px-4 py-3 text-xs font-light tracking-[0.2em] text-background hover:bg-foreground transition-colors uppercase disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Authenticate
+              {verifying ? "Verifying…" : "Authenticate"}
             </button>
           </form>
         </div>
