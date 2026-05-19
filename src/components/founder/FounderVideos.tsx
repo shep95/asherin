@@ -38,6 +38,12 @@ const LOCAL_VIDEOS: LocalVideo[] = [
     title: "The Truth About Jesus",
     publishedAt: new Date().toISOString(),
   },
+  {
+    id: "local:soulmates-karmic-relationships",
+    src: "/videos/founder/soulmates-karmic-relationships.mp4",
+    title: "Soulmates and Karmic Relationships Explained",
+    publishedAt: new Date().toISOString(),
+  },
 ];
 
 const VIDEO_IDS = [
