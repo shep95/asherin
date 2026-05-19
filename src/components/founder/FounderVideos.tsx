@@ -32,6 +32,12 @@ const LOCAL_VIDEOS: LocalVideo[] = [
     title: "Secret History: The Three Messiahs",
     publishedAt: new Date().toISOString(),
   },
+  {
+    id: "local:truth-about-jesus",
+    src: "/videos/founder/truth-about-jesus.mp4",
+    title: "The Truth About Jesus",
+    publishedAt: new Date().toISOString(),
+  },
 ];
 
 const VIDEO_IDS = [
