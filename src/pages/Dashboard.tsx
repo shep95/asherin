@@ -653,12 +653,14 @@ const Dashboard = () => {
       };
 
       (async () => {
-        if (initialActiveId) await hydrateConv(initialActiveId);
+        if (initialActiveId) {
+          try { await hydrateConv(initialActiveId); } catch {}
+        }
         if (cancelled) return;
         for (const c of convRows) {
           if (cancelled) return;
           if (c.id === initialActiveId) continue;
-          await hydrateConv(c.id);
+          try { await hydrateConv(c.id); } catch {}
         }
       })();
     };
