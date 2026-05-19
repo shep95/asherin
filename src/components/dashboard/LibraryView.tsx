@@ -82,9 +82,25 @@ const LibraryView = () => {
   };
 
   const deleteFile = async (file: LibraryFile) => {
+    // Check whether any Brain references this file before destructive delete.
+    let brainRefs = 0;
+    try {
+      const { count } = await supabase
+        .from("brain_files" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("library_file_id", file.id);
+      brainRefs = count ?? 0;
+    } catch { /* table may not exist — proceed */ }
+
+    const warning = brainRefs > 0
+      ? `"${file.file_name}" is referenced by ${brainRefs} Brain${brainRefs === 1 ? "" : "s"}. Deleting it may break them.\n\nDelete anyway?`
+      : `Delete "${file.file_name}" permanently? This cannot be undone.`;
+    if (!confirm(warning)) return;
+
     await supabase.storage.from("library").remove([file.storage_path]);
     await supabase.from("library_files").delete().eq("id", file.id);
     setFiles((prev) => prev.filter((f) => f.id !== file.id));
+    toast({ title: "Deleted", description: file.file_name });
   };
 
   const handleDrop = (e: React.DragEvent) => {

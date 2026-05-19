@@ -775,7 +775,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             {branchMessages.map((msg, idx) => (
               <div
                 key={msg.id}
-                ref={(el) => { messageRefs.current[msg.id] = el; }}
+                ref={setMessageRef(msg.id)}
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-slide-up transition-all duration-300 ${highlightedMsgId === msg.id ? "ring-1 ring-accent/50 rounded-2xl bg-accent/5" : ""}`}
                 style={{ animationDelay: `${Math.min(idx * 30, 150)}ms`, animationFillMode: "backwards" }}
               >
