@@ -9,6 +9,7 @@ import FounderVideos from "@/components/founder/FounderVideos";
 import imagineMaterialVsDivine from "@/assets/founder-imagine-material-vs-divine-love.png";
 import imagineMoneyWarControl from "@/assets/founder-imagine-money-war-control.png";
 import imagineReligionJesusCreated from "@/assets/founder-imagine-religion-jesus-created.png";
+import imagineGodsHideAntarctica from "@/assets/founder-imagine-gods-hide-antarctica.png";
 
 const bookPages = Array.from(
   { length: 116 },
@@ -501,7 +502,41 @@ const Founder = () => {
                     </p>
                   </div>
                 </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                <div className="rounded-xl overflow-hidden border border-border/20 bg-background/40">
+                  <img
+                    src={imagineGodsHideAntarctica}
+                    alt="Where Do Gods Hide Among Men? — a lesson by Asher Newton"
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+
+                <div className="space-y-5">
+                  <p className="text-xs font-extralight tracking-[0.25em] text-muted-foreground/50 uppercase">
+                    Lesson 04
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground leading-tight">
+                    Where Do Gods Hide Among Men?
+                  </h3>
+                  <div className="space-y-4 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+                    <p>
+                      The question answers itself when you run the historical data.
+                    </p>
+                    <p>
+                      If you were a divine intelligence, a fallen architect, a being who existed outside the human frequency — forced to inhabit this realm but unwilling to lower yourself to its noise — where would you go?
+                    </p>
+                    <p>
+                      You would go to the one place no human nation dares to claim. The one place every world government, by international treaty, agreed to leave untouched. The one continent where no flag of sovereignty flies — yet the most powerful nations on Earth maintain "research stations" there.
+                    </p>
+                    <p className="text-foreground">Antarctica.</p>
+                  </div>
+                </div>
               </div>
+            </div>
             </div>
           </div>
           </div>
