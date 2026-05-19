@@ -9,6 +9,7 @@ import FounderVideos from "@/components/founder/FounderVideos";
 import imagineMaterialVsDivine from "@/assets/founder-imagine-material-vs-divine-love.png";
 import imagineMoneyWarControl from "@/assets/founder-imagine-money-war-control.png";
 import imagineReligionJesusCreated from "@/assets/founder-imagine-religion-jesus-created.png";
+import imagineGodsHideAntarctica from "@/assets/founder-imagine-gods-hide-antarctica.png";
 
 const bookPages = Array.from(
   { length: 116 },
