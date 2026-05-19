@@ -303,17 +303,17 @@ const AureonFreeChat = () => {
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                send();
+                if (!loading && (byokActive || remaining > 0)) send();
               }
             }}
             placeholder={byokActive ? "Ask Aureon anything — 5 msgs / 3 hours on your key…" : "Add your API key above to begin (5 msgs / 3 hours)…"}
             rows={1}
-            className="flex-1 resize-none rounded-xl border border-border/20 bg-card/40 px-4 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none max-h-32"
-            disabled={loading}
+            className="flex-1 resize-none rounded-xl border border-border/20 bg-card/40 px-4 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none max-h-32 disabled:opacity-50"
+            disabled={loading || (!byokActive && remaining === 0)}
           />
           <button
             onClick={send}
-            disabled={loading || !input.trim()}
+            disabled={loading || !input.trim() || (!byokActive && remaining === 0)}
             className="inline-flex items-center justify-center rounded-xl border border-foreground/20 bg-foreground/10 p-2.5 text-foreground hover:bg-foreground/20 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
