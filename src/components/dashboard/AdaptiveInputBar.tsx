@@ -277,17 +277,18 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
 
   // Handle paste from clipboard (images)
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    if (!onAttachmentsChange) return;
-    const items = e.clipboardData?.items;
-    if (!items) return;
-
-    // Check for long text paste first
-    const textData = e.clipboardData.getData("text/plain");
-    if (textData && textData.length > LONG_PASTE_THRESHOLD) {
+    // Detect long-text paste first so we still surface the Safe Paste UI even
+    // in contexts that don't support attachments.
+    const textData = e.clipboardData?.getData("text/plain") || "";
+    if (textData.length > LONG_PASTE_THRESHOLD) {
       e.preventDefault();
       setLongPasteText(textData);
       return;
     }
+
+    if (!onAttachmentsChange) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
 
     const imageItems: DataTransferItem[] = [];
     for (const item of Array.from(items)) {
