@@ -8078,6 +8078,7 @@ export type Database = {
         Args: { _team_id: string; _user_id: string }
         Returns: string
       }
+      get_user_id_by_email: { Args: { _email: string }; Returns: string }
       has_notebook_share: {
         Args: { _notebook_id: string; _user_id: string }
         Returns: boolean

@@ -56,18 +56,18 @@ export async function requireTier(
     { auth: { persistSession: false } },
   );
 
-  // Look up active subscription by email → user_id.
-  const { data: userRow } = await sb
-    .from("profiles")
-    .select("user_id")
-    .ilike("display_name", email)
-    .maybeSingle();
-
-  let userId = userRow?.user_id as string | undefined;
+  // Look up user_id from auth.users via service role (handles all signup methods).
+  let userId: string | undefined;
+  try {
+    const { data: au } = await (sb as any).rpc("get_user_id_by_email", { _email: email });
+    userId = (typeof au === "string" && au) || undefined;
+  } catch { /* fall through */ }
   if (!userId) {
-    // Fall back to auth.users via admin API.
-    const { data: au } = await (sb as any).auth.admin.listUsers({ page: 1, perPage: 1 });
-    userId = au?.users?.find((u: any) => (u.email || "").toLowerCase() === email)?.id;
+    // Fallback: page through admin.listUsers (cheap for small projects).
+    try {
+      const { data: au } = await (sb as any).auth.admin.listUsers({ page: 1, perPage: 200 });
+      userId = au?.users?.find((u: any) => (u.email || "").toLowerCase() === email)?.id;
+    } catch { /* ignore */ }
   }
 
   let tier: Tier = "free";
