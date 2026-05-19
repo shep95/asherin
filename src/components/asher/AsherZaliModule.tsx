@@ -39,9 +39,6 @@ const SimulationEnginePanel = lazy(() => import("@/components/dashboard/zali/Sim
 const ManufacturingVerifyPanel = lazy(() => import("@/components/dashboard/zali/ManufacturingVerifyPanel"));
 const OptimizationPanel = lazy(() => import("@/components/dashboard/zali/OptimizationPanel"));
 const GodModePanel = lazy(() => import("@/components/dashboard/zali/GodModePanel"));
-
-const ADMIN_EMAIL = ADMIN_EMAIL;
-
 // Asher-themed tab definitions — Unicode markers, no colored icons
 const TABS: { id: ZaliTab; label: string; mark: string }[] = [
   { id: "workspace",    label: "Workspace",     mark: "◈" },

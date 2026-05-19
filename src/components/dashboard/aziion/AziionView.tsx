@@ -3,9 +3,6 @@ import { Brain, Droplets, Loader2, Power, PowerOff, AlertTriangle, TrendingUp, T
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
-
-const ADMIN_EMAIL = ADMIN_EMAIL;
-
 interface BotState {
   enabled: boolean;
   emergency_stopped: boolean;

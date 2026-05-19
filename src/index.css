@@ -4,6 +4,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Global responsive safety rails (411px+ baseline) ── */
+html, body, #root { max-width: 100%; overflow-x: hidden; }
+img, video, canvas, svg, iframe { max-width: 100%; height: auto; }
+p, span, a, li, td, th, pre, code, blockquote,
+h1, h2, h3, h4, h5, h6 { overflow-wrap: anywhere; word-break: break-word; }
+@media (max-width: 640px) {
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-scroll > table { min-width: 100%; }
+}
+
+
 @layer base {
   :root {
     --background: 0 0% 3%;

@@ -18,8 +18,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
-
-const ADMIN_EMAIL = ADMIN_EMAIL;
 const ASHER_GATE_KEY = "asher_dashboard_unlocked";
 
 type Level = 1 | 2 | 3 | 4;

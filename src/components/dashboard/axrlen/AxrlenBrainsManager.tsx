@@ -15,8 +15,6 @@ interface AxrlenBrain {
   is_active: boolean;
   created_at: string;
 }
-
-const ADMIN_EMAIL = ADMIN_EMAIL;
 const FILE_INPUT_ID = "axrlen-brains-upload";
 
 const extractTextFromPdf = async (file: File): Promise<string> => {
