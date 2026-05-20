@@ -33,119 +33,176 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
     );
   }
 
+  const sections = [
+    {
+      heading: "Intelligence",
+      links: [
+        { to: "/llm-models", label: "LLM Models" },
+        { to: "/feature/zophiel", label: "Zophiel Search" },
+        { to: "/feature/nomad", label: "NOMAD Public Intel" },
+        { to: "/feature/azplen", label: "Azplen Intelligence" },
+        { to: "/feature/predictive", label: "Predictive Intelligence" },
+        { to: "/feature/oracle-locus", label: "Oracle Locus" },
+        { to: "/feature/video-intelligence", label: "Video Intelligence" },
+        { to: "/feature/cross", label: "CROSS Live Screen" },
+        { to: "/ww3", label: "WW3 Trajectory", destructive: true },
+      ],
+    },
+    {
+      heading: "Security",
+      links: [
+        { to: "/feature/zerlal", label: "ZERLAL Cyber Security" },
+        { to: "/feature/security", label: "Guardian Vault" },
+        { to: "/feature/zeeion", label: "ZEEION FI Forensics" },
+        { to: "/feature/axrlen", label: "AXRLEN Engine" },
+        { to: "/feature/byok", label: "Bring Your Own Key" },
+      ],
+    },
+    {
+      heading: "Agents & Tools",
+      links: [
+        { to: "/feature/zahten", label: "Zahten Agent Forge" },
+        { to: "/feature/automated-agents", label: "Automated Agents" },
+        { to: "/feature/personas", label: "AI Personas" },
+        { to: "/feature/briefings", label: "Daily Briefings" },
+        { to: "/feature/notebooks", label: "Notebooks" },
+        { to: "/feature/lavba", label: "Lavba Strategy" },
+        { to: "/feature/vedic", label: "Vedic Strategy" },
+      ],
+    },
+    {
+      heading: "Creation",
+      links: [
+        { to: "/feature/zali", label: "ZANOEM Design Lab" },
+        { to: "/feature/imagine-to-code", label: "Imagine To Code" },
+        { to: "/feature/ide", label: "Aureon IDE" },
+        { to: "/feature/vibe-imager", label: "Vibe Imager" },
+        { to: "/feature/vibe-video", label: "Vibe Video" },
+        { to: "/feature/ebook", label: "E-Book Generator" },
+        { to: "/feature/whiteboard", label: "Whiteboard" },
+        { to: "/feature/cipher", label: "Cipher Toolkit" },
+        { to: "/feature/file-scrapper", label: "File Scrapper" },
+      ],
+    },
+    {
+      heading: "Company",
+      links: [
+        { to: "/features", label: "All Features" },
+        { to: "/pricing", label: "Pricing" },
+        { to: "/founder", label: "Founder" },
+        { to: "/forums", label: "Forums" },
+        { to: "/prompt-engineering", label: "Prompt Engineering" },
+        { to: "/benchmarks", label: "Benchmarks" },
+        { to: "/equity", label: "Equity Ownership" },
+        { to: "/nda", label: "NDA" },
+        { to: "/terms", label: "Terms of Service" },
+        { to: "/privacy", label: "Privacy Policy" },
+      ],
+    },
+  ];
+
   return (
-    <footer className="relative z-10 px-6 pb-8 pt-16">
-      <div className="mx-auto max-w-6xl">
-        <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md px-8 py-10 sm:px-12">
-          <div className="flex flex-col gap-8">
-            {/* Branding */}
-            <div className="text-center sm:text-left">
-              <p className="text-sm font-light tracking-[0.2em] text-foreground">AUREON</p>
-              <p className="mt-1 text-xs font-extralight tracking-wide text-muted-foreground">
-                Powered by Zorak Corp & House Of Asher · Zophiel Engine
-              </p>
-            </div>
+    <footer className="relative z-10 px-6 pb-8 pt-24">
+      <div className="mx-auto max-w-7xl">
+        {/* Hairline divider with center glyph */}
+        <div className="relative mb-16 flex items-center justify-center">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/40 to-border/20" />
+          <span className="px-6 text-[10px] font-light tracking-[0.4em] text-muted-foreground/60 uppercase">
+            Aureon · Zophiel Engine
+          </span>
+          <div className="h-px flex-1 bg-gradient-to-l from-transparent via-border/40 to-border/20" />
+        </div>
 
-            {/* Links Grid */}
-            <div className="w-full grid grid-cols-2 sm:grid-cols-5 gap-x-8 gap-y-6">
-              <div className="flex flex-col gap-2">
-                <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Intelligence</p>
-                <Link to="/llm-models" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">LLM Models</Link>
-                <Link to="/feature/zophiel" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Zophiel Search</Link>
-                <Link to="/feature/nomad" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">NOMAD Public Intel</Link>
-                <Link to="/feature/azplen" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Azplen Intelligence</Link>
-                <Link to="/feature/predictive" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Predictive Intelligence</Link>
-                <Link to="/feature/oracle-locus" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Oracle Locus</Link>
-                <Link to="/feature/video-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Video Intelligence</Link>
-                <Link to="/feature/cross" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">CROSS Live Screen</Link>
-                <Link to="/ww3" className="text-xs font-extralight tracking-wide text-destructive/70 hover:text-destructive transition-colors">WW3 Trajectory</Link>
-              </div>
+        <div className="relative overflow-hidden rounded-3xl border border-border/15 bg-gradient-to-b from-card/40 via-card/20 to-card/5 backdrop-blur-xl">
+          {/* Ambient glow */}
+          <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-64 w-[80%] rounded-full bg-foreground/[0.03] blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/20 to-transparent" />
 
-              <div className="flex flex-col gap-2">
-                <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Security</p>
-                <Link to="/feature/zerlal" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">ZERLAL Cyber Security</Link>
-                <Link to="/feature/security" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Guardian Vault</Link>
-                <Link to="/feature/zeeion" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">ZEEION FI Forensics</Link>
-                <Link to="/feature/axrlen" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">AXRLEN Engine</Link>
-                <Link to="/feature/byok" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Bring Your Own Key</Link>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Agents & Tools</p>
-                <Link to="/feature/zahten" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Zahten Agent Forge</Link>
-                <Link to="/feature/automated-agents" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Automated Agents</Link>
-                <Link to="/feature/personas" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">AI Personas</Link>
-                <Link to="/feature/briefings" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Daily Briefings</Link>
-                <Link to="/feature/notebooks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Notebooks</Link>
-                <Link to="/feature/lavba" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Lavba Strategy</Link>
-                <Link to="/feature/vedic" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Vedic Strategy</Link>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Creation</p>
-                <Link to="/feature/zali" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">ZANOEM Design Lab</Link>
-                <Link to="/feature/imagine-to-code" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Imagine To Code</Link>
-                <Link to="/feature/ide" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Aureon IDE</Link>
-                <Link to="/feature/vibe-imager" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Vibe Imager</Link>
-                <Link to="/feature/vibe-video" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Vibe Video</Link>
-                <Link to="/feature/ebook" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">E-Book Generator</Link>
-                <Link to="/feature/whiteboard" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Whiteboard</Link>
-                <Link to="/feature/cipher" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Cipher Toolkit</Link>
-                <Link to="/feature/file-scrapper" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">File Scrapper</Link>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Company</p>
-                <Link to="/features" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">All Features</Link>
-                <Link to="/pricing" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
-                <Link to="/founder" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Founder</Link>
-                <Link to="/forums" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Forums</Link>
-                <Link to="/prompt-engineering" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Prompt Engineering</Link>
-                <Link to="/benchmarks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Benchmarks</Link>
-                <Link to="/equity" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Equity Ownership</Link>
-                <Link to="/nda" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">NDA</Link>
-                <Link to="/terms" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
-                <Link to="/privacy" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
-              </div>
-            </div>
-
-            {/* Bottom — Copyright */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-border/15">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowHouseLogo(true)}
-                  className="group relative h-7 w-7 overflow-hidden rounded-lg border border-border/30 bg-black transition-all hover:border-foreground/40 hover:scale-105"
-                  aria-label="View House of Asher emblem"
-                >
-                  <img src={houseOfAsherLogo} alt="House of Asher emblem" className="h-full w-full object-cover" />
-                </button>
-                <p className="text-xs font-extralight tracking-wide text-muted-foreground/50">
-                  © {year} #HouseOfAsher · Zorak Corp
+          <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-12 px-8 py-14 sm:px-14 sm:py-16">
+            {/* Brand column */}
+            <div className="lg:col-span-4 flex flex-col gap-6">
+              <div>
+                <h2 className="text-5xl sm:text-6xl font-extralight tracking-[0.18em] text-foreground leading-none">
+                  AUREON
+                </h2>
+                <p className="mt-4 text-xs font-extralight leading-relaxed tracking-wide text-muted-foreground max-w-sm">
+                  Forensic-grade intelligence platform. Powered by Zorak Corp & House Of Asher — orchestrated by the Zophiel Engine.
                 </p>
               </div>
-              <p className="text-[10px] font-extralight tracking-wide text-muted-foreground/30">
-                AUREON — Founded Nov 18, 2025 · 8:38 AM
-              </p>
-              <div className="flex items-center gap-3">
-                <a href="https://x.com/shep_newton" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors" aria-label="X / Twitter — Primary">
-                  <Twitter className="h-4 w-4" />
-                  <span className="text-[10px] font-extralight tracking-[0.2em] uppercase">Primary</span>
+
+              <div className="flex items-center gap-3 pt-2">
+                <a href="https://x.com/shep_newton" target="_blank" rel="noopener noreferrer" className="group flex h-9 w-9 items-center justify-center rounded-full border border-border/25 bg-card/30 text-muted-foreground transition-all hover:border-foreground/40 hover:text-foreground hover:scale-105" aria-label="X / Twitter — Primary">
+                  <Twitter className="h-3.5 w-3.5" />
                 </a>
-                <a href="https://x.com/aureon_elion" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[hsl(43_90%_60%)] hover:text-[hsl(43_90%_70%)] transition-colors" aria-label="X / Twitter — Backup">
-                  <Twitter className="h-4 w-4" />
-                  <span className="text-[10px] font-extralight tracking-[0.2em] uppercase">Backup</span>
+                <a href="https://x.com/aureon_elion" target="_blank" rel="noopener noreferrer" className="group flex h-9 w-9 items-center justify-center rounded-full border border-[hsl(43_90%_60%)]/30 bg-card/30 text-[hsl(43_90%_60%)] transition-all hover:border-[hsl(43_90%_60%)]/60 hover:scale-105" aria-label="X / Twitter — Backup">
+                  <Twitter className="h-3.5 w-3.5" />
                 </a>
-                <a href="https://bosley.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors" aria-label="Join Asher on Bosley">
-                  <span className="text-[10px] font-extralight tracking-[0.2em] uppercase">Bosley</span>
+                <a href="https://github.com/ZorakCorp" target="_blank" rel="noopener noreferrer" className="group flex h-9 w-9 items-center justify-center rounded-full border border-border/25 bg-card/30 text-muted-foreground transition-all hover:border-foreground/40 hover:text-foreground hover:scale-105" aria-label="GitHub">
+                  <Github className="h-3.5 w-3.5" />
                 </a>
-                <a href="https://discord.gg/M9hnebRwvk" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors" aria-label="Join Asher on Discord">
-                  <span className="text-[10px] font-extralight tracking-[0.2em] uppercase">Discord</span>
+                <a href="https://discord.gg/M9hnebRwvk" target="_blank" rel="noopener noreferrer" className="flex h-9 items-center rounded-full border border-border/25 bg-card/30 px-3 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground transition-all hover:border-foreground/40 hover:text-foreground" aria-label="Discord">
+                  Discord
                 </a>
-                <a href="https://github.com/ZorakCorp" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="GitHub">
-                  <Github className="h-4 w-4" />
+                <a href="https://bosley.app/" target="_blank" rel="noopener noreferrer" className="flex h-9 items-center rounded-full border border-border/25 bg-card/30 px-3 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground transition-all hover:border-foreground/40 hover:text-foreground" aria-label="Bosley">
+                  Bosley
                 </a>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowHouseLogo(true)}
+                className="group mt-2 flex items-center gap-3 self-start rounded-xl border border-border/20 bg-card/20 p-2 pr-4 transition-all hover:border-foreground/30 hover:bg-card/40"
+                aria-label="View House of Asher emblem"
+              >
+                <span className="h-8 w-8 overflow-hidden rounded-md border border-border/30 bg-black">
+                  <img src={houseOfAsherLogo} alt="House of Asher emblem" className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+                </span>
+                <span className="text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground group-hover:text-foreground transition-colors">
+                  #HouseOfAsher
+                </span>
+              </button>
+            </div>
+
+            {/* Link grid */}
+            <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-10">
+              {sections.map((section) => (
+                <div key={section.heading} className="flex flex-col gap-3">
+                  <p className="text-[9px] font-medium tracking-[0.3em] text-foreground/70 uppercase mb-1">
+                    {section.heading}
+                  </p>
+                  <div className="flex flex-col gap-2.5">
+                    {section.links.map((link) => (
+                      <Link
+                        key={link.to + link.label}
+                        to={link.to}
+                        className={`group inline-flex items-center gap-1.5 text-xs font-extralight tracking-wide transition-colors ${
+                          link.destructive
+                            ? "text-destructive/70 hover:text-destructive"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <span className="h-px w-0 bg-current opacity-60 transition-all duration-300 group-hover:w-3" />
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="relative border-t border-border/15 px-8 py-5 sm:px-14">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[10px] font-extralight tracking-[0.2em] uppercase text-muted-foreground/60">
+                © {year} #HouseOfAsher · Zorak Corp
+              </p>
+              <p className="text-[10px] font-extralight tracking-[0.2em] uppercase text-muted-foreground/40">
+                Founded · Nov 18 2025 · 08:38
+              </p>
+              <p className="text-[10px] font-extralight tracking-[0.2em] uppercase text-muted-foreground/60">
+                All Rights Reserved
+              </p>
             </div>
           </div>
         </div>
