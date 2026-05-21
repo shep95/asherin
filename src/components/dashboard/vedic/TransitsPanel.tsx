@@ -495,11 +495,14 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                   </div>
                 </div>
                 {whys.length > 0 && (
-                  <div className="rounded-md border border-amber-300/25 bg-amber-300/[0.04] p-2 space-y-1">
+                  <div className="rounded-md border border-amber-300/25 bg-amber-300/[0.04] p-2 space-y-1.5">
                     {whys.map((w, i) => (
-                      <div key={i} className="text-[10.5px] leading-relaxed font-light">
-                        <span className="text-amber-200/90 uppercase tracking-[0.15em] text-[9px] mr-1">Your {w.pointLabel}</span>
-                        <span className="text-foreground/85">{w.text}</span>
+                      <div key={i} className="text-[10.5px] leading-relaxed font-light space-y-0.5">
+                        <div>
+                          <span className="text-amber-200/90 uppercase tracking-[0.15em] text-[9px] mr-1">Your {w.pointLabel}</span>
+                          <span className="text-foreground/90">{w.plain}</span>
+                        </div>
+                        <p className="text-muted-foreground/55 italic text-[10px]">Nerd: {w.text}</p>
                       </div>
                     ))}
                   </div>
