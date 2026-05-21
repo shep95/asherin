@@ -34,6 +34,29 @@ function monthEnd(d: Date)   { return new Date(d.getFullYear(), d.getMonth() + 1
 function monthsBetween(a: Date, b: Date) {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
 }
+// ── Week helpers (Mon-anchored ISO-ish week) ──
+function weekStart(d: Date) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0);
+  const day = x.getDay();              // 0..6, Sun=0
+  const offset = (day + 6) % 7;        // days since Monday
+  x.setDate(x.getDate() - offset);
+  return x;
+}
+function weekEnd(d: Date) {
+  const s = weekStart(d);
+  return new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6, 23, 59);
+}
+function midOfWeek(d: Date) {
+  const s = weekStart(d);
+  return new Date(s.getFullYear(), s.getMonth(), s.getDate() + 3, 12, 0);
+}
+function weekLabel(d: Date) {
+  const s = weekStart(d), e = weekEnd(d);
+  const sameMonth = s.getMonth() === e.getMonth();
+  const sFmt = `${MONTH_NAMES[s.getMonth()].slice(0,3)} ${s.getDate()}`;
+  const eFmt = sameMonth ? `${e.getDate()}` : `${MONTH_NAMES[e.getMonth()].slice(0,3)} ${e.getDate()}`;
+  return `Week of ${sFmt}–${eFmt}, ${e.getFullYear()}`;
+}
 
 const WEIGHT_RING: Record<"high" | "medium" | "low", string> = {
   high: "border-amber-400/50 bg-amber-400/[0.04]",
