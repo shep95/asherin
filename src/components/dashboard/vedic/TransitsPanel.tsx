@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2 } from "lucide-react";
+import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target } from "lucide-react";
 import { computeTransitChart, computeFutureIngresses, type TransitChart, type SignIngress } from "@/lib/vedic/transits";
 import { readTransit, type LifePrediction, type Verdict } from "@/lib/vedic/transitMeanings";
-import { calculateSweVedicChart } from "@/lib/vedic/sweChart";
+import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
+import { computeSensitivePoints, whyTransitMatters, type SensitivePoints, type WhyReason } from "@/lib/vedic/sensitivePoints";
 import type { CompanyFoundation } from "@/data/vedic/companyCharts";
 
 interface Props {
   natalAscendant: number;
+  natalPlanets?: SweVedicPlanet[];
   lat: number;
   lon: number;
   chartKey: string | null;
@@ -54,9 +56,10 @@ interface NatalRef {
   label: string;
   kind: "user" | "company";
   key: string;
+  points: SensitivePoints | null;
 }
 
-const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, companyCharts }: Props) => {
+const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts }: Props) => {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState<Date>(() => midOfMonth(new Date()));
   const [mode, setMode] = useState<"user" | string>("user"); // "user" or company symbol
@@ -67,7 +70,8 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, comp
     ascendant: natalAscendant, lat, lon,
     label: userChartName || "Your Chart", kind: "user",
     key: `user:${chartKey ?? `${natalAscendant.toFixed(3)}:${lat}:${lon}`}`,
-  }), [natalAscendant, lat, lon, chartKey, userChartName]);
+    points: natalPlanets ? computeSensitivePoints(natalPlanets, natalAscendant) : null,
+  }), [natalAscendant, natalPlanets, lat, lon, chartKey, userChartName]);
 
   // Resolve company natal chart whenever mode changes to a company symbol
   useEffect(() => {
@@ -87,6 +91,7 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, comp
           ascendant: c.ascendant, lat: co.lat, lon: co.lon,
           label: `${co.name} (${co.symbol})`, kind: "company",
           key: `co:${co.symbol}`,
+          points: computeSensitivePoints(c.planets, c.ascendant),
         });
       } finally {
         if (!cancelled) setResolvingCompany(false);
@@ -173,8 +178,26 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, comp
 
   const readings = useMemo(() => {
     if (!transit) return [];
-    return transit.planets.map((p) => ({ planet: p, reading: readTransit(p.name, p.natalHouse, p.retrograde) }));
-  }, [transit]);
+    return transit.planets.map((p) => ({
+      planet: p,
+      reading: readTransit(p.name, p.natalHouse, p.retrograde),
+      whys: whyTransitMatters(p.name, p.signIndex, activeRef.points),
+    }));
+  }, [transit, activeRef.points]);
+
+  // Top-level chart-specific reasoning for this month — only the "high importance"
+  // hits (UL / AK / DK / Moon-sign / Lagna activations). This is the "WHY before data."
+  const topWhys = useMemo(() => {
+    const out: Array<WhyReason & { planet: string; symbol: string; retrograde: boolean }> = [];
+    for (const r of readings) {
+      for (const w of r.whys) {
+        if (w.importance === "high") {
+          out.push({ ...w, planet: r.planet.name, symbol: r.planet.symbol, retrograde: r.planet.retrograde });
+        }
+      }
+    }
+    return out;
+  }, [readings]);
 
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
@@ -275,6 +298,35 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, comp
         </div>
       )}
 
+      {/* WHY THIS MATTERS TO YOUR CHART — reasoning before data */}
+      {!loadingNow && topWhys.length > 0 && (
+        <div className="rounded-lg border border-amber-400/30 bg-amber-400/[0.04] p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Target className="h-3.5 w-3.5 text-amber-300/90" />
+            <h4 className="text-xs font-light tracking-[0.15em] text-amber-200 uppercase">
+              Why this matters to {activeRef.kind === "company" ? subjectLabel : "your chart"}
+            </h4>
+          </div>
+          <p className="text-[10.5px] text-muted-foreground/80 italic leading-relaxed">
+            Generic house-readings ignore your chart. These hits are sign-specific to {activeRef.kind === "company" ? "this company's" : "YOUR"} sensitive points — Lagna, Moon sign, Atmakaraka, Darakaraka, Upapada Lagna. Read these first; everything below is the supporting data.
+          </p>
+          <div className="space-y-1.5">
+            {topWhys.map((w, i) => (
+              <div key={i} className="rounded-md border border-amber-300/20 bg-background/30 p-2.5">
+                <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+                  <div className="text-[11px] font-light text-foreground">
+                    <span className="text-foreground/70 mr-1">{w.symbol}</span>
+                    {w.planet}{w.retrograde && <span className="text-muted-foreground"> ʀ</span>} on your <span className="text-amber-200">{w.pointLabel}</span> ({w.signName})
+                  </div>
+                  <span className="text-[9px] uppercase tracking-[0.2em] text-amber-300/80">High Impact</span>
+                </div>
+                <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/90">{w.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Month forecast */}
       <div className="rounded-lg border border-border/25 bg-gradient-to-b from-foreground/[0.04] to-transparent p-3 space-y-2">
         <div className="flex items-center gap-2">
@@ -317,7 +369,7 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, comp
             Planet-by-planet · positions at {fmtDate(chosen)} (mid-month sample) · houses relative to {subjectLabel}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {readings.map(({ planet, reading }) => (
+            {readings.map(({ planet, reading, whys }) => (
               <div key={planet.name} className={`rounded-lg border ${WEIGHT_RING[reading.weight]} p-3 space-y-1.5`}>
                 <div className="flex items-baseline justify-between gap-2">
                   <div className="text-sm font-light text-foreground">
@@ -328,6 +380,16 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, comp
                     {planet.signName} · {fmtDeg(planet.degInSign)}
                   </div>
                 </div>
+                {whys.length > 0 && (
+                  <div className="rounded-md border border-amber-300/25 bg-amber-300/[0.04] p-2 space-y-1">
+                    {whys.map((w, i) => (
+                      <div key={i} className="text-[10.5px] leading-relaxed font-light">
+                        <span className="text-amber-200/90 uppercase tracking-[0.15em] text-[9px] mr-1">Your {w.pointLabel}</span>
+                        <span className="text-foreground/85">{w.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <p className="text-[11px] text-muted-foreground/85 font-light leading-relaxed">{reading.meaning}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1.5 border-t border-border/15">
                   <div className="text-[10px] font-light leading-relaxed">
@@ -371,14 +433,14 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, comp
       {ingressesThisMonth.length > 0 && (
         <div className="space-y-1.5">
           <div className="text-[10px] uppercase tracking-[0.2em] text-foreground/70">Ingresses in {monthLabel(cursor)}</div>
-          {ingressesThisMonth.map((ing, i) => <IngressRow key={`m-${i}`} ing={ing} />)}
+          {ingressesThisMonth.map((ing, i) => <IngressRow key={`m-${i}`} ing={ing} points={activeRef.points} />)}
         </div>
       )}
 
       {ingressesLater.length > 0 && (
         <div className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 pt-1">Beyond — through next {horizonMonths === 3 ? "3 months" : horizonMonths === 12 ? "year" : "2 years"}</div>
-          {ingressesLater.map((ing, i) => <IngressRow key={`l-${i}`} ing={ing} />)}
+          {ingressesLater.map((ing, i) => <IngressRow key={`l-${i}`} ing={ing} points={activeRef.points} />)}
         </div>
       )}
 
@@ -389,8 +451,9 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, comp
   );
 };
 
-function IngressRow({ ing }: { ing: SignIngress }) {
+function IngressRow({ ing, points }: { ing: SignIngress; points: SensitivePoints | null }) {
   const r = readTransit(ing.planet, ing.natalHouse, ing.retrograde);
+  const whys = whyTransitMatters(ing.planet, ing.toSignIndex, points);
   return (
     <div className="rounded-md border border-border/20 bg-background/25 hover:bg-background/40 transition p-2.5">
       <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-light">
@@ -405,6 +468,16 @@ function IngressRow({ ing }: { ing: SignIngress }) {
           enters House {ing.natalHouse} · {r.headline.split("—")[1]?.trim() ?? ""}
         </span>
       </div>
+      {whys.length > 0 && (
+        <div className="rounded-md border border-amber-300/25 bg-amber-300/[0.04] p-2 mt-1.5 space-y-1">
+          {whys.map((w, i) => (
+            <div key={i} className="text-[10.5px] leading-relaxed font-light">
+              <span className="text-amber-200/90 uppercase tracking-[0.15em] text-[9px] mr-1">Hits your {w.pointLabel}</span>
+              <span className="text-foreground/85">{w.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <p className="text-[10.5px] text-muted-foreground/80 font-light leading-relaxed mt-1">{r.meaning}</p>
     </div>
   );
