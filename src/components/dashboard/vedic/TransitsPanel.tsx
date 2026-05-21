@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2 } from "lucide-react";
+import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target } from "lucide-react";
 import { computeTransitChart, computeFutureIngresses, type TransitChart, type SignIngress } from "@/lib/vedic/transits";
 import { readTransit, type LifePrediction, type Verdict } from "@/lib/vedic/transitMeanings";
-import { calculateSweVedicChart } from "@/lib/vedic/sweChart";
+import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
+import { computeSensitivePoints, whyTransitMatters, type SensitivePoints, type WhyReason } from "@/lib/vedic/sensitivePoints";
 import type { CompanyFoundation } from "@/data/vedic/companyCharts";
 
 interface Props {
   natalAscendant: number;
+  natalPlanets?: SweVedicPlanet[];
   lat: number;
   lon: number;
   chartKey: string | null;
