@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart, Activity, Crown, Megaphone, Star, Briefcase, Flame, ScrollText } from "lucide-react";
+import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart, Activity, Crown, Megaphone, Star, Briefcase, Flame, ScrollText, Zap } from "lucide-react";
 import { computeTransitChart, computeFutureIngresses, type TransitChart, type SignIngress } from "@/lib/vedic/transits";
 import { readTransit, type LifePrediction, type Verdict } from "@/lib/vedic/transitMeanings";
 import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
 import { computeSensitivePoints, whyTransitMatters, type SensitivePoints, type WhyReason } from "@/lib/vedic/sensitivePoints";
 import { detectWindows, type KarmicWindow } from "@/lib/vedic/wealthSoulmateWindows";
 import type { CompanyFoundation } from "@/data/vedic/companyCharts";
+import type { CurrentDashaPath } from "@/lib/vedic/dasha";
 
 interface Props {
   natalAscendant: number;
@@ -15,6 +16,7 @@ interface Props {
   chartKey: string | null;
   userChartName?: string;
   companyCharts?: CompanyFoundation[];
+  currentDasha?: CurrentDashaPath;
 }
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -83,7 +85,7 @@ interface NatalRef {
   points: SensitivePoints | null;
 }
 
-const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts }: Props) => {
+const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts, currentDasha }: Props) => {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState<Date>(() => midOfMonth(new Date()));
   const [mode, setMode] = useState<"user" | string>("user"); // "user" or company symbol
@@ -319,6 +321,31 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     });
   }, [ingresses, periodEnd, today, horizonMonths]);
 
+  // ── DASHA WEIGHTS — active Vimshottari lords get weight by level ──
+  const dashaLordWeights = useMemo(() => {
+    const m = new Map<string, number>();
+    if (!currentDasha || activeRef.kind !== "user") return m;
+    const add = (lord: string | undefined, w: number) => {
+      if (!lord) return;
+      m.set(lord, (m.get(lord) || 0) + w);
+    };
+    add(currentDasha.maha?.lord, 3);
+    add(currentDasha.antar?.lord, 2);
+    add(currentDasha.pratyantar?.lord, 1.2);
+    add(currentDasha.sookshma?.lord, 0.6);
+    return m;
+  }, [currentDasha, activeRef.kind]);
+
+  const activeDashaSummary = useMemo(() => {
+    if (!currentDasha || activeRef.kind !== "user") return null;
+    const parts: string[] = [];
+    if (currentDasha.maha) parts.push(`${currentDasha.maha.lord} MD`);
+    if (currentDasha.antar) parts.push(`${currentDasha.antar.lord} AD`);
+    if (currentDasha.pratyantar) parts.push(`${currentDasha.pratyantar.lord} PD`);
+    if (currentDasha.sookshma) parts.push(`${currentDasha.sookshma.lord} SD`);
+    return parts.length ? parts.join(" / ") : null;
+  }, [currentDasha, activeRef.kind]);
+
   // ── PLAIN-ENGLISH MONTHLY BRIEF — "here's what's gonna happen this {period}" ──
   // Picks the strongest hit per life-area and dumbs it down for non-astrologers.
   const monthlyBrief = useMemo(() => {
@@ -332,6 +359,9 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       when: string;
       duration: string;
       millionaire?: boolean;
+      dashaScore: number;           // 0..6+ — how much active dasha lords back this window
+      dashaLords: string[];         // active lords that overlap window hits
+      confidence: "peak" | "strong" | "moderate" | "background"; // combined dasha + transit
     };
     const periodWord = granularity === "week" ? "week" : "month";
     const fmtWhen = (start: Date, end: Date) => {
@@ -350,16 +380,72 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       if (weeks < 8) return `${weeks.toFixed(1)} weeks`;
       return `${Math.round(days / 30)} mo`;
     };
+    const computeDashaSupport = (w: KarmicWindow) => {
+      const matched = new Set<string>();
+      let score = 0;
+      for (const hit of w.hits) {
+        const wt = dashaLordWeights.get(hit.planet);
+        if (wt && wt > 0) {
+          // align direction: if window is good & hit is positive, or bad & negative, full credit
+          const aligned = (w.score >= 0 && hit.weight > 0) || (w.score < 0 && hit.weight < 0);
+          score += aligned ? wt : wt * 0.4;
+          matched.add(hit.planet);
+        }
+      }
+      return { score, lords: Array.from(matched) };
+    };
+    const confidenceFor = (transitScore: number, dashaScore: number): Brief["confidence"] => {
+      // Strongest predictions = dasha supports AND transit activates simultaneously
+      const ts = Math.abs(transitScore);
+      if (dashaScore >= 3 && ts >= 8) return "peak";
+      if (dashaScore >= 2 && ts >= 4) return "strong";
+      if (dashaScore >= 1 || ts >= 8) return "moderate";
+      return "background";
+    };
     const pickStrongest = (list: KarmicWindow[]) => {
       if (!list.length) return null;
-      return [...list].sort((a, b) => Math.abs(b.score) - Math.abs(a.score))[0];
+      // Re-rank by combined transit + dasha score so dasha-backed windows surface first
+      return [...list].sort((a, b) => {
+        const da = computeDashaSupport(a).score;
+        const db = computeDashaSupport(b).score;
+        return (Math.abs(b.score) + db * 2) - (Math.abs(a.score) + da * 2);
+      })[0];
     };
-    const briefs: Brief[] = [];
+    const pushBrief = (
+      list: KarmicWindow[],
+      base: Omit<Brief, "dashaScore" | "dashaLords" | "confidence" | "when" | "duration" | "detail" | "headline" | "tone"> & {
+        toneFor: (good: boolean) => Brief["tone"];
+        headlineFor: (w: KarmicWindow, good: boolean) => string;
+      },
+    ) => {
+      const w = pickStrongest(list);
+      if (!w) return null;
+      const good = w.score > 0;
+      const support = computeDashaSupport(w);
+      return {
+        key: base.key,
+        icon: base.icon,
+        label: base.label,
+        tone: base.toneFor(good),
+        headline: base.headlineFor(w, good),
+        detail: w.hits[0]?.plain || w.headline,
+        when: fmtWhen(w.start, w.end),
+        duration: fmtDuration(w.start, w.end),
+        millionaire: base.key === "wealth" && w.score >= 14,
+        dashaScore: support.score,
+        dashaLords: support.lords,
+        confidence: confidenceFor(w.score, support.score),
+      } as Brief;
+    };
+    type BaseBrief = Omit<Brief, "dashaScore" | "dashaLords" | "confidence">;
+    const briefs: BaseBrief[] = [];
+    const sourceMap = new Map<string, KarmicWindow>();
 
 
     const wealth = pickStrongest(wealthInPeriod);
     if (wealth) {
       const good = wealth.score > 0;
+      sourceMap.set("wealth", wealth);
       briefs.push({
         key: "wealth",
         icon: Gem,
@@ -377,6 +463,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const soulmate = pickStrongest(soulmateInPeriod);
     if (soulmate) {
       const good = soulmate.score > 0;
+      sourceMap.set("soulmate", soulmate);
       briefs.push({
         key: "soulmate",
         icon: Heart,
@@ -393,6 +480,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const health = pickStrongest(healthInPeriod);
     if (health) {
       const sick = health.score > 0;
+      sourceMap.set("health", health);
       briefs.push({
         key: "health",
         icon: Activity,
@@ -409,6 +497,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const romance = pickStrongest(romanceInPeriod);
     if (romance) {
       const good = romance.score > 0;
+      sourceMap.set("romance", romance);
       briefs.push({
         key: "romance",
         icon: Flame,
@@ -425,6 +514,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const power = pickStrongest(powerInPeriod);
     if (power) {
       const good = power.score > 0;
+      sourceMap.set("power", power);
       briefs.push({
         key: "power",
         icon: Crown,
@@ -441,6 +531,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const career = pickStrongest(careerInPeriod);
     if (career) {
       const good = career.score > 0;
+      sourceMap.set("career", career);
       briefs.push({
         key: "career",
         icon: Briefcase,
@@ -457,6 +548,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const influence = pickStrongest(influenceInPeriod);
     if (influence) {
       const good = influence.score > 0;
+      sourceMap.set("influence", influence);
       briefs.push({
         key: "influence",
         icon: Megaphone,
@@ -473,6 +565,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const fame = pickStrongest(fameInPeriod);
     if (fame) {
       const good = fame.score > 0;
+      sourceMap.set("fame", fame);
       briefs.push({
         key: "fame",
         icon: Star,
@@ -487,8 +580,25 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       });
     }
 
-    return { briefs, periodWord };
-  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod]);
+    // ── Enrich each brief with Dasha+Transit confidence ──
+    const enriched: Brief[] = briefs.map((b) => {
+      const w = sourceMap.get(b.key);
+      const support = w ? computeDashaSupport(w) : { score: 0, lords: [] };
+      return {
+        ...b,
+        dashaScore: support.score,
+        dashaLords: support.lords,
+        confidence: confidenceFor(w?.score ?? 0, support.score),
+      };
+    });
+    // Strongest predictions = confidence "peak" or "strong" (dasha + transit converge)
+    const strongest = enriched
+      .filter((b) => b.confidence === "peak" || b.confidence === "strong")
+      .sort((a, b) => (b.dashaScore + (sourceMap.get(b.key)?.score ?? 0)) - (a.dashaScore + (sourceMap.get(a.key)?.score ?? 0)));
+
+    return { briefs: enriched, periodWord, strongest };
+  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod, dashaLordWeights]);
+
 
 
   const shiftPeriod = (delta: number) => {
@@ -584,6 +694,39 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
+      {/* STRONGEST PREDICTIONS — Dasha + Transit convergence */}
+      {!loadingNow && !loadingFuture && activeDashaSummary && monthlyBrief.strongest.length > 0 && (
+        <div className="rounded-lg border border-amber-300/40 bg-gradient-to-br from-amber-300/[0.07] via-background/40 to-background/20 p-4 space-y-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Zap className="h-4 w-4 text-amber-300/90" fill="currentColor" />
+            <h4 className="text-xs font-light tracking-[0.18em] text-amber-200 uppercase">Strongest Predictions · Dasha + Transit Converge</h4>
+            <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 ml-auto">Active: {activeDashaSummary}</span>
+          </div>
+          <p className="text-[10.5px] text-muted-foreground/75 italic leading-relaxed">
+            These life-areas have BOTH the Dasha lord supporting them AND a transit firing the same point at the same time — the textbook "event happens" combo.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {monthlyBrief.strongest.map((b) => {
+              const Icon = b.icon;
+              return (
+                <div key={`strong-${b.key}`} className="rounded-md border border-amber-300/30 bg-background/40 p-2.5 space-y-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Icon className="h-3.5 w-3.5 text-amber-300/90" />
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-amber-100/90">{b.label}</span>
+                    <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${b.confidence === "peak" ? "border-amber-300/60 bg-amber-300/[0.12] text-amber-200" : "border-amber-300/30 bg-amber-300/[0.05] text-amber-200/80"}`}>{b.confidence === "peak" ? "PEAK" : "STRONG"}</span>
+                    <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/70 ml-auto">{b.when}</span>
+                  </div>
+                  <div className="text-[11.5px] font-light text-foreground leading-snug">{b.headline}</div>
+                  <div className="text-[9.5px] uppercase tracking-[0.16em] text-amber-200/70">
+                    Dasha backing: {b.dashaLords.join(" + ")}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* PLAIN-ENGLISH BRIEF — "what's gonna happen this {period}" */}
       {!loadingNow && !loadingFuture && (
         <div className="rounded-lg border border-foreground/25 bg-gradient-to-br from-foreground/[0.06] via-background/40 to-background/20 p-4 space-y-3">
@@ -595,6 +738,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           </div>
           <p className="text-[10.5px] text-muted-foreground/75 italic leading-relaxed">
             Plain English. No nerd jargon. The strongest hit per life-area, scoped to {periodLabel}.
+            {activeDashaSummary && <> Confidence badges fuse your active Dasha ({activeDashaSummary}) with live transits.</>}
           </p>
           {monthlyBrief.briefs.length === 0 ? (
             <div className="text-[11.5px] text-muted-foreground/70 italic">
@@ -604,6 +748,14 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {monthlyBrief.briefs.map((b) => {
                 const Icon = b.icon;
+                const confStyle = b.confidence === "peak"
+                  ? "border-amber-300/60 bg-amber-300/[0.10] text-amber-200"
+                  : b.confidence === "strong"
+                    ? "border-amber-300/35 bg-amber-300/[0.05] text-amber-200/85"
+                    : b.confidence === "moderate"
+                      ? "border-border/40 bg-background/40 text-foreground/70"
+                      : "border-border/25 bg-background/20 text-muted-foreground/60";
+                const confLabel = b.confidence === "peak" ? "PEAK" : b.confidence === "strong" ? "STRONG" : b.confidence === "moderate" ? "MODERATE" : "BACKGROUND";
                 return (
                   <div key={b.key} className={`relative rounded-md border p-3 space-y-1.5 ${b.tone === "bad" ? "border-red-500/35 bg-red-500/[0.05]" : b.tone === "good" ? "border-emerald-500/35 bg-emerald-500/[0.05]" : "border-border/25 bg-background/30"} ${b.millionaire ? "ring-1 ring-amber-300/40" : ""}`}>
                     {b.millionaire && (
@@ -625,6 +777,14 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                     </div>
                     <div className="text-[12px] font-light text-foreground leading-snug">{b.headline}</div>
                     <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{b.detail}</p>
+                    {activeDashaSummary && (
+                      <div className="flex items-center gap-1.5 pt-1 border-t border-border/15">
+                        <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${confStyle}`}>{confLabel}</span>
+                        <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/65">
+                          {b.dashaLords.length > 0 ? `Dasha-backed by ${b.dashaLords.join(" + ")}` : "No active Dasha lord on this axis"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
