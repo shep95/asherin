@@ -299,25 +299,41 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
             {subjectLabel}
           </span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
+          {/* Granularity toggle */}
+          <div className="inline-flex items-center rounded border border-border/25 overflow-hidden mr-2">
+            {(["week","month"] as const).map((g) => (
+              <button
+                key={g}
+                onClick={() => {
+                  if (g === granularity) return;
+                  setGranularity(g);
+                  setCursor(g === "week" ? midOfWeek(cursor) : midOfMonth(cursor));
+                }}
+                className={`text-[10px] uppercase tracking-[0.15em] px-2 py-1 transition ${granularity === g ? "bg-foreground/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
           <button onClick={() => shiftYear(-1)} title="Previous year" className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
             <ChevronsLeft className="h-3.5 w-3.5" />
           </button>
-          <button onClick={() => shiftMonth(-1)} title="Previous month" className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
+          <button onClick={() => shiftPeriod(-1)} title={`Previous ${granularity}`} className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-          <div className="px-3 py-1 rounded border border-foreground/30 bg-foreground/[0.05] min-w-[10rem] text-center">
-            <div className="text-xs font-light tracking-[0.15em] text-foreground uppercase">{monthLabel(cursor)}</div>
-            {isCurrentMonth && <div className="text-[9px] uppercase tracking-[0.2em] text-emerald-300/80">This Month</div>}
+          <div className="px-3 py-1 rounded border border-foreground/30 bg-foreground/[0.05] min-w-[12rem] text-center">
+            <div className="text-xs font-light tracking-[0.15em] text-foreground uppercase">{periodLabel}</div>
+            {isCurrentPeriod && <div className="text-[9px] uppercase tracking-[0.2em] text-emerald-300/80">This {granularity}</div>}
           </div>
-          <button onClick={() => shiftMonth(1)} title="Next month" className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
+          <button onClick={() => shiftPeriod(1)} title={`Next ${granularity}`} className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
           <button onClick={() => shiftYear(1)} title="Next year" className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
             <ChevronsRight className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={() => setCursor(midOfMonth(new Date()))}
+            onClick={jumpToNow}
             className="ml-2 text-[10px] uppercase tracking-[0.18em] px-2 py-1 rounded border border-border/30 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition"
           >
             Now
