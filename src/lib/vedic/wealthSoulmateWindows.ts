@@ -30,6 +30,8 @@ export interface ActivationHit {
   signName: string;
   weight: number;
   reasoning: string;
+  /** Dumb-it-down version of `reasoning`. */
+  plain: string;
 }
 
 export interface KarmicWindow {
