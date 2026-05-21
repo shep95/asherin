@@ -408,8 +408,8 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
             <WindowList
               title={`Wealth Windows · ${subjectLabel}`}
               subtitle={activeRef.kind === "company"
-                ? "Periods when transiting benefics light up this company's dhana axis (2nd / 5th / 9th / 11th lords + AK). Big-money structural ignition windows."
-                : "Periods when transiting benefics ignite YOUR personal dhana axis (lords of 2/5/9/11 + Atmakaraka). These are the millionaire-grade timing windows in your chart — not generic 'Jupiter in 11th' readings."}
+                ? "Periods when transiting benefics light up this company's dhana axis (lords of 2/5/9/11 + AK)."
+                : "Periods when transiting benefics ignite YOUR personal wealth axis (lords of 2/5/9/11 + Atmakaraka). Translation: when the universe lines up your big-money channels."}
               icon={<Gem className="h-3.5 w-3.5 text-emerald-300/90" />}
               accent="emerald"
               windows={wealthWindows}
@@ -418,13 +418,24 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           {soulmateWindows.length > 0 && (
             <WindowList
               title="Soulmate / Marriage Windows"
-              subtitle="Periods when Jupiter or Venus walks into the SPECIFIC signs your spouse-karmas live in — Upapada Lagna (UL), Darakaraka (DK), 7th-lord sign, or your Moon sign. The actual sign matters, not the house number."
+              subtitle="When Jupiter or Venus walks into the SPECIFIC signs your spouse-karmas live in. Plain-English: when 'meet your person' energy is actually on for you."
               icon={<Heart className="h-3.5 w-3.5 text-rose-300/90" />}
               accent="rose"
               windows={soulmateWindows}
             />
           )}
         </div>
+      )}
+
+      {/* HEALTH / SICKNESS WINDOWS */}
+      {healthWindows.length > 0 && (
+        <WindowList
+          title={`Health & Sickness Windows · ${subjectLabel}`}
+          subtitle="When malefics (Saturn, Mars, Rahu, Ketu) walk into the signs of your health-axis lords (6th = disease, 8th = chronic / surgery, 12th = hospital), Lagna (body), or Moon (mind). Plain-English: the months you're statistically most likely to get sick, injured, or run-down — and the windows that bless your immunity."
+          icon={<Activity className="h-3.5 w-3.5 text-red-300/90" />}
+          accent="red"
+          windows={healthWindows}
+        />
       )}
 
 
