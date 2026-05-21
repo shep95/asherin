@@ -135,6 +135,12 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
     L12:     mk("L12", "Lord of 12th (Vyaya)", lord12Sign,
                 "Sign where your 12th-house lord (hospitalization, hidden enemies, isolation, expenses) lives.",
                 "Your hospitalization / bed-rest channel."),
+    L10:     mk("L10", "Lord of 10th (Karma)", lord10Sign,
+                "Sign where your 10th-house lord (career, public status, authority, command, the throne) currently lives. The single most important point for power, fame, and career.",
+                "Your career, status, and 'authority' throne."),
+    L3:      mk("L3", "Lord of 3rd (Parakrama)", lord3Sign,
+                "Sign where your 3rd-house lord (courage, self-effort, communication, content, short trips) lives.",
+                "Your courage, communication, and 'reach' channel."),
   };
 
   const bySign = new Map<number, SensitivePoint[]>();
