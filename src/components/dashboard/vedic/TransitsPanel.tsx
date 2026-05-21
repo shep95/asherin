@@ -272,6 +272,23 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     [ingresses, activeRef.points],
   );
 
+  // ── Filter every window list to ONLY those overlapping the selected period ──
+  // The user explicitly asked: month view = only that month's transit-relevant data.
+  const inPeriod = useMemo(() => {
+    const s = periodStart.getTime();
+    const e = periodEnd.getTime();
+    return (w: KarmicWindow) => w.start.getTime() <= e && w.end.getTime() >= s;
+  }, [periodStart, periodEnd]);
+
+  const wealthInPeriod    = useMemo(() => wealthWindows.filter(inPeriod),    [wealthWindows, inPeriod]);
+  const soulmateInPeriod  = useMemo(() => soulmateWindows.filter(inPeriod),  [soulmateWindows, inPeriod]);
+  const healthInPeriod    = useMemo(() => healthWindows.filter(inPeriod),    [healthWindows, inPeriod]);
+  const romanceInPeriod   = useMemo(() => romanceWindows.filter(inPeriod),   [romanceWindows, inPeriod]);
+  const powerInPeriod     = useMemo(() => powerWindows.filter(inPeriod),     [powerWindows, inPeriod]);
+  const influenceInPeriod = useMemo(() => influenceWindows.filter(inPeriod), [influenceWindows, inPeriod]);
+  const fameInPeriod      = useMemo(() => fameWindows.filter(inPeriod),      [fameWindows, inPeriod]);
+  const careerInPeriod    = useMemo(() => careerWindows.filter(inPeriod),    [careerWindows, inPeriod]);
+
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
     for (const r of readings) {
