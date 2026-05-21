@@ -602,7 +602,7 @@ function fmtRange(a: Date, b: Date) {
   return `${fmtDate(a)} → ${fmtDate(b)}`;
 }
 
-const ACCENT: Record<"emerald" | "rose", { ring: string; chip: string; head: string; grade: string }> = {
+const ACCENT: Record<"emerald" | "rose" | "red", { ring: string; chip: string; head: string; grade: string }> = {
   emerald: {
     ring: "border-emerald-400/30 bg-emerald-400/[0.04]",
     chip: "border-emerald-300/30 bg-emerald-300/[0.05] text-emerald-200",
@@ -615,7 +615,15 @@ const ACCENT: Record<"emerald" | "rose", { ring: string; chip: string; head: str
     head: "text-rose-200",
     grade: "text-rose-300/90",
   },
+  red: {
+    ring: "border-red-400/30 bg-red-400/[0.04]",
+    chip: "border-red-300/30 bg-red-300/[0.05] text-red-200",
+    head: "text-red-200",
+    grade: "text-red-300/90",
+  },
 };
+
+type AccentKey = "emerald" | "rose" | "red";
 
 function WindowList({
   title, subtitle, icon, accent, windows,
@@ -623,7 +631,7 @@ function WindowList({
   title: string;
   subtitle: string;
   icon: React.ReactNode;
-  accent: "emerald" | "rose";
+  accent: AccentKey;
   windows: KarmicWindow[];
 }) {
   const a = ACCENT[accent];
@@ -643,7 +651,7 @@ function WindowList({
   );
 }
 
-function WindowCard({ w, accent }: { w: KarmicWindow; accent: "emerald" | "rose" }) {
+function WindowCard({ w, accent }: { w: KarmicWindow; accent: AccentKey }) {
   const a = ACCENT[accent];
   const [open, setOpen] = useState(false);
   return (
@@ -660,7 +668,7 @@ function WindowCard({ w, accent }: { w: KarmicWindow; accent: "emerald" | "rose"
             <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground/70 transition-transform ${open ? "rotate-90" : ""}`} />
           </div>
         </div>
-        <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70 tabular-nums flex items-center gap-2">
+        <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70 tabular-nums flex items-center gap-2 flex-wrap">
           <span>{fmtRange(w.start, w.end)}</span>
           <span className="text-muted-foreground/40">·</span>
           <span>score {w.score > 0 ? "+" : ""}{w.score}</span>
@@ -669,13 +677,16 @@ function WindowCard({ w, accent }: { w: KarmicWindow; accent: "emerald" | "rose"
         </div>
       </button>
       {open && (
-        <div className="space-y-1 p-2.5 pt-2 border-t border-border/15">
+        <div className="space-y-2 p-2.5 pt-2 border-t border-border/15">
           {w.hits.map((h, j) => (
-            <div key={j} className="text-[10.5px] leading-relaxed font-light">
-              <span className="inline-block min-w-[5.5rem] tabular-nums text-[9px] uppercase tracking-wider text-muted-foreground/60">{fmtDate(h.date)}</span>
-              <span className="text-foreground/85 mr-1">{h.symbol} {h.planet}{h.retrograde ? " ʀ" : ""}</span>
-              <span className={`inline-block text-[9px] uppercase tracking-[0.15em] px-1 py-0.5 rounded border mr-1 ${a.chip}`}>→ {h.pointLabel}</span>
-              <span className="text-muted-foreground/85">{h.reasoning}</span>
+            <div key={j} className="text-[10.5px] leading-relaxed font-light space-y-1">
+              <div>
+                <span className="inline-block min-w-[5.5rem] tabular-nums text-[9px] uppercase tracking-wider text-muted-foreground/60">{fmtDate(h.date)}</span>
+                <span className="text-foreground/85 mr-1">{h.symbol} {h.planet}{h.retrograde ? " ʀ" : ""}</span>
+                <span className={`inline-block text-[9px] uppercase tracking-[0.15em] px-1 py-0.5 rounded border mr-1 ${a.chip}`}>→ {h.pointLabel}</span>
+              </div>
+              <p className="text-foreground/90 pl-[5.5rem]">{h.plain}</p>
+              <p className="text-muted-foreground/55 pl-[5.5rem] text-[10px] italic">Nerd: {h.reasoning}</p>
             </div>
           ))}
         </div>
@@ -683,5 +694,3 @@ function WindowCard({ w, accent }: { w: KarmicWindow; accent: "emerald" | "rose"
     </div>
   );
 }
-
-export default TransitsPanel;
