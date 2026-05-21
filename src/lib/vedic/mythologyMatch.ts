@@ -4,12 +4,11 @@
 
 export type Archetype = {
   name: string;
-  pantheon: "Greek" | "Roman" | "Greek-Monster" | "Roman-Monster" | "Marvel-Hero" | "Marvel-Villain";
+  pantheon: "Greek" | "Roman" | "Greek-Monster" | "Roman-Monster";
   domain: string;
   weights: Record<string, number>; // 0-1
   blurb: string;
 };
-
 
 // Compact, curated set — gods + monsters from both pantheons
 export const MYTHOLOGY: Archetype[] = [
@@ -104,75 +103,7 @@ export const MYTHOLOGY: Archetype[] = [
   { name: "Charybdis", pantheon: "Roman-Monster", domain: "Whirlpool",
     weights: { sea: 1, chaos: 1, wealth: 0.4 },
     blurb: "Pulls everything inward. Resistance is fuel." },
-
-  // ── Marvel Heroes ────────────────────────────────────────────────────────
-  { name: "Sentry", pantheon: "Marvel-Hero", domain: "Million Exploding Suns · Light",
-    weights: { sky: 1, authority: 0.9, war: 0.8, chaos: 0.7, healing: 0.5, focus: 0.6 },
-    blurb: "Holds the light of a million suns — and the Void in the same skull. Stability is the real superpower." },
-  { name: "Thor", pantheon: "Marvel-Hero", domain: "Thunder · Asgardian Royalty",
-    weights: { sky: 1, war: 0.9, authority: 0.8, justice: 0.6 },
-    blurb: "Storm-bringer who actually earns the hammer. Worth is the weapon." },
-  { name: "Iron Man", pantheon: "Marvel-Hero", domain: "Engineer-King · Capital · Armor",
-    weights: { craft: 1, wealth: 1, authority: 0.7, speed: 0.7, persuasion: 0.6 },
-    blurb: "Builds the suit, the company, the future — then steps inside all three." },
-  { name: "Captain America", pantheon: "Marvel-Hero", domain: "Will · Doctrine · Shield",
-    weights: { justice: 1, war: 0.7, authority: 0.7, focus: 0.8, healing: 0.4 },
-    blurb: "Moral spine in a culture without one. The shield holds because he holds." },
-  { name: "Doctor Strange", pantheon: "Marvel-Hero", domain: "Sorcerer Supreme · Time",
-    weights: { wisdom: 1, focus: 0.9, chaos: 0.5, healing: 0.6, justice: 0.5 },
-    blurb: "Runs fourteen million futures, picks the one. Pays the cost in private." },
-  { name: "Black Panther", pantheon: "Marvel-Hero", domain: "King · Vibranium · Lineage",
-    weights: { authority: 1, wealth: 0.9, craft: 0.7, war: 0.6, justice: 0.7, focus: 0.6 },
-    blurb: "Sovereign engineer. Protects a kingdom most of the world can't even see." },
-  { name: "Spider-Man", pantheon: "Marvel-Hero", domain: "Friendly Neighborhood · Burden",
-    weights: { speed: 1, craft: 0.6, focus: 0.7, healing: 0.5, persuasion: 0.5, justice: 0.6 },
-    blurb: "Carries the city on guilt and reflexes. Great power, greater bill." },
-  { name: "Hulk", pantheon: "Marvel-Hero", domain: "Strongest There Is · Anger",
-    weights: { war: 1, chaos: 0.9, focus: 0.4, healing: 0.6 },
-    blurb: "Grief converted into mass. The angrier, the more inevitable." },
-  { name: "Wolverine", pantheon: "Marvel-Hero", domain: "Claws · Healing · Memory",
-    weights: { war: 1, focus: 0.8, healing: 1, chaos: 0.5 },
-    blurb: "The body forgets the wound. The mind never does. Keeps fighting anyway." },
-  { name: "Scarlet Witch", pantheon: "Marvel-Hero", domain: "Chaos Magic · Reality",
-    weights: { chaos: 1, wisdom: 0.7, love: 0.7, beauty: 0.6, healing: 0.4 },
-    blurb: "Rewrites reality the moment grief outweighs restraint. Universe bends." },
-  { name: "Storm", pantheon: "Marvel-Hero", domain: "Weather Goddess · Queen",
-    weights: { sky: 1, sea: 0.7, authority: 0.8, beauty: 0.7, justice: 0.5 },
-    blurb: "Mutant deity. Calms or breaks atmospheres depending on the room." },
-  { name: "Captain Marvel", pantheon: "Marvel-Hero", domain: "Photon Force · Pilot",
-    weights: { sky: 1, war: 0.8, authority: 0.7, focus: 0.7, speed: 0.6 },
-    blurb: "Higher, further, faster — and largely unaccountable to gravity or politics." },
-  { name: "Black Widow", pantheon: "Marvel-Hero", domain: "Spy · Ledger · Discipline",
-    weights: { focus: 1, persuasion: 0.9, speed: 0.7, craft: 0.6, war: 0.7 },
-    blurb: "Edits the room by being in it. Pays the ledger personally." },
-
-  // ── Marvel Villains ──────────────────────────────────────────────────────
-  { name: "Doctor Doom", pantheon: "Marvel-Villain", domain: "Sovereign · Sorcery · Steel",
-    weights: { authority: 1, craft: 1, wisdom: 0.9, war: 0.7, wealth: 0.8, chaos: 0.5 },
-    blurb: "Genius, monarch, mage — and right about most of it. The mask is the mercy." },
-  { name: "Thanos", pantheon: "Marvel-Villain", domain: "Inevitability · Balance",
-    weights: { authority: 1, war: 1, wisdom: 0.6, chaos: 0.7, focus: 0.9 },
-    blurb: "Treats genocide as accounting. Cold conviction, cleaner math." },
-  { name: "Magneto", pantheon: "Marvel-Villain", domain: "Magnetism · Survival",
-    weights: { authority: 0.9, war: 0.8, wisdom: 0.7, justice: 0.7, focus: 0.8 },
-    blurb: "Survivor turned sovereign. Never again — by any field necessary." },
-  { name: "Loki", pantheon: "Marvel-Villain", domain: "Trickster · Throne · Mischief",
-    weights: { persuasion: 1, chaos: 0.9, wisdom: 0.7, speed: 0.7, beauty: 0.6 },
-    blurb: "Lies into truth, then negotiates the difference. Glorious purpose, eventually." },
-  { name: "Kingpin", pantheon: "Marvel-Villain", domain: "Empire of Crime · Capital",
-    weights: { authority: 1, wealth: 1, war: 0.6, persuasion: 0.8, focus: 0.7 },
-    blurb: "Owns the city by owning the men who own it. Suit always pressed." },
-  { name: "Mephisto", pantheon: "Marvel-Villain", domain: "Hell-King · Bargains",
-    weights: { persuasion: 1, chaos: 0.8, authority: 0.8, wealth: 0.7, wisdom: 0.5 },
-    blurb: "Buys souls cheap by selling exactly what you already wanted." },
-  { name: "Galactus", pantheon: "Marvel-Villain", domain: "World-Eater · Cosmic Hunger",
-    weights: { sky: 1, chaos: 0.8, authority: 1, war: 0.7, wealth: 0.5 },
-    blurb: "Hungers on a scale that erases morality. Worlds are calories." },
-  { name: "Norman Osborn (Goblin)", pantheon: "Marvel-Villain", domain: "Tycoon · Madness",
-    weights: { wealth: 1, chaos: 0.9, war: 0.6, persuasion: 0.7, craft: 0.6 },
-    blurb: "Capital with a laugh that doesn't stop. The board signs anyway." },
 ];
-
 
 // Derive crude weights from a birth date (no swiss-eph dependency).
 // Uses: month/sign archetype + weekday planetary lord + day numerology.
