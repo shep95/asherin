@@ -249,6 +249,28 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     () => (ingresses ? detectWindows(ingresses, activeRef.points, "health", { clusterDays: 120, minScore: 4 }) : []),
     [ingresses, activeRef.points],
   );
+  const romanceWindows = useMemo(
+    () => activeRef.kind === "user"
+      ? (ingresses ? detectWindows(ingresses, activeRef.points, "romance", { clusterDays: 90, minScore: 4 }) : [])
+      : [],
+    [ingresses, activeRef.points, activeRef.kind],
+  );
+  const powerWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "power", { clusterDays: 150, minScore: 5 }) : []),
+    [ingresses, activeRef.points],
+  );
+  const influenceWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "influence", { clusterDays: 150, minScore: 5 }) : []),
+    [ingresses, activeRef.points],
+  );
+  const fameWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "fame", { clusterDays: 150, minScore: 5 }) : []),
+    [ingresses, activeRef.points],
+  );
+  const careerWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "career", { clusterDays: 150, minScore: 5 }) : []),
+    [ingresses, activeRef.points],
+  );
 
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
