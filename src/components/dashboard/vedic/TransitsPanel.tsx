@@ -715,130 +715,151 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       )}
 
       {/* LIFE SEQUENCE — Wealth vs Soulmate ordered prediction */}
-      {lifeSequence && (lifeSequence.wealthEvent || lifeSequence.soulmateEvent) && (
-        <div className="rounded-lg border border-amber-300/40 bg-gradient-to-br from-amber-300/[0.08] via-background/40 to-background/30 p-4 space-y-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Trophy className="h-4 w-4 text-amber-300" fill="currentColor" />
-            <h4 className="text-xs font-light tracking-[0.18em] text-amber-200 uppercase">Life Sequence · Wealth vs Soulmate</h4>
-            <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 ml-auto">Dasha lord ∩ Transit firing</span>
-          </div>
+      {lifeSequence && (lifeSequence.wealthEvent || lifeSequence.soulmateEvent) && (() => {
+        const ls = lifeSequence;
+        const wealthFirst = ls.order === "wealth-first";
+        const soulmateFirst = ls.order === "soulmate-first";
+        const simultaneous = ls.order === "simultaneous";
+        const yesNo: "YES" | "NO" | "TIE" | "—" =
+          wealthFirst ? "YES" :
+          soulmateFirst ? "NO" :
+          simultaneous ? "TIE" : "—";
+        const yesNoClass =
+          yesNo === "YES" ? "border-emerald-400/40 bg-emerald-400/[0.08] text-emerald-200" :
+          yesNo === "NO"  ? "border-rose-400/40 bg-rose-400/[0.08] text-rose-200" :
+          yesNo === "TIE" ? "border-border/40 bg-background/40 text-foreground" :
+                            "border-border/30 bg-background/30 text-muted-foreground";
+        const gradePill = (g: string) =>
+          `text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${
+            g === "peak" ? "border-foreground/40 bg-foreground/[0.06] text-foreground"
+            : g === "strong" ? "border-foreground/25 bg-foreground/[0.03] text-foreground/85"
+            : "border-border/40 bg-background/40 text-foreground/70"
+          } ml-auto`;
+        return (
+          <div className="rounded-lg border border-border/40 bg-background/40 p-4 space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Trophy className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-xs font-light tracking-[0.18em] text-foreground/85 uppercase">Life Sequence · Wealth vs Soulmate</h4>
+              <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 ml-auto">Dasha lord ∩ Transit firing</span>
+            </div>
 
-          {/* Q1: Order verdict */}
-          <div className="rounded-md border border-amber-300/30 bg-background/40 p-3 space-y-1">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-amber-300/80">Q1 · Rich before soulmate?</div>
-            <div className="text-[13px] font-light text-foreground leading-snug">{lifeSequence.q1Verdict}</div>
-            {lifeSequence.gapMonths !== null && (
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-amber-200/70">
-                <span>Gap: {Math.abs(lifeSequence.gapMonths)} mo</span>
-                <span className="text-muted-foreground/60">·</span>
-                <span>{lifeSequence.order.replace("-", " ")}</span>
+            {/* Q1: YES / NO */}
+            <div className="rounded-md border border-border/40 bg-background/30 p-3 flex items-center gap-3 flex-wrap">
+              <div className={`min-w-[64px] text-center rounded-md border px-3 py-2 ${yesNoClass}`}>
+                <div className="text-[8.5px] uppercase tracking-[0.22em] opacity-70">Q1</div>
+                <div className="text-lg font-light tracking-wider">{yesNo}</div>
               </div>
+              <div className="flex-1 min-w-[180px]">
+                <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80">Rich before soulmate?</div>
+                <div className="text-[12.5px] font-light text-foreground/90 leading-snug">{ls.q1Verdict}</div>
+                {ls.gapMonths !== null && (
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 pt-0.5">
+                    Gap: {Math.abs(ls.gapMonths)} mo · {ls.order.replace("-", " ")}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {/* Soulmate card */}
+              <div className={`rounded-md border p-3 space-y-1.5 ${ls.soulmateEvent ? "border-rose-400/40 bg-rose-400/[0.05]" : "border-border/25 bg-background/30"}`}>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Heart className={`h-3.5 w-3.5 ${ls.soulmateEvent ? "text-rose-300" : "text-muted-foreground/60"}`} fill={ls.soulmateEvent ? "currentColor" : "none"} />
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-rose-200/90">When you meet your soulmate</span>
+                  {ls.soulmateEvent && <span className={gradePill(ls.soulmateEvent.grade)}>{ls.soulmateEvent.grade.toUpperCase()}</span>}
+                </div>
+                {ls.soulmateEvent ? (
+                  <>
+                    <div className="text-[12px] font-light text-foreground">
+                      {fmtDate(ls.soulmateEvent.start)} → {fmtDate(ls.soulmateEvent.end)}
+                    </div>
+                    <div className="text-[10.5px] font-light text-muted-foreground/85 leading-relaxed">{ls.soulmateEvent.window.headline}</div>
+                    <div className="text-[9.5px] uppercase tracking-[0.16em] text-rose-200/70 pt-1 border-t border-border/15">
+                      Dasha: {ls.soulmateEvent.dasha?.mahaLord} MD / {ls.soulmateEvent.dasha?.antarLord} AD
+                    </div>
+                    {ls.soulmateEvent.convergingLords.length > 0 && (
+                      <div className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground/80">
+                        Converging lords: {ls.soulmateEvent.convergingLords.join(" + ")}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-[11px] text-muted-foreground/70 italic">No dasha-backed soulmate window inside scan horizon. Soulmate lords: {ls.soulmateLords.join(", ")}.</div>
+                )}
+              </div>
+
+              {/* Wealth card */}
+              <div className={`rounded-md border p-3 space-y-1.5 ${ls.wealthEvent ? "border-emerald-400/35 bg-emerald-400/[0.05]" : "border-border/25 bg-background/30"}`}>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Gem className={`h-3.5 w-3.5 ${ls.wealthEvent ? "text-emerald-300" : "text-muted-foreground/60"}`} />
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-200/90">
+                    {soulmateFirst ? "If your chart supports richness — when you become rich" : "When you become rich"}
+                  </span>
+                  {ls.wealthEvent && <span className={gradePill(ls.wealthEvent.grade)}>{ls.wealthEvent.grade.toUpperCase()}</span>}
+                </div>
+                {ls.wealthEvent ? (
+                  <>
+                    <div className="text-[12px] font-light text-foreground">
+                      {fmtDate(ls.wealthEvent.start)} → {fmtDate(ls.wealthEvent.end)}
+                    </div>
+                    <div className="text-[10.5px] font-light text-muted-foreground/85 leading-relaxed">{ls.wealthEvent.window.headline}</div>
+                    <div className="text-[9.5px] uppercase tracking-[0.16em] text-emerald-200/70 pt-1 border-t border-border/15">
+                      Dasha: {ls.wealthEvent.dasha?.mahaLord} MD / {ls.wealthEvent.dasha?.antarLord} AD
+                    </div>
+                    {ls.wealthEvent.convergingLords.length > 0 && (
+                      <div className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground/80">
+                        Converging lords: {ls.wealthEvent.convergingLords.join(" + ")}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-[11px] text-muted-foreground/70 italic">
+                    {soulmateFirst
+                      ? "Chart shows soulmate first; no dasha-backed wealth window inside scan horizon — richness not confirmed in this range."
+                      : "No dasha-backed wealth window inside scan horizon."} Wealth lords: {ls.wealthLords.join(", ")}.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Additional candidates */}
+            {(ls.wealthCandidates.length > 1 || ls.soulmateCandidates.length > 1) && (
+              <details className="group">
+                <summary className="flex items-center gap-2 cursor-pointer list-none select-none text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80 hover:text-foreground">
+                  <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
+                  All dasha-backed candidates ({ls.wealthCandidates.length} wealth · {ls.soulmateCandidates.length} soulmate)
+                </summary>
+                <div className="pt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <div className="text-[9px] uppercase tracking-[0.2em] text-emerald-300/80">Wealth windows</div>
+                    {ls.wealthCandidates.slice(0, 6).map((e, i) => (
+                      <div key={`w-${i}`} className="text-[10.5px] text-foreground/80 border border-border/20 rounded px-2 py-1 flex justify-between gap-2">
+                        <span>{fmtDate(e.start)}</span>
+                        <span className="text-muted-foreground/70">{e.dasha?.mahaLord}/{e.dasha?.antarLord}</span>
+                        <span className="text-emerald-200/70">{e.grade}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[9px] uppercase tracking-[0.2em] text-rose-300/80">Soulmate windows</div>
+                    {ls.soulmateCandidates.slice(0, 6).map((e, i) => (
+                      <div key={`s-${i}`} className="text-[10.5px] text-foreground/80 border border-border/20 rounded px-2 py-1 flex justify-between gap-2">
+                        <span>{fmtDate(e.start)}</span>
+                        <span className="text-muted-foreground/70">{e.dasha?.mahaLord}/{e.dasha?.antarLord}</span>
+                        <span className="text-rose-200/70">{e.grade}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </details>
             )}
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {/* Q2: Soulmate */}
-            <div className={`rounded-md border p-3 space-y-1.5 ${lifeSequence.soulmateEvent ? "border-rose-400/40 bg-rose-400/[0.05]" : "border-border/25 bg-background/30"}`}>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <Heart className={`h-3.5 w-3.5 ${lifeSequence.soulmateEvent ? "text-rose-300" : "text-muted-foreground/60"}`} fill={lifeSequence.soulmateEvent ? "currentColor" : "none"} />
-                <span className="text-[10px] uppercase tracking-[0.2em] text-rose-200/90">Q2 · When meet soulmate</span>
-                {lifeSequence.soulmateEvent && (
-                  <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${lifeSequence.soulmateEvent.grade === "peak" ? "border-amber-300/60 bg-amber-300/[0.12] text-amber-200" : lifeSequence.soulmateEvent.grade === "strong" ? "border-amber-300/35 bg-amber-300/[0.06] text-amber-200/85" : "border-border/40 bg-background/40 text-foreground/70"} ml-auto`}>{lifeSequence.soulmateEvent.grade.toUpperCase()}</span>
-                )}
-              </div>
-              {lifeSequence.soulmateEvent ? (
-                <>
-                  <div className="text-[12px] font-light text-foreground">
-                    {fmtDate(lifeSequence.soulmateEvent.start)} → {fmtDate(lifeSequence.soulmateEvent.end)}
-                  </div>
-                  <div className="text-[10.5px] font-light text-muted-foreground/85 leading-relaxed">{lifeSequence.soulmateEvent.window.headline}</div>
-                  <div className="text-[9.5px] uppercase tracking-[0.16em] text-rose-200/70 pt-1 border-t border-border/15">
-                    Dasha: {lifeSequence.soulmateEvent.dasha?.mahaLord} MD / {lifeSequence.soulmateEvent.dasha?.antarLord} AD
-                  </div>
-                  {lifeSequence.soulmateEvent.convergingLords.length > 0 && (
-                    <div className="text-[9.5px] uppercase tracking-[0.16em] text-amber-200/80">
-                      Converging lords: {lifeSequence.soulmateEvent.convergingLords.join(" + ")}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-[11px] text-muted-foreground/70 italic">No dasha-backed soulmate window inside scan horizon. Soulmate lords: {lifeSequence.soulmateLords.join(", ")}.</div>
-              )}
-            </div>
-
-            {/* Q3: Wealth */}
-            <div className={`relative rounded-md border p-3 space-y-1.5 ${lifeSequence.wealthEvent ? "border-amber-400/50 bg-amber-400/[0.06]" : "border-border/25 bg-background/30"}`}>
-              {lifeSequence.wealthEvent && lifeSequence.wealthEvent.window.score >= 14 && (
-                <div className="absolute -top-2.5 -right-2.5 flex items-center gap-1 rounded-full border border-amber-300/60 bg-background/90 px-2 py-0.5 backdrop-blur">
-                  <Crown className="h-3 w-3 text-amber-300" fill="currentColor" />
-                  <span className="text-[8.5px] font-light uppercase tracking-[0.18em] text-amber-200/90">Millionaire</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <Gem className={`h-3.5 w-3.5 ${lifeSequence.wealthEvent ? "text-amber-300" : "text-muted-foreground/60"}`} />
-                <span className="text-[10px] uppercase tracking-[0.2em] text-amber-200/90">Q3 · When become rich</span>
-                {lifeSequence.wealthEvent && (
-                  <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${lifeSequence.wealthEvent.grade === "peak" ? "border-amber-300/60 bg-amber-300/[0.12] text-amber-200" : lifeSequence.wealthEvent.grade === "strong" ? "border-amber-300/35 bg-amber-300/[0.06] text-amber-200/85" : "border-border/40 bg-background/40 text-foreground/70"} ml-auto`}>{lifeSequence.wealthEvent.grade.toUpperCase()}</span>
-                )}
-              </div>
-              {lifeSequence.wealthEvent ? (
-                <>
-                  <div className="text-[12px] font-light text-foreground">
-                    {fmtDate(lifeSequence.wealthEvent.start)} → {fmtDate(lifeSequence.wealthEvent.end)}
-                  </div>
-                  <div className="text-[10.5px] font-light text-muted-foreground/85 leading-relaxed">{lifeSequence.wealthEvent.window.headline}</div>
-                  <div className="text-[9.5px] uppercase tracking-[0.16em] text-amber-200/70 pt-1 border-t border-border/15">
-                    Dasha: {lifeSequence.wealthEvent.dasha?.mahaLord} MD / {lifeSequence.wealthEvent.dasha?.antarLord} AD
-                  </div>
-                  {lifeSequence.wealthEvent.convergingLords.length > 0 && (
-                    <div className="text-[9.5px] uppercase tracking-[0.16em] text-amber-200/80">
-                      Converging lords: {lifeSequence.wealthEvent.convergingLords.join(" + ")}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-[11px] text-muted-foreground/70 italic">No dasha-backed wealth window inside scan horizon. Wealth lords: {lifeSequence.wealthLords.join(", ")}.</div>
-              )}
+            <div className="text-[10px] text-muted-foreground/60 italic leading-relaxed">
+              Method: scans your Vimshottari Mahadasha + Antardasha for periods where your natal wealth-lords (L2/L5/L9/L11/AK + Jupiter/Venus) or soulmate-lords (L7/UL/DK/Moon + Venus/Jupiter) are active, then cross-checks against transit windows firing the same planets. Earliest convergence = the prediction.
             </div>
           </div>
-
-          {/* Additional candidates */}
-          {(lifeSequence.wealthCandidates.length > 1 || lifeSequence.soulmateCandidates.length > 1) && (
-            <details className="group">
-              <summary className="flex items-center gap-2 cursor-pointer list-none select-none text-[10px] uppercase tracking-[0.18em] text-amber-300/70 hover:text-amber-200">
-                <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
-                All dasha-backed candidates ({lifeSequence.wealthCandidates.length} wealth · {lifeSequence.soulmateCandidates.length} soulmate)
-              </summary>
-              <div className="pt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <div className="text-[9px] uppercase tracking-[0.2em] text-amber-300/80">Wealth windows</div>
-                  {lifeSequence.wealthCandidates.slice(0, 6).map((e, i) => (
-                    <div key={`w-${i}`} className="text-[10.5px] text-foreground/80 border border-border/20 rounded px-2 py-1 flex justify-between gap-2">
-                      <span>{fmtDate(e.start)}</span>
-                      <span className="text-muted-foreground/70">{e.dasha?.mahaLord}/{e.dasha?.antarLord}</span>
-                      <span className="text-amber-200/70">{e.grade}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="space-y-1">
-                  <div className="text-[9px] uppercase tracking-[0.2em] text-rose-300/80">Soulmate windows</div>
-                  {lifeSequence.soulmateCandidates.slice(0, 6).map((e, i) => (
-                    <div key={`s-${i}`} className="text-[10.5px] text-foreground/80 border border-border/20 rounded px-2 py-1 flex justify-between gap-2">
-                      <span>{fmtDate(e.start)}</span>
-                      <span className="text-muted-foreground/70">{e.dasha?.mahaLord}/{e.dasha?.antarLord}</span>
-                      <span className="text-rose-200/70">{e.grade}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </details>
-          )}
-
-          <div className="text-[10px] text-muted-foreground/60 italic leading-relaxed">
-            Method: scans your Vimshottari Mahadasha + Antardasha for periods where your natal wealth-lords (L2/L5/L9/L11/AK + Jupiter/Venus) or soulmate-lords (L7/UL/DK/Moon + Venus/Jupiter) are active, then cross-checks against transit windows firing the same planets. Earliest convergence = the prediction.
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* STRONGEST PREDICTIONS — Dasha + Transit convergence */}
       {!loadingNow && !loadingFuture && activeDashaSummary && monthlyBrief.strongest.length > 0 && (
