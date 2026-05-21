@@ -4,11 +4,12 @@
 
 export type Archetype = {
   name: string;
-  pantheon: "Greek" | "Roman" | "Greek-Monster" | "Roman-Monster";
+  pantheon: "Greek" | "Roman" | "Greek-Monster" | "Roman-Monster" | "Marvel-Hero" | "Marvel-Villain";
   domain: string;
   weights: Record<string, number>; // 0-1
   blurb: string;
 };
+
 
 // Compact, curated set — gods + monsters from both pantheons
 export const MYTHOLOGY: Archetype[] = [
