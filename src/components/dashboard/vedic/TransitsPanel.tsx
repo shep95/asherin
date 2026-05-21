@@ -236,41 +236,42 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
 
   // ── WEALTH + SOULMATE WINDOWS — scan all upcoming ingresses ──
   const wealthWindows = useMemo(
-    () => (ingresses ? detectWindows(ingresses, activeRef.points, "wealth", { clusterDays: 180, minScore: 4 }) : []),
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "wealth", { clusterDays: 14, minScore: 4 }) : []),
     [ingresses, activeRef.points],
   );
   const soulmateWindows = useMemo(
     () => activeRef.kind === "user"
-      ? (ingresses ? detectWindows(ingresses, activeRef.points, "soulmate", { clusterDays: 180, minScore: 3 }) : [])
+      ? (ingresses ? detectWindows(ingresses, activeRef.points, "soulmate", { clusterDays: 14, minScore: 3 }) : [])
       : [],
     [ingresses, activeRef.points, activeRef.kind],
   );
   const healthWindows = useMemo(
-    () => (ingresses ? detectWindows(ingresses, activeRef.points, "health", { clusterDays: 120, minScore: 4 }) : []),
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "health", { clusterDays: 10, minScore: 4 }) : []),
     [ingresses, activeRef.points],
   );
   const romanceWindows = useMemo(
     () => activeRef.kind === "user"
-      ? (ingresses ? detectWindows(ingresses, activeRef.points, "romance", { clusterDays: 90, minScore: 4 }) : [])
+      ? (ingresses ? detectWindows(ingresses, activeRef.points, "romance", { clusterDays: 10, minScore: 4 }) : [])
       : [],
     [ingresses, activeRef.points, activeRef.kind],
   );
   const powerWindows = useMemo(
-    () => (ingresses ? detectWindows(ingresses, activeRef.points, "power", { clusterDays: 150, minScore: 5 }) : []),
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "power", { clusterDays: 14, minScore: 5 }) : []),
     [ingresses, activeRef.points],
   );
   const influenceWindows = useMemo(
-    () => (ingresses ? detectWindows(ingresses, activeRef.points, "influence", { clusterDays: 150, minScore: 5 }) : []),
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "influence", { clusterDays: 14, minScore: 5 }) : []),
     [ingresses, activeRef.points],
   );
   const fameWindows = useMemo(
-    () => (ingresses ? detectWindows(ingresses, activeRef.points, "fame", { clusterDays: 150, minScore: 5 }) : []),
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "fame", { clusterDays: 14, minScore: 5 }) : []),
     [ingresses, activeRef.points],
   );
   const careerWindows = useMemo(
-    () => (ingresses ? detectWindows(ingresses, activeRef.points, "career", { clusterDays: 150, minScore: 5 }) : []),
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "career", { clusterDays: 14, minScore: 5 }) : []),
     [ingresses, activeRef.points],
   );
+
 
   // ── Filter every window list to ONLY those overlapping the selected period ──
   // The user explicitly asked: month view = only that month's transit-relevant data.
@@ -332,11 +333,9 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     };
     const periodWord = granularity === "week" ? "week" : "month";
     const fmtWhen = (start: Date, end: Date) => {
-      const s = start.getTime() < periodStart.getTime() ? periodStart : start;
-      const e = end.getTime() > periodEnd.getTime() ? periodEnd : end;
-      const sameDay = s.toDateString() === e.toDateString();
+      const sameDay = start.toDateString() === end.toDateString();
       const f = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      return sameDay ? f(s) : `${f(s)} → ${f(e)}`;
+      return sameDay ? f(start) : `${f(start)} → ${f(end)}`;
     };
     const pickStrongest = (list: KarmicWindow[]) => {
       if (!list.length) return null;
