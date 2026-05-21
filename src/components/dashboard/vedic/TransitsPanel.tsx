@@ -298,20 +298,6 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
-      {/* Month forecast */}
-      <div className="rounded-lg border border-border/25 bg-gradient-to-b from-foreground/[0.04] to-transparent p-3 space-y-2">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-foreground/70" />
-          <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">
-            Forecast for {monthLabel(cursor)} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
-          </h4>
-        </div>
-        {loadingNow && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading the sky…</div>
-        )}
-        {!loadingNow && monthForecast.length === 0 && (
-          <div className="text-[11px] text-muted-foreground/60 italic">No major life-area activations this month. Background period — steady, integrative.</div>
-        )}
       {/* WHY THIS MATTERS TO YOUR CHART — reasoning before data */}
       {!loadingNow && topWhys.length > 0 && (
         <div className="rounded-lg border border-amber-400/30 bg-amber-400/[0.04] p-3 space-y-2">
