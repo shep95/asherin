@@ -1202,6 +1202,8 @@ const VedicAstrologyView = () => {
             lat={parseFloat(lat) || 0}
             lon={parseFloat(lon) || 0}
             chartKey={chartKey}
+            userChartName={activeName || "Your Chart"}
+            companyCharts={COMPANY_CHARTS}
           />
         )}
 

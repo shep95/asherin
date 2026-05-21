@@ -1,13 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2 } from "lucide-react";
 import { computeTransitChart, computeFutureIngresses, type TransitChart, type SignIngress } from "@/lib/vedic/transits";
 import { readTransit, type LifePrediction, type Verdict } from "@/lib/vedic/transitMeanings";
+import { calculateSweVedicChart } from "@/lib/vedic/sweChart";
+import type { CompanyFoundation } from "@/data/vedic/companyCharts";
 
 interface Props {
   natalAscendant: number;
   lat: number;
   lon: number;
   chartKey: string | null;
+  userChartName?: string;
+  companyCharts?: CompanyFoundation[];
 }
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -20,14 +24,13 @@ function fmtDeg(deg: number) {
   const m = Math.floor((deg - dInt) * 60);
   return `${dInt}°${m.toString().padStart(2, "0")}'`;
 }
-function monthLabel(d: Date) {
-  return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-}
-function midOfMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 15, 12, 0);
-}
+function monthLabel(d: Date) { return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`; }
+function midOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 15, 12, 0); }
 function monthStart(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0); }
 function monthEnd(d: Date)   { return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59); }
+function monthsBetween(a: Date, b: Date) {
+  return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+}
 
 const WEIGHT_RING: Record<"high" | "medium" | "low", string> = {
   high: "border-amber-400/50 bg-amber-400/[0.04]",
@@ -44,59 +47,135 @@ const VERDICT_STYLE: Record<Verdict, string> = {
 };
 const VERDICT_RANK: Record<Verdict, number> = { "yes-strong": 5, "yes": 4, "possible": 3, "delayed": 2, "unlikely": 1 };
 
-const TransitsPanel = ({ natalAscendant, lat, lon, chartKey }: Props) => {
+interface NatalRef {
+  ascendant: number;
+  lat: number;
+  lon: number;
+  label: string;
+  kind: "user" | "company";
+  key: string;
+}
+
+const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, companyCharts }: Props) => {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState<Date>(() => midOfMonth(new Date()));
+  const [mode, setMode] = useState<"user" | string>("user"); // "user" or company symbol
+  const [companyRef, setCompanyRef] = useState<NatalRef | null>(null);
+  const [resolvingCompany, setResolvingCompany] = useState(false);
+
+  const userRef: NatalRef = useMemo(() => ({
+    ascendant: natalAscendant, lat, lon,
+    label: userChartName || "Your Chart", kind: "user",
+    key: `user:${chartKey ?? `${natalAscendant.toFixed(3)}:${lat}:${lon}`}`,
+  }), [natalAscendant, lat, lon, chartKey, userChartName]);
+
+  // Resolve company natal chart whenever mode changes to a company symbol
+  useEffect(() => {
+    if (mode === "user") { setCompanyRef(null); return; }
+    const co = companyCharts?.find((c) => c.symbol === mode);
+    if (!co) return;
+    let cancelled = false;
+    setResolvingCompany(true);
+    (async () => {
+      try {
+        const c = await calculateSweVedicChart({
+          birthDate: co.birthDate, birthTime: co.birthTime,
+          tzOffset: co.tzOffset, lat: co.lat, lon: co.lon,
+        });
+        if (cancelled) return;
+        setCompanyRef({
+          ascendant: c.ascendant, lat: co.lat, lon: co.lon,
+          label: `${co.name} (${co.symbol})`, kind: "company",
+          key: `co:${co.symbol}`,
+        });
+      } finally {
+        if (!cancelled) setResolvingCompany(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [mode, companyCharts]);
+
+  const activeRef: NatalRef = mode === "user" ? userRef : (companyRef ?? userRef);
+
   const [transit, setTransit] = useState<TransitChart | null>(null);
   const [loadingNow, setLoadingNow] = useState(false);
-  const [ingresses, setIngresses] = useState<SignIngress[] | null>(null);
-  const [loadingFuture, setLoadingFuture] = useState(false);
   const [horizonMonths, setHorizonMonths] = useState<3 | 12 | 24>(12);
 
   const chosen = useMemo(() => midOfMonth(cursor), [cursor]);
   const isCurrentMonth = chosen.getFullYear() === today.getFullYear() && chosen.getMonth() === today.getMonth();
 
-  // Transit chart for the chosen month
+  // ── Transit chart for chosen month — cache per (refKey, year-month) ──
+  const transitCacheRef = useRef<Map<string, TransitChart>>(new Map());
+  // Invalidate transit cache when active natal ref changes
+  useEffect(() => { transitCacheRef.current.clear(); }, [activeRef.key]);
+
   useEffect(() => {
+    if (mode !== "user" && !companyRef) return; // wait for company resolution
+    const cacheKey = `${activeRef.key}:${chosen.getFullYear()}-${chosen.getMonth()}`;
+    const cached = transitCacheRef.current.get(cacheKey);
+    if (cached) { setTransit(cached); return; }
     let cancelled = false;
+    setLoadingNow(true);
     (async () => {
-      setLoadingNow(true);
       try {
-        const t = await computeTransitChart(chosen, natalAscendant, lat, lon);
-        if (!cancelled) setTransit(t);
+        const t = await computeTransitChart(chosen, activeRef.ascendant, activeRef.lat, activeRef.lon);
+        if (cancelled) return;
+        transitCacheRef.current.set(cacheKey, t);
+        setTransit(t);
       } finally {
         if (!cancelled) setLoadingNow(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [chosen, natalAscendant, lat, lon, chartKey]);
+  }, [chosen, activeRef.key, activeRef.ascendant, activeRef.lat, activeRef.lon, mode, companyRef]);
 
-  // Future ingresses anchored at the chosen month start
+  // ── Ingresses — anchored at today, horizon auto-extended for chosen month ──
+  // Cache key is independent of `chosen` so flipping months stays instant.
+  const [ingresses, setIngresses] = useState<SignIngress[] | null>(null);
+  const [loadingFuture, setLoadingFuture] = useState(false);
+  const ingressCacheRef = useRef<Map<string, SignIngress[]>>(new Map());
+
+  // Horizon in days: cover horizonMonths AND enough to reach the chosen month
+  const scanHorizonDays = useMemo(() => {
+    const baseFromHorizon = horizonMonths * 31;
+    const monthsToChosen = Math.max(0, monthsBetween(today, chosen));
+    const needed = (monthsToChosen + 2) * 31; // +2 month buffer
+    const raw = Math.max(baseFromHorizon, needed);
+    // round up to nearest 90 days to avoid frequent refetches when scrolling
+    return Math.ceil(raw / 90) * 90;
+  }, [horizonMonths, today, chosen]);
+
   useEffect(() => {
+    if (mode !== "user" && !companyRef) return;
+    const key = `${activeRef.key}:${scanHorizonDays}`;
+    const cached = ingressCacheRef.current.get(key);
+    if (cached) { setIngresses(cached); return; }
     let cancelled = false;
-    setIngresses(null);
+    setLoadingFuture(true);
     (async () => {
-      setLoadingFuture(true);
       try {
-        const list = await computeFutureIngresses(natalAscendant, lat, lon, {
-          from: monthStart(chosen),
-          horizonDays: horizonMonths * 31,
-          perPlanetLimit: horizonMonths >= 12 ? 6 : 3,
+        const list = await computeFutureIngresses(activeRef.ascendant, activeRef.lat, activeRef.lon, {
+          from: monthStart(today),
+          horizonDays: scanHorizonDays,
+          perPlanetLimit: scanHorizonDays >= 365 ? 8 : 4,
         });
-        if (!cancelled) setIngresses(list);
+        if (cancelled) return;
+        ingressCacheRef.current.set(key, list);
+        setIngresses(list);
       } finally {
         if (!cancelled) setLoadingFuture(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [natalAscendant, lat, lon, chartKey, horizonMonths, chosen]);
+  }, [activeRef.key, activeRef.ascendant, activeRef.lat, activeRef.lon, scanHorizonDays, today, mode, companyRef]);
+  // Clear ingress cache when natal ref changes
+  useEffect(() => { ingressCacheRef.current.clear(); setIngresses(null); }, [activeRef.key]);
 
   const readings = useMemo(() => {
     if (!transit) return [];
     return transit.planets.map((p) => ({ planet: p, reading: readTransit(p.name, p.natalHouse, p.retrograde) }));
   }, [transit]);
 
-  // Aggregate: best verdict per life-question across all transits this month
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
     for (const r of readings) {
@@ -119,19 +198,29 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey }: Props) => {
   const ingressesLater = useMemo(() => {
     if (!ingresses) return [];
     const e = monthEnd(chosen).getTime();
-    return ingresses.filter((i) => i.date.getTime() > e);
-  }, [ingresses, chosen]);
+    const horizonEndMs = today.getTime() + horizonMonths * 31 * 86400_000;
+    return ingresses.filter((i) => {
+      const t = i.date.getTime();
+      return t > e && t <= horizonEndMs;
+    });
+  }, [ingresses, chosen, today, horizonMonths]);
 
   const shiftMonth = (delta: number) => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + delta, 15));
   const shiftYear  = (delta: number) => setCursor(new Date(cursor.getFullYear() + delta, cursor.getMonth(), 15));
 
+  const subjectLabel = activeRef.label;
+
   return (
     <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
-      {/* Header + Month navigation */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-3 border-b border-border/15 pb-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Orbit className="h-4 w-4 text-foreground/70" />
           <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Monthly Transit Forecast</h3>
+          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 ml-2 inline-flex items-center gap-1">
+            {activeRef.kind === "user" ? <User2 className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
+            {subjectLabel}
+          </span>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={() => shiftYear(-1)} title="Previous year" className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
@@ -159,11 +248,40 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey }: Props) => {
         </div>
       </div>
 
-      {/* Month forecast — specific life questions */}
+      {/* Chart-source switcher */}
+      {companyCharts && companyCharts.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">Chart Subject</span>
+          <button
+            onClick={() => setMode("user")}
+            className={`text-[10px] uppercase tracking-[0.15em] px-2.5 py-1 rounded border transition inline-flex items-center gap-1.5 ${mode === "user" ? "border-foreground/40 bg-foreground/[0.08] text-foreground" : "border-border/25 text-muted-foreground hover:text-foreground"}`}
+          >
+            <User2 className="h-3 w-3" /> {userChartName || "Your Chart"}
+          </button>
+          <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-border/25">
+            <Building2 className="h-3 w-3 text-muted-foreground/80" />
+            <select
+              value={mode === "user" ? "" : mode}
+              onChange={(e) => setMode(e.target.value || "user")}
+              className="bg-transparent text-[11px] font-light text-foreground outline-none cursor-pointer max-w-[14rem]"
+            >
+              <option value="" className="bg-background">— Company chart —</option>
+              {companyCharts.map((c) => (
+                <option key={c.symbol} value={c.symbol} className="bg-background">{c.symbol} · {c.name}</option>
+              ))}
+            </select>
+          </div>
+          {resolvingCompany && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+        </div>
+      )}
+
+      {/* Month forecast */}
       <div className="rounded-lg border border-border/25 bg-gradient-to-b from-foreground/[0.04] to-transparent p-3 space-y-2">
         <div className="flex items-center gap-2">
           <Sparkles className="h-3.5 w-3.5 text-foreground/70" />
-          <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">Forecast for {monthLabel(cursor)}</h4>
+          <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">
+            Forecast for {monthLabel(cursor)} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
+          </h4>
         </div>
         {loadingNow && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading the sky…</div>
@@ -176,7 +294,13 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey }: Props) => {
             {monthForecast.map((pred, i) => (
               <div key={i} className={`rounded-md border ${VERDICT_STYLE[pred.verdict]} p-2.5 space-y-1`}>
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <div className="text-[12px] font-light text-foreground">{pred.question}</div>
+                  <div className="text-[12px] font-light text-foreground">
+                    {activeRef.kind === "company"
+                      ? pred.question
+                          .replace(/^Will you /, `Will ${subjectLabel} `)
+                          .replace(/your /gi, "its ")
+                      : pred.question}
+                  </div>
                   <div className="text-[10px] uppercase tracking-[0.15em] font-medium">{pred.answer}</div>
                 </div>
                 <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/90">{pred.detail}</p>
@@ -190,7 +314,7 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey }: Props) => {
       {transit && (
         <div className="space-y-2">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 pt-1">
-            Planet-by-planet · positions at {fmtDate(chosen)} (mid-month sample)
+            Planet-by-planet · positions at {fmtDate(chosen)} (mid-month sample) · houses relative to {subjectLabel}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {readings.map(({ planet, reading }) => (
@@ -225,7 +349,7 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey }: Props) => {
       <div className="flex items-center justify-between gap-3 border-t border-border/15 pt-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-foreground/70" />
-          <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">Sign Ingresses from {monthLabel(cursor)}</h4>
+          <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">Sign Ingresses · {subjectLabel}</h4>
         </div>
         <div className="flex items-center gap-1">
           {([3, 12, 24] as const).map((m) => (
@@ -240,25 +364,25 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey }: Props) => {
         </div>
       </div>
 
-      {loadingFuture && (
+      {loadingFuture && !ingresses && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Scanning the sky…</div>
       )}
 
-      {!loadingFuture && ingressesThisMonth.length > 0 && (
+      {ingressesThisMonth.length > 0 && (
         <div className="space-y-1.5">
           <div className="text-[10px] uppercase tracking-[0.2em] text-foreground/70">Ingresses in {monthLabel(cursor)}</div>
           {ingressesThisMonth.map((ing, i) => <IngressRow key={`m-${i}`} ing={ing} />)}
         </div>
       )}
 
-      {!loadingFuture && ingressesLater.length > 0 && (
+      {ingressesLater.length > 0 && (
         <div className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 pt-1">Beyond — next {horizonMonths === 3 ? "3 months" : horizonMonths === 12 ? "year" : "2 years"}</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 pt-1">Beyond — through next {horizonMonths === 3 ? "3 months" : horizonMonths === 12 ? "year" : "2 years"}</div>
           {ingressesLater.map((ing, i) => <IngressRow key={`l-${i}`} ing={ing} />)}
         </div>
       )}
 
-      {!loadingFuture && ingresses && ingresses.length === 0 && (
+      {!loadingFuture && ingresses && ingressesThisMonth.length === 0 && ingressesLater.length === 0 && (
         <div className="text-[11px] text-muted-foreground/60 italic">No sign ingresses found in this window.</div>
       )}
     </div>
@@ -278,7 +402,7 @@ function IngressRow({ ing }: { ing: SignIngress }) {
           </span>
         </div>
         <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70">
-          enters your House {ing.natalHouse} · {r.headline.split("—")[1]?.trim() ?? ""}
+          enters House {ing.natalHouse} · {r.headline.split("—")[1]?.trim() ?? ""}
         </span>
       </div>
       <p className="text-[10.5px] text-muted-foreground/80 font-light leading-relaxed mt-1">{r.meaning}</p>
