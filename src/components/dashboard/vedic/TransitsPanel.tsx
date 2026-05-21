@@ -604,26 +604,19 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {monthlyBrief.briefs.map((b) => {
                 const Icon = b.icon;
-                const tone =
-                  b.tone === "good"
-                    ? "border-emerald-400/35 bg-emerald-400/[0.05]"
-                    : b.tone === "bad"
-                    ? "border-red-400/35 bg-red-400/[0.05]"
-                    : "border-amber-400/35 bg-amber-400/[0.05]";
-                const iconTone =
-                  b.tone === "good" ? "text-emerald-300/90" : b.tone === "bad" ? "text-red-300/90" : "text-amber-300/90";
                 return (
-                  <div key={b.key} className={`relative rounded-md border ${b.millionaire ? "border-amber-300/60 bg-amber-300/[0.07] shadow-[0_0_24px_-6px_rgba(251,191,36,0.45)]" : tone} p-3 space-y-1.5`}>
+                  <div key={b.key} className={`relative rounded-md border border-border/25 bg-background/30 p-3 space-y-1.5 ${b.millionaire ? "ring-1 ring-amber-300/40" : ""}`}>
                     {b.millionaire && (
-                      <div className="absolute -top-2.5 -right-2.5 flex items-center gap-1 rounded-full border border-amber-300/70 bg-gradient-to-br from-amber-300 to-amber-500 px-2 py-0.5 shadow-[0_0_12px_rgba(251,191,36,0.6)]">
-                        <Crown className="h-3 w-3 text-amber-950" fill="currentColor" />
-                        <span className="text-[8.5px] font-semibold uppercase tracking-[0.18em] text-amber-950">Millionaire</span>
+                      <div className="absolute -top-2.5 -right-2.5 flex items-center gap-1 rounded-full border border-amber-300/60 bg-background/90 px-2 py-0.5 backdrop-blur">
+                        <Crown className="h-3 w-3 text-amber-300" fill="currentColor" />
+                        <span className="text-[8.5px] font-light uppercase tracking-[0.18em] text-amber-200/90">Millionaire</span>
                       </div>
                     )}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5">
-                        <Icon className={`h-3.5 w-3.5 ${b.millionaire ? "text-amber-300" : iconTone}`} />
+                        <Icon className="h-3.5 w-3.5 text-foreground/70" />
                         <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/85">{b.label}</span>
+                        <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/60">· {b.tone === "good" ? "favorable" : b.tone === "bad" ? "adverse" : "mixed"}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[9.5px] uppercase tracking-[0.18em] text-foreground/75">{b.duration}</span>
