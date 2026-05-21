@@ -18,7 +18,7 @@ import type { SignIngress } from "./transits";
 import type { SensitivePoints, PointCode } from "./sensitivePoints";
 import { whyTransitMatters } from "./sensitivePoints";
 
-export type WindowKind = "wealth" | "soulmate";
+export type WindowKind = "wealth" | "soulmate" | "health";
 
 export interface ActivationHit {
   date: Date;
