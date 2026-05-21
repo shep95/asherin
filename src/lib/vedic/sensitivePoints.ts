@@ -212,8 +212,6 @@ const COMBO_REASON: Record<string, string> = {
   "Saturn|L6":  "Saturn is in the sign of your 6th-lord (Roga — disease). Saturn slows the disease-house engine: chronic, dragging illnesses (joints, bones, digestion). Recovery is slow.",
   "Saturn|L8":  "Saturn on your 8th-lord (Ayur — chronic illness, surgery). Long-running issue surfaces or worsens. Test, treat, don't ignore.",
   "Saturn|L12": "Saturn on your 12th-lord (Vyaya — hospitalization, bed-rest). Risk of hospital stays, isolation, surgeries needing recovery time.",
-  "Saturn|Lagna":"Saturn on your Ascendant — body itself is under structural stress. Bones, joints, teeth, energy drop.",
-  "Saturn|Chandra":"Saturn on your Moon sign (Sade Sati). Mind under pressure → sleep loss, depression, immunity drop.",
 
   "Mars|L6":   "Mars on your 6th-lord — sudden inflammation, fevers, infections, sports injuries, blood/heat issues.",
   "Mars|L8":   "Mars on your 8th-lord — accident risk, surgical events, sudden acute pain. Drive carefully.",
