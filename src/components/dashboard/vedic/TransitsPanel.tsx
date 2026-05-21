@@ -605,7 +605,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
               {monthlyBrief.briefs.map((b) => {
                 const Icon = b.icon;
                 return (
-                  <div key={b.key} className={`relative rounded-md border border-border/25 bg-background/30 p-3 space-y-1.5 ${b.millionaire ? "ring-1 ring-amber-300/40" : ""}`}>
+                  <div key={b.key} className={`relative rounded-md border p-3 space-y-1.5 ${b.tone === "bad" ? "border-red-500/35 bg-red-500/[0.05]" : "border-border/25 bg-background/30"} ${b.millionaire ? "ring-1 ring-amber-300/40" : ""}`}>
                     {b.millionaire && (
                       <div className="absolute -top-2.5 -right-2.5 flex items-center gap-1 rounded-full border border-amber-300/60 bg-background/90 px-2 py-0.5 backdrop-blur">
                         <Crown className="h-3 w-3 text-amber-300" fill="currentColor" />
@@ -614,9 +614,9 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                     )}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5">
-                        <Icon className="h-3.5 w-3.5 text-foreground/70" />
-                        <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/85">{b.label}</span>
-                        <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/60">· {b.tone === "good" ? "favorable" : b.tone === "bad" ? "adverse" : "mixed"}</span>
+                        <Icon className={`h-3.5 w-3.5 ${b.tone === "bad" ? "text-red-300/90" : "text-foreground/70"}`} />
+                        <span className={`text-[10px] uppercase tracking-[0.2em] ${b.tone === "bad" ? "text-red-200/90" : "text-foreground/85"}`}>{b.label}</span>
+                        <span className={`text-[9px] uppercase tracking-[0.18em] ${b.tone === "bad" ? "text-red-300/70" : "text-muted-foreground/60"}`}>· {b.tone === "good" ? "favorable" : b.tone === "bad" ? "adverse" : "mixed"}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[9.5px] uppercase tracking-[0.18em] text-foreground/75">{b.duration}</span>
