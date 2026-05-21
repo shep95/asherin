@@ -30,7 +30,8 @@ const SIGN_LORD: Record<number, string> = {
 export type PointCode =
   | "Lagna" | "Chandra" | "Surya" | "AK" | "DK" | "UL" | "L7"
   | "L2" | "L5" | "L9" | "L11"
-  | "L6" | "L8" | "L12";
+  | "L6" | "L8" | "L12"
+  | "L10" | "L3";
 
 export interface SensitivePoint {
   code: PointCode;
@@ -77,11 +78,13 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
     const lordPlanet = planets.find((p) => p.name === lordName);
     return lordPlanet ? signOf(lordPlanet.sid) : sign;
   };
+  const lord3Sign = lordSignOfHouse(3);
   const lord5Sign = lordSignOfHouse(5);
   const lord6Sign = lordSignOfHouse(6);
   const lord7Sign = lordSignOfHouse(7);
   const lord8Sign = lordSignOfHouse(8);
   const lord9Sign = lordSignOfHouse(9);
+  const lord10Sign = lordSignOfHouse(10);
   const lord11Sign = lordSignOfHouse(11);
   const lord12Sign = lordSignOfHouse(12);
 
@@ -132,6 +135,12 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
     L12:     mk("L12", "Lord of 12th (Vyaya)", lord12Sign,
                 "Sign where your 12th-house lord (hospitalization, hidden enemies, isolation, expenses) lives.",
                 "Your hospitalization / bed-rest channel."),
+    L10:     mk("L10", "Lord of 10th (Karma)", lord10Sign,
+                "Sign where your 10th-house lord (career, public status, authority, command, the throne) currently lives. The single most important point for power, fame, and career.",
+                "Your career, status, and 'authority' throne."),
+    L3:      mk("L3", "Lord of 3rd (Parakrama)", lord3Sign,
+                "Sign where your 3rd-house lord (courage, self-effort, communication, content, short trips) lives.",
+                "Your courage, communication, and 'reach' channel."),
   };
 
   const bySign = new Map<number, SensitivePoint[]>();
@@ -224,6 +233,27 @@ const COMBO_REASON: Record<string, string> = {
   "Ketu|L6":  "Ketu on your 6th-lord — old illness suddenly disappears OR cryptic chronic condition emerges. Either-or.",
   "Ketu|L8":  "Ketu on your 8th-lord — surgical events, severance illnesses, energy detachment.",
   "Ketu|L12": "Ketu on your 12th-lord — hospital stays, isolation, withdrawal, energy collapse.",
+
+  // ── POWER / CAREER / FAME / INFLUENCE AXIS (L10 = throne, Lagna = body of authority) ──
+  "Jupiter|L10": "Jupiter on your 10th-lord (Karma — career/status). Blessing the career-throne. Promotions, sponsors, mentor-elders backing your rise. Classical 'kingmaker' transit.",
+  "Saturn|L10":  "Saturn on your 10th-lord. Career restructures under pressure. The slow, real climb to authority — you earn the chair through discipline, not luck.",
+  "Sun|L10":     "Sun on your 10th-lord. The king-planet ignites your career-throne. Visibility from authority figures, performance reviews land in your favor.",
+  "Mars|L10":    "Mars on your 10th-lord. Aggressive career pushes. Wins through force; risk of clashes with bosses or sudden role changes.",
+  "Mercury|L10": "Mercury on your 10th-lord. Career through contracts, communication, deals, media, code. Negotiation window.",
+  "Venus|L10":   "Venus on your 10th-lord. Career through charm, art, beauty, design, partnerships, women-led networks.",
+  "Rahu|L10":    "Rahu on your 10th-lord. Status explodes — viral, foreign, unconventional rise. Massive leap energy. Watch for the inevitable correction.",
+  "Ketu|L10":    "Ketu on your 10th-lord. Career detaches. Walking away from a role, retirement, role becomes hollow. Pivot phase.",
+  "Moon|L10":    "Moon on your 10th-lord. Public-facing career moment. Public mood swings affect your work and reputation.",
+
+  "Jupiter|L3":  "Jupiter on your 3rd-lord (Parakrama — courage/voice/content). Self-effort multiplies. Writing, speaking, content reach grows.",
+  "Rahu|L3":     "Rahu on your 3rd-lord. Mass communication channel cracks open — viral content, foreign reach, bold self-promotion.",
+  "Mars|L3":     "Mars on your 3rd-lord. Aggressive output, hustle mode, courage to ship and confront.",
+  "Mercury|L3":  "Mercury on your 3rd-lord. Writing/speaking/coding clarity peak. Negotiation and short-trip wins.",
+
+  // Influence/fame extras on Surya and Lagna
+  "Rahu|Surya":  "Rahu on your Sun sign. Identity/authority gets amplified to a mass audience. Fame risk + scandal risk both rise.",
+  "Sun|L11":     "Sun on your 11th-lord. Authority brings income through your network. Recognition translates to gains.",
+  "Jupiter|Surya":"Jupiter on your Sun sign. Authority figures bless you. Father/mentor energy lights up; reputation expands.",
 };
 
 const COMBO_PLAIN: Record<string, string> = {
@@ -297,6 +327,24 @@ const COMBO_PLAIN: Record<string, string> = {
   "Ketu|L6":   "Either an old chronic issue suddenly dissolves, or a cryptic new one shows up. Pay attention.",
   "Ketu|L8":   "Surgical events or severance illnesses possible. Energy may detach.",
   "Ketu|L12":  "Hospital, isolation, or energy-collapse stretches. Rest is non-negotiable.",
+
+  // Power / career / fame / influence
+  "Jupiter|L10": "Career-throne blessed. Promotions, sponsors, big role offers — people with power back you.",
+  "Saturn|L10":  "Slow real climb to authority. Boring grind now = solid throne later. No shortcuts.",
+  "Sun|L10":     "Authority figures notice you. Performance reviews and visibility go your way.",
+  "Mars|L10":    "You push hard for promotions — wins fast, but clash with bosses possible.",
+  "Mercury|L10": "Career wins through deals, contracts, words, code, media.",
+  "Venus|L10":   "Career grows through charm, art, design, partnerships, women-led networks.",
+  "Rahu|L10":    "Massive status leap — viral, foreign, unconventional. Huge upside, watch the inevitable correction.",
+  "Ketu|L10":    "Career detaches. You walk away from a role or it ends. Pivot phase.",
+  "Moon|L10":    "Public-facing career moment. Your mood and public mood affect work.",
+  "Jupiter|L3":  "Your voice gets blessed — writing, content, speaking land bigger.",
+  "Rahu|L3":     "Mass-reach window — viral content, big audience, bold self-promotion.",
+  "Mars|L3":     "Hustle mode. Ship things. Confront. Push your message out.",
+  "Mercury|L3":  "Communication clarity peak. Best window for negotiations and deal-pitches.",
+  "Rahu|Surya":  "Fame spike — also scandal risk. The mass crowd talks about you. Protect your image.",
+  "Sun|L11":     "Your authority converts to income through your network. Recognition pays cash.",
+  "Jupiter|Surya":"Mentors and authority figures sponsor you. Reputation expands organically.",
 };
 
 export interface WhyReason {
@@ -308,7 +356,7 @@ export interface WhyReason {
   importance: "high" | "medium" | "low";
 }
 
-const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna", "L9", "L11", "L2", "L6", "L8", "L12"]);
+const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna", "Surya", "L9", "L10", "L11", "L2", "L6", "L8", "L12"]);
 
 export function whyTransitMatters(
   planet: string,

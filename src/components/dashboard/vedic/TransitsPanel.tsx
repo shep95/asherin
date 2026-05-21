@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart, Activity } from "lucide-react";
+import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart, Activity, Crown, Megaphone, Star, Briefcase, Flame } from "lucide-react";
 import { computeTransitChart, computeFutureIngresses, type TransitChart, type SignIngress } from "@/lib/vedic/transits";
 import { readTransit, type LifePrediction, type Verdict } from "@/lib/vedic/transitMeanings";
 import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
@@ -249,6 +249,28 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     () => (ingresses ? detectWindows(ingresses, activeRef.points, "health", { clusterDays: 120, minScore: 4 }) : []),
     [ingresses, activeRef.points],
   );
+  const romanceWindows = useMemo(
+    () => activeRef.kind === "user"
+      ? (ingresses ? detectWindows(ingresses, activeRef.points, "romance", { clusterDays: 90, minScore: 4 }) : [])
+      : [],
+    [ingresses, activeRef.points, activeRef.kind],
+  );
+  const powerWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "power", { clusterDays: 150, minScore: 5 }) : []),
+    [ingresses, activeRef.points],
+  );
+  const influenceWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "influence", { clusterDays: 150, minScore: 5 }) : []),
+    [ingresses, activeRef.points],
+  );
+  const fameWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "fame", { clusterDays: 150, minScore: 5 }) : []),
+    [ingresses, activeRef.points],
+  );
+  const careerWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "career", { clusterDays: 150, minScore: 5 }) : []),
+    [ingresses, activeRef.points],
+  );
 
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
@@ -439,6 +461,61 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         />
       )}
 
+      {/* ROMANCE (dating / attraction — distinct from soulmate/marriage axis) */}
+      {romanceWindows.length > 0 && (
+        <WindowList
+          title="Romance / Attraction Windows"
+          subtitle="When Venus, Mars, or Moon walks into the signs of your romance points (5th-lord = affairs/flirting, 7th-lord = partners, Moon = emotional pull, Lagna = magnetism). Plain-English: the stretches when dating, chemistry, and 'getting noticed' actually fire — separate from the deeper soulmate axis."
+          icon={<Flame className="h-3.5 w-3.5 text-pink-300/90" />}
+          accent="pink"
+          windows={romanceWindows}
+        />
+      )}
+
+      {/* POWER / INFLUENCE / FAME / CAREER — career-axis dominance grid */}
+      {(powerWindows.length > 0 || careerWindows.length > 0 || influenceWindows.length > 0 || fameWindows.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {powerWindows.length > 0 && (
+            <WindowList
+              title={`Power / Authority Windows · ${subjectLabel}`}
+              subtitle="When Sun, Saturn, Mars, or Jupiter walks into the signs of your 10th-lord (career-throne), Lagna (body of authority), Sun-sign, or Atmakaraka. Plain-English: when the 'put me in charge' energy is actually on for you."
+              icon={<Crown className="h-3.5 w-3.5 text-amber-300/90" />}
+              accent="amber"
+              windows={powerWindows}
+            />
+          )}
+          {careerWindows.length > 0 && (
+            <WindowList
+              title={`Career-Advancement Windows · ${subjectLabel}`}
+              subtitle="When Saturn, Sun, Jupiter, Mars or Mercury hits the signs of your 10th-lord (status), 11th-lord (gains from work) or 6th-lord (daily-work)/Atmakaraka. Plain-English: the months promotions, role changes, and new jobs actually land."
+              icon={<Briefcase className="h-3.5 w-3.5 text-sky-300/90" />}
+              accent="sky"
+              windows={careerWindows}
+            />
+          )}
+          {influenceWindows.length > 0 && (
+            <WindowList
+              title={`Influence / Reach Windows · ${subjectLabel}`}
+              subtitle="When Rahu, Jupiter, Mercury, or Venus walks into your 10th-lord, 11th-lord (network), 3rd-lord (voice), Moon, or Lagna. Plain-English: when people actually listen to you and your circle grows."
+              icon={<Megaphone className="h-3.5 w-3.5 text-violet-300/90" />}
+              accent="violet"
+              windows={influenceWindows}
+            />
+          )}
+          {fameWindows.length > 0 && (
+            <WindowList
+              title={`Fame / Visibility Windows · ${subjectLabel}`}
+              subtitle="When Sun and Rahu (the fame-pair) hit your 10th-lord, Lagna, Sun-sign or Moon-sign. Plain-English: when the public actually notices you — for better or worse. Negative windows = cancel / reputation risk."
+              icon={<Star className="h-3.5 w-3.5 text-yellow-300/90" />}
+              accent="yellow"
+              windows={fameWindows}
+            />
+          )}
+        </div>
+      )}
+
+
+
 
 
       {/* Month forecast */}
@@ -609,7 +686,9 @@ function fmtRange(a: Date, b: Date) {
   return `${fmtDate(a)} → ${fmtDate(b)}`;
 }
 
-const ACCENT: Record<"emerald" | "rose" | "red", { ring: string; chip: string; head: string; grade: string }> = {
+type AccentKey = "emerald" | "rose" | "red" | "pink" | "amber" | "violet" | "yellow" | "sky";
+
+const ACCENT: Record<AccentKey, { ring: string; chip: string; head: string; grade: string }> = {
   emerald: {
     ring: "border-emerald-400/30 bg-emerald-400/[0.04]",
     chip: "border-emerald-300/30 bg-emerald-300/[0.05] text-emerald-200",
@@ -628,9 +707,37 @@ const ACCENT: Record<"emerald" | "rose" | "red", { ring: string; chip: string; h
     head: "text-red-200",
     grade: "text-red-300/90",
   },
+  pink: {
+    ring: "border-pink-400/30 bg-pink-400/[0.04]",
+    chip: "border-pink-300/30 bg-pink-300/[0.05] text-pink-200",
+    head: "text-pink-200",
+    grade: "text-pink-300/90",
+  },
+  amber: {
+    ring: "border-amber-400/30 bg-amber-400/[0.04]",
+    chip: "border-amber-300/30 bg-amber-300/[0.05] text-amber-200",
+    head: "text-amber-200",
+    grade: "text-amber-300/90",
+  },
+  violet: {
+    ring: "border-violet-400/30 bg-violet-400/[0.04]",
+    chip: "border-violet-300/30 bg-violet-300/[0.05] text-violet-200",
+    head: "text-violet-200",
+    grade: "text-violet-300/90",
+  },
+  yellow: {
+    ring: "border-yellow-400/30 bg-yellow-400/[0.04]",
+    chip: "border-yellow-300/30 bg-yellow-300/[0.05] text-yellow-200",
+    head: "text-yellow-200",
+    grade: "text-yellow-300/90",
+  },
+  sky: {
+    ring: "border-sky-400/30 bg-sky-400/[0.04]",
+    chip: "border-sky-300/30 bg-sky-300/[0.05] text-sky-200",
+    head: "text-sky-200",
+    grade: "text-sky-300/90",
+  },
 };
-
-type AccentKey = "emerald" | "rose" | "red";
 
 function WindowList({
   title, subtitle, icon, accent, windows,
