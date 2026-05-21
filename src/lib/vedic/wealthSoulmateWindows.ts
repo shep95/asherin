@@ -46,9 +46,14 @@ export interface KarmicWindow {
   hits: ActivationHit[];
 }
 
-const WEALTH_POINTS = new Set<PointCode>(["L2", "L5", "L9", "L11", "AK"]);
+const WEALTH_POINTS   = new Set<PointCode>(["L2", "L5", "L9", "L11", "AK"]);
 const SOULMATE_POINTS = new Set<PointCode>(["UL", "DK", "L7", "Chandra"]);
-const HEALTH_POINTS = new Set<PointCode>(["L6", "L8", "L12", "Lagna", "Chandra"]);
+const HEALTH_POINTS   = new Set<PointCode>(["L6", "L8", "L12", "Lagna", "Chandra"]);
+const ROMANCE_POINTS  = new Set<PointCode>(["L5", "L7", "Chandra", "Lagna"]);          // affairs/dating ≠ marriage
+const POWER_POINTS    = new Set<PointCode>(["L10", "Lagna", "Surya", "AK"]);           // authority / throne
+const INFLUENCE_POINTS= new Set<PointCode>(["L10", "L11", "L3", "Chandra", "Lagna"]);  // reach / network sway
+const FAME_POINTS     = new Set<PointCode>(["L10", "Lagna", "Surya", "Chandra"]);      // public visibility
+const CAREER_POINTS   = new Set<PointCode>(["L10", "L6", "L11", "AK"]);                // work / advancement
 
 const WEALTH_WEIGHT: Record<string, number> = {
   Jupiter: 5, Venus: 3, Rahu: 4, Sun: 1, Mercury: 1, Mars: 1,
@@ -64,10 +69,36 @@ const HEALTH_WEIGHT: Record<string, number> = {
   Saturn: 5, Mars: 4, Rahu: 4, Ketu: 4, Sun: 1, Mercury: 0, Moon: 0,
   Jupiter: -3, Venus: -2,
 };
+// ROMANCE = quick attraction, dating, affairs (distinct from soulmate/marriage axis)
+const ROMANCE_WEIGHT: Record<string, number> = {
+  Venus: 5, Mars: 3, Moon: 3, Rahu: 3, Jupiter: 2, Mercury: 1, Sun: 1,
+  Saturn: -3, Ketu: -3,
+};
+// POWER = authority, command, status. Sun-king + Saturn-structure + Mars-force.
+const POWER_WEIGHT: Record<string, number> = {
+  Sun: 5, Saturn: 4, Mars: 3, Jupiter: 3, Rahu: 3, Mercury: 1, Venus: 1, Moon: 0,
+  Ketu: -3,
+};
+// INFLUENCE = sway over people, mass-reach, network charisma.
+const INFLUENCE_WEIGHT: Record<string, number> = {
+  Rahu: 5, Jupiter: 4, Mercury: 4, Venus: 4, Sun: 3, Moon: 2, Mars: 1, Saturn: 1,
+  Ketu: -2,
+};
+// FAME = visibility spikes — Sun (king) + Rahu (mass) are the fame-pair.
+const FAME_WEIGHT: Record<string, number> = {
+  Rahu: 5, Sun: 5, Jupiter: 3, Venus: 3, Mercury: 2, Mars: 2, Moon: 2,
+  Saturn: -1, Ketu: -3,
+};
+// CAREER = work / job advancement / promotions.
+const CAREER_WEIGHT: Record<string, number> = {
+  Saturn: 4, Sun: 4, Jupiter: 3, Mars: 3, Mercury: 3, Rahu: 3, Venus: 1, Moon: 1,
+  Ketu: -2,
+};
 
 const POINT_BONUS: Partial<Record<PointCode, number>> = {
   L9: 3, L11: 2, L2: 1, AK: 2, UL: 3, DK: 2, L7: 1,
   L6: 3, L8: 3, L12: 2, Lagna: 1, Chandra: 1,
+  L10: 3, L3: 1, Surya: 1, L5: 1,
 };
 
 function applyRetro(w: number, retro: boolean): number {
