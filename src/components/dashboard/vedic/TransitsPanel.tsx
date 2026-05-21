@@ -312,6 +312,49 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         {!loadingNow && monthForecast.length === 0 && (
           <div className="text-[11px] text-muted-foreground/60 italic">No major life-area activations this month. Background period — steady, integrative.</div>
         )}
+      {/* WHY THIS MATTERS TO YOUR CHART — reasoning before data */}
+      {!loadingNow && topWhys.length > 0 && (
+        <div className="rounded-lg border border-amber-400/30 bg-amber-400/[0.04] p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Target className="h-3.5 w-3.5 text-amber-300/90" />
+            <h4 className="text-xs font-light tracking-[0.15em] text-amber-200 uppercase">
+              Why this matters to {activeRef.kind === "company" ? subjectLabel : "your chart"}
+            </h4>
+          </div>
+          <p className="text-[10.5px] text-muted-foreground/80 italic leading-relaxed">
+            Generic house-readings ignore your chart. These hits are sign-specific to {activeRef.kind === "company" ? "this company's" : "YOUR"} sensitive points — Lagna, Moon sign, Atmakaraka, Darakaraka, Upapada Lagna. Read these first; everything below is the supporting data.
+          </p>
+          <div className="space-y-1.5">
+            {topWhys.map((w, i) => (
+              <div key={i} className="rounded-md border border-amber-300/20 bg-background/30 p-2.5">
+                <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+                  <div className="text-[11px] font-light text-foreground">
+                    <span className="text-foreground/70 mr-1">{w.symbol}</span>
+                    {w.planet}{w.retrograde && <span className="text-muted-foreground"> ʀ</span>} on your <span className="text-amber-200">{w.pointLabel}</span> ({w.signName})
+                  </div>
+                  <span className="text-[9px] uppercase tracking-[0.2em] text-amber-300/80">High Impact</span>
+                </div>
+                <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/90">{w.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Month forecast */}
+      <div className="rounded-lg border border-border/25 bg-gradient-to-b from-foreground/[0.04] to-transparent p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-3.5 w-3.5 text-foreground/70" />
+          <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">
+            Forecast for {monthLabel(cursor)} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
+          </h4>
+        </div>
+        {loadingNow && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading the sky…</div>
+        )}
+        {!loadingNow && monthForecast.length === 0 && (
+          <div className="text-[11px] text-muted-foreground/60 italic">No major life-area activations this month. Background period — steady, integrative.</div>
+        )}
         {!loadingNow && monthForecast.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {monthForecast.map((pred, i) => (
