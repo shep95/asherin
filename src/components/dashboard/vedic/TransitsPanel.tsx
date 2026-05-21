@@ -370,6 +370,8 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Money pressure — expect a squeeze or pruning, don't gamble",
         detail: wealth.hits[0]?.plain || wealth.headline,
         when: fmtWhen(wealth.start, wealth.end),
+        duration: fmtDuration(wealth.start, wealth.end),
+        millionaire: wealth.score >= 14,
       });
     }
     const soulmate = pickStrongest(soulmateInPeriod);
@@ -385,6 +387,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Relationship strain — old patterns surface, don't force commitment",
         detail: soulmate.hits[0]?.plain || soulmate.headline,
         when: fmtWhen(soulmate.start, soulmate.end),
+        duration: fmtDuration(soulmate.start, soulmate.end),
       });
     }
     const health = pickStrongest(healthInPeriod);
@@ -400,6 +403,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Healing/immunity boost — body recovers fast right now",
         detail: health.hits[0]?.plain || health.headline,
         when: fmtWhen(health.start, health.end),
+        duration: fmtDuration(health.start, health.end),
       });
     }
     const romance = pickStrongest(romanceInPeriod);
@@ -415,6 +419,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Romantic dry-spell — texts go cold, don't take it personally",
         detail: romance.hits[0]?.plain || romance.headline,
         when: fmtWhen(romance.start, romance.end),
+        duration: fmtDuration(romance.start, romance.end),
       });
     }
     const power = pickStrongest(powerInPeriod);
@@ -430,6 +435,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Power challenged — someone above tests you, hold your line",
         detail: power.hits[0]?.plain || power.headline,
         when: fmtWhen(power.start, power.end),
+        duration: fmtDuration(power.start, power.end),
       });
     }
     const career = pickStrongest(careerInPeriod);
@@ -445,6 +451,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Career restructure pressure — pivot or get reorganized",
         detail: career.hits[0]?.plain || career.headline,
         when: fmtWhen(career.start, career.end),
+        duration: fmtDuration(career.start, career.end),
       });
     }
     const influence = pickStrongest(influenceInPeriod);
@@ -460,6 +467,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Influence shrinks — followers drift, ignore the noise",
         detail: influence.hits[0]?.plain || influence.headline,
         when: fmtWhen(influence.start, influence.end),
+        duration: fmtDuration(influence.start, influence.end),
       });
     }
     const fame = pickStrongest(fameInPeriod);
@@ -475,6 +483,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Reputation pressure — keep a low profile, cancel-risk elevated",
         detail: fame.hits[0]?.plain || fame.headline,
         when: fmtWhen(fame.start, fame.end),
+        duration: fmtDuration(fame.start, fame.end),
       });
     }
 
