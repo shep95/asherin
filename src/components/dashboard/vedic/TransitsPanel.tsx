@@ -261,22 +261,29 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
 
   const ingressesThisMonth = useMemo(() => {
     if (!ingresses) return [];
-    const s = monthStart(chosen).getTime();
-    const e = monthEnd(chosen).getTime();
+    const s = periodStart.getTime();
+    const e = periodEnd.getTime();
     return ingresses.filter((i) => i.date.getTime() >= s && i.date.getTime() <= e);
-  }, [ingresses, chosen]);
+  }, [ingresses, periodStart, periodEnd]);
   const ingressesLater = useMemo(() => {
     if (!ingresses) return [];
-    const e = monthEnd(chosen).getTime();
+    const e = periodEnd.getTime();
     const horizonEndMs = today.getTime() + horizonMonths * 31 * 86400_000;
     return ingresses.filter((i) => {
       const t = i.date.getTime();
       return t > e && t <= horizonEndMs;
     });
-  }, [ingresses, chosen, today, horizonMonths]);
+  }, [ingresses, periodEnd, today, horizonMonths]);
 
-  const shiftMonth = (delta: number) => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + delta, 15));
-  const shiftYear  = (delta: number) => setCursor(new Date(cursor.getFullYear() + delta, cursor.getMonth(), 15));
+  const shiftPeriod = (delta: number) => {
+    if (granularity === "week") {
+      setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + delta * 7));
+    } else {
+      setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + delta, 15));
+    }
+  };
+  const shiftYear  = (delta: number) => setCursor(new Date(cursor.getFullYear() + delta, cursor.getMonth(), granularity === "week" ? cursor.getDate() : 15));
+  const jumpToNow  = () => setCursor(granularity === "week" ? midOfWeek(new Date()) : midOfMonth(new Date()));
 
   const subjectLabel = activeRef.label;
 
