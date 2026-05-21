@@ -333,11 +333,9 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     };
     const periodWord = granularity === "week" ? "week" : "month";
     const fmtWhen = (start: Date, end: Date) => {
-      const s = start.getTime() < periodStart.getTime() ? periodStart : start;
-      const e = end.getTime() > periodEnd.getTime() ? periodEnd : end;
-      const sameDay = s.toDateString() === e.toDateString();
+      const sameDay = start.toDateString() === end.toDateString();
       const f = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      return sameDay ? f(s) : `${f(s)} → ${f(e)}`;
+      return sameDay ? f(start) : `${f(start)} → ${f(end)}`;
     };
     const pickStrongest = (list: KarmicWindow[]) => {
       if (!list.length) return null;
