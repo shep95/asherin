@@ -1199,6 +1199,7 @@ const VedicAstrologyView = () => {
         {chart && (
           <TransitsPanel
             natalAscendant={chart.ascendant}
+            natalPlanets={chart.planets}
             lat={parseFloat(lat) || 0}
             lon={parseFloat(lon) || 0}
             chartKey={chartKey}
