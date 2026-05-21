@@ -140,14 +140,18 @@ export function detectWindows(
   if (!points || !ingresses.length) return [];
   const clusterMs = (opts.clusterDays ?? 180) * 86400_000;
   const minScore = opts.minScore ?? 3;
-  const interesting =
-    kind === "wealth" ? WEALTH_POINTS :
-    kind === "soulmate" ? SOULMATE_POINTS :
-    HEALTH_POINTS;
-  const planetWeights =
-    kind === "wealth" ? WEALTH_WEIGHT :
-    kind === "soulmate" ? SOULMATE_WEIGHT :
-    HEALTH_WEIGHT;
+  const POINT_SET: Record<WindowKind, Set<PointCode>> = {
+    wealth: WEALTH_POINTS, soulmate: SOULMATE_POINTS, health: HEALTH_POINTS,
+    romance: ROMANCE_POINTS, power: POWER_POINTS, influence: INFLUENCE_POINTS,
+    fame: FAME_POINTS, career: CAREER_POINTS,
+  };
+  const WEIGHT_SET: Record<WindowKind, Record<string, number>> = {
+    wealth: WEALTH_WEIGHT, soulmate: SOULMATE_WEIGHT, health: HEALTH_WEIGHT,
+    romance: ROMANCE_WEIGHT, power: POWER_WEIGHT, influence: INFLUENCE_WEIGHT,
+    fame: FAME_WEIGHT, career: CAREER_WEIGHT,
+  };
+  const interesting = POINT_SET[kind];
+  const planetWeights = WEIGHT_SET[kind];
 
   const raw: ActivationHit[] = [];
   for (const ing of ingresses) {
