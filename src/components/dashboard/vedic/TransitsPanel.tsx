@@ -562,6 +562,53 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
+      {/* PLAIN-ENGLISH BRIEF — "what's gonna happen this {period}" */}
+      {!loadingNow && !loadingFuture && (
+        <div className="rounded-lg border border-foreground/25 bg-gradient-to-br from-foreground/[0.06] via-background/40 to-background/20 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <ScrollText className="h-4 w-4 text-foreground/80" />
+            <h4 className="text-xs font-light tracking-[0.18em] text-foreground uppercase">
+              What's gonna happen this {monthlyBrief.periodWord} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
+            </h4>
+          </div>
+          <p className="text-[10.5px] text-muted-foreground/75 italic leading-relaxed">
+            Plain English. No nerd jargon. The strongest hit per life-area, scoped to {periodLabel}.
+          </p>
+          {monthlyBrief.briefs.length === 0 ? (
+            <div className="text-[11.5px] text-muted-foreground/70 italic">
+              Quiet {monthlyBrief.periodWord}. No major life-area is firing — steady background period. Good for rest, planning, and small consistent moves.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {monthlyBrief.briefs.map((b) => {
+                const Icon = b.icon;
+                const tone =
+                  b.tone === "good"
+                    ? "border-emerald-400/35 bg-emerald-400/[0.05]"
+                    : b.tone === "bad"
+                    ? "border-red-400/35 bg-red-400/[0.05]"
+                    : "border-amber-400/35 bg-amber-400/[0.05]";
+                const iconTone =
+                  b.tone === "good" ? "text-emerald-300/90" : b.tone === "bad" ? "text-red-300/90" : "text-amber-300/90";
+                return (
+                  <div key={b.key} className={`rounded-md border ${tone} p-3 space-y-1.5`}>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <Icon className={`h-3.5 w-3.5 ${iconTone}`} />
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/85">{b.label}</span>
+                      </div>
+                      <span className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70">{b.when}</span>
+                    </div>
+                    <div className="text-[12px] font-light text-foreground leading-snug">{b.headline}</div>
+                    <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{b.detail}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* WHY THIS MATTERS TO YOUR CHART — reasoning before data */}
       {!loadingNow && topWhys.length > 0 && (
         <div className="rounded-lg border border-amber-400/30 bg-amber-400/[0.04] p-3 space-y-2">
