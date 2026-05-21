@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart, Activity, Crown, Megaphone, Star, Briefcase, Flame } from "lucide-react";
+import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart, Activity, Crown, Megaphone, Star, Briefcase, Flame, ScrollText } from "lucide-react";
 import { computeTransitChart, computeFutureIngresses, type TransitChart, type SignIngress } from "@/lib/vedic/transits";
 import { readTransit, type LifePrediction, type Verdict } from "@/lib/vedic/transitMeanings";
 import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
@@ -318,6 +318,157 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     });
   }, [ingresses, periodEnd, today, horizonMonths]);
 
+  // ── PLAIN-ENGLISH MONTHLY BRIEF — "here's what's gonna happen this {period}" ──
+  // Picks the strongest hit per life-area and dumbs it down for non-astrologers.
+  const monthlyBrief = useMemo(() => {
+    type Brief = {
+      key: string;
+      icon: typeof Gem;
+      label: string;
+      tone: "good" | "bad" | "mixed";
+      headline: string;
+      detail: string;
+      when: string;
+    };
+    const periodWord = granularity === "week" ? "week" : "month";
+    const fmtWhen = (start: Date, end: Date) => {
+      const s = start.getTime() < periodStart.getTime() ? periodStart : start;
+      const e = end.getTime() > periodEnd.getTime() ? periodEnd : end;
+      const sameDay = s.toDateString() === e.toDateString();
+      const f = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return sameDay ? f(s) : `${f(s)} → ${f(e)}`;
+    };
+    const pickStrongest = (list: KarmicWindow[]) => {
+      if (!list.length) return null;
+      return [...list].sort((a, b) => Math.abs(b.score) - Math.abs(a.score))[0];
+    };
+    const briefs: Brief[] = [];
+
+    const wealth = pickStrongest(wealthInPeriod);
+    if (wealth) {
+      const good = wealth.score > 0;
+      briefs.push({
+        key: "wealth",
+        icon: Gem,
+        label: "Money",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (wealth.score >= 14 ? "Big money window — once-a-decade type stack" : wealth.score >= 8 ? "Strong money window — push hard on income" : "Money opening — small wins likely")
+          : "Money pressure — expect a squeeze or pruning, don't gamble",
+        detail: wealth.hits[0]?.plain || wealth.headline,
+        when: fmtWhen(wealth.start, wealth.end),
+      });
+    }
+    const soulmate = pickStrongest(soulmateInPeriod);
+    if (soulmate) {
+      const good = soulmate.score > 0;
+      briefs.push({
+        key: "soulmate",
+        icon: Heart,
+        label: "Soulmate / Marriage",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (soulmate.score >= 12 ? "Peak soulmate window — could meet The One" : soulmate.score >= 7 ? "Strong relationship window — serious partner energy" : "Partnership opening — meaningful intros possible")
+          : "Relationship strain — old patterns surface, don't force commitment",
+        detail: soulmate.hits[0]?.plain || soulmate.headline,
+        when: fmtWhen(soulmate.start, soulmate.end),
+      });
+    }
+    const health = pickStrongest(healthInPeriod);
+    if (health) {
+      const sick = health.score > 0;
+      briefs.push({
+        key: "health",
+        icon: Activity,
+        label: "Health",
+        tone: sick ? "bad" : "good",
+        headline: sick
+          ? (health.score >= 14 ? "HIGH sickness risk — if you get sick, it'll be this stretch" : health.score >= 8 ? "Likely sickness/injury window — go to bed early, eat clean" : "Watch your health — small bug or stress flare possible")
+          : "Healing/immunity boost — body recovers fast right now",
+        detail: health.hits[0]?.plain || health.headline,
+        when: fmtWhen(health.start, health.end),
+      });
+    }
+    const romance = pickStrongest(romanceInPeriod);
+    if (romance) {
+      const good = romance.score > 0;
+      briefs.push({
+        key: "romance",
+        icon: Flame,
+        label: "Romance / Dating",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (romance.score >= 12 ? "Magnetism peak — people are drawn to you" : romance.score >= 7 ? "Strong dating/flirting window — go out, swipe, show up" : "Romance opening — light flings or attention")
+          : "Romantic dry-spell — texts go cold, don't take it personally",
+        detail: romance.hits[0]?.plain || romance.headline,
+        when: fmtWhen(romance.start, romance.end),
+      });
+    }
+    const power = pickStrongest(powerInPeriod);
+    if (power) {
+      const good = power.score > 0;
+      briefs.push({
+        key: "power",
+        icon: Crown,
+        label: "Power / Authority",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (power.score >= 14 ? "Coronation-grade — you can step into the boss seat" : power.score >= 8 ? "Authority surge — people listen, take charge" : "Power activation — small leadership wins")
+          : "Power challenged — someone above tests you, hold your line",
+        detail: power.hits[0]?.plain || power.headline,
+        when: fmtWhen(power.start, power.end),
+      });
+    }
+    const career = pickStrongest(careerInPeriod);
+    if (career) {
+      const good = career.score > 0;
+      briefs.push({
+        key: "career",
+        icon: Briefcase,
+        label: "Career / Job",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (career.score >= 14 ? "Once-a-decade career breakthrough — promotion/offer energy" : career.score >= 8 ? "Strong advancement window — push for the raise/role" : "Career activation — solid forward step")
+          : "Career restructure pressure — pivot or get reorganized",
+        detail: career.hits[0]?.plain || career.headline,
+        when: fmtWhen(career.start, career.end),
+      });
+    }
+    const influence = pickStrongest(influenceInPeriod);
+    if (influence) {
+      const good = influence.score > 0;
+      briefs.push({
+        key: "influence",
+        icon: Megaphone,
+        label: "Influence / Network",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (influence.score >= 14 ? "Mass-influence breakthrough — your voice carries far" : influence.score >= 8 ? "Influence surge — posts/pitches land harder" : "Network growing — new useful contacts")
+          : "Influence shrinks — followers drift, ignore the noise",
+        detail: influence.hits[0]?.plain || influence.headline,
+        when: fmtWhen(influence.start, influence.end),
+      });
+    }
+    const fame = pickStrongest(fameInPeriod);
+    if (fame) {
+      const good = fame.score > 0;
+      briefs.push({
+        key: "fame",
+        icon: Star,
+        label: "Fame / Visibility",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (fame.score >= 14 ? "Viral-fame window — could blow up publicly" : fame.score >= 8 ? "Visibility spike — eyes are on you, ship the thing" : "Recognition window — credit lands your way")
+          : "Reputation pressure — keep a low profile, cancel-risk elevated",
+        detail: fame.hits[0]?.plain || fame.headline,
+        when: fmtWhen(fame.start, fame.end),
+      });
+    }
+
+    return { briefs, periodWord };
+  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod]);
+
+
   const shiftPeriod = (delta: number) => {
     if (granularity === "week") {
       setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + delta * 7));
@@ -408,6 +559,53 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
             </select>
           </div>
           {resolvingCompany && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+        </div>
+      )}
+
+      {/* PLAIN-ENGLISH BRIEF — "what's gonna happen this {period}" */}
+      {!loadingNow && !loadingFuture && (
+        <div className="rounded-lg border border-foreground/25 bg-gradient-to-br from-foreground/[0.06] via-background/40 to-background/20 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <ScrollText className="h-4 w-4 text-foreground/80" />
+            <h4 className="text-xs font-light tracking-[0.18em] text-foreground uppercase">
+              What's gonna happen this {monthlyBrief.periodWord} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
+            </h4>
+          </div>
+          <p className="text-[10.5px] text-muted-foreground/75 italic leading-relaxed">
+            Plain English. No nerd jargon. The strongest hit per life-area, scoped to {periodLabel}.
+          </p>
+          {monthlyBrief.briefs.length === 0 ? (
+            <div className="text-[11.5px] text-muted-foreground/70 italic">
+              Quiet {monthlyBrief.periodWord}. No major life-area is firing — steady background period. Good for rest, planning, and small consistent moves.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {monthlyBrief.briefs.map((b) => {
+                const Icon = b.icon;
+                const tone =
+                  b.tone === "good"
+                    ? "border-emerald-400/35 bg-emerald-400/[0.05]"
+                    : b.tone === "bad"
+                    ? "border-red-400/35 bg-red-400/[0.05]"
+                    : "border-amber-400/35 bg-amber-400/[0.05]";
+                const iconTone =
+                  b.tone === "good" ? "text-emerald-300/90" : b.tone === "bad" ? "text-red-300/90" : "text-amber-300/90";
+                return (
+                  <div key={b.key} className={`rounded-md border ${tone} p-3 space-y-1.5`}>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <Icon className={`h-3.5 w-3.5 ${iconTone}`} />
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/85">{b.label}</span>
+                      </div>
+                      <span className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70">{b.when}</span>
+                    </div>
+                    <div className="text-[12px] font-light text-foreground leading-snug">{b.headline}</div>
+                    <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{b.detail}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
