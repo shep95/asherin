@@ -38,7 +38,7 @@ const SIGN_LORD: Record<number, string> = {
   11: "Jupiter", // Pisces
 };
 
-export type PointCode = "Lagna" | "Chandra" | "Surya" | "AK" | "DK" | "UL" | "L7";
+export type PointCode = "Lagna" | "Chandra" | "Surya" | "AK" | "DK" | "UL" | "L7" | "L2" | "L5" | "L9" | "L11";
 
 export interface SensitivePoint {
   code: PointCode;
@@ -81,11 +81,18 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
   // UL: classical = 12th from sign of 2nd lord
   const ulSign = (lord2Sign + 11) % 12;
 
-  // 7th lord
-  const sign7 = (ascSign + 6) % 12;
-  const lord7Name = SIGN_LORD[sign7];
-  const lord7Planet = planets.find((p) => p.name === lord7Name);
-  const lord7Sign = lord7Planet ? signOf(lord7Planet.sid) : sign7;
+  // Generic helper: sign of the lord of house N (1..12)
+  const lordSignOfHouse = (houseN: number): number => {
+    const sign = (ascSign + (houseN - 1)) % 12;
+    const lordName = SIGN_LORD[sign];
+    const lordPlanet = planets.find((p) => p.name === lordName);
+    return lordPlanet ? signOf(lordPlanet.sid) : sign;
+  };
+  const lord2Sign_ = lord2Sign;
+  const lord5Sign = lordSignOfHouse(5);
+  const lord7Sign = lordSignOfHouse(7);
+  const lord9Sign = lordSignOfHouse(9);
+  const lord11Sign = lordSignOfHouse(11);
 
   const mk = (code: PointCode, label: string, signIndex: number, explanation: string): SensitivePoint => ({
     code, label, signIndex, signName: rashis[signIndex].name, explanation,
@@ -103,6 +110,14 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
               "The Upapada Lagna is the most precise spouse / soulmate indicator in Jaimini astrology. It is NOT a house — it is a calculated sensitive sign that describes who your spouse is and when they arrive. When a planet (especially Jupiter or Venus) transits this sign, the energy of that sign — your spouse — gets lit up in real life."),
     L7:      mk("L7",      "Lord of 7th",               lord7Sign,
               "The sign where your 7th-house lord currently resides — the field where partnerships, marriage, and one-on-one alliances actually play out for you."),
+    L2:      mk("L2",      "Lord of 2nd (Dhana)",       lord2Sign_,
+              "Sign where your 2nd-house lord (Dhana — accumulated wealth, savings, family money) currently lives. Benefic transits here = the savings vault is being filled."),
+    L5:      mk("L5",      "Lord of 5th (Purva Punya)", lord5Sign,
+              "Sign where your 5th-house lord (purva punya — past-life merit, speculation, intelligence, children) lives. Benefic transits here unlock lucky breaks, speculative wins, and creative income."),
+    L9:      mk("L9",      "Lord of 9th (Bhagya)",      lord9Sign,
+              "Sign where your 9th-house lord (Bhagya — fortune, dharma, divine grace, father) lives. The single most important wealth-luck axis. Benefic transits here = the fortune engine turns on."),
+    L11:     mk("L11",     "Lord of 11th (Labha)",      lord11Sign,
+              "Sign where your 11th-house lord (Labha — large gains, fulfilment of desires, network income) lives. Benefic transits here = income streams swell; big payouts arrive."),
   };
 
   const bySign = new Map<number, SensitivePoint[]>();
@@ -167,6 +182,23 @@ const COMBO_REASON: Record<string, string> = {
 
   // Moon
   "Moon|Chandra":"Moon returns to your natal Moon sign — emotional 'home', clearer instincts, peak intuition for ~2.5 days.",
+
+  // ── WEALTH AXIS — "millionaire-level" activations ──
+  // Jupiter on L9/L11/L2/L5/AK = textbook dhana-yoga ignition
+  "Jupiter|L9":  "Jupiter is now in the sign of your 9th-lord (Bhagya). This is the SINGLE strongest fortune-activator in Vedic astrology. Major luck windows, big sponsors, gurus opening doors, large-scale money-luck events. Millionaire-grade timing.",
+  "Jupiter|L11": "Jupiter is in the sign of your 11th-lord (Labha). The income/large-gains house lord is being expanded by the wealth-karaka itself. Pay rises, large payouts, deals closing, network unlocks money. Top-tier wealth window.",
+  "Jupiter|L2":  "Jupiter is in the sign of your 2nd-lord (Dhana). The vault of accumulated wealth is being expanded by the wealth-karaka. Savings grow, family money flows, valuable assets enter your name.",
+  "Jupiter|L5":  "Jupiter is in the sign of your 5th-lord (Purva Punya). Past-life merit cashes in — speculative wins, lucky breaks, creative income spikes, children-related gains.",
+  "Venus|L11":   "Venus is in the sign of your 11th-lord. Network-driven income, deals through women/aesthetics, luxurious payouts. Smaller scale than Jupiter but reliable.",
+  "Venus|L2":    "Venus on your 2nd-lord sign — money flows in through beauty, art, partnerships, family. Pleasant wealth window.",
+  "Venus|L9":    "Venus is in the sign of your 9th-lord. Lucky money through travel, foreign sources, or sponsors. Fortune wears a velvet glove.",
+  "Rahu|L11":    "Rahu in the sign of your 11th-lord — explosive, unconventional gains. Crypto, foreign deals, viral income, sudden network jackpots. Massive upside, also massive volatility — exit clean.",
+  "Rahu|L9":     "Rahu on your 9th-lord sign — fortune comes through unusual / foreign / breakthrough channels. A Rahu-fueled luck window, but verify everything.",
+  "Rahu|L2":     "Rahu in your 2nd-lord sign — speculative wealth, hidden/foreign income, large but unstable savings inflows.",
+  "Saturn|L11":  "Saturn is in the sign of your 11th-lord. Income matures through structure, hard work, contracts. Slow but real long-term gains house — not a get-rich-quick window.",
+  "Saturn|L2":   "Saturn in your 2nd-lord sign — savings get pruned and disciplined. Frugality forced; long-term wealth foundation laid.",
+  "Saturn|L9":   "Saturn on your 9th-lord — luck slows down. Fortune comes through karmic effort, not grace. Build the foundation now.",
+  "Ketu|L11":    "Ketu in your 11th-lord sign — income channels cut off or detached from. Old income streams may end; not a wealth-building window.",
 };
 
 export interface WhyReason {
@@ -177,7 +209,7 @@ export interface WhyReason {
   importance: "high" | "medium" | "low";
 }
 
-const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna"]);
+const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna", "L9", "L11", "L2"]);
 
 export function whyTransitMatters(
   planet: string,

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target } from "lucide-react";
+import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart } from "lucide-react";
 import { computeTransitChart, computeFutureIngresses, type TransitChart, type SignIngress } from "@/lib/vedic/transits";
 import { readTransit, type LifePrediction, type Verdict } from "@/lib/vedic/transitMeanings";
 import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
 import { computeSensitivePoints, whyTransitMatters, type SensitivePoints, type WhyReason } from "@/lib/vedic/sensitivePoints";
+import { detectWindows, type KarmicWindow } from "@/lib/vedic/wealthSoulmateWindows";
 import type { CompanyFoundation } from "@/data/vedic/companyCharts";
 
 interface Props {
@@ -199,6 +200,18 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     return out;
   }, [readings]);
 
+  // ── WEALTH + SOULMATE WINDOWS — scan all upcoming ingresses ──
+  const wealthWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "wealth", { clusterDays: 180, minScore: 4 }) : []),
+    [ingresses, activeRef.points],
+  );
+  const soulmateWindows = useMemo(
+    () => activeRef.kind === "user"
+      ? (ingresses ? detectWindows(ingresses, activeRef.points, "soulmate", { clusterDays: 180, minScore: 3 }) : [])
+      : [],
+    [ingresses, activeRef.points, activeRef.kind],
+  );
+
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
     for (const r of readings) {
@@ -326,6 +339,34 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           </div>
         </div>
       )}
+
+      {/* WEALTH + SOULMATE WINDOWS — chart-specific big-money / soulmate timing */}
+      {(wealthWindows.length > 0 || soulmateWindows.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {wealthWindows.length > 0 && (
+            <WindowList
+              title={`Wealth Windows · ${subjectLabel}`}
+              subtitle={activeRef.kind === "company"
+                ? "Periods when transiting benefics light up this company's dhana axis (2nd / 5th / 9th / 11th lords + AK). Big-money structural ignition windows."
+                : "Periods when transiting benefics ignite YOUR personal dhana axis (lords of 2/5/9/11 + Atmakaraka). These are the millionaire-grade timing windows in your chart — not generic 'Jupiter in 11th' readings."}
+              icon={<Gem className="h-3.5 w-3.5 text-emerald-300/90" />}
+              accent="emerald"
+              windows={wealthWindows}
+            />
+          )}
+          {soulmateWindows.length > 0 && (
+            <WindowList
+              title="Soulmate / Marriage Windows"
+              subtitle="Periods when Jupiter or Venus walks into the SPECIFIC signs your spouse-karmas live in — Upapada Lagna (UL), Darakaraka (DK), 7th-lord sign, or your Moon sign. The actual sign matters, not the house number."
+              icon={<Heart className="h-3.5 w-3.5 text-rose-300/90" />}
+              accent="rose"
+              windows={soulmateWindows}
+            />
+          )}
+        </div>
+      )}
+
+
 
       {/* Month forecast */}
       <div className="rounded-lg border border-border/25 bg-gradient-to-b from-foreground/[0.04] to-transparent p-3 space-y-2">
@@ -479,6 +520,71 @@ function IngressRow({ ing, points }: { ing: SignIngress; points: SensitivePoints
         </div>
       )}
       <p className="text-[10.5px] text-muted-foreground/80 font-light leading-relaxed mt-1">{r.meaning}</p>
+    </div>
+  );
+}
+
+function fmtRange(a: Date, b: Date) {
+  const sameMonth = a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+  if (sameMonth) return fmtDate(a);
+  return `${fmtDate(a)} → ${fmtDate(b)}`;
+}
+
+const ACCENT: Record<"emerald" | "rose", { ring: string; chip: string; head: string; grade: string }> = {
+  emerald: {
+    ring: "border-emerald-400/30 bg-emerald-400/[0.04]",
+    chip: "border-emerald-300/30 bg-emerald-300/[0.05] text-emerald-200",
+    head: "text-emerald-200",
+    grade: "text-emerald-300/90",
+  },
+  rose: {
+    ring: "border-rose-400/30 bg-rose-400/[0.04]",
+    chip: "border-rose-300/30 bg-rose-300/[0.05] text-rose-200",
+    head: "text-rose-200",
+    grade: "text-rose-300/90",
+  },
+};
+
+function WindowList({
+  title, subtitle, icon, accent, windows,
+}: {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  accent: "emerald" | "rose";
+  windows: KarmicWindow[];
+}) {
+  const a = ACCENT[accent];
+  return (
+    <div className={`rounded-lg border ${a.ring} p-3 space-y-2`}>
+      <div className="flex items-center gap-2">
+        {icon}
+        <h4 className={`text-xs font-light tracking-[0.15em] uppercase ${a.head}`}>{title}</h4>
+      </div>
+      <p className="text-[10.5px] text-muted-foreground/80 italic leading-relaxed">{subtitle}</p>
+      <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
+        {windows.slice(0, 8).map((w, i) => (
+          <div key={i} className="rounded-md border border-border/25 bg-background/30 p-2.5 space-y-1.5">
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <div className="text-[11px] font-light text-foreground">{w.headline}</div>
+              <span className={`text-[9px] uppercase tracking-[0.2em] ${a.grade}`}>{w.grade}</span>
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70 tabular-nums">
+              {fmtRange(w.start, w.end)} · score {w.score > 0 ? "+" : ""}{w.score}
+            </div>
+            <div className="space-y-1 pt-1 border-t border-border/15">
+              {w.hits.map((h, j) => (
+                <div key={j} className="text-[10.5px] leading-relaxed font-light">
+                  <span className={`inline-block min-w-[5.5rem] tabular-nums text-[9px] uppercase tracking-wider text-muted-foreground/60`}>{fmtDate(h.date)}</span>
+                  <span className="text-foreground/85 mr-1">{h.symbol} {h.planet}{h.retrograde ? " ʀ" : ""}</span>
+                  <span className={`inline-block text-[9px] uppercase tracking-[0.15em] px-1 py-0.5 rounded border mr-1 ${a.chip}`}>→ {h.pointLabel}</span>
+                  <span className="text-muted-foreground/85">{h.reasoning}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
