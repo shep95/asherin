@@ -613,13 +613,22 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                 const iconTone =
                   b.tone === "good" ? "text-emerald-300/90" : b.tone === "bad" ? "text-red-300/90" : "text-amber-300/90";
                 return (
-                  <div key={b.key} className={`rounded-md border ${tone} p-3 space-y-1.5`}>
+                  <div key={b.key} className={`relative rounded-md border ${b.millionaire ? "border-amber-300/60 bg-amber-300/[0.07] shadow-[0_0_24px_-6px_rgba(251,191,36,0.45)]" : tone} p-3 space-y-1.5`}>
+                    {b.millionaire && (
+                      <div className="absolute -top-2.5 -right-2.5 flex items-center gap-1 rounded-full border border-amber-300/70 bg-gradient-to-br from-amber-300 to-amber-500 px-2 py-0.5 shadow-[0_0_12px_rgba(251,191,36,0.6)]">
+                        <Crown className="h-3 w-3 text-amber-950" fill="currentColor" />
+                        <span className="text-[8.5px] font-semibold uppercase tracking-[0.18em] text-amber-950">Millionaire</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5">
-                        <Icon className={`h-3.5 w-3.5 ${iconTone}`} />
+                        <Icon className={`h-3.5 w-3.5 ${b.millionaire ? "text-amber-300" : iconTone}`} />
                         <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/85">{b.label}</span>
                       </div>
-                      <span className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70">{b.when}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-foreground/75">{b.duration}</span>
+                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70">{b.when}</span>
+                      </div>
                     </div>
                     <div className="text-[12px] font-light text-foreground leading-snug">{b.headline}</div>
                     <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{b.detail}</p>
