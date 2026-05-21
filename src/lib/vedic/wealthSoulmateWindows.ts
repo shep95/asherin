@@ -221,9 +221,45 @@ function buildHeadline(hits: ActivationHit[], kind: WindowKind, score: number): 
     if (score <= -4) return `Recovery support — ${planets} on ${points}`;
     return `Health-axis activity — ${planets} on ${points}`;
   }
-  if (score >= 12) return `Peak soulmate / marriage window — ${planets} on ${points}`;
-  if (score >= 7)  return `Strong relationship window — ${planets} on ${points}`;
-  if (score >= 3)  return `Romance / partnership opening — ${planets} on ${points}`;
-  if (score <= -3) return `Relationship pressure — ${planets} on ${points}`;
-  return `Partnership-axis activity — ${planets} on ${points}`;
+  if (kind === "soulmate") {
+    if (score >= 12) return `Peak soulmate / marriage window — ${planets} on ${points}`;
+    if (score >= 7)  return `Strong relationship window — ${planets} on ${points}`;
+    if (score >= 3)  return `Romance / partnership opening — ${planets} on ${points}`;
+    if (score <= -3) return `Relationship pressure — ${planets} on ${points}`;
+    return `Partnership-axis activity — ${planets} on ${points}`;
+  }
+  if (kind === "romance") {
+    if (score >= 12) return `Magnetism peak — hot romance window — ${planets} on ${points}`;
+    if (score >= 7)  return `Strong dating / flirtation window — ${planets} on ${points}`;
+    if (score >= 3)  return `Romance opening — ${planets} on ${points}`;
+    if (score <= -3) return `Dry-spell / romantic friction — ${planets} on ${points}`;
+    return `Romance-axis activity — ${planets} on ${points}`;
+  }
+  if (kind === "power") {
+    if (score >= 14) return `Coronation-grade authority stack — ${planets} on ${points}`;
+    if (score >= 8)  return `Power surge — authority window — ${planets} on ${points}`;
+    if (score >= 4)  return `Power activation — ${planets} on ${points}`;
+    if (score <= -4) return `Power stripped / tested — ${planets} on ${points}`;
+    return `Authority-axis activity — ${planets} on ${points}`;
+  }
+  if (kind === "influence") {
+    if (score >= 14) return `Mass-influence breakthrough — ${planets} on ${points}`;
+    if (score >= 8)  return `Strong influence surge — ${planets} on ${points}`;
+    if (score >= 4)  return `Influence growing — ${planets} on ${points}`;
+    if (score <= -4) return `Influence shrinks / followers detach — ${planets} on ${points}`;
+    return `Influence-axis activity — ${planets} on ${points}`;
+  }
+  if (kind === "fame") {
+    if (score >= 14) return `Viral fame window — ${planets} on ${points}`;
+    if (score >= 8)  return `Visibility spike — fame window — ${planets} on ${points}`;
+    if (score >= 4)  return `Recognition window — ${planets} on ${points}`;
+    if (score <= -4) return `Reputation pressure / cancel risk — ${planets} on ${points}`;
+    return `Fame-axis activity — ${planets} on ${points}`;
+  }
+  // career
+  if (score >= 14) return `Once-a-decade career breakthrough — ${planets} on ${points}`;
+  if (score >= 8)  return `Strong career-advancement window — ${planets} on ${points}`;
+  if (score >= 4)  return `Career activation — ${planets} on ${points}`;
+  if (score <= -4) return `Career restructure / pivot pressure — ${planets} on ${points}`;
+  return `Career-axis activity — ${planets} on ${points}`;
 }
