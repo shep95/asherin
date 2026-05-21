@@ -714,6 +714,68 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
+      {/* PLAIN-ENGLISH BRIEF — keep this pinned near the top so the monthly forecast never disappears behind deeper analysis */}
+      {!loadingNow && (
+        <div className="rounded-lg border border-border/35 bg-background/40 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <ScrollText className="h-4 w-4 text-foreground/80" />
+            <h4 className="text-xs font-light tracking-[0.18em] text-foreground uppercase">
+              What's gonna happen this {monthlyBrief.periodWord} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
+            </h4>
+          </div>
+          <p className="text-[10.5px] text-muted-foreground/75 italic leading-relaxed">
+            Plain English. No nerd jargon. The strongest hit per life-area, scoped to {periodLabel}.
+            {activeDashaSummary && <> Confidence badges fuse your active Dasha ({activeDashaSummary}) with live transits.</>}
+          </p>
+          {loadingFuture && !ingresses ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Building the live transit forecast…</div>
+          ) : monthlyBrief.briefs.length === 0 ? (
+            <div className="text-[11.5px] text-muted-foreground/70 italic">
+              Quiet {monthlyBrief.periodWord}. No major life-area is firing — steady background period. Good for rest, planning, and small consistent moves.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {monthlyBrief.briefs.map((b) => {
+                const Icon = b.icon;
+                const confStyle = b.confidence === "peak"
+                  ? "border-foreground/50 bg-foreground/[0.08] text-foreground"
+                  : b.confidence === "strong"
+                    ? "border-foreground/35 bg-foreground/[0.05] text-foreground/85"
+                    : b.confidence === "moderate"
+                      ? "border-border/40 bg-background/40 text-foreground/70"
+                      : "border-border/25 bg-background/20 text-muted-foreground/60";
+                const confLabel = b.confidence === "peak" ? "PEAK" : b.confidence === "strong" ? "STRONG" : b.confidence === "moderate" ? "MODERATE" : "BACKGROUND";
+                return (
+                  <div key={`brief-${b.key}`} className={`relative rounded-md border p-3 space-y-1.5 ${b.tone === "bad" ? "border-red-500/35 bg-red-500/[0.05]" : b.tone === "good" ? "border-emerald-500/35 bg-emerald-500/[0.05]" : "border-border/25 bg-background/30"}`}>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <Icon className={`h-3.5 w-3.5 ${b.tone === "bad" ? "text-red-300/90" : b.tone === "good" ? "text-emerald-300/90" : "text-foreground/70"}`} />
+                        <span className={`text-[10px] uppercase tracking-[0.2em] ${b.tone === "bad" ? "text-red-200/90" : b.tone === "good" ? "text-emerald-200/90" : "text-foreground/85"}`}>{b.label}</span>
+                        <span className={`text-[9px] uppercase tracking-[0.18em] ${b.tone === "bad" ? "text-red-300/70" : b.tone === "good" ? "text-emerald-300/70" : "text-muted-foreground/60"}`}>· {b.tone === "good" ? "favorable" : b.tone === "bad" ? "adverse" : "mixed"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-foreground/75">{b.duration}</span>
+                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70">{b.when}</span>
+                      </div>
+                    </div>
+                    <div className="text-[12px] font-light text-foreground leading-snug">{b.headline}</div>
+                    <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{b.detail}</p>
+                    {activeDashaSummary && (
+                      <div className="flex items-center gap-1.5 pt-1 border-t border-border/15">
+                        <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${confStyle}`}>{confLabel}</span>
+                        <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/65">
+                          {b.dashaLords.length > 0 ? `Dasha-backed by ${b.dashaLords.join(" + ")}` : "No active Dasha lord on this axis"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* LIFE SEQUENCE — Wealth vs Soulmate ordered prediction */}
       {lifeSequence && (lifeSequence.wealthEvent || lifeSequence.soulmateEvent) && (() => {
         const ls = lifeSequence;
