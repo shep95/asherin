@@ -1221,16 +1221,16 @@ const VedicAstrologyView = () => {
               <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Deterministic Personalized Reading</h3>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {reading.sections.map((section) => (
-                <div key={section.headline} className="rounded-lg border border-border/25 bg-background/30 p-3">
+              {reading.sections.map((section, index) => (
+                <div key={`section-${index}-${section.headline}`} className="rounded-lg border border-border/25 bg-background/30 p-3">
                   <div className="text-xs text-foreground/85 font-light mb-2">{section.headline}</div>
                   <ul className="space-y-1.5 text-[11px] text-muted-foreground/85 font-light leading-relaxed">
                     {section.bullets.map((bullet) => <li key={bullet}>◈ {bullet}</li>)}
                   </ul>
                 </div>
               ))}
-              {reading.conjunctions.map((section) => (
-                <div key={section.headline} className="rounded-lg border border-border/25 bg-foreground/[0.025] p-3">
+              {reading.conjunctions.map((section, index) => (
+                <div key={`conjunction-${index}-${section.planet}-${section.headline}`} className="rounded-lg border border-border/25 bg-foreground/[0.025] p-3">
                   <div className="text-xs text-foreground/85 font-light mb-2">{section.planet} · {section.headline}</div>
                   <ul className="space-y-1.5 text-[11px] text-muted-foreground/85 font-light leading-relaxed">
                     {section.bullets.map((bullet) => <li key={bullet}>◉ {bullet}</li>)}

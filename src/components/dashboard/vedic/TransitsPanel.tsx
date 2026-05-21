@@ -714,6 +714,68 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
+      {/* PLAIN-ENGLISH BRIEF — keep this pinned near the top so the monthly forecast never disappears behind deeper analysis */}
+      {!loadingNow && (
+        <div className="rounded-lg border border-border/35 bg-background/40 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <ScrollText className="h-4 w-4 text-foreground/80" />
+            <h4 className="text-xs font-light tracking-[0.18em] text-foreground uppercase">
+              What's gonna happen this {monthlyBrief.periodWord} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
+            </h4>
+          </div>
+          <p className="text-[10.5px] text-muted-foreground/75 italic leading-relaxed">
+            Plain English. No nerd jargon. The strongest hit per life-area, scoped to {periodLabel}.
+            {activeDashaSummary && <> Confidence badges fuse your active Dasha ({activeDashaSummary}) with live transits.</>}
+          </p>
+          {loadingFuture && !ingresses ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Building the live transit forecast…</div>
+          ) : monthlyBrief.briefs.length === 0 ? (
+            <div className="text-[11.5px] text-muted-foreground/70 italic">
+              Quiet {monthlyBrief.periodWord}. No major life-area is firing — steady background period. Good for rest, planning, and small consistent moves.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {monthlyBrief.briefs.map((b) => {
+                const Icon = b.icon;
+                const confStyle = b.confidence === "peak"
+                  ? "border-foreground/50 bg-foreground/[0.08] text-foreground"
+                  : b.confidence === "strong"
+                    ? "border-foreground/35 bg-foreground/[0.05] text-foreground/85"
+                    : b.confidence === "moderate"
+                      ? "border-border/40 bg-background/40 text-foreground/70"
+                      : "border-border/25 bg-background/20 text-muted-foreground/60";
+                const confLabel = b.confidence === "peak" ? "PEAK" : b.confidence === "strong" ? "STRONG" : b.confidence === "moderate" ? "MODERATE" : "BACKGROUND";
+                return (
+                  <div key={`brief-${b.key}`} className={`relative rounded-md border p-3 space-y-1.5 ${b.tone === "bad" ? "border-red-500/35 bg-red-500/[0.05]" : b.tone === "good" ? "border-emerald-500/35 bg-emerald-500/[0.05]" : "border-border/25 bg-background/30"}`}>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <Icon className={`h-3.5 w-3.5 ${b.tone === "bad" ? "text-red-300/90" : b.tone === "good" ? "text-emerald-300/90" : "text-foreground/70"}`} />
+                        <span className={`text-[10px] uppercase tracking-[0.2em] ${b.tone === "bad" ? "text-red-200/90" : b.tone === "good" ? "text-emerald-200/90" : "text-foreground/85"}`}>{b.label}</span>
+                        <span className={`text-[9px] uppercase tracking-[0.18em] ${b.tone === "bad" ? "text-red-300/70" : b.tone === "good" ? "text-emerald-300/70" : "text-muted-foreground/60"}`}>· {b.tone === "good" ? "favorable" : b.tone === "bad" ? "adverse" : "mixed"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-foreground/75">{b.duration}</span>
+                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70">{b.when}</span>
+                      </div>
+                    </div>
+                    <div className="text-[12px] font-light text-foreground leading-snug">{b.headline}</div>
+                    <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{b.detail}</p>
+                    {activeDashaSummary && (
+                      <div className="flex items-center gap-1.5 pt-1 border-t border-border/15">
+                        <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${confStyle}`}>{confLabel}</span>
+                        <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/65">
+                          {b.dashaLords.length > 0 ? `Dasha-backed by ${b.dashaLords.join(" + ")}` : "No active Dasha lord on this axis"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* LIFE SEQUENCE — Wealth vs Soulmate ordered prediction */}
       {lifeSequence && (lifeSequence.wealthEvent || lifeSequence.soulmateEvent) && (() => {
         const ls = lifeSequence;
@@ -863,10 +925,10 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
 
       {/* STRONGEST PREDICTIONS — Dasha + Transit convergence */}
       {!loadingNow && !loadingFuture && activeDashaSummary && monthlyBrief.strongest.length > 0 && (
-        <div className="rounded-lg border border-amber-300/40 bg-gradient-to-br from-amber-300/[0.07] via-background/40 to-background/20 p-4 space-y-2.5">
+        <div className="rounded-lg border border-border/35 bg-background/40 p-4 space-y-2.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <Zap className="h-4 w-4 text-amber-300/90" fill="currentColor" />
-            <h4 className="text-xs font-light tracking-[0.18em] text-amber-200 uppercase">Strongest Predictions · Dasha + Transit Converge</h4>
+            <Zap className="h-4 w-4 text-foreground/80" />
+            <h4 className="text-xs font-light tracking-[0.18em] text-foreground/85 uppercase">Strongest Predictions · Dasha + Transit Converge</h4>
             <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 ml-auto">Active: {activeDashaSummary}</span>
           </div>
           <p className="text-[10.5px] text-muted-foreground/75 italic leading-relaxed">
@@ -876,87 +938,21 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
             {monthlyBrief.strongest.map((b) => {
               const Icon = b.icon;
               return (
-                <div key={`strong-${b.key}`} className="rounded-md border border-amber-300/30 bg-background/40 p-2.5 space-y-1">
+                <div key={`strong-${b.key}`} className="rounded-md border border-border/30 bg-background/35 p-2.5 space-y-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <Icon className="h-3.5 w-3.5 text-amber-300/90" />
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-amber-100/90">{b.label}</span>
-                    <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${b.confidence === "peak" ? "border-amber-300/60 bg-amber-300/[0.12] text-amber-200" : "border-amber-300/30 bg-amber-300/[0.05] text-amber-200/80"}`}>{b.confidence === "peak" ? "PEAK" : "STRONG"}</span>
+                    <Icon className="h-3.5 w-3.5 text-foreground/80" />
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/85">{b.label}</span>
+                    <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${b.confidence === "peak" ? "border-foreground/45 bg-foreground/[0.08] text-foreground" : "border-border/40 bg-background/40 text-foreground/80"}`}>{b.confidence === "peak" ? "PEAK" : "STRONG"}</span>
                     <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/70 ml-auto">{b.when}</span>
                   </div>
                   <div className="text-[11.5px] font-light text-foreground leading-snug">{b.headline}</div>
-                  <div className="text-[9.5px] uppercase tracking-[0.16em] text-amber-200/70">
+                  <div className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground/75">
                     Dasha backing: {b.dashaLords.join(" + ")}
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* PLAIN-ENGLISH BRIEF — "what's gonna happen this {period}" */}
-      {!loadingNow && !loadingFuture && (
-        <div className="rounded-lg border border-foreground/25 bg-gradient-to-br from-foreground/[0.06] via-background/40 to-background/20 p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <ScrollText className="h-4 w-4 text-foreground/80" />
-            <h4 className="text-xs font-light tracking-[0.18em] text-foreground uppercase">
-              What's gonna happen this {monthlyBrief.periodWord} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
-            </h4>
-          </div>
-          <p className="text-[10.5px] text-muted-foreground/75 italic leading-relaxed">
-            Plain English. No nerd jargon. The strongest hit per life-area, scoped to {periodLabel}.
-            {activeDashaSummary && <> Confidence badges fuse your active Dasha ({activeDashaSummary}) with live transits.</>}
-          </p>
-          {monthlyBrief.briefs.length === 0 ? (
-            <div className="text-[11.5px] text-muted-foreground/70 italic">
-              Quiet {monthlyBrief.periodWord}. No major life-area is firing — steady background period. Good for rest, planning, and small consistent moves.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {monthlyBrief.briefs.map((b) => {
-                const Icon = b.icon;
-                const confStyle = b.confidence === "peak"
-                  ? "border-amber-300/60 bg-amber-300/[0.10] text-amber-200"
-                  : b.confidence === "strong"
-                    ? "border-amber-300/35 bg-amber-300/[0.05] text-amber-200/85"
-                    : b.confidence === "moderate"
-                      ? "border-border/40 bg-background/40 text-foreground/70"
-                      : "border-border/25 bg-background/20 text-muted-foreground/60";
-                const confLabel = b.confidence === "peak" ? "PEAK" : b.confidence === "strong" ? "STRONG" : b.confidence === "moderate" ? "MODERATE" : "BACKGROUND";
-                return (
-                  <div key={b.key} className={`relative rounded-md border p-3 space-y-1.5 ${b.tone === "bad" ? "border-red-500/35 bg-red-500/[0.05]" : b.tone === "good" ? "border-emerald-500/35 bg-emerald-500/[0.05]" : "border-border/25 bg-background/30"} ${b.millionaire ? "ring-1 ring-amber-300/40" : ""}`}>
-                    {b.millionaire && (
-                      <div className="absolute -top-2.5 -right-2.5 flex items-center gap-1 rounded-full border border-amber-300/60 bg-background/90 px-2 py-0.5 backdrop-blur">
-                        <Crown className="h-3 w-3 text-amber-300" fill="currentColor" />
-                        <span className="text-[8.5px] font-light uppercase tracking-[0.18em] text-amber-200/90">Millionaire</span>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-1.5">
-                        <Icon className={`h-3.5 w-3.5 ${b.tone === "bad" ? "text-red-300/90" : b.tone === "good" ? "text-emerald-300/90" : "text-foreground/70"}`} />
-                        <span className={`text-[10px] uppercase tracking-[0.2em] ${b.tone === "bad" ? "text-red-200/90" : b.tone === "good" ? "text-emerald-200/90" : "text-foreground/85"}`}>{b.label}</span>
-                        <span className={`text-[9px] uppercase tracking-[0.18em] ${b.tone === "bad" ? "text-red-300/70" : b.tone === "good" ? "text-emerald-300/70" : "text-muted-foreground/60"}`}>· {b.tone === "good" ? "favorable" : b.tone === "bad" ? "adverse" : "mixed"}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-foreground/75">{b.duration}</span>
-                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70">{b.when}</span>
-                      </div>
-                    </div>
-                    <div className="text-[12px] font-light text-foreground leading-snug">{b.headline}</div>
-                    <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{b.detail}</p>
-                    {activeDashaSummary && (
-                      <div className="flex items-center gap-1.5 pt-1 border-t border-border/15">
-                        <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${confStyle}`}>{confLabel}</span>
-                        <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/65">
-                          {b.dashaLords.length > 0 ? `Dasha-backed by ${b.dashaLords.join(" + ")}` : "No active Dasha lord on this axis"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       )}
 
