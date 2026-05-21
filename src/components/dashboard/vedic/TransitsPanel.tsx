@@ -524,4 +524,69 @@ function IngressRow({ ing, points }: { ing: SignIngress; points: SensitivePoints
   );
 }
 
+function fmtRange(a: Date, b: Date) {
+  const sameMonth = a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+  if (sameMonth) return fmtDate(a);
+  return `${fmtDate(a)} → ${fmtDate(b)}`;
+}
+
+const ACCENT: Record<"emerald" | "rose", { ring: string; chip: string; head: string; grade: string }> = {
+  emerald: {
+    ring: "border-emerald-400/30 bg-emerald-400/[0.04]",
+    chip: "border-emerald-300/30 bg-emerald-300/[0.05] text-emerald-200",
+    head: "text-emerald-200",
+    grade: "text-emerald-300/90",
+  },
+  rose: {
+    ring: "border-rose-400/30 bg-rose-400/[0.04]",
+    chip: "border-rose-300/30 bg-rose-300/[0.05] text-rose-200",
+    head: "text-rose-200",
+    grade: "text-rose-300/90",
+  },
+};
+
+function WindowList({
+  title, subtitle, icon, accent, windows,
+}: {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  accent: "emerald" | "rose";
+  windows: KarmicWindow[];
+}) {
+  const a = ACCENT[accent];
+  return (
+    <div className={`rounded-lg border ${a.ring} p-3 space-y-2`}>
+      <div className="flex items-center gap-2">
+        {icon}
+        <h4 className={`text-xs font-light tracking-[0.15em] uppercase ${a.head}`}>{title}</h4>
+      </div>
+      <p className="text-[10.5px] text-muted-foreground/80 italic leading-relaxed">{subtitle}</p>
+      <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
+        {windows.slice(0, 8).map((w, i) => (
+          <div key={i} className="rounded-md border border-border/25 bg-background/30 p-2.5 space-y-1.5">
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <div className="text-[11px] font-light text-foreground">{w.headline}</div>
+              <span className={`text-[9px] uppercase tracking-[0.2em] ${a.grade}`}>{w.grade}</span>
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70 tabular-nums">
+              {fmtRange(w.start, w.end)} · score {w.score > 0 ? "+" : ""}{w.score}
+            </div>
+            <div className="space-y-1 pt-1 border-t border-border/15">
+              {w.hits.map((h, j) => (
+                <div key={j} className="text-[10.5px] leading-relaxed font-light">
+                  <span className={`inline-block min-w-[5.5rem] tabular-nums text-[9px] uppercase tracking-wider text-muted-foreground/60`}>{fmtDate(h.date)}</span>
+                  <span className="text-foreground/85 mr-1">{h.symbol} {h.planet}{h.retrograde ? " ʀ" : ""}</span>
+                  <span className={`inline-block text-[9px] uppercase tracking-[0.15em] px-1 py-0.5 rounded border mr-1 ${a.chip}`}>→ {h.pointLabel}</span>
+                  <span className="text-muted-foreground/85">{h.reasoning}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default TransitsPanel;
