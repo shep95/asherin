@@ -601,6 +601,17 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     return { briefs: enriched, periodWord, strongest };
   }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod, dashaLordWeights]);
 
+  // ── LIFE SEQUENCE — Q1/Q2/Q3 ordered prediction (wealth vs soulmate) ──
+  const lifeSequence = useMemo(() => {
+    if (activeRef.kind !== "user" || !natalPlanets || !dashaTimeline || !ingresses) return null;
+    return computeLifeSequence(
+      natalPlanets, activeRef.ascendant, dashaTimeline,
+      wealthWindows, soulmateWindows,
+    );
+  }, [activeRef.kind, activeRef.ascendant, natalPlanets, dashaTimeline, ingresses, wealthWindows, soulmateWindows]);
+
+
+
 
 
   const shiftPeriod = (delta: number) => {
