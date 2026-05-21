@@ -563,28 +563,51 @@ function WindowList({
       </div>
       <p className="text-[10.5px] text-muted-foreground/80 italic leading-relaxed">{subtitle}</p>
       <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
-        {windows.slice(0, 8).map((w, i) => (
-          <div key={i} className="rounded-md border border-border/25 bg-background/30 p-2.5 space-y-1.5">
-            <div className="flex items-baseline justify-between gap-2 flex-wrap">
-              <div className="text-[11px] font-light text-foreground">{w.headline}</div>
-              <span className={`text-[9px] uppercase tracking-[0.2em] ${a.grade}`}>{w.grade}</span>
-            </div>
-            <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70 tabular-nums">
-              {fmtRange(w.start, w.end)} · score {w.score > 0 ? "+" : ""}{w.score}
-            </div>
-            <div className="space-y-1 pt-1 border-t border-border/15">
-              {w.hits.map((h, j) => (
-                <div key={j} className="text-[10.5px] leading-relaxed font-light">
-                  <span className={`inline-block min-w-[5.5rem] tabular-nums text-[9px] uppercase tracking-wider text-muted-foreground/60`}>{fmtDate(h.date)}</span>
-                  <span className="text-foreground/85 mr-1">{h.symbol} {h.planet}{h.retrograde ? " ʀ" : ""}</span>
-                  <span className={`inline-block text-[9px] uppercase tracking-[0.15em] px-1 py-0.5 rounded border mr-1 ${a.chip}`}>→ {h.pointLabel}</span>
-                  <span className="text-muted-foreground/85">{h.reasoning}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+        {windows.slice(0, 12).map((w, i) => (
+          <WindowCard key={i} w={w} accent={accent} />
         ))}
       </div>
+    </div>
+  );
+}
+
+function WindowCard({ w, accent }: { w: KarmicWindow; accent: "emerald" | "rose" }) {
+  const a = ACCENT[accent];
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-md border border-border/25 bg-background/30">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full text-left p-2.5 space-y-1.5 hover:bg-foreground/[0.03] transition rounded-md"
+      >
+        <div className="flex items-baseline justify-between gap-2 flex-wrap">
+          <div className="text-[11px] font-light text-foreground flex-1">{w.headline}</div>
+          <div className="flex items-center gap-2">
+            <span className={`text-[9px] uppercase tracking-[0.2em] ${a.grade}`}>{w.grade}</span>
+            <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground/70 transition-transform ${open ? "rotate-90" : ""}`} />
+          </div>
+        </div>
+        <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70 tabular-nums flex items-center gap-2">
+          <span>{fmtRange(w.start, w.end)}</span>
+          <span className="text-muted-foreground/40">·</span>
+          <span>score {w.score > 0 ? "+" : ""}{w.score}</span>
+          <span className="text-muted-foreground/40">·</span>
+          <span className="normal-case tracking-normal text-muted-foreground/60">{w.hits.length} activation{w.hits.length === 1 ? "" : "s"} — click to expand</span>
+        </div>
+      </button>
+      {open && (
+        <div className="space-y-1 p-2.5 pt-2 border-t border-border/15">
+          {w.hits.map((h, j) => (
+            <div key={j} className="text-[10.5px] leading-relaxed font-light">
+              <span className="inline-block min-w-[5.5rem] tabular-nums text-[9px] uppercase tracking-wider text-muted-foreground/60">{fmtDate(h.date)}</span>
+              <span className="text-foreground/85 mr-1">{h.symbol} {h.planet}{h.retrograde ? " ʀ" : ""}</span>
+              <span className={`inline-block text-[9px] uppercase tracking-[0.15em] px-1 py-0.5 rounded border mr-1 ${a.chip}`}>→ {h.pointLabel}</span>
+              <span className="text-muted-foreground/85">{h.reasoning}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
