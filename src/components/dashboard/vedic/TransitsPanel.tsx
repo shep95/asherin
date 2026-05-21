@@ -694,3 +694,5 @@ function WindowCard({ w, accent }: { w: KarmicWindow; accent: AccentKey }) {
     </div>
   );
 }
+
+export default TransitsPanel;
