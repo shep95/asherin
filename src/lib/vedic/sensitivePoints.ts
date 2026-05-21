@@ -220,13 +220,10 @@ const COMBO_REASON: Record<string, string> = {
   "Rahu|L6":  "Rahu on your 6th-lord — strange, hard-to-diagnose illnesses, allergies, food poisoning, foreign infections.",
   "Rahu|L8":  "Rahu on your 8th-lord — sudden weird health events, toxins, hidden conditions surfacing.",
   "Rahu|L12": "Rahu on your 12th-lord — sleep disorders, mysterious hospitalizations, foreign-soil illness.",
-  "Rahu|Chandra":"Rahu on your Moon — mental health pressure: anxiety spikes, insomnia, paranoia, addictions resurface.",
 
   "Ketu|L6":  "Ketu on your 6th-lord — old illness suddenly disappears OR cryptic chronic condition emerges. Either-or.",
   "Ketu|L8":  "Ketu on your 8th-lord — surgical events, severance illnesses, energy detachment.",
   "Ketu|L12": "Ketu on your 12th-lord — hospital stays, isolation, withdrawal, energy collapse.",
-  "Ketu|Lagna":"Ketu on your Ascendant — body energy dissolves. Fatigue, immunity dip, weight loss.",
-  "Ketu|Chandra":"Ketu on your Moon — depressive spells, dissociation, mind detaches from body.",
 };
 
 const COMBO_PLAIN: Record<string, string> = {
