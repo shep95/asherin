@@ -321,6 +321,31 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     });
   }, [ingresses, periodEnd, today, horizonMonths]);
 
+  // ── DASHA WEIGHTS — active Vimshottari lords get weight by level ──
+  const dashaLordWeights = useMemo(() => {
+    const m = new Map<string, number>();
+    if (!currentDasha || activeRef.kind !== "user") return m;
+    const add = (lord: string | undefined, w: number) => {
+      if (!lord) return;
+      m.set(lord, (m.get(lord) || 0) + w);
+    };
+    add(currentDasha.maha?.lord, 3);
+    add(currentDasha.antar?.lord, 2);
+    add(currentDasha.pratyantar?.lord, 1.2);
+    add(currentDasha.sookshma?.lord, 0.6);
+    return m;
+  }, [currentDasha, activeRef.kind]);
+
+  const activeDashaSummary = useMemo(() => {
+    if (!currentDasha || activeRef.kind !== "user") return null;
+    const parts: string[] = [];
+    if (currentDasha.maha) parts.push(`${currentDasha.maha.lord} MD`);
+    if (currentDasha.antar) parts.push(`${currentDasha.antar.lord} AD`);
+    if (currentDasha.pratyantar) parts.push(`${currentDasha.pratyantar.lord} PD`);
+    if (currentDasha.sookshma) parts.push(`${currentDasha.sookshma.lord} SD`);
+    return parts.length ? parts.join(" / ") : null;
+  }, [currentDasha, activeRef.kind]);
+
   // ── PLAIN-ENGLISH MONTHLY BRIEF — "here's what's gonna happen this {period}" ──
   // Picks the strongest hit per life-area and dumbs it down for non-astrologers.
   const monthlyBrief = useMemo(() => {
@@ -334,6 +359,9 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       when: string;
       duration: string;
       millionaire?: boolean;
+      dashaScore: number;           // 0..6+ — how much active dasha lords back this window
+      dashaLords: string[];         // active lords that overlap window hits
+      confidence: "peak" | "strong" | "moderate" | "background"; // combined dasha + transit
     };
     const periodWord = granularity === "week" ? "week" : "month";
     const fmtWhen = (start: Date, end: Date) => {
@@ -352,9 +380,62 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       if (weeks < 8) return `${weeks.toFixed(1)} weeks`;
       return `${Math.round(days / 30)} mo`;
     };
+    const computeDashaSupport = (w: KarmicWindow) => {
+      const matched = new Set<string>();
+      let score = 0;
+      for (const hit of w.hits) {
+        const wt = dashaLordWeights.get(hit.planet);
+        if (wt && wt > 0) {
+          // align direction: if window is good & hit is positive, or bad & negative, full credit
+          const aligned = (w.score >= 0 && hit.weight > 0) || (w.score < 0 && hit.weight < 0);
+          score += aligned ? wt : wt * 0.4;
+          matched.add(hit.planet);
+        }
+      }
+      return { score, lords: Array.from(matched) };
+    };
+    const confidenceFor = (transitScore: number, dashaScore: number): Brief["confidence"] => {
+      // Strongest predictions = dasha supports AND transit activates simultaneously
+      const ts = Math.abs(transitScore);
+      if (dashaScore >= 3 && ts >= 8) return "peak";
+      if (dashaScore >= 2 && ts >= 4) return "strong";
+      if (dashaScore >= 1 || ts >= 8) return "moderate";
+      return "background";
+    };
     const pickStrongest = (list: KarmicWindow[]) => {
       if (!list.length) return null;
-      return [...list].sort((a, b) => Math.abs(b.score) - Math.abs(a.score))[0];
+      // Re-rank by combined transit + dasha score so dasha-backed windows surface first
+      return [...list].sort((a, b) => {
+        const da = computeDashaSupport(a).score;
+        const db = computeDashaSupport(b).score;
+        return (Math.abs(b.score) + db * 2) - (Math.abs(a.score) + da * 2);
+      })[0];
+    };
+    const pushBrief = (
+      list: KarmicWindow[],
+      base: Omit<Brief, "dashaScore" | "dashaLords" | "confidence" | "when" | "duration" | "detail" | "headline" | "tone"> & {
+        toneFor: (good: boolean) => Brief["tone"];
+        headlineFor: (w: KarmicWindow, good: boolean) => string;
+      },
+    ) => {
+      const w = pickStrongest(list);
+      if (!w) return null;
+      const good = w.score > 0;
+      const support = computeDashaSupport(w);
+      return {
+        key: base.key,
+        icon: base.icon,
+        label: base.label,
+        tone: base.toneFor(good),
+        headline: base.headlineFor(w, good),
+        detail: w.hits[0]?.plain || w.headline,
+        when: fmtWhen(w.start, w.end),
+        duration: fmtDuration(w.start, w.end),
+        millionaire: base.key === "wealth" && w.score >= 14,
+        dashaScore: support.score,
+        dashaLords: support.lords,
+        confidence: confidenceFor(w.score, support.score),
+      } as Brief;
     };
     const briefs: Brief[] = [];
 
