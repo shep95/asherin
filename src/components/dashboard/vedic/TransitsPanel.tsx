@@ -369,7 +369,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
             Planet-by-planet · positions at {fmtDate(chosen)} (mid-month sample) · houses relative to {subjectLabel}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {readings.map(({ planet, reading }) => (
+            {readings.map(({ planet, reading, whys }) => (
               <div key={planet.name} className={`rounded-lg border ${WEIGHT_RING[reading.weight]} p-3 space-y-1.5`}>
                 <div className="flex items-baseline justify-between gap-2">
                   <div className="text-sm font-light text-foreground">
@@ -380,6 +380,16 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                     {planet.signName} · {fmtDeg(planet.degInSign)}
                   </div>
                 </div>
+                {whys.length > 0 && (
+                  <div className="rounded-md border border-amber-300/25 bg-amber-300/[0.04] p-2 space-y-1">
+                    {whys.map((w, i) => (
+                      <div key={i} className="text-[10.5px] leading-relaxed font-light">
+                        <span className="text-amber-200/90 uppercase tracking-[0.15em] text-[9px] mr-1">Your {w.pointLabel}</span>
+                        <span className="text-foreground/85">{w.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <p className="text-[11px] text-muted-foreground/85 font-light leading-relaxed">{reading.meaning}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1.5 border-t border-border/15">
                   <div className="text-[10px] font-light leading-relaxed">
