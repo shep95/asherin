@@ -330,6 +330,8 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       headline: string;
       detail: string;
       when: string;
+      duration: string;
+      millionaire?: boolean;
     };
     const periodWord = granularity === "week" ? "week" : "month";
     const fmtWhen = (start: Date, end: Date) => {
@@ -337,11 +339,23 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       const f = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       return sameDay ? f(start) : `${f(start)} → ${f(end)}`;
     };
+    const fmtDuration = (start: Date, end: Date) => {
+      const ms = Math.max(0, end.getTime() - start.getTime());
+      const hours = ms / 3_600_000;
+      if (hours < 1) return "< 1 hr";
+      if (hours < 36) return `${Math.round(hours)} hr${Math.round(hours) === 1 ? "" : "s"}`;
+      const days = ms / 86_400_000;
+      if (days < 14) return `${Math.round(days)} day${Math.round(days) === 1 ? "" : "s"}`;
+      const weeks = days / 7;
+      if (weeks < 8) return `${weeks.toFixed(1)} weeks`;
+      return `${Math.round(days / 30)} mo`;
+    };
     const pickStrongest = (list: KarmicWindow[]) => {
       if (!list.length) return null;
       return [...list].sort((a, b) => Math.abs(b.score) - Math.abs(a.score))[0];
     };
     const briefs: Brief[] = [];
+
 
     const wealth = pickStrongest(wealthInPeriod);
     if (wealth) {
