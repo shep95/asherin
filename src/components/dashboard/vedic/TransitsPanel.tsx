@@ -437,12 +437,15 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         confidence: confidenceFor(w.score, support.score),
       } as Brief;
     };
-    const briefs: Brief[] = [];
+    type BaseBrief = Omit<Brief, "dashaScore" | "dashaLords" | "confidence">;
+    const briefs: BaseBrief[] = [];
+    const sourceMap = new Map<string, KarmicWindow>();
 
 
     const wealth = pickStrongest(wealthInPeriod);
     if (wealth) {
       const good = wealth.score > 0;
+      sourceMap.set("wealth", wealth);
       briefs.push({
         key: "wealth",
         icon: Gem,
@@ -460,6 +463,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const soulmate = pickStrongest(soulmateInPeriod);
     if (soulmate) {
       const good = soulmate.score > 0;
+      sourceMap.set("soulmate", soulmate);
       briefs.push({
         key: "soulmate",
         icon: Heart,
@@ -476,6 +480,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const health = pickStrongest(healthInPeriod);
     if (health) {
       const sick = health.score > 0;
+      sourceMap.set("health", health);
       briefs.push({
         key: "health",
         icon: Activity,
@@ -492,6 +497,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const romance = pickStrongest(romanceInPeriod);
     if (romance) {
       const good = romance.score > 0;
+      sourceMap.set("romance", romance);
       briefs.push({
         key: "romance",
         icon: Flame,
@@ -508,6 +514,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const power = pickStrongest(powerInPeriod);
     if (power) {
       const good = power.score > 0;
+      sourceMap.set("power", power);
       briefs.push({
         key: "power",
         icon: Crown,
@@ -524,6 +531,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const career = pickStrongest(careerInPeriod);
     if (career) {
       const good = career.score > 0;
+      sourceMap.set("career", career);
       briefs.push({
         key: "career",
         icon: Briefcase,
@@ -540,6 +548,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const influence = pickStrongest(influenceInPeriod);
     if (influence) {
       const good = influence.score > 0;
+      sourceMap.set("influence", influence);
       briefs.push({
         key: "influence",
         icon: Megaphone,
@@ -556,6 +565,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     const fame = pickStrongest(fameInPeriod);
     if (fame) {
       const good = fame.score > 0;
+      sourceMap.set("fame", fame);
       briefs.push({
         key: "fame",
         icon: Star,
@@ -570,8 +580,25 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       });
     }
 
-    return { briefs, periodWord };
-  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod]);
+    // ── Enrich each brief with Dasha+Transit confidence ──
+    const enriched: Brief[] = briefs.map((b) => {
+      const w = sourceMap.get(b.key);
+      const support = w ? computeDashaSupport(w) : { score: 0, lords: [] };
+      return {
+        ...b,
+        dashaScore: support.score,
+        dashaLords: support.lords,
+        confidence: confidenceFor(w?.score ?? 0, support.score),
+      };
+    });
+    // Strongest predictions = confidence "peak" or "strong" (dasha + transit converge)
+    const strongest = enriched
+      .filter((b) => b.confidence === "peak" || b.confidence === "strong")
+      .sort((a, b) => (b.dashaScore + (sourceMap.get(b.key)?.score ?? 0)) - (a.dashaScore + (sourceMap.get(a.key)?.score ?? 0)));
+
+    return { briefs: enriched, periodWord, strongest };
+  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod, dashaLordWeights]);
+
 
 
   const shiftPeriod = (delta: number) => {
