@@ -330,6 +330,8 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       headline: string;
       detail: string;
       when: string;
+      duration: string;
+      millionaire?: boolean;
     };
     const periodWord = granularity === "week" ? "week" : "month";
     const fmtWhen = (start: Date, end: Date) => {
@@ -337,11 +339,23 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       const f = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       return sameDay ? f(start) : `${f(start)} → ${f(end)}`;
     };
+    const fmtDuration = (start: Date, end: Date) => {
+      const ms = Math.max(0, end.getTime() - start.getTime());
+      const hours = ms / 3_600_000;
+      if (hours < 1) return "< 1 hr";
+      if (hours < 36) return `${Math.round(hours)} hr${Math.round(hours) === 1 ? "" : "s"}`;
+      const days = ms / 86_400_000;
+      if (days < 14) return `${Math.round(days)} day${Math.round(days) === 1 ? "" : "s"}`;
+      const weeks = days / 7;
+      if (weeks < 8) return `${weeks.toFixed(1)} weeks`;
+      return `${Math.round(days / 30)} mo`;
+    };
     const pickStrongest = (list: KarmicWindow[]) => {
       if (!list.length) return null;
       return [...list].sort((a, b) => Math.abs(b.score) - Math.abs(a.score))[0];
     };
     const briefs: Brief[] = [];
+
 
     const wealth = pickStrongest(wealthInPeriod);
     if (wealth) {
@@ -356,6 +370,8 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Money pressure — expect a squeeze or pruning, don't gamble",
         detail: wealth.hits[0]?.plain || wealth.headline,
         when: fmtWhen(wealth.start, wealth.end),
+        duration: fmtDuration(wealth.start, wealth.end),
+        millionaire: wealth.score >= 14,
       });
     }
     const soulmate = pickStrongest(soulmateInPeriod);
@@ -371,6 +387,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Relationship strain — old patterns surface, don't force commitment",
         detail: soulmate.hits[0]?.plain || soulmate.headline,
         when: fmtWhen(soulmate.start, soulmate.end),
+        duration: fmtDuration(soulmate.start, soulmate.end),
       });
     }
     const health = pickStrongest(healthInPeriod);
@@ -386,6 +403,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Healing/immunity boost — body recovers fast right now",
         detail: health.hits[0]?.plain || health.headline,
         when: fmtWhen(health.start, health.end),
+        duration: fmtDuration(health.start, health.end),
       });
     }
     const romance = pickStrongest(romanceInPeriod);
@@ -401,6 +419,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Romantic dry-spell — texts go cold, don't take it personally",
         detail: romance.hits[0]?.plain || romance.headline,
         when: fmtWhen(romance.start, romance.end),
+        duration: fmtDuration(romance.start, romance.end),
       });
     }
     const power = pickStrongest(powerInPeriod);
@@ -416,6 +435,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Power challenged — someone above tests you, hold your line",
         detail: power.hits[0]?.plain || power.headline,
         when: fmtWhen(power.start, power.end),
+        duration: fmtDuration(power.start, power.end),
       });
     }
     const career = pickStrongest(careerInPeriod);
@@ -431,6 +451,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Career restructure pressure — pivot or get reorganized",
         detail: career.hits[0]?.plain || career.headline,
         when: fmtWhen(career.start, career.end),
+        duration: fmtDuration(career.start, career.end),
       });
     }
     const influence = pickStrongest(influenceInPeriod);
@@ -446,6 +467,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Influence shrinks — followers drift, ignore the noise",
         detail: influence.hits[0]?.plain || influence.headline,
         when: fmtWhen(influence.start, influence.end),
+        duration: fmtDuration(influence.start, influence.end),
       });
     }
     const fame = pickStrongest(fameInPeriod);
@@ -461,6 +483,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           : "Reputation pressure — keep a low profile, cancel-risk elevated",
         detail: fame.hits[0]?.plain || fame.headline,
         when: fmtWhen(fame.start, fame.end),
+        duration: fmtDuration(fame.start, fame.end),
       });
     }
 
@@ -590,13 +613,22 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                 const iconTone =
                   b.tone === "good" ? "text-emerald-300/90" : b.tone === "bad" ? "text-red-300/90" : "text-amber-300/90";
                 return (
-                  <div key={b.key} className={`rounded-md border ${tone} p-3 space-y-1.5`}>
+                  <div key={b.key} className={`relative rounded-md border ${b.millionaire ? "border-amber-300/60 bg-amber-300/[0.07] shadow-[0_0_24px_-6px_rgba(251,191,36,0.45)]" : tone} p-3 space-y-1.5`}>
+                    {b.millionaire && (
+                      <div className="absolute -top-2.5 -right-2.5 flex items-center gap-1 rounded-full border border-amber-300/70 bg-gradient-to-br from-amber-300 to-amber-500 px-2 py-0.5 shadow-[0_0_12px_rgba(251,191,36,0.6)]">
+                        <Crown className="h-3 w-3 text-amber-950" fill="currentColor" />
+                        <span className="text-[8.5px] font-semibold uppercase tracking-[0.18em] text-amber-950">Millionaire</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5">
-                        <Icon className={`h-3.5 w-3.5 ${iconTone}`} />
+                        <Icon className={`h-3.5 w-3.5 ${b.millionaire ? "text-amber-300" : iconTone}`} />
                         <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/85">{b.label}</span>
                       </div>
-                      <span className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70">{b.when}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-foreground/75">{b.duration}</span>
+                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70">{b.when}</span>
+                      </div>
                     </div>
                     <div className="text-[12px] font-light text-foreground leading-snug">{b.headline}</div>
                     <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{b.detail}</p>
