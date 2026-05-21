@@ -318,6 +318,157 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     });
   }, [ingresses, periodEnd, today, horizonMonths]);
 
+  // ── PLAIN-ENGLISH MONTHLY BRIEF — "here's what's gonna happen this {period}" ──
+  // Picks the strongest hit per life-area and dumbs it down for non-astrologers.
+  const monthlyBrief = useMemo(() => {
+    type Brief = {
+      key: string;
+      icon: typeof Gem;
+      label: string;
+      tone: "good" | "bad" | "mixed";
+      headline: string;
+      detail: string;
+      when: string;
+    };
+    const periodWord = granularity === "week" ? "week" : "month";
+    const fmtWhen = (start: Date, end: Date) => {
+      const s = start.getTime() < periodStart.getTime() ? periodStart : start;
+      const e = end.getTime() > periodEnd.getTime() ? periodEnd : end;
+      const sameDay = s.toDateString() === e.toDateString();
+      const f = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return sameDay ? f(s) : `${f(s)} → ${f(e)}`;
+    };
+    const pickStrongest = (list: KarmicWindow[]) => {
+      if (!list.length) return null;
+      return [...list].sort((a, b) => Math.abs(b.score) - Math.abs(a.score))[0];
+    };
+    const briefs: Brief[] = [];
+
+    const wealth = pickStrongest(wealthInPeriod);
+    if (wealth) {
+      const good = wealth.score > 0;
+      briefs.push({
+        key: "wealth",
+        icon: Gem,
+        label: "Money",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (wealth.score >= 14 ? "Big money window — once-a-decade type stack" : wealth.score >= 8 ? "Strong money window — push hard on income" : "Money opening — small wins likely")
+          : "Money pressure — expect a squeeze or pruning, don't gamble",
+        detail: wealth.hits[0]?.plain || wealth.headline,
+        when: fmtWhen(wealth.start, wealth.end),
+      });
+    }
+    const soulmate = pickStrongest(soulmateInPeriod);
+    if (soulmate) {
+      const good = soulmate.score > 0;
+      briefs.push({
+        key: "soulmate",
+        icon: Heart,
+        label: "Soulmate / Marriage",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (soulmate.score >= 12 ? "Peak soulmate window — could meet The One" : soulmate.score >= 7 ? "Strong relationship window — serious partner energy" : "Partnership opening — meaningful intros possible")
+          : "Relationship strain — old patterns surface, don't force commitment",
+        detail: soulmate.hits[0]?.plain || soulmate.headline,
+        when: fmtWhen(soulmate.start, soulmate.end),
+      });
+    }
+    const health = pickStrongest(healthInPeriod);
+    if (health) {
+      const sick = health.score > 0;
+      briefs.push({
+        key: "health",
+        icon: Activity,
+        label: "Health",
+        tone: sick ? "bad" : "good",
+        headline: sick
+          ? (health.score >= 14 ? "HIGH sickness risk — if you get sick, it'll be this stretch" : health.score >= 8 ? "Likely sickness/injury window — go to bed early, eat clean" : "Watch your health — small bug or stress flare possible")
+          : "Healing/immunity boost — body recovers fast right now",
+        detail: health.hits[0]?.plain || health.headline,
+        when: fmtWhen(health.start, health.end),
+      });
+    }
+    const romance = pickStrongest(romanceInPeriod);
+    if (romance) {
+      const good = romance.score > 0;
+      briefs.push({
+        key: "romance",
+        icon: Flame,
+        label: "Romance / Dating",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (romance.score >= 12 ? "Magnetism peak — people are drawn to you" : romance.score >= 7 ? "Strong dating/flirting window — go out, swipe, show up" : "Romance opening — light flings or attention")
+          : "Romantic dry-spell — texts go cold, don't take it personally",
+        detail: romance.hits[0]?.plain || romance.headline,
+        when: fmtWhen(romance.start, romance.end),
+      });
+    }
+    const power = pickStrongest(powerInPeriod);
+    if (power) {
+      const good = power.score > 0;
+      briefs.push({
+        key: "power",
+        icon: Crown,
+        label: "Power / Authority",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (power.score >= 14 ? "Coronation-grade — you can step into the boss seat" : power.score >= 8 ? "Authority surge — people listen, take charge" : "Power activation — small leadership wins")
+          : "Power challenged — someone above tests you, hold your line",
+        detail: power.hits[0]?.plain || power.headline,
+        when: fmtWhen(power.start, power.end),
+      });
+    }
+    const career = pickStrongest(careerInPeriod);
+    if (career) {
+      const good = career.score > 0;
+      briefs.push({
+        key: "career",
+        icon: Briefcase,
+        label: "Career / Job",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (career.score >= 14 ? "Once-a-decade career breakthrough — promotion/offer energy" : career.score >= 8 ? "Strong advancement window — push for the raise/role" : "Career activation — solid forward step")
+          : "Career restructure pressure — pivot or get reorganized",
+        detail: career.hits[0]?.plain || career.headline,
+        when: fmtWhen(career.start, career.end),
+      });
+    }
+    const influence = pickStrongest(influenceInPeriod);
+    if (influence) {
+      const good = influence.score > 0;
+      briefs.push({
+        key: "influence",
+        icon: Megaphone,
+        label: "Influence / Network",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (influence.score >= 14 ? "Mass-influence breakthrough — your voice carries far" : influence.score >= 8 ? "Influence surge — posts/pitches land harder" : "Network growing — new useful contacts")
+          : "Influence shrinks — followers drift, ignore the noise",
+        detail: influence.hits[0]?.plain || influence.headline,
+        when: fmtWhen(influence.start, influence.end),
+      });
+    }
+    const fame = pickStrongest(fameInPeriod);
+    if (fame) {
+      const good = fame.score > 0;
+      briefs.push({
+        key: "fame",
+        icon: Star,
+        label: "Fame / Visibility",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (fame.score >= 14 ? "Viral-fame window — could blow up publicly" : fame.score >= 8 ? "Visibility spike — eyes are on you, ship the thing" : "Recognition window — credit lands your way")
+          : "Reputation pressure — keep a low profile, cancel-risk elevated",
+        detail: fame.hits[0]?.plain || fame.headline,
+        when: fmtWhen(fame.start, fame.end),
+      });
+    }
+
+    return { briefs, periodWord };
+  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod]);
+
+
   const shiftPeriod = (delta: number) => {
     if (granularity === "week") {
       setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + delta * 7));
