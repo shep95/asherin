@@ -178,8 +178,26 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
 
   const readings = useMemo(() => {
     if (!transit) return [];
-    return transit.planets.map((p) => ({ planet: p, reading: readTransit(p.name, p.natalHouse, p.retrograde) }));
-  }, [transit]);
+    return transit.planets.map((p) => ({
+      planet: p,
+      reading: readTransit(p.name, p.natalHouse, p.retrograde),
+      whys: whyTransitMatters(p.name, p.signIndex, activeRef.points),
+    }));
+  }, [transit, activeRef.points]);
+
+  // Top-level chart-specific reasoning for this month — only the "high importance"
+  // hits (UL / AK / DK / Moon-sign / Lagna activations). This is the "WHY before data."
+  const topWhys = useMemo(() => {
+    const out: Array<WhyReason & { planet: string; symbol: string; retrograde: boolean }> = [];
+    for (const r of readings) {
+      for (const w of r.whys) {
+        if (w.importance === "high") {
+          out.push({ ...w, planet: r.planet.name, symbol: r.planet.symbol, retrograde: r.planet.retrograde });
+        }
+      }
+    }
+    return out;
+  }, [readings]);
 
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
