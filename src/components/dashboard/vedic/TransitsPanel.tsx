@@ -367,9 +367,16 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     };
     const periodWord = granularity === "week" ? "week" : "month";
     const fmtWhen = (start: Date, end: Date) => {
+      const ms = end.getTime() - start.getTime();
       const sameDay = start.toDateString() === end.toDateString();
-      const f = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      return sameDay ? f(start) : `${f(start)} → ${f(end)}`;
+      const dayFmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const timeFmt = (d: Date) => d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+      // For short windows (< 48h) show hour AM/PM; for multi-day windows just dates.
+      if (ms < 48 * 3_600_000) {
+        if (sameDay) return `${dayFmt(start)} · ${timeFmt(start)} → ${timeFmt(end)}`;
+        return `${dayFmt(start)} ${timeFmt(start)} → ${dayFmt(end)} ${timeFmt(end)}`;
+      }
+      return sameDay ? dayFmt(start) : `${dayFmt(start)} → ${dayFmt(end)}`;
     };
     const fmtDuration = (start: Date, end: Date) => {
       const ms = Math.max(0, end.getTime() - start.getTime());
