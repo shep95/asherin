@@ -272,6 +272,23 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     [ingresses, activeRef.points],
   );
 
+  // ── Filter every window list to ONLY those overlapping the selected period ──
+  // The user explicitly asked: month view = only that month's transit-relevant data.
+  const inPeriod = useMemo(() => {
+    const s = periodStart.getTime();
+    const e = periodEnd.getTime();
+    return (w: KarmicWindow) => w.start.getTime() <= e && w.end.getTime() >= s;
+  }, [periodStart, periodEnd]);
+
+  const wealthInPeriod    = useMemo(() => wealthWindows.filter(inPeriod),    [wealthWindows, inPeriod]);
+  const soulmateInPeriod  = useMemo(() => soulmateWindows.filter(inPeriod),  [soulmateWindows, inPeriod]);
+  const healthInPeriod    = useMemo(() => healthWindows.filter(inPeriod),    [healthWindows, inPeriod]);
+  const romanceInPeriod   = useMemo(() => romanceWindows.filter(inPeriod),   [romanceWindows, inPeriod]);
+  const powerInPeriod     = useMemo(() => powerWindows.filter(inPeriod),     [powerWindows, inPeriod]);
+  const influenceInPeriod = useMemo(() => influenceWindows.filter(inPeriod), [influenceWindows, inPeriod]);
+  const fameInPeriod      = useMemo(() => fameWindows.filter(inPeriod),      [fameWindows, inPeriod]);
+  const careerInPeriod    = useMemo(() => careerWindows.filter(inPeriod),    [careerWindows, inPeriod]);
+
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
     for (const r of readings) {
@@ -424,99 +441,92 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
-      {/* WEALTH + SOULMATE WINDOWS — chart-specific big-money / soulmate timing */}
-      {(wealthWindows.length > 0 || soulmateWindows.length > 0) && (
+      {/* WEALTH + SOULMATE WINDOWS — filtered to selected period only */}
+      {(wealthInPeriod.length > 0 || soulmateInPeriod.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {wealthWindows.length > 0 && (
+          {wealthInPeriod.length > 0 && (
             <WindowList
               title={`Wealth Windows · ${subjectLabel}`}
               subtitle={activeRef.kind === "company"
-                ? "Periods when transiting benefics light up this company's dhana axis (lords of 2/5/9/11 + AK)."
-                : "Periods when transiting benefics ignite YOUR personal wealth axis (lords of 2/5/9/11 + Atmakaraka). Translation: when the universe lines up your big-money channels."}
+                ? `Wealth windows active during ${periodLabel} — transiting benefics on this company's dhana axis (2/5/9/11 lords + AK).`
+                : `Wealth windows active during ${periodLabel} — transiting benefics on YOUR dhana axis (2/5/9/11 lords + Atmakaraka).`}
               icon={<Gem className="h-3.5 w-3.5 text-emerald-300/90" />}
               accent="emerald"
-              windows={wealthWindows}
+              windows={wealthInPeriod}
             />
           )}
-          {soulmateWindows.length > 0 && (
+          {soulmateInPeriod.length > 0 && (
             <WindowList
               title="Soulmate / Marriage Windows"
-              subtitle="When Jupiter or Venus walks into the SPECIFIC signs your spouse-karmas live in. Plain-English: when 'meet your person' energy is actually on for you."
+              subtitle={`Soulmate windows active during ${periodLabel} — Jupiter/Venus walking into your spouse-karma signs.`}
               icon={<Heart className="h-3.5 w-3.5 text-rose-300/90" />}
               accent="rose"
-              windows={soulmateWindows}
+              windows={soulmateInPeriod}
             />
           )}
         </div>
       )}
 
-      {/* HEALTH / SICKNESS WINDOWS */}
-      {healthWindows.length > 0 && (
+      {healthInPeriod.length > 0 && (
         <WindowList
           title={`Health & Sickness Windows · ${subjectLabel}`}
-          subtitle="When malefics (Saturn, Mars, Rahu, Ketu) walk into the signs of your health-axis lords (6th = disease, 8th = chronic / surgery, 12th = hospital), Lagna (body), or Moon (mind). Plain-English: the months you're statistically most likely to get sick, injured, or run-down — and the windows that bless your immunity."
+          subtitle={`Health-axis hits active during ${periodLabel} — malefics on 6/8/12 lords, Lagna or Moon. Only windows that overlap this ${granularity}.`}
           icon={<Activity className="h-3.5 w-3.5 text-red-300/90" />}
           accent="red"
-          windows={healthWindows}
+          windows={healthInPeriod}
         />
       )}
 
-      {/* ROMANCE (dating / attraction — distinct from soulmate/marriage axis) */}
-      {romanceWindows.length > 0 && (
+      {romanceInPeriod.length > 0 && (
         <WindowList
           title="Romance / Attraction Windows"
-          subtitle="When Venus, Mars, or Moon walks into the signs of your romance points (5th-lord = affairs/flirting, 7th-lord = partners, Moon = emotional pull, Lagna = magnetism). Plain-English: the stretches when dating, chemistry, and 'getting noticed' actually fire — separate from the deeper soulmate axis."
+          subtitle={`Romance windows active during ${periodLabel} — Venus/Mars/Moon firing your 5L, 7L, Lagna, or Moon.`}
           icon={<Flame className="h-3.5 w-3.5 text-pink-300/90" />}
           accent="pink"
-          windows={romanceWindows}
+          windows={romanceInPeriod}
         />
       )}
 
-      {/* POWER / INFLUENCE / FAME / CAREER — career-axis dominance grid */}
-      {(powerWindows.length > 0 || careerWindows.length > 0 || influenceWindows.length > 0 || fameWindows.length > 0) && (
+      {(powerInPeriod.length > 0 || careerInPeriod.length > 0 || influenceInPeriod.length > 0 || fameInPeriod.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {powerWindows.length > 0 && (
+          {powerInPeriod.length > 0 && (
             <WindowList
               title={`Power / Authority Windows · ${subjectLabel}`}
-              subtitle="When Sun, Saturn, Mars, or Jupiter walks into the signs of your 10th-lord (career-throne), Lagna (body of authority), Sun-sign, or Atmakaraka. Plain-English: when the 'put me in charge' energy is actually on for you."
+              subtitle={`Authority hits active during ${periodLabel} — Sun/Saturn/Mars/Jupiter on 10L, Lagna, Surya or AK.`}
               icon={<Crown className="h-3.5 w-3.5 text-amber-300/90" />}
               accent="amber"
-              windows={powerWindows}
+              windows={powerInPeriod}
             />
           )}
-          {careerWindows.length > 0 && (
+          {careerInPeriod.length > 0 && (
             <WindowList
               title={`Career-Advancement Windows · ${subjectLabel}`}
-              subtitle="When Saturn, Sun, Jupiter, Mars or Mercury hits the signs of your 10th-lord (status), 11th-lord (gains from work) or 6th-lord (daily-work)/Atmakaraka. Plain-English: the months promotions, role changes, and new jobs actually land."
+              subtitle={`Career hits active during ${periodLabel} — Saturn/Sun/Jupiter/Mars/Mercury on 10L, 11L, 6L or AK.`}
               icon={<Briefcase className="h-3.5 w-3.5 text-sky-300/90" />}
               accent="sky"
-              windows={careerWindows}
+              windows={careerInPeriod}
             />
           )}
-          {influenceWindows.length > 0 && (
+          {influenceInPeriod.length > 0 && (
             <WindowList
               title={`Influence / Reach Windows · ${subjectLabel}`}
-              subtitle="When Rahu, Jupiter, Mercury, or Venus walks into your 10th-lord, 11th-lord (network), 3rd-lord (voice), Moon, or Lagna. Plain-English: when people actually listen to you and your circle grows."
+              subtitle={`Reach hits active during ${periodLabel} — Rahu/Jupiter/Mercury/Venus on 10L, 11L, 3L, Moon or Lagna.`}
               icon={<Megaphone className="h-3.5 w-3.5 text-violet-300/90" />}
               accent="violet"
-              windows={influenceWindows}
+              windows={influenceInPeriod}
             />
           )}
-          {fameWindows.length > 0 && (
+          {fameInPeriod.length > 0 && (
             <WindowList
               title={`Fame / Visibility Windows · ${subjectLabel}`}
-              subtitle="When Sun and Rahu (the fame-pair) hit your 10th-lord, Lagna, Sun-sign or Moon-sign. Plain-English: when the public actually notices you — for better or worse. Negative windows = cancel / reputation risk."
+              subtitle={`Fame hits active during ${periodLabel} — Sun/Rahu on 10L, Lagna, Surya or Chandra.`}
               icon={<Star className="h-3.5 w-3.5 text-yellow-300/90" />}
               accent="yellow"
-              windows={fameWindows}
+              windows={fameInPeriod}
             />
           )}
         </div>
       )}
-
-
-
-
 
       {/* Month forecast */}
       <div className="rounded-lg border border-border/25 bg-gradient-to-b from-foreground/[0.04] to-transparent p-3 space-y-2">
@@ -530,7 +540,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading the sky…</div>
         )}
         {!loadingNow && monthForecast.length === 0 && (
-          <div className="text-[11px] text-muted-foreground/60 italic">No major life-area activations this month. Background period — steady, integrative.</div>
+          <div className="text-[11px] text-muted-foreground/60 italic">No major life-area activations this {granularity}. Background period — steady, integrative.</div>
         )}
         {!loadingNow && monthForecast.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
