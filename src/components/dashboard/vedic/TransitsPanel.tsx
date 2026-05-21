@@ -56,9 +56,10 @@ interface NatalRef {
   label: string;
   kind: "user" | "company";
   key: string;
+  points: SensitivePoints | null;
 }
 
-const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, companyCharts }: Props) => {
+const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts }: Props) => {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState<Date>(() => midOfMonth(new Date()));
   const [mode, setMode] = useState<"user" | string>("user"); // "user" or company symbol
@@ -69,7 +70,8 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, comp
     ascendant: natalAscendant, lat, lon,
     label: userChartName || "Your Chart", kind: "user",
     key: `user:${chartKey ?? `${natalAscendant.toFixed(3)}:${lat}:${lon}`}`,
-  }), [natalAscendant, lat, lon, chartKey, userChartName]);
+    points: natalPlanets ? computeSensitivePoints(natalPlanets, natalAscendant) : null,
+  }), [natalAscendant, natalPlanets, lat, lon, chartKey, userChartName]);
 
   // Resolve company natal chart whenever mode changes to a company symbol
   useEffect(() => {
@@ -89,6 +91,7 @@ const TransitsPanel = ({ natalAscendant, lat, lon, chartKey, userChartName, comp
           ascendant: c.ascendant, lat: co.lat, lon: co.lon,
           label: `${co.name} (${co.symbol})`, kind: "company",
           key: `co:${co.symbol}`,
+          points: computeSensitivePoints(c.planets, c.ascendant),
         });
       } finally {
         if (!cancelled) setResolvingCompany(false);
