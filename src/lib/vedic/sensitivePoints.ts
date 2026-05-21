@@ -9,14 +9,12 @@
  *   - Lagna (Ascendant sign)
  *   - Chandra Lagna (Moon sign)
  *   - Surya Lagna (Sun sign)
- *   - Atmakaraka (AK) sign — planet with highest deg-in-sign (Jaimini, 7-planet system, no Rahu)
- *   - Darakaraka (DK) sign — planet with lowest deg-in-sign (spouse-significator)
- *   - Upapada Lagna (UL) sign — 12th from the sign of the 2nd-house lord (Jaimini spouse point)
- *   - 7th-lord sign — sign occupied by the lord of the 7th house from Lagna
- *
- * For each transiting planet, we then check: does its current sign coincide
- * with one of these points? If so, the transit gets a personalized "WHY THIS
- * MATTERS TO YOU" sentence pulled from PLANET_X_POINT lookup.
+ *   - Atmakaraka (AK)  — soul-mission planet (highest deg-in-sign)
+ *   - Darakaraka (DK)  — spouse-significator (lowest deg-in-sign)
+ *   - Upapada Lagna (UL) — Jaimini spouse point
+ *   - L2 (Dhana), L5 (Purva Punya), L6 (Roga), L7 (Partner), L8 (Ayur), L9
+ *     (Bhagya), L11 (Labha), L12 (Vyaya) — sign currently occupied by the
+ *     respective house-lord from Lagna.
  */
 
 import type { SweVedicPlanet } from "./sweChart";
@@ -24,34 +22,29 @@ import { rashis } from "@/data/nakshatraData";
 
 // 0=Aries, 1=Taurus, ..., 11=Pisces
 const SIGN_LORD: Record<number, string> = {
-  0: "Mars",     // Aries
-  1: "Venus",    // Taurus
-  2: "Mercury",  // Gemini
-  3: "Moon",     // Cancer
-  4: "Sun",      // Leo
-  5: "Mercury",  // Virgo
-  6: "Venus",    // Libra
-  7: "Mars",     // Scorpio (Ketu co-rules — keep classical)
-  8: "Jupiter",  // Sagittarius
-  9: "Saturn",   // Capricorn
-  10: "Saturn",  // Aquarius
-  11: "Jupiter", // Pisces
+  0: "Mars", 1: "Venus", 2: "Mercury", 3: "Moon", 4: "Sun",
+  5: "Mercury", 6: "Venus", 7: "Mars", 8: "Jupiter",
+  9: "Saturn", 10: "Saturn", 11: "Jupiter",
 };
 
-export type PointCode = "Lagna" | "Chandra" | "Surya" | "AK" | "DK" | "UL" | "L7" | "L2" | "L5" | "L9" | "L11";
+export type PointCode =
+  | "Lagna" | "Chandra" | "Surya" | "AK" | "DK" | "UL" | "L7"
+  | "L2" | "L5" | "L9" | "L11"
+  | "L6" | "L8" | "L12";
 
 export interface SensitivePoint {
   code: PointCode;
   label: string;
-  signIndex: number;        // 0..11
+  signIndex: number;
   signName: string;
   /** Plain-English description of what this point IS in your chart. */
   explanation: string;
+  /** Dead-simple, no-jargon version of `explanation`. */
+  plainExplanation: string;
 }
 
 export interface SensitivePoints {
   byCode: Record<PointCode, SensitivePoint>;
-  /** Convenient lookup: signIndex → all points sitting in that sign */
   bySign: Map<number, SensitivePoint[]>;
 }
 
@@ -65,7 +58,6 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
   const moonSign = moon ? signOf(moon.sid) : ascSign;
   const sunSign  = sun ? signOf(sun.sid) : ascSign;
 
-  // Jaimini karakas — use Sun..Saturn (7-planet system, no nodes)
   const karakaCandidates = planets.filter((p) =>
     ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn"].includes(p.name)
   );
@@ -73,51 +65,73 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
   const ak = sorted[0];
   const dk = sorted[sorted.length - 1];
 
-  // 2nd house from Lagna
   const sign2 = (ascSign + 1) % 12;
   const lord2Name = SIGN_LORD[sign2];
   const lord2Planet = planets.find((p) => p.name === lord2Name);
   const lord2Sign = lord2Planet ? signOf(lord2Planet.sid) : sign2;
-  // UL: classical = 12th from sign of 2nd lord
   const ulSign = (lord2Sign + 11) % 12;
 
-  // Generic helper: sign of the lord of house N (1..12)
   const lordSignOfHouse = (houseN: number): number => {
     const sign = (ascSign + (houseN - 1)) % 12;
     const lordName = SIGN_LORD[sign];
     const lordPlanet = planets.find((p) => p.name === lordName);
     return lordPlanet ? signOf(lordPlanet.sid) : sign;
   };
-  const lord2Sign_ = lord2Sign;
   const lord5Sign = lordSignOfHouse(5);
+  const lord6Sign = lordSignOfHouse(6);
   const lord7Sign = lordSignOfHouse(7);
+  const lord8Sign = lordSignOfHouse(8);
   const lord9Sign = lordSignOfHouse(9);
   const lord11Sign = lordSignOfHouse(11);
+  const lord12Sign = lordSignOfHouse(12);
 
-  const mk = (code: PointCode, label: string, signIndex: number, explanation: string): SensitivePoint => ({
-    code, label, signIndex, signName: rashis[signIndex].name, explanation,
+  const mk = (code: PointCode, label: string, signIndex: number, explanation: string, plainExplanation: string): SensitivePoint => ({
+    code, label, signIndex, signName: rashis[signIndex].name, explanation, plainExplanation,
   });
 
   const byCode: Record<PointCode, SensitivePoint> = {
-    Lagna:   mk("Lagna",   "Ascendant (Lagna)",         ascSign,  "The sign rising at your birth — directly your body, identity, vitality, and how the world meets you."),
-    Chandra: mk("Chandra", "Moon Sign (Chandra Lagna)", moonSign, "Where your Moon sits — emotional weather, the daily mind, mother, public-facing comfort."),
-    Surya:   mk("Surya",   "Sun Sign (Surya Lagna)",    sunSign,  "Where your Sun sits — soul-vitality, ego, father, authority signature."),
-    AK:      mk("AK",      `Atmakaraka — ${ak?.name ?? "—"}`, ak ? signOf(ak.sid) : ascSign,
-              `Your Atmakaraka is ${ak?.name ?? "—"} — the planet that took the highest degree at your birth. It carries the deepest agenda of this incarnation. Transits through its sign move the soul-mission directly.`),
-    DK:      mk("DK",      `Darakaraka — ${dk?.name ?? "—"}`, dk ? signOf(dk.sid) : ascSign,
-              `Your Darakaraka is ${dk?.name ?? "—"} — the planet at the lowest degree. In Jaimini, it describes the nature of your spouse / serious partner.`),
-    UL:      mk("UL",      "Upapada Lagna (UL)",        ulSign,
-              "The Upapada Lagna is the most precise spouse / soulmate indicator in Jaimini astrology. It is NOT a house — it is a calculated sensitive sign that describes who your spouse is and when they arrive. When a planet (especially Jupiter or Venus) transits this sign, the energy of that sign — your spouse — gets lit up in real life."),
-    L7:      mk("L7",      "Lord of 7th",               lord7Sign,
-              "The sign where your 7th-house lord currently resides — the field where partnerships, marriage, and one-on-one alliances actually play out for you."),
-    L2:      mk("L2",      "Lord of 2nd (Dhana)",       lord2Sign_,
-              "Sign where your 2nd-house lord (Dhana — accumulated wealth, savings, family money) currently lives. Benefic transits here = the savings vault is being filled."),
-    L5:      mk("L5",      "Lord of 5th (Purva Punya)", lord5Sign,
-              "Sign where your 5th-house lord (purva punya — past-life merit, speculation, intelligence, children) lives. Benefic transits here unlock lucky breaks, speculative wins, and creative income."),
-    L9:      mk("L9",      "Lord of 9th (Bhagya)",      lord9Sign,
-              "Sign where your 9th-house lord (Bhagya — fortune, dharma, divine grace, father) lives. The single most important wealth-luck axis. Benefic transits here = the fortune engine turns on."),
-    L11:     mk("L11",     "Lord of 11th (Labha)",      lord11Sign,
-              "Sign where your 11th-house lord (Labha — large gains, fulfilment of desires, network income) lives. Benefic transits here = income streams swell; big payouts arrive."),
+    Lagna:   mk("Lagna",   "Ascendant (Lagna)", ascSign,
+                "The sign rising at your birth — directly your body, identity, vitality, and how the world meets you.",
+                "Your body and how the world sees you."),
+    Chandra: mk("Chandra", "Moon Sign (Chandra Lagna)", moonSign,
+                "Where your Moon sits — emotional weather, the daily mind, mother, public-facing comfort.",
+                "Your mind and emotions."),
+    Surya:   mk("Surya",   "Sun Sign (Surya Lagna)", sunSign,
+                "Where your Sun sits — soul-vitality, ego, father, authority signature.",
+                "Your vitality, ego, and 'main character' energy."),
+    AK:      mk("AK", `Atmakaraka — ${ak?.name ?? "—"}`, ak ? signOf(ak.sid) : ascSign,
+                `Your Atmakaraka is ${ak?.name ?? "—"} — the planet that took the highest degree at your birth. It carries the deepest agenda of this incarnation.`,
+                "The single point that drives your life-mission."),
+    DK:      mk("DK", `Darakaraka — ${dk?.name ?? "—"}`, dk ? signOf(dk.sid) : ascSign,
+                `Your Darakaraka is ${dk?.name ?? "—"} — the planet at the lowest degree. Describes the nature of your spouse / serious partner.`,
+                "The point that describes your future spouse."),
+    UL:      mk("UL", "Upapada Lagna (UL)", ulSign,
+                "The Upapada Lagna is the most precise spouse / soulmate indicator in Jaimini astrology. When a planet (especially Jupiter or Venus) transits this sign, the energy of your spouse gets lit up in real life.",
+                "Where your soulmate 'lives' on the chart."),
+    L7:      mk("L7", "Lord of 7th", lord7Sign,
+                "The sign where your 7th-house lord currently resides — the field where partnerships and marriage actually play out for you.",
+                "Where your relationships actually play out."),
+    L2:      mk("L2", "Lord of 2nd (Dhana)", lord2Sign,
+                "Sign where your 2nd-house lord (accumulated wealth, savings, family money) currently lives.",
+                "Your savings and family money vault."),
+    L5:      mk("L5", "Lord of 5th (Purva Punya)", lord5Sign,
+                "Sign where your 5th-house lord (past-life merit, speculation, creativity, children) lives.",
+                "Your luck, creativity, and speculation wins."),
+    L9:      mk("L9", "Lord of 9th (Bhagya)", lord9Sign,
+                "Sign where your 9th-house lord (fortune, dharma, divine grace) lives — the single most important wealth-luck axis.",
+                "Your fortune engine — luck, sponsors, big breaks."),
+    L11:     mk("L11", "Lord of 11th (Labha)", lord11Sign,
+                "Sign where your 11th-house lord (large gains, network income, fulfilment of desires) lives.",
+                "Your big-payout, network-income channel."),
+    L6:      mk("L6", "Lord of 6th (Roga)", lord6Sign,
+                "Sign where your 6th-house lord (disease, debts, enemies, daily work) lives. The classical 'sickness house' lord.",
+                "Your disease/illness channel."),
+    L8:      mk("L8", "Lord of 8th (Ayur)", lord8Sign,
+                "Sign where your 8th-house lord (chronic illness, surgery, sudden events, longevity) lives.",
+                "Your chronic illness / surgery / sudden-event channel."),
+    L12:     mk("L12", "Lord of 12th (Vyaya)", lord12Sign,
+                "Sign where your 12th-house lord (hospitalization, hidden enemies, isolation, expenses) lives.",
+                "Your hospitalization / bed-rest channel."),
   };
 
   const bySign = new Map<number, SensitivePoint[]>();
@@ -129,87 +143,172 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
   return { byCode, bySign };
 }
 
-// ── Why-this-matters narrative for transit × sensitive-point combos ──
-// Keyed by `${planet}|${pointCode}`. If a combo isn't here, we fall back to a
-// generic line built from the point's explanation.
-
+// ── Why-this-matters narrative (NERDY) and plain-English (DUMB-IT-DOWN) ──
 const COMBO_REASON: Record<string, string> = {
-  // Jupiter — manifestation, expansion, blessing
+  // Jupiter
   "Jupiter|UL":      "Jupiter is the planet of manifestation and blessing. Your Upapada Lagna is the spouse-point. Jupiter walking through this sign = the spouse energy in your chart is being illuminated in real life. Strongest spouse-arrival window of the cycle.",
   "Jupiter|DK":      "Jupiter is now in the sign of your Darakaraka — your spouse-significator. Marriage-quality opportunities, introductions, or the deepening of an existing partnership become possible.",
-  "Jupiter|L7":      "Jupiter is transiting the sign your 7th-house lord lives in. The 'partnership theater' of your chart is being expanded and blessed — proposals, alliances, deal-closures.",
-  "Jupiter|Lagna":   "Jupiter is on your Ascendant sign — body, identity, presence. People perceive you as more trustworthy, larger, wiser. A reinvention/expansion window for the self.",
-  "Jupiter|Chandra": "Jupiter is transiting your Moon sign. Emotional expansion, peace, optimism, mother/home gains. Classically one of the most fortunate Jupiter transits.",
-  "Jupiter|Surya":   "Jupiter is on your Sun sign — recognition, authority, father, dharma. Career visibility tied to your purpose grows.",
-  "Jupiter|AK":      "Jupiter is in the sign of your Atmakaraka. Your soul-mission gets divine wind. Long-range purpose moves forward visibly.",
+  "Jupiter|L7":      "Jupiter is transiting the sign your 7th-house lord lives in. The 'partnership theater' of your chart is being expanded and blessed.",
+  "Jupiter|Lagna":   "Jupiter is on your Ascendant sign — body, identity, presence. People perceive you as more trustworthy, larger, wiser.",
+  "Jupiter|Chandra": "Jupiter is transiting your Moon sign. Emotional expansion, peace, optimism. Classically one of the most fortunate Jupiter transits.",
+  "Jupiter|Surya":   "Jupiter is on your Sun sign — recognition, authority, father, dharma. Career visibility tied to purpose grows.",
+  "Jupiter|AK":      "Jupiter is in the sign of your Atmakaraka. Your soul-mission gets divine wind.",
 
-  // Venus — love, beauty, value
-  "Venus|UL":     "Venus is on your Upapada Lagna sign — pure romantic activation of the spouse-point. Beauty, attraction, and romantic possibility lit up directly.",
-  "Venus|DK":     "Venus is in the sign of your Darakaraka — your spouse-significator. A high romantic-magnetism window; partnership themes intensify.",
-  "Venus|L7":     "Venus is in the sign where your 7th-lord lives — partnership pleasure, harmony with the other, and aesthetic upgrades to relationships.",
-  "Venus|Lagna":  "Venus on your Ascendant sign — beauty, magnetism, body looks better, people are drawn to you.",
-  "Venus|Chandra":"Venus on your Moon sign — emotional sweetness, indulgence, comfort, women-related gains.",
+  // Venus
+  "Venus|UL":     "Venus is on your Upapada Lagna sign — pure romantic activation of the spouse-point.",
+  "Venus|DK":     "Venus is in the sign of your Darakaraka — high romantic-magnetism window.",
+  "Venus|L7":     "Venus is in the sign where your 7th-lord lives — partnership pleasure and harmony.",
+  "Venus|Lagna":  "Venus on your Ascendant sign — beauty, magnetism, body looks better.",
+  "Venus|Chandra":"Venus on your Moon sign — emotional sweetness, indulgence, comfort.",
 
-  // Saturn — discipline, delay, karma
-  "Saturn|Chandra":"Saturn is transiting your Moon sign. This is the heart of Sade Sati — the famous 7.5-year karmic pressure cycle on your mind, emotions, and public life. Slow, structural rewrite of your inner world.",
-  "Saturn|Lagna":  "Saturn is on your Ascendant sign — body and identity get pressure-tested. Aging, responsibility, restructuring of self. Hard but real.",
-  "Saturn|UL":     "Saturn is in your Upapada Lagna sign. Spouse / serious partnership matters slow down, become more serious, or get karmically pruned. Marriages formed here are weighty and binding.",
-  "Saturn|DK":     "Saturn is in your Darakaraka sign — testing the partnership karma. Existing bonds are stress-tested; new ones come with age, duty, or distance.",
-  "Saturn|L7":     "Saturn is in the sign where your 7th-lord lives. Partnerships demand maturity, commitment, or hard work to maintain.",
-  "Saturn|AK":     "Saturn is on your Atmakaraka sign — the soul-purpose is being structurally rebuilt. Slow, mandatory, character-forging.",
+  // Saturn
+  "Saturn|Chandra":"Saturn is transiting your Moon sign. Heart of Sade Sati — 7.5-year karmic pressure cycle on your mind and public life.",
+  "Saturn|Lagna":  "Saturn is on your Ascendant sign — body and identity get pressure-tested.",
+  "Saturn|UL":     "Saturn is in your Upapada Lagna sign. Spouse / serious partnership matters slow down or get karmically pruned.",
+  "Saturn|DK":     "Saturn is in your Darakaraka sign — testing partnership karma.",
+  "Saturn|L7":     "Saturn is in the sign where your 7th-lord lives. Partnerships demand maturity and commitment.",
+  "Saturn|AK":     "Saturn is on your Atmakaraka — soul-purpose is being structurally rebuilt.",
 
-  // Rahu — obsession, foreign, breakthrough
-  "Rahu|UL":     "Rahu is on your Upapada Lagna. Spouse arrival becomes unusual, foreign, online, or outside your normal circle. Intensity high; clarity low — verify before committing.",
-  "Rahu|DK":     "Rahu is in your Darakaraka sign — magnetic, obsessive, unconventional pull toward partnership. Beware projection.",
-  "Rahu|AK":     "Rahu is on your Atmakaraka — your soul-mission gets a Rahu-style amplifier: ambition, foreign opportunities, breakthroughs, but also illusion. Big leap energy.",
-  "Rahu|Lagna":  "Rahu on your Ascendant — identity goes through a metamorphosis. New look, new circles, sometimes a feeling of 'not yourself'.",
-  "Rahu|Chandra":"Rahu on your Moon sign — mind under foreign / obsessive influence. Sleep disrupted, cravings rise, intuition gets noisy.",
+  // Rahu
+  "Rahu|UL":     "Rahu is on your Upapada Lagna. Spouse arrival becomes unusual, foreign, online, or outside your normal circle.",
+  "Rahu|DK":     "Rahu is in your Darakaraka sign — magnetic, obsessive, unconventional pull toward partnership.",
+  "Rahu|AK":     "Rahu is on your Atmakaraka — soul-mission gets a Rahu-style amplifier: ambition, foreign opportunities, illusion.",
+  "Rahu|Lagna":  "Rahu on your Ascendant — identity goes through a metamorphosis.",
+  "Rahu|Chandra":"Rahu on your Moon sign — mind under foreign / obsessive influence. Sleep disrupted, cravings rise.",
 
-  // Ketu — detachment, mysticism, severance
-  "Ketu|UL":     "Ketu in your Upapada Lagna — detachment from spouse-themes. Existing bonds may quietly dissolve; not a window to push for marriage.",
-  "Ketu|DK":     "Ketu in your Darakaraka sign — partnerships feel hollow or finish a karmic chapter. Healing through endings.",
-  "Ketu|AK":     "Ketu on your Atmakaraka — moksha pressure. The soul wants to drop the role it's been playing. Spiritual breakthroughs possible; worldly ambition feels empty.",
-  "Ketu|Lagna":  "Ketu on your Ascendant — identity dissolves quietly. You stop caring about how you appear. A withdrawal phase.",
-  "Ketu|Chandra":"Ketu on your Moon sign — emotional detachment, confusion, isolation pull. Spiritual practice carries you through.",
+  // Ketu
+  "Ketu|UL":     "Ketu in your Upapada Lagna — detachment from spouse-themes.",
+  "Ketu|DK":     "Ketu in your Darakaraka sign — partnerships feel hollow or finish a karmic chapter.",
+  "Ketu|AK":     "Ketu on your Atmakaraka — moksha pressure. Soul wants to drop the role it's playing.",
+  "Ketu|Lagna":  "Ketu on your Ascendant — identity dissolves quietly.",
+  "Ketu|Chandra":"Ketu on your Moon sign — emotional detachment, confusion, isolation pull.",
 
   // Mars
-  "Mars|Lagna":  "Mars on your Ascendant — physical drive, courage, but also short fuse and accident risk. Move bodies, not arguments.",
-  "Mars|UL":     "Mars in your Upapada Lagna — passion in spouse-matters, but also conflict. Use carefully.",
+  "Mars|Lagna":  "Mars on your Ascendant — physical drive, courage, also short fuse and accident risk.",
+  "Mars|UL":     "Mars in your Upapada Lagna — passion in spouse-matters, also conflict.",
 
-  // Sun
-  "Sun|Lagna":   "Sun on your Ascendant sign — visibility, authority, ego forward. People see you.",
-  "Sun|Surya":   "Sun returns to its natal sign — your annual 'solar return' field. Reset point for vitality and direction.",
+  // Sun / Moon return points
+  "Sun|Lagna":   "Sun on your Ascendant sign — visibility, authority, ego forward.",
+  "Sun|Surya":   "Sun returns to its natal sign — your annual 'solar return' field. Reset point.",
+  "Moon|Chandra":"Moon returns to your natal Moon sign — emotional 'home', ~2.5-day peak intuition.",
 
-  // Moon
-  "Moon|Chandra":"Moon returns to your natal Moon sign — emotional 'home', clearer instincts, peak intuition for ~2.5 days.",
+  // ── WEALTH AXIS ──
+  "Jupiter|L9":  "Jupiter is now in the sign of your 9th-lord (Bhagya). Single strongest fortune-activator in Vedic astrology. Millionaire-grade timing.",
+  "Jupiter|L11": "Jupiter is in the sign of your 11th-lord (Labha). Income/large-gains house being expanded by the wealth-karaka. Top-tier wealth window.",
+  "Jupiter|L2":  "Jupiter is in the sign of your 2nd-lord (Dhana). Vault of accumulated wealth expanded by wealth-karaka.",
+  "Jupiter|L5":  "Jupiter is in the sign of your 5th-lord (Purva Punya). Past-life merit cashes in — speculative wins.",
+  "Venus|L11":   "Venus is in the sign of your 11th-lord. Network-driven income, luxurious payouts.",
+  "Venus|L2":    "Venus on your 2nd-lord sign — money through beauty, art, partnerships, family.",
+  "Venus|L9":    "Venus is in the sign of your 9th-lord. Lucky money through travel, foreign sources, sponsors.",
+  "Rahu|L11":    "Rahu in the sign of your 11th-lord — explosive, unconventional gains. Crypto, viral income, sudden jackpots.",
+  "Rahu|L9":     "Rahu on your 9th-lord sign — fortune through unusual / foreign / breakthrough channels.",
+  "Rahu|L2":     "Rahu in your 2nd-lord sign — speculative wealth, hidden/foreign income.",
+  "Saturn|L11":  "Saturn in your 11th-lord sign. Income matures through structure and hard work.",
+  "Saturn|L2":   "Saturn in your 2nd-lord sign — savings get pruned and disciplined.",
+  "Saturn|L9":   "Saturn on your 9th-lord — luck slows; fortune comes through karmic effort.",
+  "Ketu|L11":    "Ketu in your 11th-lord sign — income channels cut off or detached from.",
 
-  // ── WEALTH AXIS — "millionaire-level" activations ──
-  // Jupiter on L9/L11/L2/L5/AK = textbook dhana-yoga ignition
-  "Jupiter|L9":  "Jupiter is now in the sign of your 9th-lord (Bhagya). This is the SINGLE strongest fortune-activator in Vedic astrology. Major luck windows, big sponsors, gurus opening doors, large-scale money-luck events. Millionaire-grade timing.",
-  "Jupiter|L11": "Jupiter is in the sign of your 11th-lord (Labha). The income/large-gains house lord is being expanded by the wealth-karaka itself. Pay rises, large payouts, deals closing, network unlocks money. Top-tier wealth window.",
-  "Jupiter|L2":  "Jupiter is in the sign of your 2nd-lord (Dhana). The vault of accumulated wealth is being expanded by the wealth-karaka. Savings grow, family money flows, valuable assets enter your name.",
-  "Jupiter|L5":  "Jupiter is in the sign of your 5th-lord (Purva Punya). Past-life merit cashes in — speculative wins, lucky breaks, creative income spikes, children-related gains.",
-  "Venus|L11":   "Venus is in the sign of your 11th-lord. Network-driven income, deals through women/aesthetics, luxurious payouts. Smaller scale than Jupiter but reliable.",
-  "Venus|L2":    "Venus on your 2nd-lord sign — money flows in through beauty, art, partnerships, family. Pleasant wealth window.",
-  "Venus|L9":    "Venus is in the sign of your 9th-lord. Lucky money through travel, foreign sources, or sponsors. Fortune wears a velvet glove.",
-  "Rahu|L11":    "Rahu in the sign of your 11th-lord — explosive, unconventional gains. Crypto, foreign deals, viral income, sudden network jackpots. Massive upside, also massive volatility — exit clean.",
-  "Rahu|L9":     "Rahu on your 9th-lord sign — fortune comes through unusual / foreign / breakthrough channels. A Rahu-fueled luck window, but verify everything.",
-  "Rahu|L2":     "Rahu in your 2nd-lord sign — speculative wealth, hidden/foreign income, large but unstable savings inflows.",
-  "Saturn|L11":  "Saturn is in the sign of your 11th-lord. Income matures through structure, hard work, contracts. Slow but real long-term gains house — not a get-rich-quick window.",
-  "Saturn|L2":   "Saturn in your 2nd-lord sign — savings get pruned and disciplined. Frugality forced; long-term wealth foundation laid.",
-  "Saturn|L9":   "Saturn on your 9th-lord — luck slows down. Fortune comes through karmic effort, not grace. Build the foundation now.",
-  "Ketu|L11":    "Ketu in your 11th-lord sign — income channels cut off or detached from. Old income streams may end; not a wealth-building window.",
+  // ── HEALTH / SICKNESS AXIS ──
+  "Saturn|L6":  "Saturn is in the sign of your 6th-lord (Roga — disease). Saturn slows the disease-house engine: chronic, dragging illnesses (joints, bones, digestion). Recovery is slow.",
+  "Saturn|L8":  "Saturn on your 8th-lord (Ayur — chronic illness, surgery). Long-running issue surfaces or worsens. Test, treat, don't ignore.",
+  "Saturn|L12": "Saturn on your 12th-lord (Vyaya — hospitalization, bed-rest). Risk of hospital stays, isolation, surgeries needing recovery time.",
+
+  "Mars|L6":   "Mars on your 6th-lord — sudden inflammation, fevers, infections, sports injuries, blood/heat issues.",
+  "Mars|L8":   "Mars on your 8th-lord — accident risk, surgical events, sudden acute pain. Drive carefully.",
+  "Mars|L12":  "Mars on your 12th-lord — risk of ER visits, accidents requiring isolation/recovery.",
+
+  "Rahu|L6":  "Rahu on your 6th-lord — strange, hard-to-diagnose illnesses, allergies, food poisoning, foreign infections.",
+  "Rahu|L8":  "Rahu on your 8th-lord — sudden weird health events, toxins, hidden conditions surfacing.",
+  "Rahu|L12": "Rahu on your 12th-lord — sleep disorders, mysterious hospitalizations, foreign-soil illness.",
+
+  "Ketu|L6":  "Ketu on your 6th-lord — old illness suddenly disappears OR cryptic chronic condition emerges. Either-or.",
+  "Ketu|L8":  "Ketu on your 8th-lord — surgical events, severance illnesses, energy detachment.",
+  "Ketu|L12": "Ketu on your 12th-lord — hospital stays, isolation, withdrawal, energy collapse.",
+};
+
+const COMBO_PLAIN: Record<string, string> = {
+  // Soulmate / love
+  "Jupiter|UL":  "Your soulmate gets activated. This is the strongest 'meet your person' window of the cycle.",
+  "Jupiter|DK":  "Marriage-quality people show up. Introductions, deep partnership upgrades.",
+  "Jupiter|L7":  "Your relationships get blessed and expand. Proposals, deals, alliances.",
+  "Jupiter|Lagna":"You glow. People trust you more. Looks bigger, wiser, more credible.",
+  "Jupiter|Chandra":"Mind feels light. Hope returns. One of the happiest periods possible.",
+  "Jupiter|Surya":"Recognition and authority grow — especially tied to your real purpose.",
+  "Jupiter|AK":  "Your life-mission gets a tailwind from the universe.",
+  "Venus|UL":    "Romance lights up your soulmate point. Magnetism is loud.",
+  "Venus|DK":    "Strong romantic-magnetism phase. The 'spouse signal' is on.",
+  "Venus|L7":    "Relationships feel good, easy, harmonious.",
+  "Venus|Lagna": "You look more attractive. People are drawn to you physically.",
+  "Venus|Chandra":"Emotional sweetness, comfort, indulgence.",
+
+  // Saturn pressure
+  "Saturn|Chandra":"Heavy mental period (Sade Sati core). Slow grind on mood and public life for years.",
+  "Saturn|Lagna":"Body and identity get stress-tested. Feel older, heavier, more responsible.",
+  "Saturn|UL":   "Marriage/soulmate stuff slows down or gets serious and karmic.",
+  "Saturn|DK":   "Existing relationship is tested. New ones come with duty or age.",
+  "Saturn|L7":   "Partnerships demand maturity and real commitment.",
+  "Saturn|AK":   "Life-purpose is being slowly rebuilt — hard but real.",
+
+  // Rahu / Ketu mind
+  "Rahu|UL":   "Soulmate arrival is weird — foreign, online, unusual. Intense but confusing — verify.",
+  "Rahu|DK":   "Obsessive, magnetic pull toward someone. Watch projection.",
+  "Rahu|AK":   "Massive ambition boost. Big leap energy — also illusion risk.",
+  "Rahu|Lagna":"Identity reinvention. New look, new circle, can feel 'not yourself'.",
+  "Rahu|Chandra":"Mind goes loud. Sleep off, cravings up, intuition noisy.",
+  "Ketu|UL":   "Spouse themes quietly detach. Not a window to push for marriage.",
+  "Ketu|DK":   "Relationships feel hollow or a karmic chapter ends.",
+  "Ketu|AK":   "Worldly ambition feels empty. Spiritual breakthroughs possible.",
+  "Ketu|Lagna":"Identity dissolves. Stop caring about appearances. Withdrawal phase.",
+  "Ketu|Chandra":"Emotionally detached. Confusion, isolation pull. Lean on practice.",
+
+  // Mars / Sun / Moon
+  "Mars|Lagna": "High drive but short fuse and accident risk. Move bodies, not arguments.",
+  "Mars|UL":    "Passion + conflict in relationships. Handle carefully.",
+  "Sun|Lagna":  "You're more visible. Authority forward — people see you.",
+  "Sun|Surya":  "Your yearly solar reset. Vitality and direction recalibrate.",
+  "Moon|Chandra":"Emotional 'home' return for ~2.5 days. Peak intuition.",
+
+  // Wealth — keep concrete
+  "Jupiter|L9":  "Biggest fortune window in the entire system. Sponsors, gurus, huge lucky breaks. Millionaire-grade timing.",
+  "Jupiter|L11": "Income engine ignites. Pay rises, big payouts, network unlocks money.",
+  "Jupiter|L2":  "Savings and family money grow. Assets enter your name.",
+  "Jupiter|L5":  "Lucky breaks and speculation wins — past-life credit cashes in.",
+  "Venus|L11":   "Income through network, beauty, art, women. Steady gains.",
+  "Venus|L2":    "Money flows through art, beauty, partnerships, family.",
+  "Venus|L9":    "Lucky money via travel, foreign sources, or sponsors.",
+  "Rahu|L11":    "Explosive unconventional gains — crypto, viral income, sudden jackpots. Huge upside, huge volatility — exit clean.",
+  "Rahu|L9":     "Fortune through unusual or foreign breakthrough channels. Verify everything.",
+  "Rahu|L2":     "Speculative wealth, hidden or foreign income. Big but unstable.",
+  "Saturn|L11":  "Slow, real long-term income through structure and contracts. Not get-rich-quick.",
+  "Saturn|L2":   "Savings get pruned. Forced frugality builds the foundation.",
+  "Saturn|L9":   "Luck slows down. Have to earn fortune through karmic effort.",
+  "Ketu|L11":    "Old income streams may cut off. Not a wealth-building window.",
+
+  // Health / sickness
+  "Saturn|L6":  "Watch for chronic, dragging illness this stretch — joints, bones, digestion. Recovery will be slow if you ignore it. Get checkups.",
+  "Saturn|L8":  "Long-running health issue could surface or worsen. Don't postpone tests or treatment.",
+  "Saturn|L12": "Risk of hospital stays, surgeries, or forced bed-rest in this window.",
+  "Mars|L6":   "Sudden fevers, infections, inflammation, or sports injuries possible. Don't push the body recklessly.",
+  "Mars|L8":   "Elevated accident or surgery risk. Drive carefully, avoid reckless stunts.",
+  "Mars|L12":  "Risk of ER visits or accidents that need recovery time.",
+  "Rahu|L6":   "Strange, hard-to-diagnose stuff — allergies, food poisoning, foreign infections. See a doctor early.",
+  "Rahu|L8":   "Weird sudden health events or hidden conditions surfacing. Get scans if anything feels off.",
+  "Rahu|L12":  "Sleep disorders, mysterious hospitalizations, sickness when travelling.",
+  "Ketu|L6":   "Either an old chronic issue suddenly dissolves, or a cryptic new one shows up. Pay attention.",
+  "Ketu|L8":   "Surgical events or severance illnesses possible. Energy may detach.",
+  "Ketu|L12":  "Hospital, isolation, or energy-collapse stretches. Rest is non-negotiable.",
 };
 
 export interface WhyReason {
   pointCode: PointCode;
   pointLabel: string;
   signName: string;
-  text: string;        // the personalized "why this matters TO YOU" sentence
+  text: string;       // nerdy version
+  plain: string;      // dumb-it-down version
   importance: "high" | "medium" | "low";
 }
 
-const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna", "L9", "L11", "L2"]);
+const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna", "L9", "L11", "L2", "L6", "L8", "L12"]);
 
 export function whyTransitMatters(
   planet: string,
@@ -221,9 +320,12 @@ export function whyTransitMatters(
   return hits.map((sp) => {
     const key = `${planet}|${sp.code}`;
     const custom = COMBO_REASON[key];
+    const customPlain = COMBO_PLAIN[key];
     const importance: WhyReason["importance"] = HIGH_POINTS.has(sp.code) ? "high" : "medium";
     const text = custom
       ?? `${planet} is now transiting your ${sp.label} sign (${sp.signName}). ${sp.explanation} ${planet}'s energy gets routed directly into that field of your life.`;
-    return { pointCode: sp.code, pointLabel: sp.label, signName: sp.signName, text, importance };
+    const plain = customPlain
+      ?? `${planet} is currently sitting in the part of your chart tied to: ${sp.plainExplanation} Expect that area of life to be active this period.`;
+    return { pointCode: sp.code, pointLabel: sp.label, signName: sp.signName, text, plain, importance };
   });
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart } from "lucide-react";
+import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart, Activity } from "lucide-react";
 import { computeTransitChart, computeFutureIngresses, type TransitChart, type SignIngress } from "@/lib/vedic/transits";
 import { readTransit, type LifePrediction, type Verdict } from "@/lib/vedic/transitMeanings";
 import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
@@ -245,6 +245,10 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       : [],
     [ingresses, activeRef.points, activeRef.kind],
   );
+  const healthWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "health", { clusterDays: 120, minScore: 4 }) : []),
+    [ingresses, activeRef.points],
+  );
 
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
@@ -390,7 +394,8 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                   </div>
                   <span className="text-[9px] uppercase tracking-[0.2em] text-amber-300/80">High Impact</span>
                 </div>
-                <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/90">{w.text}</p>
+                <p className="text-[11.5px] leading-relaxed font-light text-foreground/90">{w.plain}</p>
+                <p className="text-[10px] leading-relaxed font-light text-muted-foreground/55 italic mt-1">Nerd: {w.text}</p>
               </div>
             ))}
           </div>
@@ -404,8 +409,8 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
             <WindowList
               title={`Wealth Windows · ${subjectLabel}`}
               subtitle={activeRef.kind === "company"
-                ? "Periods when transiting benefics light up this company's dhana axis (2nd / 5th / 9th / 11th lords + AK). Big-money structural ignition windows."
-                : "Periods when transiting benefics ignite YOUR personal dhana axis (lords of 2/5/9/11 + Atmakaraka). These are the millionaire-grade timing windows in your chart — not generic 'Jupiter in 11th' readings."}
+                ? "Periods when transiting benefics light up this company's dhana axis (lords of 2/5/9/11 + AK)."
+                : "Periods when transiting benefics ignite YOUR personal wealth axis (lords of 2/5/9/11 + Atmakaraka). Translation: when the universe lines up your big-money channels."}
               icon={<Gem className="h-3.5 w-3.5 text-emerald-300/90" />}
               accent="emerald"
               windows={wealthWindows}
@@ -414,13 +419,24 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           {soulmateWindows.length > 0 && (
             <WindowList
               title="Soulmate / Marriage Windows"
-              subtitle="Periods when Jupiter or Venus walks into the SPECIFIC signs your spouse-karmas live in — Upapada Lagna (UL), Darakaraka (DK), 7th-lord sign, or your Moon sign. The actual sign matters, not the house number."
+              subtitle="When Jupiter or Venus walks into the SPECIFIC signs your spouse-karmas live in. Plain-English: when 'meet your person' energy is actually on for you."
               icon={<Heart className="h-3.5 w-3.5 text-rose-300/90" />}
               accent="rose"
               windows={soulmateWindows}
             />
           )}
         </div>
+      )}
+
+      {/* HEALTH / SICKNESS WINDOWS */}
+      {healthWindows.length > 0 && (
+        <WindowList
+          title={`Health & Sickness Windows · ${subjectLabel}`}
+          subtitle="When malefics (Saturn, Mars, Rahu, Ketu) walk into the signs of your health-axis lords (6th = disease, 8th = chronic / surgery, 12th = hospital), Lagna (body), or Moon (mind). Plain-English: the months you're statistically most likely to get sick, injured, or run-down — and the windows that bless your immunity."
+          icon={<Activity className="h-3.5 w-3.5 text-red-300/90" />}
+          accent="red"
+          windows={healthWindows}
+        />
       )}
 
 
@@ -479,11 +495,14 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                   </div>
                 </div>
                 {whys.length > 0 && (
-                  <div className="rounded-md border border-amber-300/25 bg-amber-300/[0.04] p-2 space-y-1">
+                  <div className="rounded-md border border-amber-300/25 bg-amber-300/[0.04] p-2 space-y-1.5">
                     {whys.map((w, i) => (
-                      <div key={i} className="text-[10.5px] leading-relaxed font-light">
-                        <span className="text-amber-200/90 uppercase tracking-[0.15em] text-[9px] mr-1">Your {w.pointLabel}</span>
-                        <span className="text-foreground/85">{w.text}</span>
+                      <div key={i} className="text-[10.5px] leading-relaxed font-light space-y-0.5">
+                        <div>
+                          <span className="text-amber-200/90 uppercase tracking-[0.15em] text-[9px] mr-1">Your {w.pointLabel}</span>
+                          <span className="text-foreground/90">{w.plain}</span>
+                        </div>
+                        <p className="text-muted-foreground/55 italic text-[10px]">Nerd: {w.text}</p>
                       </div>
                     ))}
                   </div>
@@ -567,11 +586,14 @@ function IngressRow({ ing, points }: { ing: SignIngress; points: SensitivePoints
         </span>
       </div>
       {whys.length > 0 && (
-        <div className="rounded-md border border-amber-300/25 bg-amber-300/[0.04] p-2 mt-1.5 space-y-1">
+        <div className="rounded-md border border-amber-300/25 bg-amber-300/[0.04] p-2 mt-1.5 space-y-1.5">
           {whys.map((w, i) => (
-            <div key={i} className="text-[10.5px] leading-relaxed font-light">
-              <span className="text-amber-200/90 uppercase tracking-[0.15em] text-[9px] mr-1">Hits your {w.pointLabel}</span>
-              <span className="text-foreground/85">{w.text}</span>
+            <div key={i} className="text-[10.5px] leading-relaxed font-light space-y-0.5">
+              <div>
+                <span className="text-amber-200/90 uppercase tracking-[0.15em] text-[9px] mr-1">Hits your {w.pointLabel}</span>
+                <span className="text-foreground/90">{w.plain}</span>
+              </div>
+              <p className="text-muted-foreground/55 italic text-[10px]">Nerd: {w.text}</p>
             </div>
           ))}
         </div>
@@ -587,7 +609,7 @@ function fmtRange(a: Date, b: Date) {
   return `${fmtDate(a)} → ${fmtDate(b)}`;
 }
 
-const ACCENT: Record<"emerald" | "rose", { ring: string; chip: string; head: string; grade: string }> = {
+const ACCENT: Record<"emerald" | "rose" | "red", { ring: string; chip: string; head: string; grade: string }> = {
   emerald: {
     ring: "border-emerald-400/30 bg-emerald-400/[0.04]",
     chip: "border-emerald-300/30 bg-emerald-300/[0.05] text-emerald-200",
@@ -600,7 +622,15 @@ const ACCENT: Record<"emerald" | "rose", { ring: string; chip: string; head: str
     head: "text-rose-200",
     grade: "text-rose-300/90",
   },
+  red: {
+    ring: "border-red-400/30 bg-red-400/[0.04]",
+    chip: "border-red-300/30 bg-red-300/[0.05] text-red-200",
+    head: "text-red-200",
+    grade: "text-red-300/90",
+  },
 };
+
+type AccentKey = "emerald" | "rose" | "red";
 
 function WindowList({
   title, subtitle, icon, accent, windows,
@@ -608,7 +638,7 @@ function WindowList({
   title: string;
   subtitle: string;
   icon: React.ReactNode;
-  accent: "emerald" | "rose";
+  accent: AccentKey;
   windows: KarmicWindow[];
 }) {
   const a = ACCENT[accent];
@@ -628,7 +658,7 @@ function WindowList({
   );
 }
 
-function WindowCard({ w, accent }: { w: KarmicWindow; accent: "emerald" | "rose" }) {
+function WindowCard({ w, accent }: { w: KarmicWindow; accent: AccentKey }) {
   const a = ACCENT[accent];
   const [open, setOpen] = useState(false);
   return (
@@ -645,7 +675,7 @@ function WindowCard({ w, accent }: { w: KarmicWindow; accent: "emerald" | "rose"
             <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground/70 transition-transform ${open ? "rotate-90" : ""}`} />
           </div>
         </div>
-        <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70 tabular-nums flex items-center gap-2">
+        <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70 tabular-nums flex items-center gap-2 flex-wrap">
           <span>{fmtRange(w.start, w.end)}</span>
           <span className="text-muted-foreground/40">·</span>
           <span>score {w.score > 0 ? "+" : ""}{w.score}</span>
@@ -654,13 +684,16 @@ function WindowCard({ w, accent }: { w: KarmicWindow; accent: "emerald" | "rose"
         </div>
       </button>
       {open && (
-        <div className="space-y-1 p-2.5 pt-2 border-t border-border/15">
+        <div className="space-y-2 p-2.5 pt-2 border-t border-border/15">
           {w.hits.map((h, j) => (
-            <div key={j} className="text-[10.5px] leading-relaxed font-light">
-              <span className="inline-block min-w-[5.5rem] tabular-nums text-[9px] uppercase tracking-wider text-muted-foreground/60">{fmtDate(h.date)}</span>
-              <span className="text-foreground/85 mr-1">{h.symbol} {h.planet}{h.retrograde ? " ʀ" : ""}</span>
-              <span className={`inline-block text-[9px] uppercase tracking-[0.15em] px-1 py-0.5 rounded border mr-1 ${a.chip}`}>→ {h.pointLabel}</span>
-              <span className="text-muted-foreground/85">{h.reasoning}</span>
+            <div key={j} className="text-[10.5px] leading-relaxed font-light space-y-1">
+              <div>
+                <span className="inline-block min-w-[5.5rem] tabular-nums text-[9px] uppercase tracking-wider text-muted-foreground/60">{fmtDate(h.date)}</span>
+                <span className="text-foreground/85 mr-1">{h.symbol} {h.planet}{h.retrograde ? " ʀ" : ""}</span>
+                <span className={`inline-block text-[9px] uppercase tracking-[0.15em] px-1 py-0.5 rounded border mr-1 ${a.chip}`}>→ {h.pointLabel}</span>
+              </div>
+              <p className="text-foreground/90 pl-[5.5rem]">{h.plain}</p>
+              <p className="text-muted-foreground/55 pl-[5.5rem] text-[10px] italic">Nerd: {h.reasoning}</p>
             </div>
           ))}
         </div>
