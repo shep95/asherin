@@ -253,7 +253,7 @@ const COMBO_REASON: Record<string, string> = {
   // Influence/fame extras on Surya and Lagna
   "Rahu|Surya":  "Rahu on your Sun sign. Identity/authority gets amplified to a mass audience. Fame risk + scandal risk both rise.",
   "Sun|L11":     "Sun on your 11th-lord. Authority brings income through your network. Recognition translates to gains.",
-  "Jupiter|Surya":"Jupiter on your Sun sign. Authority figures bless you. Father/mentor energy lights up; reputation expands.",
+  // "Jupiter|Surya" already defined above (line 163) — keep the earlier reading
 };
 
 const COMBO_PLAIN: Record<string, string> = {
