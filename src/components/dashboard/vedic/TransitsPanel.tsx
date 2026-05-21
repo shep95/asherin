@@ -461,6 +461,61 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         />
       )}
 
+      {/* ROMANCE (dating / attraction — distinct from soulmate/marriage axis) */}
+      {romanceWindows.length > 0 && (
+        <WindowList
+          title="Romance / Attraction Windows"
+          subtitle="When Venus, Mars, or Moon walks into the signs of your romance points (5th-lord = affairs/flirting, 7th-lord = partners, Moon = emotional pull, Lagna = magnetism). Plain-English: the stretches when dating, chemistry, and 'getting noticed' actually fire — separate from the deeper soulmate axis."
+          icon={<Flame className="h-3.5 w-3.5 text-pink-300/90" />}
+          accent="pink"
+          windows={romanceWindows}
+        />
+      )}
+
+      {/* POWER / INFLUENCE / FAME / CAREER — career-axis dominance grid */}
+      {(powerWindows.length > 0 || careerWindows.length > 0 || influenceWindows.length > 0 || fameWindows.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {powerWindows.length > 0 && (
+            <WindowList
+              title={`Power / Authority Windows · ${subjectLabel}`}
+              subtitle="When Sun, Saturn, Mars, or Jupiter walks into the signs of your 10th-lord (career-throne), Lagna (body of authority), Sun-sign, or Atmakaraka. Plain-English: when the 'put me in charge' energy is actually on for you."
+              icon={<Crown className="h-3.5 w-3.5 text-amber-300/90" />}
+              accent="amber"
+              windows={powerWindows}
+            />
+          )}
+          {careerWindows.length > 0 && (
+            <WindowList
+              title={`Career-Advancement Windows · ${subjectLabel}`}
+              subtitle="When Saturn, Sun, Jupiter, Mars or Mercury hits the signs of your 10th-lord (status), 11th-lord (gains from work) or 6th-lord (daily-work)/Atmakaraka. Plain-English: the months promotions, role changes, and new jobs actually land."
+              icon={<Briefcase className="h-3.5 w-3.5 text-sky-300/90" />}
+              accent="sky"
+              windows={careerWindows}
+            />
+          )}
+          {influenceWindows.length > 0 && (
+            <WindowList
+              title={`Influence / Reach Windows · ${subjectLabel}`}
+              subtitle="When Rahu, Jupiter, Mercury, or Venus walks into your 10th-lord, 11th-lord (network), 3rd-lord (voice), Moon, or Lagna. Plain-English: when people actually listen to you and your circle grows."
+              icon={<Megaphone className="h-3.5 w-3.5 text-violet-300/90" />}
+              accent="violet"
+              windows={influenceWindows}
+            />
+          )}
+          {fameWindows.length > 0 && (
+            <WindowList
+              title={`Fame / Visibility Windows · ${subjectLabel}`}
+              subtitle="When Sun and Rahu (the fame-pair) hit your 10th-lord, Lagna, Sun-sign or Moon-sign. Plain-English: when the public actually notices you — for better or worse. Negative windows = cancel / reputation risk."
+              icon={<Star className="h-3.5 w-3.5 text-yellow-300/90" />}
+              accent="yellow"
+              windows={fameWindows}
+            />
+          )}
+        </div>
+      )}
+
+
+
 
 
       {/* Month forecast */}
