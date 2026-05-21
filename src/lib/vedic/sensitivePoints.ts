@@ -288,20 +288,15 @@ const COMBO_PLAIN: Record<string, string> = {
   "Saturn|L6":  "Watch for chronic, dragging illness this stretch — joints, bones, digestion. Recovery will be slow if you ignore it. Get checkups.",
   "Saturn|L8":  "Long-running health issue could surface or worsen. Don't postpone tests or treatment.",
   "Saturn|L12": "Risk of hospital stays, surgeries, or forced bed-rest in this window.",
-  "Saturn|Lagna":"Body itself is under strain — energy drops, joints/teeth/bones complain. Sleep and stretch.",
-  "Saturn|Chandra":"Mental health pressure. Sleep loss, low mood, immunity drop. Therapy + structure help.",
   "Mars|L6":   "Sudden fevers, infections, inflammation, or sports injuries possible. Don't push the body recklessly.",
   "Mars|L8":   "Elevated accident or surgery risk. Drive carefully, avoid reckless stunts.",
   "Mars|L12":  "Risk of ER visits or accidents that need recovery time.",
   "Rahu|L6":   "Strange, hard-to-diagnose stuff — allergies, food poisoning, foreign infections. See a doctor early.",
   "Rahu|L8":   "Weird sudden health events or hidden conditions surfacing. Get scans if anything feels off.",
   "Rahu|L12":  "Sleep disorders, mysterious hospitalizations, sickness when travelling.",
-  "Rahu|Chandra":"Anxiety, insomnia, paranoia, addictions can spike. Watch the mind.",
   "Ketu|L6":   "Either an old chronic issue suddenly dissolves, or a cryptic new one shows up. Pay attention.",
   "Ketu|L8":   "Surgical events or severance illnesses possible. Energy may detach.",
   "Ketu|L12":  "Hospital, isolation, or energy-collapse stretches. Rest is non-negotiable.",
-  "Ketu|Lagna":"Body energy dips. Fatigue, weight loss, immunity drop. Eat, sleep, ground.",
-  "Ketu|Chandra":"Depressive spells, dissociation, mind feels disconnected. Don't isolate.",
 };
 
 export interface WhyReason {
