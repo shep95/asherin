@@ -85,7 +85,7 @@ interface NatalRef {
   points: SensitivePoints | null;
 }
 
-const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts }: Props) => {
+const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts, currentDasha }: Props) => {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState<Date>(() => midOfMonth(new Date()));
   const [mode, setMode] = useState<"user" | string>("user"); // "user" or company symbol
