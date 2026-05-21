@@ -1196,6 +1196,15 @@ const VedicAstrologyView = () => {
           </div>
         )}
 
+        {chart && (
+          <TransitsPanel
+            natalAscendant={chart.ascendant}
+            lat={parseFloat(lat) || 0}
+            lon={parseFloat(lon) || 0}
+            chartKey={chartKey}
+          />
+        )}
+
         {chart && <WealthHousesPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} />}
 
         {chart && <SwvPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} label={activeName || undefined} />}
