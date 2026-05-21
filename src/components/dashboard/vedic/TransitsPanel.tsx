@@ -293,7 +293,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       <div className="flex items-center justify-between gap-3 border-b border-border/15 pb-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Orbit className="h-4 w-4 text-foreground/70" />
-          <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Monthly Transit Forecast</h3>
+          <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">{granularity === "week" ? "Weekly" : "Monthly"} Transit Forecast</h3>
           <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 ml-2 inline-flex items-center gap-1">
             {activeRef.kind === "user" ? <User2 className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
             {subjectLabel}
@@ -430,7 +430,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         <div className="flex items-center gap-2">
           <Sparkles className="h-3.5 w-3.5 text-foreground/70" />
           <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">
-            Forecast for {monthLabel(cursor)} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
+            Forecast for {periodLabel} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
           </h4>
         </div>
         {loadingNow && (
