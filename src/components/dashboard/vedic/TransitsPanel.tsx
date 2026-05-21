@@ -200,6 +200,18 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     return out;
   }, [readings]);
 
+  // ── WEALTH + SOULMATE WINDOWS — scan all upcoming ingresses ──
+  const wealthWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "wealth", { clusterDays: 180, minScore: 4 }) : []),
+    [ingresses, activeRef.points],
+  );
+  const soulmateWindows = useMemo(
+    () => activeRef.kind === "user"
+      ? (ingresses ? detectWindows(ingresses, activeRef.points, "soulmate", { clusterDays: 180, minScore: 3 }) : [])
+      : [],
+    [ingresses, activeRef.points, activeRef.kind],
+  );
+
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
     for (const r of readings) {
