@@ -356,7 +356,7 @@ export interface WhyReason {
   importance: "high" | "medium" | "low";
 }
 
-const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna", "L9", "L11", "L2", "L6", "L8", "L12"]);
+const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna", "Surya", "L9", "L10", "L11", "L2", "L6", "L8", "L12"]);
 
 export function whyTransitMatters(
   planet: string,
