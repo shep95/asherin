@@ -631,7 +631,9 @@ function fmtRange(a: Date, b: Date) {
   return `${fmtDate(a)} → ${fmtDate(b)}`;
 }
 
-const ACCENT: Record<"emerald" | "rose" | "red", { ring: string; chip: string; head: string; grade: string }> = {
+type AccentKey = "emerald" | "rose" | "red" | "pink" | "amber" | "violet" | "yellow" | "sky";
+
+const ACCENT: Record<AccentKey, { ring: string; chip: string; head: string; grade: string }> = {
   emerald: {
     ring: "border-emerald-400/30 bg-emerald-400/[0.04]",
     chip: "border-emerald-300/30 bg-emerald-300/[0.05] text-emerald-200",
@@ -650,9 +652,37 @@ const ACCENT: Record<"emerald" | "rose" | "red", { ring: string; chip: string; h
     head: "text-red-200",
     grade: "text-red-300/90",
   },
+  pink: {
+    ring: "border-pink-400/30 bg-pink-400/[0.04]",
+    chip: "border-pink-300/30 bg-pink-300/[0.05] text-pink-200",
+    head: "text-pink-200",
+    grade: "text-pink-300/90",
+  },
+  amber: {
+    ring: "border-amber-400/30 bg-amber-400/[0.04]",
+    chip: "border-amber-300/30 bg-amber-300/[0.05] text-amber-200",
+    head: "text-amber-200",
+    grade: "text-amber-300/90",
+  },
+  violet: {
+    ring: "border-violet-400/30 bg-violet-400/[0.04]",
+    chip: "border-violet-300/30 bg-violet-300/[0.05] text-violet-200",
+    head: "text-violet-200",
+    grade: "text-violet-300/90",
+  },
+  yellow: {
+    ring: "border-yellow-400/30 bg-yellow-400/[0.04]",
+    chip: "border-yellow-300/30 bg-yellow-300/[0.05] text-yellow-200",
+    head: "text-yellow-200",
+    grade: "text-yellow-300/90",
+  },
+  sky: {
+    ring: "border-sky-400/30 bg-sky-400/[0.04]",
+    chip: "border-sky-300/30 bg-sky-300/[0.05] text-sky-200",
+    head: "text-sky-200",
+    grade: "text-sky-300/90",
+  },
 };
-
-type AccentKey = "emerald" | "rose" | "red";
 
 function WindowList({
   title, subtitle, icon, accent, windows,
