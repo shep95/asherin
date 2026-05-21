@@ -34,6 +34,29 @@ function monthEnd(d: Date)   { return new Date(d.getFullYear(), d.getMonth() + 1
 function monthsBetween(a: Date, b: Date) {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
 }
+// ── Week helpers (Mon-anchored ISO-ish week) ──
+function weekStart(d: Date) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0);
+  const day = x.getDay();              // 0..6, Sun=0
+  const offset = (day + 6) % 7;        // days since Monday
+  x.setDate(x.getDate() - offset);
+  return x;
+}
+function weekEnd(d: Date) {
+  const s = weekStart(d);
+  return new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6, 23, 59);
+}
+function midOfWeek(d: Date) {
+  const s = weekStart(d);
+  return new Date(s.getFullYear(), s.getMonth(), s.getDate() + 3, 12, 0);
+}
+function weekLabel(d: Date) {
+  const s = weekStart(d), e = weekEnd(d);
+  const sameMonth = s.getMonth() === e.getMonth();
+  const sFmt = `${MONTH_NAMES[s.getMonth()].slice(0,3)} ${s.getDate()}`;
+  const eFmt = sameMonth ? `${e.getDate()}` : `${MONTH_NAMES[e.getMonth()].slice(0,3)} ${e.getDate()}`;
+  return `Week of ${sFmt}–${eFmt}, ${e.getFullYear()}`;
+}
 
 const WEIGHT_RING: Record<"high" | "medium" | "low", string> = {
   high: "border-amber-400/50 bg-amber-400/[0.04]",
@@ -106,18 +129,29 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   const [transit, setTransit] = useState<TransitChart | null>(null);
   const [loadingNow, setLoadingNow] = useState(false);
   const [horizonMonths, setHorizonMonths] = useState<3 | 12 | 24>(12);
+  const [granularity, setGranularity] = useState<"week" | "month">("month");
 
-  const chosen = useMemo(() => midOfMonth(cursor), [cursor]);
-  const isCurrentMonth = chosen.getFullYear() === today.getFullYear() && chosen.getMonth() === today.getMonth();
+  const chosen = useMemo(
+    () => (granularity === "week" ? midOfWeek(cursor) : midOfMonth(cursor)),
+    [cursor, granularity],
+  );
+  const periodStart = useMemo(() => (granularity === "week" ? weekStart(cursor) : monthStart(cursor)), [cursor, granularity]);
+  const periodEnd   = useMemo(() => (granularity === "week" ? weekEnd(cursor)   : monthEnd(cursor)),   [cursor, granularity]);
+  const periodLabel = granularity === "week" ? weekLabel(cursor) : monthLabel(cursor);
+  const isCurrentPeriod = today.getTime() >= periodStart.getTime() && today.getTime() <= periodEnd.getTime();
+  const isCurrentMonth = isCurrentPeriod;
 
-  // ── Transit chart for chosen month — cache per (refKey, year-month) ──
+  // ── Transit chart for chosen period — cache per (refKey, granularity, key) ──
   const transitCacheRef = useRef<Map<string, TransitChart>>(new Map());
   // Invalidate transit cache when active natal ref changes
   useEffect(() => { transitCacheRef.current.clear(); }, [activeRef.key]);
 
   useEffect(() => {
     if (mode !== "user" && !companyRef) return; // wait for company resolution
-    const cacheKey = `${activeRef.key}:${chosen.getFullYear()}-${chosen.getMonth()}`;
+    const periodKey = granularity === "week"
+      ? `w-${weekStart(cursor).toISOString().slice(0,10)}`
+      : `m-${chosen.getFullYear()}-${chosen.getMonth()}`;
+    const cacheKey = `${activeRef.key}:${periodKey}`;
     const cached = transitCacheRef.current.get(cacheKey);
     if (cached) { setTransit(cached); return; }
     let cancelled = false;
@@ -227,22 +261,29 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
 
   const ingressesThisMonth = useMemo(() => {
     if (!ingresses) return [];
-    const s = monthStart(chosen).getTime();
-    const e = monthEnd(chosen).getTime();
+    const s = periodStart.getTime();
+    const e = periodEnd.getTime();
     return ingresses.filter((i) => i.date.getTime() >= s && i.date.getTime() <= e);
-  }, [ingresses, chosen]);
+  }, [ingresses, periodStart, periodEnd]);
   const ingressesLater = useMemo(() => {
     if (!ingresses) return [];
-    const e = monthEnd(chosen).getTime();
+    const e = periodEnd.getTime();
     const horizonEndMs = today.getTime() + horizonMonths * 31 * 86400_000;
     return ingresses.filter((i) => {
       const t = i.date.getTime();
       return t > e && t <= horizonEndMs;
     });
-  }, [ingresses, chosen, today, horizonMonths]);
+  }, [ingresses, periodEnd, today, horizonMonths]);
 
-  const shiftMonth = (delta: number) => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + delta, 15));
-  const shiftYear  = (delta: number) => setCursor(new Date(cursor.getFullYear() + delta, cursor.getMonth(), 15));
+  const shiftPeriod = (delta: number) => {
+    if (granularity === "week") {
+      setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + delta * 7));
+    } else {
+      setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + delta, 15));
+    }
+  };
+  const shiftYear  = (delta: number) => setCursor(new Date(cursor.getFullYear() + delta, cursor.getMonth(), granularity === "week" ? cursor.getDate() : 15));
+  const jumpToNow  = () => setCursor(granularity === "week" ? midOfWeek(new Date()) : midOfMonth(new Date()));
 
   const subjectLabel = activeRef.label;
 
@@ -252,31 +293,47 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       <div className="flex items-center justify-between gap-3 border-b border-border/15 pb-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Orbit className="h-4 w-4 text-foreground/70" />
-          <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Monthly Transit Forecast</h3>
+          <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">{granularity === "week" ? "Weekly" : "Monthly"} Transit Forecast</h3>
           <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 ml-2 inline-flex items-center gap-1">
             {activeRef.kind === "user" ? <User2 className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
             {subjectLabel}
           </span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
+          {/* Granularity toggle */}
+          <div className="inline-flex items-center rounded border border-border/25 overflow-hidden mr-2">
+            {(["week","month"] as const).map((g) => (
+              <button
+                key={g}
+                onClick={() => {
+                  if (g === granularity) return;
+                  setGranularity(g);
+                  setCursor(g === "week" ? midOfWeek(cursor) : midOfMonth(cursor));
+                }}
+                className={`text-[10px] uppercase tracking-[0.15em] px-2 py-1 transition ${granularity === g ? "bg-foreground/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
           <button onClick={() => shiftYear(-1)} title="Previous year" className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
             <ChevronsLeft className="h-3.5 w-3.5" />
           </button>
-          <button onClick={() => shiftMonth(-1)} title="Previous month" className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
+          <button onClick={() => shiftPeriod(-1)} title={`Previous ${granularity}`} className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-          <div className="px-3 py-1 rounded border border-foreground/30 bg-foreground/[0.05] min-w-[10rem] text-center">
-            <div className="text-xs font-light tracking-[0.15em] text-foreground uppercase">{monthLabel(cursor)}</div>
-            {isCurrentMonth && <div className="text-[9px] uppercase tracking-[0.2em] text-emerald-300/80">This Month</div>}
+          <div className="px-3 py-1 rounded border border-foreground/30 bg-foreground/[0.05] min-w-[12rem] text-center">
+            <div className="text-xs font-light tracking-[0.15em] text-foreground uppercase">{periodLabel}</div>
+            {isCurrentPeriod && <div className="text-[9px] uppercase tracking-[0.2em] text-emerald-300/80">This {granularity}</div>}
           </div>
-          <button onClick={() => shiftMonth(1)} title="Next month" className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
+          <button onClick={() => shiftPeriod(1)} title={`Next ${granularity}`} className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
           <button onClick={() => shiftYear(1)} title="Next year" className="p-1.5 rounded border border-border/25 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition">
             <ChevronsRight className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={() => setCursor(midOfMonth(new Date()))}
+            onClick={jumpToNow}
             className="ml-2 text-[10px] uppercase tracking-[0.18em] px-2 py-1 rounded border border-border/30 text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition"
           >
             Now
@@ -373,7 +430,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         <div className="flex items-center gap-2">
           <Sparkles className="h-3.5 w-3.5 text-foreground/70" />
           <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">
-            Forecast for {monthLabel(cursor)} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
+            Forecast for {periodLabel} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
           </h4>
         </div>
         {loadingNow && (
@@ -473,7 +530,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
 
       {ingressesThisMonth.length > 0 && (
         <div className="space-y-1.5">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-foreground/70">Ingresses in {monthLabel(cursor)}</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-foreground/70">Ingresses in {periodLabel}</div>
           {ingressesThisMonth.map((ing, i) => <IngressRow key={`m-${i}`} ing={ing} points={activeRef.points} />)}
         </div>
       )}
