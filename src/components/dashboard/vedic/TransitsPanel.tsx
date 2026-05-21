@@ -245,6 +245,10 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       : [],
     [ingresses, activeRef.points, activeRef.kind],
   );
+  const healthWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "health", { clusterDays: 120, minScore: 4 }) : []),
+    [ingresses, activeRef.points],
+  );
 
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
