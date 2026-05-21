@@ -433,14 +433,14 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       {ingressesThisMonth.length > 0 && (
         <div className="space-y-1.5">
           <div className="text-[10px] uppercase tracking-[0.2em] text-foreground/70">Ingresses in {monthLabel(cursor)}</div>
-          {ingressesThisMonth.map((ing, i) => <IngressRow key={`m-${i}`} ing={ing} />)}
+          {ingressesThisMonth.map((ing, i) => <IngressRow key={`m-${i}`} ing={ing} points={activeRef.points} />)}
         </div>
       )}
 
       {ingressesLater.length > 0 && (
         <div className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 pt-1">Beyond — through next {horizonMonths === 3 ? "3 months" : horizonMonths === 12 ? "year" : "2 years"}</div>
-          {ingressesLater.map((ing, i) => <IngressRow key={`l-${i}`} ing={ing} />)}
+          {ingressesLater.map((ing, i) => <IngressRow key={`l-${i}`} ing={ing} points={activeRef.points} />)}
         </div>
       )}
 
@@ -451,8 +451,9 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   );
 };
 
-function IngressRow({ ing }: { ing: SignIngress }) {
+function IngressRow({ ing, points }: { ing: SignIngress; points: SensitivePoints | null }) {
   const r = readTransit(ing.planet, ing.natalHouse, ing.retrograde);
+  const whys = whyTransitMatters(ing.planet, ing.toSignIndex, points);
   return (
     <div className="rounded-md border border-border/20 bg-background/25 hover:bg-background/40 transition p-2.5">
       <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-light">
@@ -467,6 +468,16 @@ function IngressRow({ ing }: { ing: SignIngress }) {
           enters House {ing.natalHouse} · {r.headline.split("—")[1]?.trim() ?? ""}
         </span>
       </div>
+      {whys.length > 0 && (
+        <div className="rounded-md border border-amber-300/25 bg-amber-300/[0.04] p-2 mt-1.5 space-y-1">
+          {whys.map((w, i) => (
+            <div key={i} className="text-[10.5px] leading-relaxed font-light">
+              <span className="text-amber-200/90 uppercase tracking-[0.15em] text-[9px] mr-1">Hits your {w.pointLabel}</span>
+              <span className="text-foreground/85">{w.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <p className="text-[10.5px] text-muted-foreground/80 font-light leading-relaxed mt-1">{r.meaning}</p>
     </div>
   );
