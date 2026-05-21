@@ -1206,6 +1206,7 @@ const VedicAstrologyView = () => {
             userChartName={activeName || "Your Chart"}
             companyCharts={COMPANY_CHARTS}
             currentDasha={currentDasha}
+            dashaTimeline={dashaTimeline}
           />
         )}
 
