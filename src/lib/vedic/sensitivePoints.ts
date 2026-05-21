@@ -327,6 +327,24 @@ const COMBO_PLAIN: Record<string, string> = {
   "Ketu|L6":   "Either an old chronic issue suddenly dissolves, or a cryptic new one shows up. Pay attention.",
   "Ketu|L8":   "Surgical events or severance illnesses possible. Energy may detach.",
   "Ketu|L12":  "Hospital, isolation, or energy-collapse stretches. Rest is non-negotiable.",
+
+  // Power / career / fame / influence
+  "Jupiter|L10": "Career-throne blessed. Promotions, sponsors, big role offers — people with power back you.",
+  "Saturn|L10":  "Slow real climb to authority. Boring grind now = solid throne later. No shortcuts.",
+  "Sun|L10":     "Authority figures notice you. Performance reviews and visibility go your way.",
+  "Mars|L10":    "You push hard for promotions — wins fast, but clash with bosses possible.",
+  "Mercury|L10": "Career wins through deals, contracts, words, code, media.",
+  "Venus|L10":   "Career grows through charm, art, design, partnerships, women-led networks.",
+  "Rahu|L10":    "Massive status leap — viral, foreign, unconventional. Huge upside, watch the inevitable correction.",
+  "Ketu|L10":    "Career detaches. You walk away from a role or it ends. Pivot phase.",
+  "Moon|L10":    "Public-facing career moment. Your mood and public mood affect work.",
+  "Jupiter|L3":  "Your voice gets blessed — writing, content, speaking land bigger.",
+  "Rahu|L3":     "Mass-reach window — viral content, big audience, bold self-promotion.",
+  "Mars|L3":     "Hustle mode. Ship things. Confront. Push your message out.",
+  "Mercury|L3":  "Communication clarity peak. Best window for negotiations and deal-pitches.",
+  "Rahu|Surya":  "Fame spike — also scandal risk. The mass crowd talks about you. Protect your image.",
+  "Sun|L11":     "Your authority converts to income through your network. Recognition pays cash.",
+  "Jupiter|Surya":"Mentors and authority figures sponsor you. Reputation expands organically.",
 };
 
 export interface WhyReason {
