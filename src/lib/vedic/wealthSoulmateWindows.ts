@@ -46,8 +46,8 @@ export interface KarmicWindow {
 
 const WEALTH_POINTS = new Set<PointCode>(["L2", "L5", "L9", "L11", "AK"]);
 const SOULMATE_POINTS = new Set<PointCode>(["UL", "DK", "L7", "Chandra"]);
+const HEALTH_POINTS = new Set<PointCode>(["L6", "L8", "L12", "Lagna", "Chandra"]);
 
-// Per-planet weight on each axis. Higher = bigger structural mover.
 const WEALTH_WEIGHT: Record<string, number> = {
   Jupiter: 5, Venus: 3, Rahu: 4, Sun: 1, Mercury: 1, Mars: 1,
   Saturn: -2, Ketu: -2, Moon: 1,
@@ -56,10 +56,16 @@ const SOULMATE_WEIGHT: Record<string, number> = {
   Jupiter: 5, Venus: 5, Rahu: 2, Mars: 1, Mercury: 1, Sun: 1, Moon: 1,
   Saturn: -2, Ketu: -3,
 };
+// HEALTH: malefics on health axis = SICKNESS (positive score = sick risk).
+// Benefics here = healing / immunity boost (negative score, suppressed).
+const HEALTH_WEIGHT: Record<string, number> = {
+  Saturn: 5, Mars: 4, Rahu: 4, Ketu: 4, Sun: 1, Mercury: 0, Moon: 0,
+  Jupiter: -3, Venus: -2,
+};
 
-// Extra weight when point is high-impact (L9, L11, UL, AK)
 const POINT_BONUS: Partial<Record<PointCode, number>> = {
   L9: 3, L11: 2, L2: 1, AK: 2, UL: 3, DK: 2, L7: 1,
+  L6: 3, L8: 3, L12: 2, Lagna: 1, Chandra: 1,
 };
 
 function applyRetro(w: number, retro: boolean): number {
@@ -81,19 +87,17 @@ function makeHit(
   signName: string,
   weight: number,
   reasoning: string,
+  plain: string,
 ): ActivationHit {
   return {
     date: ing.date,
     planet: ing.planet,
     symbol: ing.symbol,
     retrograde: ing.retrograde,
-    pointCode, pointLabel, signName, weight, reasoning,
+    pointCode, pointLabel, signName, weight, reasoning, plain,
   };
 }
 
-/**
- * Scan upcoming ingresses, cluster them into 6-month windows, and rank.
- */
 export function detectWindows(
   ingresses: SignIngress[],
   points: SensitivePoints | null,
@@ -103,10 +107,15 @@ export function detectWindows(
   if (!points || !ingresses.length) return [];
   const clusterMs = (opts.clusterDays ?? 180) * 86400_000;
   const minScore = opts.minScore ?? 3;
-  const interesting = kind === "wealth" ? WEALTH_POINTS : SOULMATE_POINTS;
-  const planetWeights = kind === "wealth" ? WEALTH_WEIGHT : SOULMATE_WEIGHT;
+  const interesting =
+    kind === "wealth" ? WEALTH_POINTS :
+    kind === "soulmate" ? SOULMATE_POINTS :
+    HEALTH_POINTS;
+  const planetWeights =
+    kind === "wealth" ? WEALTH_WEIGHT :
+    kind === "soulmate" ? SOULMATE_WEIGHT :
+    HEALTH_WEIGHT;
 
-  // 1. Pull only the ingresses that actually hit a relevant point
   const raw: ActivationHit[] = [];
   for (const ing of ingresses) {
     const whys = whyTransitMatters(ing.planet, ing.toSignIndex, points);
@@ -117,12 +126,11 @@ export function detectWindows(
       const bonus = POINT_BONUS[w.pointCode] ?? 0;
       const weight = applyRetro(baseW + Math.sign(baseW) * bonus, ing.retrograde);
       if (weight === 0) continue;
-      raw.push(makeHit(ing, w.pointCode, w.pointLabel, w.signName, weight, w.text));
+      raw.push(makeHit(ing, w.pointCode, w.pointLabel, w.signName, weight, w.text, w.plain));
     }
   }
   if (!raw.length) return [];
 
-  // 2. Cluster by proximity in time (greedy walk through sorted list)
   raw.sort((a, b) => a.date.getTime() - b.date.getTime());
   const windows: KarmicWindow[] = [];
   let bucket: ActivationHit[] = [];
@@ -138,7 +146,7 @@ export function detectWindows(
   }
   pushWindow(windows, bucket, kind, minScore);
 
-  windows.sort((a, b) => b.score - a.score || a.start.getTime() - b.start.getTime());
+  windows.sort((a, b) => Math.abs(b.score) - Math.abs(a.score) || a.start.getTime() - b.start.getTime());
   return windows;
 }
 
@@ -167,6 +175,14 @@ function buildHeadline(hits: ActivationHit[], kind: WindowKind, score: number): 
     if (score >= 4)  return `Wealth window — ${planets} activating ${points}`;
     if (score <= -4) return `Wealth pruning phase — ${planets} testing ${points}`;
     return `Wealth-axis activity — ${planets} on ${points}`;
+  }
+  if (kind === "health") {
+    if (score >= 14) return `High sickness-risk stretch — ${planets} hitting ${points}`;
+    if (score >= 8)  return `Sickness window — likely sick / injured — ${planets} on ${points}`;
+    if (score >= 4)  return `Watch your health — ${planets} stressing ${points}`;
+    if (score <= -8) return `Healing / immunity window — ${planets} blessing ${points}`;
+    if (score <= -4) return `Recovery support — ${planets} on ${points}`;
+    return `Health-axis activity — ${planets} on ${points}`;
   }
   if (score >= 12) return `Peak soulmate / marriage window — ${planets} on ${points}`;
   if (score >= 7)  return `Strong relationship window — ${planets} on ${points}`;
