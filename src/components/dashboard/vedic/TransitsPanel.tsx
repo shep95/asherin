@@ -129,18 +129,29 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   const [transit, setTransit] = useState<TransitChart | null>(null);
   const [loadingNow, setLoadingNow] = useState(false);
   const [horizonMonths, setHorizonMonths] = useState<3 | 12 | 24>(12);
+  const [granularity, setGranularity] = useState<"week" | "month">("month");
 
-  const chosen = useMemo(() => midOfMonth(cursor), [cursor]);
-  const isCurrentMonth = chosen.getFullYear() === today.getFullYear() && chosen.getMonth() === today.getMonth();
+  const chosen = useMemo(
+    () => (granularity === "week" ? midOfWeek(cursor) : midOfMonth(cursor)),
+    [cursor, granularity],
+  );
+  const periodStart = useMemo(() => (granularity === "week" ? weekStart(cursor) : monthStart(cursor)), [cursor, granularity]);
+  const periodEnd   = useMemo(() => (granularity === "week" ? weekEnd(cursor)   : monthEnd(cursor)),   [cursor, granularity]);
+  const periodLabel = granularity === "week" ? weekLabel(cursor) : monthLabel(cursor);
+  const isCurrentPeriod = today.getTime() >= periodStart.getTime() && today.getTime() <= periodEnd.getTime();
+  const isCurrentMonth = isCurrentPeriod;
 
-  // ── Transit chart for chosen month — cache per (refKey, year-month) ──
+  // ── Transit chart for chosen period — cache per (refKey, granularity, key) ──
   const transitCacheRef = useRef<Map<string, TransitChart>>(new Map());
   // Invalidate transit cache when active natal ref changes
   useEffect(() => { transitCacheRef.current.clear(); }, [activeRef.key]);
 
   useEffect(() => {
     if (mode !== "user" && !companyRef) return; // wait for company resolution
-    const cacheKey = `${activeRef.key}:${chosen.getFullYear()}-${chosen.getMonth()}`;
+    const periodKey = granularity === "week"
+      ? `w-${weekStart(cursor).toISOString().slice(0,10)}`
+      : `m-${chosen.getFullYear()}-${chosen.getMonth()}`;
+    const cacheKey = `${activeRef.key}:${periodKey}`;
     const cached = transitCacheRef.current.get(cacheKey);
     if (cached) { setTransit(cached); return; }
     let cancelled = false;
