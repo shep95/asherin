@@ -23,6 +23,7 @@ import CompatibilityPanel from "./vedic/CompatibilityPanel";
 import SwvPanel from "./vedic/SwvPanel";
 import DashaNode from "./vedic/DashaNode";
 import CustomChartBuilder from "./vedic/CustomChartBuilder";
+import TransitsPanel from "./vedic/TransitsPanel";
 import { classifyLagnaRelation, relationColorClass, relationLabel, signIndexFromName } from "@/lib/vedic/lagnaRelationship";
 import VedicGodsCompat from "@/components/vedic/VedicGodsCompat";
 import { Crown } from "lucide-react";
@@ -1193,6 +1194,15 @@ const VedicAstrologyView = () => {
               }))}
             />
           </div>
+        )}
+
+        {chart && (
+          <TransitsPanel
+            natalAscendant={chart.ascendant}
+            lat={parseFloat(lat) || 0}
+            lon={parseFloat(lon) || 0}
+            chartKey={chartKey}
+          />
         )}
 
         {chart && <WealthHousesPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} />}
