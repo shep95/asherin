@@ -38,7 +38,7 @@ const SIGN_LORD: Record<number, string> = {
   11: "Jupiter", // Pisces
 };
 
-export type PointCode = "Lagna" | "Chandra" | "Surya" | "AK" | "DK" | "UL" | "L7";
+export type PointCode = "Lagna" | "Chandra" | "Surya" | "AK" | "DK" | "UL" | "L7" | "L2" | "L5" | "L9" | "L11";
 
 export interface SensitivePoint {
   code: PointCode;
@@ -81,11 +81,18 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
   // UL: classical = 12th from sign of 2nd lord
   const ulSign = (lord2Sign + 11) % 12;
 
-  // 7th lord
-  const sign7 = (ascSign + 6) % 12;
-  const lord7Name = SIGN_LORD[sign7];
-  const lord7Planet = planets.find((p) => p.name === lord7Name);
-  const lord7Sign = lord7Planet ? signOf(lord7Planet.sid) : sign7;
+  // Generic helper: sign of the lord of house N (1..12)
+  const lordSignOfHouse = (houseN: number): number => {
+    const sign = (ascSign + (houseN - 1)) % 12;
+    const lordName = SIGN_LORD[sign];
+    const lordPlanet = planets.find((p) => p.name === lordName);
+    return lordPlanet ? signOf(lordPlanet.sid) : sign;
+  };
+  const lord2Sign_ = lord2Sign;
+  const lord5Sign = lordSignOfHouse(5);
+  const lord7Sign = lordSignOfHouse(7);
+  const lord9Sign = lordSignOfHouse(9);
+  const lord11Sign = lordSignOfHouse(11);
 
   const mk = (code: PointCode, label: string, signIndex: number, explanation: string): SensitivePoint => ({
     code, label, signIndex, signName: rashis[signIndex].name, explanation,
@@ -103,6 +110,14 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
               "The Upapada Lagna is the most precise spouse / soulmate indicator in Jaimini astrology. It is NOT a house — it is a calculated sensitive sign that describes who your spouse is and when they arrive. When a planet (especially Jupiter or Venus) transits this sign, the energy of that sign — your spouse — gets lit up in real life."),
     L7:      mk("L7",      "Lord of 7th",               lord7Sign,
               "The sign where your 7th-house lord currently resides — the field where partnerships, marriage, and one-on-one alliances actually play out for you."),
+    L2:      mk("L2",      "Lord of 2nd (Dhana)",       lord2Sign_,
+              "Sign where your 2nd-house lord (Dhana — accumulated wealth, savings, family money) currently lives. Benefic transits here = the savings vault is being filled."),
+    L5:      mk("L5",      "Lord of 5th (Purva Punya)", lord5Sign,
+              "Sign where your 5th-house lord (purva punya — past-life merit, speculation, intelligence, children) lives. Benefic transits here unlock lucky breaks, speculative wins, and creative income."),
+    L9:      mk("L9",      "Lord of 9th (Bhagya)",      lord9Sign,
+              "Sign where your 9th-house lord (Bhagya — fortune, dharma, divine grace, father) lives. The single most important wealth-luck axis. Benefic transits here = the fortune engine turns on."),
+    L11:     mk("L11",     "Lord of 11th (Labha)",      lord11Sign,
+              "Sign where your 11th-house lord (Labha — large gains, fulfilment of desires, network income) lives. Benefic transits here = income streams swell; big payouts arrive."),
   };
 
   const bySign = new Map<number, SensitivePoint[]>();
@@ -177,7 +192,7 @@ export interface WhyReason {
   importance: "high" | "medium" | "low";
 }
 
-const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna"]);
+const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna", "L9", "L11", "L2"]);
 
 export function whyTransitMatters(
   planet: string,
