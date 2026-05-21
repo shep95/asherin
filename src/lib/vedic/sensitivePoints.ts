@@ -78,11 +78,13 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
     const lordPlanet = planets.find((p) => p.name === lordName);
     return lordPlanet ? signOf(lordPlanet.sid) : sign;
   };
+  const lord3Sign = lordSignOfHouse(3);
   const lord5Sign = lordSignOfHouse(5);
   const lord6Sign = lordSignOfHouse(6);
   const lord7Sign = lordSignOfHouse(7);
   const lord8Sign = lordSignOfHouse(8);
   const lord9Sign = lordSignOfHouse(9);
+  const lord10Sign = lordSignOfHouse(10);
   const lord11Sign = lordSignOfHouse(11);
   const lord12Sign = lordSignOfHouse(12);
 
