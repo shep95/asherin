@@ -344,7 +344,7 @@ const COMBO_PLAIN: Record<string, string> = {
   "Mercury|L3":  "Communication clarity peak. Best window for negotiations and deal-pitches.",
   "Rahu|Surya":  "Fame spike — also scandal risk. The mass crowd talks about you. Protect your image.",
   "Sun|L11":     "Your authority converts to income through your network. Recognition pays cash.",
-  "Jupiter|Surya":"Mentors and authority figures sponsor you. Reputation expands organically.",
+  // "Jupiter|Surya" already defined above (line 266) in COMBO_PLAIN
 };
 
 export interface WhyReason {
