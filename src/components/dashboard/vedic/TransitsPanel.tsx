@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart, Activity, Crown, Megaphone, Star, Briefcase, Flame } from "lucide-react";
+import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart, Activity, Crown, Megaphone, Star, Briefcase, Flame, ScrollText } from "lucide-react";
 import { computeTransitChart, computeFutureIngresses, type TransitChart, type SignIngress } from "@/lib/vedic/transits";
 import { readTransit, type LifePrediction, type Verdict } from "@/lib/vedic/transitMeanings";
 import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
