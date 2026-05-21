@@ -793,35 +793,40 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
-      {/* WHY THIS MATTERS TO YOUR CHART — reasoning before data */}
+      {/* WHY THIS MATTERS TO YOUR CHART — collapsible reasoning */}
       {!loadingNow && topWhys.length > 0 && (
-        <div className="rounded-lg border border-amber-400/30 bg-amber-400/[0.04] p-3 space-y-2">
-          <div className="flex items-center gap-2">
+        <details className="group rounded-lg border border-amber-400/30 bg-amber-400/[0.04] p-3">
+          <summary className="flex items-center gap-2 cursor-pointer list-none select-none">
             <Target className="h-3.5 w-3.5 text-amber-300/90" />
             <h4 className="text-xs font-light tracking-[0.15em] text-amber-200 uppercase">
               Why this matters to {activeRef.kind === "company" ? subjectLabel : "your chart"}
             </h4>
-          </div>
-          <p className="text-[10.5px] text-muted-foreground/80 italic leading-relaxed">
-            Generic house-readings ignore your chart. These hits are sign-specific to {activeRef.kind === "company" ? "this company's" : "YOUR"} sensitive points — Lagna, Moon sign, Atmakaraka, Darakaraka, Upapada Lagna. Read these first; everything below is the supporting data.
-          </p>
-          <div className="space-y-1.5">
-            {topWhys.map((w, i) => (
-              <div key={i} className="rounded-md border border-amber-300/20 bg-background/30 p-2.5">
-                <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
-                  <div className="text-[11px] font-light text-foreground">
-                    <span className="text-foreground/70 mr-1">{w.symbol}</span>
-                    {w.planet}{w.retrograde && <span className="text-muted-foreground"> ʀ</span>} on your <span className="text-amber-200">{w.pointLabel}</span> ({w.signName})
+            <span className="text-[9px] uppercase tracking-[0.18em] text-amber-300/60 ml-1">({topWhys.length} hits)</span>
+            <ChevronRight className="h-3.5 w-3.5 text-amber-300/70 ml-auto transition-transform group-open:rotate-90" />
+          </summary>
+          <div className="pt-3 space-y-2">
+            <p className="text-[10.5px] text-muted-foreground/80 italic leading-relaxed">
+              Generic house-readings ignore your chart. These hits are sign-specific to {activeRef.kind === "company" ? "this company's" : "YOUR"} sensitive points — Lagna, Moon sign, Atmakaraka, Darakaraka, Upapada Lagna.
+            </p>
+            <div className="space-y-1.5">
+              {topWhys.map((w, i) => (
+                <div key={i} className="rounded-md border border-amber-300/20 bg-background/30 p-2.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+                    <div className="text-[11px] font-light text-foreground">
+                      <span className="text-foreground/70 mr-1">{w.symbol}</span>
+                      {w.planet}{w.retrograde && <span className="text-muted-foreground"> ʀ</span>} on your <span className="text-amber-200">{w.pointLabel}</span> ({w.signName})
+                    </div>
+                    <span className="text-[9px] uppercase tracking-[0.2em] text-amber-300/80">High Impact</span>
                   </div>
-                  <span className="text-[9px] uppercase tracking-[0.2em] text-amber-300/80">High Impact</span>
+                  <p className="text-[11.5px] leading-relaxed font-light text-foreground/90">{w.plain}</p>
+                  <p className="text-[10px] leading-relaxed font-light text-muted-foreground/55 italic mt-1">Nerd: {w.text}</p>
                 </div>
-                <p className="text-[11.5px] leading-relaxed font-light text-foreground/90">{w.plain}</p>
-                <p className="text-[10px] leading-relaxed font-light text-muted-foreground/55 italic mt-1">Nerd: {w.text}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        </details>
       )}
+
 
       {/* WEALTH + SOULMATE WINDOWS — filtered to selected period only */}
       {(wealthInPeriod.length > 0 || soulmateInPeriod.length > 0) && (
