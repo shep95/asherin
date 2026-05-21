@@ -233,6 +233,27 @@ const COMBO_REASON: Record<string, string> = {
   "Ketu|L6":  "Ketu on your 6th-lord — old illness suddenly disappears OR cryptic chronic condition emerges. Either-or.",
   "Ketu|L8":  "Ketu on your 8th-lord — surgical events, severance illnesses, energy detachment.",
   "Ketu|L12": "Ketu on your 12th-lord — hospital stays, isolation, withdrawal, energy collapse.",
+
+  // ── POWER / CAREER / FAME / INFLUENCE AXIS (L10 = throne, Lagna = body of authority) ──
+  "Jupiter|L10": "Jupiter on your 10th-lord (Karma — career/status). Blessing the career-throne. Promotions, sponsors, mentor-elders backing your rise. Classical 'kingmaker' transit.",
+  "Saturn|L10":  "Saturn on your 10th-lord. Career restructures under pressure. The slow, real climb to authority — you earn the chair through discipline, not luck.",
+  "Sun|L10":     "Sun on your 10th-lord. The king-planet ignites your career-throne. Visibility from authority figures, performance reviews land in your favor.",
+  "Mars|L10":    "Mars on your 10th-lord. Aggressive career pushes. Wins through force; risk of clashes with bosses or sudden role changes.",
+  "Mercury|L10": "Mercury on your 10th-lord. Career through contracts, communication, deals, media, code. Negotiation window.",
+  "Venus|L10":   "Venus on your 10th-lord. Career through charm, art, beauty, design, partnerships, women-led networks.",
+  "Rahu|L10":    "Rahu on your 10th-lord. Status explodes — viral, foreign, unconventional rise. Massive leap energy. Watch for the inevitable correction.",
+  "Ketu|L10":    "Ketu on your 10th-lord. Career detaches. Walking away from a role, retirement, role becomes hollow. Pivot phase.",
+  "Moon|L10":    "Moon on your 10th-lord. Public-facing career moment. Public mood swings affect your work and reputation.",
+
+  "Jupiter|L3":  "Jupiter on your 3rd-lord (Parakrama — courage/voice/content). Self-effort multiplies. Writing, speaking, content reach grows.",
+  "Rahu|L3":     "Rahu on your 3rd-lord. Mass communication channel cracks open — viral content, foreign reach, bold self-promotion.",
+  "Mars|L3":     "Mars on your 3rd-lord. Aggressive output, hustle mode, courage to ship and confront.",
+  "Mercury|L3":  "Mercury on your 3rd-lord. Writing/speaking/coding clarity peak. Negotiation and short-trip wins.",
+
+  // Influence/fame extras on Surya and Lagna
+  "Rahu|Surya":  "Rahu on your Sun sign. Identity/authority gets amplified to a mass audience. Fame risk + scandal risk both rise.",
+  "Sun|L11":     "Sun on your 11th-lord. Authority brings income through your network. Recognition translates to gains.",
+  "Jupiter|Surya":"Jupiter on your Sun sign. Authority figures bless you. Father/mentor energy lights up; reputation expands.",
 };
 
 const COMBO_PLAIN: Record<string, string> = {
