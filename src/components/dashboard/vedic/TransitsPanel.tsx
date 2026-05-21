@@ -340,6 +340,34 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
+      {/* WEALTH + SOULMATE WINDOWS — chart-specific big-money / soulmate timing */}
+      {(wealthWindows.length > 0 || soulmateWindows.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {wealthWindows.length > 0 && (
+            <WindowList
+              title={`Wealth Windows · ${subjectLabel}`}
+              subtitle={activeRef.kind === "company"
+                ? "Periods when transiting benefics light up this company's dhana axis (2nd / 5th / 9th / 11th lords + AK). Big-money structural ignition windows."
+                : "Periods when transiting benefics ignite YOUR personal dhana axis (lords of 2/5/9/11 + Atmakaraka). These are the millionaire-grade timing windows in your chart — not generic 'Jupiter in 11th' readings."}
+              icon={<Gem className="h-3.5 w-3.5 text-emerald-300/90" />}
+              accent="emerald"
+              windows={wealthWindows}
+            />
+          )}
+          {soulmateWindows.length > 0 && (
+            <WindowList
+              title="Soulmate / Marriage Windows"
+              subtitle="Periods when Jupiter or Venus walks into the SPECIFIC signs your spouse-karmas live in — Upapada Lagna (UL), Darakaraka (DK), 7th-lord sign, or your Moon sign. The actual sign matters, not the house number."
+              icon={<Heart className="h-3.5 w-3.5 text-rose-300/90" />}
+              accent="rose"
+              windows={soulmateWindows}
+            />
+          )}
+        </div>
+      )}
+
+
+
       {/* Month forecast */}
       <div className="rounded-lg border border-border/25 bg-gradient-to-b from-foreground/[0.04] to-transparent p-3 space-y-2">
         <div className="flex items-center gap-2">
