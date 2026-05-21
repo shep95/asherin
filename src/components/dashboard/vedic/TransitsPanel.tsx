@@ -394,7 +394,8 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                   </div>
                   <span className="text-[9px] uppercase tracking-[0.2em] text-amber-300/80">High Impact</span>
                 </div>
-                <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/90">{w.text}</p>
+                <p className="text-[11.5px] leading-relaxed font-light text-foreground/90">{w.plain}</p>
+                <p className="text-[10px] leading-relaxed font-light text-muted-foreground/55 italic mt-1">Nerd: {w.text}</p>
               </div>
             ))}
           </div>
