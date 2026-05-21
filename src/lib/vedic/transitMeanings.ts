@@ -31,22 +31,184 @@ export const HOUSE_THEME: Record<number, { title: string; domain: string; positi
   12: { title: "Loss, Spirituality, Foreign",domain: "expenses, hidden enemies, foreign lands",   positive: "spiritual depth, foreign success, hidden support",  negative: "losses, isolation, hospital, hidden enemies" },
 };
 
+export type Verdict = "yes-strong" | "yes" | "possible" | "delayed" | "unlikely";
+
+export interface LifePrediction {
+  question: string;
+  verdict: Verdict;
+  answer: string;       // short verdict phrase
+  detail: string;       // why — references planet + house
+}
+
 export interface TransitReading {
   headline: string;
   meaning: string;
   favors: string;
   warns: string;
-  weight: "high" | "medium" | "low";  // slow planets = high impact
+  weight: "high" | "medium" | "low";
+  predictions: LifePrediction[];
 }
 
 const HIGH_IMPACT = new Set(["Saturn", "Jupiter", "Rahu", "Ketu"]);
 const LOW_IMPACT = new Set(["Moon"]);
 
+// ── Specific life-area predictions ──────────────────────────────────────────
+// For each area: which houses light it up, which planets boost vs block.
+interface LifeArea {
+  question: string;
+  houses: number[];
+  boosters: string[];
+  blockers: string[];
+  wild?: string[];     // unpredictable — Rahu-style
+  inverted?: boolean;  // for health: malefics in dushtana = bad health
+  boostText: string;
+  blockText: string;
+  wildText?: string;
+}
+
+const LIFE_AREAS: LifeArea[] = [
+  {
+    question: "Will you find love?",
+    houses: [5, 7, 11],
+    boosters: ["Venus", "Jupiter", "Moon"],
+    blockers: ["Saturn", "Ketu", "Mars"],
+    wild: ["Rahu"],
+    boostText: "Romance is actively favored. Expect introductions, dates, or a relationship reaching a new stage.",
+    blockText: "Love is delayed, cooled, or under stress. Existing bonds may feel distant; new ones struggle to ignite.",
+    wildText: "Unusual or unconventional attractions — foreign, online, or someone outside your normal circle. Don't trust the high.",
+  },
+  {
+    question: "Will you make money?",
+    houses: [2, 11],
+    boosters: ["Jupiter", "Venus", "Mercury", "Sun"],
+    blockers: ["Saturn", "Ketu"],
+    wild: ["Rahu", "Mars"],
+    boostText: "Yes — active income flows in. Raises, side deals, bonuses, or new clients are all in play.",
+    blockText: "Income tightens. Delays in payment, frozen deals, or shrinking pipeline. Conserve, don't spend.",
+    wildText: "Money comes in sudden, irregular bursts — speculation, crypto, foreign deals, or commission. Volatile.",
+  },
+  {
+    question: "Will you become wealthy / accumulate assets?",
+    houses: [2, 4, 9, 11],
+    boosters: ["Jupiter", "Venus"],
+    blockers: ["Saturn", "Ketu", "Rahu"],
+    boostText: "Long-term wealth building is supported — investments, property, savings compound visibly.",
+    blockText: "Assets stagnate or leak. Avoid new debt and big-ticket purchases until this clears.",
+  },
+  {
+    question: "Will your career advance?",
+    houses: [1, 6, 10, 11],
+    boosters: ["Sun", "Saturn", "Jupiter", "Mars"],
+    blockers: ["Ketu", "Moon"],
+    wild: ["Rahu"],
+    boostText: "Career is being pushed forward — promotion, recognition, or a step up in responsibility.",
+    blockText: "Career stalls or drifts. Motivation drops; visibility from leadership fades.",
+    wildText: "An unexpected pivot — sudden offer, scandal, foreign role, or a leap into something new.",
+  },
+  {
+    question: "Will your health hold up?",
+    houses: [1, 6, 8, 12],
+    boosters: ["Jupiter", "Venus"],
+    blockers: ["Saturn", "Mars", "Rahu", "Ketu", "Sun"],
+    inverted: true,
+    boostText: "Healing and recovery favored. Good time to start a regimen, surgery if needed, or restore vitality.",
+    blockText: "Strain on the body — chronic conditions flare, sleep suffers, accident risk rises. Slow down.",
+  },
+  {
+    question: "Will you travel or relocate abroad?",
+    houses: [3, 9, 12],
+    boosters: ["Jupiter", "Mercury", "Moon"],
+    blockers: ["Saturn", "Ketu"],
+    wild: ["Rahu"],
+    boostText: "Travel is supported — trips, study abroad, or a meaningful pilgrimage.",
+    blockText: "Trips get cancelled, visas delay, or you're forced to stay put.",
+    wildText: "Sudden, obsessive pull toward a foreign place — possible relocation or extended overseas stint.",
+  },
+  {
+    question: "Will marriage or a major partnership form?",
+    houses: [2, 7, 11],
+    boosters: ["Jupiter", "Venus"],
+    blockers: ["Saturn", "Mars", "Rahu", "Ketu"],
+    boostText: "Strong window for engagement, marriage, or signing a major business partnership.",
+    blockText: "Commitment delays, partner conflict, or a partnership in stress-test. Don't force a vow now.",
+  },
+  {
+    question: "Will you grow spiritually or undergo transformation?",
+    houses: [4, 8, 9, 12],
+    boosters: ["Jupiter", "Ketu", "Saturn"],
+    blockers: ["Venus", "Mercury"],
+    boostText: "A real spiritual deepening — meditation, study, ritual, or genuine inner shift takes hold.",
+    blockText: "Surface distractions pull you away from inner work. Hard to sit still.",
+  },
+  {
+    question: "Will children, creativity, or speculation pay off?",
+    houses: [5],
+    boosters: ["Jupiter", "Venus", "Sun"],
+    blockers: ["Saturn", "Ketu", "Mars", "Rahu"],
+    boostText: "Creative projects land, fertility is favored, or a calculated bet pays off.",
+    blockText: "Avoid speculation, gambling, or risky investments. Drama with children or lovers possible.",
+  },
+];
+
+function applyRetro(verdict: Verdict, retro: boolean): { verdict: Verdict; tag: string } {
+  if (!retro) return { verdict, tag: "" };
+  if (verdict === "yes-strong") return { verdict: "yes", tag: " (revisit — slower than expected)" };
+  if (verdict === "yes") return { verdict: "possible", tag: " (on/off — comes back to be reworked)" };
+  if (verdict === "possible") return { verdict: "delayed", tag: " (loops back — needs second pass)" };
+  return { verdict, tag: " (old patterns resurface)" };
+}
+
+const VERDICT_LABEL: Record<Verdict, string> = {
+  "yes-strong": "Yes — strong window",
+  "yes": "Yes — likely",
+  "possible": "Possible",
+  "delayed": "Delayed / unlikely now",
+  "unlikely": "No — not this transit",
+};
+
+export function lifePredictions(planet: string, house: number, retrograde: boolean): LifePrediction[] {
+  const out: LifePrediction[] = [];
+  for (const area of LIFE_AREAS) {
+    if (!area.houses.includes(house)) continue;
+    let baseVerdict: Verdict;
+    let detail: string;
+    if (area.wild?.includes(planet)) {
+      baseVerdict = "possible";
+      detail = area.wildText ?? area.boostText;
+    } else if (area.inverted) {
+      // Health area: blockers (malefics) in dushtana = bad
+      if (area.blockers.includes(planet)) { baseVerdict = "delayed"; detail = area.blockText; }
+      else if (area.boosters.includes(planet)) { baseVerdict = "yes"; detail = area.boostText; }
+      else { baseVerdict = "possible"; detail = "Neutral pressure on this area — depends on supporting transits."; }
+    } else {
+      if (area.boosters.includes(planet)) {
+        baseVerdict = HIGH_IMPACT.has(planet) ? "yes-strong" : "yes";
+        detail = area.boostText;
+      } else if (area.blockers.includes(planet)) {
+        baseVerdict = HIGH_IMPACT.has(planet) ? "delayed" : "unlikely";
+        detail = area.blockText;
+      } else {
+        baseVerdict = "possible";
+        detail = "Background influence only — no strong push either way.";
+      }
+    }
+    const { verdict, tag } = applyRetro(baseVerdict, retrograde);
+    const houseTheme = HOUSE_THEME[house]?.title ?? `House ${house}`;
+    out.push({
+      question: area.question,
+      verdict,
+      answer: VERDICT_LABEL[verdict] + tag,
+      detail: `${detail} (${planet}${retrograde ? " retrograde" : ""} in your ${houseTheme} field.)`,
+    });
+  }
+  return out;
+}
+
 export function readTransit(planet: string, natalHouse: number, retrograde: boolean): TransitReading {
   const p = PLANET_TONE[planet];
   const h = HOUSE_THEME[natalHouse];
   if (!p || !h) {
-    return { headline: `${planet} → House ${natalHouse}`, meaning: "No interpretation available.", favors: "", warns: "", weight: "low" };
+    return { headline: `${planet} → House ${natalHouse}`, meaning: "No interpretation available.", favors: "", warns: "", weight: "low", predictions: [] };
   }
   const retroNote = retrograde
     ? " Retrograde — themes turn inward, revisit, repeat. Old chapters of this house resurface for review."
@@ -60,5 +222,6 @@ export function readTransit(planet: string, natalHouse: number, retrograde: bool
   return {
     headline: `${planet}${retrograde ? " ʀ" : ""} transiting House ${natalHouse} — ${h.title}`,
     meaning, favors, warns, weight,
+    predictions: lifePredictions(planet, natalHouse, retrograde),
   };
 }
