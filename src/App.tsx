@@ -148,6 +148,8 @@ const App = () => (
             <Route path="/feature/library" element={<FeatureLibrary />} />
             <Route path="/feature/whiteboard-info" element={<FeatureWhiteboardPage />} />
             <Route path="/feature/vedic" element={<FeatureVedic />} />
+            <Route path="/vedic-astrology" element={<VedicAstrology />} />
+            <Route path="/vedic" element={<VedicAstrology />} />
             <Route path="/zophiel" element={<ZophielFree />} />
             <Route path="/search" element={<ZophielFree />} />
             <Route path="/i" element={<TrackPage />} />
