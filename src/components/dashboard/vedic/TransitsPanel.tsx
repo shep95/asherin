@@ -806,107 +806,74 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
-      {/* LIFE SEQUENCE — Wealth vs Soulmate ordered prediction */}
-      {lifeSequence && (lifeSequence.wealthEvent || lifeSequence.soulmateEvent) && (() => {
+      {/* WEALTH & POWER CALCULATOR — natal capacity (%) + dasha+transit timing */}
+      {lifeSequence && (() => {
         const ls = lifeSequence;
-        const wealthFirst = ls.order === "wealth-first";
-        const soulmateFirst = ls.order === "soulmate-first";
-        const simultaneous = ls.order === "simultaneous";
-        const yesNo: "YES" | "NO" | "TIE" | "—" =
-          wealthFirst ? "YES" :
-          soulmateFirst ? "NO" :
-          simultaneous ? "TIE" : "—";
-        const yesNoClass =
-          yesNo === "YES" ? "border-emerald-400/40 bg-emerald-400/[0.08] text-emerald-200" :
-          yesNo === "NO"  ? "border-rose-400/40 bg-rose-400/[0.08] text-rose-200" :
-          yesNo === "TIE" ? "border-border/40 bg-background/40 text-foreground" :
-                            "border-border/30 bg-background/30 text-muted-foreground";
         const gradePill = (g: string) =>
           `text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${
             g === "peak" ? "border-foreground/40 bg-foreground/[0.06] text-foreground"
             : g === "strong" ? "border-foreground/25 bg-foreground/[0.03] text-foreground/85"
             : "border-border/40 bg-background/40 text-foreground/70"
           } ml-auto`;
+        const wp = ls.wealthPotential;
+        const pp = ls.powerPotential;
+        const wealthTierLabel: Record<typeof wp.tier, string> = {
+          billionaire: "Billionaire-grade capacity",
+          millionaire: "Millionaire-grade capacity",
+          comfortable: "Comfortable capacity",
+          none: "Not supported by chart",
+        };
+        const powerTierLabel: Record<typeof pp.tier, string> = {
+          "global-icon": "Global-icon capacity",
+          "national-figure": "National-figure capacity",
+          "regional-influencer": "Regional-influencer capacity",
+          local: "Local-reach capacity",
+          none: "Not supported by chart",
+        };
+        const POWER_TYPE_META: Record<typeof pp.primaryType, { label: string; icon: typeof Crown; tag: string }> = {
+          public: { label: "Public / Celebrity", icon: Megaphone, tag: "Mass appeal, fame, visibility" },
+          political: { label: "Political / Executive", icon: Crown, tag: "Governance, command, formal authority" },
+          behindScenes: { label: "Behind-the-Scenes", icon: ScrollText, tag: "Kingmaker, operator, hidden influence" },
+          institutional: { label: "Global Institutional", icon: Building2, tag: "Academies, doctrines, foreign institutions" },
+        };
+        const Bar = ({ pct }: { pct: number }) => (
+          <div className="h-1.5 w-full rounded-full bg-foreground/10 overflow-hidden">
+            <div className="h-full bg-foreground/70" style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
+          </div>
+        );
         return (
           <div className="rounded-lg border border-border/40 bg-background/40 p-4 space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
               <Trophy className="h-4 w-4 text-muted-foreground" />
-              <h4 className="text-xs font-light tracking-[0.18em] text-foreground/85 uppercase">Life Sequence · Wealth vs Soulmate</h4>
-              <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 ml-auto">Dasha lord ∩ Transit firing</span>
-            </div>
-
-            {/* Q1: YES / NO */}
-            <div className="rounded-md border border-border/40 bg-background/30 p-3 flex items-center gap-3 flex-wrap">
-              <div className={`min-w-[64px] text-center rounded-md border px-3 py-2 ${yesNoClass}`}>
-                <div className="text-[8.5px] uppercase tracking-[0.22em] opacity-70">Q1</div>
-                <div className="text-lg font-light tracking-wider">{yesNo}</div>
-              </div>
-              <div className="flex-1 min-w-[180px]">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80">Rich before soulmate?</div>
-                <div className="text-[12.5px] font-light text-foreground/90 leading-snug">{ls.q1Verdict}</div>
-                {ls.gapMonths !== null && (
-                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 pt-0.5">
-                    Gap: {Math.abs(ls.gapMonths)} mo · {ls.order.replace("-", " ")}
-                  </div>
-                )}
-              </div>
+              <h4 className="text-xs font-light tracking-[0.18em] text-foreground/85 uppercase">Wealth &amp; Power Calculator</h4>
+              <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 ml-auto">Natal capacity · Dasha + Transit timing</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {/* Soulmate card */}
-              <div className={`rounded-md border p-3 space-y-1.5 ${ls.soulmateEvent ? "border-rose-400/40 bg-rose-400/[0.05]" : "border-border/25 bg-background/30"}`}>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <Heart className={`h-3.5 w-3.5 ${ls.soulmateEvent ? "text-rose-300" : "text-muted-foreground/60"}`} fill={ls.soulmateEvent ? "currentColor" : "none"} />
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-rose-200/90">When you meet your soulmate</span>
-                  {ls.soulmateEvent && <span className={gradePill(ls.soulmateEvent.grade)}>{ls.soulmateEvent.grade.toUpperCase()}</span>}
-                </div>
-                {ls.soulmateEvent ? (
-                  <>
-                    <div className="text-[12px] font-light text-foreground">
-                      {fmtDateTime(ls.soulmateEvent.start)} → {fmtDateTime(ls.soulmateEvent.end)}
-                    </div>
-                    <div className="text-[10.5px] font-light text-muted-foreground/85 leading-relaxed">{ls.soulmateEvent.window.headline}</div>
-                    <div className="text-[9.5px] uppercase tracking-[0.16em] text-rose-200/70 pt-1 border-t border-border/15">
-                      Dasha: {ls.soulmateEvent.dasha?.mahaLord} MD / {ls.soulmateEvent.dasha?.antarLord} AD
-                    </div>
-                    {ls.soulmateEvent.convergingLords.length > 0 && (
-                      <div className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground/80">
-                        Converging lords: {ls.soulmateEvent.convergingLords.join(" + ")}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-[11px] text-muted-foreground/70 italic">No dasha-backed soulmate window inside scan horizon. Soulmate lords: {ls.soulmateLords.join(", ")}.</div>
-                )}
-              </div>
-
-              {/* Wealth card — always visible; tier badge communicates whether chart supports millionaire/billionaire */}
-              <div className={`rounded-md border p-3 space-y-1.5 ${
-                ls.wealthEvent
-                  ? "border-emerald-400/35 bg-emerald-400/[0.05]"
-                  : ls.wealthPotential.tier === "none"
-                    ? "border-border/25 bg-background/30"
-                    : "border-border/35 bg-background/40"
+              {/* WEALTH CARD */}
+              <div className={`rounded-md border p-3 space-y-2 ${
+                ls.wealthEvent ? "border-emerald-400/35 bg-emerald-400/[0.05]"
+                : wp.tier === "none" ? "border-border/25 bg-background/30"
+                : "border-border/35 bg-background/40"
               }`}>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <Gem className={`h-3.5 w-3.5 ${ls.wealthEvent ? "text-emerald-300" : "text-muted-foreground/60"}`} />
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-200/90">
-                    {ls.wealthPotential.tier === "none"
-                      ? "Wealth window · chart capacity"
-                      : soulmateFirst ? "If your chart supports richness — when you become rich" : "When you become rich"}
-                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-200/90">Wealth capacity</span>
                   <span className={`text-[8.5px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded border ${
-                    ls.wealthPotential.tier === "billionaire" ? "border-foreground/50 text-foreground" :
-                    ls.wealthPotential.tier === "millionaire" ? "border-emerald-400/40 text-emerald-200/90" :
-                    ls.wealthPotential.tier === "comfortable" ? "border-border/40 text-muted-foreground" :
+                    wp.tier === "billionaire" ? "border-foreground/50 text-foreground" :
+                    wp.tier === "millionaire" ? "border-emerald-400/40 text-emerald-200/90" :
+                    wp.tier === "comfortable" ? "border-border/40 text-muted-foreground" :
                     "border-border/30 text-muted-foreground/70"
                   }`}>
-                    {ls.wealthPotential.tier} · {ls.wealthPotential.score}/100
+                    {wp.tier} · {wp.score}%
                   </span>
                   {ls.wealthEvent && <span className={gradePill(ls.wealthEvent.grade)}>{ls.wealthEvent.grade.toUpperCase()}</span>}
                 </div>
 
-                {/* Velocity classification */}
+                <div className="text-[11px] font-light text-foreground/85">{wealthTierLabel[wp.tier]}</div>
+                <Bar pct={wp.score} />
+
+                {/* Velocity */}
                 <div className="flex items-start gap-1.5 pt-0.5">
                   <Activity className="h-3 w-3 text-foreground/70 mt-[2px] shrink-0" />
                   <div className="text-[10px] leading-snug">
@@ -917,11 +884,12 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
 
                 {ls.wealthEvent ? (
                   <>
+                    <div className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70 pt-1 border-t border-border/15">When you reach it</div>
                     <div className="text-[12px] font-light text-foreground">
                       {fmtDateTime(ls.wealthEvent.start)} → {fmtDateTime(ls.wealthEvent.end)}
                     </div>
                     <div className="text-[10.5px] font-light text-muted-foreground/85 leading-relaxed">{ls.wealthEvent.window.headline}</div>
-                    <div className="text-[9.5px] uppercase tracking-[0.16em] text-emerald-200/70 pt-1 border-t border-border/15">
+                    <div className="text-[9.5px] uppercase tracking-[0.16em] text-emerald-200/70">
                       Dasha: {ls.wealthEvent.dasha?.mahaLord} MD / {ls.wealthEvent.dasha?.antarLord} AD
                     </div>
                     {ls.wealthEvent.convergingLords.length > 0 && (
@@ -929,30 +897,106 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                         Converging lords: {ls.wealthEvent.convergingLords.join(" + ")}
                       </div>
                     )}
-                    {ls.wealthPotential.reasons.length > 0 && (
+                    {wp.reasons.length > 0 && (
                       <div className="text-[9.5px] text-muted-foreground/70 pt-1 border-t border-border/10 leading-relaxed">
-                        Why supported: {ls.wealthPotential.reasons.join(" · ")}
+                        Why supported: {wp.reasons.join(" · ")}
                       </div>
                     )}
                   </>
                 ) : (
                   <div className="text-[11px] text-muted-foreground/70 italic">
-                    {ls.wealthPotential.tier === "none"
-                      ? `Natal dhana-yoga score ${ls.wealthPotential.score}/100 — chart does not currently support millionaire/billionaire-grade wealth. No false-hope window will be shown until convergence appears.`
-                      : soulmateFirst
-                        ? "Chart shows soulmate first; no dasha-backed wealth window inside scan horizon — richness not confirmed in this range."
-                        : `No dasha-backed wealth window inside scan horizon. Wealth lords: ${ls.wealthLords.join(", ")}.`}
+                    {wp.tier === "none"
+                      ? `Dhana-yoga score ${wp.score}% — chart does not currently support millionaire/billionaire-grade wealth. No false-hope window will be shown.`
+                      : `No dasha-backed wealth window inside scan horizon. Wealth lords: ${ls.wealthLords.join(", ")}.`}
                   </div>
                 )}
               </div>
+
+              {/* POWER CARD */}
+              {(() => {
+                const meta = POWER_TYPE_META[pp.primaryType];
+                const PowerIcon = meta.icon;
+                return (
+                  <div className={`rounded-md border p-3 space-y-2 ${
+                    ls.powerEvent ? "border-amber-400/40 bg-amber-400/[0.05]"
+                    : pp.tier === "none" ? "border-border/25 bg-background/30"
+                    : "border-border/35 bg-background/40"
+                  }`}>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <PowerIcon className={`h-3.5 w-3.5 ${ls.powerEvent ? "text-amber-200" : "text-muted-foreground/60"}`} />
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-amber-200/90">Power capacity</span>
+                      <span className={`text-[8.5px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded border ${
+                        pp.tier === "global-icon" ? "border-foreground/50 text-foreground" :
+                        pp.tier === "national-figure" ? "border-amber-400/40 text-amber-200/90" :
+                        pp.tier === "regional-influencer" ? "border-border/40 text-muted-foreground" :
+                        pp.tier === "local" ? "border-border/30 text-muted-foreground/80" :
+                        "border-border/30 text-muted-foreground/70"
+                      }`}>
+                        {pp.tier} · {pp.total}%
+                      </span>
+                      {ls.powerEvent && <span className={gradePill(ls.powerEvent.grade)}>{ls.powerEvent.grade.toUpperCase()}</span>}
+                    </div>
+
+                    <div className="text-[11px] font-light text-foreground/85">{powerTierLabel[pp.tier]} · primary: {meta.label}</div>
+                    <div className="text-[9.5px] text-muted-foreground/70 italic">{meta.tag}</div>
+
+                    {/* Per-type breakdown */}
+                    <div className="space-y-1 pt-1">
+                      {(["public","political","behindScenes","institutional"] as const).map((t) => {
+                        const m = POWER_TYPE_META[t];
+                        const v = pp.types[t];
+                        const isPrimary = t === pp.primaryType;
+                        return (
+                          <div key={t} className="space-y-0.5">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className={isPrimary ? "text-foreground" : "text-muted-foreground/85"}>{m.label}</span>
+                              <span className={isPrimary ? "text-foreground" : "text-muted-foreground/70"}>{v}%</span>
+                            </div>
+                            <Bar pct={v} />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {ls.powerEvent ? (
+                      <>
+                        <div className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70 pt-1 border-t border-border/15">When you reach it</div>
+                        <div className="text-[12px] font-light text-foreground">
+                          {fmtDateTime(ls.powerEvent.start)} → {fmtDateTime(ls.powerEvent.end)}
+                        </div>
+                        <div className="text-[10.5px] font-light text-muted-foreground/85 leading-relaxed">{ls.powerEvent.window.headline}</div>
+                        <div className="text-[9.5px] uppercase tracking-[0.16em] text-amber-200/70">
+                          Dasha: {ls.powerEvent.dasha?.mahaLord} MD / {ls.powerEvent.dasha?.antarLord} AD
+                        </div>
+                        {ls.powerEvent.convergingLords.length > 0 && (
+                          <div className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground/80">
+                            Converging lords: {ls.powerEvent.convergingLords.join(" + ")}
+                          </div>
+                        )}
+                        {pp.reasons.length > 0 && (
+                          <div className="text-[9.5px] text-muted-foreground/70 pt-1 border-t border-border/10 leading-relaxed">
+                            Why supported: {pp.reasons.join(" · ")}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-[11px] text-muted-foreground/70 italic">
+                        {pp.tier === "none"
+                          ? `Power score ${pp.total}% — chart does not currently support large-scale power. No false-hope window will be shown.`
+                          : `No dasha-backed power window inside scan horizon. Power lords: ${ls.powerLords.join(", ")}.`}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Additional candidates */}
-            {(ls.wealthCandidates.length > 1 || ls.soulmateCandidates.length > 1) && (
+            {(ls.wealthCandidates.length > 1 || ls.powerCandidates.length > 1) && (
               <details className="group">
                 <summary className="flex items-center gap-2 cursor-pointer list-none select-none text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80 hover:text-foreground">
                   <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
-                  All dasha-backed candidates ({ls.wealthCandidates.length} wealth · {ls.soulmateCandidates.length} soulmate)
+                  All dasha-backed candidates ({ls.wealthCandidates.length} wealth · {ls.powerCandidates.length} power)
                 </summary>
                 <div className="pt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                   <div className="space-y-1">
@@ -966,12 +1010,12 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                     ))}
                   </div>
                   <div className="space-y-1">
-                    <div className="text-[9px] uppercase tracking-[0.2em] text-rose-300/80">Soulmate windows</div>
-                    {ls.soulmateCandidates.slice(0, 6).map((e, i) => (
-                      <div key={`s-${i}`} className="text-[10.5px] text-foreground/80 border border-border/20 rounded px-2 py-1 flex justify-between gap-2">
+                    <div className="text-[9px] uppercase tracking-[0.2em] text-amber-300/80">Power windows</div>
+                    {ls.powerCandidates.slice(0, 6).map((e, i) => (
+                      <div key={`p-${i}`} className="text-[10.5px] text-foreground/80 border border-border/20 rounded px-2 py-1 flex justify-between gap-2">
                         <span>{fmtDate(e.start)}</span>
                         <span className="text-muted-foreground/70">{e.dasha?.mahaLord}/{e.dasha?.antarLord}</span>
-                        <span className="text-rose-200/70">{e.grade}</span>
+                        <span className="text-amber-200/70">{e.grade}</span>
                       </div>
                     ))}
                   </div>
@@ -980,7 +1024,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
             )}
 
             <div className="text-[10px] text-muted-foreground/60 italic leading-relaxed">
-              Method: scans your Vimshottari Mahadasha + Antardasha for periods where your natal wealth-lords (L2/L5/L9/L11/AK + Jupiter/Venus) or soulmate-lords (L7/UL/DK/Moon + Venus/Jupiter) are active, then cross-checks against transit windows firing the same planets. Earliest convergence = the prediction.
+              Method: scores your natal chart (Jupiter/Venus dignity, dhana-house lords, Atmakaraka, 10th/11th strength, Sun/Mars/Saturn/Jupiter/Rahu placements) for wealth tier and 4 power archetypes — then cross-references your Vimshottari Mahadasha + Antardasha with live transit windows firing the same lords. Earliest convergence = when you reach that level.
             </div>
           </div>
         );
