@@ -26,6 +26,9 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 function fmtDate(d: Date) {
   return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
 }
+function fmtDateTime(d: Date) {
+  return d.toLocaleString("en-US", { year: "numeric", month: "short", day: "2-digit", hour: "numeric", minute: "2-digit", hour12: true });
+}
 function fmtDeg(deg: number) {
   const dInt = Math.floor(deg);
   const m = Math.floor((deg - dInt) * 60);
@@ -840,7 +843,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                 {ls.soulmateEvent ? (
                   <>
                     <div className="text-[12px] font-light text-foreground">
-                      {fmtDate(ls.soulmateEvent.start)} → {fmtDate(ls.soulmateEvent.end)}
+                      {fmtDateTime(ls.soulmateEvent.start)} → {fmtDateTime(ls.soulmateEvent.end)}
                     </div>
                     <div className="text-[10.5px] font-light text-muted-foreground/85 leading-relaxed">{ls.soulmateEvent.window.headline}</div>
                     <div className="text-[9.5px] uppercase tracking-[0.16em] text-rose-200/70 pt-1 border-t border-border/15">
@@ -857,38 +860,68 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                 )}
               </div>
 
-              {/* Wealth card */}
-              <div className={`rounded-md border p-3 space-y-1.5 ${ls.wealthEvent ? "border-emerald-400/35 bg-emerald-400/[0.05]" : "border-border/25 bg-background/30"}`}>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <Gem className={`h-3.5 w-3.5 ${ls.wealthEvent ? "text-emerald-300" : "text-muted-foreground/60"}`} />
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-200/90">
-                    {soulmateFirst ? "If your chart supports richness — when you become rich" : "When you become rich"}
-                  </span>
-                  {ls.wealthEvent && <span className={gradePill(ls.wealthEvent.grade)}>{ls.wealthEvent.grade.toUpperCase()}</span>}
-                </div>
-                {ls.wealthEvent ? (
-                  <>
-                    <div className="text-[12px] font-light text-foreground">
-                      {fmtDate(ls.wealthEvent.start)} → {fmtDate(ls.wealthEvent.end)}
-                    </div>
-                    <div className="text-[10.5px] font-light text-muted-foreground/85 leading-relaxed">{ls.wealthEvent.window.headline}</div>
-                    <div className="text-[9.5px] uppercase tracking-[0.16em] text-emerald-200/70 pt-1 border-t border-border/15">
-                      Dasha: {ls.wealthEvent.dasha?.mahaLord} MD / {ls.wealthEvent.dasha?.antarLord} AD
-                    </div>
-                    {ls.wealthEvent.convergingLords.length > 0 && (
-                      <div className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground/80">
-                        Converging lords: {ls.wealthEvent.convergingLords.join(" + ")}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-[11px] text-muted-foreground/70 italic">
-                    {soulmateFirst
-                      ? "Chart shows soulmate first; no dasha-backed wealth window inside scan horizon — richness not confirmed in this range."
-                      : "No dasha-backed wealth window inside scan horizon."} Wealth lords: {ls.wealthLords.join(", ")}.
+              {/* Wealth card — only render if chart supports millionaire+ tier */}
+              {ls.wealthPotential.tier === "none" ? (
+                <div className="rounded-md border border-border/25 bg-background/30 p-3 space-y-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Gem className="h-3.5 w-3.5 text-muted-foreground/60" />
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80">Wealth tier · chart does not support</span>
                   </div>
-                )}
-              </div>
+                  <div className="text-[11px] text-muted-foreground/70 italic leading-relaxed">
+                    Natal dhana-yoga score {ls.wealthPotential.score}/100 — chart does not currently support millionaire/billionaire-grade wealth. Rich-window prediction suppressed (no false hope).
+                  </div>
+                </div>
+              ) : (
+                <div className={`rounded-md border p-3 space-y-1.5 ${ls.wealthEvent ? "border-emerald-400/35 bg-emerald-400/[0.05]" : "border-border/25 bg-background/30"}`}>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Gem className={`h-3.5 w-3.5 ${ls.wealthEvent ? "text-emerald-300" : "text-muted-foreground/60"}`} />
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-200/90">
+                      {soulmateFirst ? "If your chart supports richness — when you become rich" : "When you become rich"}
+                    </span>
+                    <span className="text-[8.5px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded border border-emerald-400/40 text-emerald-200/90">
+                      {ls.wealthPotential.tier} · {ls.wealthPotential.score}/100
+                    </span>
+                    {ls.wealthEvent && <span className={gradePill(ls.wealthEvent.grade)}>{ls.wealthEvent.grade.toUpperCase()}</span>}
+                  </div>
+
+                  {/* Velocity classification */}
+                  <div className="flex items-start gap-1.5 pt-0.5">
+                    <Activity className="h-3 w-3 text-foreground/70 mt-[2px] shrink-0" />
+                    <div className="text-[10px] leading-snug">
+                      <span className="uppercase tracking-[0.18em] text-foreground/85">{ls.wealthVelocity.label}</span>
+                      <span className="text-muted-foreground/75"> — {ls.wealthVelocity.detail}</span>
+                    </div>
+                  </div>
+
+                  {ls.wealthEvent ? (
+                    <>
+                      <div className="text-[12px] font-light text-foreground">
+                        {fmtDateTime(ls.wealthEvent.start)} → {fmtDateTime(ls.wealthEvent.end)}
+                      </div>
+                      <div className="text-[10.5px] font-light text-muted-foreground/85 leading-relaxed">{ls.wealthEvent.window.headline}</div>
+                      <div className="text-[9.5px] uppercase tracking-[0.16em] text-emerald-200/70 pt-1 border-t border-border/15">
+                        Dasha: {ls.wealthEvent.dasha?.mahaLord} MD / {ls.wealthEvent.dasha?.antarLord} AD
+                      </div>
+                      {ls.wealthEvent.convergingLords.length > 0 && (
+                        <div className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground/80">
+                          Converging lords: {ls.wealthEvent.convergingLords.join(" + ")}
+                        </div>
+                      )}
+                      {ls.wealthPotential.reasons.length > 0 && (
+                        <div className="text-[9.5px] text-muted-foreground/70 pt-1 border-t border-border/10 leading-relaxed">
+                          Why supported: {ls.wealthPotential.reasons.join(" · ")}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-[11px] text-muted-foreground/70 italic">
+                      {soulmateFirst
+                        ? "Chart shows soulmate first; no dasha-backed wealth window inside scan horizon — richness not confirmed in this range."
+                        : "No dasha-backed wealth window inside scan horizon."} Wealth lords: {ls.wealthLords.join(", ")}.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Additional candidates */}
