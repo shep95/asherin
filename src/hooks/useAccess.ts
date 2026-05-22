@@ -16,7 +16,7 @@ const PRO_VIEWS: DashboardView[] = [
 ];
 
 // Views that require Aureon-tier ($199) — NOMAD, Briefings, ZANOEM Design Lab
-const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks", "vedic-astrology"];
+const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks"];
 
 // Views that require any paid plan (search-tier)
 const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "reverse-engineer", "file-scrapper", "cipher"];
