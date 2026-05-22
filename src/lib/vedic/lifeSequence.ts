@@ -393,5 +393,7 @@ export function computeLifeSequence(
     q1Verdict: q1,
     futureDashaWealth: wealthDasha,
     futureDashaSoulmate: soulmateDasha,
+    wealthPotential: computeWealthPotential(natalPlanets, ascendant),
+    wealthVelocity: classifyWealthVelocity(wealthCandidates),
   };
 }
