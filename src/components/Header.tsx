@@ -98,7 +98,7 @@ const Header = () => {
                 <Link to="/feature/zahten" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zahten Agent Forge</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/vedic" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Vedic Strategy</Link>
+                <Link to="/vedic-astrology" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Vedic Astrology (Free)</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/feature/notebooks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Notebooks</Link>
