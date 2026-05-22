@@ -26,6 +26,9 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 function fmtDate(d: Date) {
   return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
 }
+function fmtDateTime(d: Date) {
+  return d.toLocaleString("en-US", { year: "numeric", month: "short", day: "2-digit", hour: "numeric", minute: "2-digit", hour12: true });
+}
 function fmtDeg(deg: number) {
   const dInt = Math.floor(deg);
   const m = Math.floor((deg - dInt) * 60);
