@@ -624,14 +624,28 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     return { briefs: enriched, periodWord, strongest };
   }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod, dashaLordWeights]);
 
-  // ── LIFE SEQUENCE — Q1/Q2/Q3 ordered prediction (wealth vs soulmate) ──
+  // ── WEALTH & POWER CALCULATOR — natal capacity + dasha+transit timing ──
+  // Power windows = union of power/career/influence/fame transit clusters
+  const combinedPowerWindows = useMemo(() => {
+    const seen = new Set<string>();
+    const all = [...powerWindows, ...careerWindows, ...influenceWindows, ...fameWindows];
+    const dedup: typeof all = [];
+    for (const w of all) {
+      const k = `${w.start.getTime()}-${w.end.getTime()}-${w.score}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      dedup.push(w);
+    }
+    return dedup.sort((a, b) => a.start.getTime() - b.start.getTime());
+  }, [powerWindows, careerWindows, influenceWindows, fameWindows]);
+
   const lifeSequence = useMemo(() => {
     if (activeRef.kind !== "user" || !natalPlanets || !dashaTimeline || !ingresses) return null;
     return computeLifeSequence(
       natalPlanets, activeRef.ascendant, dashaTimeline,
-      wealthWindows, soulmateWindows,
+      wealthWindows, combinedPowerWindows,
     );
-  }, [activeRef.kind, activeRef.ascendant, natalPlanets, dashaTimeline, ingresses, wealthWindows, soulmateWindows]);
+  }, [activeRef.kind, activeRef.ascendant, natalPlanets, dashaTimeline, ingresses, wealthWindows, combinedPowerWindows]);
 
 
 
