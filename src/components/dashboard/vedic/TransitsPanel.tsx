@@ -843,7 +843,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                 {ls.soulmateEvent ? (
                   <>
                     <div className="text-[12px] font-light text-foreground">
-                      {fmtDate(ls.soulmateEvent.start)} → {fmtDate(ls.soulmateEvent.end)}
+                      {fmtDateTime(ls.soulmateEvent.start)} → {fmtDateTime(ls.soulmateEvent.end)}
                     </div>
                     <div className="text-[10.5px] font-light text-muted-foreground/85 leading-relaxed">{ls.soulmateEvent.window.headline}</div>
                     <div className="text-[9.5px] uppercase tracking-[0.16em] text-rose-200/70 pt-1 border-t border-border/15">
