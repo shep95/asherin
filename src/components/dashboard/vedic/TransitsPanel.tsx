@@ -1087,11 +1087,22 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
 
       {/* Month forecast */}
       <div className="rounded-lg border border-border/25 bg-gradient-to-b from-foreground/[0.04] to-transparent p-3 space-y-2">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-foreground/70" />
-          <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">
-            Forecast for {periodLabel} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
-          </h4>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-foreground/70" />
+            <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">
+              Forecast for {periodLabel} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
+            </h4>
+          </div>
+          <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={hideBriefWindows}
+              onChange={(e) => setHideBriefWindows(e.target.checked)}
+              className="h-3 w-3 accent-foreground cursor-pointer"
+            />
+            Hide brief windows (&lt; 24h)
+          </label>
         </div>
         {loadingNow && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading the sky…</div>
