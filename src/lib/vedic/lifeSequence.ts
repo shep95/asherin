@@ -93,6 +93,139 @@ const KARAKAS = {
   soulmate: ["Venus", "Jupiter"],
 };
 
+// Classical own/exaltation signs (0=Aries..11=Pisces)
+const OWN_SIGNS: Record<string, number[]> = {
+  Sun: [4], Moon: [3], Mars: [0, 7], Mercury: [2, 5], Jupiter: [8, 11], Venus: [1, 6], Saturn: [9, 10],
+};
+const EXALT_SIGN: Record<string, number> = {
+  Sun: 0, Moon: 1, Mars: 9, Mercury: 5, Jupiter: 3, Venus: 11, Saturn: 6,
+};
+const DEBIL_SIGN: Record<string, number> = {
+  Sun: 6, Moon: 7, Mars: 3, Mercury: 11, Jupiter: 9, Venus: 5, Saturn: 0,
+};
+const WEALTH_HOUSES = new Set([1, 2, 5, 9, 10, 11]);
+
+/** Score natal dhana-yoga strength. Returns 0..100 and a tier. */
+function computeWealthPotential(planets: SweVedicPlanet[], ascendant: number): WealthPotential {
+  const ascSign = signOf(ascendant);
+  const houseOf = (deg: number) => ((signOf(deg) - ascSign + 12) % 12) + 1;
+  const lordOfHouse = (h: number) => SIGN_LORD[(ascSign + (h - 1)) % 12];
+
+  let score = 0;
+  const reasons: string[] = [];
+
+  // 1. Jupiter + Venus (wealth karakas) condition
+  for (const k of ["Jupiter", "Venus"]) {
+    const p = planets.find((x) => x.name === k);
+    if (!p) continue;
+    const s = signOf(p.sid);
+    const h = houseOf(p.sid);
+    if (EXALT_SIGN[k] === s) { score += 18; reasons.push(`${k} exalted (royal wealth karaka)`); }
+    else if (OWN_SIGNS[k]?.includes(s)) { score += 12; reasons.push(`${k} in own sign`); }
+    else if (DEBIL_SIGN[k] === s) { score -= 10; reasons.push(`${k} debilitated (wealth-karaka weak)`); }
+    if (WEALTH_HOUSES.has(h)) { score += 10; reasons.push(`${k} sits in dhana house ${h}`); }
+  }
+
+  // 2. Wealth-house lords (2/5/9/11) placed in dhana houses
+  let dhanaLordsInDhana = 0;
+  for (const h of [2, 5, 9, 10, 11]) {
+    const lordName = lordOfHouse(h);
+    const lord = planets.find((p) => p.name === lordName);
+    if (!lord) continue;
+    const lordHouse = houseOf(lord.sid);
+    if (WEALTH_HOUSES.has(lordHouse)) {
+      score += 7;
+      dhanaLordsInDhana += 1;
+    }
+    // Exaltation/own boost
+    const s = signOf(lord.sid);
+    if (EXALT_SIGN[lordName] === s) score += 6;
+    else if (OWN_SIGNS[lordName]?.includes(s)) score += 4;
+    else if (DEBIL_SIGN[lordName] === s) score -= 4;
+  }
+  if (dhanaLordsInDhana >= 3) reasons.push(`${dhanaLordsInDhana} wealth-lords parked in dhana houses (dhana-yoga stack)`);
+  else if (dhanaLordsInDhana >= 1) reasons.push(`${dhanaLordsInDhana} wealth-lord(s) in dhana houses`);
+
+  // 3. Atmakaraka identity (Jupiter/Venus/Sun AK = ultra-wealth flavor)
+  const karakaPool = planets.filter((p) =>
+    ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn"].includes(p.name));
+  const ak = [...karakaPool].sort((a, b) => degInSign(b.sid) - degInSign(a.sid))[0]?.name;
+  if (ak && ["Jupiter", "Venus", "Sun"].includes(ak)) {
+    score += 10;
+    reasons.push(`Atmakaraka = ${ak} (soul-aligned with wealth/legacy)`);
+  }
+
+  // 4. L11 lord (gains house) explicit boost
+  const l11 = planets.find((p) => p.name === lordOfHouse(11));
+  if (l11) {
+    const s = signOf(l11.sid);
+    if (EXALT_SIGN[l11.name] === s || OWN_SIGNS[l11.name]?.includes(s)) {
+      score += 8;
+      reasons.push(`Lord of 11th (gains) is strong by sign`);
+    }
+  }
+
+  // Cap
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  let tier: WealthPotential["tier"];
+  if (score >= 65) tier = "billionaire";
+  else if (score >= 40) tier = "millionaire";
+  else if (score >= 22) tier = "comfortable";
+  else tier = "none";
+
+  return { score, tier, reasons: reasons.slice(0, 6) };
+}
+
+/** Classify how wealth arrives: overnight burst vs slow staircase. */
+function classifyWealthVelocity(candidates: LifeEvent[]): WealthVelocity {
+  if (candidates.length === 0) {
+    return { kind: "unknown", label: "No confirmed window", detail: "No dasha+transit wealth convergence inside the scan horizon." };
+  }
+  const first = candidates[0];
+  const firstMs = first.start.getTime();
+  const firstDurDays = (first.end.getTime() - first.start.getTime()) / 86_400_000;
+  // Look at follow-ups within 5 years of first event
+  const fiveYearMs = 5 * 365 * 86_400_000;
+  const followUps = candidates.filter((c) => {
+    const dt = c.start.getTime() - firstMs;
+    return dt > 0 && dt <= fiveYearMs;
+  });
+  const peakHits = candidates.filter((c) => c.grade === "peak").length;
+
+  // Overnight: lone peak/strong event, narrow window (<60 days), <=1 followup
+  if ((first.grade === "peak" || first.grade === "strong") && firstDurDays <= 60 && followUps.length <= 1) {
+    return {
+      kind: "overnight",
+      label: "Overnight-success pattern",
+      detail: `Chart fires one tight ${first.grade} window (${Math.round(firstDurDays)}d) with no immediate follow-ups — wealth tends to arrive as a sudden break, not a grind.`,
+    };
+  }
+  // Fast window: peak/strong but slightly wider
+  if ((first.grade === "peak" || first.grade === "strong") && followUps.length <= 2) {
+    return {
+      kind: "fast-window",
+      label: "Fast-window breakthrough",
+      detail: `Strong primary window (${first.grade}) with ${followUps.length} follow-up(s) inside 5 years — quick scale once the first window opens.`,
+    };
+  }
+  // Staircase: 3-5 windows over 2-5 years
+  if (followUps.length >= 2 && followUps.length <= 5 && peakHits >= 1) {
+    return {
+      kind: "staircase",
+      label: "Staircase ascent",
+      detail: `${followUps.length + 1} convergence windows in 5 years, ${peakHits} at peak grade — wealth climbs in distinct steps.`,
+    };
+  }
+  // Slow build: many moderate windows
+  return {
+    kind: "slow-build",
+    label: "Slow-build accumulation",
+    detail: `${candidates.length} convergence windows spread across the horizon, most moderate — wealth compounds steadily rather than overnight.`,
+  };
+}
+
+
 function deriveTopicLords(planets: SweVedicPlanet[], ascendant: number) {
   const ascSign = signOf(ascendant);
   const lordOfHouse = (h: number) => SIGN_LORD[(ascSign + (h - 1)) % 12];
