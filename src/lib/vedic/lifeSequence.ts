@@ -481,56 +481,34 @@ export function computeLifeSequence(
   ascendant: number,
   mahaPeriods: DashaPeriod[],
   wealthWindows: KarmicWindow[],
-  soulmateWindows: KarmicWindow[],
+  powerWindows: KarmicWindow[],
   nowMs: number = Date.now(),
 ): LifeSequence {
   const lords = deriveTopicLords(natalPlanets, ascendant);
   const wealthDasha = collectDashaPeriods(mahaPeriods, lords.wealth, nowMs);
-  const soulmateDasha = collectDashaPeriods(mahaPeriods, lords.soulmate, nowMs);
+  const powerDasha = collectDashaPeriods(mahaPeriods, lords.power, nowMs);
 
   const wealthCandidates = rankCandidates(wealthWindows, wealthDasha, lords.wealth);
-  const soulmateCandidates = rankCandidates(soulmateWindows, soulmateDasha, lords.soulmate);
+  const powerCandidates = rankCandidates(powerWindows, powerDasha, lords.power);
 
-  // Pick FIRST event that has at least 1 converging lord; fall back to first candidate.
   const pickFirst = (list: LifeEvent[]): LifeEvent | null => {
     const converged = list.find((e) => e.convergingLords.length > 0);
     return converged ?? list[0] ?? null;
   };
   const wealthEvent = pickFirst(wealthCandidates);
-  const soulmateEvent = pickFirst(soulmateCandidates);
-
-  let order: LifeSequence["order"] = "neither";
-  let gapMonths: number | null = null;
-  let q1: string;
-  if (wealthEvent && soulmateEvent) {
-    const dw = wealthEvent.start.getTime();
-    const ds = soulmateEvent.start.getTime();
-    const diffMs = ds - dw;
-    gapMonths = Math.round(diffMs / (30 * 86400_000));
-    if (Math.abs(gapMonths) < 1) { order = "simultaneous"; q1 = "Wealth and soulmate hit at the same time — they arrive together."; }
-    else if (gapMonths > 0)      { order = "wealth-first"; q1 = `Yes — wealth arrives ~${gapMonths} month${gapMonths === 1 ? "" : "s"} before soulmate.`; }
-    else                          { order = "soulmate-first"; q1 = `No — soulmate arrives ~${Math.abs(gapMonths)} month${Math.abs(gapMonths) === 1 ? "" : "s"} before wealth.`; }
-  } else if (wealthEvent) {
-    order = "wealth-only"; q1 = "Wealth fires in this horizon, but no dasha-backed soulmate window appears — extend your scan to see if soulmate comes later.";
-  } else if (soulmateEvent) {
-    order = "soulmate-only"; q1 = "Soulmate fires in this horizon, but no dasha-backed wealth window appears — extend your scan.";
-  } else {
-    q1 = "Neither event has a dasha+transit convergence inside the current scan horizon. Extend scan or check long-range dasha-only signals below.";
-  }
+  const powerEvent = pickFirst(powerCandidates);
 
   return {
     wealthLords: lords.wealth,
-    soulmateLords: lords.soulmate,
+    powerLords: lords.power,
     wealthEvent,
-    soulmateEvent,
+    powerEvent,
     wealthCandidates,
-    soulmateCandidates,
-    order,
-    gapMonths,
-    q1Verdict: q1,
+    powerCandidates,
     futureDashaWealth: wealthDasha,
-    futureDashaSoulmate: soulmateDasha,
+    futureDashaPower: powerDasha,
     wealthPotential: computeWealthPotential(natalPlanets, ascendant),
     wealthVelocity: classifyWealthVelocity(wealthCandidates),
+    powerPotential: computePowerPotential(natalPlanets, ascendant),
   };
 }
