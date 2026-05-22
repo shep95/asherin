@@ -58,6 +58,7 @@ const FeatureBrains = lazy(() => import("./pages/FeatureBrains"));
 const FeatureLibrary = lazy(() => import("./pages/FeatureLibrary"));
 const FeatureWhiteboardPage = lazy(() => import("./pages/FeatureWhiteboard"));
 const FeatureVedic = lazy(() => import("./pages/FeatureVedic"));
+const VedicAstrology = lazy(() => import("./pages/VedicAstrology"));
 const ZophielFree = lazy(() => import("./pages/ZophielFree"));
 const WW3 = lazy(() => import("./pages/WW3"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -147,6 +148,8 @@ const App = () => (
             <Route path="/feature/library" element={<FeatureLibrary />} />
             <Route path="/feature/whiteboard-info" element={<FeatureWhiteboardPage />} />
             <Route path="/feature/vedic" element={<FeatureVedic />} />
+            <Route path="/vedic-astrology" element={<VedicAstrology />} />
+            <Route path="/vedic" element={<VedicAstrology />} />
             <Route path="/zophiel" element={<ZophielFree />} />
             <Route path="/search" element={<ZophielFree />} />
             <Route path="/i" element={<TrackPage />} />
