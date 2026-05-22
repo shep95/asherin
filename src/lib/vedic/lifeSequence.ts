@@ -50,6 +50,22 @@ export interface LifeEvent {
   grade: "peak" | "strong" | "moderate";
 }
 
+export interface WealthPotential {
+  /** 0..100 raw natal-strength score for wealth/dhana yogas. */
+  score: number;
+  /** Tier the chart supports. "none" → hide rich predictions. */
+  tier: "billionaire" | "millionaire" | "comfortable" | "none";
+  /** Plain-English reasons that drove the score. */
+  reasons: string[];
+}
+
+export interface WealthVelocity {
+  /** How wealth tends to arrive for this chart, based on event spread. */
+  kind: "overnight" | "fast-window" | "slow-build" | "staircase" | "unknown";
+  label: string;
+  detail: string;
+}
+
 export interface LifeSequence {
   wealthLords: string[];
   soulmateLords: string[];
@@ -66,6 +82,10 @@ export interface LifeSequence {
   /** Future dasha-only wealth/soulmate periods (no transit confirmation yet). */
   futureDashaWealth: DashaActivePeriod[];
   futureDashaSoulmate: DashaActivePeriod[];
+  /** Natal-chart capacity for wealth. */
+  wealthPotential: WealthPotential;
+  /** Tempo classification (overnight vs slow-build). */
+  wealthVelocity: WealthVelocity;
 }
 
 const KARAKAS = {
