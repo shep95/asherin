@@ -66,26 +66,38 @@ export interface WealthVelocity {
   detail: string;
 }
 
+export type PowerType = "public" | "political" | "behindScenes" | "institutional";
+
+export interface PowerPotential {
+  /** 0..100 — strongest single type score (also drives tier). */
+  total: number;
+  tier: "global-icon" | "national-figure" | "regional-influencer" | "local" | "none";
+  /** Per-type natal-strength %, 0..100. */
+  types: Record<PowerType, number>;
+  /** Highest-scoring type. */
+  primaryType: PowerType;
+  /** Human label for primary type. */
+  primaryLabel: string;
+  reasons: string[];
+}
+
 export interface LifeSequence {
   wealthLords: string[];
-  soulmateLords: string[];
+  powerLords: string[];
   wealthEvent: LifeEvent | null;
-  soulmateEvent: LifeEvent | null;
-  /** All dasha-supported wealth windows in scan range, earliest first. */
+  powerEvent: LifeEvent | null;
+  /** All dasha-supported wealth/power windows in scan range, earliest first. */
   wealthCandidates: LifeEvent[];
-  soulmateCandidates: LifeEvent[];
-  order: "wealth-first" | "soulmate-first" | "simultaneous" | "wealth-only" | "soulmate-only" | "neither";
-  /** Months between the two events (positive = wealth first). */
-  gapMonths: number | null;
-  /** Plain English answer to Q1. */
-  q1Verdict: string;
-  /** Future dasha-only wealth/soulmate periods (no transit confirmation yet). */
+  powerCandidates: LifeEvent[];
+  /** Future dasha-only wealth/power periods (no transit confirmation yet). */
   futureDashaWealth: DashaActivePeriod[];
-  futureDashaSoulmate: DashaActivePeriod[];
+  futureDashaPower: DashaActivePeriod[];
   /** Natal-chart capacity for wealth. */
   wealthPotential: WealthPotential;
   /** Tempo classification (overnight vs slow-build). */
   wealthVelocity: WealthVelocity;
+  /** Natal-chart capacity for power + type breakdown. */
+  powerPotential: PowerPotential;
 }
 
 const KARAKAS = {
@@ -235,15 +247,6 @@ function deriveTopicLords(planets: SweVedicPlanet[], ascendant: number) {
   );
   const sortedByDeg = [...karakaPool].sort((a, b) => degInSign(b.sid) - degInSign(a.sid));
   const ak = sortedByDeg[0]?.name;
-  const dk = sortedByDeg[sortedByDeg.length - 1]?.name;
-
-  // Upapada Lagna lord (sign of L2 lord, count 12th from it → ruler of that sign)
-  const sign2 = (ascSign + 1) % 12;
-  const lord2Name = SIGN_LORD[sign2];
-  const lord2Planet = planets.find((p) => p.name === lord2Name);
-  const lord2Sign = lord2Planet ? signOf(lord2Planet.sid) : sign2;
-  const ulSign = (lord2Sign + 11) % 12;
-  const ulLord = SIGN_LORD[ulSign];
 
   const wealth = new Set<string>([
     lordOfHouse(2), lordOfHouse(5), lordOfHouse(9), lordOfHouse(11),
@@ -251,13 +254,147 @@ function deriveTopicLords(planets: SweVedicPlanet[], ascendant: number) {
   ]);
   if (ak) wealth.add(ak);
 
-  const soulmate = new Set<string>([
-    lordOfHouse(7), ulLord,
-    ...KARAKAS.soulmate, "Moon",
+  // Power lords: 10th (status), 11th (gains/network), 1st (self/authority),
+  // plus Sun (authority), Mars (executive), Saturn (institution), Jupiter (wisdom/office), Rahu (foreign/unconventional fame)
+  const power = new Set<string>([
+    lordOfHouse(1), lordOfHouse(10), lordOfHouse(11),
+    "Sun", "Mars", "Saturn", "Jupiter", "Rahu",
   ]);
-  if (dk) soulmate.add(dk);
 
-  return { wealth: Array.from(wealth), soulmate: Array.from(soulmate) };
+  return { wealth: Array.from(wealth), power: Array.from(power) };
+}
+
+/** Score natal capacity for the four flavors of power. */
+function computePowerPotential(planets: SweVedicPlanet[], ascendant: number): PowerPotential {
+  const ascSign = signOf(ascendant);
+  const houseOf = (deg: number) => ((signOf(deg) - ascSign + 12) % 12) + 1;
+  const lordOfHouse = (h: number) => SIGN_LORD[(ascSign + (h - 1)) % 12];
+
+  const reasons: string[] = [];
+  const scores: Record<PowerType, number> = {
+    public: 0, political: 0, behindScenes: 0, institutional: 0,
+  };
+
+  const find = (n: string) => planets.find((p) => p.name === n);
+  const dignityBoost = (name: string, sign: number): number => {
+    if (EXALT_SIGN[name] === sign) return 14;
+    if (OWN_SIGNS[name]?.includes(sign)) return 9;
+    if (DEBIL_SIGN[name] === sign) return -8;
+    return 0;
+  };
+
+  // PUBLIC FAME — Sun, Moon, Venus, Rahu visibility in 1/5/10/11
+  const sun = find("Sun"), moon = find("Moon"), venus = find("Venus"), rahu = find("Rahu");
+  if (sun) {
+    const h = houseOf(sun.sid), s = signOf(sun.sid);
+    if ([1, 5, 10].includes(h)) { scores.public += 14; reasons.push(`Sun in ${h}th (visible identity)`); }
+    scores.public += Math.max(0, dignityBoost("Sun", s));
+  }
+  if (moon) {
+    const h = houseOf(moon.sid);
+    if ([1, 4, 10].includes(h)) { scores.public += 12; reasons.push(`Moon in ${h}th (mass appeal)`); }
+  }
+  if (venus) {
+    const h = houseOf(venus.sid);
+    if ([1, 5, 10].includes(h)) { scores.public += 8; reasons.push(`Venus in ${h}th (charisma/celebrity)`); }
+  }
+  if (rahu) {
+    const h = houseOf(rahu.sid);
+    if ([10, 11].includes(h)) { scores.public += 10; reasons.push(`Rahu in ${h}th (viral/unconventional fame)`); }
+  }
+  const l10 = find(lordOfHouse(10));
+  if (l10) scores.public += Math.max(0, dignityBoost(l10.name, signOf(l10.sid))) * 0.5;
+
+  // POLITICAL POWER — Sun + Mars + Saturn executive; L10 = Sun/Mars/Saturn
+  if (sun) scores.political += Math.max(0, dignityBoost("Sun", signOf(sun.sid)));
+  const mars = find("Mars"), saturn = find("Saturn");
+  if (mars) {
+    const h = houseOf(mars.sid);
+    if ([3, 6, 10, 11].includes(h)) { scores.political += 10; reasons.push(`Mars in ${h}th (executive force)`); }
+    scores.political += Math.max(0, dignityBoost("Mars", signOf(mars.sid))) * 0.6;
+  }
+  if (saturn) {
+    const h = houseOf(saturn.sid);
+    if ([10, 11].includes(h)) { scores.political += 10; reasons.push(`Saturn in ${h}th (long-game authority)`); }
+  }
+  const l10Name = lordOfHouse(10);
+  if (["Sun", "Mars", "Saturn"].includes(l10Name)) { scores.political += 8; reasons.push(`10th lord = ${l10Name} (governance signature)`); }
+  const l11 = find(lordOfHouse(11));
+  if (l11) {
+    const s = signOf(l11.sid);
+    if (EXALT_SIGN[l11.name] === s || OWN_SIGNS[l11.name]?.includes(s)) scores.political += 6;
+  }
+
+  // BEHIND-THE-SCENES — Saturn/Rahu/Ketu in 8/12, Mercury in 8, Ketu in 10
+  const ketu = find("Ketu"), mercury = find("Mercury");
+  for (const p of [saturn, rahu, ketu]) {
+    if (!p) continue;
+    const h = houseOf(p.sid);
+    if ([8, 12].includes(h)) { scores.behindScenes += 9; reasons.push(`${p.name} in ${h}th (hidden operator)`); }
+  }
+  if (mercury) {
+    const h = houseOf(mercury.sid);
+    if ([8, 12].includes(h)) { scores.behindScenes += 8; reasons.push(`Mercury in ${h}th (strategist/intel)`); }
+  }
+  if (ketu) {
+    const h = houseOf(ketu.sid);
+    if (h === 10) { scores.behindScenes += 10; reasons.push(`Ketu in 10th (kingmaker, not king)`); }
+  }
+  const l8 = find(lordOfHouse(8));
+  if (l8) {
+    const s = signOf(l8.sid);
+    if (EXALT_SIGN[l8.name] === s || OWN_SIGNS[l8.name]?.includes(s)) scores.behindScenes += 6;
+  }
+
+  // INSTITUTIONAL / GLOBAL — Jupiter strong, 9th/10th, Rahu in 9 (foreign), Ketu in 9 (research)
+  const jup = find("Jupiter");
+  if (jup) {
+    const h = houseOf(jup.sid), s = signOf(jup.sid);
+    if ([1, 9, 10].includes(h)) { scores.institutional += 12; reasons.push(`Jupiter in ${h}th (institutional reach)`); }
+    scores.institutional += Math.max(0, dignityBoost("Jupiter", s));
+  }
+  const l9 = find(lordOfHouse(9));
+  if (l9) {
+    const s = signOf(l9.sid);
+    if (EXALT_SIGN[l9.name] === s || OWN_SIGNS[l9.name]?.includes(s)) {
+      scores.institutional += 8; reasons.push(`9th lord strong (academy/global doctrine)`);
+    }
+  }
+  if (rahu) {
+    const h = houseOf(rahu.sid);
+    if (h === 9) { scores.institutional += 8; reasons.push(`Rahu in 9th (foreign institutions)`); }
+  }
+  if (ketu) {
+    const h = houseOf(ketu.sid);
+    if (h === 9) { scores.institutional += 6; reasons.push(`Ketu in 9th (research/spiritual authority)`); }
+  }
+
+  // Cap & tier
+  for (const k of Object.keys(scores) as PowerType[]) {
+    scores[k] = Math.max(0, Math.min(100, Math.round(scores[k])));
+  }
+  const entries = (Object.entries(scores) as [PowerType, number][])
+    .sort((a, b) => b[1] - a[1]);
+  const primaryType = entries[0][0];
+  const total = entries[0][1];
+  const PRIMARY_LABEL: Record<PowerType, string> = {
+    public: "Public / Celebrity power",
+    political: "Political / Executive power",
+    behindScenes: "Behind-the-scenes power",
+    institutional: "Global institutional power",
+  };
+  let tier: PowerPotential["tier"];
+  if (total >= 70) tier = "global-icon";
+  else if (total >= 50) tier = "national-figure";
+  else if (total >= 30) tier = "regional-influencer";
+  else if (total >= 15) tier = "local";
+  else tier = "none";
+
+  return {
+    total, tier, types: scores, primaryType,
+    primaryLabel: PRIMARY_LABEL[primaryType],
+    reasons: reasons.slice(0, 6),
+  };
 }
 
 /** Walk maha periods + their antar children, collect periods where lord ∈ topicLords. */
@@ -344,56 +481,34 @@ export function computeLifeSequence(
   ascendant: number,
   mahaPeriods: DashaPeriod[],
   wealthWindows: KarmicWindow[],
-  soulmateWindows: KarmicWindow[],
+  powerWindows: KarmicWindow[],
   nowMs: number = Date.now(),
 ): LifeSequence {
   const lords = deriveTopicLords(natalPlanets, ascendant);
   const wealthDasha = collectDashaPeriods(mahaPeriods, lords.wealth, nowMs);
-  const soulmateDasha = collectDashaPeriods(mahaPeriods, lords.soulmate, nowMs);
+  const powerDasha = collectDashaPeriods(mahaPeriods, lords.power, nowMs);
 
   const wealthCandidates = rankCandidates(wealthWindows, wealthDasha, lords.wealth);
-  const soulmateCandidates = rankCandidates(soulmateWindows, soulmateDasha, lords.soulmate);
+  const powerCandidates = rankCandidates(powerWindows, powerDasha, lords.power);
 
-  // Pick FIRST event that has at least 1 converging lord; fall back to first candidate.
   const pickFirst = (list: LifeEvent[]): LifeEvent | null => {
     const converged = list.find((e) => e.convergingLords.length > 0);
     return converged ?? list[0] ?? null;
   };
   const wealthEvent = pickFirst(wealthCandidates);
-  const soulmateEvent = pickFirst(soulmateCandidates);
-
-  let order: LifeSequence["order"] = "neither";
-  let gapMonths: number | null = null;
-  let q1: string;
-  if (wealthEvent && soulmateEvent) {
-    const dw = wealthEvent.start.getTime();
-    const ds = soulmateEvent.start.getTime();
-    const diffMs = ds - dw;
-    gapMonths = Math.round(diffMs / (30 * 86400_000));
-    if (Math.abs(gapMonths) < 1) { order = "simultaneous"; q1 = "Wealth and soulmate hit at the same time — they arrive together."; }
-    else if (gapMonths > 0)      { order = "wealth-first"; q1 = `Yes — wealth arrives ~${gapMonths} month${gapMonths === 1 ? "" : "s"} before soulmate.`; }
-    else                          { order = "soulmate-first"; q1 = `No — soulmate arrives ~${Math.abs(gapMonths)} month${Math.abs(gapMonths) === 1 ? "" : "s"} before wealth.`; }
-  } else if (wealthEvent) {
-    order = "wealth-only"; q1 = "Wealth fires in this horizon, but no dasha-backed soulmate window appears — extend your scan to see if soulmate comes later.";
-  } else if (soulmateEvent) {
-    order = "soulmate-only"; q1 = "Soulmate fires in this horizon, but no dasha-backed wealth window appears — extend your scan.";
-  } else {
-    q1 = "Neither event has a dasha+transit convergence inside the current scan horizon. Extend scan or check long-range dasha-only signals below.";
-  }
+  const powerEvent = pickFirst(powerCandidates);
 
   return {
     wealthLords: lords.wealth,
-    soulmateLords: lords.soulmate,
+    powerLords: lords.power,
     wealthEvent,
-    soulmateEvent,
+    powerEvent,
     wealthCandidates,
-    soulmateCandidates,
-    order,
-    gapMonths,
-    q1Verdict: q1,
+    powerCandidates,
     futureDashaWealth: wealthDasha,
-    futureDashaSoulmate: soulmateDasha,
+    futureDashaPower: powerDasha,
     wealthPotential: computeWealthPotential(natalPlanets, ascendant),
     wealthVelocity: classifyWealthVelocity(wealthCandidates),
+    powerPotential: computePowerPotential(natalPlanets, ascendant),
   };
 }
