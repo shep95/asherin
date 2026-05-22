@@ -66,26 +66,38 @@ export interface WealthVelocity {
   detail: string;
 }
 
+export type PowerType = "public" | "political" | "behindScenes" | "institutional";
+
+export interface PowerPotential {
+  /** 0..100 — strongest single type score (also drives tier). */
+  total: number;
+  tier: "global-icon" | "national-figure" | "regional-influencer" | "local" | "none";
+  /** Per-type natal-strength %, 0..100. */
+  types: Record<PowerType, number>;
+  /** Highest-scoring type. */
+  primaryType: PowerType;
+  /** Human label for primary type. */
+  primaryLabel: string;
+  reasons: string[];
+}
+
 export interface LifeSequence {
   wealthLords: string[];
-  soulmateLords: string[];
+  powerLords: string[];
   wealthEvent: LifeEvent | null;
-  soulmateEvent: LifeEvent | null;
-  /** All dasha-supported wealth windows in scan range, earliest first. */
+  powerEvent: LifeEvent | null;
+  /** All dasha-supported wealth/power windows in scan range, earliest first. */
   wealthCandidates: LifeEvent[];
-  soulmateCandidates: LifeEvent[];
-  order: "wealth-first" | "soulmate-first" | "simultaneous" | "wealth-only" | "soulmate-only" | "neither";
-  /** Months between the two events (positive = wealth first). */
-  gapMonths: number | null;
-  /** Plain English answer to Q1. */
-  q1Verdict: string;
-  /** Future dasha-only wealth/soulmate periods (no transit confirmation yet). */
+  powerCandidates: LifeEvent[];
+  /** Future dasha-only wealth/power periods (no transit confirmation yet). */
   futureDashaWealth: DashaActivePeriod[];
-  futureDashaSoulmate: DashaActivePeriod[];
+  futureDashaPower: DashaActivePeriod[];
   /** Natal-chart capacity for wealth. */
   wealthPotential: WealthPotential;
   /** Tempo classification (overnight vs slow-build). */
   wealthVelocity: WealthVelocity;
+  /** Natal-chart capacity for power + type breakdown. */
+  powerPotential: PowerPotential;
 }
 
 const KARAKAS = {
