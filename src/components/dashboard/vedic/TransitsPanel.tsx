@@ -185,19 +185,25 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   const [loadingFuture, setLoadingFuture] = useState(false);
   const ingressCacheRef = useRef<Map<string, SignIngress[]>>(new Map());
 
-  // Horizon in days: cover horizonMonths AND enough to reach the chosen month
+  // Horizon: cover both backward (past months user scrolled to) and forward.
+  const scanFromDate = useMemo(() => {
+    const earliest = periodStart.getTime() < monthStart(today).getTime() ? monthStart(periodStart) : monthStart(today);
+    // Pad 1 extra month back so cluster boundaries near the edge still resolve
+    return new Date(earliest.getFullYear(), earliest.getMonth() - 1, 1);
+  }, [periodStart, today]);
+
   const scanHorizonDays = useMemo(() => {
     const baseFromHorizon = horizonMonths * 31;
-    const monthsToChosen = Math.max(0, monthsBetween(today, chosen));
-    const needed = (monthsToChosen + 2) * 31; // +2 month buffer
+    const monthsToChosenFwd = Math.max(0, monthsBetween(scanFromDate, chosen));
+    const needed = (monthsToChosenFwd + 3) * 31; // +3 month buffer
     const raw = Math.max(baseFromHorizon, needed);
     // round up to nearest 90 days to avoid frequent refetches when scrolling
     return Math.ceil(raw / 90) * 90;
-  }, [horizonMonths, today, chosen]);
+  }, [horizonMonths, scanFromDate, chosen]);
 
   useEffect(() => {
     if (mode !== "user" && !companyRef) return;
-    const key = `${activeRef.key}:${scanHorizonDays}`;
+    const key = `${activeRef.key}:${scanFromDate.toISOString().slice(0,10)}:${scanHorizonDays}`;
     const cached = ingressCacheRef.current.get(key);
     if (cached) { setIngresses(cached); return; }
     let cancelled = false;
@@ -205,7 +211,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     (async () => {
       try {
         const list = await computeFutureIngresses(activeRef.ascendant, activeRef.lat, activeRef.lon, {
-          from: monthStart(today),
+          from: scanFromDate,
           horizonDays: scanHorizonDays,
           perPlanetLimit: scanHorizonDays >= 365 ? 8 : 4,
         });
@@ -217,7 +223,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       }
     })();
     return () => { cancelled = true; };
-  }, [activeRef.key, activeRef.ascendant, activeRef.lat, activeRef.lon, scanHorizonDays, today, mode, companyRef]);
+  }, [activeRef.key, activeRef.ascendant, activeRef.lat, activeRef.lon, scanFromDate, scanHorizonDays, mode, companyRef]);
   // Clear ingress cache when natal ref changes
   useEffect(() => { ingressCacheRef.current.clear(); setIngresses(null); }, [activeRef.key]);
 
