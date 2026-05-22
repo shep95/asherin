@@ -285,8 +285,12 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   const inPeriod = useMemo(() => {
     const s = periodStart.getTime();
     const e = periodEnd.getTime();
-    return (w: KarmicWindow) => w.start.getTime() <= e && w.end.getTime() >= s;
-  }, [periodStart, periodEnd]);
+    return (w: KarmicWindow) => {
+      if (w.start.getTime() > e || w.end.getTime() < s) return false;
+      if (hideBriefWindows && (w.end.getTime() - w.start.getTime()) < MIN_WINDOW_MS) return false;
+      return true;
+    };
+  }, [periodStart, periodEnd, hideBriefWindows]);
 
   const wealthInPeriod    = useMemo(() => wealthWindows.filter(inPeriod),    [wealthWindows, inPeriod]);
   const soulmateInPeriod  = useMemo(() => soulmateWindows.filter(inPeriod),  [soulmateWindows, inPeriod]);
