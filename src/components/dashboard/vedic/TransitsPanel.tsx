@@ -134,6 +134,9 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   const [loadingNow, setLoadingNow] = useState(false);
   const [horizonMonths, setHorizonMonths] = useState<3 | 12 | 24>(12);
   const [granularity, setGranularity] = useState<"week" | "month">("month");
+  // Auto-filter: hide ultra-short activations (<24h) — single-hour windows are noise.
+  const [hideBriefWindows, setHideBriefWindows] = useState<boolean>(true);
+  const MIN_WINDOW_MS = 24 * 60 * 60 * 1000;
 
   const chosen = useMemo(
     () => (granularity === "week" ? midOfWeek(cursor) : midOfMonth(cursor)),
