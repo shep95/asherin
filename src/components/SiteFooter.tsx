@@ -66,8 +66,8 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
         { to: "/feature/personas", label: "AI Personas" },
         { to: "/feature/briefings", label: "Daily Briefings" },
         { to: "/feature/notebooks", label: "Notebooks" },
-        { to: "/feature/lavba", label: "Lavba Strategy" },
-        { to: "/feature/vedic", label: "Vedic Strategy" },
+        { to: "/feature/plugin-marketplace", label: "Plugin Marketplace" },
+        { to: "/vedic-astrology", label: "Vedic Astrology · Free" },
       ],
     },
     {

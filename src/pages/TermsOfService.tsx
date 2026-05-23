@@ -14,6 +14,8 @@ const TermsOfService = () => {
     });
   }, []);
 
+  const lastUpdated = "May 23, 2026";
+
   return (
     <LandingBackground>
 
@@ -28,7 +30,7 @@ const TermsOfService = () => {
 
           <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-12">
             <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide zophiel-shimmer-text mb-2">Terms of Service</h1>
-            <p className="text-sm font-extralight text-muted-foreground mb-12">Last updated: February 14, 2026</p>
+            <p className="text-sm font-extralight text-muted-foreground mb-12">Last updated: {lastUpdated}</p>
 
             <div className="space-y-10 text-sm font-extralight leading-relaxed text-muted-foreground">
               <section>
@@ -38,19 +40,20 @@ const TermsOfService = () => {
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">2. Service Description</h2>
-                <p>Aureon is an AI-powered platform providing uncensored responses, an elite coding engine, live web search, persistent memory across sessions, team workspace functionality, multi-language output, and a full intelligence suite (Zerlal, Zeeion, NOMAD, Azplen, Aziion, AXRLEN, CROSS, and more). The Service is offered across multiple tiers starting at $47/month with full access to core features from day one.</p>
+                <p>Aureon is an AI-powered intelligence platform providing uncensored responses, an elite coding engine and in-dashboard IDE, live web search, persistent memory across sessions, team workspace functionality, multi-language output, voice chat, image and video generation, file scraping, and a full intelligence suite (Zophiel, Zerlal, Zeeion, NOMAD, Azplen, Aziion, AXRLEN, CROSS, ZANOEM Design Lab, Predictive Intelligence, Automated Agents, Plugin Marketplace, Guardian Vault, and more). A free Vedic Astrology module is available on the landing page without an account. The Service is offered across multiple tiers starting at $47/month with full access to core features from day one.</p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">3. Data Privacy & Security</h2>
                 <p className="mb-3">Your privacy is foundational to Aureon, not an afterthought. We commit to the following:</p>
                 <ul className="space-y-2 ml-4">
-                  <li>→ All prompts and conversations are encrypted end-to-end.</li>
+                  <li>→ All prompts and conversations are encrypted end-to-end (AES-256-GCM).</li>
                   <li>→ Your data is never sold to third parties.</li>
                   <li>→ Your data is never used to train any AI model.</li>
                   <li>→ Your data is never shared with advertisers.</li>
                   <li>→ Your data is never read by our team.</li>
                   <li>→ All servers are hosted in the United States.</li>
+                  <li>→ Bring Your Own Key (BYOK) is supported across all major model providers — your API keys stay yours.</li>
                   <li>→ Upon account deletion, all associated data is permanently removed.</li>
                 </ul>
               </section>
@@ -64,13 +67,15 @@ const TermsOfService = () => {
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">5. Subscription & Billing</h2>
                 <p className="mb-3">The Service operates on a tiered pricing model:</p>
                 <ul className="space-y-2 ml-4">
-                  <li>→ Chat — $47/month (core uncensored AI, coding engine, search).</li>
-                  <li>→ Aureon — $199/month (full intelligence suite, NOMAD, Azplen, Imagine Intelligence, File Scrapper).</li>
-                  <li>→ Pro — $740/month (Zerlal, Zeeion, AXRLEN, CROSS, Predictive Intelligence, team workspace, all Pro modules).</li>
-                  <li>→ Lifetime — $4,700 one-time (permanent access to all current and future modules).</li>
-                  <li>→ No free tier. No upsells. No hidden fees.</li>
+                  <li>→ Free — Vedic Astrology module on the public landing page (no account required).</li>
+                  <li>→ Chat — $47/month (core uncensored AI, coding engine, search, persistent memory).</li>
+                  <li>→ Aureon — $199/month (full intelligence suite, NOMAD, Azplen, Imagine Intelligence, File Scrapper, voice chat).</li>
+                  <li>→ Pro — $740/month (Zerlal, Zeeion, AXRLEN, CROSS, Predictive Intelligence, Automated Agents, ZANOEM Design Lab, Plugin Marketplace, team workspace, all Pro modules).</li>
+                  <li>→ Lifetime — $470 one-time (permanent access to all current and future modules).</li>
+                  <li>→ No upsells. No hidden fees.</li>
                   <li>→ Cancel anytime in one click. No retention flow.</li>
                   <li>→ Access continues until the end of the current billing cycle.</li>
+
                 </ul>
               </section>
 
