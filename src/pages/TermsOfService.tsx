@@ -10,15 +10,11 @@ const TermsOfService = () => {
     applySeoHead({
       title: "Terms of Service — Aureon",
       description: "Aureon Terms of Service — our commitments to data privacy, encryption, and uncensored AI.",
-      title: "Terms of Service — Aureon",
-      description: "Aureon Terms of Service — our commitments to data privacy, encryption, and uncensored AI.",
       path: "/terms",
     });
   }, []);
 
   const lastUpdated = "May 23, 2026";
-    });
-  }, []);
 
   return (
     <LandingBackground>
