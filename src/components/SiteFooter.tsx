@@ -210,10 +210,68 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
 
       {showHouseLogo && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 sm:p-8 animate-fade-in"
           onClick={() => setShowHouseLogo(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="House of Asher emblem"
         >
-          <img src={houseOfAsherLogo} alt="House of Asher emblem" className="max-h-[80vh] max-w-[80vw] object-contain rounded-lg" />
+          {/* Ambient backdrop glow */}
+          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute left-1/2 top-1/2 h-[80vh] w-[80vh] -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/[0.04] blur-3xl" />
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/30 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/30 to-transparent" />
+          </div>
+
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowHouseLogo(false); }}
+            className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border/30 bg-card/40 text-muted-foreground backdrop-blur-md transition-all hover:border-foreground/50 hover:text-foreground"
+            aria-label="Close"
+          >
+            <span className="text-lg leading-none">×</span>
+          </button>
+
+          {/* Top hairline tag */}
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
+            <span className="h-px w-10 bg-border/40" />
+            <span className="text-[10px] font-light tracking-[0.4em] uppercase text-muted-foreground/70">
+              House of Asher · Emblem
+            </span>
+            <span className="h-px w-10 bg-border/40" />
+          </div>
+
+          {/* Framed plate */}
+          <div
+            className="relative animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative rounded-2xl border border-border/25 bg-gradient-to-b from-card/30 to-background/40 p-4 sm:p-6 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)] backdrop-blur-2xl">
+              {/* Corner accents */}
+              <span aria-hidden className="absolute -top-px -left-px h-4 w-4 border-t border-l border-foreground/40 rounded-tl-2xl" />
+              <span aria-hidden className="absolute -top-px -right-px h-4 w-4 border-t border-r border-foreground/40 rounded-tr-2xl" />
+              <span aria-hidden className="absolute -bottom-px -left-px h-4 w-4 border-b border-l border-foreground/40 rounded-bl-2xl" />
+              <span aria-hidden className="absolute -bottom-px -right-px h-4 w-4 border-b border-r border-foreground/40 rounded-br-2xl" />
+
+              <img
+                src={houseOfAsherLogo}
+                alt="House of Asher emblem"
+                className="max-h-[70vh] max-w-[85vw] sm:max-w-[70vw] object-contain rounded-lg select-none"
+                draggable={false}
+              />
+            </div>
+
+            {/* Caption */}
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <p className="text-xs font-light tracking-[0.35em] uppercase text-foreground/80">
+                #HouseOfAsher
+              </p>
+              <p className="text-[10px] font-extralight tracking-[0.25em] uppercase text-muted-foreground/60">
+                Sigil of the Founding House · Click anywhere to dismiss
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </footer>
