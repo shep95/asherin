@@ -228,6 +228,9 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   }, [activeRef.key, activeRef.ascendant, activeRef.lat, activeRef.lon, scanFromDate, scanHorizonDays, mode, companyRef]);
   // Clear ingress cache when natal ref changes
   useEffect(() => { ingressCacheRef.current.clear(); setIngresses(null); }, [activeRef.key]);
+  // Publish ingresses up so sibling panels (WealthHousesPanel) can reuse without refetching
+  useEffect(() => { onIngresses?.(ingresses); }, [ingresses, onIngresses]);
+
 
   const readings = useMemo(() => {
     if (!transit) return [];
