@@ -299,15 +299,111 @@ header[data-aureon-header] > a {
   .zophiel-sheen::after { display: none; }
 }
 
-/* Zophiel Engine — Gold theme override.
-   Scoped remap of accent token so all `accent`-driven UI in the engine
-   (mode selector chips, glows, borders) renders in gold instead of purple. */
-.zophiel-gold,
-.zophiel-gold * {
-  --accent: 43 90% 55%;
-  --accent-foreground: 0 0% 8%;
+/* ============================================================
+   Zophiel Engine — 2027 "Eclipse" Theme
+   Awe-struck monochrome. Void backdrop, animated grid, chrome glow,
+   corner brackets, scanline. No gold, no purple. Pure dimension.
+   ============================================================ */
+.zophiel-2027 {
+  --accent: 220 30% 92%;
+  --accent-foreground: 0 0% 6%;
+  position: relative;
+  isolation: isolate;
+  background-color: hsl(0 0% 3%);
+  color: hsl(0 0% 92%);
+  overflow: hidden;
 }
-.zophiel-gold .text-violet-300,
-.zophiel-gold .text-violet-300\/80 { color: hsl(43 90% 65%); }
-.zophiel-gold .border-violet-400\/25 { border-color: hsl(43 90% 55% / 0.25); }
-.zophiel-gold .bg-violet-500\/\[0\.04\] { background-color: hsl(43 90% 55% / 0.06); }
+.zophiel-2027::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 15%, hsl(220 40% 16% / 0.55), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 85% 90%, hsl(0 0% 18% / 0.45), transparent 65%),
+    radial-gradient(circle at 50% 50%, hsl(0 0% 0% / 0) 0%, hsl(0 0% 0% / 0.6) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+.zophiel-2027::after {
+  content: "";
+  position: absolute; inset: -2px;
+  background-image:
+    linear-gradient(hsl(0 0% 100% / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(0 0% 100% / 0.035) 1px, transparent 1px);
+  background-size: 56px 56px, 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 0%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 0%, transparent 85%);
+  animation: zophiel-2027-drift 60s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+@keyframes zophiel-2027-drift {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 56px 56px, -56px 56px; }
+}
+.zophiel-2027 > * { position: relative; z-index: 1; }
+
+.zophiel-2027-halo {
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: min(720px, 90vw);
+  height: 360px;
+  background:
+    radial-gradient(ellipse at center,
+      hsl(220 40% 60% / 0.18) 0%,
+      hsl(0 0% 100% / 0.06) 35%,
+      transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+  animation: zophiel-2027-breathe 7s ease-in-out infinite;
+}
+@keyframes zophiel-2027-breathe {
+  0%, 100% { opacity: .55; transform: translateX(-50%) scale(1); }
+  50%      { opacity: .95; transform: translateX(-50%) scale(1.06); }
+}
+
+.zophiel-2027-scan {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 0%, hsl(0 0% 100% / 0.04) 50%, transparent 100%);
+  height: 200px;
+  pointer-events: none;
+  animation: zophiel-2027-scan 11s linear infinite;
+  z-index: 0;
+  mix-blend-mode: screen;
+}
+@keyframes zophiel-2027-scan {
+  0%   { transform: translateY(-220px); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+
+.zophiel-2027-frame { position: relative; }
+.zophiel-2027-frame::before,
+.zophiel-2027-frame::after {
+  content: "";
+  position: absolute;
+  width: 14px; height: 14px;
+  border: 1px solid hsl(0 0% 100% / 0.45);
+  pointer-events: none;
+}
+.zophiel-2027-frame::before { top: -6px; left: -6px; border-right: none; border-bottom: none; }
+.zophiel-2027-frame::after  { bottom: -6px; right: -6px; border-left: none; border-top: none; }
+
+.zophiel-2027-mark {
+  font-family: ui-serif, "Times New Roman", serif;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  background: linear-gradient(180deg, hsl(0 0% 98%) 0%, hsl(0 0% 70%) 50%, hsl(0 0% 35%) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 60px hsl(220 60% 70% / 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zophiel-2027::after,
+  .zophiel-2027-halo,
+  .zophiel-2027-scan { animation: none !important; }
+}

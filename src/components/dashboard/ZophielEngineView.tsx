@@ -28,7 +28,7 @@ const ArchivePanel = lazy(() => import("./search/ArchivePanel"));
 const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
 import ArchivesHarvesterPanel from "./search/ArchivesHarvesterPanel";
-import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
@@ -321,18 +321,14 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   // Determine if we should use grouped or flat display
   const hasGroups = Object.keys(grouped).length > 1;
 
-  const isAsher = typeof window !== "undefined" && window.location.pathname.includes("/asher-dashboard");
+  
 
   return (
-    <div
-      className="zophiel-gold flex h-full relative"
-      style={isAsher ? {
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)), url(${wallpaperAureon})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
-      } : undefined}
-    >
+    <div className="zophiel-2027 flex h-full relative">
+      {/* 2027 FX layers — ambient halo + slow scanline */}
+      <div className="zophiel-2027-halo" aria-hidden />
+      <div className="zophiel-2027-scan" aria-hidden />
+
       {/* Filter Sidebar */}
       {searched && (
         <FilterSidebar
@@ -350,9 +346,24 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         style={(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? { width: `${100 - splitPct}%` } : undefined}
       >
         {/* Search Header */}
-        <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[12vh] sm:pt-[18vh] pb-4 sm:pb-6"}`}>
+        <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[10vh] sm:pt-[14vh] pb-4 sm:pb-6"}`}>
           <div className="max-w-2xl mx-auto px-3 sm:px-6">
-            {/* Pre-search title intentionally omitted — landing hero already presents the brand */}
+            {/* Pre-search 2027 hero mark */}
+            {!searched && (
+              <div className="text-center mb-8 select-none">
+                <div className="inline-flex items-center gap-2 text-[9px] uppercase tracking-[0.45em] text-muted-foreground/50 mb-4">
+                  <span className="h-px w-8 bg-foreground/20" />
+                  Eclipse Intelligence Engine
+                  <span className="h-px w-8 bg-foreground/20" />
+                </div>
+                <h1 className="zophiel-2027-mark text-6xl sm:text-7xl leading-none mb-3">ZOPHIEL</h1>
+                <p className="text-[11px] font-light tracking-[0.2em] uppercase text-muted-foreground/60">
+                  /  2027 protocol  ·  multi-source signal mesh  /
+                </p>
+              </div>
+            )}
+
+
 
             {/* Mode selector */}
             <div className="mb-3">
@@ -389,18 +400,18 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
             {/* Search bar — hidden in imagine/extract/audit modes (use their own input UI) */}
             {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "dataengine" && (
-              <form onSubmit={handleSubmit} className="relative">
-                <div className={`flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-border/30"} bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors`}>
+              <form onSubmit={handleSubmit} className="relative zophiel-2027-frame">
+                <div className={`group flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-foreground/15"} bg-background/50 backdrop-blur-2xl px-4 py-3.5 focus-within:border-foreground/40 focus-within:shadow-[0_0_0_1px_hsl(0_0%_100%/0.15),0_20px_60px_-20px_hsl(220_50%_60%/0.35)] transition-all duration-300`}>
                   {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
-                  <Search className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+                  <Search className="h-5 w-5 text-foreground/70 shrink-0 group-focus-within:text-foreground transition-colors" strokeWidth={1.5} />
                   <input
                     ref={inputRef}
                     value={query}
                     onChange={(e) => { setQuery(e.target.value); setShowSuggestions(e.target.value.length > 1); }}
                     onFocus={() => { if (query.length > 1) setShowSuggestions(true); }}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder={online ? "Search the web…" : "Offline — search will queue…"}
-                    className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                    placeholder={online ? "Query the signal mesh…" : "Offline — search will queue…"}
+                    className="flex-1 bg-transparent text-sm font-light tracking-wide text-foreground placeholder:text-muted-foreground/40 outline-none"
                   />
                   {query && (
                     <button type="button" onClick={() => { setQuery(""); setShowSuggestions(false); inputRef.current?.focus(); }} className="p-1 rounded-lg text-muted-foreground/50 hover:text-foreground transition-colors" aria-label="Clear search">
@@ -411,7 +422,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                   <button
                     type="submit"
                     disabled={loading || !query.trim()}
-                    className="rounded-xl bg-accent/20 px-4 py-1.5 text-xs font-light text-accent hover:bg-accent/30 transition-colors disabled:opacity-30"
+                    className="rounded-xl border border-foreground/20 bg-foreground/[0.08] px-4 py-1.5 text-xs font-light tracking-wide text-foreground hover:bg-foreground/[0.14] hover:border-foreground/40 transition-all disabled:opacity-30"
                     aria-label="Run search"
                   >
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
@@ -423,6 +434,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 )}
               </form>
             )}
+
 
             {/* Imagine mode banner */}
             {mode === "imagine" && (
