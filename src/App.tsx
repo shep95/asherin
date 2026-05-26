@@ -109,7 +109,6 @@ const App = () => (
             <Route path="/features" element={<Features />} />
             <Route path="/benchmarks" element={<Benchmarks />} />
             <Route path="/nda" element={<NDA />} />
-            <Route path="/equity" element={<EquityOwnership />} />
             <Route path="/feature/zophiel" element={<FeatureZophiel />} />
             <Route path="/feature/nomad" element={<FeatureNomad />} />
             <Route path="/feature/azplen" element={<FeatureAzplen />} />
