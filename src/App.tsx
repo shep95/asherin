@@ -19,7 +19,7 @@ const PromptEngineering = lazy(() => import("./pages/PromptEngineering"));
 const Features = lazy(() => import("./pages/Features"));
 const Benchmarks = lazy(() => import("./pages/Benchmarks"));
 const NDA = lazy(() => import("./pages/NDA"));
-const EquityOwnership = lazy(() => import("./pages/EquityOwnership"));
+
 const FeatureZophiel = lazy(() => import("./pages/FeatureZophiel"));
 const FeatureNomad = lazy(() => import("./pages/FeatureNomad"));
 const FeatureAzplen = lazy(() => import("./pages/FeatureAzplen"));
