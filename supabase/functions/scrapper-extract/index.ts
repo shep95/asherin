@@ -55,9 +55,10 @@ serve(async (req) => {
 
     console.log(`[SCRAPPER] Extracting text from: ${fileName} (${fileType})`);
 
-    // Use Gemini to extract text from the document
-    const apiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
+    // Use the BYOK-resolved Gemini key (admin → platform; otherwise caller's key)
+    const apiKey = RESOLVED_GEMINI_KEY;
     if (!apiKey) throw new Error("No AI API key configured");
+
 
     // Determine MIME type for Gemini
     let mimeType = fileType || "application/octet-stream";
