@@ -254,6 +254,7 @@ const Header = () => {
             </div>
           </>
         )}
+        </div>
       </header>
 
       {showAuth && (
