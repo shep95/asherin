@@ -37,12 +37,16 @@ const SettingsScreen = () => {
     if (!user) return;
     (async () => {
       setLoading(true);
-      const { data } = await supabase.from("zerlal_settings").select("*").eq("user_id", user.id).maybeSingle();
+      const { data } = await supabase
+        .from("zerlal_settings")
+        .select("scan_frequency, severity_threshold, auto_remediation, retention_days, weekly_report, notify_critical")
+        .eq("user_id", user.id)
+        .maybeSingle();
       if (data) setS({
         scan_frequency: data.scan_frequency as Settings["scan_frequency"],
         severity_threshold: data.severity_threshold as Settings["severity_threshold"],
-        alert_email: data.alert_email ?? "",
-        slack_webhook: data.slack_webhook ?? "",
+        alert_email: "",
+        slack_webhook: "",
         auto_remediation: data.auto_remediation,
         retention_days: data.retention_days,
         weekly_report: data.weekly_report,
@@ -55,12 +59,22 @@ const SettingsScreen = () => {
   const save = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("zerlal_settings").upsert({
+    // Build payload; only include alert_email / slack_webhook when the user
+    // entered a new value this session — leaving them empty preserves the
+    // server-stored value (which the client can no longer read back).
+    const payload: Record<string, unknown> = {
       user_id: user.id,
-      ...s,
-      alert_email: s.alert_email?.trim() || null,
-      slack_webhook: s.slack_webhook?.trim() || null,
-    });
+      scan_frequency: s.scan_frequency,
+      severity_threshold: s.severity_threshold,
+      auto_remediation: s.auto_remediation,
+      retention_days: s.retention_days,
+      weekly_report: s.weekly_report,
+      notify_critical: s.notify_critical,
+    };
+    if (s.alert_email?.trim()) payload.alert_email = s.alert_email.trim();
+    if (s.slack_webhook?.trim()) payload.slack_webhook = s.slack_webhook.trim();
+
+    const { error } = await supabase.from("zerlal_settings").upsert(payload as any);
     setSaving(false);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
     else toast({ title: "Settings saved" });
