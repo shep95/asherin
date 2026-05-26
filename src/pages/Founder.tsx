@@ -60,7 +60,7 @@ const Founder = () => {
           Back to Home
         </Link>
 
-        <div className="founder-halo w-40 h-40 sm:w-44 sm:h-44 rounded-full overflow-hidden border border-border/30 mb-10">
+        <div className="founder-halo w-40 h-40 sm:w-44 sm:h-44 rounded-2xl overflow-hidden border border-border/30 mb-10">
           <img src={founderImg} alt="Asher Newton" className="w-full h-full object-cover" />
         </div>
 
