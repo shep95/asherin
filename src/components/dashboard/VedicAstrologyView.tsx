@@ -182,6 +182,7 @@ const VedicAstrologyView = () => {
   const [leaderLagnas, setLeaderLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
   const [companyLagnas, setCompanyLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
   const [founderLagnas, setFounderLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
+  const [transitIngresses, setTransitIngresses] = useState<SignIngress[] | null>(null);
 
   // Compact planet placements per chart (for inline display in cards)
   type Placement = { name: string; symbol: string; sign: string; house: number; retro: boolean };
