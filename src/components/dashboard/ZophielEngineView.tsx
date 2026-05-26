@@ -324,11 +324,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   
 
   return (
-    <div className="zophiel-2027 flex h-full relative">
-      {/* 2027 FX layers — ambient halo + slow scanline */}
-      <div className="zophiel-2027-halo" aria-hidden />
-      <div className="zophiel-2027-scan" aria-hidden />
-
+    <div className="zophiel-aurora-shell flex h-full relative">
       {/* Filter Sidebar */}
       {searched && (
         <FilterSidebar
@@ -346,22 +342,9 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         style={(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? { width: `${100 - splitPct}%` } : undefined}
       >
         {/* Search Header */}
-        <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[10vh] sm:pt-[14vh] pb-4 sm:pb-6"}`}>
+        <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[14vh] sm:pt-[20vh] pb-4 sm:pb-6"}`}>
           <div className="max-w-2xl mx-auto px-3 sm:px-6">
-            {/* Pre-search 2027 hero mark */}
-            {!searched && (
-              <div className="text-center mb-8 select-none">
-                <div className="inline-flex items-center gap-2 text-[9px] uppercase tracking-[0.45em] text-muted-foreground/50 mb-4">
-                  <span className="h-px w-8 bg-foreground/20" />
-                  Eclipse Intelligence Engine
-                  <span className="h-px w-8 bg-foreground/20" />
-                </div>
-                <h1 className="zophiel-2027-mark text-6xl sm:text-7xl leading-none mb-3">ZOPHIEL</h1>
-                <p className="text-[11px] font-light tracking-[0.2em] uppercase text-muted-foreground/60">
-                  /  2027 protocol  ·  multi-source signal mesh  /
-                </p>
-              </div>
-            )}
+
 
 
 
