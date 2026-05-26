@@ -321,7 +321,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   // Determine if we should use grouped or flat display
   const hasGroups = Object.keys(grouped).length > 1;
 
-  const isAsher = typeof window !== "undefined" && window.location.pathname.includes("/asher-dashboard");
+  
 
   return (
     <div className="zophiel-2027 flex h-full relative">
