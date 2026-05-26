@@ -112,7 +112,7 @@ const GLOSSARY: { term: string; def: string }[] = [
   { term: "Retrograde (ʀ)", def: "Apparent backward motion of a planet — intensifies and internalizes its theme." },
 ];
 
-export default function WealthHousesPanel({ ascendant, planets }: Props) {
+export default function WealthHousesPanel({ ascendant, planets, ingresses }: Props) {
   const houses = useMemo(() => {
     const ascSign = Math.floor(ascendant / 30);
     return Array.from({ length: 12 }, (_, i) => {
