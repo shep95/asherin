@@ -197,32 +197,49 @@ const Header = () => {
                 Go to Asher
               </Link>
             ) : (
+        <div className="hidden sm:block relative" data-header-right>
+          <div aria-hidden className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl"
+               style={{ background: "radial-gradient(60% 100% at 80% 50%, hsl(45 90% 55% / 0.08), transparent 70%)" }} />
+          <div className="relative flex items-center rounded-full border border-amber-400/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
+            <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
+            {isAsherRoute ? (
+              <Link
+                to={user ? "/asher-dashboard" : "/asher"}
+                onClick={(e) => { if (!user) { e.preventDefault(); openAuth(false); } }}
+                className="group flex items-center gap-2 px-5 py-2.5 text-[11px] font-light tracking-[0.25em] uppercase text-foreground/80 transition-colors hover:text-foreground"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse shadow-[0_0_8px_rgba(248,113,113,0.8)]" />
+                Go to Asher
+              </Link>
+            ) : (
               <>
                 <Link
                   to="/zophiel"
-                  className="group flex items-center gap-2 px-4 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground hover:bg-card/80"
+                  className="group flex items-center gap-2 px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-amber-100"
                 >
                   <Search className="h-3.5 w-3.5" strokeWidth={1.5} />
                   <span>Search</span>
-                  <span className="hidden md:inline-block ml-1 rounded-sm border border-border/40 px-1 text-[8px] tracking-[0.15em] text-muted-foreground/70">FREE</span>
+                  <span className="hidden md:inline-block ml-1 rounded-sm border border-amber-400/30 bg-amber-400/5 px-1 text-[8px] tracking-[0.15em] text-amber-200/70">FREE</span>
                 </Link>
-                <div className="w-px h-5 bg-border/30" />
+                <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-amber-400/20 to-transparent" />
                 {!loading && user ? (
                   <Link
                     to="/dashboard"
-                    className="group relative flex items-center gap-2 px-5 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-foreground transition-colors hover:bg-card/80 overflow-hidden"
+                    className="group relative flex items-center gap-2 px-5 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-foreground transition-colors overflow-hidden"
                   >
+                    <span className="font-mono text-[8px] tracking-[0.15em] text-amber-200/40 relative z-10">02</span>
                     <span className="relative z-10">Dashboard</span>
                     <ArrowUpRight className="relative z-10 h-3.5 w-3.5 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" strokeWidth={1.5} />
-                    <span aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-foreground/[0.06] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                    <span aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/[0.08] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                   </Link>
                 ) : (
                   <>
-                    <button onClick={() => openAuth(true)} className="px-4 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground hover:bg-card/80">Log in</button>
-                    <div className="w-px h-5 bg-border/30" />
-                    <button onClick={() => openAuth(false)} className="group flex items-center gap-2 bg-foreground px-5 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-background transition-colors hover:bg-foreground/90">
-                      Sign up
-                      <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" strokeWidth={1.5} />
+                    <button onClick={() => openAuth(true)} className="px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-amber-100">Log in</button>
+                    <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-amber-400/20 to-transparent" />
+                    <button onClick={() => openAuth(false)} className="group relative flex items-center gap-2 px-5 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-background overflow-hidden">
+                      <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-amber-200 via-amber-100 to-amber-300" />
+                      <span className="relative z-10">Sign up</span>
+                      <ArrowUpRight className="relative z-10 h-3.5 w-3.5 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" strokeWidth={1.5} />
                     </button>
                   </>
                 )}
