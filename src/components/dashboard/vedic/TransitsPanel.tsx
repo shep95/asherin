@@ -1281,46 +1281,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
-      {/* Ingresses */}
-      <div className="flex items-center justify-between gap-3 border-t border-border/15 pt-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-foreground/70" />
-          <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">Sign Ingresses · {subjectLabel}</h4>
-        </div>
-        <div className="flex items-center gap-1">
-          {([3, 12, 24] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => setHorizonMonths(m)}
-              className={`text-[10px] uppercase tracking-[0.15em] px-2 py-1 rounded border transition ${horizonMonths === m ? "border-foreground/40 bg-foreground/[0.08] text-foreground" : "border-border/25 text-muted-foreground hover:text-foreground"}`}
-            >
-              {m === 3 ? "3 mo" : m === 12 ? "1 yr" : "2 yr"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {loadingFuture && !ingresses && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Scanning the sky…</div>
-      )}
-
-      {ingressesThisMonth.length > 0 && (
-        <div className="space-y-1.5">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-foreground/70">Ingresses in {periodLabel}</div>
-          {ingressesThisMonth.map((ing, i) => <IngressRow key={`m-${i}`} ing={ing} points={activeRef.points} />)}
-        </div>
-      )}
-
-      {ingressesLater.length > 0 && (
-        <div className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 pt-1">Beyond — through next {horizonMonths === 3 ? "3 months" : horizonMonths === 12 ? "year" : "2 years"}</div>
-          {ingressesLater.map((ing, i) => <IngressRow key={`l-${i}`} ing={ing} points={activeRef.points} />)}
-        </div>
-      )}
-
-      {!loadingFuture && ingresses && ingressesThisMonth.length === 0 && ingressesLater.length === 0 && (
-        <div className="text-[11px] text-muted-foreground/60 italic">No sign ingresses found in this window.</div>
-      )}
+      {/* Sign Ingresses section removed per user request */}
     </div>
   );
 };
