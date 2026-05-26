@@ -600,62 +600,90 @@ const Index = () => {
       </ScrollSection>
 
       <ScrollSection>
-      <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-5xl text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            Built For People Who Build.
-            <br />
-            <span className="text-muted-foreground">Not People Who Browse.</span>
-          </h2>
+      <div className="relative z-10 px-6 py-24 sm:py-32 overflow-hidden">
+        {/* Aurora field */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-50">
+          <div className="absolute left-[15%] top-[10%] h-[420px] w-[420px] rounded-full blur-3xl"
+               style={{ background: "radial-gradient(circle, hsl(45 90% 55% / 0.10), transparent 70%)" }} />
+          <div className="absolute right-[10%] bottom-[5%] h-[520px] w-[520px] rounded-full blur-3xl"
+               style={{ background: "radial-gradient(circle, hsl(30 80% 50% / 0.06), transparent 70%)" }} />
+        </div>
 
-          {/* Row 1 */}
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Hammer className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Builders</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Build full-stack products with an AI that holds context across large codebases and doesn't stop when the problem gets hard.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <FlaskConical className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Researchers</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Get the full analysis on any topic — unfiltered, structured, and backed by real-time intelligence. No sanitized summaries.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Code className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Coders</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Elite-tier coding engine. Debug, architect, and ship production code — with persistent context across every session.
-              </p>
-            </div>
+        <div className="relative mx-auto max-w-7xl">
+          {/* Section eyebrow */}
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <span className="h-px w-12 bg-gradient-to-r from-transparent to-amber-400/40" />
+            <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-amber-200/60">◊ Section · 02 / 06</span>
+            <span className="h-px w-12 bg-gradient-to-l from-transparent to-amber-400/40" />
           </div>
 
-          {/* Row 2 */}
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Target className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Strategists</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Predictive intelligence, scenario simulation, and signal detection for markets, conflicts, and complex systems.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Feather className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Writers</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Write with your voice intact. Aureon adapts to your tone and delivers raw creative output — no corporate rewrites.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <BarChart3 className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Analysts</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Deep intelligence on economic events, structural trends, and data patterns — with full OSINT and entity resolution tooling.
-              </p>
-            </div>
+          <h2 className="text-center text-3xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05]">
+            <span className="bg-gradient-to-r from-amber-100 via-foreground to-amber-200/80 bg-clip-text text-transparent">
+              Built For People Who Build.
+            </span>
+            <br />
+            <span className="text-muted-foreground/70 italic font-thin">Not People Who Browse.</span>
+          </h2>
+
+          <p className="mx-auto mt-6 max-w-xl text-center text-sm font-extralight tracking-wide text-muted-foreground/70">
+            Six disciplines. One intelligence stack. Each pane below is a different angle of the same engine — pick the one closest to your craft.
+          </p>
+
+          {/* Bento — 12 col asymmetric */}
+          <div className="mt-16 grid grid-cols-12 gap-3 sm:gap-4">
+            {[
+              { idx: "01", icon: Hammer, title: "For Builders", desc: "Build full-stack products with an AI that holds context across large codebases and doesn't stop when the problem gets hard.", span: "col-span-12 md:col-span-5", tag: "Full-Stack" },
+              { idx: "02", icon: FlaskConical, title: "For Researchers", desc: "Get the full analysis on any topic — unfiltered, structured, and backed by real-time intelligence. No sanitized summaries.", span: "col-span-12 md:col-span-4", tag: "OSINT" },
+              { idx: "03", icon: Code, title: "For Coders", desc: "Elite-tier coding engine. Debug, architect, and ship production code — with persistent context across every session.", span: "col-span-12 md:col-span-3", tag: "Production" },
+              { idx: "04", icon: Target, title: "For Strategists", desc: "Predictive intelligence, scenario simulation, and signal detection for markets, conflicts, and complex systems.", span: "col-span-12 md:col-span-3", tag: "Forecast" },
+              { idx: "05", icon: Feather, title: "For Writers", desc: "Write with your voice intact. Aureon adapts to your tone and delivers raw creative output — no corporate rewrites.", span: "col-span-12 md:col-span-4", tag: "Voice-True" },
+              { idx: "06", icon: BarChart3, title: "For Analysts", desc: "Deep intelligence on economic events, structural trends, and data patterns — with full OSINT and entity resolution tooling.", span: "col-span-12 md:col-span-5", tag: "Entity-Res" },
+            ].map(({ idx, icon: Icon, title, desc, span, tag }) => (
+              <div
+                key={idx}
+                className={`group relative ${span} rounded-3xl border border-amber-400/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-7 sm:p-8 text-left overflow-hidden transition-all duration-700 hover:border-amber-400/30 hover:-translate-y-0.5`}
+              >
+                {/* Golden corner accents */}
+                <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-amber-300/40 rounded-tl-3xl" />
+                <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-amber-300/20 rounded-br-3xl" />
+
+                {/* Glow orb on hover */}
+                <span aria-hidden
+                  className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                  style={{ background: "radial-gradient(circle, hsl(45 90% 55% / 0.18), transparent 70%)" }}
+                />
+
+                {/* Top hairline */}
+                <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/30 to-transparent" />
+
+                <div className="relative flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="relative grid h-11 w-11 place-items-center rounded-xl border border-amber-400/15 bg-background/40">
+                      <Icon className="h-5 w-5 text-amber-100/90" strokeWidth={1.25} />
+                      <span aria-hidden className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-300/[0.08] to-transparent" />
+                    </div>
+                    <span className="font-mono text-[10px] tracking-[0.25em] text-amber-200/40">{idx}</span>
+                  </div>
+                  <span className="rounded-full border border-amber-400/20 bg-amber-400/5 px-2.5 py-0.5 text-[9px] font-mono tracking-[0.18em] uppercase text-amber-200/70">
+                    {tag}
+                  </span>
+                </div>
+
+                <h3 className="relative mt-7 text-xl sm:text-[22px] font-extralight tracking-tight text-foreground">
+                  {title}
+                </h3>
+                <div aria-hidden className="relative mt-3 h-px w-10 bg-gradient-to-r from-amber-300/60 to-transparent transition-all duration-500 group-hover:w-20" />
+                <p className="relative mt-4 text-[13px] font-extralight leading-relaxed text-muted-foreground/85">
+                  {desc}
+                </p>
+
+                {/* Bottom status row */}
+                <div className="relative mt-6 flex items-center gap-2 pt-4 border-t border-amber-400/[0.06]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-300/80 shadow-[0_0_8px_rgba(252,211,77,0.6)]" />
+                  <span className="font-mono text-[9px] tracking-[0.25em] uppercase text-amber-200/40">Live · Operational</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
