@@ -605,15 +605,35 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       });
     }
 
-    // ── Enrich each brief with Dasha+Transit confidence ──
-    const enriched: Brief[] = briefs.map((b) => {
+    // ── Dasha flavor map: how the active Maha lord colors any window's effect ──
+    const DASHA_FLAVOR: Record<string, string> = {
+      Jupiter: "filtered through your Jupiter dasha — arrives via teachers, sponsors, ethical & expansive channels",
+      Saturn:  "filtered through your Saturn dasha — slow, structural, earned through discipline (no shortcuts)",
+      Mercury: "filtered through your Mercury dasha — through deals, contracts, words, code, and intellect",
+      Venus:   "filtered through your Venus dasha — via relationships, beauty, art, and feminine networks",
+      Mars:    "filtered through your Mars dasha — through bold action, confrontation, and raw push",
+      Sun:     "filtered through your Sun dasha — via authority, recognition, and public visibility",
+      Moon:    "filtered through your Moon dasha — emotionally-driven, public-mood-sensitive timing",
+      Rahu:    "filtered through your Rahu dasha — unconventional, foreign, viral, amplified channels",
+      Ketu:    "filtered through your Ketu dasha — sudden, severance-style, spiritual / detachment-driven",
+    };
+    const activeMaha = currentDasha?.maha?.lord;
+    // ── Enrich each brief with Dasha+Transit confidence + WHY explanation ──
+    const enriched: (Brief & { cause?: string; dashaFlavor?: string })[] = briefs.map((b) => {
       const w = sourceMap.get(b.key);
       const support = w ? computeDashaSupport(w) : { score: 0, lords: [] };
+      const topHit = w?.hits?.[0];
+      const cause = topHit
+        ? `${topHit.planet}${topHit.retrograde ? " (Rx)" : ""} is transiting the sign of your ${topHit.pointLabel} (${topHit.signName}) — ${topHit.reasoning}`
+        : undefined;
+      const dashaFlavor = activeMaha ? DASHA_FLAVOR[activeMaha] : undefined;
       return {
         ...b,
         dashaScore: support.score,
         dashaLords: support.lords,
         confidence: confidenceFor(w?.score ?? 0, support.score),
+        cause,
+        dashaFlavor,
       };
     });
     // Strongest predictions = confidence "peak" or "strong" (dasha + transit converge)
@@ -622,7 +642,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       .sort((a, b) => (b.dashaScore + (sourceMap.get(b.key)?.score ?? 0)) - (a.dashaScore + (sourceMap.get(a.key)?.score ?? 0)));
 
     return { briefs: enriched, periodWord, strongest };
-  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod, dashaLordWeights]);
+  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod, dashaLordWeights, currentDasha]);
 
   // ── WEALTH & POWER CALCULATOR — natal capacity + dasha+transit timing ──
   // Power windows = union of power/career/influence/fame transit clusters
@@ -790,6 +810,15 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                     </div>
                     <div className="text-[12px] font-light text-foreground leading-snug">{b.headline}</div>
                     <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{b.detail}</p>
+                    {(b as any).cause && (
+                      <div className="pt-1.5 mt-1 border-t border-border/15 space-y-1">
+                        <div className="text-[8.5px] uppercase tracking-[0.22em] text-muted-foreground/60">Why this is happening</div>
+                        <p className="text-[10px] leading-relaxed font-light text-foreground/75">{(b as any).cause}</p>
+                        {(b as any).dashaFlavor && (
+                          <p className="text-[9.5px] leading-relaxed italic font-light text-muted-foreground/70">↳ {(b as any).dashaFlavor}</p>
+                        )}
+                      </div>
+                    )}
                     {activeDashaSummary && (
                       <div className="flex items-center gap-1.5 pt-1 border-t border-border/15">
                         <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${confStyle}`}>{confLabel}</span>

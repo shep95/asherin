@@ -31,7 +31,7 @@ export type PointCode =
   | "Lagna" | "Chandra" | "Surya" | "AK" | "DK" | "UL" | "L7"
   | "L2" | "L5" | "L9" | "L11"
   | "L6" | "L8" | "L12"
-  | "L10" | "L3";
+  | "L10" | "L3" | "L4";
 
 export interface SensitivePoint {
   code: PointCode;
@@ -79,6 +79,7 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
     return lordPlanet ? signOf(lordPlanet.sid) : sign;
   };
   const lord3Sign = lordSignOfHouse(3);
+  const lord4Sign = lordSignOfHouse(4);
   const lord5Sign = lordSignOfHouse(5);
   const lord6Sign = lordSignOfHouse(6);
   const lord7Sign = lordSignOfHouse(7);
@@ -141,6 +142,9 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
     L3:      mk("L3", "Lord of 3rd (Parakrama)", lord3Sign,
                 "Sign where your 3rd-house lord (courage, self-effort, communication, content, short trips) lives.",
                 "Your courage, communication, and 'reach' channel."),
+    L4:      mk("L4", "Lord of 4th (Sukha)", lord4Sign,
+                "Sign where your 4th-house lord (mother, home, property, vehicles, inner peace, foundational education) currently lives.",
+                "Your home, family roots, property, and peace of mind."),
   };
 
   const bySign = new Map<number, SensitivePoint[]>();
