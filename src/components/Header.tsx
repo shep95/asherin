@@ -185,18 +185,6 @@ const Header = () => {
         </Link>
 
         {/* Right: Auth buttons */}
-        <div className="hidden sm:block" data-header-right>
-          <div className="flex items-center rounded-xl border border-border/30 bg-card/60 backdrop-blur-md overflow-hidden">
-            {isAsherRoute ? (
-              <Link
-                to={user ? "/asher-dashboard" : "/asher"}
-                onClick={(e) => { if (!user) { e.preventDefault(); openAuth(false); } }}
-                className="group flex items-center gap-2 px-5 py-2.5 text-xs font-light tracking-[0.25em] uppercase text-foreground/80 transition-colors hover:text-foreground hover:bg-card/80"
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
-                Go to Asher
-              </Link>
-            ) : (
         <div className="hidden sm:block relative" data-header-right>
           <div aria-hidden className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl"
                style={{ background: "radial-gradient(60% 100% at 80% 50%, hsl(45 90% 55% / 0.08), transparent 70%)" }} />
