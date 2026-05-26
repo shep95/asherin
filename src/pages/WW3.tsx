@@ -14,7 +14,7 @@ const convergenceFactors = [
     icon: Users,
     title: "Demographic Window Closure",
     description:
-      "China's demographic window CLOSES after 2030. Every year past 2030, China gets older, weaker, and less capable of projecting military power. The CCP's own internal studies confirm this. If China is EVER going to take Taiwan, it is in the Late 2026 – Mid 2027 window or NEVER.",
+      "China's demographic window CLOSES after 2030. Every year past 2030, China gets older, weaker, and less capable of projecting military power. The CCP's own internal studies confirm this. If China is EVER going to take Taiwan, it is in the Late 2026 – Early 2028 window or NEVER.",
   },
   {
     icon: Cpu,
@@ -26,7 +26,7 @@ const convergenceFactors = [
     icon: Crosshair,
     title: "PLAN Amphibious Capacity",
     description:
-      "The People's Liberation Army Navy reaches amphibious invasion capacity around 2027–2028. Landing craft, carriers, and satellite-kill weapons are being built at wartime production speed RIGHT NOW. The hardware isn't ready today. It will be by 2027.",
+      "The People's Liberation Army Navy reaches amphibious invasion capacity around 2028–2029. Landing craft, carriers, and satellite-kill weapons are being built at wartime production speed RIGHT NOW. The hardware isn't ready today. It will be by 2028.",
   },
   {
     icon: Globe,
@@ -74,8 +74,8 @@ const planetaryIndicators = [
 ];
 
 const trajectoryData = [
-  { metric: "Outbreak Window", reading: "Late 2026 — Mid 2027" },
-  { metric: "Highest Risk Month", reading: "October 2026 / March 2027" },
+  { metric: "Outbreak Window", reading: "Late 2026 — Early 2028" },
+  { metric: "Highest Risk Month", reading: "October 2026 / March 2028" },
   { metric: "Trigger Zone", reading: "Taiwan Strait or expanded Middle East corridor" },
   { metric: "Probability Confidence", reading: "78% trajectory lock" },
   { metric: "Mars-Saturn Vedha Peak", reading: "Saturn enters Aries / Mars activates Fiery Triangle — Q4 2026" },
@@ -202,7 +202,7 @@ const WW3 = () => {
       <section className="relative z-10 px-6 py-24">
         <div className="mx-auto max-w-4xl text-center mb-16">
           <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
-            Why China. Why Taiwan. Why Late 2026 – Mid 2027.
+            Why China. Why Taiwan. Why Late 2026 – Early 2028.
           </h2>
           <p className="text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
             The trigger is not a speech or a declaration. The trigger is a calculation. The moment Beijing calculates
@@ -229,7 +229,7 @@ const WW3 = () => {
             Sanghatta Rashi Protocol — Planetary War Indicators
           </h2>
           <p className="text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
-            The 2025–2027 transit window. Running Sanghatta Rashi Protocol + Shoola Chakra + Trajectory Analysis simultaneously.
+            The 2025–2028 transit window. Running Sanghatta Rashi Protocol + Shoola Chakra + Trajectory Analysis simultaneously.
           </p>
         </div>
         <div className="mx-auto max-w-3xl space-y-3">

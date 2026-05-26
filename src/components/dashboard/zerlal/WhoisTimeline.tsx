@@ -47,7 +47,7 @@ function generateWhoisTimeline(domain: string): WhoisRecord[] {
     registrant: "REDACTED FOR PRIVACY",
     nameservers: nsList[hash % nsList.length],
     privacy: true,
-    expires: "2027-03-15",
+    expires: "2030-03-15",
   });
 
   return records;

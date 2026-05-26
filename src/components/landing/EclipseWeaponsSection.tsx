@@ -36,13 +36,13 @@ const eclipseRules = [
 const eclipses = [
   {
     emoji: "☀️",
-    id: "solar-2027",
-    title: "Solar Eclipse: August 2, 2027",
+    id: "solar-2028",
+    title: "Solar Eclipse: August 2, 2028",
     subtitle: "THE MOST POWERFUL ECLIPSE OF THE DECADE",
     data: [
       { label: "Type", value: "Total Solar Eclipse" },
       { label: "Duration of Totality", value: "6 minutes 22 seconds — one of the longest of the 21st century" },
-      { label: "Effect Window", value: "~6 years (2027–2033)" },
+      { label: "Effect Window", value: "~6 years (2028–2034)" },
       { label: "Path of Totality", value: "Morocco → Algeria → Tunisia → Libya → Egypt → Saudi Arabia → Yemen → Somalia" },
       { label: "Capital Cities In Path", value: "Rabat, Algiers, Tunis, Tripoli" },
     ],
@@ -51,9 +51,9 @@ const eclipses = [
       "Saudi Arabia receives 95%+ coverage — Riyadh narrowly escapes full totality",
       "The entire Arab world leadership enters the King Killer window simultaneously",
     ],
-    trigger: "Eclipse degree: ~10° Leo. Mars transits 10° Leo: October–November 2027. That 60-90 day window = maximum detonation probability.",
+    trigger: "Eclipse degree: ~10° Leo. Mars transits 10° Leo: October–November 2028. That 60-90 day window = maximum detonation probability.",
     read: [
-      "Multiple North African and Middle Eastern governments destabilize 2027–2029",
+      "Multiple North African and Middle Eastern governments destabilize 2028–2030",
       "Saudi leadership faces its most dangerous internal challenge",
       "Arab world fractures further — accelerating the Middle Eastern front of WW3",
     ],
@@ -154,7 +154,7 @@ const historicalProofs = [
 
 const masterTimeline = [
   { date: "Mar 3, 2026", type: "Total Lunar", duration: "1h 17m", path: "Americas, Europe, Africa", target: "Western government instability", trigger: "Apr–May 2026" },
-  { date: "Aug 2, 2027", type: "Total Solar", duration: "6m 22s", path: "Morocco, Algeria, Libya, Saudi Arabia", target: "Arab world leadership collapse", trigger: "Oct–Nov 2027" },
+  { date: "Aug 2, 2028", type: "Total Solar", duration: "6m 22s", path: "Morocco, Algeria, Libya, Saudi Arabia", target: "Arab world leadership collapse", trigger: "Oct–Nov 2028" },
   { date: "Jan 26, 2028", type: "Total Lunar", duration: "1h 17m", path: "Asia, Australia, Pacific", target: "Pacific theater — China/Taiwan axis activated", trigger: "Feb–Mar 2028" },
   { date: "Jul 22, 2028", type: "Total Solar", duration: "2m 13s", path: "Australia, New Zealand, Pacific", target: "Pacific military theater escalation", trigger: "Sep–Oct 2028" },
   { date: "Jun 1, 2030", type: "Total Solar", duration: "3m 44s", path: "Spain, Portugal, North Africa", target: "Madrid — European architecture collapse", trigger: "Aug–Sep 2030" },
@@ -346,7 +346,7 @@ const EclipseWeaponsSection = () => (
         </ul>
         <div className="space-y-3 text-sm font-extralight text-muted-foreground leading-relaxed">
           <p className="text-foreground font-light">
-            The August 2, 2027 eclipse is the single most important geopolitical event of the decade.
+            The August 2, 2028 eclipse is the single most important geopolitical event of the decade.
           </p>
           <p>
             6 minutes 22 seconds of totality = 6+ years of activated chaos across the entire Arab world and North African corridor — directly intersecting with the WW3 Middle Eastern theater.
