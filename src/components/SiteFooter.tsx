@@ -93,7 +93,6 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
         { to: "/forums", label: "Forums" },
         { to: "/prompt-engineering", label: "Prompt Engineering" },
         { to: "/benchmarks", label: "Benchmarks" },
-        { to: "/equity", label: "Equity Ownership" },
         { to: "/nda", label: "NDA" },
         { to: "/terms", label: "Terms of Service" },
         { to: "/privacy", label: "Privacy Policy" },
