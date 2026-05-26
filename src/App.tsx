@@ -43,7 +43,7 @@ const FeatureZeeion = lazy(() => import("./pages/FeatureZeeion"));
 const FeatureAziion = lazy(() => import("./pages/FeatureAziion"));
 const FeatureAxrlen = lazy(() => import("./pages/FeatureAxrlen"));
 const FeatureCross = lazy(() => import("./pages/FeatureCross"));
-const FeatureLavba = lazy(() => import("./pages/FeatureLavba"));
+
 const FeatureZaplen = lazy(() => import("./pages/FeatureZaplen"));
 const FeatureCipher = lazy(() => import("./pages/FeatureCipher"));
 const FeaturePatternAnalysis = lazy(() => import("./pages/FeaturePatternAnalysis"));
