@@ -584,15 +584,29 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     if (power) {
       const good = power.score > 0;
       sourceMap.set("power", power);
+      // Classify the *type* of power based on the dominant planet driving the window
+      const POWER_TYPE: Record<string, string> = {
+        Sun:     "Executive / Throne power — direct command, official authority",
+        Saturn:  "Structural / Institutional power — discipline, systems, long-game control",
+        Mars:    "Force / Operational power — execution, confrontation, military-style push",
+        Jupiter: "Dharmic / Advisory power — wisdom-based authority, counsel, ethics",
+        Rahu:    "Mass / Political power — influence over crowds, viral leverage",
+        Mercury: "Strategic / Communicative power — negotiation, deals, intellectual sway",
+        Venus:   "Cultural / Diplomatic power — soft power, relationships, art, money",
+        Moon:    "Public / Emotional power — popularity, public mood, care-based authority",
+        Ketu:    "Spiritual / Renunciate power — moral authority via detachment",
+      };
+      const topPlanet = power.hits[0]?.planet ?? "";
+      const powerType = POWER_TYPE[topPlanet];
       briefs.push({
         key: "power",
         icon: Crown,
-        label: "Power / Authority",
+        label: powerType ? `Power · ${topPlanet}-type` : "Power / Authority",
         tone: good ? "good" : "bad",
         headline: good
           ? (power.score >= 14 ? "Coronation-grade — you can step into the boss seat" : power.score >= 8 ? "Authority surge — people listen, take charge" : "Power activation — small leadership wins")
           : "Power challenged — someone above tests you, hold your line",
-        detail: power.hits[0]?.plain || power.headline,
+        detail: powerType ? `${powerType}. ${power.hits[0]?.plain || power.headline}` : (power.hits[0]?.plain || power.headline),
         when: fmtWhen(power.start, power.end),
         duration: fmtDuration(power.start, power.end),
       });
