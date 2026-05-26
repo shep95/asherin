@@ -133,7 +133,7 @@ const App = () => (
             <Route path="/feature/aziion" element={<FeatureAziion />} />
             <Route path="/feature/axrlen" element={<FeatureAxrlen />} />
             <Route path="/feature/cross" element={<FeatureCross />} />
-            <Route path="/feature/lavba" element={<FeatureLavba />} />
+            
             <Route path="/feature/zaplen" element={<FeatureZaplen />} />
             <Route path="/feature/cipher" element={<FeatureCipher />} />
             <Route path="/feature/pattern-analysis" element={<FeaturePatternAnalysis />} />
