@@ -348,11 +348,9 @@ const Founder = () => {
       {/* Founders Videos Archives */}
       <div id="videos" className="relative z-10 px-6 py-24 sm:py-32 scroll-mt-24">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">
-              Media
-            </p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+          <div className="text-center mb-16">
+            <span className="founder-eyebrow mb-6">Chapter · 04 · Media</span>
+            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
               Founders Videos Archives
             </h2>
           </div>
@@ -364,17 +362,16 @@ const Founder = () => {
       {/* Founders Imagines Lessons */}
       <div id="imagines" className="relative z-10 px-6 py-24 sm:py-32 scroll-mt-24">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">
-              Teachings
-            </p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+          <div className="text-center mb-16">
+            <span className="founder-eyebrow mb-6">Chapter · 05 · Teachings</span>
+            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
               Founders Imagines Lessons
             </h2>
-            <p className="mt-6 max-w-2xl mx-auto text-sm font-extralight leading-relaxed text-muted-foreground">
+            <p className="mt-6 max-w-2xl mx-auto text-sm font-extralight leading-[1.75] text-muted-foreground">
               Hand-drawn lessons from Asher — visual meditations on the hidden architecture of reality.
             </p>
           </div>
+
 
           <div className="space-y-8">
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-10">
