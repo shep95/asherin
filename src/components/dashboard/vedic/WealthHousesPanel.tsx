@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { ChevronDown, BookOpen, Sparkles, Coins } from "lucide-react";
 import { rashis } from "@/data/nakshatraData";
 import { buildHouseReading } from "@/lib/vedic/houseReading";
+import { buildHouseActivation } from "@/lib/vedic/houseActivations";
+import type { SignIngress } from "@/lib/vedic/transits";
 
 export interface WHPlanet {
   name: string;
@@ -13,6 +15,7 @@ export interface WHPlanet {
 interface Props {
   ascendant: number;
   planets: WHPlanet[];
+  ingresses?: SignIngress[] | null;
 }
 
 const HOUSE_META: { title: string; body: string; brand: string; archetype: string }[] = [
@@ -109,7 +112,7 @@ const GLOSSARY: { term: string; def: string }[] = [
   { term: "Retrograde (ʀ)", def: "Apparent backward motion of a planet — intensifies and internalizes its theme." },
 ];
 
-export default function WealthHousesPanel({ ascendant, planets }: Props) {
+export default function WealthHousesPanel({ ascendant, planets, ingresses }: Props) {
   const houses = useMemo(() => {
     const ascSign = Math.floor(ascendant / 30);
     return Array.from({ length: 12 }, (_, i) => {
@@ -310,7 +313,64 @@ export default function WealthHousesPanel({ ascendant, planets }: Props) {
                         {r.incomingAspects.map((a, i) => (
                           <div key={i} className="text-muted-foreground/80">
                             <span className="text-foreground/80">{a.planet}</span> from House {a.fromHouse} — <span className="text-muted-foreground/70">{a.meaning}</span>
+                    {/* ── ACTIVATION TRIGGERS — what each transit unlocks here ── */}
+                    {(() => {
+                      const act = buildHouseActivation(h.house, { ascendant, planets }, ingresses);
+                      const verdictStyle: Record<string, string> = {
+                        supported: "text-emerald-300/90 border-emerald-300/30",
+                        amplified: "text-amber-300/90 border-amber-300/30",
+                        delayed:   "text-sky-300/90 border-sky-300/30",
+                        blocked:   "text-rose-300/90 border-rose-300/30",
+                        neutral:   "text-muted-foreground/80 border-border/30",
+                      };
+                      const fmt = (d: Date) => d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
+                      return (
+                        <>
+                          {/* Life outcome triggers for THIS house */}
+                          {act.outcomes.length > 0 && (
+                            <div className="space-y-1.5">
+                              <div className="text-[9px] uppercase tracking-[0.2em] text-foreground/60">Life Outcome Triggers</div>
+                              {act.outcomes.map((o, i) => (
+                                <div key={i} className={`rounded border bg-foreground/[0.02] p-2 space-y-1 ${verdictStyle[o.chartVerdict]}`}>
+                                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                                    <div className="text-foreground/90 text-[11.5px]">
+                                      {o.outcome} <span className="text-muted-foreground/60">— when</span>{" "}
+                                      <span className="text-foreground/85">{o.planet}</span>
+                                      <span className="text-muted-foreground/60"> transits House {h.house}</span>
+                                      {o.currentlyActive && <span className="ml-1.5 text-[9px] uppercase tracking-[0.15em] text-emerald-300/90">· active now</span>}
+                                    </div>
+                                    <div className="text-[9px] uppercase tracking-[0.15em] opacity-80">{o.chartVerdict}</div>
+                                  </div>
+                                  <div className="text-muted-foreground/85 leading-relaxed text-[10.5px]">{o.why}</div>
+                                  <div className="text-muted-foreground/75 leading-relaxed text-[10.5px]"><span className="text-foreground/60">Your chart: </span>{o.chartReason}</div>
+                                  <div className="text-[10px] text-foreground/70">
+                                    {o.currentlyActive
+                                      ? "Window is OPEN right now — act."
+                                      : o.nextDate
+                                        ? <>Next window: <span className="tabular-nums">{fmt(o.nextDate)}</span></>
+                                        : <span className="text-muted-foreground/50">No upcoming ingress in the current scan horizon.</span>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {/* What each transiting planet unlocks in this house */}
+                          <div className="space-y-1">
+                            <div className="text-[9px] uppercase tracking-[0.2em] text-foreground/60">What Each Transit Unlocks Here</div>
+                            <div className="grid grid-cols-1 gap-0.5">
+                              {act.planetUnlocks.map((u) => (
+                                <div key={u.planet} className="text-[10.5px] leading-relaxed">
+                                  <span className="text-foreground/80">{u.planet}:</span>{" "}
+                                  <span className="text-muted-foreground/85">{u.effect}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+
                         ))}
                       </div>
                     )}

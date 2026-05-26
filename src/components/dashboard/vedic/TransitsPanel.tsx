@@ -19,6 +19,8 @@ interface Props {
   companyCharts?: CompanyFoundation[];
   currentDasha?: CurrentDashaPath;
   dashaTimeline?: DashaPeriod[];
+  /** Emits ingresses for the active natal ref so sibling panels can reuse them. */
+  onIngresses?: (ingresses: SignIngress[] | null) => void;
 }
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -90,7 +92,7 @@ interface NatalRef {
   points: SensitivePoints | null;
 }
 
-const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts, currentDasha, dashaTimeline }: Props) => {
+const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts, currentDasha, dashaTimeline, onIngresses }: Props) => {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState<Date>(() => midOfMonth(new Date()));
   const [mode, setMode] = useState<"user" | string>("user"); // "user" or company symbol
@@ -226,6 +228,9 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   }, [activeRef.key, activeRef.ascendant, activeRef.lat, activeRef.lon, scanFromDate, scanHorizonDays, mode, companyRef]);
   // Clear ingress cache when natal ref changes
   useEffect(() => { ingressCacheRef.current.clear(); setIngresses(null); }, [activeRef.key]);
+  // Publish ingresses up so sibling panels (WealthHousesPanel) can reuse without refetching
+  useEffect(() => { onIngresses?.(ingresses); }, [ingresses, onIngresses]);
+
 
   const readings = useMemo(() => {
     if (!transit) return [];

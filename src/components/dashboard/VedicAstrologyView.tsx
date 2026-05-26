@@ -24,6 +24,7 @@ import SwvPanel from "./vedic/SwvPanel";
 import DashaNode from "./vedic/DashaNode";
 import CustomChartBuilder from "./vedic/CustomChartBuilder";
 import TransitsPanel from "./vedic/TransitsPanel";
+import type { SignIngress } from "@/lib/vedic/transits";
 import { classifyLagnaRelation, relationColorClass, relationLabel, signIndexFromName } from "@/lib/vedic/lagnaRelationship";
 import VedicGodsCompat from "@/components/vedic/VedicGodsCompat";
 import { Crown } from "lucide-react";
@@ -181,6 +182,7 @@ const VedicAstrologyView = () => {
   const [leaderLagnas, setLeaderLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
   const [companyLagnas, setCompanyLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
   const [founderLagnas, setFounderLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
+  const [transitIngresses, setTransitIngresses] = useState<SignIngress[] | null>(null);
 
   // Compact planet placements per chart (for inline display in cards)
   type Placement = { name: string; symbol: string; sign: string; house: number; retro: boolean };
@@ -1207,12 +1209,14 @@ const VedicAstrologyView = () => {
             companyCharts={COMPANY_CHARTS}
             currentDasha={currentDasha}
             dashaTimeline={dashaTimeline}
+            onIngresses={setTransitIngresses}
           />
         )}
 
-        {chart && <WealthHousesPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} />}
+        {chart && <WealthHousesPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} ingresses={transitIngresses} />}
 
         {chart && <SwvPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} label={activeName || undefined} />}
+
 
         {chart && reading && (
           <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
