@@ -12,7 +12,7 @@ const FeatureZerlal = () => (
       { icon: Bug, title: "Multi-Pass Scanning", description: "If a first pass returns fewer than 30 findings, Zerlal triggers a deep-dive automatically. No silent misses." },
       { icon: Network, title: "Domain Reconnaissance", description: "ELION/ZOHAR engine analyzes domain links across DNS, TLS, App, headers, content, and 7 more modules." },
       { icon: Shield, title: "Device Security Audits", description: "19 real-time browser-based audits across system, network, identity, and behavioral surfaces." },
-      { icon: Eye, title: "Exploit Intelligence", description: "Adversarial dossiers with live takedown analysis powered by the zerlal-exploit edge function." },
+      { icon: Eye, title: "Exploit Intelligence", description: "Adversarial dossiers with live takedown analysis and blast-radius modeling." },
       { icon: GitBranch, title: "Sigma Rule Engine", description: "Author and tune Sigma detection rules; ingest STIX/TAXII threat feeds and correlate with logs." },
       { icon: FileSearch, title: "Code Vulnerability Scanner", description: "Static analysis with chained-flow tracing, suggested fix diffs, and CWE/CVE compliance mapping." },
       { icon: Activity, title: "Cert Transparency Monitor", description: "Watch certificate transparency logs for newly issued certs across your watched domains." },
