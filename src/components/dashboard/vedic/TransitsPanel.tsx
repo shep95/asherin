@@ -806,7 +806,178 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       .filter((b) => b.confidence === "peak" || b.confidence === "strong")
       .sort((a, b) => (b.dashaScore + (sourceMap.get(b.key)?.score ?? 0)) - (a.dashaScore + (sourceMap.get(a.key)?.score ?? 0)));
 
-    return { briefs: enriched, periodWord, strongest };
+    // ── CROSS-DOMAIN COMBOS — when two domain windows overlap, synthesize the manifested outcome ──
+    type Combo = {
+      keyA: string; keyB: string;
+      labelA: string; labelB: string;
+      iconA: typeof Gem; iconB: typeof Gem;
+      headline: string;
+      detail: string;
+      when: string;
+      duration: string;
+      tone: "good" | "bad" | "mixed";
+      combinedScore: number;
+    };
+
+    const COMBO_PHRASES: Record<string, { good: string; bad: string; mixed: string }> = {
+      "career|wealth": {
+        good: "Promotion-into-payday window — the career move converts directly into a cash jump (raise, bonus, equity role).",
+        bad:  "Career strain bleeds the bank — pay delay, costly job change, or forced spend to protect your title.",
+        mixed:"Money is moving through your career axis — the role decision will rewrite your income line either way.",
+      },
+      "influence|wealth": {
+        good: "Audience-to-revenue conversion — visibility translates into paying clients, deals, sponsorships.",
+        bad:  "Loud but leaky — attention is up, but it costs more than it earns this window.",
+        mixed:"Influence and money are linked — what you publish now sets the price tag people will pay.",
+      },
+      "fame|wealth": {
+        good: "Viral-money window — a public moment monetizes (press, feature, launch that prints).",
+        bad:  "Spotlight tax — exposure brings unexpected expenses, refunds, or a costly PR hit.",
+        mixed:"Recognition and revenue are colliding — the win is loud, the cost is real.",
+      },
+      "fame|influence": {
+        good: "Authority broadcast — you become the named voice in your lane; followers + credibility compound.",
+        bad:  "Public misalignment — the message lands but the wrong room hears it; reputation gets dragged.",
+        mixed:"Big stage, sharp opinion — you'll be quoted, but also corrected.",
+      },
+      "career|power": {
+        good: "Throne-line activation — title upgrade with a real decision-making seat (lead, head-of, founder).",
+        bad:  "Power struggle at work — boss/board friction; control is contested.",
+        mixed:"Career is becoming political — alliances now decide your next promotion.",
+      },
+      "power|wealth": {
+        good: "Control-with-capital window — equity, ownership, or board seat that pays you to decide.",
+        bad:  "Power costs cash — buying a seat at the table this window (legal, dilution, buy-in).",
+        mixed:"Authority and assets are negotiating — the deal you sign now sets who owns what.",
+      },
+      "network|wealth": {
+        good: "Intro-into-income — a single connection unlocks a deal, client, or funding line.",
+        bad:  "Wrong-room money — the network you're courting drains capital with no return.",
+        mixed:"Money is flowing through people — your next paycheck arrives via an intro.",
+      },
+      "career|network": {
+        good: "Warm-intro hire window — the next role comes through a person, not an application.",
+        bad:  "Reference rot — a contact you relied on goes cold or actively blocks the move.",
+        mixed:"Career path is being rewired by your network — who you know decides what you do next.",
+      },
+      "influence|network": {
+        good: "Power-circle amplifier — the right people share you; reach jumps because of who, not what.",
+        bad:  "Echo-chamber trap — the loudest voices in your circle distort your message.",
+        mixed:"Your voice is being shaped by your room — pick the room carefully.",
+      },
+      "romance|soulmate": {
+        good: "Soul-recognition window — a current connection deepens into long-term territory.",
+        bad:  "Chemistry without commitment — heat is real, structure isn't.",
+        mixed:"Attraction and destiny are testing each other — clarity arrives by the window's end.",
+      },
+      "romance|wealth": {
+        good: "Power-couple economics — a partner brings money, deals, or shared building energy.",
+        bad:  "Love costs — relationship drain hits the wallet (split bills, breakup, gifts).",
+        mixed:"Romance and money are entangled — the relationship decision rewrites the budget.",
+      },
+      "family|home": {
+        good: "Roots-rebuild window — family healing aligned with a real move/property/home upgrade.",
+        bad:  "Household pressure — family conflict plus housing instability (move forced by tension).",
+        mixed:"The home is becoming the family's stage — what changes physically changes everyone emotionally.",
+      },
+      "family|wealth": {
+        good: "Inheritance / family-money activation — gift, loan, joint venture, or shared asset opens.",
+        bad:  "Family financial drain — supporting, loaning, or bailing someone close.",
+        mixed:"Money and bloodline are mixing — boundaries with relatives are about to be written in numbers.",
+      },
+      "children|romance": {
+        good: "Fertility / creative-birth peak — conception, big creative project, or partnered launch.",
+        bad:  "Strain between partner and children/creation — one demands what the other needs.",
+        mixed:"What you create together this window will outlast the mood it was made in.",
+      },
+      "career|health": {
+        good: "Energy aligned with work — body holds up through a high-output career push.",
+        bad:  "Burnout window — career demand is breaking the body; forced rest is coming if you don't choose it.",
+        mixed:"Career intensity is rewriting your body — recovery design matters now.",
+      },
+      "health|wealth": {
+        good: "Wealth funds wellness — money is moving toward body, longevity, or healing infrastructure.",
+        bad:  "Health hits the wallet — medical, dental, or recovery costs eat into the win.",
+        mixed:"Body and bank are linked — one is paying the other's bill.",
+      },
+      "career|education": {
+        good: "Credential-into-career — exam, cert, degree, or skill directly upgrades job/title.",
+        bad:  "Wrong-degree drag — schooling/training cost without career return this window.",
+        mixed:"Learning and earning are negotiating — what you study now decides who hires you.",
+      },
+      "romance|spirituality": {
+        good: "Sacred-partnership window — relationship becomes a spiritual practice, not a transaction.",
+        bad:  "Renunciation pressure on love — pull toward solitude clashes with the partner's needs.",
+        mixed:"Love and moksha are testing each other — one path will quiet for the other.",
+      },
+      "spirituality|wealth": {
+        good: "Detachment-paid-off — letting go of an attachment is what unlocks the money.",
+        bad:  "Money distracts from the inner work — chasing the bag costs the practice.",
+        mixed:"Capital and consciousness are arguing — you'll be asked which one you actually serve.",
+      },
+      "career|travel": {
+        good: "Relocation-into-promotion — a move (city or country) directly upgrades the career line.",
+        bad:  "Travel disrupts career — bad timing on a trip costs an opportunity at home.",
+        mixed:"Geography is the career variable this window — where you are decides what opens.",
+      },
+      "travel|wealth": {
+        good: "Foreign-money window — overseas client, currency play, or relocation that pays.",
+        bad:  "Travel drain — trip eats reserves with no return.",
+        mixed:"Distance and money are linked — the deal lives in another zip code.",
+      },
+      "influence|power": {
+        good: "Authority + audience converge — you don't just speak, people obey. Movement-builder window.",
+        bad:  "Loud authority misfires — a public stance damages the seat you hold.",
+        mixed:"Power is going public — what you say now changes what you control.",
+      },
+      "career|fame": {
+        good: "Named-in-your-field window — work product becomes the headline (press, award, feature).",
+        bad:  "Wrong-kind-of-famous — career mistake goes public.",
+        mixed:"The work is being watched — execution standard just doubled.",
+      },
+    };
+
+    const combos: Combo[] = [];
+    for (let i = 0; i < enriched.length; i++) {
+      for (let j = i + 1; j < enriched.length; j++) {
+        const a = enriched[i];
+        const b = enriched[j];
+        const wA = sourceMap.get(a.key);
+        const wB = sourceMap.get(b.key);
+        if (!wA || !wB) continue;
+        const oStart = new Date(Math.max(wA.start.getTime(), wB.start.getTime()));
+        const oEnd   = new Date(Math.min(wA.end.getTime(),   wB.end.getTime()));
+        if (oEnd.getTime() <= oStart.getTime()) continue;
+        if (a.confidence === "background" && b.confidence === "background") continue;
+        const goodA = wA.score > 0;
+        const goodB = wB.score > 0;
+        const overall: "good" | "bad" | "mixed" =
+          goodA && goodB ? "good" : (!goodA && !goodB ? "bad" : "mixed");
+        const [k1, k2] = [a.key, b.key].sort();
+        const phrase = COMBO_PHRASES[`${k1}|${k2}`];
+        const headline = phrase
+          ? phrase[overall]
+          : overall === "good"
+            ? `${a.label} + ${b.label} are firing together — the win in one accelerates the other (compound favorable window).`
+            : overall === "bad"
+              ? `${a.label} + ${b.label} are straining together — pressure in one is dragging the other (compound friction window).`
+              : `${a.label} + ${b.label} are colliding — one is favorable while the other strains; the outcome depends on which you choose to feed.`;
+        combos.push({
+          keyA: a.key, keyB: b.key,
+          labelA: a.label, labelB: b.label,
+          iconA: a.icon, iconB: b.icon,
+          headline,
+          detail: `Overlap of ${a.label} (${goodA ? "favorable" : "adverse"}) and ${b.label} (${goodB ? "favorable" : "adverse"}) — energies braid into one outcome rather than playing out separately.`,
+          when: fmtWhen(oStart, oEnd),
+          duration: fmtDuration(oStart, oEnd),
+          tone: overall,
+          combinedScore: Math.abs(wA.score) + Math.abs(wB.score),
+        });
+      }
+    }
+    combos.sort((a, b) => b.combinedScore - a.combinedScore);
+
+    return { briefs: enriched, periodWord, strongest, combos };
   }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod, familyInPeriod, homeInPeriod, childrenInPeriod, educationInPeriod, spiritualityInPeriod, travelInPeriod, networkInPeriod, dashaLordWeights, currentDasha]);
 
   // ── WEALTH & POWER CALCULATOR — natal capacity + dasha+transit timing ──
