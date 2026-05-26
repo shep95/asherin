@@ -421,7 +421,7 @@ const Index = () => {
       <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
         {/* Aurora background */}
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.35]">
-          <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,hsl(45_90%_55%/0.18),transparent_70%)] blur-3xl" />
+          <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,hsl(0 0% 100% / 0.18),transparent_70%)] blur-3xl" />
           <div className="absolute left-[20%] top-[60%] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,hsl(0_0%_100%/0.06),transparent_70%)] blur-3xl" />
         </div>
 
@@ -604,7 +604,7 @@ const Index = () => {
         {/* Aurora field */}
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-50">
           <div className="absolute left-[15%] top-[10%] h-[420px] w-[420px] rounded-full blur-3xl"
-               style={{ background: "radial-gradient(circle, hsl(45 90% 55% / 0.10), transparent 70%)" }} />
+               style={{ background: "radial-gradient(circle, hsl(0 0% 100% / 0.10), transparent 70%)" }} />
           <div className="absolute right-[10%] bottom-[5%] h-[520px] w-[520px] rounded-full blur-3xl"
                style={{ background: "radial-gradient(circle, hsl(30 80% 50% / 0.06), transparent 70%)" }} />
         </div>
@@ -650,7 +650,7 @@ const Index = () => {
                 {/* Glow orb on hover */}
                 <span aria-hidden
                   className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"
-                  style={{ background: "radial-gradient(circle, hsl(45 90% 55% / 0.18), transparent 70%)" }}
+                  style={{ background: "radial-gradient(circle, hsl(0 0% 100% / 0.18), transparent 70%)" }}
                 />
 
                 {/* Top hairline */}
@@ -693,7 +693,7 @@ const Index = () => {
       <ScrollSection>
       <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-30">
-          <div className="absolute right-[10%] top-[20%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,hsl(45_80%_50%/0.12),transparent_70%)] blur-3xl" />
+          <div className="absolute right-[10%] top-[20%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,hsl(0 0% 100% / 0.12),transparent_70%)] blur-3xl" />
         </div>
         <div className="relative mx-auto max-w-7xl">
           <div className="flex flex-col items-center text-center mb-20">
@@ -813,12 +813,12 @@ const Index = () => {
       <ScrollSection>
       <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40">
-          <div className="absolute left-1/2 top-1/4 h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,hsl(45_85%_55%/0.14),transparent_65%)] blur-3xl" />
+          <div className="absolute left-1/2 top-1/4 h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,hsl(0 0% 100% / 0.14),transparent_65%)] blur-3xl" />
         </div>
 
         <div className="relative mx-auto max-w-6xl">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/[0.05] px-4 py-1.5 mb-8 shadow-[0_0_40px_-10px_hsl(45_90%_55%/0.4)]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/[0.05] px-4 py-1.5 mb-8 shadow-[0_0_40px_-10px_hsl(0 0% 100% / 0.4)]">
               <Key className="h-3 w-3 text-foreground" />
               <span className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Bring Your Own Key</span>
               <span className="font-mono text-[9px] tracking-[0.2em] text-foreground/60">/ BYOK</span>

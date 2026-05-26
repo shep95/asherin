@@ -41,7 +41,7 @@ const Header = () => {
         >
           {/* Aurora glow behind the cluster */}
           <div aria-hidden className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl transition-opacity duration-700 group-hover/nav:opacity-100"
-               style={{ background: "radial-gradient(60% 100% at 20% 50%, hsl(45 90% 55% / 0.08), transparent 70%)" }} />
+               style={{ background: "radial-gradient(60% 100% at 20% 50%, hsl(0 0% 100% / 0.08), transparent 70%)" }} />
 
           <div className="relative flex items-center rounded-full border border-foreground/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
             {/* Golden top hairline */}
@@ -187,7 +187,7 @@ const Header = () => {
         {/* Right: Auth buttons */}
         <div className="hidden sm:block relative" data-header-right>
           <div aria-hidden className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl"
-               style={{ background: "radial-gradient(60% 100% at 80% 50%, hsl(45 90% 55% / 0.08), transparent 70%)" }} />
+               style={{ background: "radial-gradient(60% 100% at 80% 50%, hsl(0 0% 100% / 0.08), transparent 70%)" }} />
           <div className="relative flex items-center rounded-full border border-foreground/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
             <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-foreground/40 to-transparent" />
             {isAsherRoute ? (
