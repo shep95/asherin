@@ -61,7 +61,7 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
   );
 };
 
-// 2027 telemetry strip — slim, segmented, military time
+// telemetry strip — slim, segmented, military time
 const HudStatusBar = () => {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -271,7 +271,7 @@ const Index = () => {
         {/* Aurora glow */}
         <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[1200px] h-[520px] zophiel-aurora rounded-full" />
 
-        {/* 2027 grid floor */}
+        {/* grid floor */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-[0.14]"
@@ -306,7 +306,7 @@ const Index = () => {
             <div className="lg:col-span-7 flex flex-col">
               <div className="inline-flex items-center gap-2 self-start rounded-full border border-foreground/15 bg-foreground/[0.03] backdrop-blur-md px-3 py-1 font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground/70">
                 <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                v2027.1 · INTELLIGENCE OS
+                v1.0 · INTELLIGENCE OS
               </div>
 
               <h1 className="mt-6 text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-extralight tracking-[-0.02em] leading-[0.95] text-foreground">
@@ -775,7 +775,7 @@ const Index = () => {
               </p>
               <div className="mt-8 flex items-center gap-3 font-mono text-[10px] tracking-[0.3em] text-muted-foreground/60 uppercase">
                 <span className="h-px w-12 bg-foreground/30" />
-                v.2027 — Live
+                v1.0 — Live
               </div>
             </div>
 

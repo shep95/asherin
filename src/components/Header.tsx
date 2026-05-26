@@ -56,7 +56,7 @@ const Header = () => {
                 AUREON
               </span>
               <span className="hidden md:inline text-[8px] font-mono tracking-[0.2em] text-amber-200/40 translate-y-px">
-                ◊ 2027
+                ◊
               </span>
             </Link>
 
