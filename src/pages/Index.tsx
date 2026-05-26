@@ -267,91 +267,151 @@ const Index = () => {
       <Header />
 
       <ScrollSection>
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center overflow-hidden">
-        {/* Aurora glow behind hero */}
-        <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[1200px] h-[520px] zophiel-aurora rounded-full" />
+      <div className="relative z-10 flex min-h-screen flex-col px-6 pt-28 pb-16 overflow-hidden">
+        {/* Aurora glow */}
+        <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[1200px] h-[520px] zophiel-aurora rounded-full" />
 
         {/* 2027 grid floor */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.18]"
+          className="pointer-events-none absolute inset-0 opacity-[0.14]"
           style={{
             backgroundImage:
               "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
-            backgroundSize: "64px 64px",
-            maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
-            WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+            backgroundSize: "72px 72px",
+            maskImage: "radial-gradient(ellipse at center, black 25%, transparent 78%)",
+            WebkitMaskImage: "radial-gradient(ellipse at center, black 25%, transparent 78%)",
           }}
         />
-        {/* Top corner brackets */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-6 top-24 flex items-center justify-between text-[9px] tracking-[0.35em] text-muted-foreground/40 uppercase font-mono">
-          <span className="flex items-center gap-2">
-            <span className="h-px w-6 bg-foreground/30" />
-            NODE / AUREON-01
-          </span>
-          <span className="flex items-center gap-2">
-            UPLINK · SECURE
-            <span className="h-px w-6 bg-foreground/30" />
-          </span>
-        </div>
 
-        {/* HUD status bar — 2027 telemetry */}
-        <HudStatusBar />
-
-        {/* Headline */}
-        <h1 className="relative max-w-4xl text-4xl sm:text-5xl md:text-7xl font-extralight tracking-wide leading-[1.02] zophiel-shimmer-text">
-          See what others miss.
-        </h1>
-        <div aria-hidden className="mt-3 h-px w-32 bg-gradient-to-r from-transparent via-foreground/60 to-transparent" />
-
-        <p className="mt-6 max-w-2xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
-          Aureon is a full-spectrum intelligence engine — uncensored AI, 30-source OSINT, predictive forecasting,
-          and forensic-grade reasoning. Built for operators who need answers, not apologies.
-        </p>
-
-        <div className="mt-10 flex flex-col sm:flex-row items-center gap-3">
-          <MagneticSpotlightButton href="/zophiel" variant="primary">
-            Try Free Search <ArrowRight className="h-4 w-4" />
-          </MagneticSpotlightButton>
-          <MagneticSpotlightButton href="#demos" variant="secondary">
-            See it live
-          </MagneticSpotlightButton>
-        </div>
-
-        {/* Telemetry rail */}
-        <div className="mt-14 grid grid-cols-3 gap-8 sm:gap-16 text-center">
-          <div className="relative">
-            <div className="text-2xl sm:text-3xl font-extralight text-foreground font-mono tabular-nums"><CountUp to={30} suffix="+" /></div>
-            <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground/60 mt-1 font-mono">OSINT sources</div>
+        <div className="relative mx-auto w-full max-w-7xl">
+          {/* Top meta row */}
+          <div className="flex items-center justify-between text-[9px] tracking-[0.4em] text-muted-foreground/50 uppercase font-mono mb-6">
+            <span className="flex items-center gap-2">
+              <span className="h-px w-6 bg-foreground/30" />
+              NODE / AUREON-01
+            </span>
+            <span className="hidden sm:flex items-center gap-2">
+              CHANNEL · ZOPHIEL
+              <span className="h-px w-6 bg-foreground/30" />
+            </span>
           </div>
-          <div className="relative">
-            <div className="text-2xl sm:text-3xl font-extralight text-foreground font-mono tabular-nums"><CountUp to={14} /></div>
-            <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground/60 mt-1 font-mono">Analysis passes</div>
-          </div>
-          <div className="relative">
-            <div className="text-2xl sm:text-3xl font-extralight text-foreground font-mono tabular-nums"><CountUp to={9} /></div>
-            <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground/60 mt-1 font-mono">AI providers</div>
+
+          {/* HUD strip — full width */}
+          <HudStatusBar />
+
+          {/* Hero grid: asymmetric 12-col */}
+          <div className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            {/* Left — headline + CTA */}
+            <div className="lg:col-span-7 flex flex-col">
+              <div className="inline-flex items-center gap-2 self-start rounded-full border border-foreground/15 bg-foreground/[0.03] backdrop-blur-md px-3 py-1 font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground/70">
+                <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                v2027.1 · INTELLIGENCE OS
+              </div>
+
+              <h1 className="mt-6 text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-extralight tracking-[-0.02em] leading-[0.95] text-foreground">
+                See what
+                <br />
+                <span className="zophiel-shimmer-text italic font-thin">others miss.</span>
+              </h1>
+
+              <p className="mt-7 max-w-xl text-base sm:text-lg font-extralight leading-relaxed text-muted-foreground/90">
+                A full-spectrum intelligence engine. Uncensored AI, 30-source OSINT, predictive
+                forecasting, and forensic-grade reasoning — for operators who need answers, not apologies.
+              </p>
+
+              <div className="mt-9 flex flex-col sm:flex-row items-start gap-3">
+                <MagneticSpotlightButton href="/zophiel" variant="primary">
+                  Try Free Search <ArrowRight className="h-4 w-4" />
+                </MagneticSpotlightButton>
+                <MagneticSpotlightButton href="#demos" variant="secondary">
+                  See it live
+                </MagneticSpotlightButton>
+              </div>
+
+              {/* Telemetry bento */}
+              <div className="mt-12 grid grid-cols-3 gap-px rounded-xl overflow-hidden border border-foreground/10 bg-foreground/[0.02] backdrop-blur-xl">
+                {[
+                  { v: 30, suf: "+", l: "OSINT sources" },
+                  { v: 14, suf: "", l: "Analysis passes" },
+                  { v: 9, suf: "", l: "AI providers" },
+                ].map((s) => (
+                  <div key={s.l} className="bg-background/40 px-5 py-5">
+                    <div className="text-3xl font-extralight text-foreground font-mono tabular-nums">
+                      <CountUp to={s.v} suffix={s.suf} />
+                    </div>
+                    <div className="text-[10px] tracking-[0.28em] uppercase text-muted-foreground/55 mt-1.5 font-mono">{s.l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — live intel console */}
+            <div className="lg:col-span-5 relative">
+              <div className="relative rounded-2xl border border-foreground/10 bg-foreground/[0.02] backdrop-blur-2xl overflow-hidden shadow-[0_0_60px_-20px_rgba(255,255,255,0.06)]">
+                {/* corner ticks */}
+                <span aria-hidden className="absolute top-2 left-2 h-2 w-2 border-t border-l border-foreground/40" />
+                <span aria-hidden className="absolute top-2 right-2 h-2 w-2 border-t border-r border-foreground/40" />
+                <span aria-hidden className="absolute bottom-2 left-2 h-2 w-2 border-b border-l border-foreground/40" />
+                <span aria-hidden className="absolute bottom-2 right-2 h-2 w-2 border-b border-r border-foreground/40" />
+
+                {/* header */}
+                <div className="flex items-center justify-between border-b border-foreground/10 px-4 py-2.5 font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground/60">
+                  <span className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    INTEL FEED · LIVE
+                  </span>
+                  <span>30/30</span>
+                </div>
+
+                {/* feed lines */}
+                <div className="px-4 py-4 space-y-2.5 font-mono text-[11px] text-muted-foreground/80 min-h-[260px]">
+                  {[
+                    { t: "0.02s", s: "ZOPHIEL", m: "30 OSINT lanes acquired", c: "text-emerald-300/90" },
+                    { t: "0.41s", s: "AXRLEN", m: "14-pass consensus engaged", c: "text-foreground" },
+                    { t: "1.07s", s: "ZERLAL", m: "Domain forensics resolved", c: "text-foreground" },
+                    { t: "1.62s", s: "NOMAD",  m: "Cross-validation · 0.91 veracity", c: "text-foreground" },
+                    { t: "2.08s", s: "AUREON", m: "Truth payload sealed · AES-256-GCM", c: "text-emerald-300/90" },
+                  ].map((row, i) => (
+                    <div key={i} className="flex items-baseline gap-3 animate-fade-in" style={{ animationDelay: `${i * 120}ms` }}>
+                      <span className="text-muted-foreground/40 tabular-nums w-12">{row.t}</span>
+                      <span className="text-foreground/60 w-16 tracking-[0.15em]">{row.s}</span>
+                      <span className={row.c + " flex-1 truncate"}>{row.m}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* footer ticker */}
+                <div className="border-t border-foreground/10 px-4 py-2 font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground/50 flex items-center justify-between">
+                  <span>UPLINK · SECURE</span>
+                  <span className="tabular-nums">LATENCY 42MS</span>
+                </div>
+              </div>
+
+              {/* Vertical scroll cue */}
+              <div className="mt-6 flex items-center gap-2 font-mono text-[9px] tracking-[0.4em] uppercase text-muted-foreground/40">
+                <span className="h-px flex-1 bg-foreground/15" />
+                SCROLL TO DEPLOY ↓
+              </div>
+            </div>
           </div>
         </div>
 
         {canInstall && (
-          <button
-            onClick={install}
-            className="mt-8 group inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
-          >
-            <Download className="h-4 w-4" />
-            Download App
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </button>
+          <div className="relative mx-auto mt-10">
+            <button
+              onClick={install}
+              className="group inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
+            >
+              <Download className="h-4 w-4" />
+              Download App
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </button>
+          </div>
         )}
-
-        {/* Bottom corner brackets */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-6 bottom-8 flex items-center justify-between text-[9px] tracking-[0.35em] text-muted-foreground/40 uppercase font-mono">
-          <span>v2027.1 · BUILD ZOPHIEL</span>
-          <span>SCROLL ↓ TO DEPLOY</span>
-        </div>
       </div>
       </ScrollSection>
+
 
       <div id="demos" />
       <ScrollSection><LiveDemoStrip /></ScrollSection>
