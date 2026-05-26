@@ -26,7 +26,7 @@ const convergenceFactors = [
     icon: Crosshair,
     title: "PLAN Amphibious Capacity",
     description:
-      "The People's Liberation Army Navy reaches amphibious invasion capacity around 2027–2028. Landing craft, carriers, and satellite-kill weapons are being built at wartime production speed RIGHT NOW. The hardware isn't ready today. It will be by 2027.",
+      "The People's Liberation Army Navy reaches amphibious invasion capacity around 2028–2029. Landing craft, carriers, and satellite-kill weapons are being built at wartime production speed RIGHT NOW. The hardware isn't ready today. It will be by 2028.",
   },
   {
     icon: Globe,
