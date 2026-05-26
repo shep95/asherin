@@ -320,6 +320,10 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     () => (ingresses ? detectWindows(ingresses, activeRef.points, "travel", { clusterDays: 14, minScore: 4 }) : []),
     [ingresses, activeRef.points],
   );
+  const networkWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "network", { clusterDays: 14, minScore: 4 }) : []),
+    [ingresses, activeRef.points],
+  );
 
 
   // ── Filter every window list to ONLY those overlapping the selected period ──
@@ -348,6 +352,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   const educationInPeriod    = useMemo(() => educationWindows.filter(inPeriod),    [educationWindows, inPeriod]);
   const spiritualityInPeriod = useMemo(() => spiritualityWindows.filter(inPeriod), [spiritualityWindows, inPeriod]);
   const travelInPeriod       = useMemo(() => travelWindows.filter(inPeriod),       [travelWindows, inPeriod]);
+  const networkInPeriod      = useMemo(() => networkWindows.filter(inPeriod),      [networkWindows, inPeriod]);
 
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
@@ -579,15 +584,29 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     if (power) {
       const good = power.score > 0;
       sourceMap.set("power", power);
+      // Classify the *type* of power based on the dominant planet driving the window
+      const POWER_TYPE: Record<string, string> = {
+        Sun:     "Executive / Throne power — direct command, official authority",
+        Saturn:  "Structural / Institutional power — discipline, systems, long-game control",
+        Mars:    "Force / Operational power — execution, confrontation, military-style push",
+        Jupiter: "Dharmic / Advisory power — wisdom-based authority, counsel, ethics",
+        Rahu:    "Mass / Political power — influence over crowds, viral leverage",
+        Mercury: "Strategic / Communicative power — negotiation, deals, intellectual sway",
+        Venus:   "Cultural / Diplomatic power — soft power, relationships, art, money",
+        Moon:    "Public / Emotional power — popularity, public mood, care-based authority",
+        Ketu:    "Spiritual / Renunciate power — moral authority via detachment",
+      };
+      const topPlanet = power.hits[0]?.planet ?? "";
+      const powerType = POWER_TYPE[topPlanet];
       briefs.push({
         key: "power",
         icon: Crown,
-        label: "Power / Authority",
+        label: powerType ? `Power · ${topPlanet}-type` : "Power / Authority",
         tone: good ? "good" : "bad",
         headline: good
           ? (power.score >= 14 ? "Coronation-grade — you can step into the boss seat" : power.score >= 8 ? "Authority surge — people listen, take charge" : "Power activation — small leadership wins")
           : "Power challenged — someone above tests you, hold your line",
-        detail: power.hits[0]?.plain || power.headline,
+        detail: powerType ? `${powerType}. ${power.hits[0]?.plain || power.headline}` : (power.hits[0]?.plain || power.headline),
         when: fmtWhen(power.start, power.end),
         duration: fmtDuration(power.start, power.end),
       });
@@ -733,6 +752,21 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         duration: fmtDuration(travel.start, travel.end),
       });
     }
+    const network = pickStrongest(networkInPeriod);
+    if (network) {
+      const good = network.score > 0;
+      sourceMap.set("network", network);
+      briefs.push({
+        key: "network", icon: Users, label: "Network / Connections",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (network.score >= 12 ? "Network breakthrough — power-circle opens, key allies appear" : network.score >= 7 ? "Strong connection window — DMs land, intros flow, group lifts you" : "Network warmup — friendly ties strengthen")
+          : "Network friction — allies go quiet, friend-group rearranges",
+        detail: network.hits[0]?.plain || network.headline,
+        when: fmtWhen(network.start, network.end),
+        duration: fmtDuration(network.start, network.end),
+      });
+    }
 
 
 
@@ -773,7 +807,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       .sort((a, b) => (b.dashaScore + (sourceMap.get(b.key)?.score ?? 0)) - (a.dashaScore + (sourceMap.get(a.key)?.score ?? 0)));
 
     return { briefs: enriched, periodWord, strongest };
-  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod, familyInPeriod, homeInPeriod, childrenInPeriod, educationInPeriod, spiritualityInPeriod, travelInPeriod, dashaLordWeights, currentDasha]);
+  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod, familyInPeriod, homeInPeriod, childrenInPeriod, educationInPeriod, spiritualityInPeriod, travelInPeriod, networkInPeriod, dashaLordWeights, currentDasha]);
 
   // ── WEALTH & POWER CALCULATOR — natal capacity + dasha+transit timing ──
   // Power windows = union of power/career/influence/fame transit clusters

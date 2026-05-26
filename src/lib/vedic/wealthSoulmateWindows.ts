@@ -21,7 +21,8 @@ import { whyTransitMatters } from "./sensitivePoints";
 export type WindowKind =
   | "wealth" | "soulmate" | "health"
   | "romance" | "power" | "influence" | "fame" | "career"
-  | "family" | "home" | "children" | "education" | "spirituality" | "travel";
+  | "family" | "home" | "children" | "education" | "spirituality" | "travel"
+  | "network";
 
 export interface ActivationHit {
   date: Date;
@@ -62,6 +63,7 @@ const CHILDREN_POINTS     = new Set<PointCode>(["L5"]);                         
 const EDUCATION_POINTS    = new Set<PointCode>(["L4", "L5", "L9"]);                     // study / wisdom / certification
 const SPIRITUALITY_POINTS = new Set<PointCode>(["L12", "L9", "Chandra"]);               // moksha / dharma / inner work
 const TRAVEL_POINTS       = new Set<PointCode>(["L9", "L12", "L3"]);                    // foreign / long-distance / short trips
+const NETWORK_POINTS      = new Set<PointCode>(["L11", "L3", "L10", "Chandra"]);         // gains, friends, allies, public network
 
 const WEALTH_WEIGHT: Record<string, number> = {
   Jupiter: 5, Venus: 3, Rahu: 4, Sun: 1, Mercury: 1, Mars: 1,
@@ -132,6 +134,12 @@ const TRAVEL_WEIGHT: Record<string, number> = {
   Rahu: 5, Jupiter: 4, Mercury: 3, Venus: 2, Moon: 2, Mars: 2, Sun: 1,
   Saturn: -2, Ketu: 1,
 };
+// NETWORK / CONNECTIONS = allies, friend-circle expansion, public-facing relationships.
+const NETWORK_WEIGHT: Record<string, number> = {
+  Mercury: 5, Rahu: 5, Jupiter: 4, Venus: 3, Sun: 2, Moon: 2, Mars: 1, Saturn: 1,
+  Ketu: -2,
+};
+
 
 const POINT_BONUS: Partial<Record<PointCode, number>> = {
   L9: 3, L11: 2, L2: 1, AK: 2, UL: 3, DK: 2, L7: 1,
@@ -184,6 +192,7 @@ export function detectWindows(
     fame: FAME_POINTS, career: CAREER_POINTS,
     family: FAMILY_POINTS, home: HOME_POINTS, children: CHILDREN_POINTS,
     education: EDUCATION_POINTS, spirituality: SPIRITUALITY_POINTS, travel: TRAVEL_POINTS,
+    network: NETWORK_POINTS,
   };
   const WEIGHT_SET: Record<WindowKind, Record<string, number>> = {
     wealth: WEALTH_WEIGHT, soulmate: SOULMATE_WEIGHT, health: HEALTH_WEIGHT,
@@ -191,6 +200,7 @@ export function detectWindows(
     fame: FAME_WEIGHT, career: CAREER_WEIGHT,
     family: FAMILY_WEIGHT, home: HOME_WEIGHT, children: CHILDREN_WEIGHT,
     education: EDUCATION_WEIGHT, spirituality: SPIRITUALITY_WEIGHT, travel: TRAVEL_WEIGHT,
+    network: NETWORK_WEIGHT,
   };
   const interesting = POINT_SET[kind];
   const planetWeights = WEIGHT_SET[kind];
