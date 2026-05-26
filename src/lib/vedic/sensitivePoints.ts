@@ -348,6 +348,21 @@ const COMBO_PLAIN: Record<string, string> = {
   "Mercury|L3":  "Communication clarity peak. Best window for negotiations and deal-pitches.",
   "Rahu|Surya":  "Fame spike — also scandal risk. The mass crowd talks about you. Protect your image.",
   "Sun|L11":     "Your authority converts to income through your network. Recognition pays cash.",
+
+  // ── FAMILY / HOME / PROPERTY / MOTHER (L4 = Sukha, the heart of family & roots) ──
+  "Jupiter|L4": "Family lights up — births, weddings, reunions, property gains. Mother's health improves. Inner peace returns. Classical home-blessing transit.",
+  "Saturn|L4":  "Home pressure — repairs, relocation, mother's health worry, weight of family duty. Property decisions slow but solid.",
+  "Sun|L4":     "Father/authority dynamic at home flares. Ego friction with family. Property tied to status.",
+  "Moon|L4":    "Emotional homecoming — comfort, nostalgia, mother contact, deep nesting need.",
+  "Mars|L4":    "Family conflict, household repairs, real-estate disputes, vehicle trouble. Aggression at home.",
+  "Mercury|L4": "Property paperwork, contracts for the home, sibling discussions about family matters.",
+  "Venus|L4":   "Home becomes beautiful — décor, comfort buys, harmony with mother/partner, vehicle upgrades.",
+  "Rahu|L4":    "Foreign-property pull, unconventional living, family secret exposed, sudden relocation.",
+  "Ketu|L4":    "Detachment from home, family distance, mother's spiritual phase, ancestral karma surfacing.",
+
+  // ── SPIRITUALITY / MOKSHA (L12) ──
+  "Jupiter|L12":"Spiritual blessing, ashram pull, charity, foreign retreat. Sleep deepens. Moksha-axis lit.",
+  "Ketu|L9":    "Faith dissolves or transmutes. Guru leaves. Dharma rewrites itself.",
   // "Jupiter|Surya" already defined above (line 266) in COMBO_PLAIN
 };
 
@@ -360,7 +375,7 @@ export interface WhyReason {
   importance: "high" | "medium" | "low";
 }
 
-const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna", "Surya", "L9", "L10", "L11", "L2", "L6", "L8", "L12"]);
+const HIGH_POINTS = new Set<PointCode>(["UL", "AK", "DK", "Chandra", "Lagna", "Surya", "L4", "L9", "L10", "L11", "L2", "L6", "L8", "L12"]);
 
 export function whyTransitMatters(
   planet: string,
