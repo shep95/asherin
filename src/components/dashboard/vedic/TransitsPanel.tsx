@@ -810,6 +810,15 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                     </div>
                     <div className="text-[12px] font-light text-foreground leading-snug">{b.headline}</div>
                     <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{b.detail}</p>
+                    {(b as any).cause && (
+                      <div className="pt-1.5 mt-1 border-t border-border/15 space-y-1">
+                        <div className="text-[8.5px] uppercase tracking-[0.22em] text-muted-foreground/60">Why this is happening</div>
+                        <p className="text-[10px] leading-relaxed font-light text-foreground/75">{(b as any).cause}</p>
+                        {(b as any).dashaFlavor && (
+                          <p className="text-[9.5px] leading-relaxed italic font-light text-muted-foreground/70">↳ {(b as any).dashaFlavor}</p>
+                        )}
+                      </div>
+                    )}
                     {activeDashaSummary && (
                       <div className="flex items-center gap-1.5 pt-1 border-t border-border/15">
                         <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${confStyle}`}>{confLabel}</span>
