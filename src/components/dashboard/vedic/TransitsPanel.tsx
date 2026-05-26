@@ -643,6 +643,98 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         duration: fmtDuration(fame.start, fame.end),
       });
     }
+    const family = pickStrongest(familyInPeriod);
+    if (family) {
+      const good = family.score > 0;
+      sourceMap.set("family", family);
+      briefs.push({
+        key: "family", icon: Users, label: "Family / Mother",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (family.score >= 12 ? "Family harmony peak — deep reconnections, mother blessings" : family.score >= 7 ? "Family support window — relatives show up for you" : "Family warmth — small gatherings, good news from kin")
+          : "Family friction — old wounds resurface, hold your tongue",
+        detail: family.hits[0]?.plain || family.headline,
+        when: fmtWhen(family.start, family.end),
+        duration: fmtDuration(family.start, family.end),
+      });
+    }
+    const home = pickStrongest(homeInPeriod);
+    if (home) {
+      const good = home.score > 0;
+      sourceMap.set("home", home);
+      briefs.push({
+        key: "home", icon: Home, label: "Home / Property",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (home.score >= 12 ? "Property/real-estate breakthrough — buy, sell or move energy" : home.score >= 7 ? "Strong home window — renovations, new place, vehicle upgrade" : "Home comfort window — settle, decorate, ground yourself")
+          : "Home disruption — repairs, leaks, or move-out pressure",
+        detail: home.hits[0]?.plain || home.headline,
+        when: fmtWhen(home.start, home.end),
+        duration: fmtDuration(home.start, home.end),
+      });
+    }
+    const children = pickStrongest(childrenInPeriod);
+    if (children) {
+      const good = children.score > 0;
+      sourceMap.set("children", children);
+      briefs.push({
+        key: "children", icon: Baby, label: "Children / Creativity",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (children.score >= 12 ? "Conception / creative-birth peak — fertility & big ideas" : children.score >= 7 ? "Strong creativity & kid-luck window — projects bloom" : "Playful window — creative sparks, kid news")
+          : "Creative block / strain with kids — protect rest, lower pressure",
+        detail: children.hits[0]?.plain || children.headline,
+        when: fmtWhen(children.start, children.end),
+        duration: fmtDuration(children.start, children.end),
+      });
+    }
+    const education = pickStrongest(educationInPeriod);
+    if (education) {
+      const good = education.score > 0;
+      sourceMap.set("education", education);
+      briefs.push({
+        key: "education", icon: GraduationCap, label: "Education / Wisdom",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (education.score >= 12 ? "Mastery breakthrough — exams, certs, teachers all aligned" : education.score >= 7 ? "Strong learning window — absorb fast, sign up for courses" : "Study window — clarity returns, books make sense")
+          : "Learning fog — focus dips, postpone heavy exams if possible",
+        detail: education.hits[0]?.plain || education.headline,
+        when: fmtWhen(education.start, education.end),
+        duration: fmtDuration(education.start, education.end),
+      });
+    }
+    const spirituality = pickStrongest(spiritualityInPeriod);
+    if (spirituality) {
+      const good = spirituality.score > 0;
+      sourceMap.set("spirituality", spirituality);
+      briefs.push({
+        key: "spirituality", icon: Mountain, label: "Spirituality / Moksha",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (spirituality.score >= 12 ? "Awakening window — sadhana lands, guru appears" : spirituality.score >= 7 ? "Deep inner work window — retreat, meditate, journal" : "Quiet spiritual pull — small practice deepens")
+          : "Spiritual restlessness — old karma surfaces, don't react",
+        detail: spirituality.hits[0]?.plain || spirituality.headline,
+        when: fmtWhen(spirituality.start, spirituality.end),
+        duration: fmtDuration(spirituality.start, spirituality.end),
+      });
+    }
+    const travel = pickStrongest(travelInPeriod);
+    if (travel) {
+      const good = travel.score > 0;
+      sourceMap.set("travel", travel);
+      briefs.push({
+        key: "travel", icon: Plane, label: "Travel / Foreign",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (travel.score >= 12 ? "Major foreign-move / relocation window — visa, big trip energy" : travel.score >= 7 ? "Strong travel window — trips pay off, foreign contacts open" : "Movement window — short trips, change of scene")
+          : "Travel friction — delays, cancellations, double-check bookings",
+        detail: travel.hits[0]?.plain || travel.headline,
+        when: fmtWhen(travel.start, travel.end),
+        duration: fmtDuration(travel.start, travel.end),
+      });
+    }
+
+
 
     // ── Dasha flavor map: how the active Maha lord colors any window's effect ──
     const DASHA_FLAVOR: Record<string, string> = {
