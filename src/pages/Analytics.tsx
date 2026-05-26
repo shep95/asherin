@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
 import LandingBackground from "@/components/LandingBackground";
+import { applySeoHead } from "@/lib/seoHead";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart,
 } from "recharts";
@@ -101,6 +102,14 @@ const Analytics = () => {
   const [views, setViews] = useState<PageView[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [busy, setBusy] = useState(true);
+
+  useEffect(() => {
+    applySeoHead({
+      title: "Analytics — Aureon Command Center",
+      description: "Admin-only live traffic analytics: unique devices, pageviews, sources, devices, countries, and bounce rate for Aureon.",
+      path: "/analytics",
+    });
+  }, []);
 
   useEffect(() => {
     if (!user || !isAdminEmail(user.email)) return;
