@@ -1357,51 +1357,6 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       </details>
 
-      {/* Month forecast */}
-      <div className="rounded-lg border border-border/25 bg-gradient-to-b from-foreground/[0.04] to-transparent p-3 space-y-2">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-foreground/70" />
-            <h4 className="text-xs font-light tracking-[0.15em] text-foreground uppercase">
-              Forecast for {periodLabel} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
-            </h4>
-          </div>
-          <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={hideBriefWindows}
-              onChange={(e) => setHideBriefWindows(e.target.checked)}
-              className="h-3 w-3 accent-foreground cursor-pointer"
-            />
-            Hide brief windows (&lt; 24h)
-          </label>
-        </div>
-        {loadingNow && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading the sky…</div>
-        )}
-        {!loadingNow && monthForecast.length === 0 && (
-          <div className="text-[11px] text-muted-foreground/60 italic">No major life-area activations this {granularity}. Background period — steady, integrative.</div>
-        )}
-        {!loadingNow && monthForecast.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {monthForecast.map((pred, i) => (
-              <div key={i} className={`rounded-md border ${VERDICT_STYLE[pred.verdict]} p-2.5 space-y-1`}>
-                <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <div className="text-[12px] font-light text-foreground">
-                    {activeRef.kind === "company"
-                      ? pred.question
-                          .replace(/^Will you /, `Will ${subjectLabel} `)
-                          .replace(/your /gi, "its ")
-                      : pred.question}
-                  </div>
-                  <div className="text-[10px] uppercase tracking-[0.15em] font-medium">{pred.answer}</div>
-                </div>
-                <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/90">{pred.detail}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Detailed transit cards */}
       {transit && (
