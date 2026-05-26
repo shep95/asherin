@@ -59,12 +59,22 @@ const SettingsScreen = () => {
   const save = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("zerlal_settings").upsert({
+    // Build payload; only include alert_email / slack_webhook when the user
+    // entered a new value this session — leaving them empty preserves the
+    // server-stored value (which the client can no longer read back).
+    const payload: Record<string, unknown> = {
       user_id: user.id,
-      ...s,
-      alert_email: s.alert_email?.trim() || null,
-      slack_webhook: s.slack_webhook?.trim() || null,
-    });
+      scan_frequency: s.scan_frequency,
+      severity_threshold: s.severity_threshold,
+      auto_remediation: s.auto_remediation,
+      retention_days: s.retention_days,
+      weekly_report: s.weekly_report,
+      notify_critical: s.notify_critical,
+    };
+    if (s.alert_email?.trim()) payload.alert_email = s.alert_email.trim();
+    if (s.slack_webhook?.trim()) payload.slack_webhook = s.slack_webhook.trim();
+
+    const { error } = await supabase.from("zerlal_settings").upsert(payload);
     setSaving(false);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
     else toast({ title: "Settings saved" });
