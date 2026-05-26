@@ -1,3 +1,4 @@
+import { applySeoHead } from "@/lib/seoHead";
 import heroBgDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
