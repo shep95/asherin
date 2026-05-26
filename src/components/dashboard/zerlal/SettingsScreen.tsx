@@ -74,7 +74,7 @@ const SettingsScreen = () => {
     if (s.alert_email?.trim()) payload.alert_email = s.alert_email.trim();
     if (s.slack_webhook?.trim()) payload.slack_webhook = s.slack_webhook.trim();
 
-    const { error } = await supabase.from("zerlal_settings").upsert(payload);
+    const { error } = await supabase.from("zerlal_settings").upsert(payload as any);
     setSaving(false);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
     else toast({ title: "Settings saved" });
