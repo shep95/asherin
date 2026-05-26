@@ -19,6 +19,7 @@ const PromptEngineering = lazy(() => import("./pages/PromptEngineering"));
 const Features = lazy(() => import("./pages/Features"));
 const Benchmarks = lazy(() => import("./pages/Benchmarks"));
 const NDA = lazy(() => import("./pages/NDA"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 
 const FeatureZophiel = lazy(() => import("./pages/FeatureZophiel"));
 const FeatureNomad = lazy(() => import("./pages/FeatureNomad"));
@@ -172,6 +173,7 @@ const App = () => (
               }
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/unsubscribe" element={<Unsubscribe />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </main>
