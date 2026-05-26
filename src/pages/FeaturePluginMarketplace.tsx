@@ -6,12 +6,12 @@ const FeaturePluginMarketplace = () => (
     documentTitle="Plugin Marketplace — Live Azplen Plugins | Aureon"
     eyebrow="Extensibility"
     headline={<>Live Plugins.<br /><span className="text-muted-foreground">Real Execution.</span></>}
-    subheadline="The Plugin Marketplace runs on a live AI execution engine (Gemini-powered) — every plugin executes against real data, not simulated placeholders. Install, configure, run, and chain."
+    subheadline="The Plugin Marketplace runs on a live execution engine — every plugin runs against real data, not simulated placeholders. Install, configure, run, and chain."
     tierLabel="Aureon — $199/mo"
     capabilities={[
       { icon: Puzzle, title: "Live Execution Engine", description: "Plugins call real models with real inputs. No mock returns, no demo theatre." },
       { icon: Zap, title: "One-Click Install", description: "Browse the marketplace, install with one click, configure inputs, run." },
-      { icon: Brain, title: "AI-Powered Plugins", description: "Each plugin can leverage Gemini, multi-model consensus, and the full Aureon brain stack." },
+      { icon: Brain, title: "Intelligence-Powered Plugins", description: "Each plugin can leverage multi-model consensus and the full Aureon intelligence stack." },
       { icon: Layers, title: "Plugin Chaining", description: "Output of one plugin feeds the next — build pipelines without writing code." },
       { icon: Globe, title: "Web-Aware Plugins", description: "Plugins can access live web data, structured APIs, and the user's knowledge base." },
       { icon: Shield, title: "Sandboxed Execution", description: "Each plugin runs with scoped permissions; no plugin can read another's secrets." },
