@@ -71,6 +71,7 @@ const AsherDashboard = lazy(() => import("./pages/AsherDashboard"));
 const Forums = lazy(() => import("./pages/Forums"));
 const AvaPicks = lazy(() => import("./pages/AvaPicks"));
 const OpenVpn = lazy(() => import("./pages/OpenVpn"));
+const Analytics = lazy(() => import("./pages/Analytics"));
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import AureonDomainGate from "./components/AureonDomainGate";
@@ -161,6 +162,7 @@ const App = () => (
             <Route path="/avapicks" element={<AvaPicks />} />
             <Route path="/openvpn" element={<OpenVpn />} />
             <Route path="/asher-dashboard" element={<ProtectedRoute><AsherDashboard /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             <Route
               path="/dashboard"
               element={
