@@ -1168,7 +1168,68 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
               })}
             </div>
           )}
+
+          {/* CROSS-DOMAIN COMBOS — golden tint, synthesizes overlapping transits */}
+          {monthlyBrief.combos && monthlyBrief.combos.length > 0 && (
+            <div className="pt-3 mt-2 border-t border-amber-400/20 space-y-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-amber-300/90" />
+                <h5 className="text-[10.5px] font-light tracking-[0.22em] text-amber-200/90 uppercase">
+                  Cross-Domain Combinations
+                </h5>
+                <span className="text-[9px] uppercase tracking-[0.18em] text-amber-200/50">
+                  · what {monthlyBrief.combos.length} overlapping transit{monthlyBrief.combos.length === 1 ? "" : "s"} braid into
+                </span>
+              </div>
+              <p className="text-[10px] italic text-amber-100/55 leading-relaxed">
+                When two life-area windows fire at the same time, their energies don't play out separately — they merge into one outcome.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {monthlyBrief.combos.slice(0, 8).map((c) => {
+                  const IconA = c.iconA;
+                  const IconB = c.iconB;
+                  return (
+                    <div
+                      key={`combo-${c.keyA}-${c.keyB}`}
+                      className="relative rounded-md border border-amber-400/35 bg-gradient-to-br from-amber-400/[0.09] via-amber-300/[0.05] to-yellow-500/[0.04] p-3 space-y-1.5 shadow-[0_0_18px_-8px_rgba(251,191,36,0.35)]"
+                    >
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <IconA className="h-3.5 w-3.5 text-amber-200/90" />
+                          <span className="text-[10px] uppercase tracking-[0.2em] text-amber-100/95">{c.labelA}</span>
+                          <span className="text-amber-300/60 text-[10px]">+</span>
+                          <IconB className="h-3.5 w-3.5 text-amber-200/90" />
+                          <span className="text-[10px] uppercase tracking-[0.2em] text-amber-100/95">{c.labelB}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9.5px] uppercase tracking-[0.18em] text-amber-200/85">{c.duration}</span>
+                          <span className="text-[9.5px] uppercase tracking-[0.18em] text-amber-200/65">{c.when}</span>
+                        </div>
+                      </div>
+                      <div className="text-[12px] font-light text-amber-50/95 leading-snug">{c.headline}</div>
+                      <p className="text-[10.5px] leading-relaxed font-light text-amber-100/70">{c.detail}</p>
+                      <div className="flex items-center gap-1.5 pt-1 border-t border-amber-400/15">
+                        <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${
+                          c.tone === "good"
+                            ? "border-amber-300/55 bg-amber-400/[0.12] text-amber-100"
+                            : c.tone === "bad"
+                              ? "border-red-400/45 bg-red-500/[0.10] text-red-100"
+                              : "border-amber-300/35 bg-amber-300/[0.06] text-amber-200/85"
+                        }`}>
+                          {c.tone === "good" ? "COMPOUND FAVORABLE" : c.tone === "bad" ? "COMPOUND FRICTION" : "MIXED COLLISION"}
+                        </span>
+                        <span className="text-[9px] uppercase tracking-[0.16em] text-amber-200/55">
+                          combined intensity {c.combinedScore.toFixed(0)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
+
       )}
 
       {/* WEALTH & POWER CALCULATOR — natal capacity (%) + dasha+transit timing */}
