@@ -32,7 +32,8 @@ const Header = () => {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
+      <header className="fixed top-0 left-0 right-0 z-50 py-3 sm:py-4">
+        <div className="mx-auto w-full max-w-7xl flex items-center justify-between px-4 sm:px-6">
         {/* Left: Logo + Pages dropdown */}
         <div
           className="hidden sm:flex items-center rounded-xl border border-border/30 bg-card/60 backdrop-blur-md"
@@ -253,6 +254,7 @@ const Header = () => {
             </div>
           </>
         )}
+        </div>
       </header>
 
       {showAuth && (
