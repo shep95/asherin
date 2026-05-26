@@ -418,37 +418,70 @@ const Index = () => {
       <ScrollSection><TrustBand /></ScrollSection>
 
       <ScrollSection>
-      <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-5xl text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            Most AI Gives You Guardrails.
-            <br />
-            Aureon Gives You The Full Picture.
-          </h2>
+      <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
+        {/* Aurora background */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.35]">
+          <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,hsl(45_90%_55%/0.18),transparent_70%)] blur-3xl" />
+          <div className="absolute left-[20%] top-[60%] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,hsl(0_0%_100%/0.06),transparent_70%)] blur-3xl" />
+        </div>
 
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <AlertCircle className="h-8 w-8 text-foreground" />
-              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">No Artificial Limits</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Ask any question on any topic. No disclaimers, no refusals, no corporate filters blocking your work.</p>
+        <div className="relative mx-auto max-w-6xl">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/[0.04] px-3 py-1 mb-8">
+              <span className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-[10px] font-light tracking-[0.3em] text-amber-200/80 uppercase">The Aureon Difference</span>
             </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Smile className="h-8 w-8 text-foreground" />
-              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">Truth Over Comfort</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Aureon delivers direct, unvarnished answers — structured for professionals who value accuracy over politeness.</p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <AlertTriangle className="h-8 w-8 text-foreground" />
-              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">Production-Grade Code</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Full-stack architecture, multi-file debugging, and working builds — not pseudocode dressed up as solutions.</p>
-            </div>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
+              Most AI Gives You <span className="italic font-thin text-muted-foreground/70">Guardrails.</span>
+              <br />
+              Aureon Gives You <span className="bg-gradient-to-r from-amber-200 via-amber-100 to-foreground bg-clip-text text-transparent">The Full Picture.</span>
+            </h2>
           </div>
 
-          <p className="mt-16 text-xl sm:text-2xl font-extralight tracking-wide text-foreground">
-            Built for professionals who need precision.
-            <br />
-            <span className="text-muted-foreground">Not an assistant. An intelligence platform.</span>
-          </p>
+          {/* Asymmetric bento */}
+          <div className="mt-20 grid grid-cols-1 md:grid-cols-12 gap-4">
+            {[
+              { n: "01", Icon: AlertCircle, title: "No Artificial Limits", desc: "Ask any question on any topic. No disclaimers, no refusals, no corporate filters blocking your work.", span: "md:col-span-5 md:row-span-2", tall: true },
+              { n: "02", Icon: Smile, title: "Truth Over Comfort", desc: "Direct, unvarnished answers — structured for professionals who value accuracy over politeness.", span: "md:col-span-7" },
+              { n: "03", Icon: AlertTriangle, title: "Production-Grade Code", desc: "Full-stack architecture, multi-file debugging, and working builds — not pseudocode dressed up as solutions.", span: "md:col-span-7" },
+            ].map(({ n, Icon, title, desc, span, tall }) => (
+              <div key={n} className={`group relative ${span} rounded-3xl overflow-hidden`}>
+                {/* gradient border */}
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-amber-400/20 via-foreground/10 to-transparent opacity-40 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="relative m-[1px] h-[calc(100%-2px)] rounded-3xl bg-gradient-to-br from-card/80 via-background/90 to-background backdrop-blur-xl p-8 sm:p-10">
+                  {/* corner mark */}
+                  <div className="absolute right-6 top-6 font-mono text-[10px] tracking-[0.3em] text-amber-200/40">{n} / 03</div>
+                  {/* glow orb */}
+                  <div aria-hidden className="absolute -right-20 -bottom-20 h-60 w-60 rounded-full bg-amber-400/[0.04] blur-3xl group-hover:bg-amber-400/[0.12] transition-all duration-700" />
+
+                  <div className="relative flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-amber-400/30 group-hover:bg-amber-400/[0.06] transition-all duration-500">
+                      <Icon className="h-5 w-5 text-foreground/80 group-hover:text-amber-200 transition-colors" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className={`${tall ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"} font-extralight tracking-tight text-foreground leading-tight`}>{title}</h3>
+                      <p className={`mt-4 ${tall ? "text-base" : "text-sm"} font-extralight leading-relaxed text-muted-foreground max-w-md`}>{desc}</p>
+
+                      {tall && (
+                        <div className="mt-8 flex items-center gap-2 text-[10px] font-mono tracking-[0.25em] text-amber-200/60 uppercase">
+                          <span className="h-px w-8 bg-amber-200/40" />
+                          Zero-Filter Policy
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-20 text-center">
+            <p className="text-2xl sm:text-3xl font-extralight tracking-tight text-foreground leading-snug">
+              Built for professionals who need precision.
+              <br />
+              <span className="italic text-muted-foreground/60">Not an assistant. An intelligence platform.</span>
+            </p>
+          </div>
         </div>
       </div>
       </ScrollSection>
@@ -628,73 +661,60 @@ const Index = () => {
       </div>
       </ScrollSection>
 
+      {/* ===== THE PLATFORM — Bento ===== */}
       <ScrollSection>
-      <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-5xl text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            The Platform.
-            <br />
-            <span className="text-muted-foreground">Every Capability. One Dashboard.</span>
-          </h2>
-
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Unlock className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Uncensored Responses</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">No topic is off limits. No hidden bias. Ask anything and get the complete, unfiltered answer.</p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Monitor className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Elite Coding Engine</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Production-grade output on complex builds, debugging, and multi-file architecture — every time.</p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Search className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Live Web Intelligence</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Privacy-first real-time search. Current data, not 2-year-old training sets.</p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Brain className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Persistent Memory</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Aureon remembers your context, preferences, and projects across every session.</p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Users className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Team Workspace</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Collaborate in real time. Share threads, outputs, and builds with your team.</p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Globe className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Multi-Language Output</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Thinks and delivers in any language. Same raw output. No filtered translations.</p>
-            </div>
-          </div>
+      <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-30">
+          <div className="absolute right-[10%] top-[20%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,hsl(45_80%_50%/0.12),transparent_70%)] blur-3xl" />
         </div>
-      </div>
-      </ScrollSection>
+        <div className="relative mx-auto max-w-7xl">
+          <div className="flex flex-col items-center text-center mb-20">
+            <div className="inline-flex items-center gap-2 rounded-full border border-foreground/15 bg-foreground/[0.03] px-3 py-1 mb-8">
+              <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase">/ 02 — Platform</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
+              The Platform.
+              <br />
+              <span className="italic text-muted-foreground/60">Every Capability.</span>{" "}
+              <span className="bg-gradient-to-r from-amber-200 to-foreground bg-clip-text text-transparent">One Dashboard.</span>
+            </h2>
+          </div>
 
-      <ScrollSection>
-      <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-5xl text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            Not Just An AI Chat.
-            <br />
-            <span className="text-muted-foreground">A Complete Intelligence Operating System.</span>
-          </h2>
-
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Bento grid 12-col */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             {[
-              { label: "Uncensored AI", desc: "No topic limits. No filters. Full answers on every subject." },
-              { label: "Real-Time Search", desc: "Privacy-first web intelligence with live data and source credibility tiers." },
-              { label: "Persistent Memory", desc: "Context that carries across every conversation and session." },
-              { label: "Public Intelligence & Forensics", desc: "Full-spectrum public intelligence — NOMAD, entity resolution, and dossier output." },
-              { label: "Predictive Intelligence", desc: "AI event forecasting with signal detection and confidence scoring." },
-              { label: "Data Privacy", desc: "End-to-end encryption. Your data is never sold or used for training." },
-            ].map(({ label, desc }) => (
-              <div key={label} className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
-                <Check className="h-5 w-5 text-emerald-400 mb-3" />
-                <h3 className="text-sm font-light tracking-wide text-foreground">{label}</h3>
-                <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">{desc}</p>
+              { Icon: Unlock, title: "Uncensored Responses", desc: "No topic is off limits. No hidden bias. Ask anything and get the complete, unfiltered answer.", span: "md:col-span-7 md:row-span-2", featured: true, tag: "Core" },
+              { Icon: Monitor, title: "Elite Coding Engine", desc: "Production-grade output on complex builds, debugging, and multi-file architecture.", span: "md:col-span-5", tag: "Engine" },
+              { Icon: Search, title: "Live Web Intelligence", desc: "Privacy-first real-time search. Current data — not 2-year-old training sets.", span: "md:col-span-5", tag: "Realtime" },
+              { Icon: Brain, title: "Persistent Memory", desc: "Aureon remembers your context, preferences, and projects across every session.", span: "md:col-span-4", tag: "Stateful" },
+              { Icon: Users, title: "Team Workspace", desc: "Collaborate in real time. Share threads, outputs, and builds with your team.", span: "md:col-span-4", tag: "Collab" },
+              { Icon: Globe, title: "Multi-Language Output", desc: "Thinks and delivers in any language. Same raw output. No filtered translations.", span: "md:col-span-4", tag: "Global" },
+            ].map(({ Icon, title, desc, span, featured, tag }, i) => (
+              <div key={title} className={`group relative ${span} rounded-3xl overflow-hidden min-h-[200px]`}>
+                <div className={`absolute inset-0 rounded-3xl ${featured ? "bg-gradient-to-br from-amber-400/25 via-amber-200/5 to-transparent" : "bg-gradient-to-br from-foreground/10 via-transparent to-transparent"} opacity-50 group-hover:opacity-100 transition-opacity duration-700`} />
+                <div className={`relative m-[1px] h-[calc(100%-2px)] rounded-3xl ${featured ? "bg-gradient-to-br from-card/90 via-background/95 to-background" : "bg-card/40"} backdrop-blur-xl p-7 sm:p-9 flex flex-col justify-between`}>
+                  {featured && <div aria-hidden className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-amber-400/[0.06] blur-3xl" />}
+
+                  <div className="relative flex items-start justify-between">
+                    <div className={`flex ${featured ? "h-14 w-14" : "h-11 w-11"} items-center justify-center rounded-2xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-amber-400/30 transition-all`}>
+                      <Icon className={`${featured ? "h-6 w-6" : "h-5 w-5"} text-foreground/85 group-hover:text-amber-200 transition-colors`} />
+                    </div>
+                    <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground/40 uppercase">{tag}</span>
+                  </div>
+
+                  <div className="relative mt-6">
+                    <h3 className={`${featured ? "text-2xl sm:text-3xl" : "text-lg"} font-extralight tracking-tight text-foreground leading-tight`}>{title}</h3>
+                    <p className={`mt-3 ${featured ? "text-base max-w-md" : "text-sm"} font-extralight leading-relaxed text-muted-foreground`}>{desc}</p>
+                    {featured && (
+                      <div className="mt-8 flex items-center gap-3">
+                        <div className="h-px flex-1 bg-gradient-to-r from-amber-400/40 to-transparent" />
+                        <span className="font-mono text-[10px] tracking-[0.3em] text-amber-200/70 uppercase">No Guardrails</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div aria-hidden className="absolute bottom-3 right-4 font-mono text-[9px] tracking-[0.25em] text-muted-foreground/20">0{i + 1}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -702,57 +722,122 @@ const Index = () => {
       </div>
       </ScrollSection>
 
+      {/* ===== INTELLIGENCE OS — Spec sheet ===== */}
       <ScrollSection>
-      <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-5xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/5 px-4 py-1.5 mb-8">
-            <Key className="h-3.5 w-3.5 text-accent" />
-            <span className="text-[10px] font-light tracking-[0.25em] text-accent uppercase">Bring Your Own Key</span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            Your Keys. Your Models.
-            <br />
-            <span className="text-muted-foreground">Uncensored Through Every Provider.</span>
-          </h2>
-          <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
-            Plug in your own API keys from any major AI provider. Every model runs through Aureon's uncensored intelligence layer — same raw output, same zero-filter policy, regardless of which LLM powers it. Run multiple models at once, compare outputs, and let the consensus engine find truth across providers.
-          </p>
+      <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-20">
+          <div className="absolute left-[15%] bottom-[10%] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,hsl(160_60%_50%/0.15),transparent_70%)] blur-3xl" />
+        </div>
 
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
-              <Key className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Bring Your Own Key</h3>
-              <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
-                Plug in API keys from any provider. Your keys, your billing, your control. No middleman.
+        <div className="relative mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            {/* Left rail */}
+            <div className="lg:col-span-5 lg:sticky lg:top-32">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[0.04] px-3 py-1 mb-6">
+                <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] font-light tracking-[0.3em] text-emerald-200/80 uppercase">System Spec</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
+                Not Just An <span className="italic text-muted-foreground/60">AI Chat.</span>
+                <br />
+                <span className="bg-gradient-to-r from-emerald-200 via-foreground to-foreground bg-clip-text text-transparent">A Complete Intelligence Operating System.</span>
+              </h2>
+              <p className="mt-6 text-sm font-extralight leading-relaxed text-muted-foreground max-w-md">
+                Six discrete systems. One unified runtime. Every capability addressable from a single dashboard.
               </p>
+              <div className="mt-8 flex items-center gap-3 font-mono text-[10px] tracking-[0.3em] text-muted-foreground/60 uppercase">
+                <span className="h-px w-12 bg-foreground/30" />
+                v.2027 — Live
+              </div>
             </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
-              <Layers className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Multi-Model at Once</h3>
-              <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
-                Send one prompt to 2–4 models in parallel. See every response side-by-side.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
-              <Shuffle className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Consensus Engine</h3>
-              <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
-                When models agree, you get one clean answer. When they disagree, you see exactly where.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
-              <Cpu className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Aureon Brain Intact</h3>
-              <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
-                Every model runs through Aureon's uncensored system prompt. Same depth, zero filters.
-              </p>
+
+            {/* Right list — spec rows */}
+            <div className="lg:col-span-7 space-y-3">
+              {[
+                { n: "S—01", label: "Uncensored AI", desc: "No topic limits. No filters. Full answers on every subject." },
+                { n: "S—02", label: "Real-Time Search", desc: "Privacy-first web intelligence with live data and source credibility tiers." },
+                { n: "S—03", label: "Persistent Memory", desc: "Context that carries across every conversation and session." },
+                { n: "S—04", label: "Public Intelligence & Forensics", desc: "Full-spectrum public intelligence — NOMAD, entity resolution, and dossier output." },
+                { n: "S—05", label: "Predictive Intelligence", desc: "AI event forecasting with signal detection and confidence scoring." },
+                { n: "S—06", label: "Data Privacy", desc: "End-to-end encryption. Your data is never sold or used for training." },
+              ].map(({ n, label, desc }) => (
+                <div key={n} className="group relative rounded-2xl border border-border/15 bg-card/30 backdrop-blur-md p-6 hover:border-emerald-400/30 hover:bg-card/50 transition-all duration-500">
+                  <div className="flex items-start gap-5">
+                    <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground/50 uppercase pt-1 shrink-0 w-14">{n}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3">
+                        <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <h3 className="text-base font-light tracking-tight text-foreground">{label}</h3>
+                      </div>
+                      <p className="mt-2 pl-[26px] text-sm font-extralight leading-relaxed text-muted-foreground">{desc}</p>
+                    </div>
+                    <span className="font-mono text-[9px] tracking-[0.25em] text-emerald-400/60 uppercase shrink-0">Online</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
+        </div>
+      </div>
+      </ScrollSection>
 
-          {/* Supported AI Providers — Full List */}
-          <div className="mt-16">
-            <p className="text-xs font-light tracking-[0.25em] text-muted-foreground/60 uppercase mb-6">Supported AI Providers</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* ===== BYOK — Premium ===== */}
+      <ScrollSection>
+      <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40">
+          <div className="absolute left-1/2 top-1/4 h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,hsl(45_85%_55%/0.14),transparent_65%)] blur-3xl" />
+        </div>
+
+        <div className="relative mx-auto max-w-6xl">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/[0.05] px-4 py-1.5 mb-8 shadow-[0_0_40px_-10px_hsl(45_90%_55%/0.4)]">
+              <Key className="h-3 w-3 text-amber-300" />
+              <span className="text-[10px] font-light tracking-[0.3em] text-amber-200 uppercase">Bring Your Own Key</span>
+              <span className="font-mono text-[9px] tracking-[0.2em] text-amber-200/60">/ BYOK</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
+              Your Keys. <span className="italic text-muted-foreground/60">Your Models.</span>
+              <br />
+              <span className="bg-gradient-to-r from-amber-300 via-amber-100 to-foreground bg-clip-text text-transparent">Uncensored Through Every Provider.</span>
+            </h2>
+            <p className="mt-8 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
+              Plug in your own API keys from any major AI provider. Every model runs through Aureon's uncensored intelligence layer — same raw output, same zero-filter policy, regardless of which LLM powers it.
+            </p>
+          </div>
+
+          {/* Pillar cards */}
+          <div className="mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { n: "01", Icon: Key, title: "Bring Your Own Key", desc: "Plug in API keys from any provider. Your keys, your billing, your control. No middleman." },
+              { n: "02", Icon: Layers, title: "Multi-Model at Once", desc: "Send one prompt to 2–4 models in parallel. See every response side-by-side." },
+              { n: "03", Icon: Shuffle, title: "Consensus Engine", desc: "When models agree, you get one clean answer. When they disagree, you see exactly where." },
+              { n: "04", Icon: Cpu, title: "Aureon Brain Intact", desc: "Every model runs through Aureon's uncensored system prompt. Same depth, zero filters." },
+            ].map(({ n, Icon, title, desc }) => (
+              <div key={n} className="group relative rounded-3xl overflow-hidden">
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-amber-400/15 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="relative m-[1px] h-[calc(100%-2px)] rounded-3xl bg-gradient-to-b from-card/80 to-background/80 backdrop-blur-xl p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] group-hover:border-amber-400/40 group-hover:bg-amber-400/[0.08] transition-all">
+                      <Icon className="h-5 w-5 text-amber-200/80 group-hover:text-amber-200 transition-colors" />
+                    </div>
+                    <span className="font-mono text-[10px] tracking-[0.3em] text-amber-200/40">{n}</span>
+                  </div>
+                  <h3 className="text-base font-light tracking-tight text-foreground">{title}</h3>
+                  <p className="mt-3 text-xs font-extralight leading-relaxed text-muted-foreground">{desc}</p>
+                  <div className="mt-6 h-px bg-gradient-to-r from-amber-400/30 via-amber-400/10 to-transparent" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Providers — premium chip ticker */}
+          <div className="mt-20">
+            <div className="flex items-center justify-center gap-4 mb-10">
+              <div className="h-px w-16 bg-gradient-to-r from-transparent to-amber-400/40" />
+              <p className="font-mono text-[10px] font-light tracking-[0.35em] text-amber-200/70 uppercase">Supported AI Providers</p>
+              <div className="h-px w-16 bg-gradient-to-l from-transparent to-amber-400/40" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
               {[
                 { name: "OpenAI", models: "GPT-5.4, GPT-5.3, o4-mini" },
                 { name: "Anthropic", models: "Opus 4.6, Sonnet 4.6" },
@@ -763,21 +848,29 @@ const Index = () => {
                 { name: "Meta", models: "Llama 4 Maverick & Scout" },
                 { name: "Venice AI", models: "Uncensored, zero logging" },
                 { name: "Perplexity", models: "Sonar Pro, Deep Research" },
-              ].map(provider => (
-                <div key={provider.name} className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-md p-4 text-left">
-                  <p className="text-xs font-light tracking-wide text-foreground">{provider.name}</p>
-                  <p className="mt-1 text-[10px] font-extralight leading-relaxed text-muted-foreground/60">{provider.models}</p>
+              ].map((p, i) => (
+                <div key={p.name} className="group relative rounded-xl border border-border/15 bg-card/20 backdrop-blur-md p-4 hover:border-amber-400/30 hover:bg-card/40 transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-[9px] tracking-[0.25em] text-muted-foreground/40">0{i + 1}</span>
+                      <p className="text-sm font-light tracking-tight text-foreground">{p.name}</p>
+                    </div>
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400/60 group-hover:bg-amber-400 transition-colors" />
+                  </div>
+                  <p className="mt-2 ml-9 text-[10px] font-extralight leading-relaxed text-muted-foreground/70">{p.models}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <p className="mt-10 text-sm font-extralight text-muted-foreground/70">
+          <p className="mt-12 text-center text-sm font-extralight italic text-muted-foreground/70">
             No vendor lock-in. Switch models per message. Or run them all at once.
           </p>
         </div>
       </div>
       </ScrollSection>
+
+
 
 
       <ScrollSection>
