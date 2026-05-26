@@ -423,9 +423,6 @@ header[data-aureon-header] > a {
   transition: opacity .6s ease;
   pointer-events: none;
 }
-  transition: opacity .5s ease;
-  pointer-events: none;
-}
 .founder-glass:hover { border-color: hsl(var(--foreground) / 0.28); transform: translateY(-2px); }
 .founder-glass:hover::before { opacity: 1; }
 .founder-glass > * { position: relative; }
