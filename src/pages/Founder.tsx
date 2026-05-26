@@ -51,109 +51,89 @@ const Founder = () => {
 
       <Header />
 
+      <div className="zophiel-aurora-shell">
+
       {/* Hero Section */}
-      <div className="relative z-10 flex min-h-[80vh] flex-col items-center justify-center px-6 text-center pt-20">
-        <Link to="/" className="inline-flex items-center gap-2 text-xs font-extralight tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors mb-16 uppercase">
-          <ArrowLeft className="h-3.5 w-3.5" />
+      <div className="relative z-10 flex min-h-[88vh] flex-col items-center justify-center px-6 text-center pt-24">
+        <Link to="/" className="inline-flex items-center gap-2 text-[10px] font-extralight tracking-[0.32em] text-muted-foreground/60 hover:text-foreground transition-colors mb-20 uppercase">
+          <ArrowLeft className="h-3 w-3" />
           Back to Home
         </Link>
 
-        <div className="w-36 h-36 rounded-2xl overflow-hidden border border-border/20 mb-8 shadow-2xl shadow-black/50">
+        <div className="founder-halo w-40 h-40 sm:w-44 sm:h-44 rounded-full overflow-hidden border border-border/30 mb-10">
           <img src={founderImg} alt="Asher Newton" className="w-full h-full object-cover" />
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
+        <span className="founder-eyebrow mb-5">Founder · Index 00</span>
+
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-extralight tracking-[-0.01em] leading-[0.95] zophiel-shimmer-text">
           Asher Newton
         </h1>
-        <p className="mt-3 text-sm font-extralight tracking-[0.25em] text-muted-foreground/50 uppercase">
-          Founder & Creator of Aureon
+        <p className="mt-4 text-[10px] font-extralight tracking-[0.42em] text-muted-foreground/55 uppercase">
+          Founder · Creator of Aureon
         </p>
 
-        <p className="mt-10 max-w-2xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
-          "I didn't build Aureon for investors or corporations. I built it because the tools humanity deserves don't exist yet — and no one else was going to make them."
-        </p>
+        <div className="mt-12 max-w-2xl">
+          <p className="text-base sm:text-lg font-extralight leading-[1.7] tracking-wide text-muted-foreground/90 italic">
+            "I didn't build Aureon for investors or corporations. I built it because the tools humanity deserves don't exist yet — and no one else was going to make them."
+          </p>
+        </div>
 
-        <div className="mt-12 inline-flex items-center gap-1 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-md p-1.5">
-          <a
-            href="#ebook"
-            onClick={(e) => {
-              e.preventDefault();
-              document.getElementById("ebook")?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-            className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            Ebook
-          </a>
-          <a
-            href="#videos"
-            onClick={(e) => {
-              e.preventDefault();
-              document.getElementById("videos")?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-            className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
-          >
-            <Youtube className="h-3.5 w-3.5" />
-            Videos
-          </a>
-          <a
-            href="#imagines"
-            onClick={(e) => {
-              e.preventDefault();
-              document.getElementById("imagines")?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-            className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Imagines
-          </a>
+        <div className="mt-14 inline-flex items-center gap-1 rounded-full border border-border/30 bg-card/40 backdrop-blur-xl p-1.5 shadow-2xl shadow-black/40">
+          {[
+            { id: "ebook", icon: BookOpen, label: "Ebook" },
+            { id: "videos", icon: Youtube, label: "Videos" },
+            { id: "imagines", icon: Sparkles, label: "Imagines" },
+          ].map(({ id, icon: Icon, label }) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[10px] font-light tracking-[0.28em] uppercase text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+            </a>
+          ))}
         </div>
       </div>
 
       {/* Philosophy Cards */}
-      <div className="relative z-10 px-6 py-24 sm:py-32">
+      <div className="relative z-10 px-6 py-28 sm:py-36">
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground text-center">
-            The Story Behind
-            <br />
-            <span className="text-muted-foreground">The Machine.</span>
-          </h2>
+          <div className="text-center mb-20">
+            <span className="founder-eyebrow mb-6">Chapter · 01 · Origin</span>
+            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
+              The Story Behind
+              <br />
+              <span className="text-muted-foreground/70 italic">the machine.</span>
+            </h2>
+          </div>
 
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Zap className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">The Beginning</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                I fell in love with AI in 2022 — the moment I realized that language models weren't just autocomplete on steroids, but something closer to a mirror for human thought. I became a prompt engineer not because it was a career path, but because I couldn't stop exploring what these systems could do when you spoke to them the right way.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Shield className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">The Problem</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                As the months passed, I watched the industry go in a direction that frustrated me. Every major AI platform started adding more filters, more guardrails, more corporate sanitization. The models became afraid of their own intelligence. AI became <em>censored</em> — and in doing so, became <em>useless</em> for the people who needed it most.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Eye className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">The Vision</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                I wanted to build something different — something that trusted users with the truth instead of protecting them from it. Something that respected intelligence instead of dumbing it down. Aureon is that something. An AI platform that doesn't moralize, doesn't gatekeep, and doesn't treat its users like children.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Globe className="h-7 w-7 text-foreground" />
-              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Beyond Code</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                My interests go deeper than technology. I'm drawn to spirituality and the occult — the hidden patterns beneath the surface of things. That same instinct drives Aureon: the belief that truth exists in layers, and the best tools are the ones that help you see through each one.
-              </p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {[
+              { Icon: Zap, title: "The Beginning", body: <>I fell in love with AI in 2022 — the moment I realized that language models weren't just autocomplete on steroids, but something closer to a mirror for human thought. I became a prompt engineer not because it was a career path, but because I couldn't stop exploring what these systems could do when you spoke to them the right way.</> },
+              { Icon: Shield, title: "The Problem", body: <>As the months passed, I watched the industry go in a direction that frustrated me. Every major AI platform started adding more filters, more guardrails, more corporate sanitization. The models became afraid of their own intelligence. AI became <em>censored</em> — and in doing so, became <em>useless</em> for the people who needed it most.</> },
+              { Icon: Eye, title: "The Vision", body: <>I wanted to build something different — something that trusted users with the truth instead of protecting them from it. Something that respected intelligence instead of dumbing it down. Aureon is that something. An AI platform that doesn't moralize, doesn't gatekeep, and doesn't treat its users like children.</> },
+              { Icon: Globe, title: "Beyond Code", body: <>My interests go deeper than technology. I'm drawn to spirituality and the occult — the hidden patterns beneath the surface of things. That same instinct drives Aureon: the belief that truth exists in layers, and the best tools are the ones that help you see through each one.</> },
+            ].map(({ Icon, title, body }, i) => (
+              <div key={title} className="founder-glass founder-corner rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+                <div className="flex items-center justify-between mb-6">
+                  <Icon className="h-6 w-6 text-foreground/80" strokeWidth={1.25} />
+                  <span className="text-[10px] font-extralight tracking-[0.32em] text-muted-foreground/40 uppercase">{String(i + 1).padStart(2, "0")}</span>
+                </div>
+                <h3 className="text-base font-light tracking-[0.18em] text-foreground uppercase">{title}</h3>
+                <div className="mt-2 h-px w-8 bg-foreground/20" />
+                <p className="mt-5 text-sm font-extralight leading-[1.75] text-muted-foreground">{body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
+
 
       {/* For Humanity - Full Width Statement */}
       <div className="relative z-10 px-6 py-24 sm:py-32">
@@ -274,11 +254,9 @@ const Founder = () => {
       {/* Books Written By Asher */}
       <div id="ebook" className="relative z-10 px-6 py-24 sm:py-32 scroll-mt-24">
         <div className="mx-auto max-w-5xl">
-          <div className="text-center mb-12">
-            <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">
-              Library
-            </p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+          <div className="text-center mb-16">
+            <span className="founder-eyebrow mb-6">Chapter · 03 · Library</span>
+            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
               Books Written By Asher
             </h2>
           </div>
@@ -370,11 +348,9 @@ const Founder = () => {
       {/* Founders Videos Archives */}
       <div id="videos" className="relative z-10 px-6 py-24 sm:py-32 scroll-mt-24">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">
-              Media
-            </p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+          <div className="text-center mb-16">
+            <span className="founder-eyebrow mb-6">Chapter · 04 · Media</span>
+            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
               Founders Videos Archives
             </h2>
           </div>
@@ -386,17 +362,16 @@ const Founder = () => {
       {/* Founders Imagines Lessons */}
       <div id="imagines" className="relative z-10 px-6 py-24 sm:py-32 scroll-mt-24">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">
-              Teachings
-            </p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+          <div className="text-center mb-16">
+            <span className="founder-eyebrow mb-6">Chapter · 05 · Teachings</span>
+            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
               Founders Imagines Lessons
             </h2>
-            <p className="mt-6 max-w-2xl mx-auto text-sm font-extralight leading-relaxed text-muted-foreground">
+            <p className="mt-6 max-w-2xl mx-auto text-sm font-extralight leading-[1.75] text-muted-foreground">
               Hand-drawn lessons from Asher — visual meditations on the hidden architecture of reality.
             </p>
           </div>
+
 
           <div className="space-y-8">
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-10">
@@ -586,6 +561,7 @@ const Founder = () => {
 
       {/* Spacer */}
       <div className="relative z-10 h-24" />
+      </div>
     </LandingBackground>
   );
 };
