@@ -807,7 +807,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       .sort((a, b) => (b.dashaScore + (sourceMap.get(b.key)?.score ?? 0)) - (a.dashaScore + (sourceMap.get(a.key)?.score ?? 0)));
 
     return { briefs: enriched, periodWord, strongest };
-  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod, familyInPeriod, homeInPeriod, childrenInPeriod, educationInPeriod, spiritualityInPeriod, travelInPeriod, dashaLordWeights, currentDasha]);
+  }, [granularity, periodStart, periodEnd, wealthInPeriod, soulmateInPeriod, healthInPeriod, romanceInPeriod, powerInPeriod, careerInPeriod, influenceInPeriod, fameInPeriod, familyInPeriod, homeInPeriod, childrenInPeriod, educationInPeriod, spiritualityInPeriod, travelInPeriod, networkInPeriod, dashaLordWeights, currentDasha]);
 
   // ── WEALTH & POWER CALCULATOR — natal capacity + dasha+transit timing ──
   // Power windows = union of power/career/influence/fame transit clusters
