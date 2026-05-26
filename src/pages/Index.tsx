@@ -964,19 +964,19 @@ const Index = () => {
               </p>
 
               <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
-                <div className="rounded-xl border border-border/20 bg-background/30 p-5">
+                <div className="rounded-xl border border-border/20 bg-background/30 backdrop-blur-md p-5">
                   <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/60 uppercase mb-2">01 — Forge</p>
                   <p className="text-xs font-extralight leading-relaxed text-foreground">
                     Describe the software. Zahten plans the architecture, scaffolds the code, and hardens it for production.
                   </p>
                 </div>
-                <div className="rounded-xl border border-border/20 bg-background/30 p-5">
+                <div className="rounded-xl border border-border/20 bg-background/30 backdrop-blur-md p-5">
                   <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/60 uppercase mb-2">02 — Wire</p>
                   <p className="text-xs font-extralight leading-relaxed text-foreground">
                     Plug in your own API key from any major provider. We uncensor the model so your tool answers anything.
                   </p>
                 </div>
-                <div className="rounded-xl border border-border/20 bg-background/30 p-5">
+                <div className="rounded-xl border border-border/20 bg-background/30 backdrop-blur-md p-5">
                   <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/60 uppercase mb-2">03 — Dock</p>
                   <p className="text-xs font-extralight leading-relaxed text-foreground">
                     Publish it as a custom tab inside your Aureon dashboard. Yours forever — runs sandboxed, side-by-side with everything else.
