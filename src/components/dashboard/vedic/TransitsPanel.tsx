@@ -320,6 +320,10 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     () => (ingresses ? detectWindows(ingresses, activeRef.points, "travel", { clusterDays: 14, minScore: 4 }) : []),
     [ingresses, activeRef.points],
   );
+  const networkWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "network", { clusterDays: 14, minScore: 4 }) : []),
+    [ingresses, activeRef.points],
+  );
 
 
   // ── Filter every window list to ONLY those overlapping the selected period ──
