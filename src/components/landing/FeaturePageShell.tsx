@@ -76,46 +76,45 @@ const FeaturePageShell = ({
     <LandingBackground>
       <Header />
 
+      <div className="zophiel-aurora-shell">
+
       <div className="relative z-10 pt-24 px-6">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-xs font-light tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 text-[10px] font-extralight tracking-[0.32em] uppercase text-muted-foreground/60 hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <ArrowLeft className="h-3 w-3" />
           Back to Home
         </Link>
       </div>
 
       {/* Hero */}
-      <section className="relative z-10 flex min-h-[70vh] flex-col items-center justify-center px-6 pt-20 text-center">
-        <div className="rounded-full border border-border/20 bg-card/30 backdrop-blur-md px-4 py-1.5 mb-8">
-          <span className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase">
-            {eyebrow}
-          </span>
-        </div>
-        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
+      <section className="relative z-10 flex min-h-[78vh] flex-col items-center justify-center px-6 pt-16 text-center">
+        <span className="founder-eyebrow mb-8">{eyebrow}</span>
+
+        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-[-0.01em] leading-[1.02] text-foreground">
           {headline}
         </h1>
-        <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground">
+        <p className="mt-8 max-w-2xl text-base font-extralight leading-[1.75] text-muted-foreground">
           {subheadline}
         </p>
         {tierLabel && (
-          <div className="mt-6 rounded-full border border-border/20 bg-card/20 px-4 py-1.5">
-            <span className="text-[10px] font-light tracking-[0.25em] text-muted-foreground uppercase">
+          <div className="mt-8 rounded-full border border-border/30 bg-card/40 backdrop-blur-xl px-5 py-1.5 shadow-2xl shadow-black/30">
+            <span className="text-[10px] font-light tracking-[0.28em] text-muted-foreground uppercase">
               {tierLabel}
             </span>
           </div>
         )}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
           <Link
             to="/pricing"
-            className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90"
+            className="group flex items-center gap-2 rounded-full bg-foreground px-8 py-3 text-xs font-light tracking-[0.22em] uppercase text-background transition-all hover:bg-foreground/90"
           >
-            Get Access <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            Get Access <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
           </Link>
           <Link
             to="/features"
-            className="rounded-xl border border-border/30 px-8 py-3 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/5"
+            className="rounded-full border border-border/30 bg-card/30 backdrop-blur-md px-8 py-3 text-xs font-light tracking-[0.22em] uppercase text-foreground transition-colors hover:bg-foreground/10"
           >
             All Features
           </Link>
@@ -123,25 +122,34 @@ const FeaturePageShell = ({
       </section>
 
       {/* Capabilities */}
-      <section className="relative z-10 px-6 py-24">
+      <section className="relative z-10 px-6 py-28 sm:py-32">
         <div className="mx-auto max-w-6xl">
-          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
-            {capabilitiesTitle}
-          </h2>
-          <p className="text-sm font-extralight text-muted-foreground mb-12 max-w-2xl">
-            Every component is designed for forensic-grade output, not demo theatre.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {capabilities.map((cap) => (
+          <div className="text-center mb-16">
+            <span className="founder-eyebrow mb-6">Chapter · 01 · Capabilities</span>
+            <h2 className="mt-6 text-3xl sm:text-4xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
+              {capabilitiesTitle}
+            </h2>
+            <p className="mt-5 text-sm font-extralight text-muted-foreground/80 max-w-2xl mx-auto leading-[1.75]">
+              Every component is designed for forensic-grade output, not demo theatre.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {capabilities.map((cap, i) => (
               <div
                 key={cap.title}
-                className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-8 transition-all hover:border-border/40 hover:bg-card/30"
+                className="founder-glass founder-corner rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-7"
               >
-                <cap.icon className="h-6 w-6 text-foreground/80 mb-4" />
-                <h3 className="text-base font-light tracking-wide text-foreground mb-3">
+                <div className="flex items-center justify-between mb-5">
+                  <cap.icon className="h-5 w-5 text-foreground/80" strokeWidth={1.25} />
+                  <span className="text-[10px] font-extralight tracking-[0.32em] text-muted-foreground/40 uppercase">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <h3 className="text-sm font-light tracking-[0.16em] uppercase text-foreground">
                   {cap.title}
                 </h3>
-                <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
+                <div className="mt-2 h-px w-8 bg-foreground/20" />
+                <p className="mt-4 text-sm font-extralight leading-[1.75] text-muted-foreground">
                   {cap.description}
                 </p>
               </div>
@@ -153,20 +161,26 @@ const FeaturePageShell = ({
       {children}
 
       {/* Use Cases */}
-      <section className="relative z-10 px-6 py-24">
+      <section className="relative z-10 px-6 py-28 sm:py-32">
         <div className="mx-auto max-w-4xl">
-          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-12 text-center">
-            {useCasesTitle}
-          </h2>
-          <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-8 sm:p-12">
+          <div className="text-center mb-14">
+            <span className="founder-eyebrow mb-6">Chapter · 02 · Deployment</span>
+            <h2 className="mt-6 text-3xl sm:text-4xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
+              {useCasesTitle}
+            </h2>
+          </div>
+          <div className="founder-glass founder-corner rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-12">
             <ul className="space-y-4">
-              {useCases.map((uc) => (
+              {useCases.map((uc, i) => (
                 <li
                   key={uc}
-                  className="flex items-start gap-3 text-sm font-extralight text-foreground/80"
+                  className="flex items-start gap-4 text-sm font-extralight leading-[1.7] text-foreground/85"
                 >
-                  <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400/60" />
-                  {uc}
+                  <span className="mt-0.5 text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/50 tabular-nums shrink-0">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <Check className="h-3.5 w-3.5 mt-1 shrink-0 text-foreground/60" strokeWidth={1.5} />
+                  <span>{uc}</span>
                 </li>
               ))}
             </ul>
@@ -175,24 +189,29 @@ const FeaturePageShell = ({
       </section>
 
       {/* CTA */}
-      <section className="relative z-10 px-6 py-24 text-center">
-        <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
-          {ctaTitle}
-        </h2>
-        <p className="text-sm font-extralight text-muted-foreground mb-8">{ctaSubtitle}</p>
-        <Link
-          to="/pricing"
-          className="group inline-flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90"
-        >
-          View Plans <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </Link>
+      <section className="relative z-10 px-6 py-28 text-center">
+        <div className="mx-auto max-w-3xl">
+          <span className="founder-eyebrow mb-6">Activation</span>
+          <h2 className="mt-6 text-3xl sm:text-4xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground mb-5">
+            {ctaTitle}
+          </h2>
+          <p className="text-sm font-extralight text-muted-foreground/80 mb-10 leading-[1.75]">{ctaSubtitle}</p>
+          <Link
+            to="/pricing"
+            className="group inline-flex items-center gap-2 rounded-full bg-foreground px-10 py-3.5 text-xs font-light tracking-[0.24em] uppercase text-background transition-all hover:bg-foreground/90"
+          >
+            View Plans <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </div>
       </section>
 
-      <footer className="relative z-10 border-t border-border/10 py-8 text-center">
-        <p className="text-xs font-extralight text-muted-foreground/50">
-          © {new Date().getFullYear()} Aureon. All rights reserved.
+      <footer className="relative z-10 border-t border-border/10 py-10 text-center">
+        <p className="text-[10px] font-extralight tracking-[0.32em] uppercase text-muted-foreground/40">
+          © {new Date().getFullYear()} Aureon · All rights reserved
         </p>
       </footer>
+
+      </div>
     </LandingBackground>
   );
 };
