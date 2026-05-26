@@ -227,20 +227,14 @@ const Dashboard = () => {
   const activeWallpaper = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.aureon || WALLPAPER_MAP.default;
 
   useEffect(() => {
-    const prevTitle = document.title;
-    const prevDesc = document.querySelector('meta[name="description"]')?.getAttribute("content") || "";
-    document.title = "Dashboard — Aureon Workspace";
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Your Aureon workspace — chats, agents, projects, intelligence modules, and BYOK controls in one private dashboard.");
-    let canon = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
-    const prevHref = canon?.getAttribute("href") || "";
-    if (canon) canon.setAttribute("href", "https://aureonai.app/dashboard");
-    return () => {
-      document.title = prevTitle;
-      if (meta && prevDesc) meta.setAttribute("content", prevDesc);
-      if (canon && prevHref) canon.setAttribute("href", prevHref);
-    };
+    applySeoHead({
+      title: "Dashboard — Aureon Workspace",
+      description:
+        "Your Aureon workspace — chats, agents, projects, intelligence modules, and BYOK controls in one private dashboard.",
+      path: "/dashboard",
+    });
   }, []);
+
 
   useEffect(() => {
     const handler = () => {
