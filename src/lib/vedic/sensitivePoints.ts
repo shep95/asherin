@@ -31,7 +31,7 @@ export type PointCode =
   | "Lagna" | "Chandra" | "Surya" | "AK" | "DK" | "UL" | "L7"
   | "L2" | "L5" | "L9" | "L11"
   | "L6" | "L8" | "L12"
-  | "L10" | "L3";
+  | "L10" | "L3" | "L4";
 
 export interface SensitivePoint {
   code: PointCode;
