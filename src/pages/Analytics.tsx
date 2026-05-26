@@ -104,6 +104,15 @@ const Analytics = () => {
   const [busy, setBusy] = useState(true);
 
   useEffect(() => {
+  useEffect(() => {
+    applySeoHead({
+      title: "Analytics — Aureon Command Center",
+      description: "Admin-only live traffic analytics: unique devices, pageviews, sources, devices, countries, and bounce rate for Aureon.",
+      path: "/analytics",
+    });
+  }, []);
+
+  useEffect(() => {
     if (!user || !isAdminEmail(user.email)) return;
     let alive = true;
     (async () => {
