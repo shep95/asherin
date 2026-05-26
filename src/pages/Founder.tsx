@@ -254,11 +254,9 @@ const Founder = () => {
       {/* Books Written By Asher */}
       <div id="ebook" className="relative z-10 px-6 py-24 sm:py-32 scroll-mt-24">
         <div className="mx-auto max-w-5xl">
-          <div className="text-center mb-12">
-            <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">
-              Library
-            </p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+          <div className="text-center mb-16">
+            <span className="founder-eyebrow mb-6">Chapter · 03 · Library</span>
+            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
               Books Written By Asher
             </h2>
           </div>
