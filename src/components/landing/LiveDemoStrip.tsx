@@ -14,7 +14,7 @@ import { Search, Eye, Brush, Globe2, Loader2, Sparkles, ArrowRight } from "lucid
 const PRESET_QUERIES = [
   "Public records on Acme Corp",
   "Domain history aureonai.app",
-  "OSINT footprint for @handle",
+  "Public footprint for @handle",
   "Crypto wallets linked to address 0x42…",
 ];
 

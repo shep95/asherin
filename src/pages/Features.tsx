@@ -188,7 +188,7 @@ const features: Feature[] = [
     icon: Eye,
     title: "NOMAD Public Intelligence Agent",
     description:
-      "Forensic-grade OSINT investigations across 40+ sources. Feed it a name, company, or topic — receive a structured intelligence dossier with entity resolution, relationship mapping, confidence scores, and deep-dive analysis.",
+      "Forensic-grade intelligence investigations across 40+ sources. Feed it a name, company, or topic — receive a structured intelligence dossier with entity resolution, relationship mapping, confidence scores, and deep-dive analysis.",
     details: [
       "Multi-source intelligence: DDG, public records, news, social",
       "BLUF (Bottom Line Up Front) executive summaries",
@@ -393,7 +393,7 @@ const Features = () => {
     applySeoHead({
       title: "Features — Aureon | AI Intelligence Platform",
       description:
-        "Uncensored AI, Zophiel search, NOMAD OSINT, Azplen data intelligence, daily briefings, end-to-end encryption, and private deployment.",
+        "Uncensored AI, Zophiel search, NOMAD intelligence, Azplen data intelligence, daily briefings, end-to-end encryption, and private deployment.",
       path: "/features",
     });
   }, []);
@@ -421,7 +421,7 @@ const Features = () => {
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
             description:
-              "Uncensored AI intelligence platform with OSINT, data analytics, daily briefings, and end-to-end encryption.",
+              "Uncensored AI intelligence platform with intelligence, data analytics, daily briefings, and end-to-end encryption.",
             offers: [
               { "@type": "Offer", name: "Aureon", price: "18", priceCurrency: "USD", billingDuration: "P1M" },
               { "@type": "Offer", name: "Pro", price: "399", priceCurrency: "USD", billingDuration: "P1M" },

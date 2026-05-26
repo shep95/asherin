@@ -117,7 +117,7 @@ const Index = () => {
     });
 
     const faqs = [
-      { q: "What makes Aureon different?", a: "Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },
+      { q: "What makes Aureon different?", a: "Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, intelligence tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },
       { q: "How good is the coding engine?", a: "Aureon holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." },
       { q: 'What does "never trains our models" mean?', a: "Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." },
       { q: "Can I cancel anytime?", a: 'Yes. One click. No retention flow. No "are you sure?" loop. Your access ends at the billing cycle. Your data is deleted on request.' },
@@ -316,7 +316,7 @@ const Index = () => {
               </h1>
 
               <p className="mt-7 max-w-xl text-base sm:text-lg font-extralight leading-relaxed text-muted-foreground/90">
-                A full-spectrum intelligence engine. Uncensored AI, 30-source OSINT, predictive
+                A full-spectrum intelligence engine. Uncensored AI, 30-source intelligence, predictive
                 forecasting, and forensic-grade reasoning — for operators who need answers, not apologies.
               </p>
 
@@ -332,7 +332,7 @@ const Index = () => {
               {/* Telemetry bento */}
               <div className="mt-12 grid grid-cols-3 gap-px rounded-xl overflow-hidden border border-foreground/10 bg-foreground/[0.02] backdrop-blur-xl">
                 {[
-                  { v: 30, suf: "+", l: "OSINT sources" },
+                  { v: 30, suf: "+", l: "Intelligence sources" },
                   { v: 14, suf: "", l: "Analysis passes" },
                   { v: 9, suf: "", l: "AI providers" },
                 ].map((s) => (
@@ -367,7 +367,7 @@ const Index = () => {
                 {/* feed lines */}
                 <div className="px-4 py-4 space-y-2.5 font-mono text-[11px] text-muted-foreground/80 min-h-[260px]">
                   {[
-                    { t: "0.02s", s: "ZOPHIEL", m: "30 OSINT lanes acquired", c: "text-emerald-300/90" },
+                    { t: "0.02s", s: "ZOPHIEL", m: "30 intelligence lanes acquired", c: "text-emerald-300/90" },
                     { t: "0.41s", s: "AXRLEN", m: "14-pass consensus engaged", c: "text-foreground" },
                     { t: "1.07s", s: "ZERLAL", m: "Domain forensics resolved", c: "text-foreground" },
                     { t: "1.62s", s: "NOMAD",  m: "Cross-validation · 0.91 veracity", c: "text-foreground" },
