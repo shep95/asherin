@@ -1209,12 +1209,14 @@ const VedicAstrologyView = () => {
             companyCharts={COMPANY_CHARTS}
             currentDasha={currentDasha}
             dashaTimeline={dashaTimeline}
+            onIngresses={setTransitIngresses}
           />
         )}
 
-        {chart && <WealthHousesPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} />}
+        {chart && <WealthHousesPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} ingresses={transitIngresses} />}
 
         {chart && <SwvPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} label={activeName || undefined} />}
+
 
         {chart && reading && (
           <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
