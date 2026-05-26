@@ -418,37 +418,70 @@ const Index = () => {
       <ScrollSection><TrustBand /></ScrollSection>
 
       <ScrollSection>
-      <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-5xl text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            Most AI Gives You Guardrails.
-            <br />
-            Aureon Gives You The Full Picture.
-          </h2>
+      <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
+        {/* Aurora background */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.35]">
+          <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,hsl(45_90%_55%/0.18),transparent_70%)] blur-3xl" />
+          <div className="absolute left-[20%] top-[60%] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,hsl(0_0%_100%/0.06),transparent_70%)] blur-3xl" />
+        </div>
 
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <AlertCircle className="h-8 w-8 text-foreground" />
-              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">No Artificial Limits</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Ask any question on any topic. No disclaimers, no refusals, no corporate filters blocking your work.</p>
+        <div className="relative mx-auto max-w-6xl">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/[0.04] px-3 py-1 mb-8">
+              <span className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-[10px] font-light tracking-[0.3em] text-amber-200/80 uppercase">The Aureon Difference</span>
             </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <Smile className="h-8 w-8 text-foreground" />
-              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">Truth Over Comfort</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Aureon delivers direct, unvarnished answers — structured for professionals who value accuracy over politeness.</p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <AlertTriangle className="h-8 w-8 text-foreground" />
-              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">Production-Grade Code</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Full-stack architecture, multi-file debugging, and working builds — not pseudocode dressed up as solutions.</p>
-            </div>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
+              Most AI Gives You <span className="italic font-thin text-muted-foreground/70">Guardrails.</span>
+              <br />
+              Aureon Gives You <span className="bg-gradient-to-r from-amber-200 via-amber-100 to-foreground bg-clip-text text-transparent">The Full Picture.</span>
+            </h2>
           </div>
 
-          <p className="mt-16 text-xl sm:text-2xl font-extralight tracking-wide text-foreground">
-            Built for professionals who need precision.
-            <br />
-            <span className="text-muted-foreground">Not an assistant. An intelligence platform.</span>
-          </p>
+          {/* Asymmetric bento */}
+          <div className="mt-20 grid grid-cols-1 md:grid-cols-12 gap-4">
+            {[
+              { n: "01", Icon: AlertCircle, title: "No Artificial Limits", desc: "Ask any question on any topic. No disclaimers, no refusals, no corporate filters blocking your work.", span: "md:col-span-5 md:row-span-2", tall: true },
+              { n: "02", Icon: Smile, title: "Truth Over Comfort", desc: "Direct, unvarnished answers — structured for professionals who value accuracy over politeness.", span: "md:col-span-7" },
+              { n: "03", Icon: AlertTriangle, title: "Production-Grade Code", desc: "Full-stack architecture, multi-file debugging, and working builds — not pseudocode dressed up as solutions.", span: "md:col-span-7" },
+            ].map(({ n, Icon, title, desc, span, tall }) => (
+              <div key={n} className={`group relative ${span} rounded-3xl overflow-hidden`}>
+                {/* gradient border */}
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-amber-400/20 via-foreground/10 to-transparent opacity-40 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="relative m-[1px] h-[calc(100%-2px)] rounded-3xl bg-gradient-to-br from-card/80 via-background/90 to-background backdrop-blur-xl p-8 sm:p-10">
+                  {/* corner mark */}
+                  <div className="absolute right-6 top-6 font-mono text-[10px] tracking-[0.3em] text-amber-200/40">{n} / 03</div>
+                  {/* glow orb */}
+                  <div aria-hidden className="absolute -right-20 -bottom-20 h-60 w-60 rounded-full bg-amber-400/[0.04] blur-3xl group-hover:bg-amber-400/[0.12] transition-all duration-700" />
+
+                  <div className="relative flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-amber-400/30 group-hover:bg-amber-400/[0.06] transition-all duration-500">
+                      <Icon className="h-5 w-5 text-foreground/80 group-hover:text-amber-200 transition-colors" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className={`${tall ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"} font-extralight tracking-tight text-foreground leading-tight`}>{title}</h3>
+                      <p className={`mt-4 ${tall ? "text-base" : "text-sm"} font-extralight leading-relaxed text-muted-foreground max-w-md`}>{desc}</p>
+
+                      {tall && (
+                        <div className="mt-8 flex items-center gap-2 text-[10px] font-mono tracking-[0.25em] text-amber-200/60 uppercase">
+                          <span className="h-px w-8 bg-amber-200/40" />
+                          Zero-Filter Policy
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-20 text-center">
+            <p className="text-2xl sm:text-3xl font-extralight tracking-tight text-foreground leading-snug">
+              Built for professionals who need precision.
+              <br />
+              <span className="italic text-muted-foreground/60">Not an assistant. An intelligence platform.</span>
+            </p>
+          </div>
         </div>
       </div>
       </ScrollSection>
