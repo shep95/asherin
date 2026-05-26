@@ -447,21 +447,24 @@ const Features = () => {
 
       {/* Tier quick nav */}
       <nav className="relative z-10 px-6 pb-20" aria-label="Feature tiers">
-        <div className="mx-auto max-w-3xl flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="mx-auto max-w-4xl flex flex-wrap items-center justify-center gap-3">
           {[
-            { label: "Aureon — $199/mo", anchor: "#aureon", border: "border-emerald-400/25", text: "text-emerald-400" },
-            { label: "Pro — $740/mo", anchor: "#pro", border: "border-accent/25", text: "text-accent" },
+            { label: "Chat — $47/mo",      anchor: "/pricing", border: "border-border/30",      text: "text-muted-foreground" },
+            { label: "Aureon — $199/mo",   anchor: "#aureon",  border: "border-emerald-400/25", text: "text-emerald-400" },
+            { label: "Pro — $740/mo",      anchor: "#pro",     border: "border-accent/25",      text: "text-accent" },
+            { label: "Lifetime — $470",    anchor: "/pricing", border: "border-foreground/25",  text: "text-foreground" },
           ].map(({ label, anchor, border, text }) => (
             <a
-              key={anchor}
+              key={label}
               href={anchor}
-              className={`rounded-xl border backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.15em] uppercase transition-all hover:bg-foreground/5 ${border} ${text}`}
+              className={`rounded-full border backdrop-blur-md px-5 py-2.5 text-[10px] font-light tracking-[0.28em] uppercase transition-all hover:bg-foreground/5 ${border} ${text}`}
             >
               {label}
             </a>
           ))}
         </div>
       </nav>
+
 
       {/* Tier sections */}
       <TierSection
