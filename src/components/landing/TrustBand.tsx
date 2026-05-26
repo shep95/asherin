@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Search, TrendingUp, Scale, ShieldAlert, FileSearch, Eye, Lock, Activity } from "lucide-react";
 
 const USE_CASES = [
-  { icon: Search, label: "OSINT" },
+  { icon: Search, label: "Intelligence" },
   { icon: TrendingUp, label: "Trading" },
   { icon: Scale, label: "Legal Discovery" },
   { icon: ShieldAlert, label: "Threat Intel" },
@@ -25,7 +25,7 @@ const TESTIMONIALS: Testimonial[] = [
   {
     badge: "Beta Operator",
     tool: "Aureon Chat",
-    quote: "Every other model gave me caveats. Aureon gave me a forensic dossier — sourced, ranked, cross-validated, and ready to brief. Two hours of OSINT in twelve minutes.",
+    quote: "Every other model gave me caveats. Aureon gave me a forensic dossier — sourced, ranked, cross-validated, and ready to brief. Two hours of research in twelve minutes.",
     initials: "D.K.",
     role: "Independent Investigator",
     meta: "Pro Tier · 6 months",
@@ -35,12 +35,12 @@ const TESTIMONIALS: Testimonial[] = [
     tool: "Zophiel Search",
     quote: "Thirty sources, cross-validated in one pass. What used to be a week of tab-juggling is now a single query with a veracity score on every claim.",
     initials: "M.R.",
-    role: "OSINT Analyst",
+    role: "Intelligence Analyst",
     meta: "Aureon Tier · 4 months",
   },
   {
     badge: "Threat Hunter",
-    tool: "NOMAD OSINT",
+    tool: "NOMAD Intelligence",
     quote: "The 14-pass dossier tree found a shell-company link on pass eleven that I would have missed entirely. It builds the case for you.",
     initials: "S.V.",
     role: "Corporate Investigator",
