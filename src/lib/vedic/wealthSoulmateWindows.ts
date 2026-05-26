@@ -63,6 +63,7 @@ const CHILDREN_POINTS     = new Set<PointCode>(["L5"]);                         
 const EDUCATION_POINTS    = new Set<PointCode>(["L4", "L5", "L9"]);                     // study / wisdom / certification
 const SPIRITUALITY_POINTS = new Set<PointCode>(["L12", "L9", "Chandra"]);               // moksha / dharma / inner work
 const TRAVEL_POINTS       = new Set<PointCode>(["L9", "L12", "L3"]);                    // foreign / long-distance / short trips
+const NETWORK_POINTS      = new Set<PointCode>(["L11", "L3", "L10", "Chandra"]);         // gains, friends, allies, public network
 
 const WEALTH_WEIGHT: Record<string, number> = {
   Jupiter: 5, Venus: 3, Rahu: 4, Sun: 1, Mercury: 1, Mars: 1,
