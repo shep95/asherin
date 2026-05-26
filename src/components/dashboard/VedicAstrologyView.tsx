@@ -24,6 +24,7 @@ import SwvPanel from "./vedic/SwvPanel";
 import DashaNode from "./vedic/DashaNode";
 import CustomChartBuilder from "./vedic/CustomChartBuilder";
 import TransitsPanel from "./vedic/TransitsPanel";
+import type { SignIngress } from "@/lib/vedic/transits";
 import { classifyLagnaRelation, relationColorClass, relationLabel, signIndexFromName } from "@/lib/vedic/lagnaRelationship";
 import VedicGodsCompat from "@/components/vedic/VedicGodsCompat";
 import { Crown } from "lucide-react";
