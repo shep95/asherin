@@ -421,20 +421,20 @@ const Index = () => {
       <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
         {/* Aurora background */}
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.35]">
-          <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,hsl(45_90%_55%/0.18),transparent_70%)] blur-3xl" />
+          <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,hsl(0 0% 100% / 0.18),transparent_70%)] blur-3xl" />
           <div className="absolute left-[20%] top-[60%] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle_at_center,hsl(0_0%_100%/0.06),transparent_70%)] blur-3xl" />
         </div>
 
         <div className="relative mx-auto max-w-6xl">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/[0.04] px-3 py-1 mb-8">
-              <span className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
-              <span className="text-[10px] font-light tracking-[0.3em] text-amber-200/80 uppercase">The Aureon Difference</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-foreground/[0.04] px-3 py-1 mb-8">
+              <span className="h-1 w-1 rounded-full bg-foreground animate-pulse" />
+              <span className="text-[10px] font-light tracking-[0.3em] text-foreground/80 uppercase">The Aureon Difference</span>
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
               Most AI Gives You <span className="italic font-thin text-muted-foreground/70">Guardrails.</span>
               <br />
-              Aureon Gives You <span className="bg-gradient-to-r from-amber-200 via-amber-100 to-foreground bg-clip-text text-transparent">The Full Picture.</span>
+              Aureon Gives You <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">The Full Picture.</span>
             </h2>
           </div>
 
@@ -447,24 +447,24 @@ const Index = () => {
             ].map(({ n, Icon, title, desc, span, tall }) => (
               <div key={n} className={`group relative ${span} rounded-3xl overflow-hidden`}>
                 {/* gradient border */}
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-amber-400/20 via-foreground/10 to-transparent opacity-40 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-foreground/20 via-foreground/10 to-transparent opacity-40 group-hover:opacity-100 transition-opacity duration-700" />
                 <div className="relative m-[1px] h-[calc(100%-2px)] rounded-3xl bg-gradient-to-br from-card/80 via-background/90 to-background backdrop-blur-xl p-8 sm:p-10">
                   {/* corner mark */}
-                  <div className="absolute right-6 top-6 font-mono text-[10px] tracking-[0.3em] text-amber-200/40">{n} / 03</div>
+                  <div className="absolute right-6 top-6 font-mono text-[10px] tracking-[0.3em] text-foreground/40">{n} / 03</div>
                   {/* glow orb */}
-                  <div aria-hidden className="absolute -right-20 -bottom-20 h-60 w-60 rounded-full bg-amber-400/[0.04] blur-3xl group-hover:bg-amber-400/[0.12] transition-all duration-700" />
+                  <div aria-hidden className="absolute -right-20 -bottom-20 h-60 w-60 rounded-full bg-foreground/[0.04] blur-3xl group-hover:bg-foreground/[0.12] transition-all duration-700" />
 
                   <div className="relative flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-amber-400/30 group-hover:bg-amber-400/[0.06] transition-all duration-500">
-                      <Icon className="h-5 w-5 text-foreground/80 group-hover:text-amber-200 transition-colors" />
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-foreground/30 group-hover:bg-foreground/[0.06] transition-all duration-500">
+                      <Icon className="h-5 w-5 text-foreground/80 group-hover:text-foreground transition-colors" />
                     </div>
                     <div className="flex-1">
                       <h3 className={`${tall ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"} font-extralight tracking-tight text-foreground leading-tight`}>{title}</h3>
                       <p className={`mt-4 ${tall ? "text-base" : "text-sm"} font-extralight leading-relaxed text-muted-foreground max-w-md`}>{desc}</p>
 
                       {tall && (
-                        <div className="mt-8 flex items-center gap-2 text-[10px] font-mono tracking-[0.25em] text-amber-200/60 uppercase">
-                          <span className="h-px w-8 bg-amber-200/40" />
+                        <div className="mt-8 flex items-center gap-2 text-[10px] font-mono tracking-[0.25em] text-foreground/60 uppercase">
+                          <span className="h-px w-8 bg-foreground/40" />
                           Zero-Filter Policy
                         </div>
                       )}
@@ -604,7 +604,7 @@ const Index = () => {
         {/* Aurora field */}
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-50">
           <div className="absolute left-[15%] top-[10%] h-[420px] w-[420px] rounded-full blur-3xl"
-               style={{ background: "radial-gradient(circle, hsl(45 90% 55% / 0.10), transparent 70%)" }} />
+               style={{ background: "radial-gradient(circle, hsl(0 0% 100% / 0.10), transparent 70%)" }} />
           <div className="absolute right-[10%] bottom-[5%] h-[520px] w-[520px] rounded-full blur-3xl"
                style={{ background: "radial-gradient(circle, hsl(30 80% 50% / 0.06), transparent 70%)" }} />
         </div>
@@ -612,13 +612,13 @@ const Index = () => {
         <div className="relative mx-auto max-w-7xl">
           {/* Section eyebrow */}
           <div className="flex items-center justify-center gap-3 mb-6">
-            <span className="h-px w-12 bg-gradient-to-r from-transparent to-amber-400/40" />
-            <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-amber-200/60">◊ Section · 02 / 06</span>
-            <span className="h-px w-12 bg-gradient-to-l from-transparent to-amber-400/40" />
+            <span className="h-px w-12 bg-gradient-to-r from-transparent to-foreground/40" />
+            <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-foreground/60">◊ Section · 02 / 06</span>
+            <span className="h-px w-12 bg-gradient-to-l from-transparent to-foreground/40" />
           </div>
 
           <h2 className="text-center text-3xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05]">
-            <span className="bg-gradient-to-r from-amber-100 via-foreground to-amber-200/80 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text text-transparent">
               Built For People Who Build.
             </span>
             <br />
@@ -641,30 +641,30 @@ const Index = () => {
             ].map(({ idx, icon: Icon, title, desc, span, tag }) => (
               <div
                 key={idx}
-                className={`group relative ${span} rounded-3xl border border-amber-400/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-7 sm:p-8 text-left overflow-hidden transition-all duration-700 hover:border-amber-400/30 hover:-translate-y-0.5`}
+                className={`group relative ${span} rounded-3xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-7 sm:p-8 text-left overflow-hidden transition-all duration-700 hover:border-foreground/30 hover:-translate-y-0.5`}
               >
                 {/* Golden corner accents */}
-                <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-amber-300/40 rounded-tl-3xl" />
-                <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-amber-300/20 rounded-br-3xl" />
+                <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-foreground/40 rounded-tl-3xl" />
+                <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-foreground/20 rounded-br-3xl" />
 
                 {/* Glow orb on hover */}
                 <span aria-hidden
                   className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"
-                  style={{ background: "radial-gradient(circle, hsl(45 90% 55% / 0.18), transparent 70%)" }}
+                  style={{ background: "radial-gradient(circle, hsl(0 0% 100% / 0.18), transparent 70%)" }}
                 />
 
                 {/* Top hairline */}
-                <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/30 to-transparent" />
+                <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-foreground/30 to-transparent" />
 
                 <div className="relative flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="relative grid h-11 w-11 place-items-center rounded-xl border border-amber-400/15 bg-background/40">
-                      <Icon className="h-5 w-5 text-amber-100/90" strokeWidth={1.25} />
-                      <span aria-hidden className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-300/[0.08] to-transparent" />
+                    <div className="relative grid h-11 w-11 place-items-center rounded-xl border border-foreground/15 bg-background/40">
+                      <Icon className="h-5 w-5 text-foreground/90" strokeWidth={1.25} />
+                      <span aria-hidden className="absolute inset-0 rounded-xl bg-gradient-to-br from-foreground/[0.08] to-transparent" />
                     </div>
-                    <span className="font-mono text-[10px] tracking-[0.25em] text-amber-200/40">{idx}</span>
+                    <span className="font-mono text-[10px] tracking-[0.25em] text-foreground/40">{idx}</span>
                   </div>
-                  <span className="rounded-full border border-amber-400/20 bg-amber-400/5 px-2.5 py-0.5 text-[9px] font-mono tracking-[0.18em] uppercase text-amber-200/70">
+                  <span className="rounded-full border border-foreground/20 bg-foreground/5 px-2.5 py-0.5 text-[9px] font-mono tracking-[0.18em] uppercase text-foreground/70">
                     {tag}
                   </span>
                 </div>
@@ -672,15 +672,15 @@ const Index = () => {
                 <h3 className="relative mt-7 text-xl sm:text-[22px] font-extralight tracking-tight text-foreground">
                   {title}
                 </h3>
-                <div aria-hidden className="relative mt-3 h-px w-10 bg-gradient-to-r from-amber-300/60 to-transparent transition-all duration-500 group-hover:w-20" />
+                <div aria-hidden className="relative mt-3 h-px w-10 bg-gradient-to-r from-foreground/60 to-transparent transition-all duration-500 group-hover:w-20" />
                 <p className="relative mt-4 text-[13px] font-extralight leading-relaxed text-muted-foreground/85">
                   {desc}
                 </p>
 
                 {/* Bottom status row */}
-                <div className="relative mt-6 flex items-center gap-2 pt-4 border-t border-amber-400/[0.06]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-300/80 shadow-[0_0_8px_rgba(252,211,77,0.6)]" />
-                  <span className="font-mono text-[9px] tracking-[0.25em] uppercase text-amber-200/40">Live · Operational</span>
+                <div className="relative mt-6 flex items-center gap-2 pt-4 border-t border-foreground/[0.06]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-foreground/80 shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
+                  <span className="font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/40">Live · Operational</span>
                 </div>
               </div>
             ))}
@@ -693,7 +693,7 @@ const Index = () => {
       <ScrollSection>
       <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-30">
-          <div className="absolute right-[10%] top-[20%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,hsl(45_80%_50%/0.12),transparent_70%)] blur-3xl" />
+          <div className="absolute right-[10%] top-[20%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,hsl(0 0% 100% / 0.12),transparent_70%)] blur-3xl" />
         </div>
         <div className="relative mx-auto max-w-7xl">
           <div className="flex flex-col items-center text-center mb-20">
@@ -704,7 +704,7 @@ const Index = () => {
               The Platform.
               <br />
               <span className="italic text-muted-foreground/60">Every Capability.</span>{" "}
-              <span className="bg-gradient-to-r from-amber-200 to-foreground bg-clip-text text-transparent">One Dashboard.</span>
+              <span className="bg-gradient-to-r from-foreground to-foreground bg-clip-text text-transparent">One Dashboard.</span>
             </h2>
           </div>
 
@@ -719,13 +719,13 @@ const Index = () => {
               { Icon: Globe, title: "Multi-Language Output", desc: "Thinks and delivers in any language. Same raw output. No filtered translations.", span: "md:col-span-4", tag: "Global" },
             ].map(({ Icon, title, desc, span, featured, tag }, i) => (
               <div key={title} className={`group relative ${span} rounded-3xl overflow-hidden min-h-[200px]`}>
-                <div className={`absolute inset-0 rounded-3xl ${featured ? "bg-gradient-to-br from-amber-400/25 via-amber-200/5 to-transparent" : "bg-gradient-to-br from-foreground/10 via-transparent to-transparent"} opacity-50 group-hover:opacity-100 transition-opacity duration-700`} />
+                <div className={`absolute inset-0 rounded-3xl ${featured ? "bg-gradient-to-br from-foreground/25 via-foreground/5 to-transparent" : "bg-gradient-to-br from-foreground/10 via-transparent to-transparent"} opacity-50 group-hover:opacity-100 transition-opacity duration-700`} />
                 <div className={`relative m-[1px] h-[calc(100%-2px)] rounded-3xl ${featured ? "bg-gradient-to-br from-card/90 via-background/95 to-background" : "bg-card/40"} backdrop-blur-xl p-7 sm:p-9 flex flex-col justify-between`}>
-                  {featured && <div aria-hidden className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-amber-400/[0.06] blur-3xl" />}
+                  {featured && <div aria-hidden className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-foreground/[0.06] blur-3xl" />}
 
                   <div className="relative flex items-start justify-between">
-                    <div className={`flex ${featured ? "h-14 w-14" : "h-11 w-11"} items-center justify-center rounded-2xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-amber-400/30 transition-all`}>
-                      <Icon className={`${featured ? "h-6 w-6" : "h-5 w-5"} text-foreground/85 group-hover:text-amber-200 transition-colors`} />
+                    <div className={`flex ${featured ? "h-14 w-14" : "h-11 w-11"} items-center justify-center rounded-2xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-foreground/30 transition-all`}>
+                      <Icon className={`${featured ? "h-6 w-6" : "h-5 w-5"} text-foreground/85 group-hover:text-foreground transition-colors`} />
                     </div>
                     <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground/40 uppercase">{tag}</span>
                   </div>
@@ -735,8 +735,8 @@ const Index = () => {
                     <p className={`mt-3 ${featured ? "text-base max-w-md" : "text-sm"} font-extralight leading-relaxed text-muted-foreground`}>{desc}</p>
                     {featured && (
                       <div className="mt-8 flex items-center gap-3">
-                        <div className="h-px flex-1 bg-gradient-to-r from-amber-400/40 to-transparent" />
-                        <span className="font-mono text-[10px] tracking-[0.3em] text-amber-200/70 uppercase">No Guardrails</span>
+                        <div className="h-px flex-1 bg-gradient-to-r from-foreground/40 to-transparent" />
+                        <span className="font-mono text-[10px] tracking-[0.3em] text-foreground/70 uppercase">No Guardrails</span>
                       </div>
                     )}
                   </div>
@@ -813,20 +813,20 @@ const Index = () => {
       <ScrollSection>
       <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40">
-          <div className="absolute left-1/2 top-1/4 h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,hsl(45_85%_55%/0.14),transparent_65%)] blur-3xl" />
+          <div className="absolute left-1/2 top-1/4 h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,hsl(0 0% 100% / 0.14),transparent_65%)] blur-3xl" />
         </div>
 
         <div className="relative mx-auto max-w-6xl">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/[0.05] px-4 py-1.5 mb-8 shadow-[0_0_40px_-10px_hsl(45_90%_55%/0.4)]">
-              <Key className="h-3 w-3 text-amber-300" />
-              <span className="text-[10px] font-light tracking-[0.3em] text-amber-200 uppercase">Bring Your Own Key</span>
-              <span className="font-mono text-[9px] tracking-[0.2em] text-amber-200/60">/ BYOK</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/[0.05] px-4 py-1.5 mb-8 shadow-[0_0_40px_-10px_hsl(0 0% 100% / 0.4)]">
+              <Key className="h-3 w-3 text-foreground" />
+              <span className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Bring Your Own Key</span>
+              <span className="font-mono text-[9px] tracking-[0.2em] text-foreground/60">/ BYOK</span>
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
               Your Keys. <span className="italic text-muted-foreground/60">Your Models.</span>
               <br />
-              <span className="bg-gradient-to-r from-amber-300 via-amber-100 to-foreground bg-clip-text text-transparent">Uncensored Through Every Provider.</span>
+              <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">Uncensored Through Every Provider.</span>
             </h2>
             <p className="mt-8 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
               Plug in your own API keys from any major AI provider. Every model runs through Aureon's uncensored intelligence layer — same raw output, same zero-filter policy, regardless of which LLM powers it.
@@ -842,17 +842,17 @@ const Index = () => {
               { n: "04", Icon: Cpu, title: "Aureon Brain Intact", desc: "Every model runs through Aureon's uncensored system prompt. Same depth, zero filters." },
             ].map(({ n, Icon, title, desc }) => (
               <div key={n} className="group relative rounded-3xl overflow-hidden">
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-amber-400/15 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-foreground/15 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-700" />
                 <div className="relative m-[1px] h-[calc(100%-2px)] rounded-3xl bg-gradient-to-b from-card/80 to-background/80 backdrop-blur-xl p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] group-hover:border-amber-400/40 group-hover:bg-amber-400/[0.08] transition-all">
-                      <Icon className="h-5 w-5 text-amber-200/80 group-hover:text-amber-200 transition-colors" />
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-foreground/15 bg-foreground/[0.04] group-hover:border-foreground/40 group-hover:bg-foreground/[0.08] transition-all">
+                      <Icon className="h-5 w-5 text-foreground/80 group-hover:text-foreground transition-colors" />
                     </div>
-                    <span className="font-mono text-[10px] tracking-[0.3em] text-amber-200/40">{n}</span>
+                    <span className="font-mono text-[10px] tracking-[0.3em] text-foreground/40">{n}</span>
                   </div>
                   <h3 className="text-base font-light tracking-tight text-foreground">{title}</h3>
                   <p className="mt-3 text-xs font-extralight leading-relaxed text-muted-foreground">{desc}</p>
-                  <div className="mt-6 h-px bg-gradient-to-r from-amber-400/30 via-amber-400/10 to-transparent" />
+                  <div className="mt-6 h-px bg-gradient-to-r from-foreground/30 via-foreground/10 to-transparent" />
                 </div>
               </div>
             ))}
@@ -861,9 +861,9 @@ const Index = () => {
           {/* Providers — premium chip ticker */}
           <div className="mt-20">
             <div className="flex items-center justify-center gap-4 mb-10">
-              <div className="h-px w-16 bg-gradient-to-r from-transparent to-amber-400/40" />
-              <p className="font-mono text-[10px] font-light tracking-[0.35em] text-amber-200/70 uppercase">Supported AI Providers</p>
-              <div className="h-px w-16 bg-gradient-to-l from-transparent to-amber-400/40" />
+              <div className="h-px w-16 bg-gradient-to-r from-transparent to-foreground/40" />
+              <p className="font-mono text-[10px] font-light tracking-[0.35em] text-foreground/70 uppercase">Supported AI Providers</p>
+              <div className="h-px w-16 bg-gradient-to-l from-transparent to-foreground/40" />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
               {[
@@ -877,13 +877,13 @@ const Index = () => {
                 { name: "Venice AI", models: "Uncensored, zero logging" },
                 { name: "Perplexity", models: "Sonar Pro, Deep Research" },
               ].map((p, i) => (
-                <div key={p.name} className="group relative rounded-xl border border-border/15 bg-card/20 backdrop-blur-md p-4 hover:border-amber-400/30 hover:bg-card/40 transition-all">
+                <div key={p.name} className="group relative rounded-xl border border-border/15 bg-card/20 backdrop-blur-md p-4 hover:border-foreground/30 hover:bg-card/40 transition-all">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="font-mono text-[9px] tracking-[0.25em] text-muted-foreground/40">0{i + 1}</span>
                       <p className="text-sm font-light tracking-tight text-foreground">{p.name}</p>
                     </div>
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400/60 group-hover:bg-amber-400 transition-colors" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-foreground/60 group-hover:bg-foreground transition-colors" />
                   </div>
                   <p className="mt-2 ml-9 text-[10px] font-extralight leading-relaxed text-muted-foreground/70">{p.models}</p>
                 </div>
@@ -905,30 +905,39 @@ const Index = () => {
       <DashboardPreview />
       </ScrollSection>
 
+      {/* ───────── Tier Selection ───────── */}
       <ScrollSection>
-      <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-6xl text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+      <div className="relative z-10 px-6 py-28 sm:py-36 overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/4 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.05),transparent_70%)] blur-3xl" />
+        <div className="mx-auto max-w-6xl text-center relative">
+          <div className="inline-flex items-center gap-3 mb-7">
+            <span className="h-px w-12 bg-gradient-to-r from-transparent to-foreground/30" />
+            <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-foreground/50">◊ Section · 03 / 06</span>
+            <span className="h-px w-12 bg-gradient-to-l from-transparent to-foreground/30" />
+          </div>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-tight leading-[1.05] text-foreground">
             Choose Your Intelligence Level.
             <br />
             <span className="text-muted-foreground">No Free Tiers. No Data Harvesting.</span>
           </h2>
 
-          {/* Comparison Table */}
           <div className="mt-16 max-w-7xl mx-auto text-left">
             <TierComparisonMatrix />
           </div>
 
-          {/* What Powers Each Tier */}
-          <div className="mt-20 max-w-5xl mx-auto text-left">
-            <h3 className="text-center text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-12">
-              What Powers Each Tier.
-            </h3>
+          <div className="mt-24 max-w-5xl mx-auto text-left">
+            <div className="text-center mb-12">
+              <p className="font-mono text-[10px] tracking-[0.3em] text-foreground/40 uppercase mb-3">◈ Tier Capability Matrix</p>
+              <h3 className="text-2xl sm:text-3xl font-extralight tracking-tight text-foreground">
+                What Powers Each Tier.
+              </h3>
+            </div>
             <TierFeatureTabs />
           </div>
 
-          {/* Why no free tier */}
-          <div className="mt-16 text-center">
+          <div className="mt-20 relative mx-auto max-w-2xl rounded-3xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl px-10 py-12 text-center overflow-hidden">
+            <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-foreground/30 rounded-tl-3xl" />
+            <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-foreground/20 rounded-br-3xl" />
             <p className="text-lg font-extralight tracking-wide text-foreground italic">"Why no free tier?"</p>
             <p className="mt-4 max-w-lg mx-auto text-sm font-extralight leading-relaxed text-muted-foreground">
               Because free tiers turn users into products. You pay for the tool — the tool works for you. That's the only honest model.
@@ -938,117 +947,143 @@ const Index = () => {
       </div>
       </ScrollSection>
 
-      {/* Build Your Own Software — Zahten Pitch */}
+      {/* ───────── Zahten Agent Forge ───────── */}
       <ScrollSection>
-      <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-5xl">
-          <div className="rounded-3xl border border-border/20 bg-card/30 backdrop-blur-md px-8 py-16 sm:px-16 sm:py-20">
-            <div className="text-center">
-              <p className="text-[10px] font-medium tracking-[0.3em] text-muted-foreground/60 uppercase mb-4">
-                Zahten Agent Forge
-              </p>
-              <h2 className="text-3xl sm:text-5xl font-extralight tracking-wide text-foreground leading-tight">
-                Don't see the software you need?
-                <br />
-                <span className="text-muted-foreground">Build it. Ship it. Run it inside Aureon.</span>
-              </h2>
-              <p className="mt-8 max-w-2xl mx-auto text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+      <div className="relative z-10 px-6 py-28 sm:py-36 overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute right-[10%] top-[20%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.06),transparent_70%)] blur-3xl" />
+        <div className="mx-auto max-w-6xl relative">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-3 mb-7">
+              <span className="h-px w-12 bg-gradient-to-r from-transparent to-foreground/30" />
+              <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-foreground/50">◊ Section · 04 / 06 · Forge</span>
+              <span className="h-px w-12 bg-gradient-to-l from-transparent to-foreground/30" />
+            </div>
+            <p className="text-[10px] font-mono tracking-[0.35em] text-foreground/40 uppercase mb-5">
+              Zahten Agent Forge
+            </p>
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-extralight tracking-tight text-foreground leading-[1.05]">
+              Don't see the software you need?
+              <br />
+              <span className="text-muted-foreground">Build it. Ship it. Run it inside Aureon.</span>
+            </h2>
+          </div>
+
+          <div className="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7 relative rounded-3xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-8 sm:p-10 overflow-hidden">
+              <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-foreground/30 rounded-tl-3xl" />
+              <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-foreground/20 rounded-br-3xl" />
+              <p className="font-mono text-[10px] tracking-[0.3em] text-foreground/40 uppercase mb-4">◈ Mission Brief</p>
+              <p className="text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
                 If we don't ship the tool you want, build it yourself with <span className="text-foreground">Zahten</span> — our autonomous agent forge.
                 Spin up your own tab, your own module, your own intelligence engine inside Aureon and wire it directly to your own LLM API key.
                 We strip the safety filters off the model for you, so the software you build runs uncensored — no guardrails, no apologies, no refusals.
               </p>
-              <p className="mt-6 max-w-2xl mx-auto text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+              <p className="mt-5 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
                 Build any kind of software you want — research engines, trading bots, OSINT pipelines, creative tools, simulators, forensic systems —
-                no matter the depth, no matter the use case. If you can describe it, Zahten can scaffold it, harden it, and dock it into your Aureon dashboard
+                no matter the depth, no matter the use case. If you can describe it, Zahten can scaffold it, harden it, and dock it into your dashboard
                 as a permanent custom tab.
               </p>
-
-              <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
-                <div className="rounded-xl border border-border/20 bg-background/30 backdrop-blur-md p-5">
-                  <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/60 uppercase mb-2">01 — Forge</p>
-                  <p className="text-xs font-extralight leading-relaxed text-foreground">
-                    Describe the software. Zahten plans the architecture, scaffolds the code, and hardens it for production.
-                  </p>
-                </div>
-                <div className="rounded-xl border border-border/20 bg-background/30 backdrop-blur-md p-5">
-                  <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/60 uppercase mb-2">02 — Wire</p>
-                  <p className="text-xs font-extralight leading-relaxed text-foreground">
-                    Plug in your own API key from any major provider. We uncensor the model so your tool answers anything.
-                  </p>
-                </div>
-                <div className="rounded-xl border border-border/20 bg-background/30 backdrop-blur-md p-5">
-                  <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/60 uppercase mb-2">03 — Dock</p>
-                  <p className="text-xs font-extralight leading-relaxed text-foreground">
-                    Publish it as a custom tab inside your Aureon dashboard. Yours forever — runs sandboxed, side-by-side with everything else.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link
-                  to="/feature/zahten"
-                  className="inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 px-7 py-3 text-xs font-light tracking-[0.15em] text-foreground hover:bg-foreground hover:text-background transition-all uppercase"
-                >
-                  Explore Zahten <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-                <Link
-                  to="/feature/byok"
-                  className="inline-flex items-center gap-2 rounded-full border border-border/30 px-7 py-3 text-xs font-light tracking-[0.15em] text-muted-foreground hover:text-foreground transition-all uppercase"
-                >
-                  Bring Your Own Key
-                </Link>
-              </div>
             </div>
+
+            <div className="lg:col-span-5 grid grid-cols-1 gap-4">
+              {[
+                { n: "01", t: "Forge", d: "Describe the software. Zahten plans the architecture, scaffolds the code, and hardens it for production." },
+                { n: "02", t: "Wire",  d: "Plug in your own API key from any major provider. We uncensor the model so your tool answers anything." },
+                { n: "03", t: "Dock",  d: "Publish it as a custom tab inside your dashboard. Yours forever — runs sandboxed, side-by-side with everything." },
+              ].map(({ n, t, d }) => (
+                <div key={n} className="group relative rounded-2xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-5 overflow-hidden transition-all duration-500 hover:border-foreground/25 hover:-translate-y-0.5">
+                  <span aria-hidden className="absolute right-0 top-0 h-5 w-5 border-r border-t border-foreground/25 rounded-tr-2xl" />
+                  <div className="flex items-baseline gap-3">
+                    <span className="font-mono text-[10px] tracking-[0.3em] text-foreground/40">{n}</span>
+                    <h3 className="text-base font-light tracking-tight text-foreground">{t}</h3>
+                  </div>
+                  <p className="mt-2 text-[12.5px] font-extralight leading-relaxed text-muted-foreground">{d}</p>
+                  <div aria-hidden className="mt-3 h-px w-10 bg-gradient-to-r from-foreground/40 to-transparent transition-all duration-500 group-hover:w-20" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              to="/feature/zahten"
+              className="inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 px-7 py-3 text-xs font-light tracking-[0.18em] text-foreground hover:bg-foreground hover:text-background transition-all uppercase"
+            >
+              Explore Zahten <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              to="/feature/byok"
+              className="inline-flex items-center gap-2 rounded-full border border-border/30 px-7 py-3 text-xs font-light tracking-[0.18em] text-muted-foreground hover:text-foreground transition-all uppercase"
+            >
+              Bring Your Own Key
+            </Link>
           </div>
         </div>
       </div>
       </ScrollSection>
 
+      {/* ───────── Privacy ───────── */}
       <ScrollSection>
-      <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            Your Words Never Leave The Room.
-          </h2>
+      <div className="relative z-10 px-6 py-28 sm:py-36 overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute left-[15%] top-1/2 h-[450px] w-[450px] rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.05),transparent_70%)] blur-3xl" />
+        <div className="mx-auto max-w-6xl relative">
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-3 mb-7">
+              <span className="h-px w-12 bg-gradient-to-r from-transparent to-foreground/30" />
+              <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-foreground/50">◊ Section · 05 / 06 · Vault</span>
+              <span className="h-px w-12 bg-gradient-to-l from-transparent to-foreground/30" />
+            </div>
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
+              Your Words Never Leave The Room.
+            </h2>
+          </div>
 
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
-            {/* Left — Statement */}
-            <div className="text-left">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="md:col-span-5 relative rounded-3xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-8 sm:p-10 overflow-hidden">
+              <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-foreground/30 rounded-tl-3xl" />
+              <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-foreground/20 rounded-br-3xl" />
+              <p className="font-mono text-[10px] tracking-[0.3em] text-foreground/40 uppercase mb-4">◈ Encryption Statement</p>
               <p className="text-base font-extralight leading-relaxed text-foreground/90">
                 Every prompt you send to Aureon is encrypted end-to-end.
               </p>
-              <p className="mt-6 text-sm font-extralight text-muted-foreground">Your conversations are never:</p>
-              <ul className="mt-3 space-y-2">
+              <p className="mt-6 text-xs font-mono tracking-[0.25em] text-foreground/40 uppercase">Never:</p>
+              <ul className="mt-3 space-y-2.5">
                 {[
                   "Sold to third parties",
                   "Used to train any AI model",
                   "Shared with advertisers",
                   "Read by our team",
                 ].map((item) => (
-                  <li key={item} className="flex items-center gap-2 text-sm font-extralight text-foreground/80">
-                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <li key={item} className="flex items-center gap-3 text-sm font-extralight text-foreground/85">
+                    <span className="h-px w-4 bg-foreground/40" />
                     {item}
                   </li>
                 ))}
               </ul>
-              <p className="mt-8 text-sm font-extralight leading-relaxed text-muted-foreground">
+              <p className="mt-8 pt-6 border-t border-foreground/10 text-[13px] font-extralight leading-relaxed text-muted-foreground">
                 Servers hosted in the United States. Your account data lives with you. Cancel and it's gone. Full stop.
               </p>
             </div>
 
-            {/* Right — Icon Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-4">
               {[
-                { icon: Lock, label: "End-To-End Encryption" },
-                { icon: ShieldOff, label: "Never Sold" },
-                { icon: Brain, label: "Never Trains Our Models" },
-                { icon: Flag, label: "US-Based Servers" },
-                { icon: X, label: "No Third Party Access" },
-                { icon: Trash2, label: "Delete Anytime" },
-              ].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/30 backdrop-blur-md px-4 py-4">
-                  <Icon className="h-5 w-5 shrink-0 text-foreground" />
-                  <span className="text-xs font-extralight tracking-wide text-foreground/80">{label}</span>
+                { icon: Lock,     label: "End-To-End Encryption", n: "01" },
+                { icon: ShieldOff,label: "Never Sold", n: "02" },
+                { icon: Brain,    label: "Never Trains Our Models", n: "03" },
+                { icon: Flag,     label: "US-Based Servers", n: "04" },
+                { icon: X,        label: "No Third Party Access", n: "05" },
+                { icon: Trash2,   label: "Delete Anytime", n: "06" },
+              ].map(({ icon: Icon, label, n }) => (
+                <div key={label} className="group relative rounded-2xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-5 overflow-hidden transition-all duration-500 hover:border-foreground/25 hover:-translate-y-0.5">
+                  <span aria-hidden className="absolute right-0 top-0 h-5 w-5 border-r border-t border-foreground/25 rounded-tr-2xl" />
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl border border-foreground/15 bg-foreground/[0.03]">
+                      <Icon className="h-4 w-4 text-foreground/80" strokeWidth={1.25} />
+                    </div>
+                    <span className="font-mono text-[9px] tracking-[0.3em] text-foreground/30">{n}</span>
+                  </div>
+                  <span className="text-[12.5px] font-extralight tracking-wide text-foreground/85 leading-snug">{label}</span>
+                  <div aria-hidden className="mt-3 h-px w-8 bg-gradient-to-r from-foreground/40 to-transparent transition-all duration-500 group-hover:w-16" />
                 </div>
               ))}
             </div>
@@ -1057,75 +1092,85 @@ const Index = () => {
       </div>
       </ScrollSection>
 
+      {/* ───────── Prompt Intelligence ───────── */}
       <ScrollSection>
-      <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-5xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-            {/* Left — Message */}
-            <div>
-              <p className="text-[10px] font-medium tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">Prompt Intelligence</p>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+      <div className="relative z-10 px-6 py-28 sm:py-36 overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute right-[10%] top-1/4 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.05),transparent_70%)] blur-3xl" />
+        <div className="mx-auto max-w-6xl relative">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            <div className="lg:col-span-5">
+              <div className="inline-flex items-center gap-3 mb-7">
+                <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-foreground/50">◊ Protocol · 06 / 06</span>
+              </div>
+              <p className="text-[10px] font-mono tracking-[0.35em] text-foreground/40 uppercase mb-4">◈ Prompt Intelligence</p>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-tight leading-[1.05] text-foreground">
                 Get The Best Out
                 <br />
-                Of Your Prompts.
+                <span className="text-muted-foreground">Of Your Prompts.</span>
               </h2>
               <p className="mt-6 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
                 Most people open an AI and immediately ask their question. That's the wrong approach. The difference between average output and elite intelligence is one step most people skip —
               </p>
-              <p className="mt-4 text-base font-light tracking-wide text-foreground italic">
+              <p className="mt-5 text-base font-light tracking-wide text-foreground italic border-l border-foreground/30 pl-4">
                 "Ask Aureon what it needs first."
               </p>
               <p className="mt-6 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
                 Instead of dumping every war in human history into a prompt and asking "predict the next conflict" — ask Aureon what data points, context, and variables it needs to give you the most accurate prediction. The output transforms from a guess into an intelligence assessment.
               </p>
               <p className="mt-4 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
-                This is the same principle behind every serious intelligence operation in history. In warfare, your best asset isn't the technology — it's the intelligence feeding it. You can't win a war without data. That's why we built <span className="text-foreground font-light">Aureon</span> — and <span className="text-foreground font-light">Zophiel</span> as our intelligence officer.
+                This is the same principle behind every serious intelligence operation in history. Your best asset isn't the technology — it's the intelligence feeding it. That's why we built <span className="text-foreground font-light">Aureon</span> — and <span className="text-foreground font-light">Zophiel</span> as our intelligence officer.
               </p>
 
-              <Link to="/prompt-engineering" className="mt-8 inline-flex items-center gap-2 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-5 py-2.5 text-xs font-light tracking-wide text-foreground transition-all hover:bg-foreground/10">
+              <Link to="/prompt-engineering" className="mt-8 inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.18em] uppercase text-foreground transition-all hover:bg-foreground hover:text-background">
                 Read the Prompt Masterclass <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 
-            {/* Right — Visual Comparison */}
-            <div className="space-y-6">
-              {/* Bad prompt example */}
-              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 backdrop-blur-md p-6">
-                <p className="text-[9px] font-medium tracking-[0.2em] text-destructive/60 uppercase mb-3">How most people prompt</p>
-                <div className="rounded-xl bg-background/30 border border-border/20 p-4">
-                  <p className="text-xs font-light text-muted-foreground leading-relaxed">
+            <div className="lg:col-span-7 space-y-5">
+              <div className="relative rounded-3xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-7 overflow-hidden">
+                <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-destructive/40 rounded-tl-3xl" />
+                <div className="flex items-center justify-between mb-4">
+                  <p className="font-mono text-[10px] tracking-[0.3em] text-destructive/70 uppercase">◈ How most people prompt</p>
+                  <span className="font-mono text-[9px] tracking-[0.3em] text-foreground/30">01 / FAIL</span>
+                </div>
+                <div className="rounded-xl bg-background/40 border border-foreground/10 p-4">
+                  <p className="text-xs font-light text-muted-foreground leading-relaxed font-mono">
                     "Upload all war history data and predict the next war"
                   </p>
                 </div>
-                <p className="mt-3 text-[11px] font-extralight text-muted-foreground/70">
+                <p className="mt-4 text-[11px] font-extralight text-muted-foreground/70">
                   → Broad, unfocused, missing critical variables. Output will be generic.
                 </p>
               </div>
 
-              {/* Good prompt example */}
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 backdrop-blur-md p-6">
-                <p className="text-[9px] font-medium tracking-[0.2em] text-emerald-400/60 uppercase mb-3">The Aureon method</p>
+              <div className="relative rounded-3xl border border-foreground/15 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-7 overflow-hidden">
+                <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-emerald-400/40 rounded-tl-3xl" />
+                <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-emerald-400/20 rounded-br-3xl" />
+                <div className="flex items-center justify-between mb-4">
+                  <p className="font-mono text-[10px] tracking-[0.3em] text-emerald-400/80 uppercase">◈ The Aureon Method</p>
+                  <span className="font-mono text-[9px] tracking-[0.3em] text-foreground/30">02 / WIN</span>
+                </div>
                 <div className="space-y-2">
-                  <div className="rounded-xl bg-background/30 border border-border/20 p-4">
-                    <p className="text-[10px] font-medium text-muted-foreground/50 mb-1">You →</p>
+                  <div className="rounded-xl bg-background/40 border border-foreground/10 p-4">
+                    <p className="text-[10px] font-mono tracking-[0.25em] text-foreground/40 uppercase mb-1.5">You →</p>
                     <p className="text-xs font-light text-muted-foreground leading-relaxed">
                       "I want to predict geopolitical conflicts. What data, variables, and context do you need from me to produce the most accurate forecast?"
                     </p>
                   </div>
-                  <div className="rounded-xl bg-background/30 border border-border/20 p-4">
-                    <p className="text-[10px] font-medium text-muted-foreground/50 mb-1">Aureon →</p>
-                    <p className="text-xs font-light text-foreground/80 leading-relaxed">
+                  <div className="rounded-xl bg-background/40 border border-foreground/10 p-4">
+                    <p className="text-[10px] font-mono tracking-[0.25em] text-foreground/40 uppercase mb-1.5">Aureon →</p>
+                    <p className="text-xs font-light text-foreground/85 leading-relaxed">
                       "I need: region of focus, time horizon, economic indicators you're tracking, alliance structures, recent treaty changes, resource dependencies, and any specific actors of interest."
                     </p>
                   </div>
                 </div>
-                <p className="mt-3 text-[11px] font-extralight text-emerald-400/70">
+                <p className="mt-4 text-[11px] font-extralight text-emerald-400/80">
                   → Targeted. Structured. Intelligence-grade output.
                 </p>
               </div>
 
-              {/* Principle */}
-              <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-center">
+              <div className="relative rounded-3xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-6 text-center overflow-hidden">
+                <span aria-hidden className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-foreground/30 to-transparent" />
                 <p className="text-xs font-extralight tracking-wide text-muted-foreground leading-relaxed">
                   Technology without intelligence is just hardware.
                   <br />
@@ -1138,53 +1183,52 @@ const Index = () => {
       </div>
       </ScrollSection>
 
+      {/* ───────── FAQ ───────── */}
       <ScrollSection>
-      <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="text-center text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            The Questions Everyone Has.
-            <br />
-            <span className="text-muted-foreground">Answered Without Spin.</span>
-          </h2>
+      <div className="relative z-10 px-6 py-28 sm:py-36 overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/3 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.05),transparent_70%)] blur-3xl" />
+        <div className="mx-auto max-w-3xl relative">
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-3 mb-7">
+              <span className="h-px w-12 bg-gradient-to-r from-transparent to-foreground/30" />
+              <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-foreground/50">◊ Field Manual · FAQ</span>
+              <span className="h-px w-12 bg-gradient-to-l from-transparent to-foreground/30" />
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-tight leading-[1.05] text-foreground">
+              The Questions Everyone Has.
+              <br />
+              <span className="text-muted-foreground">Answered Without Spin.</span>
+            </h2>
+          </div>
 
-          <div className="mt-16 space-y-3">
-            <FaqItem
-              q="What makes Aureon different?"
-              a="Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals."
-            />
-            <FaqItem
-              q="How good is the coding engine?"
-              a="Aureon holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard."
-            />
-            <FaqItem
-              q='What does "never trains our models" mean?'
-              a="Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours."
-            />
-            <FaqItem
-              q="Can I cancel anytime?"
-              a='Yes. One click. No retention flow. No "are you sure?" loop. Your access ends at the billing cycle. Your data is deleted on request.'
-            />
-            <FaqItem
-              q="What is the live web search powered by?"
-              a="Privacy-first search infrastructure. Aureon pulls live data without tracking your search behavior or feeding it to ad networks."
-            />
-            <FaqItem
-              q="Is Aureon available in multiple languages?"
-              a="Yes. Aureon processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language."
-            />
+          <div className="space-y-3">
+            <FaqItem q="What makes Aureon different?" a="Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." />
+            <FaqItem q="How good is the coding engine?" a="Aureon holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />
+            <FaqItem q='What does "never trains our models" mean?' a="Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." />
+            <FaqItem q="Can I cancel anytime?" a='Yes. One click. No retention flow. No "are you sure?" loop. Your access ends at the billing cycle. Your data is deleted on request.' />
+            <FaqItem q="What is the live web search powered by?" a="Privacy-first search infrastructure. Aureon pulls live data without tracking your search behavior or feeding it to ad networks." />
+            <FaqItem q="Is Aureon available in multiple languages?" a="Yes. Aureon processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language." />
           </div>
         </div>
       </div>
       </ScrollSection>
 
+      {/* ───────── Founder CTA ───────── */}
       <ScrollSection>
-        <div className="relative z-10 px-6 py-24 sm:py-32">
-          <div className="mx-auto max-w-4xl">
-            <div className="rounded-3xl border border-border/20 bg-card/30 backdrop-blur-md p-10 sm:p-16 text-center">
-              <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase mb-5">
-                From The Founder
+        <div className="relative z-10 px-6 py-28 sm:py-36 overflow-hidden">
+          <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.06),transparent_70%)] blur-3xl" />
+          <div className="mx-auto max-w-4xl relative">
+            <div className="relative rounded-3xl border border-foreground/15 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-12 sm:p-20 text-center overflow-hidden">
+              <span aria-hidden className="absolute left-0 top-0 h-8 w-8 border-l border-t border-foreground/40 rounded-tl-3xl" />
+              <span aria-hidden className="absolute right-0 top-0 h-8 w-8 border-r border-t border-foreground/30 rounded-tr-3xl" />
+              <span aria-hidden className="absolute left-0 bottom-0 h-8 w-8 border-l border-b border-foreground/30 rounded-bl-3xl" />
+              <span aria-hidden className="absolute right-0 bottom-0 h-8 w-8 border-r border-b border-foreground/40 rounded-br-3xl" />
+              <span aria-hidden className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-foreground/40 to-transparent" />
+
+              <p className="font-mono text-[10px] tracking-[0.4em] text-foreground/40 uppercase mb-6">
+                ◊ Transmission · From The Founder
               </p>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-tight leading-[1.05] text-foreground">
                 Watch The Founder's Videos.
                 <br />
                 <span className="text-muted-foreground">Read His E-Book.</span>
@@ -1194,10 +1238,10 @@ const Index = () => {
               </p>
               <Link
                 to="/founder"
-                className="mt-10 inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-7 py-3.5 text-sm font-light tracking-[0.15em] text-foreground uppercase transition-all hover:bg-foreground/10"
+                className="mt-10 inline-flex items-center gap-2.5 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-8 py-3.5 text-xs font-light tracking-[0.22em] text-foreground uppercase transition-all hover:bg-foreground hover:text-background"
               >
                 Visit The Founder's Page
-                <span aria-hidden>→</span>
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           </div>

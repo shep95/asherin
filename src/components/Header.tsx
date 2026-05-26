@@ -41,33 +41,33 @@ const Header = () => {
         >
           {/* Aurora glow behind the cluster */}
           <div aria-hidden className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl transition-opacity duration-700 group-hover/nav:opacity-100"
-               style={{ background: "radial-gradient(60% 100% at 20% 50%, hsl(45 90% 55% / 0.08), transparent 70%)" }} />
+               style={{ background: "radial-gradient(60% 100% at 20% 50%, hsl(0 0% 100% / 0.08), transparent 70%)" }} />
 
-          <div className="relative flex items-center rounded-full border border-amber-400/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
+          <div className="relative flex items-center rounded-full border border-foreground/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
             {/* Golden top hairline */}
-            <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
+            <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-foreground/40 to-transparent" />
 
             <Link
               to="/"
               className="group/logo relative flex items-center gap-2.5 pl-5 pr-4 py-2.5 transition-all"
             >
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-300/80 shadow-[0_0_8px_rgba(252,211,77,0.8)] transition-transform group-hover/logo:scale-125" />
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-foreground/80 shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-transform group-hover/logo:scale-125" />
               <span className="text-sm font-extralight tracking-[0.32em] text-foreground/95">
                 AUREON
               </span>
-              <span className="hidden md:inline text-[8px] font-mono tracking-[0.2em] text-amber-200/40 translate-y-px">
+              <span className="hidden md:inline text-[8px] font-mono tracking-[0.2em] text-foreground/40 translate-y-px">
                 ◊
               </span>
             </Link>
 
-            <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-amber-400/20 to-transparent" />
+            <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
 
             <DropdownMenu open={pagesOpen} onOpenChange={setPagesOpen}>
               <DropdownMenuTrigger
                 onMouseEnter={() => setPagesOpen(true)}
-                className="group/btn relative px-4 py-2.5 flex items-center gap-1.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-all hover:text-amber-100 outline-none"
+                className="group/btn relative px-4 py-2.5 flex items-center gap-1.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-all hover:text-foreground outline-none"
               >
-                <span className="font-mono text-[8px] tracking-[0.15em] text-amber-200/40">01</span>
+                <span className="font-mono text-[8px] tracking-[0.15em] text-foreground/40">01</span>
                 Pages
                 <ChevronDown className="h-3 w-3 transition-transform" strokeWidth={1.5} />
               </DropdownMenuTrigger>
@@ -76,10 +76,10 @@ const Header = () => {
                 sideOffset={12}
                 onMouseEnter={() => setPagesOpen(true)}
                 onMouseLeave={() => setPagesOpen(false)}
-                className="w-72 max-h-[70vh] overflow-y-auto bg-background/80 backdrop-blur-2xl border border-amber-400/15 p-3 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] animate-fade-in"
+                className="w-72 max-h-[70vh] overflow-y-auto bg-background/80 backdrop-blur-2xl border border-foreground/15 p-3 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] animate-fade-in"
               >
                 {/* Intelligence Branch */}
-                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-amber-200/50 uppercase">◈ Intelligence</p>
+                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Intelligence</p>
                 <DropdownMenuItem asChild>
                   <Link to="/llm-models" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">LLM Models</Link>
                 </DropdownMenuItem>
@@ -102,9 +102,9 @@ const Header = () => {
                   <Link to="/ww3" className="cursor-pointer text-sm font-light tracking-wide rounded-lg text-destructive">WW3 Trajectory</Link>
                 </DropdownMenuItem>
 
-                <div className="my-2 border-t border-amber-400/10" />
+                <div className="my-2 border-t border-foreground/10" />
 
-                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-amber-200/50 uppercase">◈ Agents & Tools</p>
+                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Agents & Tools</p>
                 <DropdownMenuItem asChild>
                   <Link to="/feature/personas" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">AI Personas</Link>
                 </DropdownMenuItem>
@@ -121,9 +121,9 @@ const Header = () => {
                   <Link to="/feature/notebooks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Notebooks</Link>
                 </DropdownMenuItem>
 
-                <div className="my-2 border-t border-amber-400/10" />
+                <div className="my-2 border-t border-foreground/10" />
 
-                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-amber-200/50 uppercase">◈ Creation</p>
+                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Creation</p>
                 <DropdownMenuItem asChild>
                   <Link to="/whiteboard" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Whiteboard</Link>
                 </DropdownMenuItem>
@@ -137,16 +137,16 @@ const Header = () => {
                   <Link to="/feature/ide" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Aureon IDE</Link>
                 </DropdownMenuItem>
 
-                <div className="my-2 border-t border-amber-400/10" />
+                <div className="my-2 border-t border-foreground/10" />
 
-                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-amber-200/50 uppercase">◈ Platform</p>
+                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Platform</p>
                 <DropdownMenuItem asChild>
                   <Link to="/feature/byok" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Bring Your Own AI Key</Link>
                 </DropdownMenuItem>
 
-                <div className="my-2 border-t border-amber-400/10" />
+                <div className="my-2 border-t border-foreground/10" />
 
-                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-amber-200/50 uppercase">◈ Company</p>
+                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Company</p>
                 <DropdownMenuItem asChild>
                   <Link to="/features" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">All Features</Link>
                 </DropdownMenuItem>
@@ -171,7 +171,7 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-amber-400/20 to-transparent" />
+            <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
 
             <div className="relative">
               <ForumsDropdown />
@@ -187,9 +187,9 @@ const Header = () => {
         {/* Right: Auth buttons */}
         <div className="hidden sm:block relative" data-header-right>
           <div aria-hidden className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl"
-               style={{ background: "radial-gradient(60% 100% at 80% 50%, hsl(45 90% 55% / 0.08), transparent 70%)" }} />
-          <div className="relative flex items-center rounded-full border border-amber-400/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
-            <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
+               style={{ background: "radial-gradient(60% 100% at 80% 50%, hsl(0 0% 100% / 0.08), transparent 70%)" }} />
+          <div className="relative flex items-center rounded-full border border-foreground/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
+            <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-foreground/40 to-transparent" />
             {isAsherRoute ? (
               <Link
                 to={user ? "/asher-dashboard" : "/asher"}
@@ -203,29 +203,29 @@ const Header = () => {
               <>
                 <Link
                   to="/zophiel"
-                  className="group flex items-center gap-2 px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-amber-100"
+                  className="group flex items-center gap-2 px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Search className="h-3.5 w-3.5" strokeWidth={1.5} />
                   <span>Search</span>
-                  <span className="hidden md:inline-block ml-1 rounded-sm border border-amber-400/30 bg-amber-400/5 px-1 text-[8px] tracking-[0.15em] text-amber-200/70">FREE</span>
+                  <span className="hidden md:inline-block ml-1 rounded-sm border border-foreground/30 bg-foreground/5 px-1 text-[8px] tracking-[0.15em] text-foreground/70">FREE</span>
                 </Link>
-                <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-amber-400/20 to-transparent" />
+                <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
                 {!loading && user ? (
                   <Link
                     to="/dashboard"
                     className="group relative flex items-center gap-2 px-5 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-foreground transition-colors overflow-hidden"
                   >
-                    <span className="font-mono text-[8px] tracking-[0.15em] text-amber-200/40 relative z-10">02</span>
+                    <span className="font-mono text-[8px] tracking-[0.15em] text-foreground/40 relative z-10">02</span>
                     <span className="relative z-10">Dashboard</span>
                     <ArrowUpRight className="relative z-10 h-3.5 w-3.5 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" strokeWidth={1.5} />
-                    <span aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/[0.08] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                    <span aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-foreground/[0.08] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                   </Link>
                 ) : (
                   <>
-                    <button onClick={() => openAuth(true)} className="px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-amber-100">Log in</button>
-                    <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-amber-400/20 to-transparent" />
+                    <button onClick={() => openAuth(true)} className="px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground">Log in</button>
+                    <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
                     <button onClick={() => openAuth(false)} className="group relative flex items-center gap-2 px-5 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-background overflow-hidden">
-                      <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-amber-200 via-amber-100 to-amber-300" />
+                      <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-foreground via-foreground to-foreground" />
                       <span className="relative z-10">Sign up</span>
                       <ArrowUpRight className="relative z-10 h-3.5 w-3.5 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" strokeWidth={1.5} />
                     </button>
