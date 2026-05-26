@@ -19,6 +19,11 @@ serve(async (req) => {
   corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Require authenticated caller — prevent anonymous scraping abuse
+  const { requireUser, authErrorResponse } = await import("../_shared/authMiddleware.ts");
+  try { await requireUser(req); } catch (e) { return authErrorResponse(e, corsHeaders); }
+
+
   try {
     const { query, numResults = 8 } = await req.json();
     if (!query) {
