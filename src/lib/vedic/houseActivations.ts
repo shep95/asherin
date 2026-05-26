@@ -5,7 +5,12 @@
  * Property) get triggered by a transit into THIS house — with chart-specific
  * support / delay reasoning and real upcoming dates from the live ingress feed.
  */
-import { houseFromAsc, SIGN_LORD } from "./dignities";
+import { houseFromAsc } from "./dignities";
+
+const SIGN_LORD: Record<number, string> = {
+  0: "Mars", 1: "Venus", 2: "Mercury", 3: "Moon", 4: "Sun", 5: "Mercury",
+  6: "Venus", 7: "Mars", 8: "Jupiter", 9: "Saturn", 10: "Saturn", 11: "Jupiter",
+};
 import type { SignIngress } from "./transits";
 
 // ── What each transiting planet unlocks when it enters a given house ─────────
