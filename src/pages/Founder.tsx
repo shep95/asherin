@@ -101,6 +101,37 @@ const Founder = () => {
         </div>
       </div>
 
+      {/* Genesis — Personal Story */}
+      <div className="relative z-10 px-6 py-28 sm:py-36">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center mb-20">
+            <span className="founder-eyebrow mb-6">Chapter · 00 · Genesis</span>
+            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
+              Before Aureon.
+              <br />
+              <span className="text-muted-foreground/70 italic">Before everything.</span>
+            </h2>
+          </div>
+
+          <div className="founder-glass founder-corner rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-12 max-w-3xl mx-auto">
+            <div className="space-y-5 text-sm sm:text-base font-extralight leading-[1.8] text-muted-foreground">
+              <p>
+                Asher was born in New Delhi, India, on September 26, 2005. Given up at birth by his biological family — the reason remains private — he was placed in the <span className="text-foreground/80">SOS Children's Village</span> orphanage near Indira Gandhi International Airport.
+              </p>
+              <p>
+                In 2009, the Newton family, an American family, adopted him and brought him from that orphanage to the United States, where he has lived for sixteen years at the time of this writing.
+              </p>
+              <p>
+                Shortly after birth, during a period when he was left unattended, he was attacked by a dog that mauled his right leg beyond repair. Today, he wears a prosthetic leg — a restoration made possible only by advanced American medical technology, something that would have been impossible in India in 2009.
+              </p>
+              <p className="text-foreground/80 border-l-2 border-accent/30 pl-4 italic">
+                Every system he builds carries the memory of that transition — from abandoned to adopted, from broken to rebuilt, from impossible to made possible.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Philosophy Cards */}
       <div className="relative z-10 px-6 py-28 sm:py-36">
         <div className="mx-auto max-w-5xl">
