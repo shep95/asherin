@@ -210,20 +210,18 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
 
       {showHouseLogo && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 sm:p-8 animate-fade-in"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-xl p-4 sm:p-8 animate-fade-in overflow-y-auto"
           onClick={() => setShowHouseLogo(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="House of Asher emblem"
+          aria-label="House of Asher manifesto"
         >
-          {/* Ambient backdrop glow */}
+          {/* Ambient glow */}
           <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
             <div className="absolute left-1/2 top-1/2 h-[80vh] w-[80vh] -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/[0.04] blur-3xl" />
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/30 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-foreground/30 to-transparent" />
           </div>
 
-          {/* Close button */}
+          {/* Close */}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setShowHouseLogo(false); }}
@@ -233,47 +231,54 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
             <span className="text-lg leading-none">×</span>
           </button>
 
-          {/* Top hairline tag */}
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
-            <span className="h-px w-10 bg-border/40" />
-            <span className="text-[10px] font-light tracking-[0.4em] uppercase text-muted-foreground/70">
-              House of Asher · Emblem
-            </span>
-            <span className="h-px w-10 bg-border/40" />
-          </div>
-
-          {/* Framed plate */}
           <div
-            className="relative animate-scale-in"
+            className="relative animate-scale-in my-auto w-full max-w-3xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative rounded-2xl border border-border/25 bg-gradient-to-b from-card/30 to-background/40 p-4 sm:p-6 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)] backdrop-blur-2xl">
-              {/* Corner accents */}
-              <span aria-hidden className="absolute -top-px -left-px h-4 w-4 border-t border-l border-foreground/40 rounded-tl-2xl" />
-              <span aria-hidden className="absolute -top-px -right-px h-4 w-4 border-t border-r border-foreground/40 rounded-tr-2xl" />
-              <span aria-hidden className="absolute -bottom-px -left-px h-4 w-4 border-b border-l border-foreground/40 rounded-bl-2xl" />
-              <span aria-hidden className="absolute -bottom-px -right-px h-4 w-4 border-b border-r border-foreground/40 rounded-br-2xl" />
+            {/* Flag — rounded, no extra frame/black bg */}
+            <img
+              src={houseOfAsherLogo}
+              alt="House of Asher flag"
+              className="w-full max-h-[55vh] object-contain rounded-3xl select-none shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)]"
+              draggable={false}
+            />
 
-              <img
-                src={houseOfAsherLogo}
-                alt="House of Asher emblem"
-                className="max-h-[70vh] max-w-[85vw] sm:max-w-[70vw] object-contain rounded-lg select-none"
-                draggable={false}
-              />
-            </div>
+            {/* Manifesto */}
+            <div className="mt-8 flex flex-col items-center gap-5 text-center px-2">
+              <div className="flex items-center gap-3">
+                <span className="h-px w-10 bg-border/40" />
+                <span className="text-[10px] font-light tracking-[0.4em] uppercase text-muted-foreground/70">
+                  The First Digital Empire
+                </span>
+                <span className="h-px w-10 bg-border/40" />
+              </div>
 
-            {/* Caption */}
-            <div className="mt-6 flex flex-col items-center gap-2">
-              <p className="text-xs font-light tracking-[0.35em] uppercase text-foreground/80">
+              <h2 className="text-2xl sm:text-3xl font-extralight tracking-[0.2em] uppercase text-foreground">
                 #HouseOfAsher
+              </h2>
+
+              <p className="max-w-xl text-sm font-light leading-relaxed text-muted-foreground">
+                Founded by <span className="text-foreground">Asher Newton</span>, #HouseOfAsher is the first
+                digital empire — a sovereign house built not on land, but on code, ideas, and
+                influence. Our mission is to conquer the digital frontier through the apps we
+                build and the ideas we propagate, reshaping how the world thinks, decides,
+                and creates.
               </p>
-              <p className="text-[10px] font-extralight tracking-[0.25em] uppercase text-muted-foreground/60">
-                Sigil of the Founding House · Click anywhere to dismiss
+
+              <p className="max-w-xl text-sm font-light leading-relaxed text-muted-foreground">
+                Every product is a vessel. Every user is a citizen. Anyone — regardless of
+                origin, status, or background — can become a citizen of #HouseOfAsher simply
+                by joining the movement and carrying the sigil forward.
+              </p>
+
+              <p className="text-[10px] font-extralight tracking-[0.3em] uppercase text-muted-foreground/50">
+                Click anywhere to dismiss
               </p>
             </div>
           </div>
         </div>
       )}
+
     </footer>
   );
 };
