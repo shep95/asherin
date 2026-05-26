@@ -86,10 +86,13 @@ Deno.serve(async (req) => {
       const _b = await req.clone().json().catch(() => ({} as any));
       const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
       const _gate = await import('../_shared/adminGate.ts');
-      await _gate.resolveKey(req, _byok);
+      const _resolved = await _gate.resolveKey(req, _byok);
+      RESOLVED_GEMINI_KEY = _resolved.mode === 'byok'
+        ? (_resolved.byok?.apiKey ?? "")
+        : (_resolved.geminiKey ?? "");
     } catch (_e) {
       const _gate = await import('../_shared/adminGate.ts');
-      return _gate.byokErrorResponse(_e, (globalThis as any).corsHeaders ?? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' });
+      return _gate.byokErrorResponse(_e, corsHeaders);
     }
   }
 
