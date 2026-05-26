@@ -143,11 +143,13 @@ Deno.serve(async (req) => {
 
   const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   let userId: string | null = null;
+  let userEmail: string | null = null;
   try {
     const auth = req.headers.get("Authorization");
     if (auth) {
       const { data } = await sb.auth.getUser(auth.replace("Bearer ", ""));
       userId = data?.user?.id ?? null;
+      userEmail = (data?.user?.email ?? null)?.toLowerCase() ?? null;
     }
   } catch { /* anon */ }
   if (!userId) return j({ error: "auth required" }, 401);
@@ -156,6 +158,14 @@ Deno.serve(async (req) => {
   const mode: "browser" | "recon" | "extract" | "forge" | "stress" | "code" = body.mode || "browser";
   const task: string = body.task || "";
   const targetUrl: string = body.target_url || body.url || "";
+
+  // Offensive / recon modes are admin-only — client-supplied permission_attestation
+  // is NOT a sufficient authorization signal.
+  const OFFENSIVE_MODES = new Set(["recon", "extract", "stress", "forge"]);
+  if (OFFENSIVE_MODES.has(mode) && userEmail !== "ashernewtonx@gmail.com") {
+    return j({ error: "Forbidden: this mode is restricted to platform operators." }, 403);
+  }
+
 
   // Resolve which Gemini key to use: BYOK header (user-supplied) takes precedence over admin env key.
   const byokKey = req.headers.get("x-byok-gemini-key") || "";
