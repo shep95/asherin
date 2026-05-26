@@ -752,6 +752,21 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         duration: fmtDuration(travel.start, travel.end),
       });
     }
+    const network = pickStrongest(networkInPeriod);
+    if (network) {
+      const good = network.score > 0;
+      sourceMap.set("network", network);
+      briefs.push({
+        key: "network", icon: Users, label: "Network / Connections",
+        tone: good ? "good" : "bad",
+        headline: good
+          ? (network.score >= 12 ? "Network breakthrough — power-circle opens, key allies appear" : network.score >= 7 ? "Strong connection window — DMs land, intros flow, group lifts you" : "Network warmup — friendly ties strengthen")
+          : "Network friction — allies go quiet, friend-group rearranges",
+        detail: network.hits[0]?.plain || network.headline,
+        when: fmtWhen(network.start, network.end),
+        duration: fmtDuration(network.start, network.end),
+      });
+    }
 
 
 
