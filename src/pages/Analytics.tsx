@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
 import LandingBackground from "@/components/LandingBackground";
+import { applySeoHead } from "@/lib/seoHead";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart,
 } from "recharts";
