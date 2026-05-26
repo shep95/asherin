@@ -192,6 +192,7 @@ export function detectWindows(
     fame: FAME_POINTS, career: CAREER_POINTS,
     family: FAMILY_POINTS, home: HOME_POINTS, children: CHILDREN_POINTS,
     education: EDUCATION_POINTS, spirituality: SPIRITUALITY_POINTS, travel: TRAVEL_POINTS,
+    network: NETWORK_POINTS,
   };
   const WEIGHT_SET: Record<WindowKind, Record<string, number>> = {
     wealth: WEALTH_WEIGHT, soulmate: SOULMATE_WEIGHT, health: HEALTH_WEIGHT,
