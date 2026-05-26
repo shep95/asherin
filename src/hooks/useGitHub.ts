@@ -47,7 +47,7 @@ export function useGitHub() {
 
     const { data } = await supabase
       .from("github_connections")
-      .select("*")
+      .select("id, user_id, repo_owner, repo_name, branch, last_sync_at, status, created_at, updated_at")
       .eq("user_id", session.user.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -96,7 +96,7 @@ export function useGitHub() {
       repo_name: repoName,
       branch,
       github_token: token,
-    }).select().single();
+    }).select("id, user_id, repo_owner, repo_name, branch, last_sync_at, status, created_at, updated_at").single();
 
     if (error) throw new Error(error.message);
     setConnection(data as GitHubConnection);
