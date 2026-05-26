@@ -409,7 +409,7 @@ export const FORECASTS: ForecastEvent[] = [
   { date: "2026-12", era: "Present", region: "United States", flag: "🇺🇸", protocol: "crash",
     headline: "Saturn approaches US 2H Pisces — earnings shock",
     detail: "Watch financial sector. Pancha Vedha incomplete (3/5) — bear, not collapse." },
-  { date: "2027-04", era: "Present", region: "China", flag: "🇨🇳", protocol: "weather",
+  { date: "2028-04", era: "Present", region: "China", flag: "🇨🇳", protocol: "weather",
     headline: "Sapta Nadi → Jala overflow",
     detail: "Yangtze flood probability elevated; insurance & infra stocks at risk." },
 
