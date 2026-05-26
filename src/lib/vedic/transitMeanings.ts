@@ -47,6 +47,7 @@ export interface TransitReading {
   warns: string;
   weight: "high" | "medium" | "low";
   predictions: LifePrediction[];
+  manifests: string[];  // concrete real-world events this transit tends to trigger
 }
 
 const HIGH_IMPACT = new Set(["Saturn", "Jupiter", "Rahu", "Ketu"]);
