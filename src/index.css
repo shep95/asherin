@@ -417,9 +417,12 @@ header[data-aureon-header] > a {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(600px circle at var(--mx,50%) var(--my,0%),
-              hsl(var(--foreground) / 0.06), transparent 40%);
+  background: radial-gradient(500px circle at 50% 0%,
+              hsl(var(--foreground) / 0.07), transparent 55%);
   opacity: 0;
+  transition: opacity .6s ease;
+  pointer-events: none;
+}
   transition: opacity .5s ease;
   pointer-events: none;
 }
