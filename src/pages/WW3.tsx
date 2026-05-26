@@ -75,7 +75,7 @@ const planetaryIndicators = [
 
 const trajectoryData = [
   { metric: "Outbreak Window", reading: "Late 2026 — Early 2028" },
-  { metric: "Highest Risk Month", reading: "October 2026 / March 2027" },
+  { metric: "Highest Risk Month", reading: "October 2026 / March 2028" },
   { metric: "Trigger Zone", reading: "Taiwan Strait or expanded Middle East corridor" },
   { metric: "Probability Confidence", reading: "78% trajectory lock" },
   { metric: "Mars-Saturn Vedha Peak", reading: "Saturn enters Aries / Mars activates Fiery Triangle — Q4 2026" },
