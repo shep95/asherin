@@ -36,133 +36,147 @@ const Header = () => {
         <div className="mx-auto w-full max-w-7xl flex items-center justify-between px-4 sm:px-6">
         {/* Left: Logo + Pages dropdown */}
         <div
-          className="hidden sm:flex items-center rounded-xl border border-border/30 bg-card/60 backdrop-blur-md"
+          className="hidden sm:flex items-center relative group/nav"
           onMouseLeave={() => setPagesOpen(false)}
         >
-          <Link to="/" className="px-4 sm:px-6 py-2 sm:py-2.5 flex items-center hover:bg-card/80 transition-colors rounded-l-xl">
-            <span className="text-base sm:text-lg font-extralight tracking-[0.25em] text-foreground">
-              AUREON
-            </span>
-          </Link>
+          {/* Aurora glow behind the cluster */}
+          <div aria-hidden className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl transition-opacity duration-700 group-hover/nav:opacity-100"
+               style={{ background: "radial-gradient(60% 100% at 20% 50%, hsl(45 90% 55% / 0.08), transparent 70%)" }} />
 
-          <div className="w-px h-5 bg-border/30" />
+          <div className="relative flex items-center rounded-full border border-amber-400/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
+            {/* Golden top hairline */}
+            <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
 
-          <DropdownMenu open={pagesOpen} onOpenChange={setPagesOpen}>
-            <DropdownMenuTrigger
-              onMouseEnter={() => setPagesOpen(true)}
-              className="px-4 py-2 sm:py-2.5 flex items-center gap-1.5 text-sm font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground hover:bg-card/80 outline-none rounded-r-xl"
+            <Link
+              to="/"
+              className="group/logo relative flex items-center gap-2.5 pl-5 pr-4 py-2.5 transition-all"
             >
-              Pages <ChevronDown className="h-3.5 w-3.5" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              sideOffset={8}
-              onMouseEnter={() => setPagesOpen(true)}
-              onMouseLeave={() => setPagesOpen(false)}
-              className="w-72 max-h-[70vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/30 p-3 rounded-2xl shadow-2xl animate-fade-in"
-            >
-              {/* Intelligence Branch */}
-              <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Intelligence</p>
-              <DropdownMenuItem asChild>
-                <Link to="/llm-models" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">LLM Models</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/zophiel" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zophiel Search</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/nomad" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">NOMAD Public Intelligence</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/asha" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Azplen Intelligence</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/predictive" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Predictive Intelligence</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/oracle-locus" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Oracle Locus</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/ww3" className="cursor-pointer text-sm font-light tracking-wide rounded-lg text-destructive">WW3 Trajectory</Link>
-              </DropdownMenuItem>
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-300/80 shadow-[0_0_8px_rgba(252,211,77,0.8)] transition-transform group-hover/logo:scale-125" />
+              <span className="text-sm font-extralight tracking-[0.32em] text-foreground/95">
+                AUREON
+              </span>
+              <span className="hidden md:inline text-[8px] font-mono tracking-[0.2em] text-amber-200/40 translate-y-px">
+                ◊ 2027
+              </span>
+            </Link>
 
-              <div className="my-2 border-t border-border/15" />
+            <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-amber-400/20 to-transparent" />
 
-              {/* Agents & Tools Branch */}
-              <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Agents & Tools</p>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/personas" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">AI Personas</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/briefings" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Daily Briefings</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/zahten" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zahten Agent Forge</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/vedic-astrology" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Vedic Astrology (Free)</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/notebooks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Notebooks</Link>
-              </DropdownMenuItem>
+            <DropdownMenu open={pagesOpen} onOpenChange={setPagesOpen}>
+              <DropdownMenuTrigger
+                onMouseEnter={() => setPagesOpen(true)}
+                className="group/btn relative px-4 py-2.5 flex items-center gap-1.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-all hover:text-amber-100 outline-none"
+              >
+                <span className="font-mono text-[8px] tracking-[0.15em] text-amber-200/40">01</span>
+                Pages
+                <ChevronDown className="h-3 w-3 transition-transform" strokeWidth={1.5} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                sideOffset={12}
+                onMouseEnter={() => setPagesOpen(true)}
+                onMouseLeave={() => setPagesOpen(false)}
+                className="w-72 max-h-[70vh] overflow-y-auto bg-background/80 backdrop-blur-2xl border border-amber-400/15 p-3 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] animate-fade-in"
+              >
+                {/* Intelligence Branch */}
+                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-amber-200/50 uppercase">◈ Intelligence</p>
+                <DropdownMenuItem asChild>
+                  <Link to="/llm-models" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">LLM Models</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/zophiel" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zophiel Search</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/nomad" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">NOMAD Public Intelligence</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/asha" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Azplen Intelligence</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/predictive" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Predictive Intelligence</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/oracle-locus" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Oracle Locus</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/ww3" className="cursor-pointer text-sm font-light tracking-wide rounded-lg text-destructive">WW3 Trajectory</Link>
+                </DropdownMenuItem>
 
-              <div className="my-2 border-t border-border/15" />
+                <div className="my-2 border-t border-amber-400/10" />
 
-              <div className="my-2 border-t border-border/15" />
+                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-amber-200/50 uppercase">◈ Agents & Tools</p>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/personas" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">AI Personas</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/briefings" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Daily Briefings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/zahten" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zahten Agent Forge</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/vedic-astrology" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Vedic Astrology (Free)</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/notebooks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Notebooks</Link>
+                </DropdownMenuItem>
 
-              {/* Creation Branch */}
-              <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Creation</p>
-              <DropdownMenuItem asChild>
-                <Link to="/whiteboard" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Whiteboard</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/zali" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">ZANOEM Design Lab</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/imagine-to-code" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Imagine To Code</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/ide" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Aureon IDE</Link>
-              </DropdownMenuItem>
+                <div className="my-2 border-t border-amber-400/10" />
 
-              <div className="my-2 border-t border-border/15" />
+                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-amber-200/50 uppercase">◈ Creation</p>
+                <DropdownMenuItem asChild>
+                  <Link to="/whiteboard" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Whiteboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/zali" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">ZANOEM Design Lab</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/imagine-to-code" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Imagine To Code</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/ide" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Aureon IDE</Link>
+                </DropdownMenuItem>
 
-              {/* Platform Branch */}
-              <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Platform</p>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/byok" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Bring Your Own AI Key</Link>
-              </DropdownMenuItem>
+                <div className="my-2 border-t border-amber-400/10" />
 
-              <div className="my-2 border-t border-border/15" />
+                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-amber-200/50 uppercase">◈ Platform</p>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/byok" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Bring Your Own AI Key</Link>
+                </DropdownMenuItem>
 
-              {/* Company Branch */}
-              <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Company</p>
-              <DropdownMenuItem asChild>
-                <Link to="/features" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">All Features</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Founder</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Pricing</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Prompt Engineering</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/benchmarks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Benchmarks</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/equity" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Equity Ownership</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/openvpn" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">OpenVPN · Free</Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <div className="my-2 border-t border-amber-400/10" />
 
-          <div className="w-px h-5 bg-border/30" />
+                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-amber-200/50 uppercase">◈ Company</p>
+                <DropdownMenuItem asChild>
+                  <Link to="/features" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">All Features</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Founder</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Pricing</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Prompt Engineering</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/benchmarks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Benchmarks</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/equity" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Equity Ownership</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/openvpn" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">OpenVPN · Free</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          <ForumsDropdown />
+            <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-amber-400/20 to-transparent" />
+
+            <div className="relative">
+              <ForumsDropdown />
+            </div>
+          </div>
         </div>
 
         {/* Mobile: just logo */}
@@ -171,44 +185,49 @@ const Header = () => {
         </Link>
 
         {/* Right: Auth buttons */}
-        <div className="hidden sm:block" data-header-right>
-          <div className="flex items-center rounded-xl border border-border/30 bg-card/60 backdrop-blur-md overflow-hidden">
+        <div className="hidden sm:block relative" data-header-right>
+          <div aria-hidden className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl"
+               style={{ background: "radial-gradient(60% 100% at 80% 50%, hsl(45 90% 55% / 0.08), transparent 70%)" }} />
+          <div className="relative flex items-center rounded-full border border-amber-400/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
+            <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
             {isAsherRoute ? (
               <Link
                 to={user ? "/asher-dashboard" : "/asher"}
                 onClick={(e) => { if (!user) { e.preventDefault(); openAuth(false); } }}
-                className="group flex items-center gap-2 px-5 py-2.5 text-xs font-light tracking-[0.25em] uppercase text-foreground/80 transition-colors hover:text-foreground hover:bg-card/80"
+                className="group flex items-center gap-2 px-5 py-2.5 text-[11px] font-light tracking-[0.25em] uppercase text-foreground/80 transition-colors hover:text-foreground"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse shadow-[0_0_8px_rgba(248,113,113,0.8)]" />
                 Go to Asher
               </Link>
             ) : (
               <>
                 <Link
                   to="/zophiel"
-                  className="group flex items-center gap-2 px-4 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground hover:bg-card/80"
+                  className="group flex items-center gap-2 px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-amber-100"
                 >
                   <Search className="h-3.5 w-3.5" strokeWidth={1.5} />
                   <span>Search</span>
-                  <span className="hidden md:inline-block ml-1 rounded-sm border border-border/40 px-1 text-[8px] tracking-[0.15em] text-muted-foreground/70">FREE</span>
+                  <span className="hidden md:inline-block ml-1 rounded-sm border border-amber-400/30 bg-amber-400/5 px-1 text-[8px] tracking-[0.15em] text-amber-200/70">FREE</span>
                 </Link>
-                <div className="w-px h-5 bg-border/30" />
+                <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-amber-400/20 to-transparent" />
                 {!loading && user ? (
                   <Link
                     to="/dashboard"
-                    className="group relative flex items-center gap-2 px-5 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-foreground transition-colors hover:bg-card/80 overflow-hidden"
+                    className="group relative flex items-center gap-2 px-5 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-foreground transition-colors overflow-hidden"
                   >
+                    <span className="font-mono text-[8px] tracking-[0.15em] text-amber-200/40 relative z-10">02</span>
                     <span className="relative z-10">Dashboard</span>
                     <ArrowUpRight className="relative z-10 h-3.5 w-3.5 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" strokeWidth={1.5} />
-                    <span aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-foreground/[0.06] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                    <span aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/[0.08] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                   </Link>
                 ) : (
                   <>
-                    <button onClick={() => openAuth(true)} className="px-4 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground hover:bg-card/80">Log in</button>
-                    <div className="w-px h-5 bg-border/30" />
-                    <button onClick={() => openAuth(false)} className="group flex items-center gap-2 bg-foreground px-5 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-background transition-colors hover:bg-foreground/90">
-                      Sign up
-                      <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" strokeWidth={1.5} />
+                    <button onClick={() => openAuth(true)} className="px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-amber-100">Log in</button>
+                    <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-amber-400/20 to-transparent" />
+                    <button onClick={() => openAuth(false)} className="group relative flex items-center gap-2 px-5 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-background overflow-hidden">
+                      <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-amber-200 via-amber-100 to-amber-300" />
+                      <span className="relative z-10">Sign up</span>
+                      <ArrowUpRight className="relative z-10 h-3.5 w-3.5 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" strokeWidth={1.5} />
                     </button>
                   </>
                 )}
