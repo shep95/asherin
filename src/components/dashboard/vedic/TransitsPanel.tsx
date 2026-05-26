@@ -1248,6 +1248,115 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
+      {(familyInPeriod.length > 0 || homeInPeriod.length > 0 || childrenInPeriod.length > 0 || educationInPeriod.length > 0 || spiritualityInPeriod.length > 0 || travelInPeriod.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {familyInPeriod.length > 0 && (
+            <WindowList
+              title={`Family & Mother Windows · ${subjectLabel}`}
+              subtitle={`Family-axis hits during ${periodLabel} — Jupiter/Venus/Moon on your 4L (Sukha), 2L or Moon. Family events, mother's well-being, household harmony.`}
+              icon={<Users className="h-3.5 w-3.5 text-emerald-300/90" />}
+              accent="emerald"
+              windows={familyInPeriod}
+            />
+          )}
+          {homeInPeriod.length > 0 && (
+            <WindowList
+              title={`Home / Property / Vehicles Windows · ${subjectLabel}`}
+              subtitle={`Property hits during ${periodLabel} — benefics or Rahu on your 4L. Real-estate moves, vehicle changes, relocations, household upgrades.`}
+              icon={<Home className="h-3.5 w-3.5 text-amber-300/90" />}
+              accent="amber"
+              windows={homeInPeriod}
+            />
+          )}
+          {childrenInPeriod.length > 0 && (
+            <WindowList
+              title={`Children & Creativity Windows`}
+              subtitle={`5L (Putra/Purva Punya) activations during ${periodLabel} — conception energy, child welfare, creative output, speculation.`}
+              icon={<Baby className="h-3.5 w-3.5 text-rose-300/90" />}
+              accent="rose"
+              windows={childrenInPeriod}
+            />
+          )}
+          {educationInPeriod.length > 0 && (
+            <WindowList
+              title={`Education & Wisdom Windows · ${subjectLabel}`}
+              subtitle={`Study/wisdom hits during ${periodLabel} — Jupiter/Mercury on your 4L, 5L, 9L. Exams, certifications, guru appearance, advanced learning.`}
+              icon={<GraduationCap className="h-3.5 w-3.5 text-sky-300/90" />}
+              accent="sky"
+              windows={educationInPeriod}
+            />
+          )}
+          {spiritualityInPeriod.length > 0 && (
+            <WindowList
+              title={`Spirituality / Moksha Windows`}
+              subtitle={`Moksha-axis hits during ${periodLabel} — Jupiter/Ketu/Saturn on your 12L, 9L, Moon. Retreats, dissolution, deep inner work.`}
+              icon={<Mountain className="h-3.5 w-3.5 text-violet-300/90" />}
+              accent="violet"
+              windows={spiritualityInPeriod}
+            />
+          )}
+          {travelInPeriod.length > 0 && (
+            <WindowList
+              title={`Travel / Foreign-Move Windows · ${subjectLabel}`}
+              subtitle={`Movement hits during ${periodLabel} — Rahu/Jupiter/Mercury on your 9L (long-distance), 12L (foreign-land) or 3L (short trips).`}
+              icon={<Plane className="h-3.5 w-3.5 text-yellow-300/90" />}
+              accent="yellow"
+              windows={travelInPeriod}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ── VEDIC GLOSSARY — break down every term used above ── */}
+      <details className="group rounded-lg border border-border/30 bg-background/40 p-3">
+        <summary className="flex items-center gap-2 cursor-pointer list-none select-none">
+          <BookOpen className="h-3.5 w-3.5 text-foreground/80" />
+          <h4 className="text-xs font-light tracking-[0.18em] text-foreground uppercase">Vedic Glossary · What each term means</h4>
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/70 ml-auto transition-transform group-open:rotate-90" />
+        </summary>
+        <div className="pt-3 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-[10.5px] leading-relaxed">
+          {[
+            ["Lord (of a house)", "The planet that rules the sign sitting in that house. Wherever the lord goes, the affairs of its house go with it. So '9th Lord' = the planet running your fortune-house."],
+            ["L1 · Lagna (Ascendant)", "The sign rising on the eastern horizon at your birth. Your body, identity, vitality, how the world meets you."],
+            ["L2 · Dhana", "2nd house — accumulated wealth, savings, family money, speech, food."],
+            ["L3 · Parakrama", "3rd house — courage, self-effort, siblings, short trips, communication, content."],
+            ["L4 · Sukha", "4th house — mother, home, property, vehicles, foundational education, inner peace."],
+            ["L5 · Purva Punya / Putra", "5th house — past-life merit, children, creativity, speculation, romance."],
+            ["L6 · Roga", "6th house — disease, debts, enemies, daily work, service."],
+            ["L7 · Kalatra", "7th house — spouse, marriage, business partners, open enemies."],
+            ["L8 · Ayur", "8th house — longevity, chronic illness, surgery, sudden events, occult, inheritance."],
+            ["L9 · Bhagya / Dharma", "9th house — fortune, divine grace, guru, higher learning, foreign travel, dharma."],
+            ["L10 · Karma", "10th house — career, public status, authority, command — your 'throne'."],
+            ["L11 · Labha", "11th house — large gains, network income, fulfilment of desires, elder siblings."],
+            ["L12 · Vyaya / Moksha", "12th house — hidden expenses, hospitalization, isolation, foreign lands, liberation."],
+            ["Rashi", "A zodiac sign (Aries → Pisces). The 'address' a planet currently lives in."],
+            ["Atmakaraka (AK)", "The planet at the highest degree in your chart. Carries your soul's mission this lifetime."],
+            ["Darakaraka (DK)", "The planet at the lowest degree. Describes the nature of your future spouse."],
+            ["Upapada Lagna (UL)", "Jaimini spouse point. The single most precise 'where your soulmate lives' marker in the chart."],
+            ["Chandra Lagna", "Your Moon sign — emotional weather, the daily mind, mother, public-facing comfort."],
+            ["Surya Lagna", "Your Sun sign — soul-vitality, ego, father, authority signature."],
+            ["Dasha", "A planetary time-period that runs the show in your life. The currently active Dasha lord 'colors' every transit."],
+            ["MD · Mahadasha", "The major Dasha — runs 6–20 years. The headline chapter of your life right now."],
+            ["AD · Antardasha", "The sub-period inside the Mahadasha — runs months to ~3 years. The current sub-chapter."],
+            ["PD · Pratyantar Dasha", "The sub-sub-period — runs weeks to months. The current paragraph."],
+            ["SD · Sookshma Dasha", "The finest active sub-layer — runs days to weeks. The current sentence."],
+            ["Sade Sati", "The 7.5-year Saturn transit over your Moon sign and the signs on either side. Classical karmic pressure cycle."],
+            ["Rx · Retrograde", "When a planet appears to move backward from Earth. Its effects turn inward, revisit, replay, refine."],
+            ["Ingress", "The moment a planet crosses from one sign into the next. The 'sign change' that activates a new house in your chart."],
+            ["Transit", "Where a planet is RIGHT NOW (vs your natal chart). The live weather hitting your fixed birth blueprint."],
+            ["Karaka", "A planet that 'represents' a topic universally. Jupiter = wealth/children-karaka. Venus = spouse-karaka. Sun = father-karaka."],
+            ["Yoga", "A specific planetary combination that produces a named result (e.g. Gaja Kesari Yoga = Moon + Jupiter angularity = wealth & wisdom)."],
+            ["Dignity", "How comfortable a planet is in the sign it's in — Exalted (best), Own sign, Friendly, Neutral, Enemy, Debilitated (worst)."],
+            ["Aspect (Drishti)", "The houses a planet 'looks at' from where it sits. Every planet aspects the 7th from itself; Jupiter/Mars/Saturn have extra aspects."],
+          ].map(([term, def]) => (
+            <div key={term} className="rounded-md border border-border/20 bg-background/30 px-2.5 py-2">
+              <div className="text-foreground/95 font-light tracking-wide">{term}</div>
+              <div className="text-muted-foreground/80 font-light">{def}</div>
+            </div>
+          ))}
+        </div>
+      </details>
+
       {/* Month forecast */}
       <div className="rounded-lg border border-border/25 bg-gradient-to-b from-foreground/[0.04] to-transparent p-3 space-y-2">
         <div className="flex items-center justify-between gap-2 flex-wrap">
