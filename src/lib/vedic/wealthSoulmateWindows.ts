@@ -134,6 +134,12 @@ const TRAVEL_WEIGHT: Record<string, number> = {
   Rahu: 5, Jupiter: 4, Mercury: 3, Venus: 2, Moon: 2, Mars: 2, Sun: 1,
   Saturn: -2, Ketu: 1,
 };
+// NETWORK / CONNECTIONS = allies, friend-circle expansion, public-facing relationships.
+const NETWORK_WEIGHT: Record<string, number> = {
+  Mercury: 5, Rahu: 5, Jupiter: 4, Venus: 3, Sun: 2, Moon: 2, Mars: 1, Saturn: 1,
+  Ketu: -2,
+};
+
 
 const POINT_BONUS: Partial<Record<PointCode, number>> = {
   L9: 3, L11: 2, L2: 1, AK: 2, UL: 3, DK: 2, L7: 1,
