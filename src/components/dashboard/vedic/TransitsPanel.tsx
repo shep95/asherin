@@ -605,15 +605,35 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       });
     }
 
-    // ── Enrich each brief with Dasha+Transit confidence ──
-    const enriched: Brief[] = briefs.map((b) => {
+    // ── Dasha flavor map: how the active Maha lord colors any window's effect ──
+    const DASHA_FLAVOR: Record<string, string> = {
+      Jupiter: "filtered through your Jupiter dasha — arrives via teachers, sponsors, ethical & expansive channels",
+      Saturn:  "filtered through your Saturn dasha — slow, structural, earned through discipline (no shortcuts)",
+      Mercury: "filtered through your Mercury dasha — through deals, contracts, words, code, and intellect",
+      Venus:   "filtered through your Venus dasha — via relationships, beauty, art, and feminine networks",
+      Mars:    "filtered through your Mars dasha — through bold action, confrontation, and raw push",
+      Sun:     "filtered through your Sun dasha — via authority, recognition, and public visibility",
+      Moon:    "filtered through your Moon dasha — emotionally-driven, public-mood-sensitive timing",
+      Rahu:    "filtered through your Rahu dasha — unconventional, foreign, viral, amplified channels",
+      Ketu:    "filtered through your Ketu dasha — sudden, severance-style, spiritual / detachment-driven",
+    };
+    const activeMaha = currentDasha?.maha?.lord;
+    // ── Enrich each brief with Dasha+Transit confidence + WHY explanation ──
+    const enriched: (Brief & { cause?: string; dashaFlavor?: string })[] = briefs.map((b) => {
       const w = sourceMap.get(b.key);
       const support = w ? computeDashaSupport(w) : { score: 0, lords: [] };
+      const topHit = w?.hits?.[0];
+      const cause = topHit
+        ? `${topHit.planet}${topHit.retrograde ? " (Rx)" : ""} is transiting the sign of your ${topHit.pointLabel} (${topHit.signName}) — ${topHit.reasoning}`
+        : undefined;
+      const dashaFlavor = activeMaha ? DASHA_FLAVOR[activeMaha] : undefined;
       return {
         ...b,
         dashaScore: support.score,
         dashaLords: support.lords,
         confidence: confidenceFor(w?.score ?? 0, support.score),
+        cause,
+        dashaFlavor,
       };
     });
     // Strongest predictions = confidence "peak" or "strong" (dasha + transit converge)
