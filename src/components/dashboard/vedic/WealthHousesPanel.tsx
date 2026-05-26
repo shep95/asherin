@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { ChevronDown, BookOpen, Sparkles, Coins } from "lucide-react";
 import { rashis } from "@/data/nakshatraData";
 import { buildHouseReading } from "@/lib/vedic/houseReading";
+import { buildHouseActivation } from "@/lib/vedic/houseActivations";
+import type { SignIngress } from "@/lib/vedic/transits";
 
 export interface WHPlanet {
   name: string;
@@ -13,6 +15,7 @@ export interface WHPlanet {
 interface Props {
   ascendant: number;
   planets: WHPlanet[];
+  ingresses?: SignIngress[] | null;
 }
 
 const HOUSE_META: { title: string; body: string; brand: string; archetype: string }[] = [
