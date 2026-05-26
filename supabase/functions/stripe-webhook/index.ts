@@ -186,6 +186,51 @@ serve(async (req) => {
       }
     }
 
+    // ── Invoice paid → send receipt email with download link ───────────
+    if (event.type === "invoice.payment_succeeded" || event.type === "invoice.paid") {
+      const inv = event.data.object as Stripe.Invoice;
+      const recipient = inv.customer_email
+        || (inv.customer ? (await stripe.customers.retrieve(inv.customer as string) as any)?.email : null);
+
+      if (recipient) {
+        const planName = inv.lines?.data?.[0]?.description
+          || (inv.lines?.data?.[0] as any)?.price?.nickname
+          || "Aureon";
+        const amount = new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: (inv.currency || "usd").toUpperCase(),
+        }).format((inv.amount_paid || 0) / 100);
+
+        const templateData: Record<string, any> = {
+          planName,
+          amount,
+          invoiceNumber: inv.number || inv.id,
+          paidAt: new Date((inv.status_transitions?.paid_at || inv.created) * 1000)
+            .toISOString().slice(0, 10),
+          receiptUrl: inv.hosted_invoice_url || undefined,
+          invoicePdfUrl: inv.invoice_pdf || undefined,
+        };
+        if ((inv as any).next_payment_attempt) {
+          templateData.nextBillingDate = new Date((inv as any).next_payment_attempt * 1000)
+            .toISOString().slice(0, 10);
+        }
+
+        try {
+          await supabaseAdmin.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "invoice-receipt",
+              recipientEmail: recipient,
+              idempotencyKey: `invoice-receipt-${inv.id}`,
+              templateData,
+            },
+          });
+          logStep("Receipt email enqueued", { invoice: inv.id, recipient });
+        } catch (mailErr) {
+          logStep("WARNING: receipt email failed", { error: String(mailErr) });
+        }
+      }
+    }
+
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
