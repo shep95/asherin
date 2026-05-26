@@ -28,12 +28,12 @@ export const POWER_RANKINGS: PowerRankingRow[] = [
     note: "Earthy Triangle dominance (Taurus–Virgo–Capricorn) = industrial base." },
 
   // ── PRESENT ──
-  { rank: 1, country: "United States", flag: "🇺🇸", era: "Present", window: "2024 – 2027",
+  { rank: 1, country: "United States", flag: "🇺🇸", era: "Present", window: "2024 – 2028",
     driver: "Saturn in Pisces afflicting 9H — soft empire decay",
     note: "Still #1 in air/space/finance. Jupiter return strengthens 2026 Q3." },
   { rank: 2, country: "China (PRC)", flag: "🇨🇳", era: "Present", window: "2024 – 2030",
     driver: "Ketu mahadasha — detachment from old growth model",
-    note: "Strongest in Land + Sea (Scorpio Moon). Naval expansion peaks 2027." },
+    note: "Strongest in Land + Sea (Scorpio Moon). Naval expansion peaks 2028." },
   { rank: 3, country: "India", flag: "🇮🇳", era: "Present", window: "2023 – 2031",
     driver: "Venus mahadasha on Taurus Asc — Argha Kand wealth phase",
     note: "Demographic + tech rise. Strongest suit: Air + cyber (Mercury exalted)." },
@@ -189,7 +189,7 @@ export interface WW3Dossier {
 export const WW3_DOSSIER: WW3Dossier = {
   classification: "TOP SECRET // ZOPHIEL MUNDANE FORECAST",
   start: {
-    date: "2027-08 → 2027-11",
+    date: "2028-08 → 2028-11",
     trigger: "Naval incident in West Pacific (Taiwan Strait blockade) + simultaneous Black Sea escalation",
     locus: "Taiwan Strait + Eastern Mediterranean (dual-theatre opening)",
     detail: "Mars enters Scorpio (own sign) while Saturn-Rahu Vedha hits the natal Moon of both US (Cancer Asc) and PRC (Libra Asc) charts. A grey-zone naval collision becomes a kinetic exchange within 11 days. Article-5 / Mutual Defense triggers cascade alliances within 6 weeks."
@@ -234,8 +234,8 @@ export const WW3_DOSSIER: WW3Dossier = {
     { rank: 6, country: "Nigeria",     flag: "🇳🇬", note: "African pivot rises through 2040s" }
   ],
   eclipses: [
-    { date: "2027-08-02", type: "Total Solar (path: Spain → Egypt → Saudi)", path: "Mediterranean–Red Sea axis",
-      effect: "Activates MENA war front. Re-trigger by Mars 2027-11 = ignition spark." },
+    { date: "2028-08-02", type: "Total Solar (path: Spain → Egypt → Saudi)", path: "Mediterranean–Red Sea axis",
+      effect: "Activates MENA war front. Re-trigger by Mars 2028-11 = ignition spark." },
     { date: "2028-01-26", type: "Annular Solar (path: Indian Ocean → Pacific)", path: "South China Sea adjacent",
       effect: "Anchors Pacific theatre. Saturn re-hit 2028-Q3 = naval climax." },
     { date: "2030-06-01", type: "Total Solar (path: N.Africa → Caspian → N.China)", path: "Crosses Beijing latitude band",
@@ -244,12 +244,12 @@ export const WW3_DOSSIER: WW3Dossier = {
       effect: "Months-of-effect window — armistice momentum builds." }
   ],
   phases: [
-    { phase: "I · Cold Phase",       window: "2026-Q4 → 2027-Q3", trigger: "Trade + chip embargoes, cyber preludes",
+    { phase: "I · Cold Phase",       window: "2026-Q4 → 2028-Q3", trigger: "Trade + chip embargoes, cyber preludes",
       detail: "Naval close-passes weekly. Submarine cable severances. Two NATO+1 exercises near Taiwan.",
       vedic: "Mars enters Scorpio · Saturn–Rahu Vedha forming" },
-    { phase: "II · Ignition",         window: "2027-Q4 → 2028-Q1", trigger: "Naval kinetic + Black Sea escalation",
+    { phase: "II · Ignition",         window: "2028-Q4 → 2029-Q1", trigger: "Naval kinetic + Black Sea escalation",
       detail: "Carrier loss in Pacific. Article-5 invoked in Europe within 6 weeks.",
-      vedic: "Eclipse 2027-08 path activates · Mars re-hit Nov-2027" },
+      vedic: "Eclipse 2028-08 path activates · Mars re-hit Nov-2028" },
     { phase: "III · Total War",       window: "2028 → 2029-Q3",   trigger: "Open declarations, full mobilization",
       detail: "Hypersonic exchange · LEO satellite war · NATO + AUKUS vs PRC + RU + DPRK + IR axis.",
       vedic: "Saturn–Mars samasaptaka active · Sanghatta Vedha confirmed" },
@@ -333,11 +333,11 @@ export const PROTOCOLS: ProtocolEntry[] = [
     target: "Outbreak of war, terrorism, border conflicts",
     technique: "Mars–Saturn Vedha + Rahu/Ketu in fiery signs",
     signal: "Trigger: Moon enters afflicted fiery sign (1/5/9).",
-    body: "WAR is guaranteed when Mars & Saturn cause mutual Vedha in the Sanghatta Chakra AND Jupiter is weak. With Jupiter aspect → cold war only. Active Vedha pairs through 2027 favor escalation in Eastern Europe & West Pacific." },
+    body: "WAR is guaranteed when Mars & Saturn cause mutual Vedha in the Sanghatta Chakra AND Jupiter is weak. With Jupiter aspect → cold war only. Active Vedha pairs through 2028 favor escalation in Eastern Europe & West Pacific." },
   { id: "crash",    title: "2 · Sarvatobhadra Crash Protocol",
     target: "Stock crashes, bank failure, sovereign default",
     technique: "Pancha Vedha (5-fold pierce) on national 'Arth' nakshatras",
-    signal: "Watch Saturn pierce of US 2H/11H stars in 2027 window.",
+    signal: "Watch Saturn pierce of US 2H/11H stars in the critical window.",
     body: "Sun-Vedha = bear sentiment · Mars-Vedha = panic · Saturn-Vedha = depression · Rahu/Ketu = fraud bubbles. A Pancha Vedha (5 simultaneous pierces) collapses the regime or asset to zero." },
   { id: "disaster", title: "3 · Koorma Chakra (Natural Disasters)",
     target: "Earthquakes, tsunamis, pandemics by region",
