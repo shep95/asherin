@@ -229,7 +229,7 @@ const WW3 = () => {
             Sanghatta Rashi Protocol — Planetary War Indicators
           </h2>
           <p className="text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
-            The 2025–2027 transit window. Running Sanghatta Rashi Protocol + Shoola Chakra + Trajectory Analysis simultaneously.
+            The 2025–2028 transit window. Running Sanghatta Rashi Protocol + Shoola Chakra + Trajectory Analysis simultaneously.
           </p>
         </div>
         <div className="mx-auto max-w-3xl space-y-3">
