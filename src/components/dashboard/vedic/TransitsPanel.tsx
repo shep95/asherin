@@ -352,6 +352,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   const educationInPeriod    = useMemo(() => educationWindows.filter(inPeriod),    [educationWindows, inPeriod]);
   const spiritualityInPeriod = useMemo(() => spiritualityWindows.filter(inPeriod), [spiritualityWindows, inPeriod]);
   const travelInPeriod       = useMemo(() => travelWindows.filter(inPeriod),       [travelWindows, inPeriod]);
+  const networkInPeriod      = useMemo(() => networkWindows.filter(inPeriod),      [networkWindows, inPeriod]);
 
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();
