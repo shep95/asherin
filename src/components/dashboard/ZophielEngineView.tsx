@@ -28,7 +28,7 @@ const ArchivePanel = lazy(() => import("./search/ArchivePanel"));
 const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
 import ArchivesHarvesterPanel from "./search/ArchivesHarvesterPanel";
-import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
