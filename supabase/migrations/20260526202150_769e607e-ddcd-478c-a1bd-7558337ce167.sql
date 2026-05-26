@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "authenticated_can_read_realtime" ON public.messages;
