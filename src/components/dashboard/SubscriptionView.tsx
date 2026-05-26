@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Check, ArrowRight, Loader2, ExternalLink, RefreshCw, Crown, AlertCircle, Package, Trash2, Shield, ChevronDown, Sparkles, ArrowUp, XCircle, RotateCcw, AlertTriangle } from "lucide-react";
+import { Check, ArrowRight, Loader2, ExternalLink, RefreshCw, Crown, AlertCircle, Package, Trash2, Shield, ChevronDown, Sparkles, ArrowUp, XCircle, RotateCcw, AlertTriangle, Receipt } from "lucide-react";
+import ReceiptsSection from "@/components/dashboard/subscription/ReceiptsSection";
 import { useSubscription, type TierKey } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -410,6 +411,11 @@ const SubscriptionView = () => {
               ))}
             </div>
           )}
+        </Section>
+
+        {/* ── Receipts ─────────────────────────────────────────────────── */}
+        <Section title="Receipts" icon={Receipt} defaultOpen={false}>
+          <ReceiptsSection />
         </Section>
 
         {/* ── Billing & Security ───────────────────────────────────────── */}
