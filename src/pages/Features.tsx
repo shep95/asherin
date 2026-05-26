@@ -449,8 +449,8 @@ const Features = () => {
       <nav className="relative z-10 px-6 pb-20" aria-label="Feature tiers">
         <div className="mx-auto max-w-3xl flex flex-col sm:flex-row items-center justify-center gap-4">
           {[
-            { label: "Aureon — $18/mo", anchor: "#aureon", border: "border-emerald-400/25", text: "text-emerald-400" },
-            { label: "Pro — $399/mo", anchor: "#pro", border: "border-accent/25", text: "text-accent" },
+            { label: "Aureon — $199/mo", anchor: "#aureon", border: "border-emerald-400/25", text: "text-emerald-400" },
+            { label: "Pro — $740/mo", anchor: "#pro", border: "border-accent/25", text: "text-accent" },
           ].map(({ label, anchor, border, text }) => (
             <a
               key={anchor}
@@ -467,16 +467,17 @@ const Features = () => {
       <TierSection
         id="aureon"
         title="Aureon"
-        subtitle="$18/month — 60 messages per 3-hour window — Full AI, search, encryption, and memory from day one."
+        subtitle="$199/month — Full AI, search, encryption, and memory from day one."
         tierKey="aureon"
       />
 
       <TierSection
         id="pro"
         title="Aureon Pro"
-        subtitle="$399/month — 200 messages per 3-hour window — Everything in Aureon plus NOMAD Public Intelligence, daily briefings, and deep research."
+        subtitle="$740/month — Everything in Aureon plus NOMAD Public Intelligence, daily briefings, and deep research."
         tierKey="pro"
       />
+
 
 
       {/* CTA */}

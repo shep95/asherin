@@ -124,7 +124,7 @@ const PRO_FEATURE_GROUPS = [
       { name: "Azplen Intelligence Platform", desc: "Full data intelligence — ingest, analyze, branch, and visualize.", link: "/feature/azplen" },
       { name: "Time-Series Intelligence", desc: "Temporal analysis and forecasting across any dataset.", link: null },
       { name: "Geospatial Analysis", desc: "Location intelligence and geographic data mapping.", link: null },
-      { name: "Lavba Strategy Engine", desc: "Canvas charts and fractal pattern discovery for strategic forecasting.", link: "/feature/lavba" },
+      
     ],
   },
   {

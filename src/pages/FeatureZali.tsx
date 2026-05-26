@@ -207,7 +207,7 @@ const FeatureZali = () => {
               </div>
             </div>
             <p className="text-sm font-extralight leading-relaxed text-muted-foreground mb-6">
-              Complete system blueprint covering every frontend component, backend edge function, database schema, AI prompt engineering pipeline, specialist agent system, SSE streaming architecture, and full user workflows — no steps skipped.
+              Complete system blueprint covering every frontend component, backend service, database schema, prompt engineering pipeline, specialist agent system, streaming architecture, and full user workflows — no steps skipped.
             </p>
             <button
               onClick={handleDownloadBlueprint}
