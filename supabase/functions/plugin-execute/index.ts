@@ -37,8 +37,9 @@ async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
 }
 
 /* ── Gemini AI Helper ─────────────────────────────────────────── */
+let RESOLVED_GEMINI_KEY = "";
 async function callGemini(prompt: string): Promise<string> {
-  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  const apiKey = RESOLVED_GEMINI_KEY;
   if (!apiKey) throw new Error("AI engine not configured");
 
   const res = await fetch(
@@ -59,6 +60,7 @@ async function callGemini(prompt: string): Promise<string> {
   const data = await res.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "No output generated.";
 }
+
 
 /* ── Slack delivery helper ────────────────────────────────────── */
 async function sendSlackNotification(webhookUrl: string, message: string): Promise<boolean> {
