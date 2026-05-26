@@ -61,6 +61,49 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
   );
 };
 
+// 2027-style HUD telemetry bar — military time (UTC + local 24h), uptime, status
+const HudStatusBar = () => {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const localMil = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  const utcMil = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}Z`;
+  const dateStamp = `${now.getUTCFullYear()}.${pad(now.getUTCMonth() + 1)}.${pad(now.getUTCDate())}`;
+  // Julian day-of-year (military style)
+  const start = Date.UTC(now.getUTCFullYear(), 0, 0);
+  const doy = Math.floor((now.getTime() - start) / 86400000);
+  const tzOffsetMin = -now.getTimezoneOffset();
+  const tzSign = tzOffsetMin >= 0 ? "+" : "-";
+  const tzH = pad(Math.floor(Math.abs(tzOffsetMin) / 60));
+  const tzM = pad(Math.abs(tzOffsetMin) % 60);
+
+  return (
+    <div className="relative w-full max-w-4xl mb-8 rounded-md border border-foreground/15 bg-background/40 backdrop-blur-md px-4 py-2.5 font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground/80 flex items-center justify-between gap-4 flex-wrap shadow-[0_0_40px_-12px_rgba(255,255,255,0.08)]">
+      {/* corner ticks */}
+      <span aria-hidden className="absolute -top-px -left-px h-2 w-2 border-t border-l border-foreground/60" />
+      <span aria-hidden className="absolute -top-px -right-px h-2 w-2 border-t border-r border-foreground/60" />
+      <span aria-hidden className="absolute -bottom-px -left-px h-2 w-2 border-b border-l border-foreground/60" />
+      <span aria-hidden className="absolute -bottom-px -right-px h-2 w-2 border-b border-r border-foreground/60" />
+
+      <span className="flex items-center gap-2">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        </span>
+        <span className="text-emerald-300/90">SYS · OPERATIONAL</span>
+      </span>
+      <span className="hidden sm:inline text-foreground/70">LOC {localMil} <span className="text-muted-foreground/50">UTC{tzSign}{tzH}{tzM}</span></span>
+      <span className="text-foreground tabular-nums">{utcMil}</span>
+      <span className="hidden md:inline text-muted-foreground/60">{dateStamp} · DOY {pad(doy)}</span>
+      <span className="hidden lg:inline text-muted-foreground/60">UPLINK · 30 NODES</span>
+    </div>
+  );
+};
+
 const Index = () => {
   useEffect(() => {
     applySeoHead({
@@ -220,24 +263,48 @@ const Index = () => {
       <Header />
 
       <ScrollSection>
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center overflow-hidden">
         {/* Aurora glow behind hero */}
         <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[1200px] h-[520px] zophiel-aurora rounded-full" />
 
-        <div className="relative inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/40 backdrop-blur-md px-3 py-1 mb-6">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        {/* 2027 grid floor */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.18]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
+            backgroundSize: "64px 64px",
+            maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+            WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+          }}
+        />
+        {/* Top corner brackets */}
+        <div aria-hidden className="pointer-events-none absolute inset-x-6 top-24 flex items-center justify-between text-[9px] tracking-[0.35em] text-muted-foreground/40 uppercase font-mono">
+          <span className="flex items-center gap-2">
+            <span className="h-px w-6 bg-foreground/30" />
+            NODE / AUREON-01
           </span>
-          <span className="text-[9px] font-medium tracking-[0.3em] text-muted-foreground/70 uppercase">All systems operational</span>
+          <span className="flex items-center gap-2">
+            UPLINK · SECURE
+            <span className="h-px w-6 bg-foreground/30" />
+          </span>
         </div>
-        <h1 className="relative max-w-3xl text-4xl sm:text-5xl md:text-7xl font-extralight tracking-wide leading-[1.05] zophiel-shimmer-text">
+
+        {/* HUD status bar — 2027 telemetry */}
+        <HudStatusBar />
+
+        {/* Headline */}
+        <h1 className="relative max-w-4xl text-4xl sm:text-5xl md:text-7xl font-extralight tracking-wide leading-[1.02] zophiel-shimmer-text">
           See what others miss.
         </h1>
+        <div aria-hidden className="mt-3 h-px w-32 bg-gradient-to-r from-transparent via-foreground/60 to-transparent" />
+
         <p className="mt-6 max-w-2xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
           Aureon is a full-spectrum intelligence engine — uncensored AI, 30-source OSINT, predictive forecasting,
           and forensic-grade reasoning. Built for operators who need answers, not apologies.
         </p>
+
         <div className="mt-10 flex flex-col sm:flex-row items-center gap-3">
           <MagneticSpotlightButton href="/zophiel" variant="primary">
             Try Free Search <ArrowRight className="h-4 w-4" />
@@ -246,20 +313,23 @@ const Index = () => {
             See it live
           </MagneticSpotlightButton>
         </div>
+
+        {/* Telemetry rail */}
         <div className="mt-14 grid grid-cols-3 gap-8 sm:gap-16 text-center">
-          <div>
-            <div className="text-2xl sm:text-3xl font-extralight text-foreground"><CountUp to={30} suffix="+" /></div>
-            <div className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/60 mt-1">OSINT sources</div>
+          <div className="relative">
+            <div className="text-2xl sm:text-3xl font-extralight text-foreground font-mono tabular-nums"><CountUp to={30} suffix="+" /></div>
+            <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground/60 mt-1 font-mono">OSINT sources</div>
           </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-extralight text-foreground"><CountUp to={14} /></div>
-            <div className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/60 mt-1">Analysis passes</div>
+          <div className="relative">
+            <div className="text-2xl sm:text-3xl font-extralight text-foreground font-mono tabular-nums"><CountUp to={14} /></div>
+            <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground/60 mt-1 font-mono">Analysis passes</div>
           </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-extralight text-foreground"><CountUp to={9} /></div>
-            <div className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/60 mt-1">AI providers</div>
+          <div className="relative">
+            <div className="text-2xl sm:text-3xl font-extralight text-foreground font-mono tabular-nums"><CountUp to={9} /></div>
+            <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground/60 mt-1 font-mono">AI providers</div>
           </div>
         </div>
+
         {canInstall && (
           <button
             onClick={install}
@@ -270,6 +340,12 @@ const Index = () => {
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </button>
         )}
+
+        {/* Bottom corner brackets */}
+        <div aria-hidden className="pointer-events-none absolute inset-x-6 bottom-8 flex items-center justify-between text-[9px] tracking-[0.35em] text-muted-foreground/40 uppercase font-mono">
+          <span>v2027.1 · BUILD ZOPHIEL</span>
+          <span>SCROLL ↓ TO DEPLOY</span>
+        </div>
       </div>
       </ScrollSection>
 
