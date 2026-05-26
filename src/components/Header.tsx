@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown, Search, ArrowUpRight } from "lucide-react";
 import aureonLogo from "@/assets/aureon-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -172,38 +172,51 @@ const Header = () => {
 
         {/* Right: Auth buttons */}
         <div className="hidden sm:block" data-header-right>
-          <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2">
+          <div className="flex items-center rounded-xl border border-border/30 bg-card/60 backdrop-blur-md overflow-hidden">
             {isAsherRoute ? (
               <Link
                 to={user ? "/asher-dashboard" : "/asher"}
                 onClick={(e) => { if (!user) { e.preventDefault(); openAuth(false); } }}
-                className="cursor-pointer rounded-lg border border-red-400/40 bg-red-500/10 px-5 py-1.5 text-xs font-light tracking-[0.2em] text-red-200 transition-all hover:bg-red-500/20 uppercase"
+                className="group flex items-center gap-2 px-5 py-2.5 text-xs font-light tracking-[0.25em] uppercase text-foreground/80 transition-colors hover:text-foreground hover:bg-card/80"
               >
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
                 Go to Asher
               </Link>
             ) : (
               <>
                 <Link
                   to="/zophiel"
-                  className="cursor-pointer rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-1.5 text-xs font-light tracking-[0.15em] text-emerald-300 transition-all hover:bg-emerald-400/20 uppercase"
+                  className="group flex items-center gap-2 px-4 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground hover:bg-card/80"
                 >
-                  Free Search
+                  <Search className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  <span>Search</span>
+                  <span className="hidden md:inline-block ml-1 rounded-sm border border-border/40 px-1 text-[8px] tracking-[0.15em] text-muted-foreground/70">FREE</span>
                 </Link>
+                <div className="w-px h-5 bg-border/30" />
                 {!loading && user ? (
-                  <Link to="/dashboard" className="group relative rounded-xl border border-border/40 bg-foreground/5 px-6 py-2 text-sm font-extralight tracking-[0.2em] text-foreground transition-all duration-300 hover:bg-foreground/10 hover:border-foreground/30 overflow-hidden">
+                  <Link
+                    to="/dashboard"
+                    className="group relative flex items-center gap-2 px-5 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-foreground transition-colors hover:bg-card/80 overflow-hidden"
+                  >
                     <span className="relative z-10">Dashboard</span>
-                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                    <ArrowUpRight className="relative z-10 h-3.5 w-3.5 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" strokeWidth={1.5} />
+                    <span aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-foreground/[0.06] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                   </Link>
                 ) : (
                   <>
-                    <button onClick={() => openAuth(true)} className="cursor-pointer rounded-lg px-5 py-1.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Log in</button>
-                    <button onClick={() => openAuth(false)} className="cursor-pointer rounded-lg bg-foreground px-5 py-1.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90">Sign up</button>
+                    <button onClick={() => openAuth(true)} className="px-4 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground hover:bg-card/80">Log in</button>
+                    <div className="w-px h-5 bg-border/30" />
+                    <button onClick={() => openAuth(false)} className="group flex items-center gap-2 bg-foreground px-5 py-2.5 text-xs font-light tracking-[0.22em] uppercase text-background transition-colors hover:bg-foreground/90">
+                      Sign up
+                      <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" strokeWidth={1.5} />
+                    </button>
                   </>
                 )}
               </>
             )}
           </div>
         </div>
+
 
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="sm:hidden rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5" aria-label="Toggle navigation menu">
           {mobileMenuOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
