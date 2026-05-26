@@ -200,6 +200,7 @@ export function detectWindows(
     fame: FAME_WEIGHT, career: CAREER_WEIGHT,
     family: FAMILY_WEIGHT, home: HOME_WEIGHT, children: CHILDREN_WEIGHT,
     education: EDUCATION_WEIGHT, spirituality: SPIRITUALITY_WEIGHT, travel: TRAVEL_WEIGHT,
+    network: NETWORK_WEIGHT,
   };
   const interesting = POINT_SET[kind];
   const planetWeights = WEIGHT_SET[kind];
