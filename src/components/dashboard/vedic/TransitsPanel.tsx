@@ -19,6 +19,8 @@ interface Props {
   companyCharts?: CompanyFoundation[];
   currentDasha?: CurrentDashaPath;
   dashaTimeline?: DashaPeriod[];
+  /** Emits ingresses for the active natal ref so sibling panels can reuse them. */
+  onIngresses?: (ingresses: SignIngress[] | null) => void;
 }
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
