@@ -19,7 +19,7 @@ const PromptEngineering = lazy(() => import("./pages/PromptEngineering"));
 const Features = lazy(() => import("./pages/Features"));
 const Benchmarks = lazy(() => import("./pages/Benchmarks"));
 const NDA = lazy(() => import("./pages/NDA"));
-const EquityOwnership = lazy(() => import("./pages/EquityOwnership"));
+
 const FeatureZophiel = lazy(() => import("./pages/FeatureZophiel"));
 const FeatureNomad = lazy(() => import("./pages/FeatureNomad"));
 const FeatureAzplen = lazy(() => import("./pages/FeatureAzplen"));
@@ -109,7 +109,6 @@ const App = () => (
             <Route path="/features" element={<Features />} />
             <Route path="/benchmarks" element={<Benchmarks />} />
             <Route path="/nda" element={<NDA />} />
-            <Route path="/equity" element={<EquityOwnership />} />
             <Route path="/feature/zophiel" element={<FeatureZophiel />} />
             <Route path="/feature/nomad" element={<FeatureNomad />} />
             <Route path="/feature/azplen" element={<FeatureAzplen />} />
