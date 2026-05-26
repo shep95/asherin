@@ -142,6 +142,9 @@ export function computeSensitivePoints(planets: SweVedicPlanet[], ascendant: num
     L3:      mk("L3", "Lord of 3rd (Parakrama)", lord3Sign,
                 "Sign where your 3rd-house lord (courage, self-effort, communication, content, short trips) lives.",
                 "Your courage, communication, and 'reach' channel."),
+    L4:      mk("L4", "Lord of 4th (Sukha)", lord4Sign,
+                "Sign where your 4th-house lord (mother, home, property, vehicles, inner peace, foundational education) currently lives.",
+                "Your home, family roots, property, and peace of mind."),
   };
 
   const bySign = new Map<number, SensitivePoint[]>();
