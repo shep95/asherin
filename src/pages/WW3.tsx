@@ -14,7 +14,7 @@ const convergenceFactors = [
     icon: Users,
     title: "Demographic Window Closure",
     description:
-      "China's demographic window CLOSES after 2030. Every year past 2030, China gets older, weaker, and less capable of projecting military power. The CCP's own internal studies confirm this. If China is EVER going to take Taiwan, it is in the Late 2026 – Mid 2027 window or NEVER.",
+      "China's demographic window CLOSES after 2030. Every year past 2030, China gets older, weaker, and less capable of projecting military power. The CCP's own internal studies confirm this. If China is EVER going to take Taiwan, it is in the Late 2026 – Early 2028 window or NEVER.",
   },
   {
     icon: Cpu,
