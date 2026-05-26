@@ -14,6 +14,10 @@ Deno.serve(async (req) => {
   cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
+    // Require authenticated caller — prevent open SSRF/proxy abuse
+    const { requireUser, authErrorResponse } = await import("../_shared/authMiddleware.ts");
+    try { await requireUser(req); } catch (e) { return authErrorResponse(e, cors); }
+
     const u = new URL(req.url);
     const target = u.searchParams.get("url");
     if (!target || !ALLOWED.test(target)) {

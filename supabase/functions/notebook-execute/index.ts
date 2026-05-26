@@ -110,17 +110,35 @@ Deno.serve(async (req) => {
     const { data: userData, error: authErr } = await supabase.auth.getUser(token);
     if (authErr || !userData.user) throw new Error("Auth failed");
 
+    const userId = userData.user.id;
     const { cellId, cellType, content, datasetId } = await req.json();
     let output = "";
 
+    // Ownership check: caller must own the notebook that contains this cell
+    if (cellId) {
+      const { data: cellRow } = await supabase
+        .from("notebook_cells")
+        .select("notebook_id, notebooks!inner(owner_id)")
+        .eq("id", cellId)
+        .maybeSingle();
+      // @ts-ignore — embedded relation
+      const ownerId = cellRow?.notebooks?.owner_id;
+      if (!cellRow || ownerId !== userId) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     if (cellType === "query" || cellType === "code") {
       if (datasetId) {
-        // Try to load dataset and execute query against it
+        // Try to load dataset and execute query against it — scoped to caller
         const { data: dataset } = await supabase
           .from("asha_datasets")
           .select("storage_path, file_name")
           .eq("id", datasetId)
+          .eq("user_id", userId)
           .single();
 
         if (dataset) {

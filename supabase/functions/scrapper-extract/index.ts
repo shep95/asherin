@@ -17,15 +17,20 @@ serve(async (req) => {
   }
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
+  let RESOLVED_GEMINI_KEY = "";
   try {
     const _b = await req.clone().json().catch(() => ({} as any));
     const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
     const _gate = await import('../_shared/adminGate.ts');
-    await _gate.resolveKey(req, _byok);
+    const _resolved = await _gate.resolveKey(req, _byok);
+    RESOLVED_GEMINI_KEY = _resolved.mode === 'byok'
+      ? (_resolved.byok?.apiKey ?? "")
+      : (_resolved.geminiKey ?? "");
   } catch (_e) {
     const _gate = await import('../_shared/adminGate.ts');
-    return _gate.byokErrorResponse(_e, (globalThis as any).corsHeaders ?? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' });
+    return _gate.byokErrorResponse(_e, corsHeaders);
   }
+
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -50,9 +55,10 @@ serve(async (req) => {
 
     console.log(`[SCRAPPER] Extracting text from: ${fileName} (${fileType})`);
 
-    // Use Gemini to extract text from the document
-    const apiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
+    // Use the BYOK-resolved Gemini key (admin → platform; otherwise caller's key)
+    const apiKey = RESOLVED_GEMINI_KEY;
     if (!apiKey) throw new Error("No AI API key configured");
+
 
     // Determine MIME type for Gemini
     let mimeType = fileType || "application/octet-stream";

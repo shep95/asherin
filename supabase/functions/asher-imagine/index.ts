@@ -16,6 +16,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Require authenticated caller — prevents anonymous abuse of platform AI credits
+    const { requireUser, authErrorResponse } = await import("../_shared/authMiddleware.ts");
+    try { await requireUser(req); } catch (e) { return authErrorResponse(e, corsHeaders); }
+
     const { prompt, model } = await req.json();
     if (!prompt || typeof prompt !== "string") {
       return new Response(JSON.stringify({ error: "prompt required" }),
