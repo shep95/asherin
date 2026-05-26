@@ -240,10 +240,15 @@ serve(async (req) => {
   corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Require authenticated caller — prevent anonymous fan-out to expensive gov APIs
+  const { requireUser, authErrorResponse } = await import("../_shared/authMiddleware.ts");
+  try { await requireUser(req); } catch (e) { return authErrorResponse(e, corsHeaders); }
+
   try {
     const body: GovRequest = await req.json();
     const { action, params } = body;
     let result: any;
+
 
     switch (action) {
 
