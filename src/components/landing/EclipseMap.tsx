@@ -28,8 +28,8 @@ const ECLIPSE_PATHS: EclipsePathData[] = [
     info: "Visible across Americas, Europe, Africa. Leo/Aquarius axis = government confidence vs revolutionary forces. Trigger fires Apr–May 2026.",
   },
   {
-    id: "solar-2027",
-    date: "Aug 2, 2027",
+    id: "solar-2028",
+    date: "Aug 2, 2028",
     type: "solar",
     label: "Total Solar — Arab World Collapse",
     path: "M 330,155 Q 370,150 410,148 Q 450,146 490,155 Q 520,162 550,175",
@@ -42,7 +42,7 @@ const ECLIPSE_PATHS: EclipsePathData[] = [
       { name: "Riyadh", x: 465, y: 162 },
     ],
     color: "hsl(0, 84%, 60%)",
-    info: "6m 22s totality — ~6 years of effect (2027–2033). The most powerful eclipse of the decade. Entire Arab world leadership enters King Killer window.",
+    info: "6m 22s totality — ~6 years of effect (2028–2034). The most powerful eclipse of the decade. Entire Arab world leadership enters King Killer window.",
   },
   {
     id: "lunar-2028",
@@ -107,7 +107,7 @@ const CONTINENTS = [
 ];
 
 const EclipseMap = () => {
-  const [activeEclipse, setActiveEclipse] = useState<string | null>("solar-2027");
+  const [activeEclipse, setActiveEclipse] = useState<string | null>("solar-2028");
   const active = ECLIPSE_PATHS.find((e) => e.id === activeEclipse);
 
   return (
