@@ -14,6 +14,13 @@ import { template as orderConfirmation } from './order-confirmation.tsx'
 import { template as subscriptionRenewal } from './subscription-renewal.tsx'
 import { template as securityAlert } from './security-alert.tsx'
 import { template as paymentFailed } from './payment-failed.tsx'
+import { template as invoiceReceipt } from './invoice-receipt.tsx'
+import { template as newLoginDetected } from './new-login-detected.tsx'
+import { template as passwordChanged } from './password-changed.tsx'
+import { template as quotaWarning } from './quota-warning.tsx'
+import { template as agentTaskComplete } from './agent-task-complete.tsx'
+import { template as exportReady } from './export-ready.tsx'
+import { template as accountDeletionScheduled } from './account-deletion-scheduled.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   welcome,
@@ -21,4 +28,11 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'subscription-renewal': subscriptionRenewal,
   'security-alert': securityAlert,
   'payment-failed': paymentFailed,
+  'invoice-receipt': invoiceReceipt,
+  'new-login-detected': newLoginDetected,
+  'password-changed': passwordChanged,
+  'quota-warning': quotaWarning,
+  'agent-task-complete': agentTaskComplete,
+  'export-ready': exportReady,
+  'account-deletion-scheduled': accountDeletionScheduled,
 }
