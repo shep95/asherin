@@ -1263,6 +1263,20 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
                   </div>
                 )}
                 <p className="text-[11px] text-muted-foreground/85 font-light leading-relaxed">{reading.meaning}</p>
+                {reading.manifests.length > 0 && (
+                  <div className="rounded-md border border-foreground/15 bg-foreground/[0.03] p-2 mt-1 space-y-1">
+                    <div className="text-[9px] uppercase tracking-[0.2em] text-foreground/70 flex items-center gap-1">
+                      <Sparkles className="h-2.5 w-2.5" /> Manifests in reality as
+                    </div>
+                    <ul className="space-y-0.5">
+                      {reading.manifests.map((m, i) => (
+                        <li key={i} className="text-[10.5px] leading-relaxed font-light text-foreground/85 pl-2 relative before:content-['›'] before:absolute before:left-0 before:text-foreground/40">
+                          {m}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1.5 border-t border-border/15">
                   <div className="text-[10px] font-light leading-relaxed">
                     <span className="text-emerald-400/80 uppercase tracking-[0.15em] mr-1">Favors</span>
