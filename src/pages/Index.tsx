@@ -61,6 +61,49 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
   );
 };
 
+// 2027-style HUD telemetry bar — military time (UTC + local 24h), uptime, status
+const HudStatusBar = () => {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const localMil = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  const utcMil = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}Z`;
+  const dateStamp = `${now.getUTCFullYear()}.${pad(now.getUTCMonth() + 1)}.${pad(now.getUTCDate())}`;
+  // Julian day-of-year (military style)
+  const start = Date.UTC(now.getUTCFullYear(), 0, 0);
+  const doy = Math.floor((now.getTime() - start) / 86400000);
+  const tzOffsetMin = -now.getTimezoneOffset();
+  const tzSign = tzOffsetMin >= 0 ? "+" : "-";
+  const tzH = pad(Math.floor(Math.abs(tzOffsetMin) / 60));
+  const tzM = pad(Math.abs(tzOffsetMin) % 60);
+
+  return (
+    <div className="relative w-full max-w-4xl mb-8 rounded-md border border-foreground/15 bg-background/40 backdrop-blur-md px-4 py-2.5 font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground/80 flex items-center justify-between gap-4 flex-wrap shadow-[0_0_40px_-12px_rgba(255,255,255,0.08)]">
+      {/* corner ticks */}
+      <span aria-hidden className="absolute -top-px -left-px h-2 w-2 border-t border-l border-foreground/60" />
+      <span aria-hidden className="absolute -top-px -right-px h-2 w-2 border-t border-r border-foreground/60" />
+      <span aria-hidden className="absolute -bottom-px -left-px h-2 w-2 border-b border-l border-foreground/60" />
+      <span aria-hidden className="absolute -bottom-px -right-px h-2 w-2 border-b border-r border-foreground/60" />
+
+      <span className="flex items-center gap-2">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        </span>
+        <span className="text-emerald-300/90">SYS · OPERATIONAL</span>
+      </span>
+      <span className="hidden sm:inline text-foreground/70">LOC {localMil} <span className="text-muted-foreground/50">UTC{tzSign}{tzH}{tzM}</span></span>
+      <span className="text-foreground tabular-nums">{utcMil}</span>
+      <span className="hidden md:inline text-muted-foreground/60">{dateStamp} · DOY {pad(doy)}</span>
+      <span className="hidden lg:inline text-muted-foreground/60">UPLINK · 30 NODES</span>
+    </div>
+  );
+};
+
 const Index = () => {
   useEffect(() => {
     applySeoHead({
