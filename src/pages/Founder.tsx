@@ -128,7 +128,7 @@ const Founder = () => {
                 Every system he builds carries the memory of that transition — from abandoned to adopted, from broken to rebuilt, from impossible to made possible.
               </p>
               <p className="text-foreground/70 border-l-2 border-accent/30 pl-4 italic">
-                Nobody is going to save you — you must save yourself. Humans are selfish, emotional creatures, too arrogant and trapped inside their own worlds. Once you realize this, you can actually climb to success.
+                Nobody is going to save you — you must save yourself. Humans are selfish, emotional creatures, too arrogant and egotistical, trapped inside their own worlds. Once you realize this, you can actually climb to success.
               </p>
             </div>
           </div>
