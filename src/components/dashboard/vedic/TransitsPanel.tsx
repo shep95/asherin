@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart, Activity, Crown, Megaphone, Star, Briefcase, Flame, ScrollText, Zap, Trophy } from "lucide-react";
+import { Loader2, Orbit, ArrowRight, Calendar, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Building2, User2, Target, Gem, Heart, Activity, Crown, Megaphone, Star, Briefcase, Flame, ScrollText, Zap, Trophy, Home, Users, Baby, GraduationCap, Mountain, Plane, BookOpen } from "lucide-react";
 import { computeTransitChart, computeFutureIngresses, type TransitChart, type SignIngress } from "@/lib/vedic/transits";
 import { readTransit, type LifePrediction, type Verdict } from "@/lib/vedic/transitMeanings";
 import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
@@ -287,6 +287,34 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     () => (ingresses ? detectWindows(ingresses, activeRef.points, "career", { clusterDays: 14, minScore: 5 }) : []),
     [ingresses, activeRef.points],
   );
+  const familyWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "family", { clusterDays: 14, minScore: 3 }) : []),
+    [ingresses, activeRef.points],
+  );
+  const homeWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "home", { clusterDays: 14, minScore: 4 }) : []),
+    [ingresses, activeRef.points],
+  );
+  const childrenWindows = useMemo(
+    () => activeRef.kind === "user"
+      ? (ingresses ? detectWindows(ingresses, activeRef.points, "children", { clusterDays: 14, minScore: 4 }) : [])
+      : [],
+    [ingresses, activeRef.points, activeRef.kind],
+  );
+  const educationWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "education", { clusterDays: 14, minScore: 4 }) : []),
+    [ingresses, activeRef.points],
+  );
+  const spiritualityWindows = useMemo(
+    () => activeRef.kind === "user"
+      ? (ingresses ? detectWindows(ingresses, activeRef.points, "spirituality", { clusterDays: 14, minScore: 4 }) : [])
+      : [],
+    [ingresses, activeRef.points, activeRef.kind],
+  );
+  const travelWindows = useMemo(
+    () => (ingresses ? detectWindows(ingresses, activeRef.points, "travel", { clusterDays: 14, minScore: 4 }) : []),
+    [ingresses, activeRef.points],
+  );
 
 
   // ── Filter every window list to ONLY those overlapping the selected period ──
@@ -309,6 +337,12 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   const influenceInPeriod = useMemo(() => influenceWindows.filter(inPeriod), [influenceWindows, inPeriod]);
   const fameInPeriod      = useMemo(() => fameWindows.filter(inPeriod),      [fameWindows, inPeriod]);
   const careerInPeriod    = useMemo(() => careerWindows.filter(inPeriod),    [careerWindows, inPeriod]);
+  const familyInPeriod       = useMemo(() => familyWindows.filter(inPeriod),       [familyWindows, inPeriod]);
+  const homeInPeriod         = useMemo(() => homeWindows.filter(inPeriod),         [homeWindows, inPeriod]);
+  const childrenInPeriod     = useMemo(() => childrenWindows.filter(inPeriod),     [childrenWindows, inPeriod]);
+  const educationInPeriod    = useMemo(() => educationWindows.filter(inPeriod),    [educationWindows, inPeriod]);
+  const spiritualityInPeriod = useMemo(() => spiritualityWindows.filter(inPeriod), [spiritualityWindows, inPeriod]);
+  const travelInPeriod       = useMemo(() => travelWindows.filter(inPeriod),       [travelWindows, inPeriod]);
 
   const monthForecast = useMemo(() => {
     const byQ = new Map<string, LifePrediction>();

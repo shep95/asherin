@@ -20,7 +20,8 @@ import { whyTransitMatters } from "./sensitivePoints";
 
 export type WindowKind =
   | "wealth" | "soulmate" | "health"
-  | "romance" | "power" | "influence" | "fame" | "career";
+  | "romance" | "power" | "influence" | "fame" | "career"
+  | "family" | "home" | "children" | "education" | "spirituality" | "travel";
 
 export interface ActivationHit {
   date: Date;
@@ -54,6 +55,13 @@ const POWER_POINTS    = new Set<PointCode>(["L10", "Lagna", "Surya", "AK"]);    
 const INFLUENCE_POINTS= new Set<PointCode>(["L10", "L11", "L3", "Chandra", "Lagna"]);  // reach / network sway
 const FAME_POINTS     = new Set<PointCode>(["L10", "Lagna", "Surya", "Chandra"]);      // public visibility
 const CAREER_POINTS   = new Set<PointCode>(["L10", "L6", "L11", "AK"]);                // work / advancement
+// L4 = home / family / mother / property / inner peace. Chandra = mother & emotional home.
+const FAMILY_POINTS       = new Set<PointCode>(["L4", "Chandra", "L2"]);
+const HOME_POINTS         = new Set<PointCode>(["L4"]);                                 // property / real-estate / vehicles
+const CHILDREN_POINTS     = new Set<PointCode>(["L5"]);                                 // children & creative output
+const EDUCATION_POINTS    = new Set<PointCode>(["L4", "L5", "L9"]);                     // study / wisdom / certification
+const SPIRITUALITY_POINTS = new Set<PointCode>(["L12", "L9", "Chandra"]);               // moksha / dharma / inner work
+const TRAVEL_POINTS       = new Set<PointCode>(["L9", "L12", "L3"]);                    // foreign / long-distance / short trips
 
 const WEALTH_WEIGHT: Record<string, number> = {
   Jupiter: 5, Venus: 3, Rahu: 4, Sun: 1, Mercury: 1, Mars: 1,
@@ -93,6 +101,36 @@ const FAME_WEIGHT: Record<string, number> = {
 const CAREER_WEIGHT: Record<string, number> = {
   Saturn: 4, Sun: 4, Jupiter: 3, Mars: 3, Mercury: 3, Rahu: 3, Venus: 1, Moon: 1,
   Ketu: -2,
+};
+// FAMILY = harmony, mother/parents, reunions, family events. Jupiter & Moon are family-karakas.
+const FAMILY_WEIGHT: Record<string, number> = {
+  Jupiter: 5, Venus: 3, Moon: 3, Mercury: 1, Sun: 1,
+  Saturn: -3, Mars: -3, Rahu: -2, Ketu: -3,
+};
+// HOME / PROPERTY = real-estate, vehicles, relocation, household.
+const HOME_WEIGHT: Record<string, number> = {
+  Jupiter: 5, Venus: 4, Mercury: 2, Moon: 2, Sun: 1,
+  Mars: -3, Saturn: -2, Rahu: 2, Ketu: -2,
+};
+// CHILDREN / CREATIVITY = conception, child welfare, creative output, speculation.
+const CHILDREN_WEIGHT: Record<string, number> = {
+  Jupiter: 5, Venus: 3, Sun: 2, Mercury: 2, Moon: 2, Mars: 1, Rahu: 2,
+  Saturn: -3, Ketu: -4,
+};
+// EDUCATION = study, exams, wisdom, certification, teaching.
+const EDUCATION_WEIGHT: Record<string, number> = {
+  Jupiter: 5, Mercury: 5, Sun: 2, Venus: 1, Moon: 1, Saturn: 1,
+  Rahu: 1, Ketu: -2, Mars: -1,
+};
+// SPIRITUALITY / MOKSHA = retreat, dharma, dissolution, inner work.
+const SPIRITUALITY_WEIGHT: Record<string, number> = {
+  Jupiter: 5, Ketu: 5, Saturn: 3, Moon: 2, Rahu: 1,
+  Mercury: 0, Venus: -1, Mars: -2, Sun: 0,
+};
+// TRAVEL = movement, foreign, immigration, long-distance opportunities.
+const TRAVEL_WEIGHT: Record<string, number> = {
+  Rahu: 5, Jupiter: 4, Mercury: 3, Venus: 2, Moon: 2, Mars: 2, Sun: 1,
+  Saturn: -2, Ketu: 1,
 };
 
 const POINT_BONUS: Partial<Record<PointCode, number>> = {
@@ -144,11 +182,15 @@ export function detectWindows(
     wealth: WEALTH_POINTS, soulmate: SOULMATE_POINTS, health: HEALTH_POINTS,
     romance: ROMANCE_POINTS, power: POWER_POINTS, influence: INFLUENCE_POINTS,
     fame: FAME_POINTS, career: CAREER_POINTS,
+    family: FAMILY_POINTS, home: HOME_POINTS, children: CHILDREN_POINTS,
+    education: EDUCATION_POINTS, spirituality: SPIRITUALITY_POINTS, travel: TRAVEL_POINTS,
   };
   const WEIGHT_SET: Record<WindowKind, Record<string, number>> = {
     wealth: WEALTH_WEIGHT, soulmate: SOULMATE_WEIGHT, health: HEALTH_WEIGHT,
     romance: ROMANCE_WEIGHT, power: POWER_WEIGHT, influence: INFLUENCE_WEIGHT,
     fame: FAME_WEIGHT, career: CAREER_WEIGHT,
+    family: FAMILY_WEIGHT, home: HOME_WEIGHT, children: CHILDREN_WEIGHT,
+    education: EDUCATION_WEIGHT, spirituality: SPIRITUALITY_WEIGHT, travel: TRAVEL_WEIGHT,
   };
   const interesting = POINT_SET[kind];
   const planetWeights = WEIGHT_SET[kind];
@@ -256,10 +298,48 @@ function buildHeadline(hits: ActivationHit[], kind: WindowKind, score: number): 
     if (score <= -4) return `Reputation pressure / cancel risk — ${planets} on ${points}`;
     return `Fame-axis activity — ${planets} on ${points}`;
   }
-  // career
-  if (score >= 14) return `Once-a-decade career breakthrough — ${planets} on ${points}`;
-  if (score >= 8)  return `Strong career-advancement window — ${planets} on ${points}`;
-  if (score >= 4)  return `Career activation — ${planets} on ${points}`;
-  if (score <= -4) return `Career restructure / pivot pressure — ${planets} on ${points}`;
-  return `Career-axis activity — ${planets} on ${points}`;
+  if (kind === "career") {
+    if (score >= 14) return `Once-a-decade career breakthrough — ${planets} on ${points}`;
+    if (score >= 8)  return `Strong career-advancement window — ${planets} on ${points}`;
+    if (score >= 4)  return `Career activation — ${planets} on ${points}`;
+    if (score <= -4) return `Career restructure / pivot pressure — ${planets} on ${points}`;
+    return `Career-axis activity — ${planets} on ${points}`;
+  }
+  if (kind === "family") {
+    if (score >= 12) return `Major family-blessing window — ${planets} on ${points}`;
+    if (score >= 6)  return `Strong family / mother window — ${planets} on ${points}`;
+    if (score >= 3)  return `Family warmth opening — ${planets} on ${points}`;
+    if (score <= -6) return `Family strain / mother-health concern — ${planets} on ${points}`;
+    if (score <= -3) return `Family friction — ${planets} on ${points}`;
+    return `Family-axis activity — ${planets} on ${points}`;
+  }
+  if (kind === "home") {
+    if (score >= 10) return `Property / real-estate gain window — ${planets} on ${points}`;
+    if (score >= 4)  return `Home upgrade window — ${planets} on ${points}`;
+    if (score <= -4) return `Home / property pressure — repairs, relocation, disputes — ${planets} on ${points}`;
+    return `Home-axis activity — ${planets} on ${points}`;
+  }
+  if (kind === "children") {
+    if (score >= 10) return `Children / fertility blessing — ${planets} on ${points}`;
+    if (score >= 4)  return `Creativity & children opening — ${planets} on ${points}`;
+    if (score <= -4) return `Children worry / creative block — ${planets} on ${points}`;
+    return `Children-axis activity — ${planets} on ${points}`;
+  }
+  if (kind === "education") {
+    if (score >= 10) return `Higher-learning / wisdom peak — ${planets} on ${points}`;
+    if (score >= 4)  return `Study / certification window — ${planets} on ${points}`;
+    if (score <= -4) return `Study disruption / faith tested — ${planets} on ${points}`;
+    return `Education-axis activity — ${planets} on ${points}`;
+  }
+  if (kind === "spirituality") {
+    if (score >= 10) return `Deep moksha / retreat window — ${planets} on ${points}`;
+    if (score >= 4)  return `Spiritual opening — ${planets} on ${points}`;
+    if (score <= -4) return `Inner restlessness / detachment pressure — ${planets} on ${points}`;
+    return `Moksha-axis activity — ${planets} on ${points}`;
+  }
+  // travel
+  if (score >= 10) return `Major travel / foreign-move window — ${planets} on ${points}`;
+  if (score >= 4)  return `Travel / movement window — ${planets} on ${points}`;
+  if (score <= -4) return `Travel friction / delays — ${planets} on ${points}`;
+  return `Travel-axis activity — ${planets} on ${points}`;
 }
