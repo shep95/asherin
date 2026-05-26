@@ -427,14 +427,14 @@ const Index = () => {
 
         <div className="relative mx-auto max-w-6xl">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/[0.04] px-3 py-1 mb-8">
-              <span className="h-1 w-1 rounded-full bg-amber-400 animate-pulse" />
-              <span className="text-[10px] font-light tracking-[0.3em] text-amber-200/80 uppercase">The Aureon Difference</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-foreground/[0.04] px-3 py-1 mb-8">
+              <span className="h-1 w-1 rounded-full bg-foreground animate-pulse" />
+              <span className="text-[10px] font-light tracking-[0.3em] text-foreground/80 uppercase">The Aureon Difference</span>
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
               Most AI Gives You <span className="italic font-thin text-muted-foreground/70">Guardrails.</span>
               <br />
-              Aureon Gives You <span className="bg-gradient-to-r from-amber-200 via-amber-100 to-foreground bg-clip-text text-transparent">The Full Picture.</span>
+              Aureon Gives You <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">The Full Picture.</span>
             </h2>
           </div>
 
@@ -447,24 +447,24 @@ const Index = () => {
             ].map(({ n, Icon, title, desc, span, tall }) => (
               <div key={n} className={`group relative ${span} rounded-3xl overflow-hidden`}>
                 {/* gradient border */}
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-amber-400/20 via-foreground/10 to-transparent opacity-40 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-foreground/20 via-foreground/10 to-transparent opacity-40 group-hover:opacity-100 transition-opacity duration-700" />
                 <div className="relative m-[1px] h-[calc(100%-2px)] rounded-3xl bg-gradient-to-br from-card/80 via-background/90 to-background backdrop-blur-xl p-8 sm:p-10">
                   {/* corner mark */}
-                  <div className="absolute right-6 top-6 font-mono text-[10px] tracking-[0.3em] text-amber-200/40">{n} / 03</div>
+                  <div className="absolute right-6 top-6 font-mono text-[10px] tracking-[0.3em] text-foreground/40">{n} / 03</div>
                   {/* glow orb */}
-                  <div aria-hidden className="absolute -right-20 -bottom-20 h-60 w-60 rounded-full bg-amber-400/[0.04] blur-3xl group-hover:bg-amber-400/[0.12] transition-all duration-700" />
+                  <div aria-hidden className="absolute -right-20 -bottom-20 h-60 w-60 rounded-full bg-foreground/[0.04] blur-3xl group-hover:bg-foreground/[0.12] transition-all duration-700" />
 
                   <div className="relative flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-amber-400/30 group-hover:bg-amber-400/[0.06] transition-all duration-500">
-                      <Icon className="h-5 w-5 text-foreground/80 group-hover:text-amber-200 transition-colors" />
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-foreground/30 group-hover:bg-foreground/[0.06] transition-all duration-500">
+                      <Icon className="h-5 w-5 text-foreground/80 group-hover:text-foreground transition-colors" />
                     </div>
                     <div className="flex-1">
                       <h3 className={`${tall ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"} font-extralight tracking-tight text-foreground leading-tight`}>{title}</h3>
                       <p className={`mt-4 ${tall ? "text-base" : "text-sm"} font-extralight leading-relaxed text-muted-foreground max-w-md`}>{desc}</p>
 
                       {tall && (
-                        <div className="mt-8 flex items-center gap-2 text-[10px] font-mono tracking-[0.25em] text-amber-200/60 uppercase">
-                          <span className="h-px w-8 bg-amber-200/40" />
+                        <div className="mt-8 flex items-center gap-2 text-[10px] font-mono tracking-[0.25em] text-foreground/60 uppercase">
+                          <span className="h-px w-8 bg-foreground/40" />
                           Zero-Filter Policy
                         </div>
                       )}
@@ -612,13 +612,13 @@ const Index = () => {
         <div className="relative mx-auto max-w-7xl">
           {/* Section eyebrow */}
           <div className="flex items-center justify-center gap-3 mb-6">
-            <span className="h-px w-12 bg-gradient-to-r from-transparent to-amber-400/40" />
-            <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-amber-200/60">◊ Section · 02 / 06</span>
-            <span className="h-px w-12 bg-gradient-to-l from-transparent to-amber-400/40" />
+            <span className="h-px w-12 bg-gradient-to-r from-transparent to-foreground/40" />
+            <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-foreground/60">◊ Section · 02 / 06</span>
+            <span className="h-px w-12 bg-gradient-to-l from-transparent to-foreground/40" />
           </div>
 
           <h2 className="text-center text-3xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05]">
-            <span className="bg-gradient-to-r from-amber-100 via-foreground to-amber-200/80 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text text-transparent">
               Built For People Who Build.
             </span>
             <br />
@@ -641,11 +641,11 @@ const Index = () => {
             ].map(({ idx, icon: Icon, title, desc, span, tag }) => (
               <div
                 key={idx}
-                className={`group relative ${span} rounded-3xl border border-amber-400/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-7 sm:p-8 text-left overflow-hidden transition-all duration-700 hover:border-amber-400/30 hover:-translate-y-0.5`}
+                className={`group relative ${span} rounded-3xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-7 sm:p-8 text-left overflow-hidden transition-all duration-700 hover:border-foreground/30 hover:-translate-y-0.5`}
               >
                 {/* Golden corner accents */}
-                <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-amber-300/40 rounded-tl-3xl" />
-                <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-amber-300/20 rounded-br-3xl" />
+                <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-foreground/40 rounded-tl-3xl" />
+                <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-foreground/20 rounded-br-3xl" />
 
                 {/* Glow orb on hover */}
                 <span aria-hidden
@@ -654,17 +654,17 @@ const Index = () => {
                 />
 
                 {/* Top hairline */}
-                <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/30 to-transparent" />
+                <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-foreground/30 to-transparent" />
 
                 <div className="relative flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="relative grid h-11 w-11 place-items-center rounded-xl border border-amber-400/15 bg-background/40">
-                      <Icon className="h-5 w-5 text-amber-100/90" strokeWidth={1.25} />
-                      <span aria-hidden className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-300/[0.08] to-transparent" />
+                    <div className="relative grid h-11 w-11 place-items-center rounded-xl border border-foreground/15 bg-background/40">
+                      <Icon className="h-5 w-5 text-foreground/90" strokeWidth={1.25} />
+                      <span aria-hidden className="absolute inset-0 rounded-xl bg-gradient-to-br from-foreground/[0.08] to-transparent" />
                     </div>
-                    <span className="font-mono text-[10px] tracking-[0.25em] text-amber-200/40">{idx}</span>
+                    <span className="font-mono text-[10px] tracking-[0.25em] text-foreground/40">{idx}</span>
                   </div>
-                  <span className="rounded-full border border-amber-400/20 bg-amber-400/5 px-2.5 py-0.5 text-[9px] font-mono tracking-[0.18em] uppercase text-amber-200/70">
+                  <span className="rounded-full border border-foreground/20 bg-foreground/5 px-2.5 py-0.5 text-[9px] font-mono tracking-[0.18em] uppercase text-foreground/70">
                     {tag}
                   </span>
                 </div>
@@ -672,15 +672,15 @@ const Index = () => {
                 <h3 className="relative mt-7 text-xl sm:text-[22px] font-extralight tracking-tight text-foreground">
                   {title}
                 </h3>
-                <div aria-hidden className="relative mt-3 h-px w-10 bg-gradient-to-r from-amber-300/60 to-transparent transition-all duration-500 group-hover:w-20" />
+                <div aria-hidden className="relative mt-3 h-px w-10 bg-gradient-to-r from-foreground/60 to-transparent transition-all duration-500 group-hover:w-20" />
                 <p className="relative mt-4 text-[13px] font-extralight leading-relaxed text-muted-foreground/85">
                   {desc}
                 </p>
 
                 {/* Bottom status row */}
-                <div className="relative mt-6 flex items-center gap-2 pt-4 border-t border-amber-400/[0.06]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-300/80 shadow-[0_0_8px_rgba(252,211,77,0.6)]" />
-                  <span className="font-mono text-[9px] tracking-[0.25em] uppercase text-amber-200/40">Live · Operational</span>
+                <div className="relative mt-6 flex items-center gap-2 pt-4 border-t border-foreground/[0.06]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-foreground/80 shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
+                  <span className="font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/40">Live · Operational</span>
                 </div>
               </div>
             ))}
@@ -704,7 +704,7 @@ const Index = () => {
               The Platform.
               <br />
               <span className="italic text-muted-foreground/60">Every Capability.</span>{" "}
-              <span className="bg-gradient-to-r from-amber-200 to-foreground bg-clip-text text-transparent">One Dashboard.</span>
+              <span className="bg-gradient-to-r from-foreground to-foreground bg-clip-text text-transparent">One Dashboard.</span>
             </h2>
           </div>
 
@@ -719,13 +719,13 @@ const Index = () => {
               { Icon: Globe, title: "Multi-Language Output", desc: "Thinks and delivers in any language. Same raw output. No filtered translations.", span: "md:col-span-4", tag: "Global" },
             ].map(({ Icon, title, desc, span, featured, tag }, i) => (
               <div key={title} className={`group relative ${span} rounded-3xl overflow-hidden min-h-[200px]`}>
-                <div className={`absolute inset-0 rounded-3xl ${featured ? "bg-gradient-to-br from-amber-400/25 via-amber-200/5 to-transparent" : "bg-gradient-to-br from-foreground/10 via-transparent to-transparent"} opacity-50 group-hover:opacity-100 transition-opacity duration-700`} />
+                <div className={`absolute inset-0 rounded-3xl ${featured ? "bg-gradient-to-br from-foreground/25 via-foreground/5 to-transparent" : "bg-gradient-to-br from-foreground/10 via-transparent to-transparent"} opacity-50 group-hover:opacity-100 transition-opacity duration-700`} />
                 <div className={`relative m-[1px] h-[calc(100%-2px)] rounded-3xl ${featured ? "bg-gradient-to-br from-card/90 via-background/95 to-background" : "bg-card/40"} backdrop-blur-xl p-7 sm:p-9 flex flex-col justify-between`}>
-                  {featured && <div aria-hidden className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-amber-400/[0.06] blur-3xl" />}
+                  {featured && <div aria-hidden className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-foreground/[0.06] blur-3xl" />}
 
                   <div className="relative flex items-start justify-between">
-                    <div className={`flex ${featured ? "h-14 w-14" : "h-11 w-11"} items-center justify-center rounded-2xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-amber-400/30 transition-all`}>
-                      <Icon className={`${featured ? "h-6 w-6" : "h-5 w-5"} text-foreground/85 group-hover:text-amber-200 transition-colors`} />
+                    <div className={`flex ${featured ? "h-14 w-14" : "h-11 w-11"} items-center justify-center rounded-2xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-foreground/30 transition-all`}>
+                      <Icon className={`${featured ? "h-6 w-6" : "h-5 w-5"} text-foreground/85 group-hover:text-foreground transition-colors`} />
                     </div>
                     <span className="font-mono text-[9px] tracking-[0.3em] text-muted-foreground/40 uppercase">{tag}</span>
                   </div>
@@ -735,8 +735,8 @@ const Index = () => {
                     <p className={`mt-3 ${featured ? "text-base max-w-md" : "text-sm"} font-extralight leading-relaxed text-muted-foreground`}>{desc}</p>
                     {featured && (
                       <div className="mt-8 flex items-center gap-3">
-                        <div className="h-px flex-1 bg-gradient-to-r from-amber-400/40 to-transparent" />
-                        <span className="font-mono text-[10px] tracking-[0.3em] text-amber-200/70 uppercase">No Guardrails</span>
+                        <div className="h-px flex-1 bg-gradient-to-r from-foreground/40 to-transparent" />
+                        <span className="font-mono text-[10px] tracking-[0.3em] text-foreground/70 uppercase">No Guardrails</span>
                       </div>
                     )}
                   </div>
@@ -818,15 +818,15 @@ const Index = () => {
 
         <div className="relative mx-auto max-w-6xl">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/[0.05] px-4 py-1.5 mb-8 shadow-[0_0_40px_-10px_hsl(45_90%_55%/0.4)]">
-              <Key className="h-3 w-3 text-amber-300" />
-              <span className="text-[10px] font-light tracking-[0.3em] text-amber-200 uppercase">Bring Your Own Key</span>
-              <span className="font-mono text-[9px] tracking-[0.2em] text-amber-200/60">/ BYOK</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/[0.05] px-4 py-1.5 mb-8 shadow-[0_0_40px_-10px_hsl(45_90%_55%/0.4)]">
+              <Key className="h-3 w-3 text-foreground" />
+              <span className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Bring Your Own Key</span>
+              <span className="font-mono text-[9px] tracking-[0.2em] text-foreground/60">/ BYOK</span>
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
               Your Keys. <span className="italic text-muted-foreground/60">Your Models.</span>
               <br />
-              <span className="bg-gradient-to-r from-amber-300 via-amber-100 to-foreground bg-clip-text text-transparent">Uncensored Through Every Provider.</span>
+              <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">Uncensored Through Every Provider.</span>
             </h2>
             <p className="mt-8 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
               Plug in your own API keys from any major AI provider. Every model runs through Aureon's uncensored intelligence layer — same raw output, same zero-filter policy, regardless of which LLM powers it.
@@ -842,17 +842,17 @@ const Index = () => {
               { n: "04", Icon: Cpu, title: "Aureon Brain Intact", desc: "Every model runs through Aureon's uncensored system prompt. Same depth, zero filters." },
             ].map(({ n, Icon, title, desc }) => (
               <div key={n} className="group relative rounded-3xl overflow-hidden">
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-amber-400/15 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-foreground/15 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-700" />
                 <div className="relative m-[1px] h-[calc(100%-2px)] rounded-3xl bg-gradient-to-b from-card/80 to-background/80 backdrop-blur-xl p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] group-hover:border-amber-400/40 group-hover:bg-amber-400/[0.08] transition-all">
-                      <Icon className="h-5 w-5 text-amber-200/80 group-hover:text-amber-200 transition-colors" />
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-foreground/15 bg-foreground/[0.04] group-hover:border-foreground/40 group-hover:bg-foreground/[0.08] transition-all">
+                      <Icon className="h-5 w-5 text-foreground/80 group-hover:text-foreground transition-colors" />
                     </div>
-                    <span className="font-mono text-[10px] tracking-[0.3em] text-amber-200/40">{n}</span>
+                    <span className="font-mono text-[10px] tracking-[0.3em] text-foreground/40">{n}</span>
                   </div>
                   <h3 className="text-base font-light tracking-tight text-foreground">{title}</h3>
                   <p className="mt-3 text-xs font-extralight leading-relaxed text-muted-foreground">{desc}</p>
-                  <div className="mt-6 h-px bg-gradient-to-r from-amber-400/30 via-amber-400/10 to-transparent" />
+                  <div className="mt-6 h-px bg-gradient-to-r from-foreground/30 via-foreground/10 to-transparent" />
                 </div>
               </div>
             ))}
@@ -861,9 +861,9 @@ const Index = () => {
           {/* Providers — premium chip ticker */}
           <div className="mt-20">
             <div className="flex items-center justify-center gap-4 mb-10">
-              <div className="h-px w-16 bg-gradient-to-r from-transparent to-amber-400/40" />
-              <p className="font-mono text-[10px] font-light tracking-[0.35em] text-amber-200/70 uppercase">Supported AI Providers</p>
-              <div className="h-px w-16 bg-gradient-to-l from-transparent to-amber-400/40" />
+              <div className="h-px w-16 bg-gradient-to-r from-transparent to-foreground/40" />
+              <p className="font-mono text-[10px] font-light tracking-[0.35em] text-foreground/70 uppercase">Supported AI Providers</p>
+              <div className="h-px w-16 bg-gradient-to-l from-transparent to-foreground/40" />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
               {[
@@ -877,13 +877,13 @@ const Index = () => {
                 { name: "Venice AI", models: "Uncensored, zero logging" },
                 { name: "Perplexity", models: "Sonar Pro, Deep Research" },
               ].map((p, i) => (
-                <div key={p.name} className="group relative rounded-xl border border-border/15 bg-card/20 backdrop-blur-md p-4 hover:border-amber-400/30 hover:bg-card/40 transition-all">
+                <div key={p.name} className="group relative rounded-xl border border-border/15 bg-card/20 backdrop-blur-md p-4 hover:border-foreground/30 hover:bg-card/40 transition-all">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="font-mono text-[9px] tracking-[0.25em] text-muted-foreground/40">0{i + 1}</span>
                       <p className="text-sm font-light tracking-tight text-foreground">{p.name}</p>
                     </div>
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400/60 group-hover:bg-amber-400 transition-colors" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-foreground/60 group-hover:bg-foreground transition-colors" />
                   </div>
                   <p className="mt-2 ml-9 text-[10px] font-extralight leading-relaxed text-muted-foreground/70">{p.models}</p>
                 </div>
