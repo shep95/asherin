@@ -21,7 +21,8 @@ import { whyTransitMatters } from "./sensitivePoints";
 export type WindowKind =
   | "wealth" | "soulmate" | "health"
   | "romance" | "power" | "influence" | "fame" | "career"
-  | "family" | "home" | "children" | "education" | "spirituality" | "travel";
+  | "family" | "home" | "children" | "education" | "spirituality" | "travel"
+  | "network";
 
 export interface ActivationHit {
   date: Date;
