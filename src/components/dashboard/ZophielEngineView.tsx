@@ -324,11 +324,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   
 
   return (
-    <div className="zophiel-2027 flex h-full relative">
-      {/* 2027 FX layers — ambient halo + slow scanline */}
-      <div className="zophiel-2027-halo" aria-hidden />
-      <div className="zophiel-2027-scan" aria-hidden />
-
+    <div className="zophiel-aurora-shell flex h-full relative">
       {/* Filter Sidebar */}
       {searched && (
         <FilterSidebar
@@ -346,22 +342,9 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         style={(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? { width: `${100 - splitPct}%` } : undefined}
       >
         {/* Search Header */}
-        <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[10vh] sm:pt-[14vh] pb-4 sm:pb-6"}`}>
+        <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[14vh] sm:pt-[20vh] pb-4 sm:pb-6"}`}>
           <div className="max-w-2xl mx-auto px-3 sm:px-6">
-            {/* Pre-search 2027 hero mark */}
-            {!searched && (
-              <div className="text-center mb-8 select-none">
-                <div className="inline-flex items-center gap-2 text-[9px] uppercase tracking-[0.45em] text-muted-foreground/50 mb-4">
-                  <span className="h-px w-8 bg-foreground/20" />
-                  Eclipse Intelligence Engine
-                  <span className="h-px w-8 bg-foreground/20" />
-                </div>
-                <h1 className="zophiel-2027-mark text-6xl sm:text-7xl leading-none mb-3">ZOPHIEL</h1>
-                <p className="text-[11px] font-light tracking-[0.2em] uppercase text-muted-foreground/60">
-                  /  2027 protocol  ·  multi-source signal mesh  /
-                </p>
-              </div>
-            )}
+
 
 
 
@@ -400,7 +383,9 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
             {/* Search bar — hidden in imagine/extract/audit modes (use their own input UI) */}
             {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "dataengine" && (
-              <form onSubmit={handleSubmit} className="relative zophiel-2027-frame">
+              <form onSubmit={handleSubmit} className="relative">
+                <div className="zophiel-aurora-pulse" aria-hidden />
+
                 <div className={`group flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-foreground/15"} bg-background/50 backdrop-blur-2xl px-4 py-3.5 focus-within:border-foreground/40 focus-within:shadow-[0_0_0_1px_hsl(0_0%_100%/0.15),0_20px_60px_-20px_hsl(220_50%_60%/0.35)] transition-all duration-300`}>
                   {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
                   <Search className="h-5 w-5 text-foreground/70 shrink-0 group-focus-within:text-foreground transition-colors" strokeWidth={1.5} />
