@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toDisplayUrl, signPath } from "@/lib/storageSignedUrl";
 import { useToast } from "@/hooks/use-toast";
 import { useFFmpeg } from "@/hooks/useFFmpeg";
 import { useMediaBunny } from "@/hooks/useMediaBunny";
@@ -186,9 +187,15 @@ const VibeVideoView = () => {
       .select("*")
       .eq("project_id", activeProject.id)
       .order("created_at", { ascending: true })
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (data) {
-          const v = data as VideoVersion[];
+          const raw = data as VideoVersion[];
+          const v: VideoVersion[] = await Promise.all(
+            raw.map(async (row) => ({
+              ...row,
+              video_url: await toDisplayUrl(row.video_url, "vibe-video"),
+            })),
+          );
           setVersions(v);
           if (v.length > 0) setActiveVersion(v[v.length - 1]);
         }
@@ -318,7 +325,7 @@ const VibeVideoView = () => {
     }
 
     setUploadProgress(null);
-    const { data: urlData } = supabase.storage.from("vibe-video").getPublicUrl(path);
+    const signedUrl = (await signPath("vibe-video", path)) || "";
     const vNum = (activeVersion?.version_number || 0) + 1;
 
     const { data: version } = await supabase
@@ -326,17 +333,17 @@ const VibeVideoView = () => {
       .insert({
         project_id: activeProject.id, user_id: user.id,
         parent_id: activeVersion?.id || null, version_number: vNum,
-        prompt: "Uploaded video", video_url: urlData.publicUrl, is_uploaded: true,
+        prompt: "Uploaded video", video_url: path, is_uploaded: true,
       })
       .select().single();
 
     if (version) {
-      const v = version as VideoVersion;
+      const v = { ...(version as VideoVersion), video_url: signedUrl };
       setVersions((prev) => [...prev, v]);
       setActiveVersion(v);
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: "user", content: `🎬 Uploaded: ${file.name}`, videoUrl: urlData.publicUrl },
+        { id: crypto.randomUUID(), role: "user", content: `🎬 Uploaded: ${file.name}`, videoUrl: signedUrl },
         { id: crypto.randomUUID(), role: "assistant", content: "Video uploaded! Now describe your edit — I'll ask for specifics if needed before processing it." },
       ]);
     }
