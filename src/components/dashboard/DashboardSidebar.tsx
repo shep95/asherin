@@ -58,6 +58,8 @@ type NavItem = { id: DashboardView; icon: React.ElementType; label: string; acce
 interface SubGroup { label: string; items: NavItem[] }
 interface NavGroup { label: string; subgroups: SubGroup[] }
 
+const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, label: "Subscription" };
+
 const navGroups: NavGroup[] = [
   {
     label: "Intelligence",
@@ -156,17 +158,6 @@ const navGroups: NavGroup[] = [
           { id: "persona-store", icon: Sparkles, label: "Persona Store" },
           { id: "library", icon: FolderOpen, label: "Library" },
           { id: "memory", icon: Brain, label: "Memory Center" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Subscription",
-    subgroups: [
-      {
-        label: "Subscription",
-        items: [
-          { id: "subscription", icon: CreditCard, label: "Subscription" },
         ],
       },
     ],
