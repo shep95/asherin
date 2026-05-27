@@ -161,6 +161,17 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Subscription",
+    subgroups: [
+      {
+        label: "Subscription",
+        items: [
+          { id: "subscription", icon: CreditCard, label: "Subscription" },
+        ],
+      },
+    ],
+  },
+  {
     label: "System",
     subgroups: [
       {
@@ -180,12 +191,12 @@ const navGroups: NavGroup[] = [
           { id: "bug-reports" as DashboardView, icon: ClipboardList, label: "Bug Reports" },
           { id: "stats", icon: BarChart3, label: "My Stats" },
           { id: "vedic-astrology" as DashboardView, icon: Moon, label: "Vedic Astrology" },
-          { id: "subscription", icon: CreditCard, label: "Subscription" },
           { id: "settings", icon: Settings, label: "Settings" },
         ],
       },
     ],
   },
+
 ];
 
 function groupByDate(convs: Conversation[]) {
