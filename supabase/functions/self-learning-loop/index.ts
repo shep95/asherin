@@ -70,7 +70,10 @@ ARCHITECTURE:
 - Dependency injection over hard-coded instantiation.
 - No circular dependencies. Shared "common" module if needed.
 - Factory patterns for dynamic object creation.
-- State machines with explicit valid transitions only.`;
+- State machines with explicit valid transitions only.
+
+RESPONSE RULE:
+- Simple question, simple answer.`;
 
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
