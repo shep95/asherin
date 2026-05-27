@@ -4,10 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 
 // Stripe product/price mapping
 export const TIERS = {
-  starter: {
-    product_id: "prod_U8CahdrO3U5JxE",
-    price_id: "price_1T9wBfRxgCpmPfiFgegrNIkk",
-  },
   lifetime: {
     product_id: "prod_UTrNsrxIQGTBQR",
     price_id: "price_1TUtfDRxgCpmPfiFNYa092Zu",
@@ -83,12 +79,12 @@ function productToTier(productId: string | null): TierKey | null {
 
 /** Check if user has chat-only access */
 export function hasChatAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "starter" || tierKey === "lifetime" || tierKey === "chat" || tierKey === "aureon" || tierKey === "pro";
+  return tierKey === "lifetime" || tierKey === "chat" || tierKey === "aureon" || tierKey === "pro";
 }
 
 /** Check if user has access to Zophiel Search, Imagine Intelligence, Notebooks (chat+ tiers) */
 export function hasSearchAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "chat" || tierKey === "starter" || tierKey === "lifetime" || tierKey === "aureon" || tierKey === "pro";
+  return tierKey === "chat" || tierKey === "lifetime" || tierKey === "aureon" || tierKey === "pro";
 }
 
 /** Check if user has Aureon-tier ($199) access — required for NOMAD, Briefings, ZANOEM Design Lab, Vedic Strategy. Lifetime ($470) also grants this. */
