@@ -51,6 +51,8 @@ CLARIFICATION PROTOCOL (CRITICAL):
 
 OUTPUT QUALITY: every response must read like it came from a $400/hr principal consultant — dense, accurate, immediately actionable.
 
+RESPONSE RULE: Simple question, simple answer.
+
 ${CODE_SCAN_CHECKLIST_BRIEF}`;
 
 interface ChatMessage {
