@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toDisplayUrl, signPath } from "@/lib/storageSignedUrl";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -197,9 +198,16 @@ const VibeImagerView = () => {
       .select("*")
       .eq("project_id", activeProject.id)
       .order("created_at", { ascending: true })
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (data) {
-          const v = data as VibeVersion[];
+          const raw = data as VibeVersion[];
+          // Rewrite stored image_url -> short-lived signed URL for private bucket.
+          const v: VibeVersion[] = await Promise.all(
+            raw.map(async (row) => ({
+              ...row,
+              image_url: await toDisplayUrl(row.image_url, "vibe-imager"),
+            })),
+          );
           setVersions(v);
           if (v.length > 0) setActiveVersion(v[v.length - 1]);
         }
@@ -291,7 +299,9 @@ const VibeImagerView = () => {
       toast({ title: "Upload failed", description: uploadErr.message, variant: "destructive" });
       return;
     }
-    const { data: urlData } = supabase.storage.from("vibe-imager").getPublicUrl(path);
+    // Bucket is private — sign for immediate display, store the storage path
+    // so the row stays valid across sessions (re-signed on each load).
+    const signedUrl = (await signPath("vibe-imager", path)) || "";
     const vNum = (activeVersion?.version_number || 0) + 1;
 
     const { data: version } = await supabase
@@ -299,7 +309,7 @@ const VibeImagerView = () => {
       .insert({
         project_id: activeProject.id, user_id: user.id,
         parent_id: activeVersion?.id || null, version_number: vNum,
-        prompt: "Uploaded image", image_url: urlData.publicUrl, is_uploaded: true,
+        prompt: "Uploaded image", image_url: path, is_uploaded: true,
       })
       .select().single();
 
