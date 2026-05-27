@@ -285,6 +285,25 @@ const Founder = () => {
         </div>
       </div>
 
+      {/* On Truth and Safety — Personal Footnote */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-3xl">
+          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-12">
+            <p className="text-xs font-extralight tracking-[0.3em] text-muted-foreground/50 uppercase text-center mb-8">
+              A Personal Note
+            </p>
+            <div className="space-y-5 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+              <p>People don't like the truth. And people don't like to be challenged on their beliefs — because it threatens their safety, their cushion. That is why most people never wake up. They're passive.</p>
+              <p>And when I speak the truth, whether through spirituality or the occult, I challenge your beliefs. I challenge the safety of what you learned. It traps people in their own corner. I get called "mentally ill" or "it's because of your autism" or "you're young and dumb and know nothing."</p>
+              <p>Over time, through childhood, teenage years, and adult life, I learned to give you the truth for you to find by yourself — as your own discovery. I know not to force it down your throat, because like most humans, people are weak and emotional, and they hate it when their safety is threatened.</p>
+            </div>
+            <p className="mt-10 text-right text-xs font-extralight tracking-[0.25em] text-muted-foreground/60 uppercase">
+              ~ Asher Aureon Elion
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Books Written By Asher */}
       <div id="ebook" className="relative z-10 px-6 py-24 sm:py-32 scroll-mt-24">
         <div className="mx-auto max-w-5xl">
