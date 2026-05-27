@@ -556,6 +556,18 @@ const DashboardSidebar = ({
               </div>
 
               <div data-dashboard-sidebar-nav className="px-2 py-2 border-t border-border/20 space-y-1">
+                {itemAllowed(subscriptionNavItem) && (
+                  <button
+                    onClick={() => { onViewChange(subscriptionNavItem.id); onToggleSidebar(); }}
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
+                      activeView === subscriptionNavItem.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                    }`}
+                  >
+                    <subscriptionNavItem.icon className="h-4 w-4" />
+                    {subscriptionNavItem.label}
+                  </button>
+                )}
+
                 {allGroups.map((group) => {
                   const isOpen = expandedGroups[group.label] ?? false;
                   const hasActive = group.subgroups.some(sg => sg.items.some(item => activeView === item.id));
