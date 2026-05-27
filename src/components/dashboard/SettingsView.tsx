@@ -175,10 +175,17 @@ const SettingsView = () => {
     if (!user) return;
     const { data } = await supabase.storage.from("custom-wallpapers").list(user.id, { limit: 20 });
     if (data && data.length > 0) {
-      const wps = data.filter(f => f.name !== ".emptyFolderPlaceholder").map(f => {
-        const { data: urlData } = supabase.storage.from("custom-wallpapers").getPublicUrl(`${user.id}/${f.name}`);
-        return { name: f.name, url: urlData.publicUrl };
-      });
+      const wps = await Promise.all(
+        data
+          .filter((f) => f.name !== ".emptyFolderPlaceholder")
+          .map(async (f) => {
+            const path = `${user.id}/${f.name}`;
+            const { data: urlData } = await supabase.storage
+              .from("custom-wallpapers")
+              .createSignedUrl(path, 3600);
+            return { name: f.name, url: urlData?.signedUrl || "" };
+          }),
+      );
       setCustomWallpapers(wps);
     }
   };
@@ -220,8 +227,10 @@ const SettingsView = () => {
     if (error) {
       toast({ title: "Upload failed", description: error.message, variant: "destructive" });
     } else {
-      const { data: urlData } = supabase.storage.from("custom-wallpapers").getPublicUrl(path);
-      setCustomWallpapers(prev => [...prev, { name: fileName, url: urlData.publicUrl }]);
+      const { data: urlData } = await supabase.storage
+        .from("custom-wallpapers")
+        .createSignedUrl(path, 3600);
+      setCustomWallpapers(prev => [...prev, { name: fileName, url: urlData?.signedUrl || "" }]);
       toast({ title: "Wallpaper uploaded", description: "You can now select it as your wallpaper." });
     }
     setUploadingWallpaper(false);

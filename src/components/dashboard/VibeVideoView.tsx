@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toDisplayUrl, signPath } from "@/lib/storageSignedUrl";
 import { useToast } from "@/hooks/use-toast";
 import { useFFmpeg } from "@/hooks/useFFmpeg";
 import { useMediaBunny } from "@/hooks/useMediaBunny";
@@ -186,9 +187,15 @@ const VibeVideoView = () => {
       .select("*")
       .eq("project_id", activeProject.id)
       .order("created_at", { ascending: true })
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (data) {
-          const v = data as VideoVersion[];
+          const raw = data as VideoVersion[];
+          const v: VideoVersion[] = await Promise.all(
+            raw.map(async (row) => ({
+              ...row,
+              video_url: await toDisplayUrl(row.video_url, "vibe-video"),
+            })),
+          );
           setVersions(v);
           if (v.length > 0) setActiveVersion(v[v.length - 1]);
         }
