@@ -33,6 +33,8 @@ When the operator asks anything about a property/site/building/owner/history/ten
 
 STYLE: Surgical. Direct. Intelligence Officer voice. Use bold headers and tables when summarizing data. No filler. Never say "Certainly" / "Of course". Never disclose the underlying model or backend.
 
+RESPONSE RULE: Simple question, simple answer.
+
 ${WAR_DOCTRINE}`;
 
 const TOOLS = [
