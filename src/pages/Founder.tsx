@@ -130,6 +130,12 @@ const Founder = () => {
               <p className="text-foreground/70 border-l-2 border-accent/30 pl-4 italic">
                 Nobody is going to save you — you must save yourself. Humans are selfish, emotional creatures, too arrogant and egotistical, trapped inside their own worlds. Once you realize this, you can actually climb to success.
               </p>
+              <p className="text-foreground/70 border-l-2 border-accent/30 pl-4 italic">
+                People don't like the truth, and they don't like to be challenged on their beliefs — because it threatens their safety, their cushion. That's why most people never wake up. They're passive. And when I speak the truth, whether through spirituality or the occult, I challenge their beliefs, the safety of what they've learned, and it traps them in their own corner. So I get called "mentally ill," or "it's because of your autism," or "you're young and dumb and know nothing."
+              </p>
+              <p className="text-foreground/70 border-l-2 border-accent/30 pl-4 italic">
+                Over time — through childhood, adolescence, and adult life — I learned to give people the truth in a way they can find for themselves, as their own discovery. I learned not to force it down their throat, because like most humans, they are weak and emotional, and they hate it when their safety is threatened.
+              </p>
             </div>
           </div>
         </div>
