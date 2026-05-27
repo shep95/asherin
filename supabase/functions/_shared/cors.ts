@@ -8,10 +8,16 @@ const ALLOWED_ORIGINS = [
   "https://www.aureonai.app",
   "https://ziali-magic-pixels.lovable.app",
   "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app",
+  "https://5d5e1e10-9f71-4760-8dad-575a93313745.lovableproject.com",
   "http://localhost:5173",
   "http://localhost:8080",
   "http://localhost:3000",
 ];
+
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  return /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/.test(origin);
+}
 
 const BASE_ALLOWED_HEADERS =
   "authorization, x-client-info, apikey, content-type, x-supabase-api-version, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
@@ -23,7 +29,7 @@ const BASE_ALLOWED_HEADERS =
  */
 export function getCorsHeaders(req: Request, extraAllowedHeaders = ""): Record<string, string> {
   const origin = req.headers.get("origin") || "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = isAllowedOrigin(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Headers": extraAllowedHeaders
