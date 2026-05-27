@@ -104,31 +104,8 @@ const PRO_FEATURES: FeatureId[] = [
   "vibe_video", "agents", "zeeion", "axrlen", "zerlal", "cross", "lavba",
 ];
 
-const STARTER_FEATURES: FeatureId[] = [
-  "chat", "encryption", "byok",
-];
-
 // ── Plans Array ──────────────────────────────────────────────────────────────
 export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
-  {
-    id: "starter",
-    name: "AUREON STARTER",
-    tagline: "Get Started",
-    price: "$20",
-    period: "/ month",
-    description: "50 Aureon messages per 3-hour window. Uncensored AI chat — no filters, no agendas.",
-    cta: "Get Starter Access",
-    highlight: false,
-    publicVisible: false,
-    features: STARTER_FEATURES,
-    messageLimit: 50,
-    featureLabels: [
-      "50 messages per 3-hour window",
-      "Uncensored AI chat",
-      "End-to-end encryption",
-      "Bring Your Own AI Key (required)",
-    ],
-  },
   {
     id: "lifetime",
     name: "AUREON LIFETIME",
@@ -286,9 +263,9 @@ export function getPublicPlans(): PlanDefinition[] {
   return SUBSCRIPTION_PLANS.filter(p => p.publicVisible);
 }
 
-/** Get plans visible in the dashboard subscription view (public + starter) */
+/** Get plans visible in the dashboard subscription view */
 export function getDashboardPlans(): PlanDefinition[] {
-  return SUBSCRIPTION_PLANS.filter(p => p.publicVisible || p.id === "starter");
+  return SUBSCRIPTION_PLANS.filter(p => p.publicVisible);
 }
 
 /** Map dashboard view IDs to feature IDs for gating */
