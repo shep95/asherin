@@ -1339,6 +1339,68 @@ const VedicAstrologyView = () => {
               </div>
             )}
 
+            {/* Viral-influence timeline strip — Megaphone markers where the chart
+                indicates mass-public attention / going viral. */}
+            {influenceMarkers.length > 0 && timelineSpan && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Megaphone className="h-3 w-3 text-foreground/80" />
+                    Influence Windows · {influenceMarkers.length} pulse{influenceMarkers.length > 1 ? "s" : ""}
+                  </span>
+                  <span className="normal-case tracking-normal text-[10px] text-muted-foreground/50">
+                    viral / public reach
+                  </span>
+                </div>
+                <div className="relative h-10 rounded-md border border-border/25 bg-background/40 overflow-visible">
+                  <div className="absolute inset-0 bg-gradient-to-r from-foreground/[0.03] to-foreground/[0.08] rounded-md" />
+                  {(() => {
+                    const now = Date.now();
+                    if (now < timelineSpan.start || now > timelineSpan.start + timelineSpan.span) return null;
+                    const pct = ((now - timelineSpan.start) / timelineSpan.span) * 100;
+                    return <div className="absolute top-0 bottom-0 w-px bg-foreground/40" style={{ left: `${pct}%` }} title="Now" />;
+                  })()}
+                  {/* Influence-window bands */}
+                  {influenceMarkers.map((m, i) => {
+                    const startPct = Math.max(0, ((m.start.getTime() - timelineSpan.start) / timelineSpan.span) * 100);
+                    const endPct = Math.min(100, ((m.end.getTime() - timelineSpan.start) / timelineSpan.span) * 100);
+                    const width = Math.max(0.4, endPct - startPct);
+                    return (
+                      <div
+                        key={`band-${i}`}
+                        className={`absolute top-0 bottom-0 ${m.level === "maha" ? "bg-foreground/[0.10]" : "bg-foreground/[0.06]"}`}
+                        style={{ left: `${startPct}%`, width: `${width}%` }}
+                        title={`${m.label} · ${m.start.toLocaleDateString("en-US")} → ${m.end.toLocaleDateString("en-US")}`}
+                      />
+                    );
+                  })}
+                  {/* Megaphone icons at window midpoints */}
+                  {influenceMarkers.map((m, i) => (
+                    <div
+                      key={`ico-${i}`}
+                      className="absolute -top-1 -translate-x-1/2 group cursor-help"
+                      style={{ left: `${m.pct}%` }}
+                    >
+                      <div className={`flex items-center justify-center rounded-full border border-foreground/30 bg-background/90 ${m.level === "maha" ? "h-5 w-5" : "h-4 w-4"} shadow-[0_0_8px_rgba(255,255,255,0.15)]`}>
+                        <Megaphone className={`text-foreground/90 ${m.level === "maha" ? "h-3 w-3" : "h-2.5 w-2.5"}`} strokeWidth={1.7} />
+                      </div>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 whitespace-nowrap rounded border border-border/30 bg-background/95 px-1.5 py-0.5 text-[9px] text-foreground/90 opacity-0 group-hover:opacity-100 transition pointer-events-none z-10">
+                        {m.label}
+                        <div className="text-muted-foreground/70 tabular-nums">
+                          {m.start.toLocaleDateString("en-US", { month: "short", year: "numeric" })} → {m.end.toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-[9px] tabular-nums text-muted-foreground/60">
+                  <span>{new Date(timelineSpan.start).getUTCFullYear()}</span>
+                  <span>now</span>
+                  <span>{new Date(timelineSpan.start + timelineSpan.span).getUTCFullYear()}</span>
+                </div>
+              </div>
+            )}
+
             {currentDasha.maha && (
               <div className="rounded-lg border border-foreground/25 bg-foreground/[0.035] p-3 space-y-2">
                 <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80">Active Period</div>
