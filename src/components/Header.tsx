@@ -149,6 +149,9 @@ const Header = () => {
 
                 <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Company</p>
                 <DropdownMenuItem asChild>
+                  <Link to="/houseofasher-ventures" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">HouseOfAsher Ventures</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link to="/features" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">All Features</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
