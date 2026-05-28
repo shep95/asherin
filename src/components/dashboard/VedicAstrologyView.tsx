@@ -538,6 +538,40 @@ const VedicAstrologyView = () => {
 
   const asherDateSet = useMemo(() => new Set(asherDates), [asherDates]);
 
+  // ── Viral-influence markers across the entire Vimshottari span ──────────
+  // Computes influence-flagged windows at maha AND antardasha resolution so
+  // sudden viral/public-attention spikes (Rahu / Moon+fame-lord activations)
+  // show up as Megaphone icons on the timeline strip.
+  const influenceMarkers = useMemo(() => {
+    if (!chart || !timelineSpan || dashaTimeline.length === 0) return [];
+    const out: { pct: number; label: string; start: Date; end: Date; level: "maha" | "antar" }[] = [];
+    for (const maha of dashaTimeline) {
+      const mahaInsight = buildDashaInsight(maha, [], chart);
+      if (mahaInsight.flags.includes("viral_influence")) {
+        const mid = (maha.start.getTime() + maha.end.getTime()) / 2;
+        out.push({
+          pct: ((mid - timelineSpan.start) / timelineSpan.span) * 100,
+          label: `${maha.lord} Mahadasha · viral influence`,
+          start: maha.start, end: maha.end, level: "maha",
+        });
+      }
+      // Drill into antardashas for finer-grained viral pulses
+      ensureChildren(maha);
+      for (const antar of (maha.children ?? [])) {
+        const ai = buildDashaInsight(antar, [maha], chart);
+        if (ai.flags.includes("viral_influence")) {
+          const mid = (antar.start.getTime() + antar.end.getTime()) / 2;
+          out.push({
+            pct: ((mid - timelineSpan.start) / timelineSpan.span) * 100,
+            label: `${maha.lord}/${antar.lord} · viral influence`,
+            start: antar.start, end: antar.end, level: "antar",
+          });
+        }
+      }
+    }
+    return out.filter((m) => m.pct >= 0 && m.pct <= 100);
+  }, [chart, dashaTimeline, timelineSpan]);
+
   // Lazy-compute Lagna (Rising Sign) for every country chart when the Country tab is opened.
   useEffect(() => {
     if (tab !== "country") return;
