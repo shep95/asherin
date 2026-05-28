@@ -8,6 +8,7 @@ import {
 } from "@/data/nakshatraData";
 import { supabase } from "@/integrations/supabase/client";
 import { computeMahadasha, ensureChildren, findCurrentDasha, DASHA_LEVEL_LABEL, type DashaPeriod } from "@/lib/vedic/dasha";
+import { buildDashaInsight } from "@/lib/vedic/dashaReading";
 import { houseFromAsc } from "@/lib/vedic/dignities";
 import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine";
 import { calculateSweVedicChart, type SweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
