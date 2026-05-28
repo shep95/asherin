@@ -51,7 +51,7 @@ const KENDRA = new Set([1, 4, 7, 10]);
 const TRIKONA = new Set([1, 5, 9]);
 const WEALTH_HOUSES = new Set([2, 11, 5, 9]);
 
-export type LifeFlag = "soulmate" | "millionaire" | "billionaire" | "power_peak";
+export type LifeFlag = "soulmate" | "millionaire" | "billionaire" | "power_peak" | "viral_influence";
 
 export interface DashaInsight {
   /** Human label e.g. "Jupiter Mahadasha" */
