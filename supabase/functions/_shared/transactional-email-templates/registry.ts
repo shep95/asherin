@@ -21,6 +21,8 @@ import { template as quotaWarning } from './quota-warning.tsx'
 import { template as agentTaskComplete } from './agent-task-complete.tsx'
 import { template as exportReady } from './export-ready.tsx'
 import { template as accountDeletionScheduled } from './account-deletion-scheduled.tsx'
+import { template as vcApplicationDecision } from './vc-application-decision.tsx'
+import { template as vcApplicationForward } from './vc-application-forward.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   welcome,
@@ -35,4 +37,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'agent-task-complete': agentTaskComplete,
   'export-ready': exportReady,
   'account-deletion-scheduled': accountDeletionScheduled,
+  'vc-application-decision': vcApplicationDecision,
+  'vc-application-forward': vcApplicationForward,
 }
