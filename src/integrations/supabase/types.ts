@@ -3872,6 +3872,57 @@ export type Database = {
         }
         Relationships: []
       }
+      houseofasher_applications: {
+        Row: {
+          analysis: Json | null
+          answers: Json
+          company_name: string
+          composite_score: number | null
+          created_at: string
+          decision: string | null
+          founder_email: string
+          founder_name: string
+          id: string
+          rejection_reason: string | null
+          status: string
+          success_probability: number | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          analysis?: Json | null
+          answers?: Json
+          company_name: string
+          composite_score?: number | null
+          created_at?: string
+          decision?: string | null
+          founder_email: string
+          founder_name: string
+          id?: string
+          rejection_reason?: string | null
+          status?: string
+          success_probability?: number | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          analysis?: Json | null
+          answers?: Json
+          company_name?: string
+          composite_score?: number | null
+          created_at?: string
+          decision?: string | null
+          founder_email?: string
+          founder_name?: string
+          id?: string
+          rejection_reason?: string | null
+          status?: string
+          success_probability?: number | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       ide_sessions: {
         Row: {
           active_file_id: string | null

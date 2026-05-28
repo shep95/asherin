@@ -62,6 +62,7 @@ const FeatureVedic = lazy(() => import("./pages/FeatureVedic"));
 const VedicAstrology = lazy(() => import("./pages/VedicAstrology"));
 const ZophielFree = lazy(() => import("./pages/ZophielFree"));
 const WW3 = lazy(() => import("./pages/WW3"));
+const HouseOfAsherVentures = lazy(() => import("./pages/HouseOfAsherVentures"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TrackPage = lazy(() => import("./pages/TrackPage"));
 const ProjAureon = lazy(() => import("./pages/ProjAureon"));
@@ -155,6 +156,7 @@ const App = () => (
             <Route path="/search" element={<ZophielFree />} />
             <Route path="/i" element={<TrackPage />} />
             <Route path="/ww3" element={<WW3 />} />
+            <Route path="/houseofasher-ventures" element={<HouseOfAsherVentures />} />
             <Route path="/proj-aureon" element={<ProjAureon />} />
             <Route path="/whiteboard" element={<Whiteboard />} />
             <Route path="/elite" element={<ProtectedRoute><EliteSuite /></ProtectedRoute>} />
