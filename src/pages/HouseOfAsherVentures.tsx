@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Header from "@/components/Header";
-import { Loader2, ShieldCheck } from "lucide-react";
+import LandingBackground from "@/components/LandingBackground";
+import { Loader2, ShieldCheck, ArrowRight } from "lucide-react";
 
 const SECTIONS: { title: string; questions: { id: string; q: string }[] }[] = [
   { title: "I. Vision & Solution Clarity", questions: [
@@ -82,7 +83,6 @@ const HouseOfAsherVentures = () => {
       return;
     }
 
-    // Map ids to full questions for richer context
     const labeledAnswers: Record<string, string> = {};
     SECTIONS.forEach((s) => s.questions.forEach((q) => {
       labeledAnswers[q.q] = answers[q.id];
@@ -109,96 +109,159 @@ const HouseOfAsherVentures = () => {
 
   if (result) {
     return (
-      <div className="min-h-screen bg-background">
+      <LandingBackground>
         <Header />
-        <main className="max-w-2xl mx-auto px-6 py-32 text-center">
-          <ShieldCheck className="h-12 w-12 mx-auto mb-6 text-foreground/60" />
-          <h1 className="text-3xl font-extralight tracking-tight mb-4">
-            {result.approved ? "Application Advanced" : "Decision Recorded"}
-          </h1>
-          <p className="text-muted-foreground font-light leading-relaxed">
-            {result.approved
-              ? "Your application has passed Aureon's analytical review and is being forwarded to the Senate of HouseOfAsher. A detailed decision has been sent to your inbox."
-              : "Aureon has reviewed your submission. A detailed decision with rationale has been sent to your email."}
-          </p>
-          {result.compositeScore != null && (
-            <p className="mt-6 text-xs tracking-[0.2em] uppercase text-muted-foreground/60">
-              Composite Score · {result.compositeScore}/100
+        <main className="relative z-10 max-w-2xl mx-auto px-6 py-32 text-center">
+          <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-[80vw] max-w-[900px] h-[420px] zophiel-aurora rounded-full" />
+          <div className="relative">
+            <ShieldCheck className="h-12 w-12 mx-auto mb-6 text-foreground/60" />
+            <h1 className="text-4xl sm:text-5xl font-extralight tracking-[-0.02em] mb-4">
+              {result.approved ? (
+                <>Application <span className="zophiel-shimmer-text italic font-thin">Advanced</span></>
+              ) : (
+                <>Decision <span className="zophiel-shimmer-text italic font-thin">Recorded</span></>
+              )}
+            </h1>
+            <p className="text-muted-foreground font-extralight leading-relaxed">
+              {result.approved
+                ? "Your application has passed Aureon's analytical review and is being forwarded to the Senate of HouseOfAsher. A detailed decision has been sent to your inbox."
+                : "Aureon has reviewed your submission. A detailed decision with rationale has been sent to your email."}
             </p>
-          )}
+            {result.compositeScore != null && (
+              <p className="mt-8 font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground/60">
+                Composite Score · {result.compositeScore}/100
+              </p>
+            )}
+          </div>
         </main>
-      </div>
+      </LandingBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <LandingBackground>
       <Header />
-      <main className="max-w-3xl mx-auto px-6 py-16">
-        <div className="mb-12">
-          <p className="text-[10px] tracking-[0.3em] uppercase text-foreground/50 mb-3">◈ HouseOfAsher · Ventures</p>
-          <h1 className="text-4xl sm:text-5xl font-extralight tracking-tight mb-4">Apply for Investment Review</h1>
-          <p className="text-sm text-muted-foreground font-light leading-relaxed max-w-2xl">
-            Your application is processed by Aureon — our multi-phase analytical engine that performs entity resolution,
-            financial forensics, market physics, and predictive trajectory analysis before any human at the Senate sees your file.
-            Vague language, unsubstantiated claims, and marketing rhetoric will be flagged and downscored.
-            Answers must be <strong className="text-foreground/80">quantified, evidence-based, and specific</strong>.
-          </p>
-        </div>
+      <main className="relative z-10 px-6 pt-28 pb-20">
+        {/* Aurora glow */}
+        <div aria-hidden className="pointer-events-none absolute left-1/2 top-[20%] -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[1100px] h-[500px] zophiel-aurora rounded-full" />
 
-        <form onSubmit={submit} className="space-y-10">
-          <section className="space-y-4 p-6 rounded-2xl border border-foreground/10 bg-card/30 backdrop-blur">
-            <h2 className="text-xs tracking-[0.25em] uppercase text-foreground/60">Identification</h2>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs">Company name *</Label>
-                <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs">Founder name *</Label>
-                <Input value={founderName} onChange={(e) => setFounderName(e.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs">Founder email *</Label>
-                <Input type="email" value={founderEmail} onChange={(e) => setFounderEmail(e.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs">Website</Label>
-                <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" className="mt-1" />
-              </div>
-            </div>
-          </section>
+        {/* Grid floor */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.10]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
+            backgroundSize: "72px 72px",
+            maskImage: "radial-gradient(ellipse at top, black 15%, transparent 65%)",
+            WebkitMaskImage: "radial-gradient(ellipse at top, black 15%, transparent 65%)",
+          }}
+        />
 
-          {SECTIONS.map((section) => (
-            <section key={section.title} className="space-y-5 p-6 rounded-2xl border border-foreground/10 bg-card/30 backdrop-blur">
-              <h2 className="text-xs tracking-[0.25em] uppercase text-foreground/60">{section.title}</h2>
-              {section.questions.map((q) => (
-                <div key={q.id}>
-                  <Label className="text-sm font-light leading-snug block mb-2">{q.q}</Label>
-                  <Textarea
-                    value={answers[q.id] || ""}
-                    onChange={(e) => setAnswer(q.id, e.target.value)}
-                    rows={3}
-                    placeholder="Quantified, evidence-based, specific."
-                    className="resize-y"
-                  />
-                </div>
-              ))}
-            </section>
-          ))}
-
-          <div className="flex items-center justify-end gap-4 pt-4">
-            <p className="text-[10px] tracking-wide text-muted-foreground/60">
-              By submitting you consent to automated analytical review.
-            </p>
-            <Button type="submit" disabled={submitting} size="lg">
-              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {submitting ? "Aureon analyzing…" : "Submit for Aureon Review"}
-            </Button>
+        <div className="relative mx-auto w-full max-w-3xl">
+          {/* Top meta row */}
+          <div className="flex items-center justify-between text-[9px] tracking-[0.4em] text-muted-foreground/50 uppercase font-mono mb-6">
+            <span className="flex items-center gap-2">
+              <span className="h-px w-6 bg-foreground/30" />
+              NODE / VENTURES-01
+            </span>
+            <span className="hidden sm:flex items-center gap-2">
+              CHANNEL · AUREON SENATE
+              <span className="h-px w-6 bg-foreground/30" />
+            </span>
           </div>
-        </form>
+
+          {/* Hero */}
+          <div className="mb-14">
+            <div className="inline-flex items-center gap-2 rounded-full border border-foreground/15 bg-foreground/[0.03] backdrop-blur-md px-3 py-1 font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground/70">
+              <span className="h-1 w-1 rounded-full bg-emerald-400" />
+              HOUSEOFASHER · VENTURES
+            </div>
+            <h1 className="mt-6 text-5xl sm:text-6xl md:text-7xl font-extralight tracking-[-0.02em] leading-[0.95] text-foreground">
+              Apply for
+              <br />
+              <span className="zophiel-shimmer-text italic font-thin">investment review.</span>
+            </h1>
+            <p className="mt-7 max-w-2xl text-base sm:text-lg font-extralight leading-relaxed text-muted-foreground/90">
+              Your application is processed by <span className="text-foreground/90">Aureon</span> — our multi-phase analytical
+              engine performing entity resolution, financial forensics, market physics, and predictive trajectory analysis
+              before any human at the Senate sees your file. Vague language and marketing rhetoric will be flagged and downscored.
+              Answers must be <span className="text-foreground/90">quantified, evidence-based, and specific</span>.
+            </p>
+          </div>
+
+          <form onSubmit={submit} className="space-y-8">
+            <section className="space-y-4 p-6 sm:p-8 rounded-2xl border border-foreground/10 bg-foreground/[0.02] backdrop-blur-xl">
+              <div className="flex items-center gap-3">
+                <span className="h-px w-6 bg-foreground/30" />
+                <h2 className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground/70">Identification</h2>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/70">Company name *</Label>
+                  <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="mt-2 bg-background/40 border-foreground/10" />
+                </div>
+                <div>
+                  <Label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/70">Founder name *</Label>
+                  <Input value={founderName} onChange={(e) => setFounderName(e.target.value)} className="mt-2 bg-background/40 border-foreground/10" />
+                </div>
+                <div>
+                  <Label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/70">Founder email *</Label>
+                  <Input type="email" value={founderEmail} onChange={(e) => setFounderEmail(e.target.value)} className="mt-2 bg-background/40 border-foreground/10" />
+                </div>
+                <div>
+                  <Label className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/70">Website</Label>
+                  <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" className="mt-2 bg-background/40 border-foreground/10" />
+                </div>
+              </div>
+            </section>
+
+            {SECTIONS.map((section, idx) => (
+              <section key={section.title} className="space-y-6 p-6 sm:p-8 rounded-2xl border border-foreground/10 bg-foreground/[0.02] backdrop-blur-xl">
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground/40">
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <span className="h-px w-6 bg-foreground/30" />
+                  <h2 className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground/70">{section.title}</h2>
+                </div>
+                {section.questions.map((q) => (
+                  <div key={q.id}>
+                    <Label className="text-sm font-extralight leading-snug block mb-2 text-foreground/90">{q.q}</Label>
+                    <Textarea
+                      value={answers[q.id] || ""}
+                      onChange={(e) => setAnswer(q.id, e.target.value)}
+                      rows={3}
+                      placeholder="Quantified. Evidence-based. Specific."
+                      className="resize-y bg-background/40 border-foreground/10 font-extralight placeholder:text-muted-foreground/40"
+                    />
+                  </div>
+                ))}
+              </section>
+            ))}
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4">
+              <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground/50">
+                By submitting · you consent to automated analytical review
+              </p>
+              <Button type="submit" disabled={submitting} size="lg" className="group">
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Aureon analyzing…
+                  </>
+                ) : (
+                  <>
+                    Submit for Aureon Review
+                    <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </div>
       </main>
-    </div>
+    </LandingBackground>
   );
 };
 
