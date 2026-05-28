@@ -51,7 +51,7 @@ const KENDRA = new Set([1, 4, 7, 10]);
 const TRIKONA = new Set([1, 5, 9]);
 const WEALTH_HOUSES = new Set([2, 11, 5, 9]);
 
-export type LifeFlag = "soulmate" | "millionaire" | "billionaire" | "power_peak";
+export type LifeFlag = "soulmate" | "millionaire" | "billionaire" | "power_peak" | "viral_influence";
 
 export interface DashaInsight {
   /** Human label e.g. "Jupiter Mahadasha" */
@@ -205,6 +205,25 @@ export function buildDashaInsight(
   // Power peak: Sun/Mars/Saturn/Rahu with kendra/10th activation, high power
   if (POWER_LORDS.has(lord) && (KENDRA.has(me.house) || me.house === 10) && power >= 72) {
     flags.push("power_peak");
+  }
+
+  // Viral influence / mass-public attention:
+  //  - Rahu in the chain = amplification / sudden virality, OR
+  //  - Moon (mass mind) combined with a fame-bearing lord (Sun/Venus/Mercury/Jupiter)
+  //  - Lord activated through a visibility house (1/3/5/10/11)
+  const VISIBILITY_HOUSES = new Set([1, 3, 5, 10, 11]);
+  const FAME_LORDS = new Set<DashaLord>(["Sun", "Venus", "Mercury", "Jupiter"]);
+  const hasRahu = chain.includes("Rahu");
+  const hasMoon = chain.includes("Moon");
+  const hasFameLord = chain.some((c) => FAME_LORDS.has(c));
+  const visibilityActive = VISIBILITY_HOUSES.has(me.house);
+  if (
+    (hasRahu || (hasMoon && hasFameLord)) &&
+    visibilityActive &&
+    (power + rel) / 2 >= 60 &&
+    !me.combust
+  ) {
+    flags.push("viral_influence");
   }
 
   // ── Mechanics narrative (chart-grounded, not generic) ──────────────────

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   ChevronRight, ChevronDown, Heart, DollarSign, Crown, Flame,
-  Sparkles, TrendingUp, Users, Activity,
+  Sparkles, TrendingUp, Users, Activity, Megaphone,
 } from "lucide-react";
 import { ensureChildren, DASHA_LEVEL_LABEL, type DashaPeriod } from "@/lib/vedic/dasha";
 import { buildDashaInsight, type LifeFlag } from "@/lib/vedic/dashaReading";
@@ -20,10 +20,11 @@ const fmtDuration = (years: number) => {
 };
 
 const FLAG_ICON: Record<LifeFlag, { Icon: typeof Heart; title: string }> = {
-  soulmate:    { Icon: Heart,      title: "Soulmate window" },
-  millionaire: { Icon: DollarSign, title: "Millionaire-grade wealth window" },
-  billionaire: { Icon: Crown,      title: "Billionaire-grade wealth window" },
-  power_peak:  { Icon: Flame,      title: "Power peak" },
+  soulmate:        { Icon: Heart,      title: "Soulmate window" },
+  millionaire:     { Icon: DollarSign, title: "Millionaire-grade wealth window" },
+  billionaire:     { Icon: Crown,      title: "Billionaire-grade wealth window" },
+  power_peak:      { Icon: Flame,      title: "Power peak" },
+  viral_influence: { Icon: Megaphone,  title: "Viral influence — mass public attention / going viral" },
 };
 
 interface Props {
