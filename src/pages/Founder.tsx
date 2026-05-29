@@ -116,12 +116,6 @@ const Founder = () => {
           <div className="founder-glass founder-corner rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-12 max-w-3xl mx-auto">
             <div className="space-y-5 text-sm sm:text-base font-extralight leading-[1.8] text-muted-foreground">
               <p>
-                Asher was born in New Delhi, India, on September 26, 2005. Given up at birth by his biological family — the reason remains private — he was placed in the <span className="text-foreground/80">SOS Children's Village</span> orphanage near Indira Gandhi International Airport.
-              </p>
-              <p>
-                In 2009, the Newton family, an American family, adopted him and brought him from that orphanage to the United States, where he has lived for sixteen years at the time of this writing.
-              </p>
-              <p>
                 Shortly after birth, during a period when he was left unattended, he was attacked by a dog that mauled his right leg beyond repair. Today, he wears a prosthetic leg — a restoration made possible only by advanced American medical technology, something that would have been impossible in India in 2009.
               </p>
               <p className="text-foreground/80 border-l-2 border-accent/30 pl-4 italic">
