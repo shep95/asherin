@@ -418,8 +418,11 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
     return set;
   }, [selectedId, edges]);
 
+  const userInteractedRef = useRef(false);
+
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
+    userInteractedRef.current = true;
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     setZoom((z) => Math.max(0.3, Math.min(3, z * delta)));
   };
@@ -429,6 +432,7 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
     // Click on empty canvas → deselect any open detail card
     if (selectedId) setSelectedId(null);
     setDragging(true);
+    userInteractedRef.current = true;
     setDragStart({ x: e.clientX, y: e.clientY, px: pan.x, py: pan.y });
   };
   const onMouseMove = (e: React.MouseEvent) => {
@@ -437,7 +441,34 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
   };
   const onMouseUp = () => setDragging(false);
 
-  const reset = () => { setZoom(1); setPan({ x: 0, y: 0 }); setSelectedId(null); };
+  // Auto-fit the laid-out graph to the canvas whenever nodes or container size
+  // change, until the user manually pans/zooms. Approximates label width so
+  // pills near the edge aren't clipped by overflow:hidden.
+  useEffect(() => {
+    if (userInteractedRef.current) return;
+    if (laidOut.length === 0 || size.w < 50 || size.h < 50) return;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const n of laidOut) {
+      const labelW = Math.max(60, (n.label?.length || 4) * 7 + 28);
+      const halfW = labelW / 2;
+      const halfH = 22;
+      if (n.x! - halfW < minX) minX = n.x! - halfW;
+      if (n.x! + halfW > maxX) maxX = n.x! + halfW;
+      if (n.y! - halfH < minY) minY = n.y! - halfH;
+      if (n.y! + halfH > maxY) maxY = n.y! + halfH;
+    }
+    const bboxW = Math.max(1, maxX - minX);
+    const bboxH = Math.max(1, maxY - minY);
+    const margin = 32;
+    const fit = Math.min((size.w - margin * 2) / bboxW, (size.h - margin * 2) / bboxH, 1);
+    const z = Math.max(0.3, Math.min(1, fit));
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    setZoom(z);
+    setPan({ x: z * (size.w / 2 - cx), y: z * (size.h / 2 - cy) });
+  }, [laidOut, size.w, size.h]);
+
+  const reset = () => { userInteractedRef.current = false; setZoom(1); setPan({ x: 0, y: 0 }); setSelectedId(null); };
 
   // Escape to close the open detail card (or the map overlay if open)
   useEffect(() => {
