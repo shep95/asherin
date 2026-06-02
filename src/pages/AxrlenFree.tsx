@@ -128,8 +128,7 @@ const AxrlenFree = () => {
     [],
   );
 
-  const run = async () => {
-    const q = prompt.trim();
+  const runWith = async (q: string) => {
     if (!q || !savedKey) return;
     setErr(null);
     const next: Turn[] = [...turns, { role: "user", text: q }];
@@ -166,6 +165,46 @@ const AxrlenFree = () => {
       setLoading(false);
     }
   };
+  const run = () => runWith(prompt.trim());
+
+  const QUESTION_LIBRARY: { category: string; items: string[] }[] = [
+    {
+      category: "Markets",
+      items: [
+        "Forecast Brent crude direction over the next 72h — give probability band and 3 signals.",
+        "Probability the FOMC pauses at the next meeting — surface the 3 strongest signals.",
+        "Model the next decisive move in USD/JPY this week — direction, band, failure mode.",
+        "Forecast BTC volatility regime over the next 14 days.",
+      ],
+    },
+    {
+      category: "Geopolitics",
+      items: [
+        "Model the timeline divergence for Taiwan Strait posture this quarter.",
+        "Predict the most likely next escalation step in the Red Sea corridor.",
+        "Forecast the probability of a Russia–NATO direct incident in the next 60 days.",
+        "Map the most likely 3 outcomes for Iran nuclear posture by year-end.",
+      ],
+    },
+    {
+      category: "Policy",
+      items: [
+        "Forecast the probability of a major US tariff change in the next 30 days.",
+        "Predict the next ECB rate decision — direction, probability, surprise factor.",
+        "Model the most likely AI regulation moves from the EU this quarter.",
+      ],
+    },
+    {
+      category: "Conflict & Resources",
+      items: [
+        "Identify the next likely commodity supply chokepoint within 30 days.",
+        "Forecast a sovereign statement window for the top geopolitical actor this week.",
+        "Predict the most likely cyber escalation vector in the next 14 days.",
+      ],
+    },
+  ];
+
+
 
   return (
     <LandingBackground>
@@ -338,15 +377,39 @@ const AxrlenFree = () => {
 
             <div ref={scrollRef} className="max-h-[420px] overflow-y-auto px-4 py-4 space-y-3">
               {turns.length === 0 && (
-                <div className="text-xs font-light text-muted-foreground/70 leading-relaxed">
-                  Ask AXRLEN to forecast something. Examples:
-                  <ul className="mt-3 space-y-1.5">
-                    <li>• Forecast Brent crude direction over the next 72h.</li>
-                    <li>• Probability the FOMC pauses next meeting — give signals.</li>
-                    <li>• Model the timeline divergence for Taiwan Strait posture this quarter.</li>
-                  </ul>
+                <div className="space-y-4">
+                  <p className="text-[10px] font-light tracking-[0.28em] uppercase text-muted-foreground/70">
+                    Prebuilt Predictions · tap to run
+                  </p>
+                  {QUESTION_LIBRARY.map((cat) => (
+                    <div key={cat.category}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[9px] font-light tracking-[0.32em] uppercase text-foreground/60">{cat.category}</span>
+                        <span className="h-px flex-1 bg-border/20" />
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cat.items.map((q) => (
+                          <button
+                            key={q}
+                            onClick={() => savedKey && runWith(q)}
+                            disabled={!savedKey || loading}
+                            className="group inline-flex items-center gap-1.5 rounded-full border border-border/30 bg-foreground/[0.02] px-3 py-1.5 text-[10.5px] font-light text-foreground/80 hover:text-foreground hover:bg-foreground/[0.06] hover:border-foreground/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed text-left max-w-full"
+                          >
+                            <Target className="h-2.5 w-2.5 text-foreground/40 group-hover:text-foreground/70 shrink-0" strokeWidth={1.6} />
+                            <span className="truncate sm:whitespace-normal">{q}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {!savedKey && (
+                    <p className="text-[10px] font-light text-muted-foreground/60 italic">
+                      Save your Gemini API key above to enable these predictions.
+                    </p>
+                  )}
                 </div>
               )}
+
               {turns.map((t, i) => (
                 <div
                   key={i}
@@ -371,7 +434,23 @@ const AxrlenFree = () => {
               )}
             </div>
 
+            {savedKey && turns.length > 0 && (
+              <div className="border-t border-border/20 px-3 py-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+                {QUESTION_LIBRARY.flatMap((c) => c.items).slice(0, 6).map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => runWith(q)}
+                    disabled={loading}
+                    className="shrink-0 inline-flex items-center gap-1 rounded-full border border-border/25 bg-foreground/[0.02] px-2.5 py-1 text-[10px] font-light text-foreground/70 hover:text-foreground hover:bg-foreground/[0.06] hover:border-foreground/30 transition-all disabled:opacity-40"
+                  >
+                    <Target className="h-2.5 w-2.5 opacity-60" strokeWidth={1.6} />
+                    {q.length > 48 ? q.slice(0, 48) + "…" : q}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="border-t border-border/20 p-3 flex gap-2">
+
               <input
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
