@@ -68,8 +68,9 @@ const AxrlenView = () => {
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Dashboard panel width
-  const [dashboardWidth, setDashboardWidth] = useState(55);
+  // Chat rail width (right side, collapsible)
+  const [chatWidth, setChatWidth] = useState(38);
+  const [chatCollapsed, setChatCollapsed] = useState(false);
   const resizingRef = useRef(false);
 
   useEffect(() => {
