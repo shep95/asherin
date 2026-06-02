@@ -422,12 +422,32 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     }
   }, [conversation.id]);
 
-  // Scroll to highlighted message
+  // Scroll to highlighted message (with retries — the target may not be mounted yet
+  // when a cross-conversation jump arrives while messages are still hydrating).
   useEffect(() => {
-    if (highlightedMsgId && messageRefs.current[highlightedMsgId]) {
-      messageRefs.current[highlightedMsgId]?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [highlightedMsgId]);
+    if (!highlightedMsgId) return;
+    let attempts = 0;
+    const tryScroll = () => {
+      const el = messageRefs.current[highlightedMsgId];
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (attempts++ < 20) window.setTimeout(tryScroll, 120);
+    };
+    tryScroll();
+  }, [highlightedMsgId, branchMessages.length]);
+
+  // Listen for cross-component jump signals (e.g. from the sidebar hover preview)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail || detail.conversationId !== conversation.id) return;
+      setHighlightedMsgId(detail.messageId);
+    };
+    window.addEventListener("aureon:jump-to-message", handler as EventListener);
+    return () => window.removeEventListener("aureon:jump-to-message", handler as EventListener);
+  }, [conversation.id]);
 
   // Wire lightbox for markdown images
   useEffect(() => {
