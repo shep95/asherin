@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Brain, Globe, Loader2, Trash2, Clock, Send, ArrowDown, Copy, Check, MessageSquare, Zap, X } from "lucide-react";
+import { Brain, Globe, Loader2, Trash2, Clock, Send, ArrowDown, Copy, Check, MessageSquare, Zap, X, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
@@ -68,8 +68,9 @@ const AxrlenView = () => {
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Dashboard panel width
-  const [dashboardWidth, setDashboardWidth] = useState(55);
+  // Chat rail width (right side, collapsible)
+  const [chatWidth, setChatWidth] = useState(38);
+  const [chatCollapsed, setChatCollapsed] = useState(false);
   const resizingRef = useRef(false);
 
   useEffect(() => {
@@ -404,7 +405,7 @@ const AxrlenView = () => {
     const onMove = (e: MouseEvent) => {
       if (!resizingRef.current) return;
       const pct = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
-      setDashboardWidth(Math.max(25, Math.min(75, pct)));
+      setChatWidth(Math.max(22, Math.min(60, pct)));
     };
     const onUp = () => {
       resizingRef.current = false;
@@ -493,146 +494,179 @@ const AxrlenView = () => {
         </div>
       )}
 
-      {/* Main content: Chat left | Dashboard right */}
+      {/* Main content: Dashboard primary | Chat rail right (collapsible) */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* ── AUREON Chat (left) ── */}
-        <div className="flex flex-col" style={{ width: activeSession ? `${100 - dashboardWidth}%` : "100%" }}>
-          {/* Messages */}
-          <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 space-y-3 relative">
-            {messages.length === 0 && !isScanning && (
-              <div className="flex flex-col items-center justify-center h-full gap-6 max-w-md mx-auto">
-                <div className="w-16 h-16 rounded-2xl bg-foreground/[0.03] border border-border/[0.08] flex items-center justify-center">
-                  <Brain className="h-7 w-7 text-foreground/20" />
-                </div>
-                <div className="text-center space-y-2">
-                  <h2 className="text-sm font-light text-foreground/60 tracking-wide">AXRLEN Intelligence</h2>
-                  <p className="text-[10px] text-muted-foreground/30 leading-relaxed max-w-sm">
-                    NEXUS-PRIME 30-domain predictive engine combining live data, occultism, Vedic Jyotish, history, religion, war strategy, philosophy, psychology, economics, Kabbalistic timing, Hermetic principles, and astronomical cycles.
-                  </p>
-                  <p className="text-[9px] text-muted-foreground/25 mt-3">
-                    Type <span className="text-foreground/40 font-medium">"Scan [region]"</span> to start a prediction scan, or ask any question.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 gap-1.5 w-full max-w-sm">
-                  {suggestions.map((s, i) => (
-                    <button key={i} onClick={() => setInput(s)}
-                      className="w-full text-left px-3 py-2 rounded-xl border border-border/[0.08] bg-foreground/[0.02] text-[10px] text-foreground/45 hover:bg-foreground/[0.05] transition-all">
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+        {/* ── Dashboard (primary, left) ── */}
+        {activeSession ? (
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <AxrlenDashboard session={activeSession} />
+          </div>
+        ) : (
+          <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-6 p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-foreground/[0.03] border border-border/[0.08] flex items-center justify-center">
+              <Brain className="h-7 w-7 text-foreground/20" />
+            </div>
+            <div className="space-y-2 max-w-md">
+              <h2 className="text-sm font-light text-foreground/60 tracking-wide">AXRLEN Command Center</h2>
+              <p className="text-[10px] text-muted-foreground/40 leading-relaxed">
+                NEXUS-PRIME 30-domain predictive engine. Type <span className="text-foreground/60 font-medium">"Scan [region]"</span> in the chat rail to populate the bento — predictions, threat matrix, resource vitals, policy simulations, and timeline divergences will render here in one glance.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 w-full max-w-lg">
+              {suggestions.slice(0, 6).map((s, i) => (
+                <button key={i} onClick={() => { setChatCollapsed(false); setInput(s); inputRef.current?.focus(); }}
+                  className="text-left px-3 py-2 rounded-xl border border-border/[0.08] bg-foreground/[0.02] text-[10px] text-foreground/45 hover:bg-foreground/[0.06] transition-all">
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
-            {/* Scan progress */}
-            {isScanning && (
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border/[0.08] bg-foreground/[0.02]">
-                <Loader2 className="h-4 w-4 animate-spin text-foreground/40 shrink-0" />
-                <div className="flex-1">
-                  <p className="text-[10px] text-foreground/60">{scanProgress}</p>
-                  <div className="mt-2 h-1 rounded-full bg-foreground/[0.04] overflow-hidden">
-                    <div className="h-full bg-foreground/20 rounded-full animate-pulse" style={{ width: "65%" }} />
+        {/* ── Resize handle ── */}
+        {!chatCollapsed && (
+          <div onMouseDown={onMouseDown}
+            className="w-[3px] shrink-0 cursor-col-resize bg-border/[0.08] hover:bg-foreground/[0.18] transition-colors relative">
+            <div className="absolute inset-y-0 -left-1 -right-1" />
+          </div>
+        )}
+
+        {/* ── Collapsed rail (icon strip) ── */}
+        {chatCollapsed && (
+          <div className="w-10 shrink-0 border-l border-border/[0.06] bg-background/40 backdrop-blur-md flex flex-col items-center py-3 gap-2">
+            <button onClick={() => setChatCollapsed(false)}
+              className="p-2 rounded-lg hover:bg-foreground/[0.06] transition" title="Expand chat">
+              <PanelRightOpen className="h-3.5 w-3.5 text-foreground/60" />
+            </button>
+            <div className="h-px w-6 bg-border/[0.1]" />
+            <div className="rotate-180 [writing-mode:vertical-rl] text-[8px] tracking-[0.32em] uppercase text-muted-foreground/40 mt-2">
+              Aureon Chat
+            </div>
+          </div>
+        )}
+
+        {/* ── AUREON Chat rail (right) ── */}
+        {!chatCollapsed && (
+          <div
+            className="flex flex-col border-l border-border/[0.06] bg-background/30 backdrop-blur-md"
+            style={{ width: `${chatWidth}%`, minWidth: 320 }}
+          >
+            {/* Rail header */}
+            <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border/[0.06]">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-3 w-3 text-foreground/40" strokeWidth={1.5} />
+                <span className="text-[9px] uppercase tracking-[0.22em] text-foreground/55">Aureon Chat</span>
+              </div>
+              <button onClick={() => setChatCollapsed(true)}
+                className="p-1.5 rounded-lg hover:bg-foreground/[0.06] transition" title="Collapse">
+                <PanelRightClose className="h-3.5 w-3.5 text-muted-foreground/50" />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-3 space-y-3 relative">
+              {messages.length === 0 && !isScanning && (
+                <div className="flex flex-col items-center justify-center h-full gap-4 max-w-sm mx-auto">
+                  <Brain className="h-6 w-6 text-foreground/20" />
+                  <p className="text-[10px] text-muted-foreground/40 text-center leading-relaxed">
+                    Type <span className="text-foreground/60 font-medium">"Scan [region]"</span> to populate the command center, or ask any question about the active session.
+                  </p>
+                  <div className="grid grid-cols-1 gap-1.5 w-full">
+                    {suggestions.map((s, i) => (
+                      <button key={i} onClick={() => setInput(s)}
+                        className="w-full text-left px-3 py-1.5 rounded-lg border border-border/[0.08] bg-foreground/[0.02] text-[9px] text-foreground/50 hover:bg-foreground/[0.05] transition-all">
+                        {s}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {messages.map((m, i) => {
-              if (m.role === "system") {
-                return (
-                  <div key={i} className="flex justify-center">
-                    <div className="max-w-[85%] px-4 py-2.5 rounded-xl border border-border/[0.08] bg-foreground/[0.02] text-[10px] text-foreground/50">
-                      <ReactMarkdown>{m.content}</ReactMarkdown>
+              {isScanning && (
+                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/[0.08] bg-foreground/[0.02]">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-foreground/40 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[9px] text-foreground/60 truncate">{scanProgress}</p>
+                    <div className="mt-1.5 h-0.5 rounded-full bg-foreground/[0.04] overflow-hidden">
+                      <div className="h-full bg-foreground/25 rounded-full animate-pulse" style={{ width: "65%" }} />
                     </div>
                   </div>
-                );
-              }
-              return (
-              <div key={i} className={`group ${m.role === "user" ? "flex justify-end" : "flex flex-col items-start gap-1"}`}>
-                  {m.role === "assistant" ? (
-                    <>
-                      {/* Workflow steps hidden — output only */}
-                      <div className="relative w-full max-w-[95%] rounded-xl border border-border/[0.08] bg-foreground/[0.02] overflow-hidden">
-                        <div className="px-5 py-4 select-text">
+                </div>
+              )}
+
+              {messages.map((m, i) => {
+                if (m.role === "system") {
+                  return (
+                    <div key={i} className="flex justify-center">
+                      <div className="max-w-[95%] px-3 py-2 rounded-lg border border-border/[0.08] bg-foreground/[0.02] text-[9px] text-foreground/55">
+                        <ReactMarkdown>{m.content}</ReactMarkdown>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={i} className={`group ${m.role === "user" ? "flex justify-end" : "flex flex-col items-start gap-1"}`}>
+                    {m.role === "assistant" ? (
+                      <div className="relative w-full rounded-xl border border-border/[0.08] bg-foreground/[0.02] overflow-hidden">
+                        <div className="px-3 py-2.5 select-text">
                           <AxrlenMessageRenderer content={m.content} isStreaming={isStreaming && i === messages.length - 1} />
                         </div>
-                        <div className="flex items-center justify-end px-3 py-1.5 border-t border-border/[0.05]">
+                        <div className="flex items-center justify-end px-2 py-1 border-t border-border/[0.05]">
                           <button onClick={() => copyMsg(m.content, i)}
                             className="opacity-0 group-hover:opacity-50 hover:!opacity-80 transition p-1" title="Copy">
                             {copiedIdx === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3 text-muted-foreground/40" />}
                           </button>
                         </div>
                       </div>
-                    </>
-                  ) : (
-                    <div className="relative max-w-[85%] rounded-xl px-3.5 py-2.5 text-[12px] leading-relaxed bg-foreground/[0.08] text-foreground/80">
-                      <span className="select-text">{m.content}</span>
-                      <div className="flex items-center justify-end mt-1">
-                        <button onClick={() => copyMsg(m.content, i)}
-                          className="opacity-0 group-hover:opacity-40 hover:!opacity-80 transition p-0.5" title="Copy">
-                          {copiedIdx === i ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
-                        </button>
+                    ) : (
+                      <div className="relative max-w-[92%] rounded-xl px-3 py-2 text-[11px] leading-relaxed bg-foreground/[0.08] text-foreground/85">
+                        <span className="select-text">{m.content}</span>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                );
+              })}
+
+              {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
+                <div className="flex items-center gap-2 px-2 py-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
+                  <span className="text-[9px] text-muted-foreground/40">AUREON — analyzing...</span>
                 </div>
-              );
-            })}
+              )}
 
-            {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
-              <div className="flex items-center gap-2 px-3 py-2">
-                <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
-                <span className="text-[9px] text-muted-foreground/30">AUREON — analyzing...</span>
-              </div>
-            )}
+              <div ref={endRef} />
 
-            <div ref={endRef} />
-
-            {showScrollBtn && (
-              <button onClick={() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); setAutoScroll(true); setShowScrollBtn(false); }}
-                className="sticky bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1 rounded-full bg-foreground/[0.1] text-[9px] text-foreground/50 shadow-lg hover:bg-foreground/[0.15] transition z-10">
-                <ArrowDown className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-
-          {/* Input */}
-          <div className="shrink-0 p-3 border-t border-border/[0.06]">
-            <div className="flex gap-2">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                placeholder='Ask AUREON anything, or type "Scan [region]" to begin...'
-                rows={1}
-                className="flex-1 bg-foreground/[0.03] border border-border/[0.08] rounded-xl px-3 py-2.5 text-[11px] text-foreground/70 placeholder:text-muted-foreground/25 outline-none focus:border-foreground/[0.15] transition-all resize-none min-h-[38px] max-h-[120px]"
-                disabled={isStreaming || isScanning}
-                style={{ height: "auto" }}
-                onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 120) + "px"; }}
-              />
-              <button
-                onClick={sendMessage}
-                disabled={isStreaming || isScanning || !input.trim()}
-                className="p-2.5 rounded-xl bg-foreground/[0.06] border border-border/[0.08] hover:bg-foreground/[0.1] disabled:opacity-30 transition-all self-end">
-                <Send className="h-3.5 w-3.5 text-foreground/50" />
-              </button>
+              {showScrollBtn && (
+                <button onClick={() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); setAutoScroll(true); setShowScrollBtn(false); }}
+                  className="sticky bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1 rounded-full bg-foreground/[0.1] text-[9px] text-foreground/55 shadow-lg hover:bg-foreground/[0.18] transition z-10">
+                  <ArrowDown className="h-3 w-3" />
+                </button>
+              )}
             </div>
-          </div>
-        </div>
 
-        {/* ── Resize handle ── */}
-        {activeSession && (
-          <div onMouseDown={onMouseDown}
-            className="w-[3px] shrink-0 cursor-col-resize bg-border/[0.08] hover:bg-foreground/[0.15] transition-colors relative group">
-            <div className="absolute inset-y-0 -left-1 -right-1" />
-          </div>
-        )}
-
-        {/* ── Dashboard (right) ── */}
-        {activeSession && (
-          <div className="overflow-hidden" style={{ width: `${dashboardWidth}%` }}>
-            <AxrlenDashboard session={activeSession} />
+            {/* Input */}
+            <div className="shrink-0 p-2.5 border-t border-border/[0.06]">
+              <div className="flex gap-2">
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  placeholder='Ask AUREON, or "Scan [region]"...'
+                  rows={1}
+                  className="flex-1 bg-foreground/[0.03] border border-border/[0.08] rounded-xl px-3 py-2 text-[11px] text-foreground/80 placeholder:text-muted-foreground/30 outline-none focus:border-foreground/[0.18] transition-all resize-none min-h-[36px] max-h-[120px]"
+                  disabled={isStreaming || isScanning}
+                  style={{ height: "auto" }}
+                  onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 120) + "px"; }}
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={isStreaming || isScanning || !input.trim()}
+                  className="p-2.5 rounded-xl bg-foreground/[0.06] border border-border/[0.08] hover:bg-foreground/[0.12] disabled:opacity-30 transition-all self-end">
+                  <Send className="h-3.5 w-3.5 text-foreground/60" />
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
