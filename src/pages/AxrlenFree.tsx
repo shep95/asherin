@@ -479,7 +479,7 @@ const AxrlenFree = () => {
           </section>
 
           {/* The 7 hits */}
-          <section className="mt-12">
+          <section id="axrlen-log" className="mt-12 scroll-mt-28">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-light tracking-[0.28em] uppercase text-foreground/80">
                 Launch Log · 7 calls · 7 hits
