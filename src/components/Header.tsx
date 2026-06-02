@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, ChevronDown, Search, ArrowUpRight } from "lucide-react";
+import { Menu, X, ChevronDown, Search, ArrowUpRight, Target } from "lucide-react";
 import aureonLogo from "@/assets/aureon-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
