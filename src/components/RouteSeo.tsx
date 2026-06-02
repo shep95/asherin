@@ -369,6 +369,49 @@ function applySeo(entry: SeoEntry, path: string) {
     return m;
   });
 
+  // og:image + twitter:image — parity with index.html landing page
+  upsertMeta('meta[property="og:image"]', "content", DEFAULT_OG_IMAGE, () => {
+    const m = document.createElement("meta");
+    m.setAttribute("property", "og:image");
+    return m;
+  });
+  upsertMeta('meta[property="og:image:width"]', "content", "1920", () => {
+    const m = document.createElement("meta");
+    m.setAttribute("property", "og:image:width");
+    return m;
+  });
+  upsertMeta('meta[property="og:image:height"]', "content", "1080", () => {
+    const m = document.createElement("meta");
+    m.setAttribute("property", "og:image:height");
+    return m;
+  });
+  upsertMeta('meta[name="twitter:image"]', "content", DEFAULT_OG_IMAGE, () => {
+    const m = document.createElement("meta");
+    m.setAttribute("name", "twitter:image");
+    return m;
+  });
+
+  // Per-route JSON-LD WebPage structured data (in addition to sitewide Organization)
+  let ld = document.getElementById(JSONLD_ID) as HTMLScriptElement | null;
+  if (!ld) {
+    ld = document.createElement("script");
+    ld.id = JSONLD_ID;
+    ld.type = "application/ld+json";
+    document.head.appendChild(ld);
+  }
+  ld.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: entry.title,
+    description: entry.description,
+    url: canonical,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Aureon",
+      url: ORIGIN,
+    },
+  });
+
   if (entry.noindex) {
     upsertMeta('meta[name="robots"]', "content", "noindex,nofollow", () => {
       const m = document.createElement("meta");
