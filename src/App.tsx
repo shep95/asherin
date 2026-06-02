@@ -101,6 +101,7 @@ const App = () => (
         <BrowserRouter>
           <CommandPalette />
           <RouteSessionTracker />
+          <RouteSeo />
           <ByokRequiredDialog />
           <Suspense fallback={<PageLoader />}>
           <main>
