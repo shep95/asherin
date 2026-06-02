@@ -405,7 +405,7 @@ const AxrlenView = () => {
     const onMove = (e: MouseEvent) => {
       if (!resizingRef.current) return;
       const pct = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
-      setDashboardWidth(Math.max(25, Math.min(75, pct)));
+      setChatWidth(Math.max(22, Math.min(60, pct)));
     };
     const onUp = () => {
       resizingRef.current = false;
