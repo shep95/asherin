@@ -128,8 +128,7 @@ const AxrlenFree = () => {
     [],
   );
 
-  const run = async () => {
-    const q = prompt.trim();
+  const runWith = async (q: string) => {
     if (!q || !savedKey) return;
     setErr(null);
     const next: Turn[] = [...turns, { role: "user", text: q }];
@@ -166,6 +165,46 @@ const AxrlenFree = () => {
       setLoading(false);
     }
   };
+  const run = () => runWith(prompt.trim());
+
+  const QUESTION_LIBRARY: { category: string; items: string[] }[] = [
+    {
+      category: "Markets",
+      items: [
+        "Forecast Brent crude direction over the next 72h — give probability band and 3 signals.",
+        "Probability the FOMC pauses at the next meeting — surface the 3 strongest signals.",
+        "Model the next decisive move in USD/JPY this week — direction, band, failure mode.",
+        "Forecast BTC volatility regime over the next 14 days.",
+      ],
+    },
+    {
+      category: "Geopolitics",
+      items: [
+        "Model the timeline divergence for Taiwan Strait posture this quarter.",
+        "Predict the most likely next escalation step in the Red Sea corridor.",
+        "Forecast the probability of a Russia–NATO direct incident in the next 60 days.",
+        "Map the most likely 3 outcomes for Iran nuclear posture by year-end.",
+      ],
+    },
+    {
+      category: "Policy",
+      items: [
+        "Forecast the probability of a major US tariff change in the next 30 days.",
+        "Predict the next ECB rate decision — direction, probability, surprise factor.",
+        "Model the most likely AI regulation moves from the EU this quarter.",
+      ],
+    },
+    {
+      category: "Conflict & Resources",
+      items: [
+        "Identify the next likely commodity supply chokepoint within 30 days.",
+        "Forecast a sovereign statement window for the top geopolitical actor this week.",
+        "Predict the most likely cyber escalation vector in the next 14 days.",
+      ],
+    },
+  ];
+
+
 
   return (
     <LandingBackground>
