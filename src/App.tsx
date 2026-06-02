@@ -155,6 +155,7 @@ const App = () => (
             <Route path="/vedic" element={<VedicAstrology />} />
             <Route path="/zophiel" element={<ZophielFree />} />
             <Route path="/search" element={<ZophielFree />} />
+            <Route path="/axrlen" element={<AxrlenFree />} />
             <Route path="/i" element={<TrackPage />} />
             <Route path="/ww3" element={<WW3 />} />
             <Route path="/houseofasher-ventures" element={<HouseOfAsherVentures />} />
