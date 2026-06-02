@@ -45,6 +45,7 @@ import CalibrationFeedback from "./CalibrationFeedback";
 import type { FeedbackType } from "./CalibrationFeedback";
 import AdaptiveInputBar from "./AdaptiveInputBar";
 import ScrollIntelligence from "./ScrollIntelligence";
+import StickyQuestionHeader from "./StickyQuestionHeader";
 import SmartSelectionMenu from "./SmartSelectionMenu";
 import TypingIndicator from "./TypingIndicator";
 import { renderLinkPreviews } from "./LinkPreview";
@@ -421,12 +422,32 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     }
   }, [conversation.id]);
 
-  // Scroll to highlighted message
+  // Scroll to highlighted message (with retries — the target may not be mounted yet
+  // when a cross-conversation jump arrives while messages are still hydrating).
   useEffect(() => {
-    if (highlightedMsgId && messageRefs.current[highlightedMsgId]) {
-      messageRefs.current[highlightedMsgId]?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [highlightedMsgId]);
+    if (!highlightedMsgId) return;
+    let attempts = 0;
+    const tryScroll = () => {
+      const el = messageRefs.current[highlightedMsgId];
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (attempts++ < 20) window.setTimeout(tryScroll, 120);
+    };
+    tryScroll();
+  }, [highlightedMsgId, branchMessages.length]);
+
+  // Listen for cross-component jump signals (e.g. from the sidebar hover preview)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail || detail.conversationId !== conversation.id) return;
+      setHighlightedMsgId(detail.messageId);
+    };
+    window.addEventListener("aureon:jump-to-message", handler as EventListener);
+    return () => window.removeEventListener("aureon:jump-to-message", handler as EventListener);
+  }, [conversation.id]);
 
   // Wire lightbox for markdown images
   useEffect(() => {
@@ -737,6 +758,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
       {/* Messages */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 pb-4 relative min-h-0">
+        <StickyQuestionHeader
+          scrollContainerRef={scrollContainerRef}
+          messageRefs={messageRefs}
+          messages={branchMessages}
+          onJump={(id) => setHighlightedMsgId(id)}
+        />
         {branchMessages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center max-w-md animate-fade-in">
