@@ -1,37 +1,94 @@
-import { useState } from "react";
-import { Shield, TrendingUp, Zap, GitBranch, FileText, AlertTriangle, Globe, BarChart3, ChevronRight, Copy, Check, Download, Eye, Orbit, Brain } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Shield, Zap, GitBranch, AlertTriangle, Globe, BarChart3, ChevronRight,
+  Copy, Check, Download, Eye, Orbit, Brain, FileText, Activity, Layers,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { AxrlenSession } from "./AxrlenView";
 
 interface Props { session: AxrlenSession; }
 
-type Tab = "overview" | "predictions" | "threats" | "resources" | "policy" | "timeline";
-
-const TABS: { id: Tab; label: string; icon: any }[] = [
-  { id: "overview", label: "Summary", icon: FileText },
-  { id: "predictions", label: "Predictions", icon: Zap },
-  { id: "threats", label: "Threats", icon: Shield },
-  { id: "resources", label: "Resources", icon: BarChart3 },
-  { id: "policy", label: "Policy", icon: Globe },
-  { id: "timeline", label: "Timeline", icon: GitBranch },
-];
-
 const severityBadge = (s: string) => {
   const colors: Record<string, string> = {
-    critical: "bg-red-500/20 text-red-300/80 border-red-500/20",
-    high: "bg-amber-500/20 text-amber-300/80 border-amber-500/20",
-    elevated: "bg-amber-500/20 text-amber-300/80 border-amber-500/20",
-    medium: "bg-yellow-500/20 text-yellow-300/80 border-yellow-500/20",
-    guarded: "bg-yellow-500/20 text-yellow-300/80 border-yellow-500/20",
-    low: "bg-emerald-500/20 text-emerald-300/80 border-emerald-500/20",
+    critical: "bg-red-500/15 text-red-300/80 border-red-500/20",
+    high: "bg-amber-500/15 text-amber-300/80 border-amber-500/20",
+    elevated: "bg-amber-500/15 text-amber-300/80 border-amber-500/20",
+    medium: "bg-yellow-500/15 text-yellow-300/80 border-yellow-500/20",
+    guarded: "bg-yellow-500/15 text-yellow-300/80 border-yellow-500/20",
+    low: "bg-emerald-500/15 text-emerald-300/80 border-emerald-500/20",
   };
-  return colors[s] || colors.medium;
+  return colors[s?.toLowerCase?.() || ""] || colors.medium;
+};
+
+const vitalTone = (v: number) =>
+  v >= 70 ? "text-emerald-400/80" : v >= 40 ? "text-amber-400/80" : "text-red-400/80";
+const vitalBar = (v: number) =>
+  v >= 70 ? "bg-emerald-400/50" : v >= 40 ? "bg-amber-400/50" : "bg-red-400/50";
+
+/* ── Glass tile primitive ── */
+const Tile = ({
+  title, icon: Icon, className = "", children, action,
+}: {
+  title?: string;
+  icon?: any;
+  className?: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) => (
+  <div
+    className={`relative rounded-2xl border border-border/[0.08] bg-gradient-to-br from-foreground/[0.025] via-foreground/[0.015] to-transparent
+                backdrop-blur-xl overflow-hidden flex flex-col min-h-0 ${className}`}
+  >
+    {title && (
+      <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-2 border-b border-border/[0.05]">
+        <div className="flex items-center gap-2">
+          {Icon && <Icon className="h-3 w-3 text-foreground/40" strokeWidth={1.5} />}
+          <h3 className="text-[9px] uppercase tracking-[0.22em] text-foreground/55 font-light">{title}</h3>
+        </div>
+        {action}
+      </div>
+    )}
+    <div className="flex-1 min-h-0 overflow-auto px-4 py-3 select-text">{children}</div>
+    {/* hairline corner gloss */}
+    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/15 to-transparent" />
+  </div>
+);
+
+/* ── Circular Confidence HUD ── */
+const ConfidenceRing = ({ value }: { value: number }) => {
+  const r = 34;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, value || 0));
+  const dash = (pct / 100) * c;
+  return (
+    <div className="relative h-[88px] w-[88px] shrink-0">
+      <svg viewBox="0 0 80 80" className="-rotate-90">
+        <circle cx="40" cy="40" r={r} className="fill-none stroke-foreground/[0.06]" strokeWidth="4" />
+        <circle
+          cx="40" cy="40" r={r}
+          className="fill-none stroke-foreground/70 transition-all duration-700"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${c}`}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-lg font-light tracking-tight text-foreground/90 leading-none">{pct}</span>
+        <span className="text-[7px] uppercase tracking-[0.22em] text-muted-foreground/50 mt-0.5">conf</span>
+      </div>
+    </div>
+  );
 };
 
 const AxrlenDashboard = ({ session }: Props) => {
-  const [tab, setTab] = useState<Tab>("overview");
   const [copied, setCopied] = useState(false);
   const [expandedPred, setExpandedPred] = useState<string | null>(null);
+
+  const predictions = useMemo(() => session.predictions || [], [session.predictions]);
+  const threats = session.threatAssessment;
+  const resources = session.resourceAnalysis;
+  const policies = session.policySimulations || [];
+  const divergences = session.timelineDivergences || [];
 
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -46,9 +103,9 @@ const AxrlenDashboard = ({ session }: Props) => {
       `Region: ${session.region || "Global"}`,
       `Confidence: ${session.confidenceScore}%`,
       ``, `EXECUTIVE SUMMARY`, session.aiSummary || "N/A", ``,
-      `PREDICTIONS (${(session.predictions || []).length})`,
+      `PREDICTIONS (${predictions.length})`,
     ];
-    (session.predictions || []).forEach((p: any, i: number) => {
+    predictions.forEach((p: any, i: number) => {
       lines.push(`\n${i + 1}. [${p.severity?.toUpperCase()}] ${p.title}`);
       lines.push(`   Category: ${p.category} | Probability: ${p.probability}% | Timeframe: ${p.timeframe}`);
       lines.push(`   ${p.description}`);
@@ -70,345 +127,320 @@ const AxrlenDashboard = ({ session }: Props) => {
     URL.revokeObjectURL(url);
   };
 
-  const predictions = session.predictions || [];
-  const threats = session.threatAssessment;
-  const resources = session.resourceAnalysis;
-  const policies = session.policySimulations || [];
-  const divergences = session.timelineDivergences || [];
+  const threatLevel = (threats?.overallThreatLevel || "n/a").toString().toLowerCase();
+  const threatTone =
+    threatLevel === "critical" ? "text-red-400/80" :
+    threatLevel === "elevated" || threatLevel === "high" ? "text-amber-400/80" :
+    threatLevel === "guarded" || threatLevel === "medium" ? "text-yellow-400/80" :
+    "text-emerald-400/80";
+
+  const vitals: { label: string; value: number }[] = [
+    { label: "Economy", value: resources?.economicHealth || 0 },
+    { label: "Food", value: resources?.foodSecurity || 0 },
+    { label: "Energy", value: resources?.energySecurity || 0 },
+    { label: "Water", value: resources?.waterStress || 0 },
+    { label: "Infra", value: resources?.infrastructureResilience || 0 },
+  ];
 
   return (
-    <div className="flex flex-col h-full bg-background/60">
-      {/* Tab bar */}
-      <div className="shrink-0 border-b border-border/[0.06] px-2 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
-        {TABS.map(t => {
-          const Icon = t.icon;
-          return (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1 px-2.5 py-2 text-[8px] tracking-wide whitespace-nowrap border-b-2 transition-all ${tab === t.id
-                ? "border-foreground/30 text-foreground/80"
-                : "border-transparent text-muted-foreground/40 hover:text-foreground/50"}`}>
-              <Icon className="h-2.5 w-2.5" />
-              {t.label}
-            </button>
-          );
-        })}
-        <div className="ml-auto flex items-center gap-1 py-1.5">
-          <button onClick={() => copyText(session.aiSummary || "")} className="p-1 rounded hover:bg-foreground/[0.06]">
-            {copied ? <Check className="h-2.5 w-2.5 text-emerald-400/60" /> : <Copy className="h-2.5 w-2.5 text-muted-foreground/30" />}
+    <div className="flex flex-col h-full bg-background/40 relative">
+      {/* ── Top command strip ── */}
+      <div className="shrink-0 px-4 pt-4 pb-3 border-b border-border/[0.05] flex items-stretch gap-3">
+        <ConfidenceRing value={session.confidenceScore || 0} />
+        <div className="flex-1 min-w-0 grid grid-cols-2 md:grid-cols-4 gap-2">
+          <Kpi label="Region" value={session.region || "Global"} />
+          <Kpi label="Threat" value={threatLevel.toUpperCase()} tone={threatTone} />
+          <Kpi label="Predictions" value={predictions.length} />
+          <Kpi label="Sources" value={session.dataSources?.total || 0} />
+        </div>
+        <div className="flex items-start gap-1 shrink-0">
+          <button
+            onClick={() => copyText(session.aiSummary || "")}
+            className="p-1.5 rounded-lg hover:bg-foreground/[0.06] transition"
+            title="Copy summary"
+          >
+            {copied ? <Check className="h-3 w-3 text-emerald-400/70" /> : <Copy className="h-3 w-3 text-muted-foreground/40" />}
           </button>
-          <button onClick={exportReport} className="flex items-center gap-1 px-2 py-0.5 rounded border border-border/[0.1] bg-foreground/[0.03] text-[8px] text-foreground/50 hover:bg-foreground/[0.06]">
-            <Download className="h-2.5 w-2.5" /> Export
+          <button
+            onClick={exportReport}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border/[0.1] bg-foreground/[0.03] text-[9px] tracking-[0.18em] uppercase text-foreground/55 hover:bg-foreground/[0.07] transition"
+          >
+            <Download className="h-3 w-3" /> Export
           </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-4 select-text">
-        {/* ── Overview ── */}
-        {tab === "overview" && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { label: "Confidence", value: `${session.confidenceScore || 0}%` },
-                { label: "Predictions", value: predictions.length },
-                { label: "Threat Level", value: threats?.overallThreatLevel?.toUpperCase() || "N/A" },
-                { label: "Sources", value: session.dataSources?.total || 0 },
-              ].map((kpi, i) => (
-                <div key={i} className="p-3 rounded-xl border border-border/[0.08] bg-foreground/[0.02]">
-                  <p className="text-[7px] uppercase tracking-[0.2em] text-muted-foreground/40">{kpi.label}</p>
-                  <p className="text-base font-light text-foreground/80 mt-0.5">{kpi.value}</p>
+      {/* ── Bento canvas ── */}
+      <div className="flex-1 min-h-0 overflow-auto p-3">
+        <div
+          className="grid gap-3"
+          style={{
+            gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
+            gridAutoRows: "minmax(120px, auto)",
+          }}
+        >
+          {/* Executive Summary — wide */}
+          <Tile title="Executive Summary" icon={FileText} className="col-span-12 lg:col-span-8 row-span-2">
+            <div className="prose prose-invert max-w-none text-[11px] leading-relaxed font-light text-foreground/70
+                            [&_strong]:text-foreground/90 [&_strong]:font-medium [&_h1]:text-[12px] [&_h2]:text-[11px] [&_h3]:text-[11px]">
+              <ReactMarkdown>{session.aiSummary || "_No summary available for this session._"}</ReactMarkdown>
+            </div>
+          </Tile>
+
+          {/* Resource Vitals — right column, tall */}
+          <Tile title="Resource Vitals" icon={Activity} className="col-span-12 lg:col-span-4 row-span-2">
+            <div className="space-y-3">
+              {vitals.map((r) => (
+                <div key={r.label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/50">{r.label}</span>
+                    <span className={`text-[11px] font-light tabular-nums ${vitalTone(r.value)}`}>{r.value}</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-foreground/[0.05] overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${vitalBar(r.value)}`}
+                      style={{ width: `${Math.max(2, r.value)}%` }}
+                    />
+                  </div>
                 </div>
               ))}
-            </div>
-            <div className="p-4 rounded-xl border border-border/[0.08] bg-foreground/[0.02] space-y-2">
-              <h3 className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40">Executive Summary</h3>
-              <div className="text-[10px] text-foreground/60 font-light leading-relaxed">
-                <ReactMarkdown>{session.aiSummary || "No summary available."}</ReactMarkdown>
-              </div>
-            </div>
-            {predictions.length > 0 && (
-              <div className="space-y-1.5">
-                <h3 className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40">Top Predictions</h3>
-                {predictions.slice(0, 4).map((p: any, i: number) => (
-                  <div key={i} className="p-2.5 rounded-lg border border-border/[0.08] bg-foreground/[0.02] flex items-start gap-2">
-                    <div className={`px-1 py-0.5 rounded text-[6px] uppercase tracking-wider border shrink-0 ${severityBadge(p.severity)}`}>
-                      {p.severity}
+              {resources?.indicators?.length > 0 && (
+                <div className="pt-2 mt-2 border-t border-border/[0.06] space-y-1">
+                  <p className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-1">Indicators</p>
+                  {resources.indicators.slice(0, 6).map((ind: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between gap-2">
+                      <span className="text-[9px] text-foreground/55 truncate">{ind.name}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[9px] text-foreground/70 tabular-nums">{ind.value}</span>
+                        <span className={`px-1 py-0.5 rounded text-[7px] uppercase tracking-wider ${
+                          ind.trend === "improving" ? "text-emerald-400/70 bg-emerald-500/10" :
+                          ind.trend === "declining" || ind.trend === "critical" ? "text-red-400/70 bg-red-500/10" :
+                          "text-foreground/40 bg-foreground/[0.05]"
+                        }`}>{ind.trend}</span>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-medium text-foreground/70">{p.title}</p>
-                      <p className="text-[7px] text-muted-foreground/40 mt-0.5">{p.probability}% · {p.timeframe} · {p.category}</p>
-                      {p.temporalMultiplier && (
-                        <p className="text-[6px] text-amber-400/50 mt-0.5">⊛ {p.temporalMultiplier}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Tile>
+
+          {/* Predictions — left tall */}
+          <Tile
+            title={`Predictions · ${predictions.length}`}
+            icon={Zap}
+            className="col-span-12 lg:col-span-7 row-span-3"
+          >
+            {predictions.length === 0 && (
+              <p className="text-[10px] text-muted-foreground/40 italic">No predictions generated.</p>
             )}
-          </div>
-        )}
-
-        {/* ── Predictions ── */}
-        {tab === "predictions" && (
-          <div className="space-y-2">
-            <h3 className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40">All Predictions ({predictions.length})</h3>
-            {predictions.map((p: any, i: number) => (
-              <div key={p.id || i} className="rounded-xl border border-border/[0.08] bg-foreground/[0.02] overflow-hidden">
-                <button onClick={() => setExpandedPred(expandedPred === (p.id || `${i}`) ? null : (p.id || `${i}`))}
-                  className="w-full p-3 flex items-start gap-2 text-left hover:bg-foreground/[0.02] transition-all">
-                  <div className={`px-1 py-0.5 rounded text-[6px] uppercase tracking-wider border shrink-0 ${severityBadge(p.severity)}`}>{p.severity}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-foreground/70">{p.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-[7px] text-muted-foreground/40">{p.probability}%</span>
-                      <span className="text-[7px] text-muted-foreground/40">{p.timeframe}</span>
-                      <span className="text-[7px] text-muted-foreground/40">{p.category}</span>
-                      {p.temporalMultiplier && (
-                        <span className="text-[6px] text-amber-400/50 px-1 py-0.5 rounded border border-amber-500/10 bg-amber-500/[0.05]">
-                          {typeof p.temporalMultiplier === 'string' && p.temporalMultiplier.length > 20 ? p.temporalMultiplier.slice(0, 20) + '…' : p.temporalMultiplier}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <ChevronRight className={`h-3 w-3 text-muted-foreground/30 shrink-0 transition-transform ${expandedPred === (p.id || `${i}`) ? "rotate-90" : ""}`} />
-                </button>
-                {expandedPred === (p.id || `${i}`) && (
-                  <div className="px-3 pb-3 space-y-2 border-t border-border/[0.06]">
-                    <div className="pt-2">
-                      <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">Analysis</p>
-                      <p className="text-[9px] text-foreground/60 leading-relaxed">{p.description}</p>
-                    </div>
-                    {p.vedicTiming && (
-                      <div>
-                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5 flex items-center gap-1">
-                          <Orbit className="h-2 w-2" /> Vedic Timing Grid
-                        </p>
-                        <p className="text-[9px] text-foreground/55 leading-relaxed">{p.vedicTiming}</p>
-                      </div>
-                    )}
-                    {p.temporalMultiplier && (
-                      <div>
-                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">Temporal Multiplier</p>
-                        <p className="text-[9px] text-amber-300/60 leading-relaxed">{p.temporalMultiplier}</p>
-                      </div>
-                    )}
-                    {p.esotericAnalysis && (
-                      <div>
-                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5 flex items-center gap-1">
-                          <Eye className="h-2 w-2" /> Esoteric Analysis
-                        </p>
-                        <p className="text-[9px] text-foreground/55 leading-relaxed italic">{p.esotericAnalysis}</p>
-                      </div>
-                    )}
-                    {p.archetypeDriver && (
-                      <div>
-                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">Archetype Driver</p>
-                        <p className="text-[9px] text-foreground/55">{p.archetypeDriver}</p>
-                      </div>
-                    )}
-                    {p.warStrategy && (
-                      <div>
-                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">War Strategy Framework</p>
-                        <p className="text-[9px] text-foreground/55">{p.warStrategy}</p>
-                      </div>
-                    )}
-                    {p.consciousnessField && (
-                      <div>
-                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5 flex items-center gap-1">
-                          <Brain className="h-2 w-2" /> Consciousness Field
-                        </p>
-                        <p className="text-[9px] text-foreground/55">{p.consciousnessField}</p>
-                      </div>
-                    )}
-                    {p.historicalPrecedent && (
-                      <div>
-                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">Historical Precedent</p>
-                        <p className="text-[9px] text-foreground/55">{p.historicalPrecedent}</p>
-                      </div>
-                    )}
-                    {p.dataPoints?.length > 0 && (
-                      <div>
-                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">Evidence</p>
-                        <ul className="space-y-0.5">
-                          {p.dataPoints.map((dp: string, j: number) => (
-                            <li key={j} className="text-[8px] text-foreground/50 flex items-start gap-1.5">
-                              <span className="text-muted-foreground/30 mt-0.5">◈</span> {dp}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {p.recommendedAction && (
-                      <div>
-                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">Recommended Action</p>
-                        <p className="text-[9px] text-foreground/55">{p.recommendedAction}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Threats ── */}
-        {tab === "threats" && threats && (
-          <div className="space-y-3">
-            <div className="p-3 rounded-xl border border-border/[0.08] bg-foreground/[0.02] flex items-center gap-3">
-              <AlertTriangle className={`h-5 w-5 ${threats.overallThreatLevel === "critical" ? "text-red-400/70" : threats.overallThreatLevel === "elevated" ? "text-amber-400/70" : "text-emerald-400/70"}`} />
-              <div>
-                <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40">Overall Threat Level</p>
-                <p className="text-sm font-light text-foreground/80 uppercase tracking-wider">{threats.overallThreatLevel}</p>
-              </div>
-            </div>
-            {(threats.vectors || []).map((v: any, i: number) => (
-              <div key={i} className="p-3 rounded-xl border border-border/[0.08] bg-foreground/[0.02] space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="px-1 py-0.5 rounded text-[6px] uppercase border border-foreground/[0.1] bg-foreground/[0.04] text-foreground/50">{v.type}</span>
-                    <span className="text-[8px] text-foreground/40">{v.probability}%</span>
-                  </div>
-                  <span className="text-[7px] text-muted-foreground/40">{v.timeToImpact}</span>
-                </div>
-                <p className="text-[9px] text-foreground/60">{v.description}</p>
-                {v.archetypeDriver && (
-                  <p className="text-[8px] text-foreground/45 italic">⊛ Archetype: {v.archetypeDriver}</p>
-                )}
-                {v.vedicIndicator && (
-                  <p className="text-[8px] text-amber-300/50 italic">☉ Vedic: {v.vedicIndicator}</p>
-                )}
-                {v.mitigationOptions?.length > 0 && (
-                  <ul className="space-y-0.5">
-                    {v.mitigationOptions.map((m: string, j: number) => (
-                      <li key={j} className="text-[8px] text-foreground/50">◈ {m}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Resources ── */}
-        {tab === "resources" && resources && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-5 gap-2">
-              {[
-                { label: "Economy", value: resources.economicHealth },
-                { label: "Food", value: resources.foodSecurity },
-                { label: "Energy", value: resources.energySecurity },
-                { label: "Water", value: resources.waterStress },
-                { label: "Infra", value: resources.infrastructureResilience },
-              ].map((r, i) => (
-                <div key={i} className="p-3 rounded-xl border border-border/[0.08] bg-foreground/[0.02] text-center">
-                  <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40">{r.label}</p>
-                  <p className={`text-lg font-light mt-1 ${(r.value || 0) >= 70 ? "text-emerald-400/70" : (r.value || 0) >= 40 ? "text-amber-400/70" : "text-red-400/70"}`}>
-                    {r.value || 0}
-                  </p>
-                  <div className="mt-1.5 h-1 rounded-full bg-foreground/[0.04] overflow-hidden">
-                    <div className={`h-full rounded-full ${(r.value || 0) >= 70 ? "bg-emerald-400/40" : (r.value || 0) >= 40 ? "bg-amber-400/40" : "bg-red-400/40"}`}
-                      style={{ width: `${r.value || 0}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            {resources.indicators?.length > 0 && (
-              <div className="space-y-1">
-                <h3 className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40">Key Indicators</h3>
-                {resources.indicators.map((ind: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between p-2 rounded-lg border border-border/[0.08] bg-foreground/[0.02]">
-                    <span className="text-[9px] text-foreground/60">{ind.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-foreground/70">{ind.value}</span>
-                      <span className={`px-1 py-0.5 rounded text-[6px] uppercase ${ind.trend === "improving" ? "text-emerald-400/70 bg-emerald-500/10" : ind.trend === "declining" || ind.trend === "critical" ? "text-red-400/70 bg-red-500/10" : "text-foreground/40 bg-foreground/[0.04]"}`}>
-                        {ind.trend}
+            <div className="space-y-1.5">
+              {predictions.map((p: any, i: number) => {
+                const key = p.id || `p-${i}`;
+                const open = expandedPred === key;
+                return (
+                  <div key={key} className="rounded-xl border border-border/[0.07] bg-foreground/[0.015] hover:bg-foreground/[0.03] transition-all overflow-hidden">
+                    <button
+                      onClick={() => setExpandedPred(open ? null : key)}
+                      className="w-full p-2.5 flex items-start gap-2 text-left"
+                    >
+                      <span className={`px-1.5 py-0.5 rounded text-[7px] uppercase tracking-wider border shrink-0 ${severityBadge(p.severity)}`}>
+                        {p.severity}
                       </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-medium text-foreground/80 leading-snug">{p.title}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="text-[8px] text-muted-foreground/50 tabular-nums">{p.probability}%</span>
+                          <span className="text-[8px] text-muted-foreground/50">{p.timeframe}</span>
+                          <span className="text-[8px] text-muted-foreground/50">{p.category}</span>
+                          {p.temporalMultiplier && (
+                            <span className="text-[7px] text-amber-300/60 px-1 py-0.5 rounded border border-amber-500/15 bg-amber-500/[0.05]">
+                              ⊛ {String(p.temporalMultiplier).slice(0, 28)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight className={`h-3 w-3 text-muted-foreground/30 mt-0.5 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
+                    </button>
+                    {open && (
+                      <div className="px-3 pb-3 pt-1 space-y-2 border-t border-border/[0.05]">
+                        <Field label="Analysis" text={p.description} />
+                        {p.vedicTiming && <Field label="Vedic Timing Grid" text={p.vedicTiming} icon={Orbit} />}
+                        {p.temporalMultiplier && <Field label="Temporal Multiplier" text={p.temporalMultiplier} tone="text-amber-300/70" />}
+                        {p.esotericAnalysis && <Field label="Esoteric Analysis" text={p.esotericAnalysis} icon={Eye} italic />}
+                        {p.archetypeDriver && <Field label="Archetype Driver" text={p.archetypeDriver} />}
+                        {p.warStrategy && <Field label="War Strategy" text={p.warStrategy} />}
+                        {p.consciousnessField && <Field label="Consciousness Field" text={p.consciousnessField} icon={Brain} />}
+                        {p.historicalPrecedent && <Field label="Historical Precedent" text={p.historicalPrecedent} />}
+                        {p.dataPoints?.length > 0 && (
+                          <div>
+                            <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-1">Evidence</p>
+                            <ul className="space-y-0.5">
+                              {p.dataPoints.map((dp: string, j: number) => (
+                                <li key={j} className="text-[9px] text-foreground/55 flex items-start gap-1.5">
+                                  <span className="text-muted-foreground/30 mt-0.5">◈</span> {dp}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {p.recommendedAction && <Field label="Recommended Action" text={p.recommendedAction} />}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Tile>
+
+          {/* Threat Matrix */}
+          <Tile
+            title="Threat Matrix"
+            icon={Shield}
+            className="col-span-12 lg:col-span-5 row-span-3"
+            action={
+              <span className={`px-1.5 py-0.5 rounded text-[7px] uppercase tracking-wider border ${severityBadge(threatLevel)}`}>
+                {threatLevel}
+              </span>
+            }
+          >
+            {!threats?.vectors?.length && (
+              <p className="text-[10px] text-muted-foreground/40 italic">No threat vectors detected.</p>
+            )}
+            <div className="space-y-2">
+              {(threats?.vectors || []).map((v: any, i: number) => (
+                <div key={i} className="p-2.5 rounded-xl border border-border/[0.07] bg-foreground/[0.015] space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <AlertTriangle className={`h-3 w-3 shrink-0 ${threatTone}`} strokeWidth={1.5} />
+                      <span className="px-1 py-0.5 rounded text-[7px] uppercase border border-foreground/[0.1] bg-foreground/[0.04] text-foreground/60 shrink-0">{v.type}</span>
+                      <span className="text-[8px] text-foreground/50 tabular-nums">{v.probability}%</span>
+                    </div>
+                    <span className="text-[8px] text-muted-foreground/40 shrink-0">{v.timeToImpact}</span>
+                  </div>
+                  <p className="text-[9px] text-foreground/60 leading-relaxed">{v.description}</p>
+                  {v.archetypeDriver && <p className="text-[8px] text-foreground/45 italic">⊛ {v.archetypeDriver}</p>}
+                  {v.vedicIndicator && <p className="text-[8px] text-amber-300/55 italic">☉ {v.vedicIndicator}</p>}
+                  {v.mitigationOptions?.length > 0 && (
+                    <ul className="space-y-0.5 pt-1">
+                      {v.mitigationOptions.map((m: string, j: number) => (
+                        <li key={j} className="text-[8px] text-foreground/55">◈ {m}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Tile>
+
+          {/* Policy Simulations */}
+          <Tile title={`Policy Simulations · ${policies.length}`} icon={Globe} className="col-span-12 lg:col-span-6 row-span-2">
+            {!policies.length && <p className="text-[10px] text-muted-foreground/40 italic">No policy simulations.</p>}
+            <div className="space-y-2">
+              {policies.map((p: any, i: number) => (
+                <div key={p.id || i} className="p-2.5 rounded-xl border border-border/[0.07] bg-foreground/[0.015] space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-medium text-foreground/75 leading-snug min-w-0 truncate">{p.policy}</p>
+                    <span className={`px-1 py-0.5 rounded text-[7px] uppercase border shrink-0 ${severityBadge(p.riskLevel)}`}>{p.riskLevel}</span>
+                  </div>
+                  <p className="text-[9px] text-foreground/55 leading-relaxed">{p.projectedOutcome}</p>
+                  {p.philosophicalBasis && <p className="text-[8px] text-foreground/45 italic">⊛ {p.philosophicalBasis}</p>}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40">Time to Effect</p>
+                      <p className="text-[9px] text-foreground/60">{p.timeToEffect}</p>
+                    </div>
+                    <div>
+                      <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40">Confidence</p>
+                      <p className="text-[9px] text-foreground/60 tabular-nums">{p.confidenceInOutcome}%</p>
                     </div>
                   </div>
+                  {p.historicalAnalog && (
+                    <p className="text-[8px] text-foreground/45"><span className="text-muted-foreground/40">Analog: </span>{p.historicalAnalog}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Tile>
+
+          {/* Timeline Divergences */}
+          <Tile title={`Timeline Divergences · ${divergences.length}`} icon={GitBranch} className="col-span-12 lg:col-span-6 row-span-2">
+            {!divergences.length && <p className="text-[10px] text-muted-foreground/40 italic">No divergences mapped.</p>}
+            <div className="space-y-2">
+              {divergences.map((d: any, i: number) => (
+                <div key={d.id || i} className="p-2.5 rounded-xl border border-border/[0.07] bg-foreground/[0.015] space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-3 w-3 text-foreground/40" strokeWidth={1.5} />
+                    <p className="text-[10px] font-medium text-foreground/75 leading-snug">{d.inflectionPoint}</p>
+                  </div>
+                  {d.criticalDate && <p className="text-[8px] text-muted-foreground/45">Critical: {d.criticalDate}</p>}
+                  {d.vedicWindow && (
+                    <p className="text-[8px] text-amber-300/55 italic flex items-center gap-1">
+                      <Orbit className="h-2.5 w-2.5" /> {d.vedicWindow}
+                    </p>
+                  )}
+                  {d.esotericTrigger && <p className="text-[8px] text-foreground/45 italic">⊛ {d.esotericTrigger}</p>}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04]">
+                      <p className="text-[7px] uppercase tracking-wider text-emerald-400/60 mb-0.5">Branch A · {d.branchA?.probability}%</p>
+                      <p className="text-[8px] text-foreground/60 leading-snug">{d.branchA?.description}</p>
+                    </div>
+                    <div className="p-2 rounded-lg border border-amber-500/15 bg-amber-500/[0.04]">
+                      <p className="text-[7px] uppercase tracking-wider text-amber-400/60 mb-0.5">Branch B · {d.branchB?.probability}%</p>
+                      <p className="text-[8px] text-foreground/60 leading-snug">{d.branchB?.description}</p>
+                    </div>
+                  </div>
+                  {d.keyIndicators?.length > 0 && (
+                    <ul className="space-y-0.5">
+                      {d.keyIndicators.map((k: string, j: number) => (
+                        <li key={j} className="text-[8px] text-foreground/55">◈ {k}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Tile>
+
+          {/* Data Sources footer tile */}
+          {session.dataSources && (
+            <Tile title="Data Sources" icon={Layers} className="col-span-12 row-span-1">
+              <div className="flex flex-wrap gap-1.5">
+                {(session.dataSources.list || session.dataSources.sources || []).slice(0, 40).map((s: any, i: number) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border/[0.08] bg-foreground/[0.025] text-[8px] tracking-wider text-foreground/55">
+                    <span className="h-1 w-1 rounded-full bg-emerald-400/70" />
+                    {typeof s === "string" ? s : s.name || s.label || "source"}
+                  </span>
                 ))}
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-border/[0.08] bg-foreground/[0.025] text-[8px] tracking-wider text-foreground/55 tabular-nums">
+                  Σ {session.dataSources.total || 0}
+                </span>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Policy ── */}
-        {tab === "policy" && (
-          <div className="space-y-2">
-            <h3 className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40">Policy Simulations ({policies.length})</h3>
-            {policies.map((p: any, i: number) => (
-              <div key={p.id || i} className="p-3 rounded-xl border border-border/[0.08] bg-foreground/[0.02] space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-medium text-foreground/70">{p.policy}</p>
-                  <span className={`px-1 py-0.5 rounded text-[6px] uppercase border ${severityBadge(p.riskLevel)}`}>{p.riskLevel}</span>
-                </div>
-                <p className="text-[9px] text-foreground/55">{p.projectedOutcome}</p>
-                {p.philosophicalBasis && (
-                  <p className="text-[8px] text-foreground/45 italic">⊛ Framework: {p.philosophicalBasis}</p>
-                )}
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="text-[7px] uppercase text-muted-foreground/40">Time to Effect</p>
-                    <p className="text-[8px] text-foreground/50">{p.timeToEffect}</p>
-                  </div>
-                  <div>
-                    <p className="text-[7px] uppercase text-muted-foreground/40">Confidence</p>
-                    <p className="text-[8px] text-foreground/50">{p.confidenceInOutcome}%</p>
-                  </div>
-                </div>
-                {p.historicalAnalog && (
-                  <div>
-                    <p className="text-[7px] uppercase text-muted-foreground/40">Historical Analog</p>
-                    <p className="text-[8px] text-foreground/50">{p.historicalAnalog}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Timeline ── */}
-        {tab === "timeline" && (
-          <div className="space-y-2">
-            <h3 className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40">Timeline Divergences ({divergences.length})</h3>
-            {divergences.map((d: any, i: number) => (
-              <div key={d.id || i} className="p-3 rounded-xl border border-border/[0.08] bg-foreground/[0.02] space-y-2">
-                <div className="flex items-center gap-2">
-                  <GitBranch className="h-3 w-3 text-foreground/40" />
-                  <p className="text-[10px] font-medium text-foreground/70">{d.inflectionPoint}</p>
-                </div>
-                {d.criticalDate && <p className="text-[7px] text-muted-foreground/40">Critical: {d.criticalDate}</p>}
-                {d.vedicWindow && (
-                  <p className="text-[8px] text-amber-300/50 italic flex items-center gap-1">
-                    <Orbit className="h-2 w-2" /> Vedic Window: {d.vedicWindow}
-                  </p>
-                )}
-                {d.esotericTrigger && (
-                  <p className="text-[8px] text-foreground/45 italic">⊛ Esoteric Trigger: {d.esotericTrigger}</p>
-                )}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 rounded-lg border border-emerald-500/10 bg-emerald-500/[0.03]">
-                    <p className="text-[7px] uppercase text-emerald-400/50 mb-0.5">Branch A ({d.branchA?.probability}%)</p>
-                    <p className="text-[8px] text-foreground/55">{d.branchA?.description}</p>
-                  </div>
-                  <div className="p-2 rounded-lg border border-amber-500/10 bg-amber-500/[0.03]">
-                    <p className="text-[7px] uppercase text-amber-400/50 mb-0.5">Branch B ({d.branchB?.probability}%)</p>
-                    <p className="text-[8px] text-foreground/55">{d.branchB?.description}</p>
-                  </div>
-                </div>
-                {d.keyIndicators?.length > 0 && (
-                  <ul className="space-y-0.5">
-                    {d.keyIndicators.map((k: string, j: number) => (
-                      <li key={j} className="text-[8px] text-foreground/50">◈ {k}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+            </Tile>
+          )}
+        </div>
       </div>
     </div>
   );
 };
+
+/* ── Helpers ── */
+const Kpi = ({ label, value, tone }: { label: string; value: any; tone?: string }) => (
+  <div className="rounded-xl border border-border/[0.08] bg-foreground/[0.025] px-3 py-2 flex flex-col justify-center">
+    <p className="text-[7px] uppercase tracking-[0.22em] text-muted-foreground/45">{label}</p>
+    <p className={`text-[12px] font-light mt-0.5 truncate ${tone || "text-foreground/85"}`}>{String(value)}</p>
+  </div>
+);
+
+const Field = ({
+  label, text, icon: Icon, italic, tone,
+}: { label: string; text: string; icon?: any; italic?: boolean; tone?: string }) => (
+  <div>
+    <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5 flex items-center gap-1">
+      {Icon && <Icon className="h-2 w-2" />} {label}
+    </p>
+    <p className={`text-[9px] leading-relaxed ${italic ? "italic" : ""} ${tone || "text-foreground/60"}`}>{text}</p>
+  </div>
+);
 
 export default AxrlenDashboard;
