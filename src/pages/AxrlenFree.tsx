@@ -532,16 +532,15 @@ const AxrlenFree = () => {
                       </label>
                       <label className="block">
                         <span className="block text-[9px] font-light tracking-[0.28em] uppercase text-muted-foreground mb-1">Model</span>
-                        <input
-                          list={`models-${provider}`}
+                        <select
                           value={model}
                           onChange={(e) => setModel(e.target.value)}
-                          placeholder={currentSpec.defaultModel}
-                          className="w-full rounded-lg border border-border/40 bg-background/40 px-3 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground/40"
-                        />
-                        <datalist id={`models-${provider}`}>
-                          {currentSpec.models.map((m) => <option key={m} value={m} />)}
-                        </datalist>
+                          className="w-full rounded-lg border border-border/40 bg-background/40 px-3 py-2.5 text-xs font-light text-foreground focus:outline-none focus:border-foreground/40"
+                        >
+                          {currentSpec.models.map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
                       </label>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
