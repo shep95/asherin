@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, ChevronDown, Search, ArrowUpRight } from "lucide-react";
+import { Menu, X, ChevronDown, Search, ArrowUpRight, Target } from "lucide-react";
 import aureonLogo from "@/assets/aureon-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -220,6 +220,16 @@ const Header = () => {
                   <span className="hidden md:inline-block ml-1 rounded-sm border border-foreground/30 bg-foreground/5 px-1 text-[8px] tracking-[0.15em] text-foreground/70">FREE SOFTWARE</span>
                 </Link>
                 <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
+                <Link
+                  to="/axrlen"
+                  className="group flex items-center gap-2 px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Target className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  <span>Axrlen</span>
+                  <span className="hidden md:inline-block ml-1 rounded-sm border border-amber-300/40 bg-amber-300/10 px-1 text-[8px] tracking-[0.15em] text-amber-200/90">FREE · BYOK · BETA</span>
+                </Link>
+                <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
+
                 {!loading && user ? (
                   <Link
                     to="/dashboard"
@@ -257,6 +267,7 @@ const Header = () => {
             <div className="absolute right-4 top-full z-50 mt-2 w-64 max-h-[80vh] overflow-y-auto rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl p-4 shadow-2xl sm:hidden">
               <div className="flex flex-col gap-2">
                 <Link to="/zophiel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-light tracking-wide text-emerald-300 transition-colors hover:bg-emerald-400/20 text-center">Free AI Search</Link>
+                <Link to="/axrlen" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-amber-300/30 bg-amber-300/10 px-4 py-2.5 text-sm font-light tracking-wide text-amber-200 transition-colors hover:bg-amber-300/20 text-center">AXRLEN · Free · BYOK · Beta</Link>
                 <Link to="/features" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">All Features</Link>
                 <div className="my-1 border-t border-border/20 mx-4" />
                 <Link to="/llm-models" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">LLM Models</Link>
