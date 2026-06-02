@@ -61,6 +61,7 @@ const FeatureWhiteboardPage = lazy(() => import("./pages/FeatureWhiteboard"));
 const FeatureVedic = lazy(() => import("./pages/FeatureVedic"));
 const VedicAstrology = lazy(() => import("./pages/VedicAstrology"));
 const ZophielFree = lazy(() => import("./pages/ZophielFree"));
+const AxrlenFree = lazy(() => import("./pages/AxrlenFree"));
 const WW3 = lazy(() => import("./pages/WW3"));
 const HouseOfAsherVentures = lazy(() => import("./pages/HouseOfAsherVentures"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
