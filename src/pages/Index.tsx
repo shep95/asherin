@@ -530,7 +530,7 @@ const Index = () => {
                     placeholder="Ask Aureon anything..."
                     className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none"
                   />
-                  <button type="submit" className="text-foreground/60 hover:text-foreground transition-colors">
+                  <button type="submit" aria-label="Send message" className="text-foreground/60 hover:text-foreground transition-colors">
                     <Send className="h-4 w-4" />
                   </button>
                   <span className="text-xs font-extralight text-muted-foreground/50">{maxDemos - demoCount} left</span>
