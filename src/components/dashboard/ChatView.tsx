@@ -758,6 +758,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
       {/* Messages */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 pb-4 relative min-h-0">
+        <StickyQuestionHeader
+          scrollContainerRef={scrollContainerRef}
+          messageRefs={messageRefs}
+          messages={branchMessages}
+          onJump={(id) => setHighlightedMsgId(id)}
+        />
         {branchMessages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center max-w-md animate-fade-in">
