@@ -392,58 +392,76 @@ const AxrlenFree = () => {
 
       <main className="relative z-10 pt-28 pb-20 px-4 sm:px-6">
         <div className="mx-auto max-w-6xl">
-          {/* Eyebrow */}
-          <div className="flex items-center justify-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/50 backdrop-blur-xl px-3.5 py-1.5">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-300/60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-300" />
-              </span>
-              <Sparkles className="h-2.5 w-2.5 text-foreground/70" strokeWidth={1.5} />
-              <span className="text-[9px] font-light tracking-[0.4em] text-foreground/70 uppercase">
-                AXRLEN · Free · Beta · BYOK
-              </span>
-            </div>
-          </div>
+          {/* ── HERO ── redesigned */}
+          <section className="relative">
+            {/* Aurora glow */}
+            <div aria-hidden className="pointer-events-none absolute left-1/2 -top-16 -translate-x-1/2 w-[90vw] max-w-[1100px] h-[420px] zophiel-aurora rounded-full opacity-70" />
 
-          {/* Hero */}
-          <h1 className="mt-6 text-center text-[2.5rem] sm:text-6xl md:text-7xl font-extralight tracking-tight leading-[1.04] zophiel-shimmer-text">
-            Forecast the next move.
-          </h1>
-          <p className="mt-5 mx-auto max-w-2xl text-center text-sm sm:text-base font-light text-muted-foreground leading-relaxed">
-            AXRLEN is a <span className="text-foreground/90">prediction-based intelligence engine</span> — built to model
-            geopolitical events, market dislocations, policy outcomes, and timeline divergences before they hit the wire.
-            This is the free, public beta. <span className="text-foreground/90">You bring the API key. We bring the doctrine.</span>
-          </p>
+            <div className="relative flex flex-col items-center text-center">
+              {/* Free badge — primary attention */}
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-400/10 backdrop-blur-xl px-4 py-2 shadow-[0_0_30px_-10px_rgba(52,211,153,0.5)]">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300/70" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300" />
+                </span>
+                <Sparkles className="h-3 w-3 text-emerald-200" strokeWidth={1.5} />
+                <span className="text-[10px] font-light tracking-[0.32em] text-emerald-100 uppercase">
+                  100% Free on This Page · BYOK · No Login
+                </span>
+              </div>
 
-          {/* Track record */}
-          <div className="mt-10 grid md:grid-cols-3 gap-3">
-            <div className="rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl p-5">
-              <div className="flex items-center gap-2 text-[10px] font-light tracking-[0.28em] uppercase text-muted-foreground">
-                <Target className="h-3 w-3" /> Launch Window
+              {/* Eyebrow */}
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/40 backdrop-blur-xl px-3 py-1">
+                <span className="h-1 w-1 rounded-full bg-amber-300" />
+                <span className="text-[9px] font-light tracking-[0.4em] text-foreground/70 uppercase">
+                  AXRLEN · Predictive Intelligence Engine · Beta
+                </span>
               </div>
-              <div className="mt-3 text-4xl font-extralight tabular-nums">72h</div>
-              <div className="mt-1 text-xs font-light text-muted-foreground">First public test window after launch.</div>
+
+              <h1 className="mt-6 text-[2.75rem] sm:text-6xl md:text-7xl font-extralight tracking-tight leading-[1.02] zophiel-shimmer-text">
+                Forecast the next move.
+              </h1>
+
+              <p className="mt-5 max-w-2xl text-sm sm:text-base font-light text-muted-foreground leading-relaxed">
+                Model geopolitical events, market dislocations and policy outcomes
+                before they hit the wire. <span className="text-foreground/90">Use it free right here</span> —
+                pick your provider, plug in a key, run unlimited forecasts on your own quota.
+              </p>
+
+              {/* Quick CTAs */}
+              <div className="mt-7 inline-flex flex-wrap items-center justify-center gap-2">
+                <a
+                  href="#axrlen-byok"
+                  className="inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/10 px-5 py-2.5 text-[10px] font-light tracking-[0.28em] uppercase text-foreground hover:bg-foreground/20 transition-colors"
+                >
+                  Start Forecasting <ArrowUpRight className="h-3 w-3" />
+                </a>
+                <a
+                  href="#axrlen-log"
+                  className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-card/40 px-5 py-2.5 text-[10px] font-light tracking-[0.28em] uppercase text-foreground/80 hover:text-foreground transition-colors"
+                >
+                  See 7/7 Launch Log
+                </a>
+              </div>
+
+              {/* Inline stat strip — compact */}
+              <div className="mt-10 grid grid-cols-3 gap-px rounded-2xl border border-border/30 bg-card/30 backdrop-blur-xl overflow-hidden w-full max-w-2xl">
+                <div className="p-4 text-center bg-background/20">
+                  <div className="text-[9px] font-light tracking-[0.28em] uppercase text-muted-foreground">Window</div>
+                  <div className="mt-1 text-2xl font-extralight tabular-nums">72h</div>
+                </div>
+                <div className="p-4 text-center bg-emerald-400/[0.04]">
+                  <div className="text-[9px] font-light tracking-[0.28em] uppercase text-emerald-300/90">Hits</div>
+                  <div className="mt-1 text-2xl font-extralight tabular-nums text-emerald-200">7 / 7</div>
+                </div>
+                <div className="p-4 text-center bg-background/20">
+                  <div className="text-[9px] font-light tracking-[0.28em] uppercase text-muted-foreground">Cost</div>
+                  <div className="mt-1 text-2xl font-extralight">$0</div>
+                </div>
+              </div>
             </div>
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.04] backdrop-blur-xl p-5">
-              <div className="flex items-center gap-2 text-[10px] font-light tracking-[0.28em] uppercase text-emerald-300/90">
-                <CheckCircle2 className="h-3 w-3" /> Predictions Hit
-              </div>
-              <div className="mt-3 text-4xl font-extralight tabular-nums text-emerald-200">7 / 7</div>
-              <div className="mt-1 text-xs font-light text-muted-foreground">
-                Inside the 72h window, Asher made 7 predictions with AXRLEN. All 7 hit spot on.
-              </div>
-            </div>
-            <div className="rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl p-5">
-              <div className="flex items-center gap-2 text-[10px] font-light tracking-[0.28em] uppercase text-muted-foreground">
-                <Shield className="h-3 w-3" /> Status
-              </div>
-              <div className="mt-3 text-4xl font-extralight">Beta</div>
-              <div className="mt-1 text-xs font-light text-muted-foreground">
-                Open testing. Expect rough edges. Feedback shapes the next iteration.
-              </div>
-            </div>
-          </div>
+          </section>
+
 
           {/* How it thinks */}
           <section className="mt-12 grid md:grid-cols-3 gap-3">
