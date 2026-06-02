@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Brain, Globe, Loader2, Trash2, Clock, Send, ArrowDown, Copy, Check, MessageSquare, Zap, X, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { Brain, Globe, Loader2, Trash2, Clock, Send, ArrowDown, Copy, Check, MessageSquare, Zap, X, PanelRightClose, PanelRightOpen, Search, Target, Activity, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
