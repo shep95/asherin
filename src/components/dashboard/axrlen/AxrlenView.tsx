@@ -53,6 +53,7 @@ const AxrlenView = () => {
   const [activeSession, setActiveSession] = useState<AxrlenSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSessions, setShowSessions] = useState(false);
+  const [sessionsQuery, setSessionsQuery] = useState("");
 
   // Chat state
   const [messages, setMessages] = useState<ChatMsg[]>([]);
