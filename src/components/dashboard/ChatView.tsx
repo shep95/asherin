@@ -45,6 +45,7 @@ import CalibrationFeedback from "./CalibrationFeedback";
 import type { FeedbackType } from "./CalibrationFeedback";
 import AdaptiveInputBar from "./AdaptiveInputBar";
 import ScrollIntelligence from "./ScrollIntelligence";
+import StickyQuestionHeader from "./StickyQuestionHeader";
 import SmartSelectionMenu from "./SmartSelectionMenu";
 import TypingIndicator from "./TypingIndicator";
 import { renderLinkPreviews } from "./LinkPreview";
