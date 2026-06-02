@@ -507,7 +507,7 @@ const AxrlenFree = () => {
           </section>
 
           {/* BYOK */}
-          <section className="mt-14 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-2xl p-6 sm:p-8">
+          <section id="axrlen-byok" className="mt-14 scroll-mt-28 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-2xl p-6 sm:p-8">
             <div className="flex items-start gap-3">
               <KeyRound className="h-4 w-4 mt-1 text-foreground/80" strokeWidth={1.5} />
               <div className="flex-1">
