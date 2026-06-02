@@ -434,7 +434,23 @@ const AxrlenFree = () => {
               )}
             </div>
 
+            {savedKey && turns.length > 0 && (
+              <div className="border-t border-border/20 px-3 py-2 flex gap-1.5 overflow-x-auto scrollbar-none">
+                {QUESTION_LIBRARY.flatMap((c) => c.items).slice(0, 6).map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => runWith(q)}
+                    disabled={loading}
+                    className="shrink-0 inline-flex items-center gap-1 rounded-full border border-border/25 bg-foreground/[0.02] px-2.5 py-1 text-[10px] font-light text-foreground/70 hover:text-foreground hover:bg-foreground/[0.06] hover:border-foreground/30 transition-all disabled:opacity-40"
+                  >
+                    <Target className="h-2.5 w-2.5 opacity-60" strokeWidth={1.6} />
+                    {q.length > 48 ? q.slice(0, 48) + "…" : q}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="border-t border-border/20 p-3 flex gap-2">
+
               <input
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
