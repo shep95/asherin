@@ -226,7 +226,7 @@ const Header = () => {
                 >
                   <Target className="h-3.5 w-3.5" strokeWidth={1.5} />
                   <span>Axrlen</span>
-                  <span className="hidden md:inline-block ml-1 rounded-sm border border-amber-300/40 bg-amber-300/10 px-1 text-[8px] tracking-[0.15em] text-amber-200/90">FREE · BYOK · BETA</span>
+                  <span className="hidden md:inline-block ml-1 rounded-sm border border-amber-300/40 bg-amber-300/10 px-1 text-[8px] tracking-[0.15em] text-amber-200/90">FREE · BYOK · BETA · PREDICTION AI MODEL</span>
                 </Link>
                 <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
 
