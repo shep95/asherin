@@ -377,15 +377,39 @@ const AxrlenFree = () => {
 
             <div ref={scrollRef} className="max-h-[420px] overflow-y-auto px-4 py-4 space-y-3">
               {turns.length === 0 && (
-                <div className="text-xs font-light text-muted-foreground/70 leading-relaxed">
-                  Ask AXRLEN to forecast something. Examples:
-                  <ul className="mt-3 space-y-1.5">
-                    <li>• Forecast Brent crude direction over the next 72h.</li>
-                    <li>• Probability the FOMC pauses next meeting — give signals.</li>
-                    <li>• Model the timeline divergence for Taiwan Strait posture this quarter.</li>
-                  </ul>
+                <div className="space-y-4">
+                  <p className="text-[10px] font-light tracking-[0.28em] uppercase text-muted-foreground/70">
+                    Prebuilt Predictions · tap to run
+                  </p>
+                  {QUESTION_LIBRARY.map((cat) => (
+                    <div key={cat.category}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[9px] font-light tracking-[0.32em] uppercase text-foreground/60">{cat.category}</span>
+                        <span className="h-px flex-1 bg-border/20" />
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cat.items.map((q) => (
+                          <button
+                            key={q}
+                            onClick={() => savedKey && runWith(q)}
+                            disabled={!savedKey || loading}
+                            className="group inline-flex items-center gap-1.5 rounded-full border border-border/30 bg-foreground/[0.02] px-3 py-1.5 text-[10.5px] font-light text-foreground/80 hover:text-foreground hover:bg-foreground/[0.06] hover:border-foreground/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed text-left max-w-full"
+                          >
+                            <Target className="h-2.5 w-2.5 text-foreground/40 group-hover:text-foreground/70 shrink-0" strokeWidth={1.6} />
+                            <span className="truncate sm:whitespace-normal">{q}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {!savedKey && (
+                    <p className="text-[10px] font-light text-muted-foreground/60 italic">
+                      Save your Gemini API key above to enable these predictions.
+                    </p>
+                  )}
                 </div>
               )}
+
               {turns.map((t, i) => (
                 <div
                   key={i}
