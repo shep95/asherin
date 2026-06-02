@@ -216,8 +216,8 @@ const Header = () => {
                   className="group flex items-center gap-2 px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Search className="h-3.5 w-3.5" strokeWidth={1.5} />
-                  <span>Search</span>
-                  <span className="hidden md:inline-block ml-1 rounded-sm border border-foreground/30 bg-foreground/5 px-1 text-[8px] tracking-[0.15em] text-foreground/70">FREE</span>
+                  <span>Zophiel</span>
+                  <span className="hidden md:inline-block ml-1 rounded-sm border border-foreground/30 bg-foreground/5 px-1 text-[8px] tracking-[0.15em] text-foreground/70">FREE SOFTWARE</span>
                 </Link>
                 <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
                 {!loading && user ? (
