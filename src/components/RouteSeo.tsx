@@ -8,6 +8,8 @@ import { useLocation } from "react-router-dom";
  */
 
 const ORIGIN = "https://aureonai.app";
+const DEFAULT_OG_IMAGE = "https://aureonai.app/og-image.png";
+const JSONLD_ID = "route-seo-jsonld";
 
 type SeoEntry = {
   title: string;
