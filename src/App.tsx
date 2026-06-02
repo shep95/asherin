@@ -79,6 +79,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import AureonDomainGate from "./components/AureonDomainGate";
 import RouteSessionTracker from "./components/RouteSessionTracker";
+import RouteSeo from "./components/RouteSeo";
 
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -100,6 +101,7 @@ const App = () => (
         <BrowserRouter>
           <CommandPalette />
           <RouteSessionTracker />
+          <RouteSeo />
           <ByokRequiredDialog />
           <Suspense fallback={<PageLoader />}>
           <main>
