@@ -454,45 +454,187 @@ const AxrlenView = () => {
         </div>
       </div>
 
-      {/* Sessions overlay */}
-      {showSessions && (
-        <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border/[0.06]">
-            <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50">Prediction Sessions</h2>
-            <button onClick={() => setShowSessions(false)} className="p-1.5 rounded-lg hover:bg-foreground/[0.06]">
-              <X className="h-4 w-4 text-muted-foreground/40" />
-            </button>
-          </div>
-          <div className="flex-1 overflow-auto p-4 space-y-2 max-w-3xl mx-auto w-full">
-            {loading ? (
-              <div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 text-muted-foreground/30 animate-spin" /></div>
-            ) : sessions.length === 0 ? (
-              <div className="flex flex-col items-center py-20 gap-3">
-                <Globe className="h-8 w-8 text-muted-foreground/20" />
-                <p className="text-[11px] text-foreground/40">No sessions yet — type "Scan [region]" in chat to begin</p>
-              </div>
-            ) : sessions.map(s => (
-              <div key={s.id} className="flex items-center justify-between p-3 rounded-xl border border-border/[0.08] bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-all group">
-                <button onClick={() => openSession(s)} className="flex items-center gap-3 flex-1 text-left">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${s.status === "complete" ? "bg-emerald-400/60" : "bg-amber-400/60 animate-pulse"}`} />
-                  <div className="min-w-0">
-                    <p className="text-[11px] text-foreground/70 truncate">{s.title}</p>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-[8px] text-muted-foreground/30">{s.createdAt.toLocaleDateString()}</span>
-                      {s.confidenceScore != null && <span className="text-[8px] text-foreground/40">{s.confidenceScore}%</span>}
-                      {s.predictions && <span className="text-[8px] text-foreground/40">{Array.isArray(s.predictions) ? s.predictions.length : 0} predictions</span>}
+      {/* Sessions popout — side drawer */}
+      {showSessions && (() => {
+        const [q, setQ] = [sessionsQuery, setSessionsQuery];
+        const filtered = sessions.filter(s =>
+          !q.trim() || s.title.toLowerCase().includes(q.toLowerCase()) || (s.region || "").toLowerCase().includes(q.toLowerCase())
+        );
+        const now = Date.now();
+        const buckets: Record<string, AxrlenSession[]> = { Today: [], Yesterday: [], "Last 7 Days": [], Earlier: [] };
+        filtered.forEach(s => {
+          const ageH = (now - s.createdAt.getTime()) / 36e5;
+          if (ageH < 24) buckets.Today.push(s);
+          else if (ageH < 48) buckets.Yesterday.push(s);
+          else if (ageH < 24 * 7) buckets["Last 7 Days"].push(s);
+          else buckets.Earlier.push(s);
+        });
+        const totalPredictions = sessions.reduce((acc, s) => acc + (Array.isArray(s.predictions) ? s.predictions.length : 0), 0);
+        const avgConf = sessions.filter(s => s.confidenceScore != null).reduce((a, s, _, arr) => a + (s.confidenceScore || 0) / arr.length, 0);
+        const completeCount = sessions.filter(s => s.status === "complete").length;
+
+        return (
+          <>
+            <div className="absolute inset-0 z-40 bg-background/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowSessions(false)} />
+            <aside className="absolute right-0 top-0 bottom-0 z-50 w-full sm:w-[28rem] border-l border-border/20 bg-gradient-to-b from-background/95 via-background/90 to-background/95 backdrop-blur-2xl shadow-[0_0_80px_rgba(0,0,0,0.6)] flex flex-col animate-slide-in-right">
+              {/* Header */}
+              <div className="shrink-0 px-5 pt-5 pb-3 border-b border-border/10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-foreground/[0.04] border border-border/[0.08] flex items-center justify-center">
+                      <Activity className="h-3.5 w-3.5 text-foreground/60" strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <h2 className="text-[11px] font-light tracking-[0.28em] uppercase text-foreground/85">Session Archive</h2>
+                      <p className="text-[8px] tracking-[0.25em] uppercase text-muted-foreground/40 mt-0.5">NEXUS-PRIME · history</p>
                     </div>
                   </div>
-                </button>
-                <button onClick={() => deleteSession(s.id)}
-                  className="p-2 rounded-lg hover:bg-foreground/[0.06] opacity-0 group-hover:opacity-100 transition-all">
-                  <Trash2 className="h-3 w-3 text-muted-foreground/30 hover:text-red-400/60" />
-                </button>
+                  <button onClick={() => setShowSessions(false)} className="p-1.5 rounded-lg hover:bg-foreground/[0.06] transition-colors" aria-label="Close">
+                    <X className="h-3.5 w-3.5 text-muted-foreground/50" />
+                  </button>
+                </div>
+
+                {/* Stat strip */}
+                <div className="grid grid-cols-3 gap-1.5 mb-3">
+                  <div className="rounded-lg border border-border/[0.08] bg-foreground/[0.02] px-2.5 py-2">
+                    <div className="flex items-center gap-1 text-[8px] tracking-[0.22em] uppercase text-muted-foreground/50">
+                      <Target className="h-2.5 w-2.5" /> Sessions
+                    </div>
+                    <div className="mt-1 text-base font-extralight tabular-nums text-foreground/85">{sessions.length}</div>
+                  </div>
+                  <div className="rounded-lg border border-border/[0.08] bg-foreground/[0.02] px-2.5 py-2">
+                    <div className="flex items-center gap-1 text-[8px] tracking-[0.22em] uppercase text-muted-foreground/50">
+                      <TrendingUp className="h-2.5 w-2.5" /> Predicts
+                    </div>
+                    <div className="mt-1 text-base font-extralight tabular-nums text-foreground/85">{totalPredictions}</div>
+                  </div>
+                  <div className="rounded-lg border border-emerald-400/15 bg-emerald-400/[0.04] px-2.5 py-2">
+                    <div className="flex items-center gap-1 text-[8px] tracking-[0.22em] uppercase text-emerald-300/70">
+                      <Zap className="h-2.5 w-2.5" /> Avg Conf
+                    </div>
+                    <div className="mt-1 text-base font-extralight tabular-nums text-emerald-200/90">
+                      {avgConf ? Math.round(avgConf) + "%" : "—"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40" />
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search sessions, regions…"
+                    className="w-full rounded-lg border border-border/15 bg-background/40 pl-8 pr-3 py-2 text-[11px] font-light tracking-wide text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/30"
+                  />
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+
+              {/* List */}
+              <div className="flex-1 overflow-auto px-4 py-3 space-y-4">
+                {loading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="h-4 w-4 text-muted-foreground/30 animate-spin" />
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="flex flex-col items-center py-16 gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-foreground/[0.03] border border-border/[0.08] flex items-center justify-center">
+                      <Globe className="h-5 w-5 text-muted-foreground/30" />
+                    </div>
+                    <p className="text-[10px] tracking-[0.22em] uppercase text-foreground/40">
+                      {q.trim() ? "No matches" : "No sessions yet"}
+                    </p>
+                    {!q.trim() && (
+                      <p className="text-[10px] text-muted-foreground/50 text-center max-w-[220px] leading-relaxed">
+                        Type <span className="text-foreground/70 font-medium">"Scan [region]"</span> in chat to begin your first prediction run.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  Object.entries(buckets).map(([label, items]) =>
+                    items.length === 0 ? null : (
+                      <div key={label}>
+                        <div className="flex items-center gap-2 px-1 mb-1.5">
+                          <span className="text-[8px] font-light tracking-[0.3em] uppercase text-muted-foreground/40">{label}</span>
+                          <span className="h-px flex-1 bg-border/[0.08]" />
+                          <span className="text-[8px] tabular-nums text-muted-foreground/30">{items.length}</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {items.map(s => {
+                            const isActive = activeSession?.id === s.id;
+                            const conf = s.confidenceScore ?? 0;
+                            const predCount = Array.isArray(s.predictions) ? s.predictions.length : 0;
+                            return (
+                              <div
+                                key={s.id}
+                                className={`group relative rounded-xl border transition-all overflow-hidden ${
+                                  isActive
+                                    ? "border-foreground/25 bg-foreground/[0.05] shadow-[0_8px_30px_-12px_rgba(255,255,255,0.1)]"
+                                    : "border-border/[0.08] bg-foreground/[0.015] hover:bg-foreground/[0.04] hover:border-border/[0.15]"
+                                }`}
+                              >
+                                {isActive && (
+                                  <span aria-hidden className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-foreground/60 to-transparent" />
+                                )}
+                                <button onClick={() => openSession(s)} className="w-full text-left p-3 flex items-start gap-3">
+                                  {/* Confidence ring */}
+                                  <div className="relative shrink-0 w-9 h-9">
+                                    <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
+                                      <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-foreground/[0.06]" />
+                                      <circle
+                                        cx="18" cy="18" r="15" fill="none"
+                                        stroke="currentColor" strokeWidth="1.5"
+                                        strokeDasharray={`${(conf / 100) * 94.25} 94.25`}
+                                        strokeLinecap="round"
+                                        className={conf >= 70 ? "text-emerald-400/70" : conf >= 40 ? "text-amber-300/70" : "text-foreground/30"}
+                                      />
+                                    </svg>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <span className="text-[8px] font-light tabular-nums text-foreground/70">{conf || "—"}</span>
+                                    </div>
+                                    <span className={`absolute -right-0.5 -top-0.5 w-1.5 h-1.5 rounded-full ring-2 ring-background ${
+                                      s.status === "complete" ? "bg-emerald-400/80" : "bg-amber-400/80 animate-pulse"
+                                    }`} />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[11px] font-light text-foreground/85 leading-snug line-clamp-2">{s.title}</p>
+                                    <div className="mt-1.5 flex items-center gap-2 text-[8.5px] tracking-[0.18em] uppercase text-muted-foreground/45">
+                                      {s.region && <span className="text-foreground/55">{s.region}</span>}
+                                      {s.region && <span className="h-0.5 w-0.5 rounded-full bg-muted-foreground/30" />}
+                                      <span>{predCount} pred</span>
+                                      <span className="h-0.5 w-0.5 rounded-full bg-muted-foreground/30" />
+                                      <span className="font-mono text-[8px] tracking-normal normal-case">
+                                        {s.createdAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
+                                  className="absolute right-2 top-2 p-1.5 rounded-md hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                                  aria-label="Delete session"
+                                >
+                                  <Trash2 className="h-3 w-3 text-muted-foreground/40 hover:text-red-400/80" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )
+                  )
+                )}
+              </div>
+
+              {/* Footer hint */}
+              <div className="shrink-0 px-5 py-3 border-t border-border/10 text-[9px] tracking-[0.22em] uppercase text-muted-foreground/40 text-center">
+                {filtered.length} of {sessions.length} sessions
+              </div>
+            </aside>
+          </>
+        );
+      })()}
+
 
       {/* Main content: Dashboard primary | Chat rail right (collapsible) */}
       <div className="flex-1 flex overflow-hidden relative">
