@@ -272,6 +272,37 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       }
     } catch (e: any) {
       console.error("Search failed:", e);
+      const msg = String(e?.message || e || "").toLowerCase();
+      const ctx = e?.context;
+      let status: number | undefined;
+      let bodyText = "";
+      try {
+        status = ctx?.status;
+        if (ctx?.body && typeof ctx.body.text === "function") {
+          bodyText = (await ctx.body.text()).toLowerCase();
+        }
+      } catch { /* noop */ }
+
+      const isByokIssue =
+        status === 403 || status === 402 || status === 429 ||
+        /byok_required|quota|rate.?limit|api[_ ]?key|overloaded|unauthor|insufficient|credit/.test(
+          msg + " " + bodyText,
+        );
+
+      if (isByokIssue) {
+        triggerByokRequired({
+          source: "zophiel-search",
+          reason: "The Zophiel search engine could not reach the AI gateway. Add your own AI key to keep searching without interruption.",
+        });
+      } else {
+        toast({
+          title: "Search engine error",
+          description:
+            e?.message ||
+            "The Zophiel search engine failed. If this keeps happening, add your own AI key in Settings → AI Keys.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
