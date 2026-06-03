@@ -6,6 +6,8 @@ import IntelMapByokPanel from "./search/IntelMapByokPanel";
 import { isIntelMapByokEnabled } from "@/lib/intelMapByok";
 import MessageQueuePanel from "./MessageQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { triggerByokRequired } from "@/components/ByokRequiredDialog";
 import type { SearchMode, SearchFilters, SearchResponse, SearchResult, PagePreview, FreshnessAlert, InstantAnswer } from "./search/types";
 import SearchModeSelector from "./search/SearchModeSelector";
 import SearchOperatorsPanel from "./search/SearchOperatorsPanel";
