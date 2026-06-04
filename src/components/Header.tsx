@@ -37,7 +37,7 @@ const Header = () => {
         <div className="mx-auto w-full max-w-7xl flex items-center justify-between px-4 sm:px-6">
         {/* Left: Logo + Pages dropdown */}
         <div
-          className="hidden sm:flex items-center relative group/nav"
+          className="hidden lg:flex items-center relative group/nav"
           onMouseLeave={() => setPagesOpen(false)}
         >
           {/* Aurora glow behind the cluster */}
@@ -190,12 +190,12 @@ const Header = () => {
         </div>
 
         {/* Mobile: just logo */}
-        <Link to="/" className="sm:hidden rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2 flex items-center hover:bg-card/80 transition-colors">
+        <Link to="/" className="lg:hidden rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2 flex items-center hover:bg-card/80 transition-colors">
           <span className="text-base font-extralight tracking-[0.25em] text-foreground">AUREON</span>
         </Link>
 
         {/* Right: Auth buttons */}
-        <div className="hidden sm:block relative" data-header-right>
+        <div className="hidden lg:block relative" data-header-right>
           <div aria-hidden className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl"
                style={{ background: "radial-gradient(60% 100% at 80% 50%, hsl(0 0% 100% / 0.08), transparent 70%)" }} />
           <div className="relative flex items-center rounded-full border border-foreground/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
@@ -257,14 +257,14 @@ const Header = () => {
         </div>
 
 
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="sm:hidden rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5" aria-label="Toggle navigation menu">
+        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5" aria-label="Toggle navigation menu">
           {mobileMenuOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
         </button>
 
         {mobileMenuOpen && (
           <>
-            <div className="fixed inset-0 z-40 sm:hidden" onClick={() => setMobileMenuOpen(false)} />
-            <div className="absolute right-4 top-full z-50 mt-2 w-64 max-h-[80vh] overflow-y-auto rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl p-4 shadow-2xl sm:hidden">
+            <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
+            <div className="absolute right-4 top-full z-50 mt-2 w-64 max-h-[80vh] overflow-y-auto rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl p-4 shadow-2xl lg:hidden">
               <div className="flex flex-col gap-2">
                 <Link to="/zophiel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-light tracking-wide text-emerald-300 transition-colors hover:bg-emerald-400/20 text-center">Free AI Search</Link>
                 <Link to="/axrlen" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-amber-300/30 bg-amber-300/10 px-4 py-2.5 text-sm font-light tracking-wide text-amber-200 transition-colors hover:bg-amber-300/20 text-center">AXRLEN · Free · BYOK · Beta · Prediction AI Model</Link>
