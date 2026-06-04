@@ -24,6 +24,38 @@ h1, h2, h3, h4, h5, h6 { overflow-wrap: anywhere; word-break: break-word; }
   aside.w-64, aside.w-72 { width: 100% !important; max-width: 14rem; }
 }
 
+/* ── Tablet band (481px–1024px): fills the dead zone between mobile and desktop ── */
+@media (min-width: 481px) and (max-width: 1024px) {
+  /* Cap oversized fixed sidebars so content gets breathing room */
+  aside.w-64, aside.w-72, aside.w-80, aside.w-96 {
+    width: min(18rem, 30vw) !important;
+  }
+  /* Dialogs must respect viewport */
+  [role="dialog"] { max-width: calc(100vw - 2rem) !important; }
+  /* Collapse dense desktop grids (4/5/6 cols) to 2 cols on tablet */
+  .grid.grid-cols-4:not(.no-tablet-collapse),
+  .grid.grid-cols-5:not(.no-tablet-collapse),
+  .grid.grid-cols-6:not(.no-tablet-collapse),
+  .grid.lg\:grid-cols-4:not(.no-tablet-collapse),
+  .grid.lg\:grid-cols-5:not(.no-tablet-collapse),
+  .grid.lg\:grid-cols-6:not(.no-tablet-collapse) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  /* Promote 1-col layouts that only break to 3 at lg up to 2 cols on tablet */
+  .grid.grid-cols-1.lg\:grid-cols-3:not(.no-tablet-collapse),
+  .grid.grid-cols-1.lg\:grid-cols-2:not(.no-tablet-collapse) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  /* Tame oversized hero typography */
+  .text-7xl { font-size: clamp(2.75rem, 7vw, 4.25rem) !important; line-height: 1.05 !important; }
+  .text-8xl { font-size: clamp(3rem, 8vw, 5rem) !important; line-height: 1.05 !important; }
+  .text-9xl { font-size: clamp(3.5rem, 9vw, 5.5rem) !important; line-height: 1.05 !important; }
+  /* Wide tables scroll instead of overflowing */
+  table { display: block; max-width: 100%; overflow-x: auto; }
+  /* Grid children must be allowed to shrink */
+  [class*="grid-cols-"] > * { min-width: 0; }
+}
+
 
 
 @layer base {
