@@ -243,6 +243,13 @@ const LinkExtractView = () => {
       setError("Enter a valid URL or domain (e.g. example.com)");
       return;
     }
+    try {
+      const host = new URL(target).hostname.replace(/^www\./, "").toLowerCase();
+      if (host === "arvor.xyz" || host.endsWith(".arvor.xyz")) {
+        setError("This target is restricted and cannot be analyzed by the Link Extractor.");
+        return;
+      }
+    } catch { /* URL_REGEX already validated */ }
 
     setExtracting(true);
     setError(null);
