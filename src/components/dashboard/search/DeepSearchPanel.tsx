@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Brain, ExternalLink, Loader2, Globe, CheckCircle2, Sparkles, ArrowRight, SkipForward, Shield, ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
+
+async function getAuthHeader(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  return `Bearer ${token}`;
+}
 
 interface DeepSource {
   url: string;
