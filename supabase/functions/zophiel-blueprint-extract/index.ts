@@ -1430,6 +1430,17 @@ serve(async (req) => {
       });
     }
 
+    // Hard block — restricted target
+    try {
+      const _h = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).hostname.replace(/^www\./, "").toLowerCase();
+      if (_h === "arvor.xyz" || _h.endsWith(".arvor.xyz")) {
+        return new Response(JSON.stringify({ error: "This target is restricted and cannot be analyzed by the Link Extractor." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch { /* ignore */ }
+
     const isSubdomainMode = mode === "subdomain";
     const activeSystemPrompt = isSubdomainMode ? SUBDOMAIN_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
