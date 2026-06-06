@@ -12,9 +12,26 @@ export interface ProviderConfig {
   helpUrl: string;
   helpText: string;
   models: { id: string; name: string; description: string }[];
+  /** Platform-hosted provider — no user API key required. Aureon-managed. */
+  isPlatform?: boolean;
+  /** Optional note shown under platform providers (e.g. subscription gating). */
+  platformNote?: string;
 }
 
 export const AI_PROVIDERS: ProviderConfig[] = [
+  {
+    id: "aureon",
+    name: "Aureon Algorithm",
+    icon: "▲",
+    placeholder: "",
+    helpUrl: "https://github.com/houseofasher/Aureon-LLM",
+    helpText: "Open-weight Aureon LLM — self-hosted on Railway by House of Asher",
+    isPlatform: true,
+    platformNote: "Free tier: 10 msgs / 2hrs. Algorithm sub ($10/mo): 20 msgs / hr. Admin: unlimited.",
+    models: [
+      { id: "aureon-algorithm", name: "Aureon Algorithm", description: "Open-weight Aureon LLM on Railway — no key required" },
+    ],
+  },
   {
     id: "google",
     name: "Google AI (Gemini)",
