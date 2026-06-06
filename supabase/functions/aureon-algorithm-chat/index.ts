@@ -294,6 +294,27 @@ serve(async (req) => {
 
     let upstreamMessage = userMessage;
     const preamble: string[] = [];
+
+    // ─── RESPONSE-LENGTH GOVERNOR ───────────────────────────────────────
+    // "Simple Question, Simple Answer" — match response weight to question weight.
+    // Casual greetings → 1 line. Short factual asks → 1-3 sentences. Reserve
+    // headers/tables/lists for genuinely complex, multi-part requests.
+    const wc = userMessage.trim().split(/\s+/).filter(Boolean).length;
+    const isGreeting = /^(hi|hello|hey|yo|sup|gm|good (morning|afternoon|evening)|thanks?|thank you|ok|okay|cool|nice|got it)[\s!?.]*$/i.test(userMessage.trim());
+    const isShortAsk = wc <= 12 && !/\b(compare|analy[sz]e|breakdown|deep dive|explain in detail|step[-\s]?by[-\s]?step|list (all|every)|outline|plan|strategy|architect|design)\b/i.test(userMessage);
+    const isComplex = wc > 40 || /\b(compare|architect|breakdown|deep dive|step[-\s]?by[-\s]?step|comprehensive|exhaustive)\b/i.test(userMessage);
+    let lengthDirective = "";
+    if (isGreeting) {
+      lengthDirective = "Reply in ONE short sentence. No headers, no lists, no preamble. Just answer like a human.";
+    } else if (isShortAsk) {
+      lengthDirective = "Simple question → simple answer. 1–3 sentences. No headers, no tables, no bullet lists unless absolutely required.";
+    } else if (!isComplex) {
+      lengthDirective = "Match the weight of the question. Be concise. Use structured formatting ONLY if it genuinely helps.";
+    } else {
+      lengthDirective = "This is a complex request — full structured output (BOLD headers, tables, numbered steps) is appropriate.";
+    }
+    preamble.push(`[RESPONSE FORMAT RULE]\n${lengthDirective}`);
+
     if (brainSections.length > 0) preamble.push(brainSections.join("\n\n"));
     if (priorTurns.length > 0) {
       const transcript = priorTurns
@@ -304,9 +325,8 @@ serve(async (req) => {
         : `Use the prior thread as live working memory. Resolve pronouns and references against it. If this message is a continuation of the active topic, stay on thread; if it shifts, follow the shift.`;
       preamble.push(`[CONVERSATIONAL CONTEXT — DO NOT ECHO]\n${transcript}\n\n[INTENT DIRECTIVE]\n${directive}`);
     }
-    if (preamble.length > 0) {
-      upstreamMessage = `${preamble.join("\n\n")}\n\n[CURRENT USER MESSAGE]\n${userMessage}`;
-    }
+    upstreamMessage = `${preamble.join("\n\n")}\n\n[CURRENT USER MESSAGE]\n${userMessage}`;
+
 
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
