@@ -129,6 +129,36 @@ export type Database = {
           },
         ]
       }
+      algorithm_chat_usage: {
+        Row: {
+          bucket_key: string
+          count: number
+          id: string
+          scope: string
+          updated_at: string
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          bucket_key: string
+          count?: number
+          id?: string
+          scope: string
+          updated_at?: string
+          window_end: string
+          window_start?: string
+        }
+        Update: {
+          bucket_key?: string
+          count?: number
+          id?: string
+          scope?: string
+          updated_at?: string
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       asha_alerts: {
         Row: {
           created_at: string
