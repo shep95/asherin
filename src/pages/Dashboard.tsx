@@ -180,6 +180,16 @@ const Dashboard = () => {
   const [depth, setDepth] = useState<ResponseDepth>("standard");
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [algorithmMode, setAlgorithmMode] = useState<boolean>(() => {
+    try { return localStorage.getItem("aureon_algorithm_mode") === "1"; } catch { return false; }
+  });
+  const toggleAlgorithmMode = () => {
+    setAlgorithmMode((v) => {
+      const nv = !v;
+      try { localStorage.setItem("aureon_algorithm_mode", nv ? "1" : "0"); } catch {}
+      return nv;
+    });
+  };
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -991,6 +1001,62 @@ const Dashboard = () => {
       }
     }
 
+    // ── ALGORITHM MODE (Railway Aureon-LLM) ─────────────────────────
+    if (algorithmMode) {
+      try {
+        const session = (await supabase.auth.getSession()).data.session;
+        const url = `${(import.meta as any).env.VITE_SUPABASE_URL}/functions/v1/aureon-algorithm-chat`;
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
+          body: JSON.stringify({
+            messages: history.map(m => ({ role: m.role, content: m.content })),
+            message: content,
+          }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          const errMsg = data?.message || data?.error || `Algorithm request failed (${resp.status})`;
+          throw new Error(errMsg);
+        }
+        const reply = data.reply || "(empty response)";
+        assistantContent = reply;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convId
+              ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content: reply } : m) }
+              : c
+          )
+        );
+        setIsStreaming(false);
+        isStreamingRef.current = false;
+        const encryptedAssistant = await encryptText(reply, user.id);
+        await supabase.from("messages").insert({
+          id: assistantId, conversation_id: convId, user_id: user.id, role: "assistant", content: encryptedAssistant,
+        });
+        const remaining = typeof data.remaining === "number" ? data.remaining : null;
+        if (data.tier === "free" && remaining !== null && remaining >= 0) {
+          toast({ title: "Algorithm mode", description: `${remaining} free messages remaining (resets every 2h).` });
+        }
+      } catch (e: any) {
+        setIsStreaming(false);
+        isStreamingRef.current = false;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convId
+              ? { ...c, messages: c.messages.filter(m => m.id !== assistantId) }
+              : c
+          )
+        );
+        toast({ title: "Algorithm Error", description: e.message, variant: "destructive" });
+      }
+      return;
+    }
+
     // ── CONSENSUS MODE ──────────────────────────────────────────────
     if (consensusEnabled && consensusModels.length >= 2) {
       try {
@@ -1411,6 +1477,19 @@ const Dashboard = () => {
       
       case "self-access": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense></ErrorBoundary>;
       default: return activeConv ? (
+        <>
+          <button
+            onClick={toggleAlgorithmMode}
+            title={algorithmMode ? "Aureon Algorithm LLM (Railway) — click to switch to standard" : "Standard Aureon — click to switch to Algorithm LLM"}
+            className={`fixed top-3 right-4 z-40 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-light tracking-[0.2em] uppercase backdrop-blur-md transition ${
+              algorithmMode
+                ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/20"
+                : "border-foreground/20 bg-background/60 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${algorithmMode ? "bg-emerald-400" : "bg-foreground/40"}`} />
+            {algorithmMode ? "Algorithm" : "Standard"}
+          </button>
         <ChatView
           conversation={activeConv}
           onSendMessage={sendMessage}
@@ -1441,6 +1520,7 @@ const Dashboard = () => {
           activeBrainId={activeBrainId}
           onBrainChange={setActiveBrainId}
         />
+        </>
       ) : null;
     }
   };
