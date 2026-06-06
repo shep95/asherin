@@ -180,10 +180,17 @@ const Dashboard = () => {
   const [depth, setDepth] = useState<ResponseDepth>("standard");
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [algorithmMode, setAlgorithmMode] = useState<boolean>(() => {
+  // Free users (no paid tier) are auto-routed to the Algorithm LLM and cannot toggle.
+  // Admin + any paid tier (algorithm/chat/aureon/pro/lifetime) sees the toggle.
+  const isAdminUser = user?.email === "ashernewtonx@gmail.com";
+  const isFreeUser = !isAdminUser && !tierKey;
+  const [algorithmModeRaw, setAlgorithmMode] = useState<boolean>(() => {
     try { return localStorage.getItem("aureon_algorithm_mode") === "1"; } catch { return false; }
   });
+  const algorithmMode = isFreeUser ? true : algorithmModeRaw;
+  const showAlgorithmToggle = !isFreeUser;
   const toggleAlgorithmMode = () => {
+    if (isFreeUser) return;
     setAlgorithmMode((v) => {
       const nv = !v;
       try { localStorage.setItem("aureon_algorithm_mode", nv ? "1" : "0"); } catch {}
