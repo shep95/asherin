@@ -205,7 +205,7 @@ serve(async (req) => {
     }
 
     const ac = new AbortController();
-    const timeoutId = setTimeout(() => ac.abort(), 120_000);
+    const timeoutId = setTimeout(() => ac.abort(), 140_000);
     let upstream: Response;
     let text: string;
     try {
