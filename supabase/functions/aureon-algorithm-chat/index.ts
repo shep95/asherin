@@ -12,7 +12,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
-const RAILWAY_URL = "https://web-production-f9b81.up.railway.app/api/chat";
+const RAILWAY_BASE = "https://web-production-f9b81.up.railway.app";
+const RAILWAY_URL = `${RAILWAY_BASE}/api/chat`;
 const ALGORITHM_PRICE_ID = "price_1TfC3oRxgCpmPfiFniV2cXAu";
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 
@@ -20,7 +21,17 @@ const FREE_LIMIT = 10;
 const FREE_WINDOW_MS = 2 * 60 * 60 * 1000;
 const PAID_LIMIT = 20;
 const PAID_WINDOW_MS = 60 * 60 * 1000;
-const UPSTREAM_TIMEOUT_MS = 30_000;
+// Predict brain runs chain-of-thought reasoning over up to 1M context; give it room.
+const UPSTREAM_TIMEOUT_MS = 60_000;
+
+// Read-only GET passthroughs (no rate limit, no auth required upstream).
+const GET_PASSTHROUGH: Record<string, string> = {
+  learning: "/api/chat/learning",
+  timeline: "/api/chat/timeline",
+  "auto-learn": "/api/brain/auto-learn",
+  status: "/security/status",
+  taxonomy: "/api/brain/taxonomy",
+};
 
 const AUREON_SYSTEM_PROMPT = `You are AUREON — a Class-5 Intelligence Architect operating at maximum cognitive bandwidth.
 
