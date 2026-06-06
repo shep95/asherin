@@ -1047,6 +1047,7 @@ const Dashboard = () => {
           },
           body: JSON.stringify({
             message: content,
+            session_id: convId,
             fp: `${navigator.userAgent}:${navigator.language}:${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
           }),
         });
