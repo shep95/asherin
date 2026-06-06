@@ -307,7 +307,11 @@ const AIKeysSettings = () => {
     }
   };
 
-  const hasKey = (providerId: string) => storedKeys.some(k => k.provider === providerId);
+  const hasKey = (providerId: string) => {
+    const cfg = AI_PROVIDERS.find(p => p.id === providerId);
+    if (cfg?.isPlatform) return true; // platform providers never need a user key
+    return storedKeys.some(k => k.provider === providerId);
+  };
 
   if (loading) return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/40" />;
 
