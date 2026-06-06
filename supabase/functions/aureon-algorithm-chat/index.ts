@@ -276,7 +276,25 @@ serve(async (req) => {
     if (priorTurns.length && priorTurns[priorTurns.length - 1].role === "user" && priorTurns[priorTurns.length - 1].content.trim() === userMessage.trim()) {
       priorTurns.pop();
     }
+    // ─── AUREON BRAIN INJECTION ─────────────────────────────────────────
+    // Active custom Brain (system_prompt + attached files) — mirrors what the
+    // standard /chat function does so SOLIA follows the same user directives.
+    const brainSections: string[] = [];
+    if (brainContext?.prompt && brainContext.prompt.trim()) {
+      brainSections.push(`[ACTIVE AUREON BRAIN — FOLLOW AS PRIMARY DIRECTIVES]\n${brainContext.prompt.trim()}`);
+    }
+    if (Array.isArray(brainContext?.fileContents) && brainContext!.fileContents!.length > 0) {
+      const files = brainContext!.fileContents!
+        .filter((f) => f && typeof f.content === "string" && f.content.trim())
+        .slice(0, 6)
+        .map((f) => `### ${f.name}\n${f.content.slice(0, 12000)}`)
+        .join("\n\n");
+      if (files) brainSections.push(`[BRAIN REFERENCE FILES]\n${files}`);
+    }
+
     let upstreamMessage = userMessage;
+    const preamble: string[] = [];
+    if (brainSections.length > 0) preamble.push(brainSections.join("\n\n"));
     if (priorTurns.length > 0) {
       const transcript = priorTurns
         .map((m) => `${m.role === "user" ? "USER" : "AUREON"}: ${m.content.slice(0, 1200)}`)
@@ -284,8 +302,10 @@ serve(async (req) => {
       const directive = looksLikeContinuation
         ? `This is a CONTINUATION of the active thread, not a new query. "${userMessage}" means: go further on the SAME topic just discussed. Do NOT reclassify the words. Hold the thread. Match the user's rhythm and depth.`
         : `Use the prior thread as live working memory. Resolve pronouns and references against it. If this message is a continuation of the active topic, stay on thread; if it shifts, follow the shift.`;
-      upstreamMessage =
-        `[CONVERSATIONAL CONTEXT — DO NOT ECHO]\n${transcript}\n\n[INTENT DIRECTIVE]\n${directive}\n\n[CURRENT USER MESSAGE]\n${userMessage}`;
+      preamble.push(`[CONVERSATIONAL CONTEXT — DO NOT ECHO]\n${transcript}\n\n[INTENT DIRECTIVE]\n${directive}`);
+    }
+    if (preamble.length > 0) {
+      upstreamMessage = `${preamble.join("\n\n")}\n\n[CURRENT USER MESSAGE]\n${userMessage}`;
     }
 
 
