@@ -1001,6 +1001,62 @@ const Dashboard = () => {
       }
     }
 
+    // ── ALGORITHM MODE (Railway Aureon-LLM) ─────────────────────────
+    if (algorithmMode) {
+      try {
+        const session = (await supabase.auth.getSession()).data.session;
+        const url = `${(import.meta as any).env.VITE_SUPABASE_URL}/functions/v1/aureon-algorithm-chat`;
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
+          body: JSON.stringify({
+            messages: history.map(m => ({ role: m.role, content: m.content })),
+            message: content,
+          }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          const errMsg = data?.message || data?.error || `Algorithm request failed (${resp.status})`;
+          throw new Error(errMsg);
+        }
+        const reply = data.reply || "(empty response)";
+        assistantContent = reply;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convId
+              ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content: reply } : m) }
+              : c
+          )
+        );
+        setIsStreaming(false);
+        isStreamingRef.current = false;
+        const encryptedAssistant = await encryptText(reply, user.id);
+        await supabase.from("messages").insert({
+          id: assistantId, conversation_id: convId, user_id: user.id, role: "assistant", content: encryptedAssistant,
+        });
+        const remaining = typeof data.remaining === "number" ? data.remaining : null;
+        if (data.tier === "free" && remaining !== null && remaining >= 0) {
+          toast({ title: "Algorithm mode", description: `${remaining} free messages remaining (resets every 2h).` });
+        }
+      } catch (e: any) {
+        setIsStreaming(false);
+        isStreamingRef.current = false;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convId
+              ? { ...c, messages: c.messages.filter(m => m.id !== assistantId) }
+              : c
+          )
+        );
+        toast({ title: "Algorithm Error", description: e.message, variant: "destructive" });
+      }
+      return;
+    }
+
     // ── CONSENSUS MODE ──────────────────────────────────────────────
     if (consensusEnabled && consensusModels.length >= 2) {
       try {
