@@ -1048,6 +1048,11 @@ const Dashboard = () => {
           body: JSON.stringify({
             message: content,
             session_id: convId,
+            // Send the rolling thread so the gateway's Intent Resolver can hold context
+            // for short continuation prompts ("dive deeper", "more", "why", etc.).
+            messages: (conversationsRef.current.find(c => c.id === convId)?.messages || [])
+              .slice(-12)
+              .map(m => ({ role: m.role, content: m.content })),
             fp: `${navigator.userAgent}:${navigator.language}:${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
           }),
         });
