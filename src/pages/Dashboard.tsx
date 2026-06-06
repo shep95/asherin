@@ -1046,8 +1046,8 @@ const Dashboard = () => {
             ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
           },
           body: JSON.stringify({
-            messages: history.map(m => ({ role: m.role, content: m.content })),
             message: content,
+            fp: `${navigator.userAgent}:${navigator.language}:${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
           }),
         });
         const data = await resp.json().catch(() => ({}));
