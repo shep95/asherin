@@ -167,14 +167,36 @@ const Dashboard = () => {
     try { return localStorage.getItem("aureon_active_conv_id") || null; } catch { return null; }
   });
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
-  const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>("chat");
+  const { view: viewParam } = useParams<{ view?: string }>();
+  const navigate = useNavigate();
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","imagine-to-code","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","vibe-imager","vibe-video","agents","bug-reports","ebook","reverse-engineer","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","file-scrapper","cipher","vedic-astrology","zahten"];
+  const initialView: DashboardView = (() => {
+    if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
+    if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
+    return "chat";
+  })();
+  const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>(initialView);
   const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
+  // Sync URL -> state (back/forward navigation, deep links)
+  useEffect(() => {
+    if (asherEmbed) return;
+    const next: DashboardView = viewParam
+      ? ((VALID_VIEWS as string[]).includes(viewParam) || viewParam.startsWith("agent:"))
+        ? (viewParam as DashboardView)
+        : "chat"
+      : "chat";
+    if (next !== activeViewRaw) setActiveViewRaw(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewParam]);
   const setActiveView = (v: DashboardView) => {
     if (asherEmbed && v !== "chat") return;
     setActiveViewRaw(v);
-    // Stale follow-up suggestions from a previous response should not survive
-    // a view switch.
     setSuggestions([]);
+    // Push URL: /dashboard for chat, /dashboard/<view> otherwise
+    const targetPath = v === "chat" ? "/dashboard" : `/dashboard/${v}`;
+    if (typeof window !== "undefined" && window.location.pathname !== targetPath) {
+      navigate(targetPath, { replace: false });
+    }
   };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("chat");
