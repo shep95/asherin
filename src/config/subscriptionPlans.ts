@@ -107,6 +107,26 @@ const PRO_FEATURES: FeatureId[] = [
 // ── Plans Array ──────────────────────────────────────────────────────────────
 export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
   {
+    id: "algorithm",
+    name: "AUREON ALGORITHM",
+    tagline: "Entry Access",
+    price: "$10",
+    period: "/ month",
+    description: "Direct access to the Aureon Algorithm LLM inside the Aureon Free chat — no AI key required. 20 messages per hour, 24/7. The simplest way to start using Aureon intelligence.",
+    cta: "Get Algorithm Access",
+    highlight: false,
+    publicVisible: true,
+    features: [],
+    messageLimit: 20,
+    featureLabels: [
+      "Aureon Algorithm LLM access (no API key needed)",
+      "20 messages per hour",
+      "Live in the Aureon Free chat",
+      "Switch to Bring-Your-Own-Key at any time",
+      "Cancel anytime",
+    ],
+  },
+  {
     id: "lifetime",
     name: "AUREON LIFETIME",
     tagline: "One-Time Purchase",
