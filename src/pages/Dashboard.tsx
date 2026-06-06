@@ -180,10 +180,17 @@ const Dashboard = () => {
   const [depth, setDepth] = useState<ResponseDepth>("standard");
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [algorithmMode, setAlgorithmMode] = useState<boolean>(() => {
+  // Free users (no paid tier) are auto-routed to the Algorithm LLM and cannot toggle.
+  // Admin + any paid tier (algorithm/chat/aureon/pro/lifetime) sees the toggle.
+  const isAdminUser = user?.email === "ashernewtonx@gmail.com";
+  const isFreeUser = !isAdminUser && !tierKey;
+  const [algorithmModeRaw, setAlgorithmMode] = useState<boolean>(() => {
     try { return localStorage.getItem("aureon_algorithm_mode") === "1"; } catch { return false; }
   });
+  const algorithmMode = isFreeUser ? true : algorithmModeRaw;
+  const showAlgorithmToggle = !isFreeUser;
   const toggleAlgorithmMode = () => {
+    if (isFreeUser) return;
     setAlgorithmMode((v) => {
       const nv = !v;
       try { localStorage.setItem("aureon_algorithm_mode", nv ? "1" : "0"); } catch {}
@@ -1478,18 +1485,20 @@ const Dashboard = () => {
       case "self-access": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense></ErrorBoundary>;
       default: return activeConv ? (
         <>
-          <button
-            onClick={toggleAlgorithmMode}
-            title={algorithmMode ? "Aureon Algorithm LLM (Railway) — click to switch to standard" : "Standard Aureon — click to switch to Algorithm LLM"}
-            className={`fixed top-3 right-4 z-40 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-light tracking-[0.2em] uppercase backdrop-blur-md transition ${
-              algorithmMode
-                ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/20"
-                : "border-foreground/20 bg-background/60 text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${algorithmMode ? "bg-emerald-400" : "bg-foreground/40"}`} />
-            {algorithmMode ? "Algorithm" : "Standard"}
-          </button>
+          {showAlgorithmToggle && (
+            <button
+              onClick={toggleAlgorithmMode}
+              title={algorithmMode ? "Aureon Algorithm LLM (Railway) — click to switch to standard" : "Standard Aureon — click to switch to Algorithm LLM"}
+              className={`fixed top-3 right-4 z-40 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-light tracking-[0.2em] uppercase backdrop-blur-md transition ${
+                algorithmMode
+                  ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/20"
+                  : "border-foreground/20 bg-background/60 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${algorithmMode ? "bg-emerald-400" : "bg-foreground/40"}`} />
+              {algorithmMode ? "Algorithm" : "Standard"}
+            </button>
+          )}
         <ChatView
           conversation={activeConv}
           onSendMessage={sendMessage}
