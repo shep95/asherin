@@ -12,9 +12,26 @@ export interface ProviderConfig {
   helpUrl: string;
   helpText: string;
   models: { id: string; name: string; description: string }[];
+  /** Platform-hosted provider — no user API key required. Aureon-managed. */
+  isPlatform?: boolean;
+  /** Optional note shown under platform providers (e.g. subscription gating). */
+  platformNote?: string;
 }
 
 export const AI_PROVIDERS: ProviderConfig[] = [
+  {
+    id: "aureon",
+    name: "Aureon Algorithm",
+    icon: "▲",
+    placeholder: "",
+    helpUrl: "https://github.com/houseofasher/Aureon-LLM",
+    helpText: "Open-weight Aureon LLM — self-hosted on Railway by House of Asher",
+    isPlatform: true,
+    platformNote: "Free tier: 10 msgs / 2hrs. Algorithm sub ($10/mo): 20 msgs / hr. Admin: unlimited.",
+    models: [
+      { id: "aureon-algorithm", name: "Aureon Algorithm", description: "Open-weight Aureon LLM on Railway — no key required" },
+    ],
+  },
   {
     id: "google",
     name: "Google AI (Gemini)",
@@ -290,7 +307,11 @@ const AIKeysSettings = () => {
     }
   };
 
-  const hasKey = (providerId: string) => storedKeys.some(k => k.provider === providerId);
+  const hasKey = (providerId: string) => {
+    const cfg = AI_PROVIDERS.find(p => p.id === providerId);
+    if (cfg?.isPlatform) return true; // platform providers never need a user key
+    return storedKeys.some(k => k.provider === providerId);
+  };
 
   if (loading) return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/40" />;
 
@@ -330,7 +351,7 @@ const AIKeysSettings = () => {
 
       {/* Provider list */}
       <div className="space-y-2">
-        <p className="text-[10px] font-light tracking-wider text-muted-foreground/40 uppercase">External Providers</p>
+        <p className="text-[10px] font-light tracking-wider text-muted-foreground/40 uppercase">Available Providers</p>
         {AI_PROVIDERS.map(provider => {
           const stored = hasKey(provider.id);
           const isActive = preferences.active_provider === provider.id;
@@ -363,8 +384,24 @@ const AIKeysSettings = () => {
               {/* Expanded content */}
               {isExpanded && (
                 <div className="px-3 pb-3 space-y-3 border-t border-border/10">
-                  {/* Add/Update key */}
-                  {!isAdding && !stored && (
+                  {/* Platform provider — no API key required */}
+                  {provider.isPlatform && (
+                    <div className="mt-2 rounded-lg border border-foreground/15 bg-foreground/5 p-3 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-3.5 w-3.5 text-emerald-400/70" />
+                        <p className="text-[11px] font-light text-foreground">Platform-hosted — no key required</p>
+                      </div>
+                      {provider.platformNote && (
+                        <p className="text-[10px] text-muted-foreground/60 leading-relaxed">{provider.platformNote}</p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground/40">
+                        <a href={provider.helpUrl} target="_blank" rel="noopener noreferrer" className="text-foreground/60 underline underline-offset-2 hover:text-foreground">{provider.helpText}</a>
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Add/Update key — only for BYOK providers */}
+                  {!provider.isPlatform && !isAdding && !stored && (
                     <button
                       onClick={() => { setAddingProvider(provider.id); setNewKeyValue(""); }}
                       className="mt-2 inline-flex items-center gap-2 rounded-lg border border-border/20 bg-foreground/5 px-3 py-1.5 text-[11px] font-light text-foreground hover:bg-foreground/10 transition-colors"
@@ -373,7 +410,7 @@ const AIKeysSettings = () => {
                     </button>
                   )}
 
-                  {isAdding && (
+                  {!provider.isPlatform && isAdding && (
                     <div className="mt-2 space-y-2">
                       <div className="relative">
                         <input
@@ -416,8 +453,8 @@ const AIKeysSettings = () => {
                     </div>
                   )}
 
-                  {/* Key management if stored */}
-                  {stored && !isAdding && (
+                  {/* Key management if stored — BYOK only */}
+                  {!provider.isPlatform && stored && !isAdding && (
                     <div className="mt-2 flex items-center gap-2">
                       <span className="text-[10px] text-muted-foreground/40 font-mono">••••••••••••</span>
                       <button

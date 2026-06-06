@@ -100,16 +100,43 @@ export async function streamChat({
     userEmail = session?.user?.email ?? null;
   } catch { /* fallback to anon key */ }
 
-  // BYOK enforcement: non-admin users MUST bring their own API key.
-    if (userEmail !== ADMIN_EMAIL && !byokProvider) {
+  // BYOK enforcement: non-admin users MUST bring their own API key OR use the Aureon Algorithm.
+  if (userEmail !== ADMIN_EMAIL && !byokProvider) {
     try {
       const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
       triggerByokRequired({
         source: "aureon-chat",
-        reason: "Aureon now requires you to connect your own LLM API key. Add one in Settings → AI Keys to continue.",
+        reason: "Aureon now requires you to connect your own LLM API key — or switch to the free Aureon Algorithm model. Add one in Settings → AI Keys to continue.",
       });
     } catch { /* noop */ }
-    throw new Error("BYOK required: please add your own LLM API key in Settings → AI Keys.");
+    throw new Error("BYOK required: please add your own LLM API key in Settings → AI Keys, or select the Aureon Algorithm.");
+  }
+
+  // ── AUREON ALGORITHM ROUTING ──────────────────────────────────────────
+  // When the user picks "aureon" as their provider, proxy to the dedicated
+  // /aureon-algorithm-chat function (Railway-hosted open-weight Aureon LLM).
+  // It handles its own rate limiting + subscription gating.
+  if (byokProvider === "aureon") {
+    const ALGO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/aureon-algorithm-chat`;
+    const lastUser = [...apiMessages].reverse().find(m => m.role === "user")?.content || "";
+    const resp = await fetch(ALGO_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({ message: lastUser, messages: apiMessages }),
+      signal,
+    });
+    const data = await resp.json().catch(() => ({ error: "Invalid response" }));
+    if (!resp.ok) throw new Error(data?.message || data?.error || `HTTP ${resp.status}`);
+    const reply: string = data?.reply || "(empty response)";
+    // Simulate streaming for a smooth UI experience
+    const tokens = reply.match(/\S+\s*|\s+/g) || [reply];
+    for (const tok of tokens) {
+      if (signal?.aborted) break;
+      onDelta(tok);
+      await new Promise(r => setTimeout(r, 12));
+    }
+    onDone();
+    return;
   }
 
   // Auto-detect and inject domain skills based on conversation context
