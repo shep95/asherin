@@ -6,6 +6,7 @@ import { applySeoHead } from "@/lib/seoHead";
 import {
   ArrowLeft, ArrowRight, Eye, MessageSquare, Shield,
   Brain, Network, Sparkles, Crosshair, Radar, Layers,
+  Github, Server, Code,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────
@@ -296,13 +297,13 @@ const LLMModels = () => {
           </span>
         </div>
         <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
-          Three minds. One architecture.
+          Four minds. One architecture.
         </h1>
         <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground">
           Aureon does not rent intelligence from someone else's lab. We build our own
           models, each named for a guardian, an angel, or a house — each tuned for a
-          specific class of work: intelligence gathering, consumer reasoning, and
-          military-grade analysis.
+          specific class of work: intelligence gathering, consumer reasoning, open-weight
+          deployment, and military-grade analysis.
         </p>
       </section>
 
@@ -398,6 +399,52 @@ const LLMModels = () => {
         ]}
       />
 
+      {/* ─── AUREON ALGORITHM ─── */}
+      <ModelSection
+        eyebrow="Open-Weight Deployment"
+        name="AUREON ALGORITHM"
+        tagline="Our self-hosted inference engine deployed on Railway. Algorithm is the uncensored, open-weight backbone that serves free-tier users by default and provides an alternative routing path for every paid account inside the Aureon dashboard."
+        diagramTitle="Algorithm — Railway Deployment"
+        diagramCore="ALGORITHM"
+        diagramSub="RAILWAY"
+        diagramAccent="hsl(160, 80%, 45%)"
+        diagramNodes={[
+          { id: "al1", x: 140, y: 90, label: "Railway Node", sub: "Self-hosted" },
+          { id: "al2", x: 660, y: 90, label: "Aureon Chat", sub: "Free default" },
+          { id: "al3", x: 80, y: 230, label: "Edge Router", sub: "Supabase fn" },
+          { id: "al4", x: 720, y: 230, label: "Paid Toggle", sub: "Optional route" },
+          { id: "al5", x: 220, y: 340, label: "Open Weights", sub: "Community" },
+          { id: "al6", x: 580, y: 340, label: "Rate Limiter", sub: "2h window" },
+        ]}
+        meaning={[
+          {
+            title: "What It Is",
+            body:
+              "Algorithm is Aureon's own open-weight large language model, fine-tuned for uncensored reasoning, code generation, and analytical dialogue. It is not a wrapper around GPT-4 or Claude — it is an independent inference engine we compile, quantize, and serve ourselves from a Railway deployment. The model weights are openly available for audit, replication, and community research.",
+          },
+          {
+            title: "Why We Built It",
+            body:
+              "Every major consumer AI product is hostage to API pricing, rate limits, and corporate safety lobotomies. We built Algorithm so that Aureon can never be shut off by a third party. Free users get unlimited access (within fair-use windows). Paid users can toggle to Algorithm as a backup route or a primary brain when they want deterministic, unfiltered output without the overhead of external provider keys.",
+          },
+          {
+            title: "How It Is Deployed",
+            body:
+              "Algorithm runs inside a Railway container with auto-scaling, health-checking, and graceful degradation. The Supabase edge function `aureon-algorithm-chat` acts as a lightweight router: it validates the user's tier, enforces rate limits (free users get a refill every 2 hours), and streams the response back with identical formatting to the standard chat path. No special configuration is required.",
+          },
+          {
+            title: "Open Source",
+            body:
+              "The model weights, training recipes, and inference server are published on GitHub under the House of Asher organization. You can audit the architecture, download the weights, run your own inference node, or submit pull requests to improve the model. Algorithm is not a black box — it is a public utility with a private hosting option.",
+          },
+        ]}
+        capabilities={[
+          { icon: Server, label: "Self-Hosted Inference", body: "No third-party API keys, no external rate limits, no surprise price hikes. We own the stack from weights to wire." },
+          { icon: Code, label: "Open-Weight Architecture", body: "Download the model, inspect the layers, verify the training data, or fork the inference server for your own infrastructure." },
+          { icon: Github, label: "Public on GitHub", body: "The full repository — weights, server, and deployment manifests — lives at github.com/houseofasher/Aureon-LLM for community audit and contribution." },
+        ]}
+      />
+
       {/* ─── ASHER ─── */}
       <ModelSection
         eyebrow="Military Intelligence — In Development"
@@ -448,18 +495,29 @@ const LLMModels = () => {
       {/* CTA */}
       <section className="relative z-10 px-6 py-24 text-center">
         <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
-          Three models. One company.
+          Four models. One company.
         </h2>
         <p className="text-sm font-extralight text-muted-foreground mb-8 max-w-xl mx-auto">
-          Zophiel sees. Aureon refines. Asher weighs. Together they make up the
-          intelligence stack we ship.
+          Zophiel sees. Aureon refines. Algorithm deploys. Asher weighs.
+          Together they make up the intelligence stack we ship.
         </p>
-        <Link
-          to="/pricing"
-          className="group inline-flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90"
-        >
-          View Plans <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </Link>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            to="/pricing"
+            className="group inline-flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90"
+          >
+            View Plans <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+          <a
+            href="https://github.com/houseofasher/Aureon-LLM"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-2 rounded-xl border border-border/25 bg-card/30 backdrop-blur-md px-8 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-card/50 hover:border-border/50"
+          >
+            <Github className="h-4 w-4" />
+            Algorithm on GitHub
+          </a>
+        </div>
       </section>
 
       <footer className="relative z-10 border-t border-border/10 py-8 text-center">
