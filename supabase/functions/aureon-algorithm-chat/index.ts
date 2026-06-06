@@ -260,6 +260,34 @@ serve(async (req) => {
       });
     }
 
+    // ─── ConversationalIntelligence_v1 ──────────────────────────────────
+    // Layer 1 (Context Stack) + Layer 2 (Intent Resolver) + Layer 3 (Semantic
+    // Weight Engine). The Railway brain treats each call as an isolated
+    // classification when it only sees a short prompt like "dive deeper",
+    // because session memory upstream is best-effort. We resolve intent HERE
+    // and inject the rolling thread so meaning is never parsed in a vacuum.
+    const CONTINUATION_RE = /^\s*(more|go on|continue|keep going|expand|elaborate|dive deeper|deeper|go deeper|explain more|tell me more|and\??|why\??|how\??|what else\??|next|ok\??|go|details?|expand on (that|this)|expand)\s*[?.!]*\s*$/i;
+    const looksLikeContinuation = userMessage.trim().split(/\s+/).length <= 4 && CONTINUATION_RE.test(userMessage);
+    const priorTurns = Array.isArray(messages)
+      ? messages.filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string").slice(-8)
+      : [];
+    // Drop the trailing user turn if it equals the current message (avoid duplication).
+    if (priorTurns.length && priorTurns[priorTurns.length - 1].role === "user" && priorTurns[priorTurns.length - 1].content.trim() === userMessage.trim()) {
+      priorTurns.pop();
+    }
+    let upstreamMessage = userMessage;
+    if (priorTurns.length > 0) {
+      const transcript = priorTurns
+        .map((m) => `${m.role === "user" ? "USER" : "AUREON"}: ${m.content.slice(0, 1200)}`)
+        .join("\n\n");
+      const directive = looksLikeContinuation
+        ? `This is a CONTINUATION of the active thread, not a new query. "${userMessage}" means: go further on the SAME topic just discussed. Do NOT reclassify the words. Hold the thread. Match the user's rhythm and depth.`
+        : `Use the prior thread as live working memory. Resolve pronouns and references against it. If this message is a continuation of the active topic, stay on thread; if it shifts, follow the shift.`;
+      upstreamMessage =
+        `[CONVERSATIONAL CONTEXT — DO NOT ECHO]\n${transcript}\n\n[INTENT DIRECTIVE]\n${directive}\n\n[CURRENT USER MESSAGE]\n${userMessage}`;
+    }
+
+
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
     let userId: string | null = null;
@@ -309,7 +337,7 @@ serve(async (req) => {
       upstream = await fetch(RAILWAY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage, session_id: sessionId }),
+        body: JSON.stringify({ message: upstreamMessage, session_id: sessionId }),
         signal: ac.signal,
       });
       text = await upstream.text();
