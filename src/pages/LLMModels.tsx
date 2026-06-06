@@ -6,6 +6,7 @@ import { applySeoHead } from "@/lib/seoHead";
 import {
   ArrowLeft, ArrowRight, Eye, MessageSquare, Shield,
   Brain, Network, Sparkles, Crosshair, Radar, Layers,
+  Github, Server, Code,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────
