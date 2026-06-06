@@ -121,6 +121,7 @@ import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
 import { pushNotification } from "@/components/dashboard/NotificationInbox";
 import { Lock, ArrowRight, WifiOff } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   enqueueMessage,
   updateMessageStatus,
