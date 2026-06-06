@@ -23,6 +23,7 @@ const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 
 const FeatureZophiel = lazy(() => import("./pages/FeatureZophiel"));
 const FeatureNomad = lazy(() => import("./pages/FeatureNomad"));
+const FeatureNomadCyber = lazy(() => import("./pages/FeatureNomadCyber"));
 const FeatureAzplen = lazy(() => import("./pages/FeatureAzplen"));
 const FeatureBriefings = lazy(() => import("./pages/FeatureBriefings"));
 const FeaturePersonas = lazy(() => import("./pages/FeaturePersonas"));
