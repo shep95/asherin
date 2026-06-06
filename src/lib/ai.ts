@@ -100,16 +100,13 @@ export async function streamChat({
     userEmail = session?.user?.email ?? null;
   } catch { /* fallback to anon key */ }
 
-  // BYOK enforcement: non-admin users MUST bring their own API key OR use the Aureon Algorithm.
+  // Free-tier default: if no BYOK provider is selected and user is not admin,
+  // automatically route to the free Aureon Algorithm. The /aureon-algorithm-chat
+  // function enforces its own quota (10 msgs / 2hrs free, 20/hr paid, unlimited admin)
+  // and only surfaces an upgrade prompt AFTER the limit is hit.
   if (userEmail !== ADMIN_EMAIL && !byokProvider) {
-    try {
-      const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
-      triggerByokRequired({
-        source: "aureon-chat",
-        reason: "Aureon now requires you to connect your own LLM API key — or switch to the free Aureon Algorithm model. Add one in Settings → AI Keys to continue.",
-      });
-    } catch { /* noop */ }
-    throw new Error("BYOK required: please add your own LLM API key in Settings → AI Keys, or select the Aureon Algorithm.");
+    byokProvider = "aureon";
+    byokModel = "aureon-algorithm";
   }
 
   // ── AUREON ALGORITHM ROUTING ──────────────────────────────────────────
