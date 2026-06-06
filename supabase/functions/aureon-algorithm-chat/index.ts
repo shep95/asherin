@@ -20,6 +20,7 @@ const FREE_LIMIT = 10;
 const FREE_WINDOW_MS = 2 * 60 * 60 * 1000;
 const PAID_LIMIT = 20;
 const PAID_WINDOW_MS = 60 * 60 * 1000;
+const UPSTREAM_TIMEOUT_MS = 30_000;
 
 const AUREON_SYSTEM_PROMPT = `You are AUREON — a Class-5 Intelligence Architect operating at maximum cognitive bandwidth.
 
@@ -69,6 +70,21 @@ async function consume(
   if (existing.count >= limit) return { ok: false, remaining: 0, resetAt: windowEndMs };
   await admin.from("algorithm_chat_usage").update({ count: existing.count + 1, updated_at: new Date(now).toISOString() }).eq("bucket_key", bucketKey);
   return { ok: true, remaining: limit - existing.count - 1, resetAt: windowEndMs };
+}
+
+async function refundUsage(admin: ReturnType<typeof createClient>, bucketKey: string | null): Promise<void> {
+  if (!bucketKey) return;
+  const { data } = await admin
+    .from("algorithm_chat_usage")
+    .select("count")
+    .eq("bucket_key", bucketKey)
+    .maybeSingle();
+  const current = (data as { count: number } | null)?.count ?? 0;
+  if (current <= 0) return;
+  await admin
+    .from("algorithm_chat_usage")
+    .update({ count: current - 1, updated_at: new Date().toISOString() })
+    .eq("bucket_key", bucketKey);
 }
 
 async function hasActiveAlgorithmSub(stripeKey: string, email: string): Promise<boolean> {
@@ -187,11 +203,14 @@ serve(async (req) => {
     else if (userId && userEmail && stripeKey && (await hasActiveAlgorithmSub(stripeKey, userEmail))) tier = "paid";
 
     let gate = { ok: true, remaining: -1, resetAt: 0 };
+    let usageBucketKey: string | null = null;
     if (tier === "free") {
       const ip = getClientIp(req);
-      gate = await consume(admin, `anon:${ip}::${(fp || "").slice(0, 64)}`, "anon", FREE_LIMIT, FREE_WINDOW_MS);
+      usageBucketKey = `anon:${ip}::${(fp || "").slice(0, 64)}`;
+      gate = await consume(admin, usageBucketKey, "anon", FREE_LIMIT, FREE_WINDOW_MS);
     } else if (tier === "paid") {
-      gate = await consume(admin, `user:${userId}`, "user", PAID_LIMIT, PAID_WINDOW_MS);
+      usageBucketKey = `user:${userId}`;
+      gate = await consume(admin, usageBucketKey, "user", PAID_LIMIT, PAID_WINDOW_MS);
     }
 
     if (!gate.ok) {
@@ -205,7 +224,7 @@ serve(async (req) => {
     }
 
     const ac = new AbortController();
-    const timeoutId = setTimeout(() => ac.abort(), 140_000);
+    const timeoutId = setTimeout(() => ac.abort(), UPSTREAM_TIMEOUT_MS);
     let upstream: Response;
     let text: string;
     try {
@@ -218,17 +237,24 @@ serve(async (req) => {
       text = await upstream.text();
     } catch (e) {
       clearTimeout(timeoutId);
+      await refundUsage(admin, usageBucketKey);
       const aborted = e instanceof Error && e.name === "AbortError";
       return new Response(JSON.stringify({
         error: aborted ? "upstream_timeout" : "upstream_unreachable",
-        message: aborted
-          ? "Aureon Algorithm took too long to respond. Try a shorter prompt or retry."
+        degraded: true,
+        reply: aborted
+          ? "Aureon Algorithm did not return within 30 seconds. The Python service is still running upstream, but this request was released so the app does not hang. Retry once; if it repeats, the Railway worker is overloaded or stuck on that prompt."
           : "Aureon Algorithm endpoint is currently unreachable. Please try again shortly.",
-      }), { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        tier, mode: "algorithm", remaining: gate.remaining >= 0 ? gate.remaining + 1 : gate.remaining, resetAt: gate.resetAt,
+        message: aborted
+          ? "Aureon Algorithm took too long to respond. Your free-message count was not charged."
+          : "Aureon Algorithm endpoint is currently unreachable. Please try again shortly.",
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } finally {
       clearTimeout(timeoutId);
     }
     if (!upstream.ok) {
+      await refundUsage(admin, usageBucketKey);
       return new Response(JSON.stringify({ error: "upstream_failed", status: upstream.status, detail: text.slice(0, 400) }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
