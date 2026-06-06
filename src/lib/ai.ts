@@ -119,7 +119,7 @@ export async function streamChat({
     const resp = await fetch(ALGO_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-      body: JSON.stringify({ message: lastUser, messages: apiMessages }),
+      body: JSON.stringify({ message: lastUser, messages: apiMessages, session_id: conversationId ?? undefined }),
       signal,
     });
     const data = await resp.json().catch(() => ({ error: "Invalid response" }));
