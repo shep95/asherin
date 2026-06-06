@@ -905,6 +905,83 @@ const Index = () => {
       <DashboardPreview />
       </ScrollSection>
 
+      {/* ───────── SOLIA — Sovereign Organism with Living Intelligence Architecture ───────── */}
+      <ScrollSection>
+      <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40">
+          <div className="absolute left-[10%] top-[15%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,hsl(160_70%_50%/0.10),transparent_70%)] blur-3xl" />
+          <div className="absolute right-[5%] bottom-[10%] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.06),transparent_70%)] blur-3xl" />
+        </div>
+
+        <div className="relative mx-auto max-w-6xl">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[0.04] px-3 py-1 mb-6">
+              <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-light tracking-[0.3em] text-emerald-200/80 uppercase">Open-Weight · Self-Hosted</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
+              SOLIA.
+            </h2>
+            <p className="mt-4 text-xl sm:text-2xl font-extralight tracking-wide text-muted-foreground italic">
+              Sovereign Organism with Living Intelligence Architecture.
+            </p>
+            <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
+              Our own open-weight large language model — fine-tuned for uncensored reasoning, code generation,
+              and analytical dialogue. Not a wrapper around GPT-4 or Claude. An independent inference engine
+              we compile, quantize, and serve ourselves. The weights are open. The stack is ours.
+            </p>
+          </div>
+
+          {/* Capability cards */}
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { n: "01", Icon: Cpu, title: "Self-Hosted Inference", desc: "No third-party API keys. No external rate limits. No surprise price hikes. We own the stack from weights to wire." },
+              { n: "02", Icon: Code, title: "Open-Weight Architecture", desc: "Download the model, inspect the layers, verify the training data, or fork the inference server for your own infrastructure." },
+              { n: "03", Icon: Github, title: "Public on GitHub", desc: "The full repository — weights, server, and deployment manifests — is open for community audit and contribution." },
+            ].map(({ n, Icon, title, desc }) => (
+              <div key={n} className="group relative rounded-3xl overflow-hidden">
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-emerald-400/10 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="relative m-[1px] h-[calc(100%-2px)] rounded-3xl bg-gradient-to-b from-card/80 to-background/80 backdrop-blur-xl p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-foreground/15 bg-foreground/[0.04] group-hover:border-foreground/40 group-hover:bg-foreground/[0.08] transition-all">
+                      <Icon className="h-5 w-5 text-foreground/80 group-hover:text-foreground transition-colors" />
+                    </div>
+                    <span className="font-mono text-[10px] tracking-[0.3em] text-foreground/40">{n}</span>
+                  </div>
+                  <h3 className="text-base font-light tracking-tight text-foreground">{title}</h3>
+                  <p className="mt-3 text-xs font-extralight leading-relaxed text-muted-foreground">{desc}</p>
+                  <div className="mt-6 h-px bg-gradient-to-r from-foreground/30 via-foreground/10 to-transparent" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Architecture snapshot */}
+          <div className="mt-12 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <p className="font-mono text-[10px] tracking-[0.3em] text-foreground/40 uppercase mb-2">◈ Architecture Snapshot</p>
+                <p className="text-sm font-extralight text-muted-foreground leading-relaxed">
+                  6 brain regions · 30 domains · 135 subdomains · 862 micro-subdomains · 6,162 micro-agents.
+                  1M context attention LM with KV-cache, retrieval-augmented generation. Auto-learn runs 24/7.
+                </p>
+              </div>
+              <a
+                href="https://github.com/houseofasher/SOLIA"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 group inline-flex items-center gap-2 rounded-xl border border-border/25 bg-card/30 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-card/50 hover:border-border/50"
+              >
+                <Github className="h-4 w-4" />
+                View on GitHub
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      </ScrollSection>
+
       {/* ───────── Tier Selection ───────── */}
       <ScrollSection>
       <div className="relative z-10 px-6 py-28 sm:py-36 overflow-hidden">
