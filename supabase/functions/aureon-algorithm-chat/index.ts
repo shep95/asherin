@@ -258,8 +258,8 @@ serve(async (req) => {
     let upstream: Response;
     let text: string;
     // session_id gives the Railway brain conversation memory across turns.
-    // Use authenticated user_id when available, otherwise the (ip + fingerprint) bucket.
-    const sessionId = userId ?? (usageBucketKey ?? `anon:${getClientIp(req)}`);
+    // Caller may pin one; otherwise use authenticated user_id or the (ip + fingerprint) bucket.
+    const sessionId = clientSessionId ?? userId ?? (usageBucketKey ?? `anon:${getClientIp(req)}`);
     try {
       upstream = await fetch(RAILWAY_URL, {
         method: "POST",
@@ -276,7 +276,7 @@ serve(async (req) => {
         error: aborted ? "upstream_timeout" : "upstream_unreachable",
         degraded: true,
         reply: aborted
-          ? "Aureon Algorithm did not return within 30 seconds. The Python service is still running upstream, but this request was released so the app does not hang. Retry once; if it repeats, the Railway worker is overloaded or stuck on that prompt."
+          ? "Aureon Algorithm did not return within 60 seconds. The Python service is still running upstream, but this request was released so the app does not hang. Retry once; if it repeats, the Railway worker is overloaded or stuck on that prompt."
           : "Aureon Algorithm endpoint is currently unreachable. Please try again shortly.",
         tier, mode: "algorithm", remaining: gate.remaining >= 0 ? gate.remaining + 1 : gate.remaining, resetAt: gate.resetAt,
         message: aborted
@@ -292,12 +292,20 @@ serve(async (req) => {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    let upstreamJson: { reply?: string } = {};
+    // Railway returns: { reply, ciper, psychology, brains, prediction, ... }
+    // Forward the entire upstream payload so the frontend can render the
+    // Ciper decomposition, psychology layer, prediction pipeline, and brain map.
+    let upstreamJson: Record<string, unknown> = {};
     try { upstreamJson = JSON.parse(text); } catch { upstreamJson = { reply: text }; }
 
     return new Response(JSON.stringify({
-      reply: upstreamJson.reply ?? "(empty)", tier, mode: "algorithm",
-      remaining: gate.remaining, resetAt: gate.resetAt,
+      ...upstreamJson,
+      reply: (upstreamJson.reply as string | undefined) ?? "(empty)",
+      tier,
+      mode: "algorithm",
+      session_id: sessionId,
+      remaining: gate.remaining,
+      resetAt: gate.resetAt,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "request failed" }), {
