@@ -351,7 +351,7 @@ const AIKeysSettings = () => {
 
       {/* Provider list */}
       <div className="space-y-2">
-        <p className="text-[10px] font-light tracking-wider text-muted-foreground/40 uppercase">External Providers</p>
+        <p className="text-[10px] font-light tracking-wider text-muted-foreground/40 uppercase">Available Providers</p>
         {AI_PROVIDERS.map(provider => {
           const stored = hasKey(provider.id);
           const isActive = preferences.active_provider === provider.id;
