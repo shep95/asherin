@@ -20,6 +20,10 @@ export const TIERS = {
     product_id: "prod_U1PuUztkmieRrE",
     price_id: "price_1T3N4iRxgCpmPfiFGbJkXY33",
   },
+  algorithm: {
+    product_id: "prod_aureon_algorithm",
+    price_id: "price_1TfC3oRxgCpmPfiFniV2cXAu",
+  },
 } as const;
 
 export type TierKey = keyof typeof TIERS;
