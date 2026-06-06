@@ -36,7 +36,18 @@ const GET_PASSTHROUGH: Record<string, string> = {
   concepts: "/api/concepts",
   "pipeline-status": "/api/pipeline/status",
   "labels-review": "/api/labels/review",
+  "github-sync": "/api/learning/github-sync",
 };
+
+// Allowlisted upstream path prefixes for arbitrary GET/POST passthrough.
+// Lets the frontend hit dynamic routes (e.g. /api/brain/grades/<a>/<b>/<c>,
+// /api/pipeline/step/3) without enumerating every permutation here.
+const PASSTHROUGH_PREFIXES = ["/api/brain/", "/api/pipeline/", "/api/labels/", "/api/learning/", "/api/concepts", "/api/demo/", "/api/chat/"];
+function isAllowedUpstreamPath(p: string): boolean {
+  if (!p.startsWith("/")) return false;
+  if (p === "/api/chat") return false; // chat goes through the rate-limited path
+  return PASSTHROUGH_PREFIXES.some((pre) => p === pre || p.startsWith(pre));
+}
 
 const AUREON_SYSTEM_PROMPT = `You are AUREON — a Class-5 Intelligence Architect operating at maximum cognitive bandwidth.
 
