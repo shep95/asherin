@@ -23,6 +23,7 @@ const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 
 const FeatureZophiel = lazy(() => import("./pages/FeatureZophiel"));
 const FeatureNomad = lazy(() => import("./pages/FeatureNomad"));
+const FeatureNomadCyber = lazy(() => import("./pages/FeatureNomadCyber"));
 const FeatureAzplen = lazy(() => import("./pages/FeatureAzplen"));
 const FeatureBriefings = lazy(() => import("./pages/FeatureBriefings"));
 const FeaturePersonas = lazy(() => import("./pages/FeaturePersonas"));
@@ -117,6 +118,7 @@ const App = () => (
             <Route path="/nda" element={<NDA />} />
             <Route path="/feature/zophiel" element={<FeatureZophiel />} />
             <Route path="/feature/nomad" element={<FeatureNomad />} />
+            <Route path="/feature/nomad-cyber" element={<FeatureNomadCyber />} />
             <Route path="/feature/azplen" element={<FeatureAzplen />} />
             <Route path="/feature/briefings" element={<FeatureBriefings />} />
             <Route path="/feature/personas" element={<FeaturePersonas />} />
