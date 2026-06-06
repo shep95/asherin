@@ -195,3 +195,9 @@ verify_jwt = false
 
 [functions.auth-email-hook]
 verify_jwt = false
+
+[functions.aureon-algorithm-chat]
+verify_jwt = false
+
+[functions.algorithm-checkout]
+verify_jwt = false
