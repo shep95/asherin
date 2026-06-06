@@ -297,13 +297,13 @@ const LLMModels = () => {
           </span>
         </div>
         <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight zophiel-shimmer-text">
-          Three minds. One architecture.
+          Four minds. One architecture.
         </h1>
         <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground">
           Aureon does not rent intelligence from someone else's lab. We build our own
           models, each named for a guardian, an angel, or a house — each tuned for a
-          specific class of work: intelligence gathering, consumer reasoning, and
-          military-grade analysis.
+          specific class of work: intelligence gathering, consumer reasoning, open-weight
+          deployment, and military-grade analysis.
         </p>
       </section>
 
