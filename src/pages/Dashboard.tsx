@@ -1520,6 +1520,7 @@ const Dashboard = () => {
           activeBrainId={activeBrainId}
           onBrainChange={setActiveBrainId}
         />
+        </>
       ) : null;
     }
   };
