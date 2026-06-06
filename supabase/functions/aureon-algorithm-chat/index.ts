@@ -36,7 +36,18 @@ const GET_PASSTHROUGH: Record<string, string> = {
   concepts: "/api/concepts",
   "pipeline-status": "/api/pipeline/status",
   "labels-review": "/api/labels/review",
+  "github-sync": "/api/learning/github-sync",
 };
+
+// Allowlisted upstream path prefixes for arbitrary GET/POST passthrough.
+// Lets the frontend hit dynamic routes (e.g. /api/brain/grades/<a>/<b>/<c>,
+// /api/pipeline/step/3) without enumerating every permutation here.
+const PASSTHROUGH_PREFIXES = ["/api/brain/", "/api/pipeline/", "/api/labels/", "/api/learning/", "/api/concepts", "/api/demo/", "/api/chat/"];
+function isAllowedUpstreamPath(p: string): boolean {
+  if (!p.startsWith("/")) return false;
+  if (p === "/api/chat") return false; // chat goes through the rate-limited path
+  return PASSTHROUGH_PREFIXES.some((pre) => p === pre || p.startsWith(pre));
+}
 
 const AUREON_SYSTEM_PROMPT = `You are AUREON — a Class-5 Intelligence Architect operating at maximum cognitive bandwidth.
 
@@ -163,33 +174,62 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // ─── GET passthrough (learning, timeline, auto-learn, status, taxonomy) ───
+  // ─── GET passthrough (named alias OR raw ?path=/api/... ) ───
   const url = new URL(req.url);
   const info = url.searchParams.get("info");
-  if (req.method === "GET" && info && GET_PASSTHROUGH[info]) {
-    try {
-      const r = await fetch(`${RAILWAY_BASE}${GET_PASSTHROUGH[info]}`, { method: "GET" });
-      const t = await r.text();
-      return new Response(t, {
-        status: r.status,
-        headers: { ...corsHeaders, "Content-Type": r.headers.get("Content-Type") ?? "application/json" },
-      });
-    } catch (e) {
-      return new Response(JSON.stringify({ error: "upstream_unreachable", detail: String(e) }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+  const rawPath = url.searchParams.get("path");
+  if (req.method === "GET" && (info || rawPath)) {
+    const upstreamPath = info && GET_PASSTHROUGH[info]
+      ? GET_PASSTHROUGH[info]
+      : rawPath && isAllowedUpstreamPath(rawPath) ? rawPath : null;
+    if (upstreamPath) {
+      try {
+        const r = await fetch(`${RAILWAY_BASE}${upstreamPath}`, { method: "GET" });
+        const t = await r.text();
+        return new Response(t, {
+          status: r.status,
+          headers: { ...corsHeaders, "Content-Type": r.headers.get("Content-Type") ?? "application/json" },
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "upstream_unreachable", detail: String(e) }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
   }
 
   try {
     const body = await req.json();
-    const { message, messages, byok, fp, session_id: clientSessionId } = body as {
+    const { message, messages, byok, fp, session_id: clientSessionId, passthrough } = body as {
       message?: string;
       messages?: ChatMessage[];
       byok?: ByokConfig;
       fp?: string;
       session_id?: string;
+      passthrough?: { method?: string; path?: string; body?: unknown };
     };
+
+    // ─── Generic POST/PUT/DELETE passthrough for SOLIA endpoints ───
+    // Admin-only writes (bootstrap, brain/run, pipeline/run, labels/review, github-sync, demos).
+    if (passthrough?.path && isAllowedUpstreamPath(passthrough.path)) {
+      const method = (passthrough.method ?? "POST").toUpperCase();
+      try {
+        const r = await fetch(`${RAILWAY_BASE}${passthrough.path}`, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: method === "GET" || method === "HEAD" ? undefined : JSON.stringify(passthrough.body ?? {}),
+        });
+        const t = await r.text();
+        return new Response(t, {
+          status: r.status,
+          headers: { ...corsHeaders, "Content-Type": r.headers.get("Content-Type") ?? "application/json" },
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "upstream_unreachable", detail: String(e) }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // ─── BYOK MODE ──────────────────────────────────────────────────────
     if (byok?.apiKey && byok?.provider && byok?.model) {
