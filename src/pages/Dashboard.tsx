@@ -180,6 +180,16 @@ const Dashboard = () => {
   const [depth, setDepth] = useState<ResponseDepth>("standard");
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [algorithmMode, setAlgorithmMode] = useState<boolean>(() => {
+    try { return localStorage.getItem("aureon_algorithm_mode") === "1"; } catch { return false; }
+  });
+  const toggleAlgorithmMode = () => {
+    setAlgorithmMode((v) => {
+      const nv = !v;
+      try { localStorage.setItem("aureon_algorithm_mode", nv ? "1" : "0"); } catch {}
+      return nv;
+    });
+  };
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
