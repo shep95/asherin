@@ -543,11 +543,13 @@ const Dashboard = () => {
     return () => window.removeEventListener("aureon:navigate", handler);
   }, []);
 
-  // Load stored BYOK providers for consensus selector
+  // Load stored BYOK providers for consensus selector.
+  // "aureon" is platform-hosted (no key) and always available as a switchable provider.
   useEffect(() => {
     if (!user) return;
     supabase.from("user_api_keys").select("provider").eq("user_id", user.id).eq("is_active", true).then(({ data }) => {
-      if (data) setStoredProviders(data.map(d => d.provider));
+      const byok = data ? data.map(d => d.provider) : [];
+      setStoredProviders(["aureon", ...byok.filter(p => p !== "aureon")]);
     });
   }, [user]);
 
