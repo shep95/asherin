@@ -31,6 +31,11 @@ const GET_PASSTHROUGH: Record<string, string> = {
   "auto-learn": "/api/brain/auto-learn",
   status: "/security/status",
   taxonomy: "/api/brain/taxonomy",
+  "brain-status": "/api/brain/status",
+  grades: "/api/brain/grades",
+  concepts: "/api/concepts",
+  "pipeline-status": "/api/pipeline/status",
+  "labels-review": "/api/labels/review",
 };
 
 const AUREON_SYSTEM_PROMPT = `You are AUREON — a Class-5 Intelligence Architect operating at maximum cognitive bandwidth.
