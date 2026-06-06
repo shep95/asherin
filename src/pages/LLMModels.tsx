@@ -509,13 +509,13 @@ const LLMModels = () => {
             View Plans <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
           <a
-            href="https://github.com/houseofasher/Aureon-LLM"
+            href="https://github.com/houseofasher/SOLIA"
             target="_blank"
             rel="noopener noreferrer"
             className="group inline-flex items-center gap-2 rounded-xl border border-border/25 bg-card/30 backdrop-blur-md px-8 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-card/50 hover:border-border/50"
           >
             <Github className="h-4 w-4" />
-            Algorithm on GitHub
+            SOLIA on GitHub
           </a>
         </div>
       </section>
