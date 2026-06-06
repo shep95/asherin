@@ -495,18 +495,29 @@ const LLMModels = () => {
       {/* CTA */}
       <section className="relative z-10 px-6 py-24 text-center">
         <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
-          Three models. One company.
+          Four models. One company.
         </h2>
         <p className="text-sm font-extralight text-muted-foreground mb-8 max-w-xl mx-auto">
-          Zophiel sees. Aureon refines. Asher weighs. Together they make up the
-          intelligence stack we ship.
+          Zophiel sees. Aureon refines. Algorithm deploys. Asher weighs.
+          Together they make up the intelligence stack we ship.
         </p>
-        <Link
-          to="/pricing"
-          className="group inline-flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90"
-        >
-          View Plans <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </Link>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            to="/pricing"
+            className="group inline-flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90"
+          >
+            View Plans <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+          <a
+            href="https://github.com/houseofasher/Aureon-LLM"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-2 rounded-xl border border-border/25 bg-card/30 backdrop-blur-md px-8 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-card/50 hover:border-border/50"
+          >
+            <Github className="h-4 w-4" />
+            Algorithm on GitHub
+          </a>
+        </div>
       </section>
 
       <footer className="relative z-10 border-t border-border/10 py-8 text-center">
