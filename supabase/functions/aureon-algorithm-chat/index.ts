@@ -204,11 +204,30 @@ serve(async (req) => {
       }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const upstream = await fetch(RAILWAY_URL, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: userMessage }),
-    });
-    const text = await upstream.text();
+    const ac = new AbortController();
+    const timeoutId = setTimeout(() => ac.abort(), 120_000);
+    let upstream: Response;
+    let text: string;
+    try {
+      upstream = await fetch(RAILWAY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMessage }),
+        signal: ac.signal,
+      });
+      text = await upstream.text();
+    } catch (e) {
+      clearTimeout(timeoutId);
+      const aborted = e instanceof Error && e.name === "AbortError";
+      return new Response(JSON.stringify({
+        error: aborted ? "upstream_timeout" : "upstream_unreachable",
+        message: aborted
+          ? "Aureon Algorithm took too long to respond. Try a shorter prompt or retry."
+          : "Aureon Algorithm endpoint is currently unreachable. Please try again shortly.",
+      }), { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    } finally {
+      clearTimeout(timeoutId);
+    }
     if (!upstream.ok) {
       return new Response(JSON.stringify({ error: "upstream_failed", status: upstream.status, detail: text.slice(0, 400) }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
