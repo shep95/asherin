@@ -12,7 +12,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
-const RAILWAY_URL = "https://web-production-f9b81.up.railway.app/api/chat";
+const RAILWAY_BASE = "https://web-production-f9b81.up.railway.app";
+const RAILWAY_URL = `${RAILWAY_BASE}/api/chat`;
 const ALGORITHM_PRICE_ID = "price_1TfC3oRxgCpmPfiFniV2cXAu";
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 
@@ -20,7 +21,17 @@ const FREE_LIMIT = 10;
 const FREE_WINDOW_MS = 2 * 60 * 60 * 1000;
 const PAID_LIMIT = 20;
 const PAID_WINDOW_MS = 60 * 60 * 1000;
-const UPSTREAM_TIMEOUT_MS = 30_000;
+// Predict brain runs chain-of-thought reasoning over up to 1M context; give it room.
+const UPSTREAM_TIMEOUT_MS = 60_000;
+
+// Read-only GET passthroughs (no rate limit, no auth required upstream).
+const GET_PASSTHROUGH: Record<string, string> = {
+  learning: "/api/chat/learning",
+  timeline: "/api/chat/timeline",
+  "auto-learn": "/api/brain/auto-learn",
+  status: "/security/status",
+  taxonomy: "/api/brain/taxonomy",
+};
 
 const AUREON_SYSTEM_PROMPT = `You are AUREON — a Class-5 Intelligence Architect operating at maximum cognitive bandwidth.
 
@@ -147,13 +158,32 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // ─── GET passthrough (learning, timeline, auto-learn, status, taxonomy) ───
+  const url = new URL(req.url);
+  const info = url.searchParams.get("info");
+  if (req.method === "GET" && info && GET_PASSTHROUGH[info]) {
+    try {
+      const r = await fetch(`${RAILWAY_BASE}${GET_PASSTHROUGH[info]}`, { method: "GET" });
+      const t = await r.text();
+      return new Response(t, {
+        status: r.status,
+        headers: { ...corsHeaders, "Content-Type": r.headers.get("Content-Type") ?? "application/json" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: "upstream_unreachable", detail: String(e) }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   try {
     const body = await req.json();
-    const { message, messages, byok, fp } = body as {
+    const { message, messages, byok, fp, session_id: clientSessionId } = body as {
       message?: string;
       messages?: ChatMessage[];
       byok?: ByokConfig;
       fp?: string;
+      session_id?: string;
     };
 
     // ─── BYOK MODE ──────────────────────────────────────────────────────
@@ -228,8 +258,8 @@ serve(async (req) => {
     let upstream: Response;
     let text: string;
     // session_id gives the Railway brain conversation memory across turns.
-    // Use authenticated user_id when available, otherwise the (ip + fingerprint) bucket.
-    const sessionId = userId ?? (usageBucketKey ?? `anon:${getClientIp(req)}`);
+    // Caller may pin one; otherwise use authenticated user_id or the (ip + fingerprint) bucket.
+    const sessionId = clientSessionId ?? userId ?? (usageBucketKey ?? `anon:${getClientIp(req)}`);
     try {
       upstream = await fetch(RAILWAY_URL, {
         method: "POST",
@@ -246,7 +276,7 @@ serve(async (req) => {
         error: aborted ? "upstream_timeout" : "upstream_unreachable",
         degraded: true,
         reply: aborted
-          ? "Aureon Algorithm did not return within 30 seconds. The Python service is still running upstream, but this request was released so the app does not hang. Retry once; if it repeats, the Railway worker is overloaded or stuck on that prompt."
+          ? "Aureon Algorithm did not return within 60 seconds. The Python service is still running upstream, but this request was released so the app does not hang. Retry once; if it repeats, the Railway worker is overloaded or stuck on that prompt."
           : "Aureon Algorithm endpoint is currently unreachable. Please try again shortly.",
         tier, mode: "algorithm", remaining: gate.remaining >= 0 ? gate.remaining + 1 : gate.remaining, resetAt: gate.resetAt,
         message: aborted
@@ -262,12 +292,20 @@ serve(async (req) => {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    let upstreamJson: { reply?: string } = {};
+    // Railway returns: { reply, ciper, psychology, brains, prediction, ... }
+    // Forward the entire upstream payload so the frontend can render the
+    // Ciper decomposition, psychology layer, prediction pipeline, and brain map.
+    let upstreamJson: Record<string, unknown> = {};
     try { upstreamJson = JSON.parse(text); } catch { upstreamJson = { reply: text }; }
 
     return new Response(JSON.stringify({
-      reply: upstreamJson.reply ?? "(empty)", tier, mode: "algorithm",
-      remaining: gate.remaining, resetAt: gate.resetAt,
+      ...upstreamJson,
+      reply: (upstreamJson.reply as string | undefined) ?? "(empty)",
+      tier,
+      mode: "algorithm",
+      session_id: sessionId,
+      remaining: gate.remaining,
+      resetAt: gate.resetAt,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "request failed" }), {
