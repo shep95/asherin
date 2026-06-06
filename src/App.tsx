@@ -118,6 +118,7 @@ const App = () => (
             <Route path="/nda" element={<NDA />} />
             <Route path="/feature/zophiel" element={<FeatureZophiel />} />
             <Route path="/feature/nomad" element={<FeatureNomad />} />
+            <Route path="/feature/nomad-cyber" element={<FeatureNomadCyber />} />
             <Route path="/feature/azplen" element={<FeatureAzplen />} />
             <Route path="/feature/briefings" element={<FeatureBriefings />} />
             <Route path="/feature/personas" element={<FeaturePersonas />} />
