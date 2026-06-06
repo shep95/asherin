@@ -227,11 +227,14 @@ serve(async (req) => {
     const timeoutId = setTimeout(() => ac.abort(), UPSTREAM_TIMEOUT_MS);
     let upstream: Response;
     let text: string;
+    // session_id gives the Railway brain conversation memory across turns.
+    // Use authenticated user_id when available, otherwise the (ip + fingerprint) bucket.
+    const sessionId = userId ?? (usageBucketKey ?? `anon:${getClientIp(req)}`);
     try {
       upstream = await fetch(RAILWAY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ message: userMessage, session_id: sessionId }),
         signal: ac.signal,
       });
       text = await upstream.text();
