@@ -333,8 +333,23 @@ serve(async (req) => {
     }
     if (!upstream.ok) {
       await refundUsage(admin, usageBucketKey);
-      return new Response(JSON.stringify({ error: "upstream_failed", status: upstream.status, detail: text.slice(0, 400) }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      // Degrade gracefully: never return a hard 5xx to the client. Surface a
+      // friendly assistant reply so the chat UI keeps rendering instead of
+      // blank-screening on a Railway hiccup.
+      return new Response(JSON.stringify({
+        error: "upstream_failed",
+        upstream_status: upstream.status,
+        detail: text.slice(0, 400),
+        degraded: true,
+        fallback: true,
+        reply: `Aureon Algorithm upstream returned an error (HTTP ${upstream.status}). The Railway brain is temporarily unavailable — your message was not charged. Please retry in a moment.`,
+        tier,
+        mode: "algorithm",
+        session_id: sessionId,
+        remaining: gate.remaining >= 0 ? gate.remaining + 1 : gate.remaining,
+        resetAt: gate.resetAt,
+      }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     // Railway returns: { reply, ciper, psychology, brains, prediction, ... }
