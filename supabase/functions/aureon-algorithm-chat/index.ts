@@ -200,13 +200,14 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { message, messages, byok, fp, session_id: clientSessionId, passthrough } = body as {
+    const { message, messages, byok, fp, session_id: clientSessionId, passthrough, brainContext } = body as {
       message?: string;
       messages?: ChatMessage[];
       byok?: ByokConfig;
       fp?: string;
       session_id?: string;
       passthrough?: { method?: string; path?: string; body?: unknown };
+      brainContext?: { prompt?: string; fileContents?: { name: string; content: string }[] } | null;
     };
 
     // ─── Generic POST/PUT/DELETE passthrough for SOLIA endpoints ───
