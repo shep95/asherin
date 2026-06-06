@@ -1053,6 +1053,9 @@ const Dashboard = () => {
             messages: (conversationsRef.current.find(c => c.id === convId)?.messages || [])
               .slice(-12)
               .map(m => ({ role: m.role, content: m.content })),
+            // Forward active AUREON Brain (system prompt + file contents) so SOLIA
+            // follows the same custom directives as the standard chat path.
+            brainContext,
             fp: `${navigator.userAgent}:${navigator.language}:${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
           }),
         });
