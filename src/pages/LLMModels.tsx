@@ -399,6 +399,52 @@ const LLMModels = () => {
         ]}
       />
 
+      {/* ─── AUREON ALGORITHM ─── */}
+      <ModelSection
+        eyebrow="Open-Weight Deployment"
+        name="AUREON ALGORITHM"
+        tagline="Our self-hosted inference engine deployed on Railway. Algorithm is the uncensored, open-weight backbone that serves free-tier users by default and provides an alternative routing path for every paid account inside the Aureon dashboard."
+        diagramTitle="Algorithm — Railway Deployment"
+        diagramCore="ALGORITHM"
+        diagramSub="RAILWAY"
+        diagramAccent="hsl(160, 80%, 45%)"
+        diagramNodes={[
+          { id: "al1", x: 140, y: 90, label: "Railway Node", sub: "Self-hosted" },
+          { id: "al2", x: 660, y: 90, label: "Aureon Chat", sub: "Free default" },
+          { id: "al3", x: 80, y: 230, label: "Edge Router", sub: "Supabase fn" },
+          { id: "al4", x: 720, y: 230, label: "Paid Toggle", sub: "Optional route" },
+          { id: "al5", x: 220, y: 340, label: "Open Weights", sub: "Community" },
+          { id: "al6", x: 580, y: 340, label: "Rate Limiter", sub: "2h window" },
+        ]}
+        meaning={[
+          {
+            title: "What It Is",
+            body:
+              "Algorithm is Aureon's own open-weight large language model, fine-tuned for uncensored reasoning, code generation, and analytical dialogue. It is not a wrapper around GPT-4 or Claude — it is an independent inference engine we compile, quantize, and serve ourselves from a Railway deployment. The model weights are openly available for audit, replication, and community research.",
+          },
+          {
+            title: "Why We Built It",
+            body:
+              "Every major consumer AI product is hostage to API pricing, rate limits, and corporate safety lobotomies. We built Algorithm so that Aureon can never be shut off by a third party. Free users get unlimited access (within fair-use windows). Paid users can toggle to Algorithm as a backup route or a primary brain when they want deterministic, unfiltered output without the overhead of external provider keys.",
+          },
+          {
+            title: "How It Is Deployed",
+            body:
+              "Algorithm runs inside a Railway container with auto-scaling, health-checking, and graceful degradation. The Supabase edge function `aureon-algorithm-chat` acts as a lightweight router: it validates the user's tier, enforces rate limits (free users get a refill every 2 hours), and streams the response back with identical formatting to the standard chat path. No special configuration is required.",
+          },
+          {
+            title: "Open Source",
+            body:
+              "The model weights, training recipes, and inference server are published on GitHub under the House of Asher organization. You can audit the architecture, download the weights, run your own inference node, or submit pull requests to improve the model. Algorithm is not a black box — it is a public utility with a private hosting option.",
+          },
+        ]}
+        capabilities={[
+          { icon: Server, label: "Self-Hosted Inference", body: "No third-party API keys, no external rate limits, no surprise price hikes. We own the stack from weights to wire." },
+          { icon: Code, label: "Open-Weight Architecture", body: "Download the model, inspect the layers, verify the training data, or fork the inference server for your own infrastructure." },
+          { icon: Github, label: "Public on GitHub", body: "The full repository — weights, server, and deployment manifests — lives at github.com/houseofasher/Aureon-LLM for community audit and contribution." },
+        ]}
+      />
+
       {/* ─── ASHER ─── */}
       <ModelSection
         eyebrow="Military Intelligence — In Development"
