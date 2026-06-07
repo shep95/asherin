@@ -203,6 +203,8 @@ Deno.serve(async (req) => {
       maxDepth?: number;
       extensions?: string[]; // optional restriction (e.g. ["pdf","docx"])
       docPathPatterns?: string[]; // first path segments to treat as document pages (e.g. "document","book")
+      entryUrl?: string; // exact URL the user typed — used as the priority seed
+    
     };
     if (!body.domain) {
       return new Response(JSON.stringify({ error: "domain required" }), {
