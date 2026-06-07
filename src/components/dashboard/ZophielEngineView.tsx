@@ -638,8 +638,13 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </div>
               )}
 
+              {/* URL Intelligence Map — auto when query is a URL */}
+              {urlIntelTarget && (
+                <UrlIntelMapPanel url={urlIntelTarget} onClose={() => setUrlIntelTarget(null)} />
+              )}
+
               {/* Standard search results */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && !deepSearchQuery && (
+              {!urlIntelTarget && mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && !deepSearchQuery && (
                 <>
                   {/* Meta */}
                   {!loading && results.length > 0 && (
