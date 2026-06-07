@@ -69,8 +69,12 @@ const DomainMapPanel = () => {
       // Use the top ~120 mapped URLs as seeds so the crawler starts from
       // every major path category, not just the homepage.
       const seedUrls = result.categories.flatMap((c) => c.urls.slice(0, 12)).slice(0, 120);
+      // Pass the mapper's categories (e.g. "document", "book", "audiobook")
+      // so the harvester treats /document/<id>/... URLs as documents even
+      // when they have no file extension (Scribd, Issuu, Slideshare, etc.).
+      const docPathPatterns = result.categories.map((c) => c.category);
       const { data, error: invErr } = await supabase.functions.invoke("domain-harvest", {
-        body: { domain: result.domain, seedUrls },
+        body: { domain: result.domain, seedUrls, docPathPatterns },
       });
       if (invErr) throw new Error(invErr.message || String(invErr));
       if (!data?.success) throw new Error(data?.error || "Harvest failed");
@@ -82,6 +86,7 @@ const DomainMapPanel = () => {
       setHarvestErr(err?.message || "Harvest failed");
     } finally { setHarvesting(false); }
   };
+
 
 
   // Load file when preview opens
