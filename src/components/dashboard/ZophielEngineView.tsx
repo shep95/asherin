@@ -765,7 +765,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                   {!loading && searched && results.length === 0 && (
                     <div className="text-center py-16 animate-fade-in">
                       <Search className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
-                      <p className="text-sm font-extralight text-muted-foreground">No results found. Try a different query or adjust your filters.</p>
+                      <p className="text-sm font-extralight text-muted-foreground">No results.</p>
                     </div>
                   )}
                 </>
