@@ -13,6 +13,10 @@ export interface SearchResult {
   category: 'primary' | 'breaking' | 'analysis' | 'background' | 'community' | 'multimedia' | 'general';
   /** Tier-5 onion result. URL is a .onion address — UI must NOT render a clickable anchor. */
   onion?: boolean;
+  /** Topical relevance to the query, 0-100 (higher = better match). */
+  relevance?: number;
+  /** 1-based rank position after backend relevance sort. */
+  rank?: number;
 }
 
 export interface InstantAnswer {
