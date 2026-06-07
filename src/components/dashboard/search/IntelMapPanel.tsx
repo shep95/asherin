@@ -313,7 +313,10 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
       setEdges([]);
       setError(e?.message || "Could not build intel map");
     }
-  }, [resultsSig, results]);
+  // `resultsSig` is the only dependency on purpose: parent renders may create a
+  // fresh array ref with identical result content, and that must not erase/redraw the map.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultsSig]);
 
   // Run layout when nodes/size change
   const laidOut = useMemo(() => {
