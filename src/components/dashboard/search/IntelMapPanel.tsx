@@ -1,10 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { X, Loader2, Network, ZoomIn, ZoomOut, RotateCcw, ExternalLink, Users, Building2, MapPin, Tag, Calendar, Globe, Plus, Zap, KeyRound } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-// Note: deterministic, non-AI graph builder — no edge function / queue needed.
-import { getActiveIntelMapByok, isIntelMapByokEnabled, getProviderSpec } from "@/lib/intelMapByok";
-import IntelMapByokPanel from "./IntelMapByokPanel";
-import IntelMapChatPopover from "./IntelMapChatPopover";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { X, Loader2, Network, ZoomIn, ZoomOut, RotateCcw, ExternalLink, Users, Building2, MapPin, Tag, Calendar, Globe } from "lucide-react";
 import SocialPostEmbed, { isSocialUrl } from "./SocialPostEmbed";
 import LocationMapPanel from "./LocationMapPanel";
 import { decodeHtmlEntities } from "@/lib/htmlDecode";
@@ -37,8 +32,6 @@ interface IntelMapPanelProps {
   query: string;
   results: SearchResult[];
   onClose: () => void;
-  /** Optional: re-run the underlying Zophiel search with a refined query string. */
-  onRefineQuery?: (q: string) => void;
 }
 
 /* Theme-matched monochrome palette using semantic tokens.
@@ -253,7 +246,7 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
   return nodes;
 }
 
-const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanelProps) => {
+const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -286,11 +279,6 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
     return () => obs.disconnect();
   }, []);
 
-  const [queueInfo, setQueueInfo] = useState<{ position: number; running: number } | null>(null);
-  const [byokOpen, setByokOpen] = useState(false);
-  const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
-  const refreshByok = useCallback(() => setByokActive(isIntelMapByokEnabled()), []);
-
   // Slide-out map / social embed state — triggered from selected entity actions.
   const [mapQuery, setMapQuery] = useState<string | null>(null);
 
@@ -313,7 +301,6 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
     let cancelled = false;
     setLoading(true);
     setError(null);
-    setQueueInfo(null);
     (async () => {
       try {
         const { buildIntelGraph } = await import("./intel/buildIntelGraph");
@@ -338,10 +325,6 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultsSig]);
-
-  const onScrapeMore = useCallback(() => {
-    // No-op: deterministic builder consumes the full result set up-front.
-  }, []);
 
   // Run layout when nodes/size change
   const laidOut = useMemo(() => {
@@ -456,43 +439,12 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => setByokOpen(true)}
-              className={`group inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-light tracking-wider uppercase transition-colors ${
-                byokActive
-                  ? "border-foreground/40 bg-foreground/[0.06] text-foreground hover:bg-foreground/[0.1]"
-                  : "border-border/30 bg-foreground/[0.02] text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05]"
-              }`}
-              title={byokActive ? "Using your own API key — queue bypassed" : "Bring your own API key to skip the queue"}
-            >
-              {byokActive ? <Zap className="h-3 w-3" /> : <KeyRound className="h-3 w-3" />}
-              <span className="hidden sm:inline">{byokActive ? "Skipping queue" : "Skip queue"}</span>
-            </button>
             <button onClick={onClose} className="p-1.5 ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors" title="Close">
               <X className="h-4 w-4" />
             </button>
           </div>
         </div>
       </div>
-
-      {/* BYOK active banner */}
-      {byokActive && (() => {
-        const cfg = getActiveIntelMapByok();
-        const spec = cfg ? getProviderSpec(cfg.provider) : null;
-        return (
-          <div className="flex items-center gap-2 px-4 py-1.5 border-b border-border/10 bg-foreground/[0.03] text-[10px] font-light tracking-wider text-foreground/70">
-            <Zap className="h-3 w-3 text-foreground/80" />
-            <span className="uppercase tracking-[0.18em] text-muted-foreground">Engine via your key</span>
-            <span className="text-border/40">·</span>
-            <span className="normal-case tracking-normal">
-              {spec?.name || cfg?.provider} → <span className="text-foreground/85">{cfg?.model}</span>
-            </span>
-            <button onClick={() => setByokOpen(true)} className="ml-auto normal-case tracking-normal text-muted-foreground/70 hover:text-foreground transition-colors">
-              Manage
-            </button>
-          </div>
-        );
-      })()}
 
       {/* Inline error banner */}
       {error && !loading && laidOut.length > 0 && (
@@ -567,18 +519,6 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
                 <div className="flex justify-between"><span>Queue</span><span className="text-foreground/80 tabular-nums normal-case tracking-normal">{totalAvailable - nextOffset}</span></div>
               )}
             </div>
-            {hasMore && (
-              <div className="p-2 border-t border-border/15">
-                <button
-                  onClick={onScrapeMore}
-                  disabled={loadingMore}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md border border-border/30 bg-foreground/[0.04] hover:bg-foreground/[0.08] hover:border-border/50 text-[10px] font-light tracking-wider uppercase text-foreground/85 transition-colors disabled:opacity-50 disabled:cursor-wait"
-                  title={`Scrape next batch (${Math.min(12, totalAvailable - nextOffset)} more pages)`}
-                >
-                  {loadingMore ? <><Loader2 className="h-3 w-3 animate-spin" /> Scraping</> : <><Plus className="h-3 w-3" /> Scrape +{Math.min(12, totalAvailable - nextOffset)}</>}
-                </button>
-              </div>
-            )}
           </aside>
         )}
 
@@ -626,17 +566,8 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
           {loading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin text-accent" />
-              {queueInfo ? (
-                <>
-                  <p className="text-xs font-light tracking-wide">Engine busy — you are #{queueInfo.position} in line</p>
-                  <p className="text-[10px] font-light text-muted-foreground/50">{queueInfo.running} active session{queueInfo.running === 1 ? "" : "s"} · holding your slot</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-xs font-light tracking-wide">Scraping sources & extracting entities…</p>
-                  <p className="text-[10px] font-light text-muted-foreground/50">Reading {results.length} pages, mapping connections</p>
-                </>
-              )}
+              <p className="text-xs font-light tracking-wide">Extracting entities & mapping connections…</p>
+              <p className="text-[10px] font-light text-muted-foreground/50">Reading {results.length} pages</p>
             </div>
           )}
 
@@ -928,11 +859,6 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
           );
         })()}
       </div>
-
-      {/* Floating draggable + resizable Intel Chat (viewport-fixed popout). */}
-      <IntelMapChatPopover mapQuery={query} onOpenByokPanel={() => setByokOpen(true)} onRefineQuery={onRefineQuery} />
-
-      <IntelMapByokPanel open={byokOpen} onClose={() => setByokOpen(false)} onChange={refreshByok} />
 
       {mapQuery && <LocationMapPanel query={mapQuery} onClose={() => setMapQuery(null)} />}
     </div>
