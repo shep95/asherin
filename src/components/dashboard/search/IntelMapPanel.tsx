@@ -248,11 +248,12 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
 }
 
 const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
+  const initialGraph = useMemo(() => buildIntelGraph(results), []);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [nodes, setNodes] = useState<IntelNode[]>(() => buildIntelGraph(results).nodes as IntelNode[]);
-  const [edges, setEdges] = useState<IntelEdge[]>(() => buildIntelGraph(results).edges as IntelEdge[]);
+  const [nodes, setNodes] = useState<IntelNode[]>(() => initialGraph.nodes as IntelNode[]);
+  const [edges, setEdges] = useState<IntelEdge[]>(() => initialGraph.edges as IntelEdge[]);
   const [scrapedCount, setScrapedCount] = useState(results.length);
   const [totalSources, setTotalSources] = useState(results.length);
   const [nextOffset, setNextOffset] = useState(results.length);
