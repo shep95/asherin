@@ -36,6 +36,56 @@ const DomainMapPanel = () => {
   const [result, setResult] = useState<MapResult | null>(null);
   const [activeCat, setActiveCat] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
+  const [estimate, setEstimate] = useState<Estimate | null>(null);
+  const [estimating, setEstimating] = useState(false);
+  const [zipping, setZipping] = useState(false);
+  const [zipMsg, setZipMsg] = useState<string | null>(null);
+
+  const runEstimate = async (urls: string[]) => {
+    setEstimating(true); setEstimate(null); setZipMsg(null);
+    try {
+      const { data, error: invErr } = await supabase.functions.invoke("domain-zip", {
+        body: { mode: "estimate", urls: urls.slice(0, MAX_ZIP_URLS) },
+      });
+      if (invErr) throw new Error(invErr.message || String(invErr));
+      if (!data?.success) throw new Error(data?.error || "Estimate failed");
+      setEstimate(data as Estimate);
+    } catch (err: any) {
+      setZipMsg(err?.message || "Failed to estimate");
+    } finally { setEstimating(false); }
+  };
+
+  const downloadZip = async (urls: string[]) => {
+    setZipping(true); setZipMsg(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const auth = sessionData?.session?.access_token;
+      const url = `https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1/domain-zip`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwZ3hnenFidHJycmJ0amNlbWNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNzIyNTQsImV4cCI6MjA4NjY0ODI1NH0.PXItSIWoCByiMjDObhyc8QryuH2wNwMAIFyzWXzYJac",
+          ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+        },
+        body: JSON.stringify({
+          mode: "download",
+          urls: urls.slice(0, MAX_ZIP_URLS),
+          zipName: `${result?.domain || "domain"}-bundle.zip`,
+        }),
+      });
+      if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
+      const blob = await res.blob();
+      const dl = document.createElement("a");
+      dl.href = URL.createObjectURL(blob);
+      dl.download = `${result?.domain || "domain"}-bundle.zip`;
+      document.body.appendChild(dl); dl.click(); dl.remove();
+      setTimeout(() => URL.revokeObjectURL(dl.href), 4000);
+      setZipMsg(`Downloaded ${fmtBytes(blob.size)} — ${res.headers.get("X-Aureon-Files") || "?"} files.`);
+    } catch (err: any) {
+      setZipMsg(err?.message || "Download failed");
+    } finally { setZipping(false); }
+  };
 
   const run = async (e?: React.FormEvent) => {
     e?.preventDefault();
