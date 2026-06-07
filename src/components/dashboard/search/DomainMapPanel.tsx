@@ -203,7 +203,66 @@ const DomainMapPanel = () => {
               placeholder="Filter URLs (e.g. 886522804, quantum, .pdf)…"
               className="flex-1 bg-transparent text-[11px] font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
             />
-            <span className="text-[10px] font-light text-muted-foreground/60">{currentUrls.length}</span>
+          </div>
+
+          {/* ZIP download toolbar */}
+          <div className="rounded-xl border border-border/30 bg-background/40 px-3 py-2.5 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <FileArchive className="h-3.5 w-3.5 text-foreground/70" />
+              <span className="text-[10px] font-light tracking-[0.2em] uppercase text-foreground/80">
+                Bundle as ZIP
+              </span>
+              <span className="text-[10px] font-light text-muted-foreground/60">
+                {Math.min(currentUrls.length, MAX_ZIP_URLS)} of {currentUrls.length} files
+                {currentUrls.length > MAX_ZIP_URLS && <span className="text-amber-300/80"> (capped at {MAX_ZIP_URLS})</span>}
+              </span>
+              <div className="ml-auto flex gap-2">
+                <button
+                  onClick={() => runEstimate(currentUrls)}
+                  disabled={estimating || zipping || currentUrls.length === 0}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border/40 bg-background/40 hover:border-foreground/60 disabled:opacity-30 disabled:cursor-not-allowed px-2.5 py-1 text-[10px] font-light tracking-wide text-foreground/80 transition"
+                >
+                  {estimating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Package className="h-3 w-3" />}
+                  ESTIMATE SIZE
+                </button>
+                <button
+                  onClick={() => downloadZip(currentUrls)}
+                  disabled={zipping || estimating || currentUrls.length === 0}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-foreground hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed px-2.5 py-1 text-[10px] font-medium tracking-wide text-background transition"
+                >
+                  {zipping ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                  {zipping ? "BUILDING ZIP…" : "DOWNLOAD ZIP"}
+                </button>
+              </div>
+            </div>
+
+            {estimate && (
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-light text-muted-foreground/80">
+                  <span className="text-foreground/90">~{fmtBytes(estimate.totalBytes)}</span> estimated total
+                  <span>•</span>
+                  <span>{estimate.ok} reachable</span>
+                  <span>•</span>
+                  <span className="text-red-300/80">{estimate.failed} failed</span>
+                  {estimate.unknownSize > 0 && (<><span>•</span><span className="text-amber-300/80">{estimate.unknownSize} unknown size</span></>)}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {Object.entries(estimate.byType)
+                    .sort((a, b) => b[1].bytes - a[1].bytes)
+                    .map(([ext, v]) => (
+                      <span key={ext} className="rounded border border-border/30 bg-background/40 px-1.5 py-0.5 text-[10px] font-light text-foreground/80">
+                        .{ext} <span className="text-muted-foreground/70">· {v.count} · {fmtBytes(v.bytes)}</span>
+                      </span>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {zipMsg && (
+              <p className={`text-[10px] font-light ${zipMsg.toLowerCase().includes("fail") || zipMsg.toLowerCase().includes("error") ? "text-red-400/80" : "text-emerald-300/80"}`}>
+                {zipMsg}
+              </p>
+            )}
           </div>
 
           {/* URL list */}
