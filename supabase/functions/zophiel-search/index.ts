@@ -73,18 +73,21 @@ function isHostile(domain: string): boolean {
   return HOSTILE_INDICATORS.has(clean);
 }
 
-// Calculate provenance score based on tier + domain signals
+// Calculate provenance score based on tier + domain signals.
+// NOTE: Unknown sites (tier 4) are treated as NEUTRAL (0.65), not low.
+// We want any site mentioning the query to surface — credibility nuance is
+// communicated via the tier badge, NOT by burying the result.
 function calculateProvenance(domain: string, tier: SourceTier, snippet: string): number {
-  let score = tier === 1 ? 0.95 : tier === 2 ? 0.75 : tier === 3 ? 0.6 : 0.35;
-  
+  let score = tier === 1 ? 0.95 : tier === 2 ? 0.8 : tier === 3 ? 0.7 : 0.65;
+
   // Boost for citing primary sources within snippet
   const citationPatterns = /\b(according to|cited by|published in|data from|report by)\b/gi;
   const citations = (snippet.match(citationPatterns) || []).length;
   score = Math.min(1, score + citations * 0.05);
-  
+
   // Penalize if hostile
   if (isHostile(domain)) score *= 0.2;
-  
+
   return Math.round(score * 100) / 100;
 }
 
