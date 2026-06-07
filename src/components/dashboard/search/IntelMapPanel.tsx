@@ -305,97 +305,51 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
     [results],
   );
 
-  // Shared runner used by both initial load and "Scrape More".
+  // === Deterministic, NON-AI graph builder ===
+  // Runs entirely client-side: entity extraction (regex + dictionaries),
+  // TF-IDF topic ranking, and co-occurrence edge inference.
+  // No edge function, no API key, no queue, no latency.
   const runBatch = useCallback(
-    async (offset: number, append: boolean) => {
-      const ac = new AbortController();
-      let stopHeartbeat: (() => void) | null = null;
-      let releaseSlot: ((s?: boolean) => Promise<void>) | null = null;
-
-      // Read BYOK fresh on each run so toggling the panel mid-session takes effect.
-      const byok = getActiveIntelMapByok();
-      const skipQueue = !!byok;
-
+    async (_offset: number, _append: boolean) => {
       try {
-        if (append) setLoadingMore(true); else { setLoading(true); setError(null); setQueueInfo(null); }
-
-        if (!skipQueue) {
-          const { release, startHeartbeat } = await acquireIntelSlot({
-            jobType: "intelmap",
-            maxConcurrent: 2,
-            signal: ac.signal,
-            onProgress: (p) => {
-              if (p.status === "waiting") setQueueInfo({ position: p.position, running: p.runningCount });
-              else setQueueInfo(null);
-            },
-          });
-          releaseSlot = release;
-          stopHeartbeat = startHeartbeat();
-        }
-
-        const { data, error: err } = await supabase.functions.invoke("zophiel-intelmap", {
-          body: {
-            query,
-            results: allResultsPayload,
-            offset,
-            ...(byok ? { byok } : {}),
-          },
-        });
-        if (err) throw err;
-        if (!data?.success) throw new Error(data?.error || "Failed to build intel map");
-
-        const newNodes: IntelNode[] = data.nodes || [];
-        const newEdges: IntelEdge[] = data.edges || [];
-
-        if (append) {
-          // Merge: dedupe nodes by id, then add edges (server prefixes batch IDs so collisions are rare).
-          setNodes((prev) => {
-            const seen = new Set(prev.map((n) => n.id));
-            return [...prev, ...newNodes.filter((n) => !seen.has(n.id))];
-          });
-          setEdges((prev) => [...prev, ...newEdges]);
-          setScrapedCount((c) => c + (data.scrapedCount || 0));
-          setTotalSources((c) => c + (data.totalSources || 0));
-        } else {
-          setNodes(newNodes);
-          setEdges(newEdges);
-          setScrapedCount(data.scrapedCount || 0);
-          setTotalSources(data.totalSources || 0);
-        }
-        setNextOffset(Number(data.nextOffset || 0));
-        setHasMore(!!data.hasMore);
-        setTotalAvailable(Number(data.totalAvailable || results.length));
-        if (releaseSlot) { await releaseSlot(true); releaseSlot = null; }
+        setLoading(true);
+        setError(null);
+        setQueueInfo(null);
+        // Synchronous, but defer one frame so the loader can paint on big sets.
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        const { buildIntelGraph } = await import("./intel/buildIntelGraph");
+        const { nodes: newNodes, edges: newEdges } = buildIntelGraph(results);
+        setNodes(newNodes as IntelNode[]);
+        setEdges(newEdges as IntelEdge[]);
+        setScrapedCount(results.length);
+        setTotalSources(results.length);
+        setNextOffset(results.length);
+        setHasMore(false);
+        setTotalAvailable(results.length);
       } catch (e: any) {
-        const msg = e?.message || "Could not build intel map";
-        setError(msg);
-        if (releaseSlot) { await releaseSlot(false); releaseSlot = null; }
+        setError(e?.message || "Could not build intel map");
       } finally {
-        if (stopHeartbeat) stopHeartbeat();
         setLoading(false);
         setLoadingMore(false);
         setQueueInfo(null);
       }
     },
-    [query, allResultsPayload, results.length],
+    [results],
   );
 
-  // Initial load — guarded against React re-render storms.
-  // Uses a ref so re-creating `runBatch` (e.g. from results identity changes)
-  // never enqueues a second job for the same query.
-  const initialLoadRef = useRef<string | null>(null);
+  // Rebuild whenever the input result set changes.
+  const lastSigRef = useRef<string>("");
   useEffect(() => {
-    if (initialLoadRef.current === query) return;
-    initialLoadRef.current = query;
+    const sig = `${query}::${results.length}::${results[0]?.url || ""}`;
+    if (lastSigRef.current === sig) return;
+    lastSigRef.current = sig;
     void runBatch(0, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
+  }, [query, results]);
 
   const onScrapeMore = useCallback(() => {
-    if (loadingMore || loading || !hasMore) return;
-    setError(null);
-    void runBatch(nextOffset, true);
-  }, [loadingMore, loading, hasMore, nextOffset, runBatch]);
+    // No-op: deterministic builder consumes all results up-front.
+  }, []);
 
   // Run layout when nodes/size change
   const laidOut = useMemo(() => {
