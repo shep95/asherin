@@ -29,68 +29,52 @@ interface HarvestReq {
 
 interface ScribdHit { url: string; title: string; snippet: string; }
 
-// ── Discover scribd.com documents across multiple search engines ───────────
-const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
-
-function extractScribdLinks(html: string, seen: Set<string>, out: ScribdHit[], max: number) {
-  const linkRe = /href=["']([^"']*scribd\.com\/[^"']+)["'][^>]*>([\s\S]{0,300}?)<\/a>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = linkRe.exec(html)) && out.length < max) {
-    let href = m[1];
-    try {
-      if (href.startsWith("/")) href = new URL(href, "https://duckduckgo.com").toString();
-      const u = new URL(href);
-      const uddg = u.searchParams.get("uddg") || u.searchParams.get("u");
-      if (uddg) {
-        try { href = decodeURIComponent(uddg); } catch { href = uddg; }
-      }
-    } catch { /* keep */ }
-    if (!/^https?:\/\/[^/]*scribd\.com\//i.test(href)) continue;
-    if (/scribd\.com\/(static|assets|images|favicon)/i.test(href)) continue;
-    if (seen.has(href)) continue;
-    seen.add(href);
-    const title = m[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
-    out.push({ url: href, title: title || href, snippet: "" });
-  }
-}
-
-async function searchEngine(url: string): Promise<string> {
-  try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 9000);
-    const r = await fetch(url, {
-      signal: ctl.signal,
-      headers: { "User-Agent": UA, "Accept": "text/html,application/xhtml+xml" },
-    });
-    clearTimeout(t);
-    if (!r.ok) return "";
-    return await r.text();
-  } catch { return ""; }
-}
-
+// ── Discover scribd.com documents via Firecrawl search (reliable) ──────────
 async function ddgScribd(topic: string, max: number): Promise<ScribdHit[]> {
-  const q = encodeURIComponent(`site:scribd.com ${topic}`);
+  const fcKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!fcKey) throw new Error("FIRECRAWL_API_KEY not configured");
+
   const out: ScribdHit[] = [];
   const seen = new Set<string>();
-  const endpoints = [
-    `https://html.duckduckgo.com/html/?q=${q}`,
-    `https://duckduckgo.com/html/?q=${q}`,
-    `https://lite.duckduckgo.com/lite/?q=${q}`,
-    `https://www.bing.com/search?q=${q}`,
-    `https://www.bing.com/search?q=${q}&first=11`,
-    `https://search.brave.com/search?q=${q}`,
-    `https://www.mojeek.com/search?q=${q}`,
+
+  const queries = [
+    `site:scribd.com ${topic}`,
+    `${topic} scribd document`,
+    `scribd ${topic} pdf`,
   ];
-  for (const ep of endpoints) {
+
+  for (const q of queries) {
     if (out.length >= max) break;
-    const html = await searchEngine(ep);
-    if (!html) continue;
-    extractScribdLinks(html, seen, out, max);
-  }
-  // Final fallback: scribd's own search page (no auth required for listings)
-  if (out.length === 0) {
-    const html = await searchEngine(`https://www.scribd.com/search?query=${encodeURIComponent(topic)}`);
-    if (html) extractScribdLinks(html, seen, out, max);
+    try {
+      const r = await fetch("https://api.firecrawl.dev/v2/search", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${fcKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: q, limit: Math.min(max, 25) }),
+      });
+      if (!r.ok) {
+        console.warn(`[SCRIBD-HARVEST] firecrawl ${r.status}`, await r.text());
+        continue;
+      }
+      const j = await r.json();
+      const results: any[] = j?.data?.web || j?.data || j?.results || [];
+      for (const it of results) {
+        const url: string = it?.url || it?.link || "";
+        if (!/^https?:\/\/[^/]*scribd\.com\//i.test(url)) continue;
+        if (seen.has(url)) continue;
+        seen.add(url);
+        out.push({
+          url,
+          title: (it?.title || url).toString().slice(0, 200),
+          snippet: (it?.description || it?.snippet || "").toString().slice(0, 400),
+        });
+        if (out.length >= max) break;
+      }
+    } catch (e) {
+      console.warn("[SCRIBD-HARVEST] firecrawl error", e);
+    }
   }
   return out;
 }
