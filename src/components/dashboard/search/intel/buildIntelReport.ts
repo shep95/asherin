@@ -140,8 +140,10 @@ export function buildIntelReport(input: {
   const sentences = splitSentences(text);
   const ranked = sentences
     .map(s => {
-      const ws = s.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
-      const score = ws.reduce<number>((sum, w) => sum + (topWords.has(w) ? 1 : 0), 0) / Math.sqrt(ws.length + 1);
+      const ws: string[] = s.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
+      let score = 0;
+      for (const w of ws) if (topWords.has(w)) score += 1;
+      score = score / Math.sqrt(ws.length + 1);
       return { s, score };
     })
     .sort((a,b) => b.score - a.score)
