@@ -263,17 +263,9 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "no scribd documents discovered for topic" }), { status: 502, headers: corsHeaders });
     }
 
-    // 2) Fetch meta + visible text for the top N
-    const topN = hits.slice(0, Math.min(12, hits.length));
-    const enriched = await Promise.all(topN.map(async (h) => {
-      const meta = await fetchScribdMeta(h.url);
-      return {
-        url: h.url,
-        title: meta.title || h.title,
-        desc: meta.desc || h.snippet,
-        body: meta.raw,
-      };
-    }));
+    // 2) Fetch the available document text for every discovered source.
+    const topN = hits.slice(0, Math.min(maxSources, hits.length));
+    const enriched = await mapLimit(topN, 4, fetchScribdText);
 
     const corpus = enriched.map((d) =>
       `[SCRIBD] ${d.title}\nURL: ${d.url}\n${d.desc}\n${d.body}`
@@ -283,7 +275,8 @@ serve(async (req) => {
       `[SCRIBD-LINK] ${h.title} — ${h.url}\n${h.snippet}`
     ).join("\n");
 
-    const raw = `## SCRIBD CORPUS — ${hits.length} documents discovered for "${topic}"\n\n${corpus}\n\n## ADDITIONAL LINKS\n${tail}`;
+    const documentsWithText = enriched.filter((d) => d.body.length > 900).length;
+    const raw = `## SCRIBD CORPUS — ${hits.length} documents discovered for "${topic}"\n## DOCUMENTS WITH AVAILABLE TEXT — ${documentsWithText}\n\n${corpus}\n\n## ADDITIONAL LINKS\n${tail}`;
     if (raw.trim().length < 500) {
       return new Response(JSON.stringify({ error: "insufficient source material harvested" }), { status: 502, headers: corsHeaders });
     }
