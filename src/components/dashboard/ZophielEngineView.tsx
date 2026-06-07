@@ -217,6 +217,21 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     const q = (searchQuery ?? query).trim();
     if (!q) return;
 
+    // URL detection — if the user pasted a link, map it instead of doing a keyword search
+    const asUrl = detectUrl(q);
+    if (asUrl) {
+      setUrlIntelTarget(asUrl);
+      setSearched(true);
+      setShowSuggestions(false);
+      saveRecent(q);
+      setResults([]);
+      setGrouped({});
+      setInstantAnswer(null);
+      setDeepSearchQuery(null);
+      return;
+    }
+    setUrlIntelTarget(null);
+
     // Deep search mode — delegate to the streaming panel
     if (mode === "deep") {
       setSearched(true);
