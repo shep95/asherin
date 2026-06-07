@@ -100,14 +100,13 @@ export async function streamChat({
     userEmail = session?.user?.email ?? null;
   } catch { /* fallback to anon key */ }
 
-  // Free-tier default: if no BYOK provider is selected and user is not admin,
-  // automatically route to the free Aureon Algorithm. The /aureon-algorithm-chat
-  // function enforces its own quota (10 msgs / 2hrs free, 20/hr paid, unlimited admin)
-  // and only surfaces an upgrade prompt AFTER the limit is hit.
-  if (userEmail !== ADMIN_EMAIL && !byokProvider) {
-    byokProvider = "aureon";
-    byokModel = "aureon-algorithm";
-  }
+  // UNIFIED PIPELINE: free, paid, and admin all flow through /chat by default
+  // (same system prompt, skill injection, swarm orchestrator, archive grounding).
+  // The /chat edge function enforces its own tier gating and rate limits.
+  // Users can still EXPLICITLY pick the Aureon Algorithm (Railway SOLIA brain)
+  // via the AureonEngineToggle — that sets byokProvider="aureon" themselves.
+  // Previously free users were force-routed to Railway, which produced
+  // off-topic news-feed answers for general queries. Removed.
 
   // ── AUREON ALGORITHM ROUTING ──────────────────────────────────────────
   // When the user picks "aureon" as their provider, proxy to the dedicated
