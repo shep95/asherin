@@ -298,7 +298,18 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
   // === Deterministic, NON-AI graph builder ===
   // Pure client-side: entity extraction (regex + dictionaries),
   // TF-IDF topic ranking, co-occurrence edge inference.
+  //
+  // Guarded by a content signature so that parent re-renders (which produce
+  // new `results` array refs every time) don't re-trigger the build and
+  // cause the map to flash/disappear.
+  const resultsSig = useMemo(
+    () => `${query}::${results.length}::${results.map((r) => r.url).join("|")}`,
+    [query, results],
+  );
+  const lastSigRef = useRef<string>("");
   useEffect(() => {
+    if (lastSigRef.current === resultsSig) return;
+    lastSigRef.current = resultsSig;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -325,7 +336,8 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
       }
     })();
     return () => { cancelled = true; };
-  }, [query, results]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultsSig]);
 
   const onScrapeMore = useCallback(() => {
     // No-op: deterministic builder consumes the full result set up-front.
