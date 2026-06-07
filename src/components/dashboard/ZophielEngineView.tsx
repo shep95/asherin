@@ -30,6 +30,21 @@ const ArchivePanel = lazy(() => import("./search/ArchivePanel"));
 const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
 import ArchivesHarvesterPanel from "./search/ArchivesHarvesterPanel";
+import UrlIntelMapPanel from "./search/UrlIntelMapPanel";
+
+// Detect when the search query is actually a URL (with or without scheme).
+// Examples that match: x.com/MonaBets, https://example.com, www.foo.com/a/b
+function detectUrl(input: string): string | null {
+  const raw = input.trim();
+  if (!raw || /\s/.test(raw)) return null;
+  const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const u = new URL(candidate);
+    if (!u.hostname.includes(".")) return null;
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(u.hostname)) return null;
+    return u.toString();
+  } catch { return null; }
+}
 
 
 const CATEGORY_LABELS: Record<string, string> = {
