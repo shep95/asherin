@@ -9,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import EmergencyOpsPanel from "@/components/asher/EmergencyOpsPanel";
 import LinkExtractIntelPanel from "@/components/dashboard/search/LinkExtractIntelPanel";
-import DomainMapPanel from "@/components/dashboard/search/DomainMapPanel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tone = "neutral" | "good" | "warn" | "critical";
@@ -293,9 +292,6 @@ const LinkExtractView = () => {
 
   return (
     <div className="relative w-full animate-fade-in space-y-4">
-      {/* Domain-wide URL mapper (sitemap + crawl, grouped by path type) */}
-      <DomainMapPanel />
-
       {/* Hero / Input */}
       <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/[0.04] via-card/30 to-card/10 backdrop-blur-xl px-5 py-4">
         <div className="flex items-center gap-3 mb-2">
