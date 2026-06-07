@@ -63,8 +63,15 @@ function parseDomainEntries(raw: string): { entryUrl: string; domain: string }[]
   return out;
 }
 
-const DomainMapPanel = () => {
-  const [input, setInput] = useState("");
+interface DomainMapPanelProps {
+  defaultInput?: string;
+  presets?: { label: string; value: string }[];
+  title?: string;
+  subtitle?: string;
+}
+
+const DomainMapPanel = ({ defaultInput = "", presets, title, subtitle }: DomainMapPanelProps = {}) => {
+  const [input, setInput] = useState(defaultInput);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<MapResult | null>(null);
