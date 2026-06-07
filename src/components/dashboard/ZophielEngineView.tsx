@@ -430,7 +430,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                     onChange={(e) => { setQuery(e.target.value); setShowSuggestions(e.target.value.length > 1); }}
                     onFocus={() => { if (query.length > 1) setShowSuggestions(true); }}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder={online ? "Query the signal mesh…" : "Offline — search will queue…"}
+                    placeholder={online ? "Search…" : "Offline — queued"}
                     className="flex-1 bg-transparent text-sm font-light tracking-wide text-foreground placeholder:text-muted-foreground/40 outline-none"
                   />
                   {query && (
