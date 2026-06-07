@@ -16,6 +16,10 @@ const RAILWAY_BASE = "https://web-production-f9b81.up.railway.app";
 const RAILWAY_URL = `${RAILWAY_BASE}/api/chat`;
 const ALGORITHM_PRICE_ID = "price_1TfC3oRxgCpmPfiFniV2cXAu";
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+// Manually gifted lifetime-unlimited algorithm access (treated as admin tier — no rate limit).
+const GIFTED_UNLIMITED_EMAILS = new Set<string>([
+  "28numberofmoney@gmail.com",
+]);
 
 const FREE_LIMIT = 10;
 const FREE_WINDOW_MS = 2 * 60 * 60 * 1000;
