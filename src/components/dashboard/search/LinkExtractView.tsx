@@ -293,6 +293,9 @@ const LinkExtractView = () => {
 
   return (
     <div className="relative w-full animate-fade-in space-y-4">
+      {/* Domain-wide URL mapper (sitemap + crawl, grouped by path type) */}
+      <DomainMapPanel />
+
       {/* Hero / Input */}
       <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/[0.04] via-card/30 to-card/10 backdrop-blur-xl px-5 py-4">
         <div className="flex items-center gap-3 mb-2">
