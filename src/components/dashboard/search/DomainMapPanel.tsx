@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive, Eye, X, FileText, Sparkles } from "lucide-react";
+import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive, Eye, X, FileText, Sparkles, Brain, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { DOMAIN_TAXONOMY } from "@/lib/domainTaxonomy";
 
 
 const MAX_ZIP_URLS = 250;
