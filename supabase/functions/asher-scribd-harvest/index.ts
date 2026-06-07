@@ -317,6 +317,8 @@ serve(async (req) => {
         ok: true,
         brain: row,
         sources_used: hits.length,
+        documents_with_text: documentsWithText,
+        source_text_chars: enriched.reduce((sum, d) => sum + d.body.length, 0),
         synthesized_chars: synthesized.length,
         file_name: fileName,
         content: synthesized,
