@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Brain, Image as ImageIcon, Crosshair, ShieldAlert, Scan, Skull, FileArchive, ChevronDown, ShieldCheck, Database, Package } from "lucide-react";
+import { Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Brain, Image as ImageIcon, Crosshair, ShieldAlert, Scan, Skull, FileArchive, ChevronDown, ShieldCheck, Database, Package, BookOpen } from "lucide-react";
 import type { SearchMode } from "./types";
 
 type ModeDef = { id: SearchMode; label: string; icon: React.ReactNode; accent?: boolean };
@@ -18,6 +18,7 @@ const primaryModes: ModeDef[] = [
 const secondaryModes: ModeDef[] = [
   { id: "extract", label: "Link Extract", icon: <Crosshair className="h-3.5 w-3.5" />, accent: true },
   { id: "harvest", label: "Doc Harvest", icon: <Package className="h-3.5 w-3.5" />, accent: true },
+  { id: "scribd", label: "Scribd", icon: <BookOpen className="h-3.5 w-3.5" />, accent: true },
   { id: "face", label: "Face Recognition", icon: <Scan className="h-3.5 w-3.5" />, accent: true },
   { id: "leaks", label: "Asher Archives", icon: <FileArchive className="h-3.5 w-3.5" />, accent: true },
   { id: "news", label: "News", icon: <Newspaper className="h-3.5 w-3.5" /> },
