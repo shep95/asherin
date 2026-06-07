@@ -81,6 +81,7 @@ import CommandPalette from "./components/CommandPalette";
 import AureonDomainGate from "./components/AureonDomainGate";
 import RouteSessionTracker from "./components/RouteSessionTracker";
 import RouteSeo from "./components/RouteSeo";
+import AureonEngineToggle from "./components/AureonEngineToggle";
 
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
