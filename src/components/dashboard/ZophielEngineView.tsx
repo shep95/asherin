@@ -30,6 +30,21 @@ const ArchivePanel = lazy(() => import("./search/ArchivePanel"));
 const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
 import ArchivesHarvesterPanel from "./search/ArchivesHarvesterPanel";
+import UrlIntelMapPanel from "./search/UrlIntelMapPanel";
+
+// Detect when the search query is actually a URL (with or without scheme).
+// Examples that match: x.com/MonaBets, https://example.com, www.foo.com/a/b
+function detectUrl(input: string): string | null {
+  const raw = input.trim();
+  if (!raw || /\s/.test(raw)) return null;
+  const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const u = new URL(candidate);
+    if (!u.hostname.includes(".")) return null;
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(u.hostname)) return null;
+    return u.toString();
+  } catch { return null; }
+}
 
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -73,6 +88,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [darkResults, setDarkResults] = useState<{ title: string; link: string; engine: string }[]>([]);
   const [darkSummary, setDarkSummary] = useState<string>("");
   const [darkLoading, setDarkLoading] = useState(false);
+  const [urlIntelTarget, setUrlIntelTarget] = useState<string | null>(null);
   const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite), committed on mouseup
   const splitPctRef = useRef(50);
   const leftPanelRef = useRef<HTMLDivElement>(null);
@@ -200,6 +216,21 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const search = useCallback(async (searchQuery?: string) => {
     const q = (searchQuery ?? query).trim();
     if (!q) return;
+
+    // URL detection — if the user pasted a link, map it instead of doing a keyword search
+    const asUrl = detectUrl(q);
+    if (asUrl) {
+      setUrlIntelTarget(asUrl);
+      setSearched(true);
+      setShowSuggestions(false);
+      saveRecent(q);
+      setResults([]);
+      setGrouped({});
+      setInstantAnswer(null);
+      setDeepSearchQuery(null);
+      return;
+    }
+    setUrlIntelTarget(null);
 
     // Deep search mode — delegate to the streaming panel
     if (mode === "deep") {
@@ -607,8 +638,13 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </div>
               )}
 
+              {/* URL Intelligence Map — auto when query is a URL */}
+              {urlIntelTarget && (
+                <UrlIntelMapPanel url={urlIntelTarget} onClose={() => setUrlIntelTarget(null)} />
+              )}
+
               {/* Standard search results */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && !deepSearchQuery && (
+              {!urlIntelTarget && mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && !deepSearchQuery && (
                 <>
                   {/* Meta */}
                   {!loading && results.length > 0 && (
