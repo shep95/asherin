@@ -258,6 +258,10 @@ interface SearchResult {
   layer?: PantheonLayer;
   /** Engine that produced this result (e.g. 'ddg', 'github', 'arxiv'). */
   engine?: string;
+  /** Topical relevance to the query, 0-100. Drives sort order. */
+  relevance?: number;
+  /** 1-based rank position after sorting. */
+  rank?: number;
 }
 
 interface SearchFilters {
