@@ -141,7 +141,7 @@ export function buildIntelReport(input: {
   const ranked = sentences
     .map(s => {
       const ws = s.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
-      const score = ws.reduce((sum, w) => sum + (topWords.has(w) ? 1 : 0), 0) / Math.sqrt(ws.length + 1);
+      const score = ws.reduce<number>((sum, w) => sum + (topWords.has(w) ? 1 : 0), 0) / Math.sqrt(ws.length + 1);
       return { s, score };
     })
     .sort((a,b) => b.score - a.score)
