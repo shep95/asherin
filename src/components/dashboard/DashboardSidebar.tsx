@@ -69,6 +69,7 @@ const navGroups: NavGroup[] = [
         items: [
           { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
           { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
+          { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
         ],
       },
       {
