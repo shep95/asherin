@@ -292,6 +292,102 @@ const DomainMapPanel = () => {
             ))}
           </div>
 
+          {/* ── DOCUMENT HARVEST ─────────────────────────────────────── */}
+          <div className="rounded-xl border border-border/30 bg-background/40 px-3 py-2.5 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-foreground/70" />
+              <span className="text-[10px] font-light tracking-[0.2em] uppercase text-foreground/80">
+                Harvest Documents
+              </span>
+              <span className="text-[10px] font-light text-muted-foreground/60">
+                Deep-crawl sub-pages and pull every PDF / Word / Excel / eBook link.
+              </span>
+              <button
+                onClick={runHarvest}
+                disabled={harvesting || !result}
+                className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-foreground hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed px-2.5 py-1 text-[10px] font-medium tracking-wide text-background transition"
+              >
+                {harvesting ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                {harvesting ? "HARVESTING…" : harvest ? "RE-HARVEST" : "HARVEST DOCS"}
+              </button>
+            </div>
+
+            {harvestErr && <p className="text-[10px] font-light text-red-400/80">{harvestErr}</p>}
+
+            {harvest && (
+              <div className="space-y-2 animate-fade-in">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-extralight tracking-wider text-muted-foreground/70 uppercase">
+                  <span className="text-foreground/90">{harvest.totalDocs.toLocaleString()} documents</span>
+                  <span>•</span>
+                  <span>{harvest.pagesCrawled} pages crawled</span>
+                  <span>•</span>
+                  <span>{Object.keys(harvest.categories).length} categories</span>
+                  {harvest.truncated && <span className="text-amber-300/80">• truncated</span>}
+                </div>
+
+                {/* Category chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => { setActiveHarvestCat(null); setActiveExt(null); }}
+                    className={`px-2 py-1 rounded-md text-[10px] font-light tracking-wide border transition ${
+                      activeHarvestCat === null
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border/40 bg-background/40 text-foreground/70 hover:border-foreground/60"
+                    }`}
+                  >
+                    ALL · {harvest.totalDocs}
+                  </button>
+                  {Object.entries(harvest.categories).map(([cat, groups]) => {
+                    const count = groups.reduce((s, g) => s + g.count, 0);
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => { setActiveHarvestCat(cat); setActiveExt(null); }}
+                        className={`px-2 py-1 rounded-md text-[10px] font-light tracking-wide border transition ${
+                          activeHarvestCat === cat
+                            ? "border-foreground bg-foreground text-background"
+                            : "border-border/40 bg-background/40 text-foreground/70 hover:border-foreground/60"
+                        }`}
+                      >
+                        {cat} · {count}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Extension chips within active category */}
+                {activeHarvestCat && (harvest.categories[activeHarvestCat] || []).length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      onClick={() => setActiveExt(null)}
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-light border transition ${
+                        activeExt === null
+                          ? "border-foreground/80 bg-foreground/15 text-foreground"
+                          : "border-border/30 bg-background/40 text-muted-foreground/80 hover:border-foreground/40"
+                      }`}
+                    >
+                      all
+                    </button>
+                    {harvest.categories[activeHarvestCat].map((g) => (
+                      <button
+                        key={g.ext}
+                        onClick={() => setActiveExt(g.ext)}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-light border transition ${
+                          activeExt === g.ext
+                            ? "border-foreground/80 bg-foreground/15 text-foreground"
+                            : "border-border/30 bg-background/40 text-muted-foreground/80 hover:border-foreground/40"
+                        }`}
+                      >
+                        .{g.ext} · {g.count}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+
           {/* Substring filter */}
           <div className="flex items-center gap-2 rounded-xl border border-border/30 bg-background/40 px-3 py-1.5">
             <Filter className="h-3 w-3 text-muted-foreground/50" />
