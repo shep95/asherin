@@ -24,13 +24,38 @@ function hostOf(u: string): string {
   try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; }
 }
 
-function toSeed(query: string): string[] {
+async function discoverSeeds(query: string): Promise<string[]> {
   const q = query.trim();
-  // If the user typed a URL, crawl it directly.
   if (/^https?:\/\//i.test(q)) return [q];
-  // Otherwise, seed via DuckDuckGo's HTML endpoint as a discovery hop.
-  return [`https://duckduckgo.com/html/?q=${encodeURIComponent(q)}`];
+
+  // Hit DDG HTML and extract real destination URLs (uddg= redirect param).
+  try {
+    const r = await fetch(`https://duckduckgo.com/html/?q=${encodeURIComponent(q)}`, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html",
+      },
+    });
+    if (r.ok) {
+      const html = await r.text();
+      const urls = new Set<string>();
+      // DDG wraps results in /l/?uddg=ENCODED_URL
+      for (const m of html.matchAll(/uddg=([^&"']+)/g)) {
+        try {
+          const u = decodeURIComponent(m[1]);
+          if (/^https?:\/\//i.test(u) && !/duckduckgo\.com/i.test(u)) urls.add(u);
+        } catch { /* noop */ }
+        if (urls.size >= 10) break;
+      }
+      if (urls.size) return Array.from(urls);
+    }
+  } catch { /* noop */ }
+
+  // Fallback: Wikipedia search page (always crawlable, on-topic).
+  return [`https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(q)}`];
 }
+
 
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
@@ -48,19 +73,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1) Submit crawl job
+    // 1) Discover real seed URLs for the query, then submit crawl job
+    const seeds = await discoverSeeds(q);
+    const isUrl = /^https?:\/\//i.test(q);
     const submit = await fetch(`${ENGINE_URL}/v1/jobs`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify({
-        seeds: toSeed(q),
-        topic: /^https?:\/\//i.test(q) ? null : q,
+        seeds,
+        topic: isUrl ? null : q,
         max_depth,
         max_pages,
-        include_archive: true,
+        include_archive: false,
         js_rendering,
       }),
     });
+
 
     if (!submit.ok) {
       const text = await submit.text();
