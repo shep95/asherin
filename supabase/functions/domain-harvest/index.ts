@@ -43,6 +43,38 @@ for (const [cat, exts] of Object.entries(DOC_EXT_CATEGORIES)) {
 }
 const ALL_DOC_EXTS = new Set(EXT_TO_CAT.keys());
 
+// Well-known URL path segments that mean "this page IS a document"
+// (e.g. https://scribd.com/document/123/Title  → a PDF document page).
+// We treat these like docs even when the URL has no file extension.
+const DEFAULT_DOC_PATH_SEGMENTS = new Set([
+  "document", "documents", "doc", "docs",
+  "book", "books", "ebook", "ebooks",
+  "audiobook", "audiobooks",
+  "presentation", "presentations", "slides", "slide",
+  "sheet-music", "sheets", "sheet",
+  "paper", "papers",
+  "article", "articles",
+  "publication", "publications",
+  "report", "reports",
+  "magazine", "magazines",
+  "podcast", "podcasts", "episode",
+  "file", "files",
+  "download", "downloads",
+  "pdf", "pdfs",
+  "manual", "manuals",
+  "thesis", "dissertation",
+  "issue", "issues",
+  "chapter", "chapters",
+]);
+
+function firstPathSegment(url: string): string | null {
+  try {
+    const p = new URL(url).pathname.split("/").filter(Boolean);
+    return p[0]?.toLowerCase() ?? null;
+  } catch { return null; }
+}
+
+
 function timedFetch(url: string, init?: RequestInit): Promise<Response | null> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS);
@@ -96,7 +128,7 @@ function extractAnchors(html: string, base: string): string[] {
       if (/^https?:/i.test(abs)) out.push(abs);
     } catch { /* ignore */ }
   }
-  // Also catch embedded iframe/object/embed/source data URLs that point to files
+  // Embedded iframe/object/embed/source/data attributes pointing to files
   const re2 = /\b(?:src|data)\s*=\s*["']([^"']+\.(?:pdf|docx?|xlsx?|pptx?|csv|epub|zip|mp3|mp4))["']/gi;
   while ((m = re2.exec(html)) !== null) {
     try {
@@ -106,6 +138,58 @@ function extractAnchors(html: string, base: string): string[] {
   }
   return out;
 }
+
+// Hunt the raw HTML (including JSON inside <script> tags used by SPAs like
+// Next.js / React) for URLs that look like document landing pages or direct
+// file downloads. This is what catches Scribd / Issuu / Slideshare cards
+// that aren't rendered as <a href> in the initial HTML.
+function extractEmbeddedUrls(html: string, base: string, docPathPatterns: Set<string>): string[] {
+  const out = new Set<string>();
+  let baseOrigin = "";
+  try { baseOrigin = new URL(base).origin; } catch { /* ignore */ }
+
+  // 1) Doc-page paths anywhere in the document: "/document/123/Title",
+  //    "\u002Fdocument\u002F456\u002FFoo", "https://host/document/789/..."
+  for (const seg of docPathPatterns) {
+    const esc = seg.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+    // Matches: /seg/<anything-but-slash-or-quote>/<anything-but-quote>
+    // Allows backslash-escaped slashes (\u002F or \/) used in JSON.
+    const re = new RegExp(
+      `(?:https?:(?:\\\\?\\/){2}[^"'\\s\\\\]+)?(?:\\\\?\\/)${esc}(?:\\\\?\\/)[^"'\\s\\\\<>]{1,250}`,
+      "gi",
+    );
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) !== null) {
+      let raw = m[0]
+        .replace(/\\u002[Ff]/g, "/")
+        .replace(/\\\//g, "/")
+        .replace(/&amp;/g, "&");
+      try {
+        const abs = new URL(raw, baseOrigin || base).toString().split("#")[0];
+        if (/^https?:/i.test(abs)) out.add(abs);
+      } catch { /* ignore */ }
+      if (out.size > 4000) break;
+    }
+  }
+
+  // 2) Direct file downloads anywhere in the markup or JSON
+  const fileRe = /(?:https?:(?:\\?\/){2}[^"'\s\\]+|(?:\\?\/)[^\s"'<>]+)\.(?:pdf|docx?|xlsx?|pptx?|csv|tsv|epub|mobi|azw3?|zip|rar|7z|tar|gz|tgz|mp3|mp4|m4a|wav|flac|jpg|jpeg|png|gif|webp|svg|json|xml|txt|rtf|odt|ods|odp)\b/gi;
+  let fm: RegExpExecArray | null;
+  while ((fm = fileRe.exec(html)) !== null) {
+    let raw = fm[0]
+      .replace(/\\u002[Ff]/g, "/")
+      .replace(/\\\//g, "/")
+      .replace(/&amp;/g, "&");
+    try {
+      const abs = new URL(raw, baseOrigin || base).toString().split("#")[0];
+      if (/^https?:/i.test(abs)) out.add(abs);
+    } catch { /* ignore */ }
+    if (out.size > 4000) break;
+  }
+
+  return [...out];
+}
+
 
 Deno.serve(async (req) => {
   corsHeaders = getCorsHeaders(req);
@@ -118,6 +202,7 @@ Deno.serve(async (req) => {
       maxPages?: number;
       maxDepth?: number;
       extensions?: string[]; // optional restriction (e.g. ["pdf","docx"])
+      docPathPatterns?: string[]; // first path segments to treat as document pages (e.g. "document","book")
     };
     if (!body.domain) {
       return new Response(JSON.stringify({ error: "domain required" }), {
@@ -137,6 +222,13 @@ Deno.serve(async (req) => {
     const maxPages = Math.min(MAX_PAGES, Math.max(10, body.maxPages ?? MAX_PAGES));
     const maxDepth = Math.min(5, Math.max(1, body.maxDepth ?? MAX_DEPTH));
 
+    // Doc-page path segments: defaults + caller-supplied (from mapper categories).
+    const docPathPatterns = new Set<string>(DEFAULT_DOC_PATH_SEGMENTS);
+    for (const p of body.docPathPatterns || []) {
+      const seg = p.toLowerCase().replace(/^\/+|\/+$/g, "").split("/")[0];
+      if (seg) docPathPatterns.add(seg);
+    }
+
     // Seed queue: provided seeds (filtered to same host + HTML) + homepage
     const seeds = new Set<string>([root.origin + "/"]);
     for (const s of body.seedUrls || []) {
@@ -149,6 +241,12 @@ Deno.serve(async (req) => {
     const docs = new Map<string, { url: string; ext: string; category: string; foundOn: string }>();
     let pagesCrawled = 0;
 
+    function addDoc(url: string, ext: string, category: string, foundOn: string) {
+      if (docs.has(url) || docs.size >= MAX_DOCS) return;
+      if (wantExts && !wantExts.has(ext)) return;
+      docs.set(url, { url, ext, category, foundOn });
+    }
+
     async function processPage(item: QItem): Promise<QItem[]> {
       if (pagesCrawled >= maxPages || docs.size >= MAX_DOCS) return [];
       if (visited.has(item.url)) return [];
@@ -160,27 +258,47 @@ Deno.serve(async (req) => {
       pagesCrawled++;
       const html = await r.text().catch(() => "");
       if (!html) return [];
+      // Combine standard <a href> anchors with URLs hidden inside embedded
+      // JSON / script tags (Next.js __NEXT_DATA__, React state, etc.) —
+      // SPAs like Scribd render their cards from JSON, not <a> tags.
       const anchors = extractAnchors(html, item.url);
+      const embedded = extractEmbeddedUrls(html, item.url, docPathPatterns);
+      const allLinks = [...new Set([...anchors, ...embedded])];
       const next: QItem[] = [];
-      for (const a of anchors) {
+      for (const a of allLinks) {
         if (!sameHost(a, root.host)) continue;
         const e = extOf(a);
+        const seg = firstPathSegment(a);
+        // 1) Direct file download (.pdf, .docx, .zip, etc.)
         if (e && ALL_DOC_EXTS.has(e)) {
-          if (wantExts && !wantExts.has(e)) continue;
-          if (!docs.has(a) && docs.size < MAX_DOCS) {
-            docs.set(a, {
-              url: a,
-              ext: e,
-              category: EXT_TO_CAT.get(e) || "other",
-              foundOn: item.url,
-            });
-          }
-        } else if (item.depth < maxDepth && looksLikeHtml(a) && !visited.has(a)) {
+          addDoc(a, e, EXT_TO_CAT.get(e) || "other", item.url);
+          continue;
+        }
+        // 2) Document landing page (e.g. /document/123/Title, /book/456/Foo)
+        if (seg && docPathPatterns.has(seg)) {
+          // Only count "real" doc pages — must have at least one extra path segment
+          // (e.g. /document/123/... not just /document or /document/)
+          try {
+            const path = new URL(a).pathname.split("/").filter(Boolean);
+            if (path.length >= 2) {
+              addDoc(a, "html", `page:${seg}`, item.url);
+              // Also keep crawling deeper inside doc collections (helps pagination
+              // on /docs, /books pages where individual items live one click away)
+              if (item.depth < maxDepth && !visited.has(a)) {
+                next.push({ url: a, depth: item.depth + 1 });
+              }
+              continue;
+            }
+          } catch { /* ignore */ }
+        }
+        // 3) Otherwise enqueue for crawling if HTML and within depth budget
+        if (item.depth < maxDepth && looksLikeHtml(a) && !visited.has(a)) {
           next.push({ url: a, depth: item.depth + 1 });
         }
       }
       return next;
     }
+
 
     // Parallel BFS workers
     while (queue.length && pagesCrawled < maxPages && docs.size < MAX_DOCS) {
