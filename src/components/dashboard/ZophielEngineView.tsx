@@ -696,7 +696,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           title="Run forensic intelligence analysis: timeline, credibility, fact-check, narrative, gaps"
                         >
                           <Brain className="h-3.5 w-3.5" />
-                          {intelSuiteOpen ? "Close Intel" : "Intel Suite"}
+                          <span className="hidden sm:inline">{intelSuiteOpen ? "Close Intel" : "Intel Suite"}</span>
+                          <span className="sm:hidden">Intel</span>
                         </button>
                       </div>
                     </div>
