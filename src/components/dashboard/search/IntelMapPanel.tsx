@@ -4,6 +4,7 @@ import SocialPostEmbed, { isSocialUrl } from "./SocialPostEmbed";
 import LocationMapPanel from "./LocationMapPanel";
 import { decodeHtmlEntities } from "@/lib/htmlDecode";
 import type { SearchResult } from "./types";
+import { buildIntelGraph } from "./intel/buildIntelGraph";
 
 interface IntelNode {
   id: string;
@@ -247,16 +248,17 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
 }
 
 const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
-  const [loading, setLoading] = useState(true);
+  const initialGraph = useMemo(() => buildIntelGraph(results), []);
+  const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [nodes, setNodes] = useState<IntelNode[]>([]);
-  const [edges, setEdges] = useState<IntelEdge[]>([]);
-  const [scrapedCount, setScrapedCount] = useState(0);
-  const [totalSources, setTotalSources] = useState(0);
-  const [nextOffset, setNextOffset] = useState(0);
+  const [nodes, setNodes] = useState<IntelNode[]>(() => initialGraph.nodes as IntelNode[]);
+  const [edges, setEdges] = useState<IntelEdge[]>(() => initialGraph.edges as IntelEdge[]);
+  const [scrapedCount, setScrapedCount] = useState(results.length);
+  const [totalSources, setTotalSources] = useState(results.length);
+  const [nextOffset, setNextOffset] = useState(results.length);
   const [hasMore, setHasMore] = useState(false);
-  const [totalAvailable, setTotalAvailable] = useState(0);
+  const [totalAvailable, setTotalAvailable] = useState(results.length);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -291,39 +293,30 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   // new `results` array refs every time) don't re-trigger the build and
   // cause the map to flash/disappear.
   const resultsSig = useMemo(
-    () => `${query}::${results.length}::${results.map((r) => r.url).join("|")}`,
+    () => `${query}::${results.length}::${results.map((r, i) => `${i}:${r.url}:${r.title}`).join("|")}`,
     [query, results],
   );
-  const lastSigRef = useRef<string>("");
   useEffect(() => {
-    if (lastSigRef.current === resultsSig) return;
-    lastSigRef.current = resultsSig;
-    let cancelled = false;
-    setLoading(true);
     setError(null);
-    (async () => {
-      try {
-        const { buildIntelGraph } = await import("./intel/buildIntelGraph");
-        if (cancelled) return;
-        const { nodes: newNodes, edges: newEdges } = buildIntelGraph(results);
-        setNodes(newNodes as IntelNode[]);
-        setEdges(newEdges as IntelEdge[]);
-        setScrapedCount(results.length);
-        setTotalSources(results.length);
-        setNextOffset(results.length);
-        setHasMore(false);
-        setTotalAvailable(results.length);
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message || "Could not build intel map");
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-          setLoadingMore(false);
-        }
-      }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setLoading(false);
+    setLoadingMore(false);
+    try {
+      const { nodes: newNodes, edges: newEdges } = buildIntelGraph(results);
+      setNodes(newNodes as IntelNode[]);
+      setEdges(newEdges as IntelEdge[]);
+      setScrapedCount(results.length);
+      setTotalSources(results.length);
+      setNextOffset(results.length);
+      setHasMore(false);
+      setTotalAvailable(results.length);
+    } catch (e: any) {
+      setNodes([]);
+      setEdges([]);
+      setError(e?.message || "Could not build intel map");
+    }
+  // `resultsSig` is the only dependency on purpose: parent renders may create a
+  // fresh array ref with identical result content, and that must not erase/redraw the map.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultsSig]);
 
   // Run layout when nodes/size change
