@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive, Eye, X, FileText, Sparkles, Brain, ChevronDown, ChevronRight } from "lucide-react";
+import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive, Eye, X, FileText, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { DOMAIN_TAXONOMY } from "@/lib/domainTaxonomy";
 
 
 const MAX_ZIP_URLS = 250;
@@ -81,9 +80,8 @@ const DomainMapPanel = () => {
   const [harvestErr, setHarvestErr] = useState<string | null>(null);
   const [activeHarvestCat, setActiveHarvestCat] = useState<string | null>(null);
   const [activeExt, setActiveExt] = useState<string | null>(null);
-  const [focusDomains, setFocusDomains] = useState<Set<string>>(new Set());
-  const [showFocus, setShowFocus] = useState(false);
-  const [strictFocus, setStrictFocus] = useState(true);
+  // Focus filter intentionally removed — harvest returns every document
+  // discovered on the user's exact input domain with no taxonomy gating.
   // Batch tracking — every input line is preserved so harvest can use the
   // exact URL the user typed as the priority seed for each domain.
   const [batchEntries, setBatchEntries] = useState<{ entryUrl: string; domain: string }[]>([]);
@@ -368,33 +366,6 @@ const DomainMapPanel = () => {
     }
   };
 
-  const focusKeywords = useMemo(() => {
-    const s = new Set<string>();
-    const STOP = new Set(["and","the","with","from","into","other","general","applied","theory","studies","science","sciences","systems","analysis","design","modern","classical"]);
-    for (const name of focusDomains) {
-      const dom = DOMAIN_TAXONOMY.find((x) => x.name === name);
-      if (!dom) continue;
-      for (const c of dom.categories) {
-        for (const phrase of [c.name, ...c.subs]) {
-          const clean = phrase.toLowerCase().replace(/\([^)]*\)/g, " ");
-          for (const w of clean.split(/[^a-z0-9]+/)) {
-            if (w.length >= 4 && !STOP.has(w)) s.add(w);
-          }
-        }
-      }
-    }
-    return s;
-  }, [focusDomains]);
-
-  const matchesFocus = (url: string): boolean => {
-    if (focusKeywords.size === 0) return true;
-    let decoded = url;
-    try { decoded = decodeURIComponent(url); } catch { /* ignore */ }
-    const tokens = decoded.toLowerCase().split(/[^a-z0-9]+/);
-    for (const t of tokens) if (focusKeywords.has(t)) return true;
-    return false;
-  };
-
   const currentUrls = useMemo(() => {
     let list: string[] = [];
     if (harvest) {
@@ -410,13 +381,10 @@ const DomainMapPanel = () => {
       const cat = result.categories.find((c) => c.category === activeCat);
       list = cat ? cat.urls : result.categories.flatMap((c) => c.urls);
     }
-    if (strictFocus && focusKeywords.size > 0) {
-      list = list.filter(matchesFocus);
-    }
     if (!filter.trim()) return list;
     const f = filter.toLowerCase();
     return list.filter((u) => u.toLowerCase().includes(f));
-  }, [result, activeCat, filter, harvest, activeHarvestCat, activeExt, focusKeywords, strictFocus]);
+  }, [result, activeCat, filter, harvest, activeHarvestCat, activeExt]);
 
 
   return (
@@ -478,88 +446,8 @@ const DomainMapPanel = () => {
 
       {error && <p className="text-[10px] font-light text-red-400/80">{error}</p>}
 
-      {/* ── KNOWLEDGE FOCUS FILTER ───────────────────────────────────── */}
-      <div className="rounded-xl border border-border/30 bg-background/40">
-        <button
-          type="button"
-          onClick={() => setShowFocus((v) => !v)}
-          className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-foreground/[0.03] transition"
-        >
-          {showFocus ? <ChevronDown className="h-3.5 w-3.5 text-foreground/70" /> : <ChevronRight className="h-3.5 w-3.5 text-foreground/70" />}
-          <Brain className="h-3.5 w-3.5 text-foreground/70" />
-          <span className="text-[10px] font-light tracking-[0.2em] uppercase text-foreground/80">Knowledge Focus Filter</span>
-          <span className="text-[10px] font-light text-muted-foreground/60">
-            {focusDomains.size === 0
-              ? "Off — showing every document"
-              : `${focusDomains.size} domain${focusDomains.size === 1 ? "" : "s"} · ${focusKeywords.size} keywords`}
-          </span>
-          {focusDomains.size > 0 && (
-            <span className="ml-auto flex items-center gap-1.5">
-              <label
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/70 cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={strictFocus}
-                  onChange={(e) => setStrictFocus(e.target.checked)}
-                  className="h-3 w-3 accent-foreground"
-                />
-                STRICT
-              </label>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setFocusDomains(new Set()); }}
-                className="rounded border border-border/40 px-1.5 py-0.5 text-[10px] font-light text-muted-foreground/80 hover:border-foreground/60"
-              >
-                CLEAR
-              </button>
-            </span>
-          )}
-        </button>
-        {showFocus && (
-          <div className="px-3 pb-3 space-y-2 border-t border-border/20 pt-2">
-            <p className="text-[10px] font-light text-muted-foreground/70">
-              Pick the knowledge domains you care about. Discovered URLs and harvested documents are filtered to only those whose titles/paths match the selected subjects (e.g. <span className="text-foreground/80">quantum</span>, <span className="text-foreground/80">cryptography</span>, <span className="text-foreground/80">epidemiology</span>).
-            </p>
-            <div className="flex flex-wrap gap-1.5 max-h-[180px] overflow-y-auto">
-              {DOMAIN_TAXONOMY.map((d) => {
-                const on = focusDomains.has(d.name);
-                return (
-                  <button
-                    key={d.name}
-                    type="button"
-                    onClick={() => {
-                      setFocusDomains((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(d.name)) next.delete(d.name); else next.add(d.name);
-                        return next;
-                      });
-                    }}
-                    title={d.categories.map((c) => c.name).join(" · ")}
-                    className={`px-2 py-1 rounded-md text-[10px] font-light tracking-wide border transition ${
-                      on
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-border/40 bg-background/40 text-foreground/70 hover:border-foreground/60"
-                    }`}
-                  >
-                    {d.name}
-                  </button>
-                );
-              })}
-            </div>
-            {focusDomains.size > 0 && (
-              <div className="flex flex-wrap gap-1 text-[10px] font-light text-muted-foreground/70">
-                <span className="text-foreground/70">Active keywords:</span>
-                {Array.from(focusKeywords).slice(0, 60).map((k) => (
-                  <span key={k} className="rounded border border-border/30 bg-background/40 px-1.5 py-0.5 text-foreground/80">{k}</span>
-                ))}
-                {focusKeywords.size > 60 && <span>+{focusKeywords.size - 60} more</span>}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      {/* Knowledge Focus Filter removed — harvester now returns every
+          document found on the user's exact input domain. */}
 
 
 
