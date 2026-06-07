@@ -200,6 +200,33 @@ const DomainMapPanel = () => {
     } finally { setLoading(false); }
   };
 
+  const focusKeywords = useMemo(() => {
+    const s = new Set<string>();
+    const STOP = new Set(["and","the","with","from","into","other","general","applied","theory","studies","science","sciences","systems","analysis","design","modern","classical"]);
+    for (const name of focusDomains) {
+      const dom = DOMAIN_TAXONOMY.find((x) => x.name === name);
+      if (!dom) continue;
+      for (const c of dom.categories) {
+        for (const phrase of [c.name, ...c.subs]) {
+          const clean = phrase.toLowerCase().replace(/\([^)]*\)/g, " ");
+          for (const w of clean.split(/[^a-z0-9]+/)) {
+            if (w.length >= 4 && !STOP.has(w)) s.add(w);
+          }
+        }
+      }
+    }
+    return s;
+  }, [focusDomains]);
+
+  const matchesFocus = (url: string): boolean => {
+    if (focusKeywords.size === 0) return true;
+    let decoded = url;
+    try { decoded = decodeURIComponent(url); } catch { /* ignore */ }
+    const tokens = decoded.toLowerCase().split(/[^a-z0-9]+/);
+    for (const t of tokens) if (focusKeywords.has(t)) return true;
+    return false;
+  };
+
   const currentUrls = useMemo(() => {
     let list: string[] = [];
     if (harvest) {
@@ -215,10 +242,13 @@ const DomainMapPanel = () => {
       const cat = result.categories.find((c) => c.category === activeCat);
       list = cat ? cat.urls : result.categories.flatMap((c) => c.urls);
     }
+    if (strictFocus && focusKeywords.size > 0) {
+      list = list.filter(matchesFocus);
+    }
     if (!filter.trim()) return list;
     const f = filter.toLowerCase();
     return list.filter((u) => u.toLowerCase().includes(f));
-  }, [result, activeCat, filter, harvest, activeHarvestCat, activeExt]);
+  }, [result, activeCat, filter, harvest, activeHarvestCat, activeExt, focusKeywords, strictFocus]);
 
 
   return (
