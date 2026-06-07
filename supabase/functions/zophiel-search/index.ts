@@ -1395,25 +1395,46 @@ Deno.serve(async (req) => {
       r.veracity = Math.min(100, Math.round(r.veracity * (0.8 + r.truthGraph.consensusWeight * 0.2)));
     }
 
-    // ── Relevance-First Sort — ANY site mentioning the query surfaces ──
-    // Source tier is a tiebreaker only; topical match wins. Hostile sources
-    // still sink, but unknown/random sites are no longer buried under "trusted"
-    // domains that barely mention the query.
-    const qTokens = trimmed.toLowerCase().match(/\b[\w]{3,}\b/g) || [];
+    // ── Relevance-First Sort & Ranking ───────────────────────────────────────
+    // Compute a topical relevance score (0..1) for each result, weight title
+    // matches 3x, multi-word phrase hits 2x, and consensus 1x. Then sort and
+    // assign a 1-based rank that the UI surfaces as "RANK #N · 87% match".
+    const trimmedLo = trimmed.toLowerCase();
+    const qTokens = trimmedLo.match(/\b[\w]{3,}\b/g) || [];
     const qSet = new Set(qTokens);
+    // Multi-word phrases (bigrams + full query) for phrase-match boost
+    const phrases: string[] = [];
+    if (trimmedLo.length > 3) phrases.push(trimmedLo);
+    for (let i = 0; i < qTokens.length - 1; i++) phrases.push(`${qTokens[i]} ${qTokens[i + 1]}`);
+
     const relevance = (r: SearchResult): number => {
-      if (qSet.size === 0) return 0;
-      const hay = `${r.title} ${r.snippet}`.toLowerCase();
-      let titleHits = 0, snipHits = 0;
+      if (qSet.size === 0) return 0.5;
       const titleLo = r.title.toLowerCase();
+      const snipLo = r.snippet.toLowerCase();
+      const urlLo = r.url.toLowerCase();
+      let titleHits = 0, snipHits = 0, urlHits = 0;
       for (const t of qSet) {
         if (titleLo.includes(t)) titleHits++;
-        else if (hay.includes(t)) snipHits++;
+        else if (snipLo.includes(t)) snipHits++;
+        else if (urlLo.includes(t)) urlHits++;
       }
-      // Title hits weighted 3x; coverage normalized 0..1
-      return (titleHits * 3 + snipHits) / (qSet.size * 3);
+      // Coverage: title hits 3x, snippet 1x, url 0.5x
+      const coverage = (titleHits * 3 + snipHits + urlHits * 0.5) / (qSet.size * 3);
+      // Phrase bonus: exact bigram/full-query match in title or snippet
+      let phraseBonus = 0;
+      for (const p of phrases) {
+        if (titleLo.includes(p)) phraseBonus += 0.15;
+        else if (snipLo.includes(p)) phraseBonus += 0.08;
+      }
+      // Consensus bonus: corroborated by other sources
+      const consensusBonus = r.truthGraph.consensusWeight * 0.1;
+      return Math.min(1, coverage * 0.75 + phraseBonus + consensusBonus);
     };
-    for (const r of filtered) (r as any)._rel = relevance(r);
+    for (const r of filtered) {
+      const rel = relevance(r);
+      r.relevance = Math.round(rel * 100);
+      (r as any)._rel = rel;
+    }
 
     filtered.sort((a, b) => {
       // Hostile sources always sink to bottom
@@ -1421,12 +1442,16 @@ Deno.serve(async (req) => {
       // PRIMARY: topical relevance to the query
       const ra = (a as any)._rel as number;
       const rb = (b as any)._rel as number;
-      if (Math.abs(rb - ra) > 0.05) return rb - ra;
-      // SECONDARY: veracity (now lightly tier-weighted)
+      if (Math.abs(rb - ra) > 0.03) return rb - ra;
+      // SECONDARY: veracity (lightly tier-weighted)
       if (b.veracity !== a.veracity) return b.veracity - a.veracity;
       // TIEBREAKER: tier
       return a.tier - b.tier;
     });
+
+    // Assign 1-based rank after final sort
+    filtered.forEach((r, i) => { r.rank = i + 1; });
+
 
     // Boost mode-relevant domains (secondary sort)
     const boostDomains = new Set(MODE_DOMAIN_BOOSTS[mode] || []);
