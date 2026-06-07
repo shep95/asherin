@@ -82,6 +82,35 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
     setLoadingPreview(false);
   };
 
+  const toggleReport = async () => {
+    const next = !reportOpen;
+    setReportOpen(next);
+    if (!next || report || reportLoading) return;
+    setReportLoading(true);
+    setReportError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("zophiel-preview", {
+        body: { url: result.url },
+      });
+      if (error) throw new Error(error.message || "Fetch failed");
+      if (!data?.success) throw new Error(data?.error || "Could not read page");
+      const built = buildIntelReport({
+        url: result.url,
+        title: data.title,
+        description: data.description,
+        content: data.content || "",
+        wordCount: data.wordCount,
+        readingTimeMin: data.readingTimeMin,
+        isPaywalled: data.isPaywalled,
+      });
+      setReport(built);
+    } catch (e: any) {
+      setReportError(e?.message || "Failed to build report");
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   const isOnion = !!result.onion;
 
   return (
