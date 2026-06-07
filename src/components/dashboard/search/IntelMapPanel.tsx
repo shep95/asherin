@@ -1,10 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { X, Loader2, Network, ZoomIn, ZoomOut, RotateCcw, ExternalLink, Users, Building2, MapPin, Tag, Calendar, Globe, Plus, Zap, KeyRound } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-// Note: deterministic, non-AI graph builder — no edge function / queue needed.
-import { getActiveIntelMapByok, isIntelMapByokEnabled, getProviderSpec } from "@/lib/intelMapByok";
-import IntelMapByokPanel from "./IntelMapByokPanel";
-import IntelMapChatPopover from "./IntelMapChatPopover";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { X, Loader2, Network, ZoomIn, ZoomOut, RotateCcw, ExternalLink, Users, Building2, MapPin, Tag, Calendar, Globe, Plus } from "lucide-react";
 import SocialPostEmbed, { isSocialUrl } from "./SocialPostEmbed";
 import LocationMapPanel from "./LocationMapPanel";
 import { decodeHtmlEntities } from "@/lib/htmlDecode";
@@ -37,8 +32,6 @@ interface IntelMapPanelProps {
   query: string;
   results: SearchResult[];
   onClose: () => void;
-  /** Optional: re-run the underlying Zophiel search with a refined query string. */
-  onRefineQuery?: (q: string) => void;
 }
 
 /* Theme-matched monochrome palette using semantic tokens.
@@ -253,7 +246,7 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
   return nodes;
 }
 
-const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanelProps) => {
+const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -286,11 +279,6 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
     return () => obs.disconnect();
   }, []);
 
-  const [queueInfo, setQueueInfo] = useState<{ position: number; running: number } | null>(null);
-  const [byokOpen, setByokOpen] = useState(false);
-  const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
-  const refreshByok = useCallback(() => setByokActive(isIntelMapByokEnabled()), []);
-
   // Slide-out map / social embed state — triggered from selected entity actions.
   const [mapQuery, setMapQuery] = useState<string | null>(null);
 
@@ -313,7 +301,6 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
     let cancelled = false;
     setLoading(true);
     setError(null);
-    setQueueInfo(null);
     (async () => {
       try {
         const { buildIntelGraph } = await import("./intel/buildIntelGraph");
@@ -338,10 +325,6 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultsSig]);
-
-  const onScrapeMore = useCallback(() => {
-    // No-op: deterministic builder consumes the full result set up-front.
-  }, []);
 
   // Run layout when nodes/size change
   const laidOut = useMemo(() => {
