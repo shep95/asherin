@@ -428,29 +428,53 @@ const DomainMapPanel = () => {
         <div className="min-w-0">
           <h2 className="text-sm font-light tracking-wide text-foreground">Domain URL Mapper</h2>
           <p className="text-[10px] font-extralight text-muted-foreground/70">
-            Enter a root domain — get every URL on it, grouped by path type (e.g. <span className="text-foreground/80">/document/</span>, <span className="text-foreground/80">/user/</span>, <span className="text-foreground/80">/book/</span>).
+            Enter one or many domains / URLs — one per line or comma-separated — and every match is mapped and harvested in a single batch.
           </p>
         </div>
       </div>
 
-      <form onSubmit={run} className="flex items-center gap-2 rounded-xl border border-border/30 bg-background/40 px-3 py-2 focus-within:border-foreground/40 transition-colors">
-        <Globe className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => { setInput(e.target.value); setError(null); }}
-          placeholder="scribd.com or https://www.scribd.com/"
-          className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
-          disabled={loading}
-        />
-        <button
-          type="submit"
-          disabled={loading || !input.trim()}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-foreground/10 hover:bg-foreground/15 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1.5 text-[11px] font-medium tracking-wide text-foreground transition-colors"
-        >
-          {loading ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />MAPPING</>) : (<><Search className="h-3.5 w-3.5" />MAP DOMAIN</>)}
-        </button>
+      <form onSubmit={run} className="rounded-xl border border-border/30 bg-background/40 px-3 py-2 focus-within:border-foreground/40 transition-colors space-y-2">
+        <div className="flex items-start gap-2">
+          <Globe className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-1.5" />
+          <textarea
+            value={input}
+            onChange={(e) => { setInput(e.target.value); setError(null); }}
+            placeholder={"scribd.com\nhttps://www.scribd.com/search?query=military\narxiv.org\nissuu.com"}
+            rows={Math.min(8, Math.max(2, input.split(/\n/).length))}
+            className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none resize-y min-h-[44px]"
+            disabled={loading}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-2 pl-6">
+          <span className="text-[10px] font-extralight text-muted-foreground/60">
+            {(() => {
+              const n = parseDomainEntries(input).length;
+              return n === 0 ? "No domains detected yet." : `${n} domain${n === 1 ? "" : "s"} queued.`;
+            })()}
+          </span>
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-foreground/10 hover:bg-foreground/15 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1.5 text-[11px] font-medium tracking-wide text-foreground transition-colors"
+          >
+            {loading ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />MAPPING</>) : (<><Search className="h-3.5 w-3.5" />MAP BATCH</>)}
+          </button>
+        </div>
       </form>
+
+      {batchProgress.phase && batchProgress.total > 0 && (
+        <div className="rounded-lg border border-border/20 bg-background/40 px-3 py-1.5 flex items-center gap-2 text-[10px] font-light text-muted-foreground/80">
+          <Loader2 className="h-3 w-3 animate-spin text-foreground/70" />
+          <span className="uppercase tracking-[0.2em] text-foreground/80">{batchProgress.phase}</span>
+          <span>{batchProgress.done} / {batchProgress.total}</span>
+          <div className="ml-auto flex-1 max-w-[40%] h-1 rounded bg-foreground/10 overflow-hidden">
+            <div
+              className="h-full bg-foreground/70 transition-all"
+              style={{ width: `${Math.round((batchProgress.done / Math.max(1, batchProgress.total)) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {error && <p className="text-[10px] font-light text-red-400/80">{error}</p>}
 
