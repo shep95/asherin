@@ -44,6 +44,26 @@ interface HarvestResult {
   allDocs: string[];
 }
 
+// Parse a free-form input (newlines, commas, spaces) into a unique list
+// of domain entries. Each entry preserves the raw URL the user typed so
+// the harvester can use it as the priority seed (e.g. /search?query=...).
+function parseDomainEntries(raw: string): { entryUrl: string; domain: string }[] {
+  const parts = raw.split(/[\n,\s]+/).map((s) => s.trim()).filter(Boolean);
+  const seen = new Set<string>();
+  const out: { entryUrl: string; domain: string }[] = [];
+  for (const p of parts) {
+    try {
+      const u = new URL(/^https?:\/\//i.test(p) ? p : `https://${p}`);
+      const host = u.hostname.replace(/^www\./, "").toLowerCase();
+      const key = u.toString();
+      if (!host || seen.has(key)) continue;
+      seen.add(key);
+      out.push({ entryUrl: u.toString(), domain: host });
+    } catch { /* skip invalid */ }
+  }
+  return out;
+}
+
 const DomainMapPanel = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -64,31 +84,113 @@ const DomainMapPanel = () => {
   const [focusDomains, setFocusDomains] = useState<Set<string>>(new Set());
   const [showFocus, setShowFocus] = useState(false);
   const [strictFocus, setStrictFocus] = useState(true);
+  // Batch tracking — every input line is preserved so harvest can use the
+  // exact URL the user typed as the priority seed for each domain.
+  const [batchEntries, setBatchEntries] = useState<{ entryUrl: string; domain: string }[]>([]);
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number; phase: "map" | "harvest" | null }>({ done: 0, total: 0, phase: null });
 
   const runHarvest = async () => {
-    if (!result) return;
+    if (!result || batchEntries.length === 0) return;
     setHarvesting(true); setHarvestErr(null); setHarvest(null);
     setActiveHarvestCat(null); setActiveExt(null);
+    setBatchProgress({ done: 0, total: batchEntries.length, phase: "harvest" });
     try {
-      // Seed the crawler with (a) the EXACT URL the user typed (so
-      // /search?query=... or any deep path is the entry point, not just
-      // the homepage) and (b) the top ~120 mapped URLs.
-      const rawInput = input.trim();
-      const mappedSeeds = result.categories.flatMap((c) => c.urls.slice(0, 12)).slice(0, 120);
-      const seedUrls = [rawInput, ...mappedSeeds].filter(Boolean);
+      // Map each entry's host to seeds derived from THAT domain's mapped URLs.
+      const seedsByDomain: Record<string, string[]> = {};
+      for (const c of result.categories) {
+        for (const u of c.urls) {
+          try {
+            const h = new URL(u).hostname.replace(/^www\./, "").toLowerCase();
+            (seedsByDomain[h] ||= []).push(u);
+          } catch { /* ignore */ }
+        }
+      }
       const docPathPatterns = result.categories.map((c) => c.category);
-      const { data, error: invErr } = await supabase.functions.invoke("domain-harvest", {
-        body: { domain: result.domain, entryUrl: rawInput, seedUrls, docPathPatterns, maxDepth: 4, maxPages: 200 },
-      });
-      if (invErr) throw new Error(invErr.message || String(invErr));
-      if (!data?.success) throw new Error(data?.error || "Harvest failed");
-      const h = data as HarvestResult;
-      setHarvest(h);
-      const firstCat = Object.keys(h.categories)[0] || null;
+
+      // Run all per-domain harvests in parallel (gated to 3 at a time so
+      // we don't overwhelm tiny edge-function CPU budgets).
+      const merged: HarvestResult = {
+        domain: batchEntries.map((b) => b.domain).join(", "),
+        origin: "",
+        pagesCrawled: 0,
+        totalDocs: 0,
+        truncated: false,
+        maxPages: 0,
+        maxDepth: 0,
+        extTally: {},
+        categories: {},
+        allDocs: [],
+      };
+      const seenDoc = new Set<string>();
+      const CONC = 3;
+      const queue = [...batchEntries];
+      let done = 0;
+      async function worker() {
+        while (queue.length) {
+          const entry = queue.shift();
+          if (!entry) break;
+          const seeds = (seedsByDomain[entry.domain] || []).slice(0, 80);
+          try {
+            const { data, error: invErr } = await supabase.functions.invoke("domain-harvest", {
+              body: {
+                domain: entry.domain,
+                entryUrl: entry.entryUrl,
+                seedUrls: [entry.entryUrl, ...seeds],
+                docPathPatterns,
+                maxDepth: 4,
+                maxPages: 200,
+              },
+            });
+            if (invErr || !data?.success) throw new Error(invErr?.message || data?.error || "Harvest failed");
+            const h = data as HarvestResult;
+            merged.pagesCrawled += h.pagesCrawled;
+            merged.truncated = merged.truncated || h.truncated;
+            merged.maxPages = Math.max(merged.maxPages, h.maxPages);
+            merged.maxDepth = Math.max(merged.maxDepth, h.maxDepth);
+            for (const [ext, n] of Object.entries(h.extTally || {})) {
+              merged.extTally[ext] = (merged.extTally[ext] || 0) + (n as number);
+            }
+            for (const [cat, groups] of Object.entries(h.categories || {})) {
+              merged.categories[cat] ||= [];
+              for (const g of groups) {
+                let bucket = merged.categories[cat].find((x) => x.ext === g.ext);
+                if (!bucket) {
+                  bucket = { ext: g.ext, count: 0, urls: [] };
+                  merged.categories[cat].push(bucket);
+                }
+                for (const u of g.urls) {
+                  if (seenDoc.has(u)) continue;
+                  seenDoc.add(u);
+                  bucket.urls.push(u);
+                  bucket.count++;
+                  merged.totalDocs++;
+                  merged.allDocs.push(u);
+                }
+              }
+            }
+          } catch (err) {
+            console.warn("[harvest]", entry.domain, err);
+          } finally {
+            done++;
+            setBatchProgress({ done, total: batchEntries.length, phase: "harvest" });
+          }
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(CONC, batchEntries.length) }, worker));
+      // Sort categories' groups by descending count for nicer chip ordering
+      for (const cat of Object.keys(merged.categories)) {
+        merged.categories[cat].sort((a, b) => b.count - a.count);
+      }
+      merged.allDocs.sort();
+      setHarvest(merged);
+      const firstCat = Object.keys(merged.categories)[0] || null;
       setActiveHarvestCat(firstCat);
     } catch (err: any) {
       setHarvestErr(err?.message || "Harvest failed");
-    } finally { setHarvesting(false); }
+    } finally {
+      setHarvesting(false);
+      setBatchProgress((p) => ({ ...p, phase: null }));
+    }
   };
 
 
@@ -184,20 +286,86 @@ const DomainMapPanel = () => {
 
   const run = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    const d = input.trim();
-    if (!d) return;
-    setLoading(true); setError(null); setResult(null); setActiveCat(null); setFilter("");
+    const entries = parseDomainEntries(input);
+    if (entries.length === 0) { setError("Enter at least one domain or URL."); return; }
+    setBatchEntries(entries);
+    setLoading(true); setError(null); setResult(null); setHarvest(null);
+    setActiveCat(null); setFilter("");
+    setBatchProgress({ done: 0, total: entries.length, phase: "map" });
     try {
-      const { data, error: invErr } = await supabase.functions.invoke("domain-map", {
-        body: { domain: d },
-      });
-      if (invErr) throw new Error(invErr.message || String(invErr));
-      if (!data?.success) throw new Error(data?.error || "Map failed");
-      setResult(data as MapResult);
-      setActiveCat((data as MapResult).categories[0]?.category ?? null);
+      // Map all domains in parallel (up to 4 at once) and MERGE the
+      // results into one combined MapResult so every downstream feature
+      // (filter, harvest, ZIP, focus) sees one unified URL pool.
+      const merged: MapResult = {
+        domain: entries.map((e2) => e2.domain).join(", "),
+        origin: "",
+        totalUnique: 0,
+        sources: [],
+        categories: [],
+        truncated: false,
+      };
+      const catMap = new Map<string, { category: string; count: number; urls: string[]; seen: Set<string> }>();
+      const sourceMap = new Map<string, number>();
+      const errs: string[] = [];
+
+      const CONC = 4;
+      const queue = [...entries];
+      let done = 0;
+      async function worker() {
+        while (queue.length) {
+          const entry = queue.shift();
+          if (!entry) break;
+          try {
+            const { data, error: invErr } = await supabase.functions.invoke("domain-map", {
+              body: { domain: entry.entryUrl },
+            });
+            if (invErr || !data?.success) throw new Error(invErr?.message || data?.error || "Map failed");
+            const m = data as MapResult;
+            merged.truncated = merged.truncated || !!m.truncated;
+            for (const s of m.sources || []) {
+              sourceMap.set(s.source, (sourceMap.get(s.source) || 0) + s.found);
+            }
+            for (const c of m.categories || []) {
+              let bucket = catMap.get(c.category);
+              if (!bucket) {
+                bucket = { category: c.category, count: 0, urls: [], seen: new Set() };
+                catMap.set(c.category, bucket);
+              }
+              for (const u of c.urls) {
+                if (bucket.seen.has(u)) continue;
+                bucket.seen.add(u);
+                bucket.urls.push(u);
+                bucket.count++;
+              }
+            }
+          } catch (err: any) {
+            errs.push(`${entry.domain}: ${err?.message || err}`);
+          } finally {
+            done++;
+            setBatchProgress({ done, total: entries.length, phase: "map" });
+          }
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(CONC, entries.length) }, worker));
+
+      merged.categories = [...catMap.values()]
+        .map(({ seen: _seen, ...rest }) => rest)
+        .sort((a, b) => b.count - a.count);
+      merged.totalUnique = merged.categories.reduce((s, c) => s + c.count, 0);
+      merged.sources = [...sourceMap.entries()].map(([source, found]) => ({ source, found }));
+
+      if (merged.totalUnique === 0 && errs.length) {
+        throw new Error(errs.join(" • "));
+      }
+      setResult(merged);
+      setActiveCat(merged.categories[0]?.category ?? null);
+      if (errs.length) setError(`Some domains failed: ${errs.slice(0, 3).join(" • ")}`);
     } catch (err: any) {
       setError(err?.message || "Failed to map domain");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+      setBatchProgress((p) => ({ ...p, phase: null }));
+    }
   };
 
   const focusKeywords = useMemo(() => {
@@ -260,29 +428,53 @@ const DomainMapPanel = () => {
         <div className="min-w-0">
           <h2 className="text-sm font-light tracking-wide text-foreground">Domain URL Mapper</h2>
           <p className="text-[10px] font-extralight text-muted-foreground/70">
-            Enter a root domain — get every URL on it, grouped by path type (e.g. <span className="text-foreground/80">/document/</span>, <span className="text-foreground/80">/user/</span>, <span className="text-foreground/80">/book/</span>).
+            Enter one or many domains / URLs — one per line or comma-separated — and every match is mapped and harvested in a single batch.
           </p>
         </div>
       </div>
 
-      <form onSubmit={run} className="flex items-center gap-2 rounded-xl border border-border/30 bg-background/40 px-3 py-2 focus-within:border-foreground/40 transition-colors">
-        <Globe className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => { setInput(e.target.value); setError(null); }}
-          placeholder="scribd.com or https://www.scribd.com/"
-          className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
-          disabled={loading}
-        />
-        <button
-          type="submit"
-          disabled={loading || !input.trim()}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-foreground/10 hover:bg-foreground/15 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1.5 text-[11px] font-medium tracking-wide text-foreground transition-colors"
-        >
-          {loading ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />MAPPING</>) : (<><Search className="h-3.5 w-3.5" />MAP DOMAIN</>)}
-        </button>
+      <form onSubmit={run} className="rounded-xl border border-border/30 bg-background/40 px-3 py-2 focus-within:border-foreground/40 transition-colors space-y-2">
+        <div className="flex items-start gap-2">
+          <Globe className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-1.5" />
+          <textarea
+            value={input}
+            onChange={(e) => { setInput(e.target.value); setError(null); }}
+            placeholder={"scribd.com\nhttps://www.scribd.com/search?query=military\narxiv.org\nissuu.com"}
+            rows={Math.min(8, Math.max(2, input.split(/\n/).length))}
+            className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none resize-y min-h-[44px]"
+            disabled={loading}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-2 pl-6">
+          <span className="text-[10px] font-extralight text-muted-foreground/60">
+            {(() => {
+              const n = parseDomainEntries(input).length;
+              return n === 0 ? "No domains detected yet." : `${n} domain${n === 1 ? "" : "s"} queued.`;
+            })()}
+          </span>
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-foreground/10 hover:bg-foreground/15 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1.5 text-[11px] font-medium tracking-wide text-foreground transition-colors"
+          >
+            {loading ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />MAPPING</>) : (<><Search className="h-3.5 w-3.5" />MAP BATCH</>)}
+          </button>
+        </div>
       </form>
+
+      {batchProgress.phase && batchProgress.total > 0 && (
+        <div className="rounded-lg border border-border/20 bg-background/40 px-3 py-1.5 flex items-center gap-2 text-[10px] font-light text-muted-foreground/80">
+          <Loader2 className="h-3 w-3 animate-spin text-foreground/70" />
+          <span className="uppercase tracking-[0.2em] text-foreground/80">{batchProgress.phase}</span>
+          <span>{batchProgress.done} / {batchProgress.total}</span>
+          <div className="ml-auto flex-1 max-w-[40%] h-1 rounded bg-foreground/10 overflow-hidden">
+            <div
+              className="h-full bg-foreground/70 transition-all"
+              style={{ width: `${Math.round((batchProgress.done / Math.max(1, batchProgress.total)) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {error && <p className="text-[10px] font-light text-red-400/80">{error}</p>}
 
