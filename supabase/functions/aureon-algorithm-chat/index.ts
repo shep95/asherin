@@ -16,6 +16,10 @@ const RAILWAY_BASE = "https://web-production-f9b81.up.railway.app";
 const RAILWAY_URL = `${RAILWAY_BASE}/api/chat`;
 const ALGORITHM_PRICE_ID = "price_1TfC3oRxgCpmPfiFniV2cXAu";
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+// Manually gifted lifetime-unlimited algorithm access (treated as admin tier — no rate limit).
+const GIFTED_UNLIMITED_EMAILS = new Set<string>([
+  "28numberofmoney@gmail.com",
+]);
 
 const FREE_LIMIT = 10;
 const FREE_WINDOW_MS = 2 * 60 * 60 * 1000;
@@ -341,9 +345,11 @@ serve(async (req) => {
     }
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    const isAdmin = userEmail?.toLowerCase() === ADMIN_EMAIL;
+    const emailLc = userEmail?.toLowerCase() ?? null;
+    const isAdmin = emailLc === ADMIN_EMAIL;
+    const isGiftedUnlimited = !!emailLc && GIFTED_UNLIMITED_EMAILS.has(emailLc);
     let tier: "admin" | "paid" | "free" = "free";
-    if (isAdmin) tier = "admin";
+    if (isAdmin || isGiftedUnlimited) tier = "admin";
     else if (userId && userEmail && stripeKey && (await hasActiveAlgorithmSub(stripeKey, userEmail))) tier = "paid";
 
     let gate = { ok: true, remaining: -1, resetAt: 0 };
