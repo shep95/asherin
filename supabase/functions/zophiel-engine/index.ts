@@ -82,12 +82,14 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         seeds,
         topic: isUrl ? null : q,
-        max_depth,
-        max_pages,
-        include_archive: false,
-        js_rendering,
+        maxDepth: max_depth,
+        maxPages: max_pages,
+        includeArchive: false,
+        includeSitemaps: false,
+        jsRendering: js_rendering,
       }),
     });
+
 
 
     if (!submit.ok) {
