@@ -122,24 +122,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
-    if (!apiKey) {
-      return new Response(JSON.stringify({ success: false, error: "FIRECRAWL_API_KEY not configured" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let html = "";
+    let status: number | null = null;
+    let finalUrl = target;
+    let scrapeError: string | null = null;
+    try {
+      const r = await zophielFetch(target);
+      html = r.html || "";
+      status = r.status;
+      finalUrl = r.finalUrl || target;
+      if (status >= 400) scrapeError = `HTTP ${status}`;
+    } catch (e: any) {
+      scrapeError = e?.name === "AbortError" ? "timeout" : (e?.message || "fetch_failed");
     }
 
-    let scraped: any = null;
-    let scrapeError: string | null = null;
-    try { scraped = await firecrawlScrape(target, apiKey); }
-    catch (e: any) { scrapeError = e?.message || "scrape_failed"; }
-
-    const md: string = scraped?.markdown || "";
-    const html: string = scraped?.html || "";
-    const links: string[] = Array.isArray(scraped?.links) ? scraped.links : [];
-    const screenshot: string | null = scraped?.screenshot || null;
-    const meta = scraped?.metadata || {};
-    const text = (md || html.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    const meta = metaOf(html);
+    const links = extractAnchors(html, finalUrl);
+    const headingsHtml = extractHeadingsHtml(html);
+    const text = stripHtml(html);
+    const md = ""; // legacy field for downstream code paths
+    const screenshot: string | null = null;
 
     const rootDomain = domainOf(target);
 
