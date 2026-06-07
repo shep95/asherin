@@ -668,7 +668,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           title="Project these results through the ZERLAL model — rival of Gaythropic"
                         >
                           <Network className="h-3.5 w-3.5" />
-                          {intelMapOpen ? "Close Map" : "Intel Map"}
+                          <span className="hidden sm:inline">{intelMapOpen ? "Close Map" : "Intel Map"}</span>
+                          <span className="sm:hidden">Map</span>
                         </button>
                         <button
                           onClick={() => setByokOpen(true)}
