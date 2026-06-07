@@ -67,7 +67,7 @@ const ScribdPanel = () => {
         sources: data.sources_used,
         textDocs: data.documents_with_text ?? 0,
       });
-      toast.success(`Brain installed → ${data.brain.name}`, { id: toastId });
+      toast.success(`Brain installed → ${data.brain.name}  (found ${data.sources_used} docs · ${data.documents_with_text} with text)`, { id: toastId });
     } catch (e) {
       toast.error(`Harvest failed: ${e instanceof Error ? e.message : String(e)}`, { id: toastId });
     } finally {
