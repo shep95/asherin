@@ -201,3 +201,6 @@ verify_jwt = false
 
 [functions.algorithm-checkout]
 verify_jwt = false
+
+[functions.domain-map]
+verify_jwt = false
