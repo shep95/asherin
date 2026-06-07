@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
-import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive, Eye, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
 
 const MAX_ZIP_URLS = 250;
 
@@ -40,6 +41,50 @@ const DomainMapPanel = () => {
   const [estimating, setEstimating] = useState(false);
   const [zipping, setZipping] = useState(false);
   const [zipMsg, setZipMsg] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ url: string; blobUrl?: string; contentType?: string; loading: boolean; error?: string; textSnippet?: string } | null>(null);
+
+  // Load file when preview opens
+  useEffect(() => {
+    if (!preview || preview.blobUrl || preview.error) return;
+    let cancelled = false;
+    let createdUrl: string | null = null;
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const auth = sessionData?.session?.access_token;
+        const res = await fetch(`https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1/domain-zip`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwZ3hnenFidHJycmJ0amNlbWNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNzIyNTQsImV4cCI6MjA4NjY0ODI1NH0.PXItSIWoCByiMjDObhyc8QryuH2wNwMAIFyzWXzYJac",
+            ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+          },
+          body: JSON.stringify({ mode: "fetch", url: preview.url }),
+        });
+        if (!res.ok) {
+          let msg = `HTTP ${res.status}`;
+          try { const j = await res.json(); if (j?.error) msg = j.error; } catch { /* ignore */ }
+          throw new Error(msg);
+        }
+        const ct = res.headers.get("content-type") || "application/octet-stream";
+        const blob = await res.blob();
+        if (cancelled) return;
+        createdUrl = URL.createObjectURL(blob);
+        let textSnippet: string | undefined;
+        if (/^text\/|application\/json|application\/xml/i.test(ct)) {
+          textSnippet = (await blob.text()).slice(0, 20000);
+        }
+        setPreview((p) => p && p.url === preview.url ? { ...p, blobUrl: createdUrl!, contentType: ct, loading: false, textSnippet } : p);
+      } catch (err: any) {
+        if (!cancelled) setPreview((p) => p && p.url === preview.url ? { ...p, loading: false, error: err?.message || "Preview failed" } : p);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
+    };
+  }, [preview?.url]);
+
 
   const runEstimate = async (urls: string[]) => {
     setEstimating(true); setEstimate(null); setZipMsg(null);
@@ -268,16 +313,22 @@ const DomainMapPanel = () => {
           {/* URL list */}
           <div className="rounded-xl border border-border/20 bg-background/30 divide-y divide-border/10 max-h-[420px] overflow-y-auto">
             {currentUrls.slice(0, 800).map((u) => (
-              <a
+              <div
                 key={u}
-                href={u}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-light text-foreground/85 hover:bg-foreground/[0.04] transition"
+                className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-light text-foreground/85 hover:bg-foreground/[0.04] transition group"
               >
                 <ExternalLink className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                <span className="truncate">{u}</span>
-              </a>
+                <a href={u} target="_blank" rel="noopener noreferrer" className="truncate flex-1 hover:underline">{u}</a>
+                <button
+                  type="button"
+                  onClick={() => setPreview({ url: u, loading: true })}
+                  className="opacity-60 group-hover:opacity-100 inline-flex items-center gap-1 rounded-md border border-border/40 bg-background/60 hover:border-foreground/60 px-2 py-0.5 text-[10px] font-light tracking-wide text-foreground/80 transition shrink-0"
+                  title="Preview document"
+                >
+                  <Eye className="h-3 w-3" />
+                  PREVIEW
+                </button>
+              </div>
             ))}
             {currentUrls.length === 0 && (
               <div className="px-3 py-6 text-center text-[11px] font-light text-muted-foreground/60">No URLs match.</div>
@@ -285,6 +336,88 @@ const DomainMapPanel = () => {
             {currentUrls.length > 800 && (
               <div className="px-3 py-2 text-[10px] text-muted-foreground/50 text-center">…showing first 800 of {currentUrls.length}</div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Preview modal */}
+      {preview && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-md p-4 animate-fade-in"
+          onClick={() => setPreview(null)}
+        >
+          <div
+            className="relative w-full max-w-5xl h-[85vh] rounded-2xl border border-border/30 bg-card/95 shadow-2xl flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-border/20">
+              <Eye className="h-4 w-4 text-foreground/70 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-extralight tracking-[0.2em] uppercase text-muted-foreground/70">Document Preview</p>
+                <p className="text-[11px] font-light text-foreground/90 truncate">{preview.url}</p>
+              </div>
+              {preview.contentType && (
+                <span className="text-[10px] font-light text-muted-foreground/70 hidden sm:inline">{preview.contentType.split(";")[0]}</span>
+              )}
+              <a
+                href={preview.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-md border border-border/40 bg-background/60 hover:border-foreground/60 px-2 py-1 text-[10px] font-light text-foreground/80 transition"
+              >
+                <ExternalLink className="h-3 w-3" /> OPEN
+              </a>
+              <button
+                type="button"
+                onClick={() => setPreview(null)}
+                className="rounded-md border border-border/40 bg-background/60 hover:border-foreground/60 p-1 text-foreground/80 transition"
+                aria-label="Close preview"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 bg-background/40 overflow-auto">
+              {preview.loading && !preview.blobUrl && !preview.error && (
+                <div className="h-full flex items-center justify-center text-[11px] font-light text-muted-foreground/70">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Fetching document…
+                </div>
+              )}
+              {preview.error && (
+                <div className="h-full flex items-center justify-center px-6 text-center text-[11px] font-light text-red-400/80">
+                  {preview.error}
+                </div>
+              )}
+              {preview.blobUrl && preview.contentType && (() => {
+                const ct = preview.contentType.toLowerCase();
+                if (ct.startsWith("image/")) {
+                  return <img src={preview.blobUrl} alt="Preview" className="max-w-full max-h-full mx-auto block" />;
+                }
+                if (ct.includes("pdf") || ct.startsWith("text/html")) {
+                  return <iframe src={preview.blobUrl} title="Preview" className="w-full h-full border-0 bg-white" />;
+                }
+                if (preview.textSnippet !== undefined) {
+                  return (
+                    <pre className="p-4 text-[11px] font-mono whitespace-pre-wrap break-words text-foreground/85">
+                      {preview.textSnippet}
+                    </pre>
+                  );
+                }
+                return (
+                  <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
+                    <p className="text-[11px] font-light text-muted-foreground/80">
+                      Inline preview not supported for <span className="text-foreground/90">{ct}</span> — download to view.
+                    </p>
+                    <a
+                      href={preview.blobUrl}
+                      download
+                      className="inline-flex items-center gap-1.5 rounded-md bg-foreground hover:bg-foreground/90 px-3 py-1.5 text-[10px] font-medium tracking-wide text-background transition"
+                    >
+                      <Download className="h-3 w-3" /> DOWNLOAD FILE
+                    </a>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
       )}

@@ -113,9 +113,48 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { mode = "estimate", urls = [], zipName = "aureon-domain-bundle.zip" } = await req.json() as {
-      mode?: "estimate" | "download"; urls?: string[]; zipName?: string;
+    const body = await req.json() as {
+      mode?: "estimate" | "download" | "fetch"; urls?: string[]; url?: string; zipName?: string;
     };
+    const { mode = "estimate", urls = [], url: singleUrl, zipName = "aureon-domain-bundle.zip" } = body;
+
+    // ─── FETCH single URL (preview proxy) ────────────────────────────────────
+    if (mode === "fetch") {
+      if (!singleUrl || !/^https?:\/\//i.test(singleUrl)) {
+        return new Response(JSON.stringify({ error: "valid url required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const MAX_PREVIEW_BYTES = 25 * 1024 * 1024;
+      try {
+        const r = await timedFetch(singleUrl, { method: "GET" }, 20000);
+        if (!r.ok) {
+          return new Response(JSON.stringify({ error: `upstream ${r.status}` }), {
+            status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const buf = new Uint8Array(await r.arrayBuffer());
+        if (buf.byteLength > MAX_PREVIEW_BYTES) {
+          return new Response(JSON.stringify({ error: `file too large for preview (${buf.byteLength} bytes, max ${MAX_PREVIEW_BYTES})` }), {
+            status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const ct = r.headers.get("content-type") || "application/octet-stream";
+        return new Response(buf, {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": ct,
+            "Content-Length": String(buf.byteLength),
+            "X-Aureon-Source": singleUrl,
+            "Cache-Control": "private, max-age=300",
+          },
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: String((e as any)?.message || e) }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     if (!Array.isArray(urls) || urls.length === 0) {
       return new Response(JSON.stringify({ error: "urls[] required" }), {
