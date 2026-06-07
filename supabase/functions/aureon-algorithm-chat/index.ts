@@ -345,9 +345,11 @@ serve(async (req) => {
     }
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    const isAdmin = userEmail?.toLowerCase() === ADMIN_EMAIL;
+    const emailLc = userEmail?.toLowerCase() ?? null;
+    const isAdmin = emailLc === ADMIN_EMAIL;
+    const isGiftedUnlimited = !!emailLc && GIFTED_UNLIMITED_EMAILS.has(emailLc);
     let tier: "admin" | "paid" | "free" = "free";
-    if (isAdmin) tier = "admin";
+    if (isAdmin || isGiftedUnlimited) tier = "admin";
     else if (userId && userEmail && stripeKey && (await hasActiveAlgorithmSub(stripeKey, userEmail))) tier = "paid";
 
     let gate = { ok: true, remaining: -1, resetAt: 0 };
