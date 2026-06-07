@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import EmergencyOpsPanel from "@/components/asher/EmergencyOpsPanel";
 import LinkExtractIntelPanel from "@/components/dashboard/search/LinkExtractIntelPanel";
+import DomainMapPanel from "@/components/dashboard/search/DomainMapPanel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tone = "neutral" | "good" | "warn" | "critical";
