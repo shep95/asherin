@@ -128,7 +128,7 @@ function extractAnchors(html: string, base: string): string[] {
       if (/^https?:/i.test(abs)) out.push(abs);
     } catch { /* ignore */ }
   }
-  // Also catch embedded iframe/object/embed/source data URLs that point to files
+  // Embedded iframe/object/embed/source/data attributes pointing to files
   const re2 = /\b(?:src|data)\s*=\s*["']([^"']+\.(?:pdf|docx?|xlsx?|pptx?|csv|epub|zip|mp3|mp4))["']/gi;
   while ((m = re2.exec(html)) !== null) {
     try {
@@ -138,6 +138,58 @@ function extractAnchors(html: string, base: string): string[] {
   }
   return out;
 }
+
+// Hunt the raw HTML (including JSON inside <script> tags used by SPAs like
+// Next.js / React) for URLs that look like document landing pages or direct
+// file downloads. This is what catches Scribd / Issuu / Slideshare cards
+// that aren't rendered as <a href> in the initial HTML.
+function extractEmbeddedUrls(html: string, base: string, docPathPatterns: Set<string>): string[] {
+  const out = new Set<string>();
+  let baseOrigin = "";
+  try { baseOrigin = new URL(base).origin; } catch { /* ignore */ }
+
+  // 1) Doc-page paths anywhere in the document: "/document/123/Title",
+  //    "\u002Fdocument\u002F456\u002FFoo", "https://host/document/789/..."
+  for (const seg of docPathPatterns) {
+    const esc = seg.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+    // Matches: /seg/<anything-but-slash-or-quote>/<anything-but-quote>
+    // Allows backslash-escaped slashes (\u002F or \/) used in JSON.
+    const re = new RegExp(
+      `(?:https?:(?:\\\\?\\/){2}[^"'\\s\\\\]+)?(?:\\\\?\\/)${esc}(?:\\\\?\\/)[^"'\\s\\\\<>]{1,250}`,
+      "gi",
+    );
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) !== null) {
+      let raw = m[0]
+        .replace(/\\u002[Ff]/g, "/")
+        .replace(/\\\//g, "/")
+        .replace(/&amp;/g, "&");
+      try {
+        const abs = new URL(raw, baseOrigin || base).toString().split("#")[0];
+        if (/^https?:/i.test(abs)) out.add(abs);
+      } catch { /* ignore */ }
+      if (out.size > 4000) break;
+    }
+  }
+
+  // 2) Direct file downloads anywhere in the markup or JSON
+  const fileRe = /(?:https?:(?:\\?\/){2}[^"'\s\\]+|(?:\\?\/)[^\s"'<>]+)\.(?:pdf|docx?|xlsx?|pptx?|csv|tsv|epub|mobi|azw3?|zip|rar|7z|tar|gz|tgz|mp3|mp4|m4a|wav|flac|jpg|jpeg|png|gif|webp|svg|json|xml|txt|rtf|odt|ods|odp)\b/gi;
+  let fm: RegExpExecArray | null;
+  while ((fm = fileRe.exec(html)) !== null) {
+    let raw = fm[0]
+      .replace(/\\u002[Ff]/g, "/")
+      .replace(/\\\//g, "/")
+      .replace(/&amp;/g, "&");
+    try {
+      const abs = new URL(raw, baseOrigin || base).toString().split("#")[0];
+      if (/^https?:/i.test(abs)) out.add(abs);
+    } catch { /* ignore */ }
+    if (out.size > 4000) break;
+  }
+
+  return [...out];
+}
+
 
 Deno.serve(async (req) => {
   corsHeaders = getCorsHeaders(req);
