@@ -458,23 +458,17 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
             {/* Imagine mode banner */}
             {mode === "imagine" && (
-              <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
-                <ImageIcon className="h-5 w-5 text-accent shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-light text-foreground">Imagine Intelligence</p>
-                  <p className="text-[10px] font-extralight text-muted-foreground">Upload any image — geo-locate, identify faces, extract biometric data, run forensic analysis. Connected to Zophiel's intel pipeline.</p>
-                </div>
+              <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-3">
+                <ImageIcon className="h-4 w-4 text-accent shrink-0" />
+                <p className="text-[11px] sm:text-xs font-light text-foreground truncate">Image OSINT — geo, faces, forensics.</p>
               </div>
             )}
 
             {/* Audit mode banner */}
             {mode === "audit" && (
-              <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
-                <FileText className="h-5 w-5 text-accent shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-light text-foreground">Aureon Security Audit</p>
-                  <p className="text-[10px] font-extralight text-muted-foreground">Upload any code file (≤100KB) — map security leaks, broken code, latent failures, and remediation paths through the ZERLAL model — the rival intelligence framework to Gaythropic.</p>
-                </div>
+              <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-3">
+                <FileText className="h-4 w-4 text-accent shrink-0" />
+                <p className="text-[11px] sm:text-xs font-light text-foreground truncate">Code audit — leaks, flaws, fixes.</p>
               </div>
             )}
 
