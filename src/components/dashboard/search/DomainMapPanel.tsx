@@ -90,29 +90,107 @@ const DomainMapPanel = () => {
   const [batchProgress, setBatchProgress] = useState<{ done: number; total: number; phase: "map" | "harvest" | null }>({ done: 0, total: 0, phase: null });
 
   const runHarvest = async () => {
-    if (!result) return;
+    if (!result || batchEntries.length === 0) return;
     setHarvesting(true); setHarvestErr(null); setHarvest(null);
     setActiveHarvestCat(null); setActiveExt(null);
+    setBatchProgress({ done: 0, total: batchEntries.length, phase: "harvest" });
     try {
-      // Seed the crawler with (a) the EXACT URL the user typed (so
-      // /search?query=... or any deep path is the entry point, not just
-      // the homepage) and (b) the top ~120 mapped URLs.
-      const rawInput = input.trim();
-      const mappedSeeds = result.categories.flatMap((c) => c.urls.slice(0, 12)).slice(0, 120);
-      const seedUrls = [rawInput, ...mappedSeeds].filter(Boolean);
+      // Map each entry's host to seeds derived from THAT domain's mapped URLs.
+      const seedsByDomain: Record<string, string[]> = {};
+      for (const c of result.categories) {
+        for (const u of c.urls) {
+          try {
+            const h = new URL(u).hostname.replace(/^www\./, "").toLowerCase();
+            (seedsByDomain[h] ||= []).push(u);
+          } catch { /* ignore */ }
+        }
+      }
       const docPathPatterns = result.categories.map((c) => c.category);
-      const { data, error: invErr } = await supabase.functions.invoke("domain-harvest", {
-        body: { domain: result.domain, entryUrl: rawInput, seedUrls, docPathPatterns, maxDepth: 4, maxPages: 200 },
-      });
-      if (invErr) throw new Error(invErr.message || String(invErr));
-      if (!data?.success) throw new Error(data?.error || "Harvest failed");
-      const h = data as HarvestResult;
-      setHarvest(h);
-      const firstCat = Object.keys(h.categories)[0] || null;
+
+      // Run all per-domain harvests in parallel (gated to 3 at a time so
+      // we don't overwhelm tiny edge-function CPU budgets).
+      const merged: HarvestResult = {
+        domain: batchEntries.map((b) => b.domain).join(", "),
+        origin: "",
+        pagesCrawled: 0,
+        totalDocs: 0,
+        truncated: false,
+        maxPages: 0,
+        maxDepth: 0,
+        extTally: {},
+        categories: {},
+        allDocs: [],
+      };
+      const seenDoc = new Set<string>();
+      const CONC = 3;
+      const queue = [...batchEntries];
+      let done = 0;
+      async function worker() {
+        while (queue.length) {
+          const entry = queue.shift();
+          if (!entry) break;
+          const seeds = (seedsByDomain[entry.domain] || []).slice(0, 80);
+          try {
+            const { data, error: invErr } = await supabase.functions.invoke("domain-harvest", {
+              body: {
+                domain: entry.domain,
+                entryUrl: entry.entryUrl,
+                seedUrls: [entry.entryUrl, ...seeds],
+                docPathPatterns,
+                maxDepth: 4,
+                maxPages: 200,
+              },
+            });
+            if (invErr || !data?.success) throw new Error(invErr?.message || data?.error || "Harvest failed");
+            const h = data as HarvestResult;
+            merged.pagesCrawled += h.pagesCrawled;
+            merged.truncated = merged.truncated || h.truncated;
+            merged.maxPages = Math.max(merged.maxPages, h.maxPages);
+            merged.maxDepth = Math.max(merged.maxDepth, h.maxDepth);
+            for (const [ext, n] of Object.entries(h.extTally || {})) {
+              merged.extTally[ext] = (merged.extTally[ext] || 0) + (n as number);
+            }
+            for (const [cat, groups] of Object.entries(h.categories || {})) {
+              merged.categories[cat] ||= [];
+              for (const g of groups) {
+                let bucket = merged.categories[cat].find((x) => x.ext === g.ext);
+                if (!bucket) {
+                  bucket = { ext: g.ext, count: 0, urls: [] };
+                  merged.categories[cat].push(bucket);
+                }
+                for (const u of g.urls) {
+                  if (seenDoc.has(u)) continue;
+                  seenDoc.add(u);
+                  bucket.urls.push(u);
+                  bucket.count++;
+                  merged.totalDocs++;
+                  merged.allDocs.push(u);
+                }
+              }
+            }
+          } catch (err) {
+            console.warn("[harvest]", entry.domain, err);
+          } finally {
+            done++;
+            setBatchProgress({ done, total: batchEntries.length, phase: "harvest" });
+          }
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(CONC, batchEntries.length) }, worker));
+      // Sort categories' groups by descending count for nicer chip ordering
+      for (const cat of Object.keys(merged.categories)) {
+        merged.categories[cat].sort((a, b) => b.count - a.count);
+      }
+      merged.allDocs.sort();
+      setHarvest(merged);
+      const firstCat = Object.keys(merged.categories)[0] || null;
       setActiveHarvestCat(firstCat);
     } catch (err: any) {
       setHarvestErr(err?.message || "Harvest failed");
-    } finally { setHarvesting(false); }
+    } finally {
+      setHarvesting(false);
+      setBatchProgress((p) => ({ ...p, phase: null }));
+    }
   };
 
 
