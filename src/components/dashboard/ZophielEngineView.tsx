@@ -356,6 +356,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
   // Determine if we should use grouped or flat display
   const hasGroups = Object.keys(grouped).length > 1;
+  const canShowSidePanel = (intelMapOpen || intelSuiteOpen) && searched && results.length > 0;
 
   
 
@@ -374,8 +375,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
       <div
         ref={leftPanelRef}
-        className={`flex flex-col min-w-0 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:flex-none" : "flex-1"}`}
-        style={(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? { width: `${100 - splitPct}%` } : undefined}
+        className={`flex flex-col min-w-0 ${canShowSidePanel ? "flex-1 lg:flex-none" : "flex-1"}`}
+        style={canShowSidePanel ? { width: `${100 - splitPct}%` } : undefined}
       >
         {/* Search Header */}
         <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[14vh] sm:pt-[20vh] pb-4 sm:pb-6"}`}>
@@ -718,7 +719,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           <div className="space-y-3">
                             {items.filter(r => !blockedDomains.some(d => r.url.includes(d))).map((r, i) => (
                               <SearchResultCard
-                                key={r.url}
+                              key={`${r.url}::${i}`}
                                 result={r}
                                 freshnessAlert={freshnessAlerts[r.url]}
                                 onPreview={(p) => setPreview({ data: p, url: r.url })}
@@ -736,7 +737,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                     <div className="space-y-3">
                       {results.map((r, i) => (
                         <SearchResultCard
-                          key={r.url}
+                          key={`${r.url}::${i}`}
                           result={r}
                           freshnessAlert={freshnessAlerts[r.url]}
                           onPreview={(p) => setPreview({ data: p, url: r.url })}
@@ -761,7 +762,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       </div>
 
       {/* Resize divider — desktop only, when a side panel is open */}
-      {(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 && (
+      {canShowSidePanel && (
         <div
           onMouseDown={(e) => { e.preventDefault(); startResize(); }}
           className="hidden lg:flex items-center justify-center w-1.5 cursor-col-resize group relative z-30"
@@ -772,24 +773,13 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         </div>
       )}
 
-      {/* Intel Map split-screen panel */}
+      {/* Intel Map panel */}
       {intelMapOpen && searched && results.length > 0 && (
         <div
           ref={rightPanelRef}
-          className="hidden lg:block min-w-0 animate-fade-in"
-          style={{ width: `${splitPct}%` }}
+          className="fixed inset-0 z-40 bg-background/40 backdrop-blur-2xl animate-fade-in lg:static lg:z-auto lg:min-w-0 lg:bg-transparent lg:backdrop-blur-none"
+          style={{ width: window.innerWidth >= 1024 ? `${splitPct}%` : undefined }}
         >
-          <IntelMapPanel
-            query={query}
-            results={results}
-            onClose={() => setIntelMapOpen(false)}
-          />
-        </div>
-      )}
-
-      {/* Mobile: full-screen overlay for Intel Map */}
-      {intelMapOpen && searched && results.length > 0 && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-background/40 backdrop-blur-2xl animate-fade-in">
           <IntelMapPanel
             query={query}
             results={results}
