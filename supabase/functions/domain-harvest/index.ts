@@ -258,9 +258,14 @@ Deno.serve(async (req) => {
       pagesCrawled++;
       const html = await r.text().catch(() => "");
       if (!html) return [];
+      // Combine standard <a href> anchors with URLs hidden inside embedded
+      // JSON / script tags (Next.js __NEXT_DATA__, React state, etc.) —
+      // SPAs like Scribd render their cards from JSON, not <a> tags.
       const anchors = extractAnchors(html, item.url);
+      const embedded = extractEmbeddedUrls(html, item.url, docPathPatterns);
+      const allLinks = [...new Set([...anchors, ...embedded])];
       const next: QItem[] = [];
-      for (const a of anchors) {
+      for (const a of allLinks) {
         if (!sameHost(a, root.host)) continue;
         const e = extOf(a);
         const seg = firstPathSegment(a);
