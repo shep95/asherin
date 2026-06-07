@@ -207,3 +207,6 @@ verify_jwt = false
 
 [functions.domain-zip]
 verify_jwt = false
+
+[functions.zophiel-engine]
+verify_jwt = false

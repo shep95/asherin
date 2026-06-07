@@ -252,9 +252,12 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke("zophiel-search", {
-        body: { query: q, mode, filters, operatorOverrides, page: 1 },
-      });
+      // Web mode → Zophiel Engine crawler (Railway). Everything else → legacy search.
+      const fn = mode === "web" ? "zophiel-engine" : "zophiel-search";
+      const body = mode === "web"
+        ? { query: q, max_pages: 25, max_depth: 2 }
+        : { query: q, mode, filters, operatorOverrides, page: 1 };
+      const { data, error } = await supabase.functions.invoke(fn, { body });
 
       const elapsed = Math.round(performance.now() - start);
       setSearchTime(elapsed);
