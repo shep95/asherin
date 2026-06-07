@@ -30,6 +30,7 @@ const ArchivePanel = lazy(() => import("./search/ArchivePanel"));
 const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
 import ArchivesHarvesterPanel from "./search/ArchivesHarvesterPanel";
+const NomadView = lazy(() => import("./NomadView"));
 
 
 const CATEGORY_LABELS: Record<string, string> = {
