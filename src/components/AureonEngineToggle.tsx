@@ -28,14 +28,20 @@ const AUREON_ACTIVE: Active = {
   label: "Aureon Algorithm",
 };
 
+const GEMINI_ACTIVE: Active = {
+  provider: "default",
+  model: "google/gemini-3-flash-preview",
+  label: "Gemini (Default)",
+};
+
 function loadActive(): Active {
   try {
     const raw = localStorage.getItem("aureon_byok_active");
     if (!raw) return AUREON_ACTIVE;
     const parsed = JSON.parse(raw);
-    if (!parsed?.provider || parsed.provider === "aureon" || parsed.provider === "default") {
-      return AUREON_ACTIVE;
-    }
+    if (!parsed?.provider) return AUREON_ACTIVE;
+    if (parsed.provider === "aureon") return AUREON_ACTIVE;
+    if (parsed.provider === "default") return GEMINI_ACTIVE;
     const prov = AI_PROVIDERS.find((p) => p.id === parsed.provider);
     const mod = prov?.models.find((m) => m.id === parsed.model);
     if (prov && mod) {
@@ -147,6 +153,25 @@ export default function AureonEngineToggle() {
                 <span className="text-[9px] text-muted-foreground/50">SOLIA → AUREON Brains</span>
               </div>
               {onAureon && <Check className="h-3 w-3 text-accent shrink-0" />}
+            </button>
+
+            {/* Gemini Default (Lovable AI Gateway) */}
+            <button
+              onClick={() => select(GEMINI_ACTIVE)}
+              className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all border ${
+                active.provider === "default"
+                  ? "bg-foreground/10 border-foreground/20"
+                  : "border-transparent hover:bg-foreground/5"
+              }`}
+            >
+              <div className="w-6 h-6 rounded-md bg-foreground/10 flex items-center justify-center text-[10px] text-foreground shrink-0">
+                ◉
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[11px] font-light text-foreground block">Gemini (Default)</span>
+                <span className="text-[9px] text-muted-foreground/50">google/gemini-3-flash · Lovable AI Gateway</span>
+              </div>
+              {active.provider === "default" && <Check className="h-3 w-3 text-accent shrink-0" />}
             </button>
 
             {/* BYOK providers */}
