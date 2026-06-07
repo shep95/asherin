@@ -472,9 +472,10 @@ function parseDDGResults(html: string): SearchResult[] {
     const provenanceScore = calculateProvenance(domain, tier, rawSnippet);
     const freshnessScore = calculateFreshness(publishDate);
 
-    const tierScore = tier === 1 ? 1.0 : tier === 2 ? 0.75 : tier === 3 ? 0.55 : 0.3;
+    // Tier carries 12% of veracity — credibility is shown via badge, not by burying results.
+    const tierScore = tier === 1 ? 1.0 : tier === 2 ? 0.85 : tier === 3 ? 0.7 : 0.6;
     const veracity = Math.round(
-      (provenanceScore * 0.4 + freshnessScore * 0.25 + tierScore * 0.35) * 100
+      (provenanceScore * 0.45 + freshnessScore * 0.43 + tierScore * 0.12) * 100
     );
 
     const truthGraph: TruthGraphNode = {
