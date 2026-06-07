@@ -192,13 +192,25 @@ const DomainMapPanel = () => {
   };
 
   const currentUrls = useMemo(() => {
-    if (!result) return [];
-    const cat = result.categories.find((c) => c.category === activeCat);
-    const list = cat ? cat.urls : result.categories.flatMap((c) => c.urls);
+    let list: string[] = [];
+    if (harvest) {
+      if (activeHarvestCat && activeExt) {
+        const grp = harvest.categories[activeHarvestCat]?.find((g) => g.ext === activeExt);
+        list = grp?.urls ?? [];
+      } else if (activeHarvestCat) {
+        list = (harvest.categories[activeHarvestCat] || []).flatMap((g) => g.urls);
+      } else {
+        list = harvest.allDocs;
+      }
+    } else if (result) {
+      const cat = result.categories.find((c) => c.category === activeCat);
+      list = cat ? cat.urls : result.categories.flatMap((c) => c.urls);
+    }
     if (!filter.trim()) return list;
     const f = filter.toLowerCase();
     return list.filter((u) => u.toLowerCase().includes(f));
-  }, [result, activeCat, filter]);
+  }, [result, activeCat, filter, harvest, activeHarvestCat, activeExt]);
+
 
   return (
     <div className="rounded-2xl border border-border/20 bg-gradient-to-br from-card/40 via-card/20 to-card/10 backdrop-blur-xl px-5 py-4 space-y-3">
