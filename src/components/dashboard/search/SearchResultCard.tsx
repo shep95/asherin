@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { Globe, ExternalLink, Clock, Eye, Copy, Check, AlertTriangle, Info, MapPin, ShieldAlert } from "lucide-react";
+import { Globe, ExternalLink, Clock, Eye, Copy, Check, AlertTriangle, Info, MapPin, ShieldAlert, FileSearch, ChevronDown } from "lucide-react";
 import type { SearchResult, FreshnessAlert, PagePreview } from "./types";
 import SourceTierBadge from "./SourceTierBadge";
 import SocialPostEmbed, { isSocialUrl } from "./SocialPostEmbed";
 import LocationMapPanel from "./LocationMapPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { decodeHtmlEntities } from "@/lib/htmlDecode";
+import { buildIntelReport, type IntelReport } from "./intel/buildIntelReport";
 
 interface SearchResultCardProps {
   result: SearchResult;
