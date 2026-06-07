@@ -38,6 +38,10 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
   const [copied, setCopied] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [mapQuery, setMapQuery] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [report, setReport] = useState<IntelReport | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   const cleanUrl = (url: string) => {
     try {
