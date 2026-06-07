@@ -22,6 +22,7 @@ import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
 
 const OracleLocusView = lazy(() => import("./OracleLocusView"));
 const LinkExtractView = lazy(() => import("./search/LinkExtractView"));
+const DomainMapPanel = lazy(() => import("./search/DomainMapPanel"));
 const CodeAuditView = lazy(() => import("./search/CodeAuditView"));
 const FaceRecognitionView = lazy(() => import("./search/FaceRecognitionView"));
 const DarkWebPanel = lazy(() => import("./search/DarkWebPanel"));
