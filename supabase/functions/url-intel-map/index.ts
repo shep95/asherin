@@ -43,20 +43,72 @@ function extractProperNouns(text: string, max = 25) {
   return countBy(cleaned).slice(0, max);
 }
 
-async function firecrawlScrape(url: string, apiKey: string) {
-  const r = await fetch("https://api.firecrawl.dev/v2/scrape", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url,
-      formats: ["markdown", "html", "links", "screenshot"],
-      onlyMainContent: false,
-      waitFor: 2500,
-    }),
-  });
-  const data = await r.json();
-  if (!r.ok) throw new Error(data?.error || `firecrawl ${r.status}`);
-  return data?.data ?? data;
+async function zophielFetch(url: string) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(url, {
+      signal: ctl.signal,
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+    const html = await r.text();
+    return { html, status: r.status, finalUrl: r.url };
+  } finally { clearTimeout(t); }
+}
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ").trim();
+}
+
+function metaOf(html: string) {
+  const grab = (re: RegExp) => { const m = html.match(re); return m ? m[1].trim() : ""; };
+  const title = grab(/<title[^>]*>([\s\S]*?)<\/title>/i).replace(/<[^>]+>/g, "");
+  const description =
+    grab(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ||
+    grab(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+  const ogTitle = grab(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+  const ogImage = grab(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+  const siteName = grab(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i);
+  const lang = grab(/<html[^>]+lang=["']([a-zA-Z-]+)["']/i);
+  return { title: title || ogTitle, description, ogTitle, ogImage, siteName, language: lang };
+}
+
+function extractAnchors(html: string, base: string): string[] {
+  const out: string[] = [];
+  const re = /<a\b[^>]*\bhref\s*=\s*["']([^"']+)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    try {
+      const abs = new URL(m[1], base).toString();
+      if (/^https?:/i.test(abs)) out.push(abs.split("#")[0]);
+    } catch { /* ignore */ }
+  }
+  return out;
+}
+
+function extractHeadingsHtml(html: string): string[] {
+  const out: string[] = [];
+  const re = /<h([1-3])[^>]*>([\s\S]*?)<\/h\1>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    const t = m[2].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    if (t.length > 2 && t.length < 200) out.push(t);
+  }
+  return out;
 }
 
 Deno.serve(async (req) => {
