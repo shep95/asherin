@@ -152,11 +152,9 @@ Deno.serve(async (req) => {
       .map((h) => h.toLowerCase()));
     const emails = uniq((text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) || []).map((e) => e.toLowerCase()));
     const phones = uniq(text.match(/(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g) || []);
-    const urls = uniq([...(links || []), ...((md.match(/https?:\/\/[^\s)\]<>"']+/g) || []))])
+    const urls = uniq([...(links || []), ...((text.match(/https?:\/\/[^\s)\]<>"']+/g) || []))])
       .map((u) => u.replace(/[),.;:]+$/, ""))
-      .filter((u) => {
-        try { new URL(u); return true; } catch { return false; }
-      });
+      .filter((u) => { try { new URL(u); return true; } catch { return false; } });
 
     const outboundLinks = urls.filter((u) => domainOf(u) && domainOf(u) !== rootDomain);
     const internalLinks = urls.filter((u) => domainOf(u) === rootDomain && u !== target);
