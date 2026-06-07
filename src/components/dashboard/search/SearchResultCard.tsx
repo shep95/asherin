@@ -198,6 +198,18 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
           <div className="flex items-center gap-1 sm:ml-auto sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             {!isOnion && (
               <button
+                onClick={toggleReport}
+                disabled={reportLoading}
+                className={`flex items-center gap-1 rounded-lg px-2 py-1 transition-colors ${reportOpen ? "bg-foreground/10 text-foreground" : "hover:bg-foreground/5 text-muted-foreground/50 hover:text-foreground"}`}
+                title="Generate intelligence report (no AI)"
+              >
+                <FileSearch className="h-3 w-3" />
+                {reportLoading ? "Analyzing…" : "Intel Report"}
+                <ChevronDown className={`h-3 w-3 transition-transform ${reportOpen ? "rotate-180" : ""}`} />
+              </button>
+            )}
+            {!isOnion && (
+              <button
                 onClick={loadPreview}
                 disabled={loadingPreview}
                 className="flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-foreground/5 transition-colors text-muted-foreground/50 hover:text-foreground"
@@ -216,6 +228,18 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
             </button>
           </div>
         </div>
+
+        {reportOpen && (
+          <div className="mt-3 rounded-lg border border-border/20 bg-background/40 p-3 sm:p-4 animate-slide-up">
+            {reportLoading && (
+              <p className="text-[11px] font-light text-muted-foreground">Extracting entities, signals & key sentences from page…</p>
+            )}
+            {reportError && (
+              <p className="text-[11px] font-light text-amber-400">Could not build report: {reportError}</p>
+            )}
+            {report && <IntelReportView r={report} url={result.url} />}
+          </div>
+        )}
       </div>
 
       {mapQuery && <LocationMapPanel query={mapQuery} onClose={() => setMapQuery(null)} />}
