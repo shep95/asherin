@@ -73,18 +73,21 @@ function isHostile(domain: string): boolean {
   return HOSTILE_INDICATORS.has(clean);
 }
 
-// Calculate provenance score based on tier + domain signals
+// Calculate provenance score based on tier + domain signals.
+// NOTE: Unknown sites (tier 4) are treated as NEUTRAL (0.65), not low.
+// We want any site mentioning the query to surface — credibility nuance is
+// communicated via the tier badge, NOT by burying the result.
 function calculateProvenance(domain: string, tier: SourceTier, snippet: string): number {
-  let score = tier === 1 ? 0.95 : tier === 2 ? 0.75 : tier === 3 ? 0.6 : 0.35;
-  
+  let score = tier === 1 ? 0.95 : tier === 2 ? 0.8 : tier === 3 ? 0.7 : 0.65;
+
   // Boost for citing primary sources within snippet
   const citationPatterns = /\b(according to|cited by|published in|data from|report by)\b/gi;
   const citations = (snippet.match(citationPatterns) || []).length;
   score = Math.min(1, score + citations * 0.05);
-  
+
   // Penalize if hostile
   if (isHostile(domain)) score *= 0.2;
-  
+
   return Math.round(score * 100) / 100;
 }
 
@@ -469,9 +472,10 @@ function parseDDGResults(html: string): SearchResult[] {
     const provenanceScore = calculateProvenance(domain, tier, rawSnippet);
     const freshnessScore = calculateFreshness(publishDate);
 
-    const tierScore = tier === 1 ? 1.0 : tier === 2 ? 0.75 : tier === 3 ? 0.55 : 0.3;
+    // Tier carries 12% of veracity — credibility is shown via badge, not by burying results.
+    const tierScore = tier === 1 ? 1.0 : tier === 2 ? 0.85 : tier === 3 ? 0.7 : 0.6;
     const veracity = Math.round(
-      (provenanceScore * 0.4 + freshnessScore * 0.25 + tierScore * 0.35) * 100
+      (provenanceScore * 0.45 + freshnessScore * 0.43 + tierScore * 0.12) * 100
     );
 
     const truthGraph: TruthGraphNode = {
@@ -504,9 +508,9 @@ function buildSearchResult(title: string, url: string, snippet: string): SearchR
   const hostile = isHostile(domain);
   const provenanceScore = calculateProvenance(domain, tier, snippet);
   const freshnessScore = calculateFreshness(undefined);
-  const tierScore = tier === 1 ? 1.0 : tier === 2 ? 0.75 : tier === 3 ? 0.55 : 0.3;
+  const tierScore = tier === 1 ? 1.0 : tier === 2 ? 0.85 : tier === 3 ? 0.7 : 0.6;
   const veracity = Math.round(
-    (provenanceScore * 0.4 + freshnessScore * 0.25 + tierScore * 0.35) * 100
+    (provenanceScore * 0.45 + freshnessScore * 0.43 + tierScore * 0.12) * 100
   );
   const truthGraph: TruthGraphNode = {
     tier, tierLabel: getTierLabel(tier), provenanceScore, freshnessScore,
@@ -1387,13 +1391,36 @@ Deno.serve(async (req) => {
       r.veracity = Math.min(100, Math.round(r.veracity * (0.8 + r.truthGraph.consensusWeight * 0.2)));
     }
 
-    // ── Truth Graph Sorting — prioritize verified, high-provenance results ──
-    // Sort by veracity score (descending), then by tier
+    // ── Relevance-First Sort — ANY site mentioning the query surfaces ──
+    // Source tier is a tiebreaker only; topical match wins. Hostile sources
+    // still sink, but unknown/random sites are no longer buried under "trusted"
+    // domains that barely mention the query.
+    const qTokens = trimmed.toLowerCase().match(/\b[\w]{3,}\b/g) || [];
+    const qSet = new Set(qTokens);
+    const relevance = (r: SearchResult): number => {
+      if (qSet.size === 0) return 0;
+      const hay = `${r.title} ${r.snippet}`.toLowerCase();
+      let titleHits = 0, snipHits = 0;
+      const titleLo = r.title.toLowerCase();
+      for (const t of qSet) {
+        if (titleLo.includes(t)) titleHits++;
+        else if (hay.includes(t)) snipHits++;
+      }
+      // Title hits weighted 3x; coverage normalized 0..1
+      return (titleHits * 3 + snipHits) / (qSet.size * 3);
+    };
+    for (const r of filtered) (r as any)._rel = relevance(r);
+
     filtered.sort((a, b) => {
       // Hostile sources always sink to bottom
       if (a.truthGraph.hostileFlag !== b.truthGraph.hostileFlag) return a.truthGraph.hostileFlag ? 1 : -1;
-      // Then by veracity
+      // PRIMARY: topical relevance to the query
+      const ra = (a as any)._rel as number;
+      const rb = (b as any)._rel as number;
+      if (Math.abs(rb - ra) > 0.05) return rb - ra;
+      // SECONDARY: veracity (now lightly tier-weighted)
       if (b.veracity !== a.veracity) return b.veracity - a.veracity;
+      // TIEBREAKER: tier
       return a.tier - b.tier;
     });
 
