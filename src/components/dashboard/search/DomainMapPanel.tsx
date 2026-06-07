@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive, Eye, X } from "lucide-react";
+import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive, Eye, X, FileText, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -30,6 +30,19 @@ interface MapResult {
   truncated?: boolean;
 }
 
+interface HarvestResult {
+  domain: string;
+  origin: string;
+  pagesCrawled: number;
+  totalDocs: number;
+  truncated: boolean;
+  maxPages: number;
+  maxDepth: number;
+  extTally: Record<string, number>;
+  categories: Record<string, { ext: string; count: number; urls: string[] }[]>;
+  allDocs: string[];
+}
+
 const DomainMapPanel = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,6 +55,34 @@ const DomainMapPanel = () => {
   const [zipping, setZipping] = useState(false);
   const [zipMsg, setZipMsg] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ url: string; blobUrl?: string; contentType?: string; loading: boolean; error?: string; textSnippet?: string } | null>(null);
+  const [harvesting, setHarvesting] = useState(false);
+  const [harvest, setHarvest] = useState<HarvestResult | null>(null);
+  const [harvestErr, setHarvestErr] = useState<string | null>(null);
+  const [activeHarvestCat, setActiveHarvestCat] = useState<string | null>(null);
+  const [activeExt, setActiveExt] = useState<string | null>(null);
+
+  const runHarvest = async () => {
+    if (!result) return;
+    setHarvesting(true); setHarvestErr(null); setHarvest(null);
+    setActiveHarvestCat(null); setActiveExt(null);
+    try {
+      // Use the top ~120 mapped URLs as seeds so the crawler starts from
+      // every major path category, not just the homepage.
+      const seedUrls = result.categories.flatMap((c) => c.urls.slice(0, 12)).slice(0, 120);
+      const { data, error: invErr } = await supabase.functions.invoke("domain-harvest", {
+        body: { domain: result.domain, seedUrls },
+      });
+      if (invErr) throw new Error(invErr.message || String(invErr));
+      if (!data?.success) throw new Error(data?.error || "Harvest failed");
+      const h = data as HarvestResult;
+      setHarvest(h);
+      const firstCat = Object.keys(h.categories)[0] || null;
+      setActiveHarvestCat(firstCat);
+    } catch (err: any) {
+      setHarvestErr(err?.message || "Harvest failed");
+    } finally { setHarvesting(false); }
+  };
+
 
   // Load file when preview opens
   useEffect(() => {
