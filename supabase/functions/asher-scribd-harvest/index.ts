@@ -29,43 +29,68 @@ interface HarvestReq {
 
 interface ScribdHit { url: string; title: string; snippet: string; }
 
-// ── Discover scribd.com documents via DDG site: search ─────────────────────
+// ── Discover scribd.com documents across multiple search engines ───────────
+const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
+function extractScribdLinks(html: string, seen: Set<string>, out: ScribdHit[], max: number) {
+  const linkRe = /href=["']([^"']*scribd\.com\/[^"']+)["'][^>]*>([\s\S]{0,300}?)<\/a>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = linkRe.exec(html)) && out.length < max) {
+    let href = m[1];
+    try {
+      if (href.startsWith("/")) href = new URL(href, "https://duckduckgo.com").toString();
+      const u = new URL(href);
+      const uddg = u.searchParams.get("uddg") || u.searchParams.get("u");
+      if (uddg) {
+        try { href = decodeURIComponent(uddg); } catch { href = uddg; }
+      }
+    } catch { /* keep */ }
+    if (!/^https?:\/\/[^/]*scribd\.com\//i.test(href)) continue;
+    if (/scribd\.com\/(static|assets|images|favicon)/i.test(href)) continue;
+    if (seen.has(href)) continue;
+    seen.add(href);
+    const title = m[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
+    out.push({ url: href, title: title || href, snippet: "" });
+  }
+}
+
+async function searchEngine(url: string): Promise<string> {
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 9000);
+    const r = await fetch(url, {
+      signal: ctl.signal,
+      headers: { "User-Agent": UA, "Accept": "text/html,application/xhtml+xml" },
+    });
+    clearTimeout(t);
+    if (!r.ok) return "";
+    return await r.text();
+  } catch { return ""; }
+}
+
 async function ddgScribd(topic: string, max: number): Promise<ScribdHit[]> {
-  const q = `site:scribd.com ${topic}`;
+  const q = encodeURIComponent(`site:scribd.com ${topic}`);
   const out: ScribdHit[] = [];
   const seen = new Set<string>();
-
-  for (const endpoint of ["https://duckduckgo.com/html/", "https://html.duckduckgo.com/html/"]) {
-    try {
-      const r = await fetch(`${endpoint}?q=${encodeURIComponent(q)}`, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-          "Accept": "text/html",
-        },
-      });
-      if (!r.ok) continue;
-      const html = await r.text();
-      const re = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(html)) && out.length < max) {
-        let href = m[1];
-        try {
-          // DDG sometimes wraps results in /l/?uddg=…
-          const u = new URL(href, "https://duckduckgo.com");
-          const uddg = u.searchParams.get("uddg");
-          if (uddg) href = decodeURIComponent(uddg);
-        } catch { /* keep raw */ }
-        if (!/scribd\.com/i.test(href)) continue;
-        if (seen.has(href)) continue;
-        seen.add(href);
-        out.push({
-          url: href,
-          title: m[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
-          snippet: m[3].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
-        });
-      }
-      if (out.length) break;
-    } catch { /* try next endpoint */ }
+  const endpoints = [
+    `https://html.duckduckgo.com/html/?q=${q}`,
+    `https://duckduckgo.com/html/?q=${q}`,
+    `https://lite.duckduckgo.com/lite/?q=${q}`,
+    `https://www.bing.com/search?q=${q}`,
+    `https://www.bing.com/search?q=${q}&first=11`,
+    `https://search.brave.com/search?q=${q}`,
+    `https://www.mojeek.com/search?q=${q}`,
+  ];
+  for (const ep of endpoints) {
+    if (out.length >= max) break;
+    const html = await searchEngine(ep);
+    if (!html) continue;
+    extractScribdLinks(html, seen, out, max);
+  }
+  // Final fallback: scribd's own search page (no auth required for listings)
+  if (out.length === 0) {
+    const html = await searchEngine(`https://www.scribd.com/search?query=${encodeURIComponent(topic)}`);
+    if (html) extractScribdLinks(html, seen, out, max);
   }
   return out;
 }
