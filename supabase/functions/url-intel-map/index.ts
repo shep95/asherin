@@ -43,20 +43,72 @@ function extractProperNouns(text: string, max = 25) {
   return countBy(cleaned).slice(0, max);
 }
 
-async function firecrawlScrape(url: string, apiKey: string) {
-  const r = await fetch("https://api.firecrawl.dev/v2/scrape", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url,
-      formats: ["markdown", "html", "links", "screenshot"],
-      onlyMainContent: false,
-      waitFor: 2500,
-    }),
-  });
-  const data = await r.json();
-  if (!r.ok) throw new Error(data?.error || `firecrawl ${r.status}`);
-  return data?.data ?? data;
+async function zophielFetch(url: string) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const r = await fetch(url, {
+      signal: ctl.signal,
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+    const html = await r.text();
+    return { html, status: r.status, finalUrl: r.url };
+  } finally { clearTimeout(t); }
+}
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ").trim();
+}
+
+function metaOf(html: string) {
+  const grab = (re: RegExp) => { const m = html.match(re); return m ? m[1].trim() : ""; };
+  const title = grab(/<title[^>]*>([\s\S]*?)<\/title>/i).replace(/<[^>]+>/g, "");
+  const description =
+    grab(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ||
+    grab(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+  const ogTitle = grab(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+  const ogImage = grab(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+  const siteName = grab(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i);
+  const lang = grab(/<html[^>]+lang=["']([a-zA-Z-]+)["']/i);
+  return { title: title || ogTitle, description, ogTitle, ogImage, siteName, language: lang };
+}
+
+function extractAnchors(html: string, base: string): string[] {
+  const out: string[] = [];
+  const re = /<a\b[^>]*\bhref\s*=\s*["']([^"']+)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    try {
+      const abs = new URL(m[1], base).toString();
+      if (/^https?:/i.test(abs)) out.push(abs.split("#")[0]);
+    } catch { /* ignore */ }
+  }
+  return out;
+}
+
+function extractHeadingsHtml(html: string): string[] {
+  const out: string[] = [];
+  const re = /<h([1-3])[^>]*>([\s\S]*?)<\/h\1>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    const t = m[2].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    if (t.length > 2 && t.length < 200) out.push(t);
+  }
+  return out;
 }
 
 Deno.serve(async (req) => {
@@ -70,24 +122,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
-    if (!apiKey) {
-      return new Response(JSON.stringify({ success: false, error: "FIRECRAWL_API_KEY not configured" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let html = "";
+    let status: number | null = null;
+    let finalUrl = target;
+    let scrapeError: string | null = null;
+    try {
+      const r = await zophielFetch(target);
+      html = r.html || "";
+      status = r.status;
+      finalUrl = r.finalUrl || target;
+      if (status >= 400) scrapeError = `HTTP ${status}`;
+    } catch (e: any) {
+      scrapeError = e?.name === "AbortError" ? "timeout" : (e?.message || "fetch_failed");
     }
 
-    let scraped: any = null;
-    let scrapeError: string | null = null;
-    try { scraped = await firecrawlScrape(target, apiKey); }
-    catch (e: any) { scrapeError = e?.message || "scrape_failed"; }
-
-    const md: string = scraped?.markdown || "";
-    const html: string = scraped?.html || "";
-    const links: string[] = Array.isArray(scraped?.links) ? scraped.links : [];
-    const screenshot: string | null = scraped?.screenshot || null;
-    const meta = scraped?.metadata || {};
-    const text = (md || html.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    const meta = metaOf(html);
+    const links = extractAnchors(html, finalUrl);
+    const headingsHtml = extractHeadingsHtml(html);
+    const text = stripHtml(html);
+    const md = ""; // legacy field for downstream code paths
+    const screenshot: string | null = null;
 
     const rootDomain = domainOf(target);
 
@@ -98,11 +152,9 @@ Deno.serve(async (req) => {
       .map((h) => h.toLowerCase()));
     const emails = uniq((text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) || []).map((e) => e.toLowerCase()));
     const phones = uniq(text.match(/(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g) || []);
-    const urls = uniq([...(links || []), ...((md.match(/https?:\/\/[^\s)\]<>"']+/g) || []))])
+    const urls = uniq([...(links || []), ...((text.match(/https?:\/\/[^\s)\]<>"']+/g) || []))])
       .map((u) => u.replace(/[),.;:]+$/, ""))
-      .filter((u) => {
-        try { new URL(u); return true; } catch { return false; }
-      });
+      .filter((u) => { try { new URL(u); return true; } catch { return false; } });
 
     const outboundLinks = urls.filter((u) => domainOf(u) && domainOf(u) !== rootDomain);
     const internalLinks = urls.filter((u) => domainOf(u) === rootDomain && u !== target);
@@ -133,17 +185,14 @@ Deno.serve(async (req) => {
       if (out.size) socials[host] = Array.from(out).slice(0, 50);
     }
 
-    // x.com / twitter — mentions inside tweet text are STRONG connection signals
+    // mentions inside page text are STRONG connection signals (X/Twitter etc.)
     const tweetMentions = countBy(
-      ((md.match(/(?<![\w/])@[A-Za-z0-9_]{2,30}\b/g) || []) as string[])
+      ((text.match(/(?<![\w/])@[A-Za-z0-9_]{2,30}\b/g) || []) as string[])
         .map((h) => h.toLowerCase()),
     ).slice(0, 50);
 
-    // headings
-    const headings = (md.match(/^#{1,3}\s+.+$/gm) || [])
-      .map((h) => h.replace(/^#+\s+/, "").trim())
-      .filter((h) => h.length > 2 && h.length < 180)
-      .slice(0, 30);
+    // headings already extracted from raw HTML
+    const headings = headingsHtml.slice(0, 30);
 
     // key sentences (first informative ones)
     const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.length > 40 && s.length < 300).slice(0, 8);
@@ -188,13 +237,13 @@ Deno.serve(async (req) => {
       domain: rootDomain,
       scrapeError,
       meta: {
-        title: meta?.title || meta?.ogTitle || "",
-        description: meta?.description || meta?.ogDescription || "",
-        statusCode: meta?.statusCode ?? null,
-        language: meta?.language || "",
-        siteName: meta?.ogSiteName || "",
-        sourceURL: meta?.sourceURL || target,
-        image: meta?.ogImage || "",
+        title: meta.title || "",
+        description: meta.description || "",
+        statusCode: status,
+        language: meta.language || "",
+        siteName: meta.siteName || "",
+        sourceURL: finalUrl,
+        image: meta.ogImage || "",
       },
       screenshot,
       stats: {
