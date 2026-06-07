@@ -682,7 +682,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                             : "Use your own AI key across every Zophiel tab — skips the queue"}
                         >
                           <Zap className="h-3.5 w-3.5" />
-                          {byokActive ? "My Key: ON" : "Use My Key"}
+                          <span className="hidden sm:inline">{byokActive ? "My Key: ON" : "Use My Key"}</span>
+                          <span className="sm:hidden">Key</span>
                         </button>
                         <button
                           onClick={() => { setIntelSuiteOpen((v) => !v); if (!intelSuiteOpen) setIntelMapOpen(false); }}
