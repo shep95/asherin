@@ -134,8 +134,20 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
           </div>
         )}
 
-        {/* Top row: tier + domain */}
+        {/* Top row: rank + tier + domain */}
         <div className="flex items-center gap-2 mb-1.5 min-w-0">
+          {typeof result.rank === "number" && (
+            <span
+              className="shrink-0 inline-flex items-center gap-1 rounded-md border border-border/30 bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-mono font-medium text-foreground/85"
+              title={`Rank #${result.rank} · ${result.relevance ?? 0}% topical match to your query`}
+            >
+              <span className="text-muted-foreground/60">#</span>
+              {result.rank}
+              {typeof result.relevance === "number" && (
+                <span className="text-muted-foreground/60">·{result.relevance}%</span>
+              )}
+            </span>
+          )}
           <SourceTierBadge tier={result.tier} />
           <div className="flex items-center gap-1 min-w-0 flex-1">
             <Globe className="h-3 w-3 text-muted-foreground/40 shrink-0" />
