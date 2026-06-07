@@ -628,7 +628,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                   {!loading && results.length > 0 && (
                     <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
                       <p className="text-[10px] font-light text-muted-foreground/40">
-                        {results.length} results in {searchTime}ms • Mode: {mode}
+                        {results.length} · {searchTime}ms
                       </p>
                       <div className="flex items-center gap-2">
                         <div className="relative group/export">
