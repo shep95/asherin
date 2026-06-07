@@ -286,20 +286,86 @@ const DomainMapPanel = () => {
 
   const run = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    const d = input.trim();
-    if (!d) return;
-    setLoading(true); setError(null); setResult(null); setActiveCat(null); setFilter("");
+    const entries = parseDomainEntries(input);
+    if (entries.length === 0) { setError("Enter at least one domain or URL."); return; }
+    setBatchEntries(entries);
+    setLoading(true); setError(null); setResult(null); setHarvest(null);
+    setActiveCat(null); setFilter("");
+    setBatchProgress({ done: 0, total: entries.length, phase: "map" });
     try {
-      const { data, error: invErr } = await supabase.functions.invoke("domain-map", {
-        body: { domain: d },
-      });
-      if (invErr) throw new Error(invErr.message || String(invErr));
-      if (!data?.success) throw new Error(data?.error || "Map failed");
-      setResult(data as MapResult);
-      setActiveCat((data as MapResult).categories[0]?.category ?? null);
+      // Map all domains in parallel (up to 4 at once) and MERGE the
+      // results into one combined MapResult so every downstream feature
+      // (filter, harvest, ZIP, focus) sees one unified URL pool.
+      const merged: MapResult = {
+        domain: entries.map((e2) => e2.domain).join(", "),
+        origin: "",
+        totalUnique: 0,
+        sources: [],
+        categories: [],
+        truncated: false,
+      };
+      const catMap = new Map<string, { category: string; count: number; urls: string[]; seen: Set<string> }>();
+      const sourceMap = new Map<string, number>();
+      const errs: string[] = [];
+
+      const CONC = 4;
+      const queue = [...entries];
+      let done = 0;
+      async function worker() {
+        while (queue.length) {
+          const entry = queue.shift();
+          if (!entry) break;
+          try {
+            const { data, error: invErr } = await supabase.functions.invoke("domain-map", {
+              body: { domain: entry.entryUrl },
+            });
+            if (invErr || !data?.success) throw new Error(invErr?.message || data?.error || "Map failed");
+            const m = data as MapResult;
+            merged.truncated = merged.truncated || !!m.truncated;
+            for (const s of m.sources || []) {
+              sourceMap.set(s.source, (sourceMap.get(s.source) || 0) + s.found);
+            }
+            for (const c of m.categories || []) {
+              let bucket = catMap.get(c.category);
+              if (!bucket) {
+                bucket = { category: c.category, count: 0, urls: [], seen: new Set() };
+                catMap.set(c.category, bucket);
+              }
+              for (const u of c.urls) {
+                if (bucket.seen.has(u)) continue;
+                bucket.seen.add(u);
+                bucket.urls.push(u);
+                bucket.count++;
+              }
+            }
+          } catch (err: any) {
+            errs.push(`${entry.domain}: ${err?.message || err}`);
+          } finally {
+            done++;
+            setBatchProgress({ done, total: entries.length, phase: "map" });
+          }
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(CONC, entries.length) }, worker));
+
+      merged.categories = [...catMap.values()]
+        .map(({ seen: _seen, ...rest }) => rest)
+        .sort((a, b) => b.count - a.count);
+      merged.totalUnique = merged.categories.reduce((s, c) => s + c.count, 0);
+      merged.sources = [...sourceMap.entries()].map(([source, found]) => ({ source, found }));
+
+      if (merged.totalUnique === 0 && errs.length) {
+        throw new Error(errs.join(" • "));
+      }
+      setResult(merged);
+      setActiveCat(merged.categories[0]?.category ?? null);
+      if (errs.length) setError(`Some domains failed: ${errs.slice(0, 3).join(" • ")}`);
     } catch (err: any) {
       setError(err?.message || "Failed to map domain");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+      setBatchProgress((p) => ({ ...p, phase: null }));
+    }
   };
 
   const focusKeywords = useMemo(() => {
