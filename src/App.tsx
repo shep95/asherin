@@ -105,6 +105,7 @@ const App = () => (
           <RouteSessionTracker />
           <RouteSeo />
           <ByokRequiredDialog />
+          <AureonEngineToggle />
           <Suspense fallback={<PageLoader />}>
           <main>
           <Routes>
