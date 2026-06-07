@@ -88,6 +88,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [darkResults, setDarkResults] = useState<{ title: string; link: string; engine: string }[]>([]);
   const [darkSummary, setDarkSummary] = useState<string>("");
   const [darkLoading, setDarkLoading] = useState(false);
+  const [urlIntelTarget, setUrlIntelTarget] = useState<string | null>(null);
   const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite), committed on mouseup
   const splitPctRef = useRef(50);
   const leftPanelRef = useRef<HTMLDivElement>(null);
