@@ -1,6 +1,23 @@
 import { useState, useMemo } from "react";
-import { Globe, Loader2, Search, ExternalLink, Filter } from "lucide-react";
+import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+const MAX_ZIP_URLS = 250;
+
+const fmtBytes = (n: number) => {
+  if (!n || n < 0) return "0 B";
+  const u = ["B", "KB", "MB", "GB"];
+  let i = 0; let v = n;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${u[i]}`;
+};
+
+interface Estimate {
+  scanned: number; ok: number; failed: number; unknownSize: number;
+  totalBytes: number;
+  byType: Record<string, { count: number; bytes: number }>;
+  capped: boolean;
+}
 
 interface Category { category: string; count: number; urls: string[]; }
 interface MapResult {
