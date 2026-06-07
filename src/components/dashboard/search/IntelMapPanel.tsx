@@ -294,16 +294,6 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
   // Slide-out map / social embed state — triggered from selected entity actions.
   const [mapQuery, setMapQuery] = useState<string | null>(null);
 
-  // Send the FULL list of results — server slices [offset, offset+12). This way
-  // subsequent "Scrape More" calls have the URL list to continue from.
-  const allResultsPayload = useMemo(
-    () =>
-      results.map((r) => ({
-        title: r.title, url: r.url, snippet: r.snippet,
-        source: r.source, tier: r.tier, tierLabel: r.tierLabel,
-      })),
-    [results],
-  );
 
   // === Deterministic, NON-AI graph builder ===
   // Runs entirely client-side: entity extraction (regex + dictionaries),
