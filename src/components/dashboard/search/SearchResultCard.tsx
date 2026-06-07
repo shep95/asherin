@@ -247,4 +247,115 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
   );
 };
 
+// ============================================================
+// Inline Intel Report renderer — surgical, dossier-style
+// ============================================================
+const Stat = ({ label, value }: { label: string; value: string }) => (
+  <div>
+    <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50">{label}</div>
+    <div className="text-[11px] font-light text-foreground/90 truncate">{value}</div>
+  </div>
+);
+
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div className="mb-3 last:mb-0">
+    <h4 className="text-[10px] uppercase tracking-[0.15em] font-medium text-muted-foreground/70 mb-1.5">{title}</h4>
+    {children}
+  </div>
+);
+
+const Chips = ({ items, mono }: { items: string[]; mono?: boolean }) => (
+  <div className="flex flex-wrap gap-1.5">
+    {items.map((v, i) => (
+      <span key={i} className={`inline-flex items-center rounded-md border border-border/25 bg-foreground/[0.04] px-2 py-0.5 text-[10px] text-foreground/80 ${mono ? "font-mono" : "font-light"}`}>{v}</span>
+    ))}
+  </div>
+);
+
+const IntelReportView = ({ r, url }: { r: IntelReport; url: string }) => {
+  const has = (a: unknown[]) => a && a.length > 0;
+  return (
+    <div className="text-xs text-foreground/85">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 pb-3 border-b border-border/15">
+        <Stat label="Domain" value={r.domain} />
+        <Stat label="Language" value={r.language} />
+        <Stat label="Words" value={r.wordCount.toLocaleString()} />
+        <Stat label="Read" value={`${r.readingTimeMin} min`} />
+      </div>
+
+      {r.description && (
+        <Section title="Summary">
+          <p className="text-xs font-light text-foreground/80 leading-relaxed italic border-l-2 border-foreground/20 pl-2.5">{r.description}</p>
+        </Section>
+      )}
+
+      {has(r.keySentences) && (
+        <Section title="Key Findings">
+          <ul className="space-y-1.5">
+            {r.keySentences.map((s, i) => (
+              <li key={i} className="text-[11px] font-light text-foreground/80 leading-relaxed pl-3 border-l border-border/30">{s}</li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {has(r.entities) && (
+        <Section title={`Entities (${r.entities.length})`}>
+          <div className="flex flex-wrap gap-1.5">
+            {r.entities.map((e, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded-md border border-border/25 bg-foreground/[0.04] px-2 py-0.5 text-[10px] font-light text-foreground/80">
+                {e.name}
+                <span className="text-muted-foreground/50">·{e.count}</span>
+              </span>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {has(r.locations) && <Section title="Locations"><Chips items={r.locations} /></Section>}
+      {has(r.dates) && <Section title="Dates"><Chips items={r.dates} mono /></Section>}
+      {has(r.money) && <Section title="Monetary"><Chips items={r.money} mono /></Section>}
+      {has(r.numbers) && <Section title="Figures"><Chips items={r.numbers} mono /></Section>}
+      {has(r.emails) && <Section title="Emails"><Chips items={r.emails} mono /></Section>}
+      {has(r.phones) && <Section title="Phones"><Chips items={r.phones} mono /></Section>}
+
+      {has(r.socials) && (
+        <Section title="Social">
+          <div className="flex flex-wrap gap-1.5">
+            {r.socials.map((s, i) => (
+              <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md border border-border/25 bg-foreground/[0.04] hover:bg-foreground/[0.08] px-2 py-0.5 text-[10px] font-light text-foreground/80">
+                <span className="text-muted-foreground/60">{s.platform}</span>
+                <span>{s.handle}</span>
+              </a>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {has(r.urls) && (
+        <Section title={`Outbound Links (${r.urls.length})`}>
+          <div className="max-h-32 overflow-y-auto space-y-0.5">
+            {r.urls.slice(0, 15).map((u, i) => (
+              <a key={i} href={u} target="_blank" rel="noopener noreferrer" className="block truncate text-[10px] font-mono text-muted-foreground/70 hover:text-foreground">{u}</a>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {has(r.keywords) && (
+        <Section title="Top Keywords">
+          <Chips items={r.keywords.slice(0, 12).map(k => `${k.word} ·${k.count}`)} />
+        </Section>
+      )}
+
+      {r.isPaywalled && (
+        <p className="mt-2 text-[10px] text-amber-400/80">Paywall detected — report based on extractable content only.</p>
+      )}
+      <p className="mt-3 pt-2 border-t border-border/15 text-[9px] uppercase tracking-[0.15em] text-muted-foreground/40">
+        Deterministic extraction · No AI · Source: {url.replace(/^https?:\/\//, "").slice(0, 60)}
+      </p>
+    </div>
+  );
+};
+
 export default SearchResultCard;
