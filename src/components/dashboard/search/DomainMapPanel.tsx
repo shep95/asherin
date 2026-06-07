@@ -61,6 +61,9 @@ const DomainMapPanel = () => {
   const [harvestErr, setHarvestErr] = useState<string | null>(null);
   const [activeHarvestCat, setActiveHarvestCat] = useState<string | null>(null);
   const [activeExt, setActiveExt] = useState<string | null>(null);
+  const [focusDomains, setFocusDomains] = useState<Set<string>>(new Set());
+  const [showFocus, setShowFocus] = useState(false);
+  const [strictFocus, setStrictFocus] = useState(true);
 
   const runHarvest = async () => {
     if (!result) return;
