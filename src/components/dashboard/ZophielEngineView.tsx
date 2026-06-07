@@ -430,7 +430,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                     onChange={(e) => { setQuery(e.target.value); setShowSuggestions(e.target.value.length > 1); }}
                     onFocus={() => { if (query.length > 1) setShowSuggestions(true); }}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder={online ? "Query the signal mesh…" : "Offline — search will queue…"}
+                    placeholder={online ? "Search…" : "Offline — queued"}
                     className="flex-1 bg-transparent text-sm font-light tracking-wide text-foreground placeholder:text-muted-foreground/40 outline-none"
                   />
                   {query && (
@@ -458,23 +458,17 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
             {/* Imagine mode banner */}
             {mode === "imagine" && (
-              <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
-                <ImageIcon className="h-5 w-5 text-accent shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-light text-foreground">Imagine Intelligence</p>
-                  <p className="text-[10px] font-extralight text-muted-foreground">Upload any image — geo-locate, identify faces, extract biometric data, run forensic analysis. Connected to Zophiel's intel pipeline.</p>
-                </div>
+              <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-3">
+                <ImageIcon className="h-4 w-4 text-accent shrink-0" />
+                <p className="text-[11px] sm:text-xs font-light text-foreground truncate">Image OSINT — geo, faces, forensics.</p>
               </div>
             )}
 
             {/* Audit mode banner */}
             {mode === "audit" && (
-              <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
-                <FileText className="h-5 w-5 text-accent shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-light text-foreground">Aureon Security Audit</p>
-                  <p className="text-[10px] font-extralight text-muted-foreground">Upload any code file (≤100KB) — map security leaks, broken code, latent failures, and remediation paths through the ZERLAL model — the rival intelligence framework to Gaythropic.</p>
-                </div>
+              <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-3">
+                <FileText className="h-4 w-4 text-accent shrink-0" />
+                <p className="text-[11px] sm:text-xs font-light text-foreground truncate">Code audit — leaks, flaws, fixes.</p>
               </div>
             )}
 
@@ -634,7 +628,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                   {!loading && results.length > 0 && (
                     <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
                       <p className="text-[10px] font-light text-muted-foreground/40">
-                        {results.length} results in {searchTime}ms • Mode: {mode}
+                        {results.length} · {searchTime}ms
                       </p>
                       <div className="flex items-center gap-2">
                         <div className="relative group/export">
@@ -674,7 +668,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           title="Project these results through the ZERLAL model — rival of Gaythropic"
                         >
                           <Network className="h-3.5 w-3.5" />
-                          {intelMapOpen ? "Close Map" : "Intel Map"}
+                          <span className="hidden sm:inline">{intelMapOpen ? "Close Map" : "Intel Map"}</span>
+                          <span className="sm:hidden">Map</span>
                         </button>
                         <button
                           onClick={() => setByokOpen(true)}
@@ -688,7 +683,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                             : "Use your own AI key across every Zophiel tab — skips the queue"}
                         >
                           <Zap className="h-3.5 w-3.5" />
-                          {byokActive ? "My Key: ON" : "Use My Key"}
+                          <span className="hidden sm:inline">{byokActive ? "My Key: ON" : "Use My Key"}</span>
+                          <span className="sm:hidden">Key</span>
                         </button>
                         <button
                           onClick={() => { setIntelSuiteOpen((v) => !v); if (!intelSuiteOpen) setIntelMapOpen(false); }}
@@ -700,7 +696,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           title="Run forensic intelligence analysis: timeline, credibility, fact-check, narrative, gaps"
                         >
                           <Brain className="h-3.5 w-3.5" />
-                          {intelSuiteOpen ? "Close Intel" : "Intel Suite"}
+                          <span className="hidden sm:inline">{intelSuiteOpen ? "Close Intel" : "Intel Suite"}</span>
+                          <span className="sm:hidden">Intel</span>
                         </button>
                       </div>
                     </div>
@@ -768,7 +765,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                   {!loading && searched && results.length === 0 && (
                     <div className="text-center py-16 animate-fade-in">
                       <Search className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
-                      <p className="text-sm font-extralight text-muted-foreground">No results found. Try a different query or adjust your filters.</p>
+                      <p className="text-sm font-extralight text-muted-foreground">No results.</p>
                     </div>
                   )}
                 </>
