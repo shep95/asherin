@@ -525,6 +525,13 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
+              {/* Doc Harvest — batch domain document mapper */}
+              {mode === "harvest" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <DomainMapPanel />
+                </Suspense>
+              )}
+
               {/* ZERLAL — security blueprint of uploaded code file */}
               {mode === "audit" && (
                 <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
@@ -578,12 +585,12 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               )}
 
               {/* Deep Search Panel */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && deepSearchQuery && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && deepSearchQuery && (
                 <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
               )}
 
               {/* Inline Dark Web sweep — shown when scope=mix or dark */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && !deepSearchQuery && (scope === "mix" || scope === "dark") && (darkLoading || darkResults.length > 0 || darkSummary) && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && !deepSearchQuery && (scope === "mix" || scope === "dark") && (darkLoading || darkResults.length > 0 || darkSummary) && (
                 <div className="mb-6 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase tracking-[0.25em] text-accent/80">Dark Web Sweep</span>
