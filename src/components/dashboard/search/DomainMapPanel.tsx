@@ -1,6 +1,23 @@
 import { useState, useMemo } from "react";
-import { Globe, Loader2, Search, ExternalLink, Filter } from "lucide-react";
+import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+const MAX_ZIP_URLS = 250;
+
+const fmtBytes = (n: number) => {
+  if (!n || n < 0) return "0 B";
+  const u = ["B", "KB", "MB", "GB"];
+  let i = 0; let v = n;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${u[i]}`;
+};
+
+interface Estimate {
+  scanned: number; ok: number; failed: number; unknownSize: number;
+  totalBytes: number;
+  byType: Record<string, { count: number; bytes: number }>;
+  capped: boolean;
+}
 
 interface Category { category: string; count: number; urls: string[]; }
 interface MapResult {
@@ -19,6 +36,56 @@ const DomainMapPanel = () => {
   const [result, setResult] = useState<MapResult | null>(null);
   const [activeCat, setActiveCat] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
+  const [estimate, setEstimate] = useState<Estimate | null>(null);
+  const [estimating, setEstimating] = useState(false);
+  const [zipping, setZipping] = useState(false);
+  const [zipMsg, setZipMsg] = useState<string | null>(null);
+
+  const runEstimate = async (urls: string[]) => {
+    setEstimating(true); setEstimate(null); setZipMsg(null);
+    try {
+      const { data, error: invErr } = await supabase.functions.invoke("domain-zip", {
+        body: { mode: "estimate", urls: urls.slice(0, MAX_ZIP_URLS) },
+      });
+      if (invErr) throw new Error(invErr.message || String(invErr));
+      if (!data?.success) throw new Error(data?.error || "Estimate failed");
+      setEstimate(data as Estimate);
+    } catch (err: any) {
+      setZipMsg(err?.message || "Failed to estimate");
+    } finally { setEstimating(false); }
+  };
+
+  const downloadZip = async (urls: string[]) => {
+    setZipping(true); setZipMsg(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const auth = sessionData?.session?.access_token;
+      const url = `https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1/domain-zip`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwZ3hnenFidHJycmJ0amNlbWNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNzIyNTQsImV4cCI6MjA4NjY0ODI1NH0.PXItSIWoCByiMjDObhyc8QryuH2wNwMAIFyzWXzYJac",
+          ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+        },
+        body: JSON.stringify({
+          mode: "download",
+          urls: urls.slice(0, MAX_ZIP_URLS),
+          zipName: `${result?.domain || "domain"}-bundle.zip`,
+        }),
+      });
+      if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
+      const blob = await res.blob();
+      const dl = document.createElement("a");
+      dl.href = URL.createObjectURL(blob);
+      dl.download = `${result?.domain || "domain"}-bundle.zip`;
+      document.body.appendChild(dl); dl.click(); dl.remove();
+      setTimeout(() => URL.revokeObjectURL(dl.href), 4000);
+      setZipMsg(`Downloaded ${fmtBytes(blob.size)} — ${res.headers.get("X-Aureon-Files") || "?"} files.`);
+    } catch (err: any) {
+      setZipMsg(err?.message || "Download failed");
+    } finally { setZipping(false); }
+  };
 
   const run = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -136,7 +203,66 @@ const DomainMapPanel = () => {
               placeholder="Filter URLs (e.g. 886522804, quantum, .pdf)…"
               className="flex-1 bg-transparent text-[11px] font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
             />
-            <span className="text-[10px] font-light text-muted-foreground/60">{currentUrls.length}</span>
+          </div>
+
+          {/* ZIP download toolbar */}
+          <div className="rounded-xl border border-border/30 bg-background/40 px-3 py-2.5 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <FileArchive className="h-3.5 w-3.5 text-foreground/70" />
+              <span className="text-[10px] font-light tracking-[0.2em] uppercase text-foreground/80">
+                Bundle as ZIP
+              </span>
+              <span className="text-[10px] font-light text-muted-foreground/60">
+                {Math.min(currentUrls.length, MAX_ZIP_URLS)} of {currentUrls.length} files
+                {currentUrls.length > MAX_ZIP_URLS && <span className="text-amber-300/80"> (capped at {MAX_ZIP_URLS})</span>}
+              </span>
+              <div className="ml-auto flex gap-2">
+                <button
+                  onClick={() => runEstimate(currentUrls)}
+                  disabled={estimating || zipping || currentUrls.length === 0}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border/40 bg-background/40 hover:border-foreground/60 disabled:opacity-30 disabled:cursor-not-allowed px-2.5 py-1 text-[10px] font-light tracking-wide text-foreground/80 transition"
+                >
+                  {estimating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Package className="h-3 w-3" />}
+                  ESTIMATE SIZE
+                </button>
+                <button
+                  onClick={() => downloadZip(currentUrls)}
+                  disabled={zipping || estimating || currentUrls.length === 0}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-foreground hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed px-2.5 py-1 text-[10px] font-medium tracking-wide text-background transition"
+                >
+                  {zipping ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                  {zipping ? "BUILDING ZIP…" : "DOWNLOAD ZIP"}
+                </button>
+              </div>
+            </div>
+
+            {estimate && (
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-light text-muted-foreground/80">
+                  <span className="text-foreground/90">~{fmtBytes(estimate.totalBytes)}</span> estimated total
+                  <span>•</span>
+                  <span>{estimate.ok} reachable</span>
+                  <span>•</span>
+                  <span className="text-red-300/80">{estimate.failed} failed</span>
+                  {estimate.unknownSize > 0 && (<><span>•</span><span className="text-amber-300/80">{estimate.unknownSize} unknown size</span></>)}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {Object.entries(estimate.byType)
+                    .sort((a, b) => b[1].bytes - a[1].bytes)
+                    .map(([ext, v]) => (
+                      <span key={ext} className="rounded border border-border/30 bg-background/40 px-1.5 py-0.5 text-[10px] font-light text-foreground/80">
+                        .{ext} <span className="text-muted-foreground/70">· {v.count} · {fmtBytes(v.bytes)}</span>
+                      </span>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {zipMsg && (
+              <p className={`text-[10px] font-light ${zipMsg.toLowerCase().includes("fail") || zipMsg.toLowerCase().includes("error") ? "text-red-400/80" : "text-emerald-300/80"}`}>
+                {zipMsg}
+              </p>
+            )}
           </div>
 
           {/* URL list */}

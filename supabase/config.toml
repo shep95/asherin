@@ -204,3 +204,6 @@ verify_jwt = false
 
 [functions.domain-map]
 verify_jwt = false
+
+[functions.domain-zip]
+verify_jwt = false
