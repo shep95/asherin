@@ -150,6 +150,7 @@ Deno.serve(async (req) => {
       maxPages?: number;
       maxDepth?: number;
       extensions?: string[]; // optional restriction (e.g. ["pdf","docx"])
+      docPathPatterns?: string[]; // first path segments to treat as document pages (e.g. "document","book")
     };
     if (!body.domain) {
       return new Response(JSON.stringify({ error: "domain required" }), {
@@ -169,6 +170,13 @@ Deno.serve(async (req) => {
     const maxPages = Math.min(MAX_PAGES, Math.max(10, body.maxPages ?? MAX_PAGES));
     const maxDepth = Math.min(5, Math.max(1, body.maxDepth ?? MAX_DEPTH));
 
+    // Doc-page path segments: defaults + caller-supplied (from mapper categories).
+    const docPathPatterns = new Set<string>(DEFAULT_DOC_PATH_SEGMENTS);
+    for (const p of body.docPathPatterns || []) {
+      const seg = p.toLowerCase().replace(/^\/+|\/+$/g, "").split("/")[0];
+      if (seg) docPathPatterns.add(seg);
+    }
+
     // Seed queue: provided seeds (filtered to same host + HTML) + homepage
     const seeds = new Set<string>([root.origin + "/"]);
     for (const s of body.seedUrls || []) {
@@ -180,6 +188,12 @@ Deno.serve(async (req) => {
     const visited = new Set<string>();
     const docs = new Map<string, { url: string; ext: string; category: string; foundOn: string }>();
     let pagesCrawled = 0;
+
+    function addDoc(url: string, ext: string, category: string, foundOn: string) {
+      if (docs.has(url) || docs.size >= MAX_DOCS) return;
+      if (wantExts && !wantExts.has(ext)) return;
+      docs.set(url, { url, ext, category, foundOn });
+    }
 
     async function processPage(item: QItem): Promise<QItem[]> {
       if (pagesCrawled >= maxPages || docs.size >= MAX_DOCS) return [];
@@ -197,22 +211,37 @@ Deno.serve(async (req) => {
       for (const a of anchors) {
         if (!sameHost(a, root.host)) continue;
         const e = extOf(a);
+        const seg = firstPathSegment(a);
+        // 1) Direct file download (.pdf, .docx, .zip, etc.)
         if (e && ALL_DOC_EXTS.has(e)) {
-          if (wantExts && !wantExts.has(e)) continue;
-          if (!docs.has(a) && docs.size < MAX_DOCS) {
-            docs.set(a, {
-              url: a,
-              ext: e,
-              category: EXT_TO_CAT.get(e) || "other",
-              foundOn: item.url,
-            });
-          }
-        } else if (item.depth < maxDepth && looksLikeHtml(a) && !visited.has(a)) {
+          addDoc(a, e, EXT_TO_CAT.get(e) || "other", item.url);
+          continue;
+        }
+        // 2) Document landing page (e.g. /document/123/Title, /book/456/Foo)
+        if (seg && docPathPatterns.has(seg)) {
+          // Only count "real" doc pages — must have at least one extra path segment
+          // (e.g. /document/123/... not just /document or /document/)
+          try {
+            const path = new URL(a).pathname.split("/").filter(Boolean);
+            if (path.length >= 2) {
+              addDoc(a, "html", `page:${seg}`, item.url);
+              // Also keep crawling deeper inside doc collections (helps pagination
+              // on /docs, /books pages where individual items live one click away)
+              if (item.depth < maxDepth && !visited.has(a)) {
+                next.push({ url: a, depth: item.depth + 1 });
+              }
+              continue;
+            }
+          } catch { /* ignore */ }
+        }
+        // 3) Otherwise enqueue for crawling if HTML and within depth budget
+        if (item.depth < maxDepth && looksLikeHtml(a) && !visited.has(a)) {
           next.push({ url: a, depth: item.depth + 1 });
         }
       }
       return next;
     }
+
 
     // Parallel BFS workers
     while (queue.length && pagesCrawled < maxPages && docs.size < MAX_DOCS) {
