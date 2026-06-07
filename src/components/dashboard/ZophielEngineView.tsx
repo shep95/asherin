@@ -527,9 +527,16 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               )}
 
               {/* Doc Harvest — batch domain document mapper */}
-              {mode === "harvest" || mode === "scribd" && (
+              {mode === "harvest" && (
                 <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
                   <DomainMapPanel />
+                </Suspense>
+              )}
+
+              {/* Scribd — pre-seeded scribd.com harvester */}
+              {mode === "scribd" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <ScribdPanel />
                 </Suspense>
               )}
 
