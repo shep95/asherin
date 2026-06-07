@@ -296,18 +296,17 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
 
 
   // === Deterministic, NON-AI graph builder ===
-  // Runs entirely client-side: entity extraction (regex + dictionaries),
-  // TF-IDF topic ranking, and co-occurrence edge inference.
-  // No edge function, no API key, no queue, no latency.
-  const runBatch = useCallback(
-    async (_offset: number, _append: boolean) => {
+  // Pure client-side: entity extraction (regex + dictionaries),
+  // TF-IDF topic ranking, co-occurrence edge inference.
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setQueueInfo(null);
+    (async () => {
       try {
-        setLoading(true);
-        setError(null);
-        setQueueInfo(null);
-        // Synchronous, but defer one frame so the loader can paint on big sets.
-        await new Promise((r) => requestAnimationFrame(() => r(null)));
         const { buildIntelGraph } = await import("./intel/buildIntelGraph");
+        if (cancelled) return;
         const { nodes: newNodes, edges: newEdges } = buildIntelGraph(results);
         setNodes(newNodes as IntelNode[]);
         setEdges(newEdges as IntelEdge[]);
@@ -317,28 +316,19 @@ const IntelMapPanel = ({ query, results, onClose, onRefineQuery }: IntelMapPanel
         setHasMore(false);
         setTotalAvailable(results.length);
       } catch (e: any) {
-        setError(e?.message || "Could not build intel map");
+        if (!cancelled) setError(e?.message || "Could not build intel map");
       } finally {
-        setLoading(false);
-        setLoadingMore(false);
-        setQueueInfo(null);
+        if (!cancelled) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
-    },
-    [results],
-  );
-
-  // Rebuild whenever the input result set changes.
-  const lastSigRef = useRef<string>("");
-  useEffect(() => {
-    const sig = `${query}::${results.length}::${results[0]?.url || ""}`;
-    if (lastSigRef.current === sig) return;
-    lastSigRef.current = sig;
-    void runBatch(0, false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    })();
+    return () => { cancelled = true; };
   }, [query, results]);
 
   const onScrapeMore = useCallback(() => {
-    // No-op: deterministic builder consumes all results up-front.
+    // No-op: deterministic builder consumes the full result set up-front.
   }, []);
 
   // Run layout when nodes/size change
