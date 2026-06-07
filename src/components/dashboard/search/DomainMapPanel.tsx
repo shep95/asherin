@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
-import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Globe, Loader2, Search, ExternalLink, Filter, Download, Package, FileArchive, Eye, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
 
 const MAX_ZIP_URLS = 250;
 
