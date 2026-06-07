@@ -28,14 +28,20 @@ const AUREON_ACTIVE: Active = {
   label: "Aureon Algorithm",
 };
 
+const GEMINI_ACTIVE: Active = {
+  provider: "default",
+  model: "google/gemini-3-flash-preview",
+  label: "Gemini (Default)",
+};
+
 function loadActive(): Active {
   try {
     const raw = localStorage.getItem("aureon_byok_active");
     if (!raw) return AUREON_ACTIVE;
     const parsed = JSON.parse(raw);
-    if (!parsed?.provider || parsed.provider === "aureon" || parsed.provider === "default") {
-      return AUREON_ACTIVE;
-    }
+    if (!parsed?.provider) return AUREON_ACTIVE;
+    if (parsed.provider === "aureon") return AUREON_ACTIVE;
+    if (parsed.provider === "default") return GEMINI_ACTIVE;
     const prov = AI_PROVIDERS.find((p) => p.id === parsed.provider);
     const mod = prov?.models.find((m) => m.id === parsed.model);
     if (prov && mod) {
