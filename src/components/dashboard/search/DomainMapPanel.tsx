@@ -401,12 +401,28 @@ const DomainMapPanel = ({ defaultInput = "", presets, title, subtitle }: DomainM
           <Globe className="h-4 w-4 text-foreground/80" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-sm font-light tracking-wide text-foreground">Domain URL Mapper</h2>
+          <h2 className="text-sm font-light tracking-wide text-foreground">{title ?? "Domain URL Mapper"}</h2>
           <p className="text-[10px] font-extralight text-muted-foreground/70">
-            Enter one or many domains / URLs — one per line or comma-separated — and every match is mapped and harvested in a single batch.
+            {subtitle ?? "Enter one or many domains / URLs — one per line or comma-separated — and every match is mapped and harvested in a single batch."}
           </p>
         </div>
       </div>
+
+      {presets && presets.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {presets.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              disabled={loading}
+              onClick={() => { setInput(p.value); setError(null); }}
+              className="text-[9px] uppercase tracking-[0.18em] px-2 py-1 rounded border border-border/25 hover:border-foreground/50 hover:bg-foreground/5 transition disabled:opacity-40"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <form onSubmit={run} className="rounded-xl border border-border/30 bg-background/40 px-3 py-2 focus-within:border-foreground/40 transition-colors space-y-2">
         <div className="flex items-start gap-2">
