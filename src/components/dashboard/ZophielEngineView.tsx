@@ -30,7 +30,6 @@ const ArchivePanel = lazy(() => import("./search/ArchivePanel"));
 const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
 import ArchivesHarvesterPanel from "./search/ArchivesHarvesterPanel";
-const NomadView = lazy(() => import("./NomadView"));
 
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -128,7 +127,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
   // Auto-activate "searched" view when entering Imagine, Extract, Audit, or special modes (no query needed)
   useEffect(() => {
-    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "nomad") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine") {
       setSearched(true);
       setShowSuggestions(false);
     }
@@ -212,7 +211,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     }
 
     // Imagine / Extract / Audit / special modes — handled by their own panels, do not run text search
-    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest" || mode === "nomad") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest") {
       setSearched(true);
       setShowSuggestions(false);
       return;
@@ -389,7 +388,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
             {/* Scope toggle: Safe / Mix / Dark — compact, only relevant for standard search modes,
                 and only after a search to keep the pre-search view calm. */}
-            {searched && mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "deep" && mode !== "dataengine" && mode !== "nomad" && (
+            {searched && mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "deep" && mode !== "dataengine" && (
               <div className="mb-3 flex items-center gap-2">
                 <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground/50">Scope</span>
                 <div className="inline-flex rounded-xl border border-border/30 bg-card/40 backdrop-blur-xl p-0.5">
@@ -416,7 +415,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
             )}
 
             {/* Search bar — hidden in imagine/extract/audit modes (use their own input UI) */}
-            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "dataengine" && mode !== "nomad" && (
+            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "dataengine" && (
               <form onSubmit={handleSubmit} className="relative">
                 <div className="zophiel-aurora-pulse" aria-hidden />
 
@@ -495,7 +494,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         {/* Results */}
         {searched && (
           <div className="flex-1 overflow-y-auto">
-            <div className={`${mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest" || mode === "nomad" ? "max-w-6xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
+            <div className={`${mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest" ? "max-w-6xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
               {/* Queue Panel */}
               <MessageQueuePanel
                 items={queuedSearch ? [{ id: "zophiel-queued", content: queuedSearch }] : []}
@@ -569,20 +568,13 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
-              {/* NOMAD Agent — full OSINT investigation suite */}
-              {mode === "nomad" && (
-                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
-                  <NomadView />
-                </Suspense>
-              )}
-
               {/* Deep Search Panel */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && mode !== "nomad" && deepSearchQuery && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && deepSearchQuery && (
                 <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
               )}
 
               {/* Inline Dark Web sweep — shown when scope=mix or dark */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && mode !== "nomad" && !deepSearchQuery && (scope === "mix" || scope === "dark") && (darkLoading || darkResults.length > 0 || darkSummary) && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && !deepSearchQuery && (scope === "mix" || scope === "dark") && (darkLoading || darkResults.length > 0 || darkSummary) && (
                 <div className="mb-6 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase tracking-[0.25em] text-accent/80">Dark Web Sweep</span>
@@ -612,7 +604,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               )}
 
               {/* Standard search results */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "nomad" && !deepSearchQuery && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && !deepSearchQuery && (
                 <>
                   {/* Meta */}
                   {!loading && results.length > 0 && (
