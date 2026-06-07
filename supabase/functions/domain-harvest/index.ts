@@ -43,6 +43,38 @@ for (const [cat, exts] of Object.entries(DOC_EXT_CATEGORIES)) {
 }
 const ALL_DOC_EXTS = new Set(EXT_TO_CAT.keys());
 
+// Well-known URL path segments that mean "this page IS a document"
+// (e.g. https://scribd.com/document/123/Title  → a PDF document page).
+// We treat these like docs even when the URL has no file extension.
+const DEFAULT_DOC_PATH_SEGMENTS = new Set([
+  "document", "documents", "doc", "docs",
+  "book", "books", "ebook", "ebooks",
+  "audiobook", "audiobooks",
+  "presentation", "presentations", "slides", "slide",
+  "sheet-music", "sheets", "sheet",
+  "paper", "papers",
+  "article", "articles",
+  "publication", "publications",
+  "report", "reports",
+  "magazine", "magazines",
+  "podcast", "podcasts", "episode",
+  "file", "files",
+  "download", "downloads",
+  "pdf", "pdfs",
+  "manual", "manuals",
+  "thesis", "dissertation",
+  "issue", "issues",
+  "chapter", "chapters",
+]);
+
+function firstPathSegment(url: string): string | null {
+  try {
+    const p = new URL(url).pathname.split("/").filter(Boolean);
+    return p[0]?.toLowerCase() ?? null;
+  } catch { return null; }
+}
+
+
 function timedFetch(url: string, init?: RequestInit): Promise<Response | null> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS);
