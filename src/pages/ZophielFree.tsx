@@ -135,10 +135,6 @@ const ZophielFree = () => {
             </div>
 
             <div className="text-center mt-6 relative">
-              <h2 className="text-[2.75rem] sm:text-6xl md:text-7xl font-extralight tracking-tight leading-[1.05] zophiel-shimmer-text">
-                See what others miss.
-              </h2>
-
             </div>
 
           </div>
