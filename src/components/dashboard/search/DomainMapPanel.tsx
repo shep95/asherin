@@ -44,6 +44,26 @@ interface HarvestResult {
   allDocs: string[];
 }
 
+// Parse a free-form input (newlines, commas, spaces) into a unique list
+// of domain entries. Each entry preserves the raw URL the user typed so
+// the harvester can use it as the priority seed (e.g. /search?query=...).
+function parseDomainEntries(raw: string): { entryUrl: string; domain: string }[] {
+  const parts = raw.split(/[\n,\s]+/).map((s) => s.trim()).filter(Boolean);
+  const seen = new Set<string>();
+  const out: { entryUrl: string; domain: string }[] = [];
+  for (const p of parts) {
+    try {
+      const u = new URL(/^https?:\/\//i.test(p) ? p : `https://${p}`);
+      const host = u.hostname.replace(/^www\./, "").toLowerCase();
+      const key = u.toString();
+      if (!host || seen.has(key)) continue;
+      seen.add(key);
+      out.push({ entryUrl: u.toString(), domain: host });
+    } catch { /* skip invalid */ }
+  }
+  return out;
+}
+
 const DomainMapPanel = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -64,6 +84,10 @@ const DomainMapPanel = () => {
   const [focusDomains, setFocusDomains] = useState<Set<string>>(new Set());
   const [showFocus, setShowFocus] = useState(false);
   const [strictFocus, setStrictFocus] = useState(true);
+  // Batch tracking — every input line is preserved so harvest can use the
+  // exact URL the user typed as the priority seed for each domain.
+  const [batchEntries, setBatchEntries] = useState<{ entryUrl: string; domain: string }[]>([]);
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number; phase: "map" | "harvest" | null }>({ done: 0, total: 0, phase: null });
 
   const runHarvest = async () => {
     if (!result) return;
