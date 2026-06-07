@@ -31,7 +31,7 @@ const ScribdPanel = () => {
   const [category, setCategory] = useState("general");
   const [maxSources, setMaxSources] = useState(25);
   const [running, setRunning] = useState(false);
-  const [last, setLast] = useState<{ name: string; file: string; bytes: number; content: string; sources: number } | null>(null);
+  const [last, setLast] = useState<{ name: string; file: string; bytes: number; content: string; sources: number; textDocs: number } | null>(null);
 
   if (!isAdmin) {
     return (
@@ -65,6 +65,7 @@ const ScribdPanel = () => {
         bytes: data.synthesized_chars,
         content: data.content,
         sources: data.sources_used,
+        textDocs: data.documents_with_text ?? 0,
       });
       toast.success(`Brain installed → ${data.brain.name}`, { id: toastId });
     } catch (e) {
@@ -149,7 +150,7 @@ const ScribdPanel = () => {
           <div className="flex items-center justify-between">
             <div className="text-[10px] font-light tracking-wide text-foreground/80">
               ✓ Installed: <span className="text-foreground">{last.name}</span>
-              <span className="text-muted-foreground/60 ml-2">({(last.bytes / 1024).toFixed(1)} KB · {last.sources} sources)</span>
+              <span className="text-muted-foreground/60 ml-2">({(last.bytes / 1024).toFixed(1)} KB · {last.textDocs}/{last.sources} text documents)</span>
             </div>
             <button
               onClick={downloadTxt}

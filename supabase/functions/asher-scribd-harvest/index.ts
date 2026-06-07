@@ -1,6 +1,6 @@
 // ASHER SCRIBD — Knowledge Harvester (admin-only).
-// Scrapes scribd.com (via DuckDuckGo site: queries + direct meta fetches) for
-// a topic, synthesizes a plain-English knowledge dump via Gemini, and inserts
+// Scrapes scribd.com (via Firecrawl search + scrape text extraction) for a
+// topic, synthesizes a plain-English knowledge dump via Gemini, and inserts
 // it as an ACTIVE row into public.asher_brains so it feeds ASHER + AUREON
 // brain context automatically.
 //
@@ -27,13 +27,65 @@ interface HarvestReq {
   byok?: unknown;
 }
 
-interface ScribdHit { url: string; title: string; snippet: string; }
+interface ScribdHit { url: string; title: string; snippet: string; text: string; }
+interface ScribdDoc { url: string; title: string; desc: string; body: string; }
+
+const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
+
+function cleanText(value: unknown, max = 10_000): string {
+  return String(value || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, max);
+}
+
+function normalizeScribdUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    u.hash = "";
+    [...u.searchParams.keys()].forEach((key) => u.searchParams.delete(key));
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
+async function firecrawlJson(path: string, body: Record<string, unknown>, timeoutMs = 18_000): Promise<any> {
+  const fcKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!fcKey) throw new Error("FIRECRAWL_API_KEY not configured");
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const r = await fetch(`${FIRECRAWL_V2}${path}`, {
+      method: "POST",
+      signal: ctl.signal,
+      headers: {
+        "Authorization": `Bearer ${fcKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    const txt = await r.text();
+    const json = txt ? JSON.parse(txt) : null;
+    if (!r.ok) throw new Error(json?.error || txt || `Firecrawl ${r.status}`);
+    return json;
+  } finally {
+    clearTimeout(t);
+  }
+}
 
 // ── Discover scribd.com documents via Firecrawl search (reliable) ──────────
 async function ddgScribd(topic: string, max: number): Promise<ScribdHit[]> {
-  const fcKey = Deno.env.get("FIRECRAWL_API_KEY");
-  if (!fcKey) throw new Error("FIRECRAWL_API_KEY not configured");
-
   const out: ScribdHit[] = [];
   const seen = new Set<string>();
 
@@ -46,22 +98,18 @@ async function ddgScribd(topic: string, max: number): Promise<ScribdHit[]> {
   for (const q of queries) {
     if (out.length >= max) break;
     try {
-      const r = await fetch("https://api.firecrawl.dev/v2/search", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${fcKey}`,
-          "Content-Type": "application/json",
+      const j = await firecrawlJson("/search", {
+        query: q,
+        limit: Math.min(max - out.length, 25),
+        scrapeOptions: {
+          formats: ["markdown"],
+          onlyMainContent: false,
+          waitFor: 2500,
         },
-        body: JSON.stringify({ query: q, limit: Math.min(max, 25) }),
       });
-      if (!r.ok) {
-        console.warn(`[SCRIBD-HARVEST] firecrawl ${r.status}`, await r.text());
-        continue;
-      }
-      const j = await r.json();
       const results: any[] = j?.data?.web || j?.data || j?.results || [];
       for (const it of results) {
-        const url: string = it?.url || it?.link || "";
+        const url = normalizeScribdUrl(String(it?.url || it?.link || ""));
         if (!/^https?:\/\/[^/]*scribd\.com\//i.test(url)) continue;
         if (seen.has(url)) continue;
         seen.add(url);
@@ -69,6 +117,7 @@ async function ddgScribd(topic: string, max: number): Promise<ScribdHit[]> {
           url,
           title: (it?.title || url).toString().slice(0, 200),
           snippet: (it?.description || it?.snippet || "").toString().slice(0, 400),
+          text: cleanText(it?.markdown || it?.content || it?.data?.markdown, 12_000),
         });
         if (out.length >= max) break;
       }
@@ -79,35 +128,47 @@ async function ddgScribd(topic: string, max: number): Promise<ScribdHit[]> {
   return out;
 }
 
-// ── Fetch a scribd page and pull og:title / og:description / meta desc ─────
-async function fetchScribdMeta(url: string): Promise<{ title: string; desc: string; raw: string }> {
+// ── Read the available Scribd document text, not just page metadata ─────────
+async function fetchScribdText(hit: ScribdHit): Promise<ScribdDoc> {
+  if (hit.text && hit.text.length > 900) {
+    return { url: hit.url, title: hit.title, desc: hit.snippet, body: hit.text };
+  }
+
   try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 8000);
-    const r = await fetch(url, {
-      signal: ctl.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        "Accept": "text/html",
-      },
+    const j = await firecrawlJson("/scrape", {
+      url: hit.url,
+      formats: ["markdown", "html"],
+      onlyMainContent: false,
+      waitFor: 3000,
     });
-    clearTimeout(t);
-    if (!r.ok) return { title: "", desc: "", raw: "" };
-    const html = await r.text();
-    const pick = (re: RegExp) => (html.match(re)?.[1] || "").trim();
-    const title =
-      pick(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) ||
-      pick(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    const desc =
-      pick(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i) ||
-      pick(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
-    // Pull a handful of visible <p> snippets as bonus signal.
-    const paras = Array.from(html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi))
-      .slice(0, 6)
-      .map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
-      .filter((s) => s.length > 40);
-    return { title, desc, raw: paras.join("\n").slice(0, 3000) };
-  } catch { return { title: "", desc: "", raw: "" }; }
+    const data = j?.data || j;
+    const metadata = data?.metadata || {};
+    const markdown = cleanText(data?.markdown, 16_000);
+    const html = cleanText(data?.html, 8_000);
+    const body = markdown || html || hit.text || hit.snippet;
+    return {
+      url: hit.url,
+      title: cleanText(metadata?.title || hit.title, 240),
+      desc: cleanText(metadata?.description || hit.snippet, 700),
+      body,
+    };
+  } catch (e) {
+    console.warn("[SCRIBD-HARVEST] scrape fallback", hit.url, e);
+    return { url: hit.url, title: hit.title, desc: hit.snippet, body: hit.text || hit.snippet };
+  }
+}
+
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const ret: R[] = [];
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor++;
+      ret[index] = await fn(items[index]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return ret;
 }
 
 async function geminiSynthesize(topic: string, raw: string, apiKey: string): Promise<string> {
@@ -202,17 +263,9 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "no scribd documents discovered for topic" }), { status: 502, headers: corsHeaders });
     }
 
-    // 2) Fetch meta + visible text for the top N
-    const topN = hits.slice(0, Math.min(12, hits.length));
-    const enriched = await Promise.all(topN.map(async (h) => {
-      const meta = await fetchScribdMeta(h.url);
-      return {
-        url: h.url,
-        title: meta.title || h.title,
-        desc: meta.desc || h.snippet,
-        body: meta.raw,
-      };
-    }));
+    // 2) Fetch the available document text for every discovered source.
+    const topN = hits.slice(0, Math.min(maxSources, hits.length));
+    const enriched = await mapLimit(topN, 4, fetchScribdText);
 
     const corpus = enriched.map((d) =>
       `[SCRIBD] ${d.title}\nURL: ${d.url}\n${d.desc}\n${d.body}`
@@ -222,7 +275,8 @@ serve(async (req) => {
       `[SCRIBD-LINK] ${h.title} — ${h.url}\n${h.snippet}`
     ).join("\n");
 
-    const raw = `## SCRIBD CORPUS — ${hits.length} documents discovered for "${topic}"\n\n${corpus}\n\n## ADDITIONAL LINKS\n${tail}`;
+    const documentsWithText = enriched.filter((d) => d.body.length > 900).length;
+    const raw = `## SCRIBD CORPUS — ${hits.length} documents discovered for "${topic}"\n## DOCUMENTS WITH AVAILABLE TEXT — ${documentsWithText}\n\n${corpus}\n\n## ADDITIONAL LINKS\n${tail}`;
     if (raw.trim().length < 500) {
       return new Response(JSON.stringify({ error: "insufficient source material harvested" }), { status: 502, headers: corsHeaders });
     }
@@ -263,6 +317,8 @@ serve(async (req) => {
         ok: true,
         brain: row,
         sources_used: hits.length,
+        documents_with_text: documentsWithText,
+        source_text_chars: enriched.reduce((sum, d) => sum + d.body.length, 0),
         synthesized_chars: synthesized.length,
         file_name: fileName,
         content: synthesized,
