@@ -187,17 +187,14 @@ Deno.serve(async (req) => {
       if (out.size) socials[host] = Array.from(out).slice(0, 50);
     }
 
-    // x.com / twitter — mentions inside tweet text are STRONG connection signals
+    // mentions inside page text are STRONG connection signals (X/Twitter etc.)
     const tweetMentions = countBy(
-      ((md.match(/(?<![\w/])@[A-Za-z0-9_]{2,30}\b/g) || []) as string[])
+      ((text.match(/(?<![\w/])@[A-Za-z0-9_]{2,30}\b/g) || []) as string[])
         .map((h) => h.toLowerCase()),
     ).slice(0, 50);
 
-    // headings
-    const headings = (md.match(/^#{1,3}\s+.+$/gm) || [])
-      .map((h) => h.replace(/^#+\s+/, "").trim())
-      .filter((h) => h.length > 2 && h.length < 180)
-      .slice(0, 30);
+    // headings already extracted from raw HTML
+    const headings = headingsHtml.slice(0, 30);
 
     // key sentences (first informative ones)
     const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.length > 40 && s.length < 300).slice(0, 8);
