@@ -1391,13 +1391,36 @@ Deno.serve(async (req) => {
       r.veracity = Math.min(100, Math.round(r.veracity * (0.8 + r.truthGraph.consensusWeight * 0.2)));
     }
 
-    // ── Truth Graph Sorting — prioritize verified, high-provenance results ──
-    // Sort by veracity score (descending), then by tier
+    // ── Relevance-First Sort — ANY site mentioning the query surfaces ──
+    // Source tier is a tiebreaker only; topical match wins. Hostile sources
+    // still sink, but unknown/random sites are no longer buried under "trusted"
+    // domains that barely mention the query.
+    const qTokens = trimmed.toLowerCase().match(/\b[\w]{3,}\b/g) || [];
+    const qSet = new Set(qTokens);
+    const relevance = (r: SearchResult): number => {
+      if (qSet.size === 0) return 0;
+      const hay = `${r.title} ${r.snippet}`.toLowerCase();
+      let titleHits = 0, snipHits = 0;
+      const titleLo = r.title.toLowerCase();
+      for (const t of qSet) {
+        if (titleLo.includes(t)) titleHits++;
+        else if (hay.includes(t)) snipHits++;
+      }
+      // Title hits weighted 3x; coverage normalized 0..1
+      return (titleHits * 3 + snipHits) / (qSet.size * 3);
+    };
+    for (const r of filtered) (r as any)._rel = relevance(r);
+
     filtered.sort((a, b) => {
       // Hostile sources always sink to bottom
       if (a.truthGraph.hostileFlag !== b.truthGraph.hostileFlag) return a.truthGraph.hostileFlag ? 1 : -1;
-      // Then by veracity
+      // PRIMARY: topical relevance to the query
+      const ra = (a as any)._rel as number;
+      const rb = (b as any)._rel as number;
+      if (Math.abs(rb - ra) > 0.05) return rb - ra;
+      // SECONDARY: veracity (now lightly tier-weighted)
       if (b.veracity !== a.veracity) return b.veracity - a.veracity;
+      // TIEBREAKER: tier
       return a.tier - b.tier;
     });
 
