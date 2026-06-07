@@ -41,6 +41,50 @@ const DomainMapPanel = () => {
   const [estimating, setEstimating] = useState(false);
   const [zipping, setZipping] = useState(false);
   const [zipMsg, setZipMsg] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ url: string; blobUrl?: string; contentType?: string; loading: boolean; error?: string; textSnippet?: string } | null>(null);
+
+  // Load file when preview opens
+  useEffect(() => {
+    if (!preview || preview.blobUrl || preview.error) return;
+    let cancelled = false;
+    let createdUrl: string | null = null;
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const auth = sessionData?.session?.access_token;
+        const res = await fetch(`https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1/domain-zip`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwZ3hnenFidHJycmJ0amNlbWNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNzIyNTQsImV4cCI6MjA4NjY0ODI1NH0.PXItSIWoCByiMjDObhyc8QryuH2wNwMAIFyzWXzYJac",
+            ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+          },
+          body: JSON.stringify({ mode: "fetch", url: preview.url }),
+        });
+        if (!res.ok) {
+          let msg = `HTTP ${res.status}`;
+          try { const j = await res.json(); if (j?.error) msg = j.error; } catch { /* ignore */ }
+          throw new Error(msg);
+        }
+        const ct = res.headers.get("content-type") || "application/octet-stream";
+        const blob = await res.blob();
+        if (cancelled) return;
+        createdUrl = URL.createObjectURL(blob);
+        let textSnippet: string | undefined;
+        if (/^text\/|application\/json|application\/xml/i.test(ct)) {
+          textSnippet = (await blob.text()).slice(0, 20000);
+        }
+        setPreview((p) => p && p.url === preview.url ? { ...p, blobUrl: createdUrl!, contentType: ct, loading: false, textSnippet } : p);
+      } catch (err: any) {
+        if (!cancelled) setPreview((p) => p && p.url === preview.url ? { ...p, loading: false, error: err?.message || "Preview failed" } : p);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
+    };
+  }, [preview?.url]);
+
 
   const runEstimate = async (urls: string[]) => {
     setEstimating(true); setEstimate(null); setZipMsg(null);
