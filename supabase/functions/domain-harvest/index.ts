@@ -229,14 +229,24 @@ Deno.serve(async (req) => {
       if (seg) docPathPatterns.add(seg);
     }
 
-    // Seed queue: provided seeds (filtered to same host + HTML) + homepage
-    const seeds = new Set<string>([root.origin + "/"]);
-    for (const s of body.seedUrls || []) {
-      if (sameHost(s, root.host) && looksLikeHtml(s)) seeds.add(s);
+    // Seed queue: caller's exact entry URL (HIGHEST priority — this is the
+    // page the user actually typed, e.g. /search?query=military), plus any
+    // additional seeds from the mapper, plus the homepage as a fallback.
+    const seeds: string[] = [];
+    const entryUrl = typeof body.entryUrl === "string" ? body.entryUrl.trim() : "";
+    if (entryUrl) {
+      try {
+        const u = new URL(/^https?:\/\//i.test(entryUrl) ? entryUrl : `https://${entryUrl}`);
+        if (sameHost(u.toString(), root.host)) seeds.push(u.toString());
+      } catch { /* ignore */ }
     }
+    for (const s of body.seedUrls || []) {
+      if (sameHost(s, root.host) && looksLikeHtml(s) && !seeds.includes(s)) seeds.push(s);
+    }
+    if (!seeds.length) seeds.push(root.origin + "/");
 
     type QItem = { url: string; depth: number };
-    const queue: QItem[] = [...seeds].map((u) => ({ url: u, depth: 0 }));
+    const queue: QItem[] = seeds.map((u) => ({ url: u, depth: 0 }));
     const visited = new Set<string>();
     const docs = new Map<string, { url: string; ext: string; category: string; foundOn: string }>();
     let pagesCrawled = 0;
