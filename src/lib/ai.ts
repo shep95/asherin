@@ -61,19 +61,22 @@ export async function streamChat({
     return { role: m.role, content: m.content };
   });
 
-  // Load BYOK preferences from localStorage cache (set by AIKeysSettings)
-  let byokProvider: string | undefined;
-  let byokModel: string | undefined;
+  // Load BYOK preferences from localStorage cache (set by AIKeysSettings).
+  // DEFAULT ENGINE = Aureon Algorithm. If nothing is stored, or the user
+  // hasn't explicitly chosen a BYOK provider, we route through the Aureon
+  // Algorithm (Railway SOLIA brain). Lovable AI / Gemini is NOT used.
+  let byokProvider: string | undefined = "aureon";
+  let byokModel: string | undefined = "aureon-algorithm";
   try {
     const cached = localStorage.getItem("aureon_byok_active");
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (parsed.provider && parsed.provider !== "default") {
+      if (parsed?.provider) {
         byokProvider = parsed.provider;
         byokModel = parsed.model;
       }
     }
-  } catch { /* ignore */ }
+  } catch { /* default to aureon */ }
 
   // Per-conversation API toggle: a globally-selected BYOK provider (set in Settings)
   // applies to ALL conversations by default. Users can EXPLICITLY disable it for a
