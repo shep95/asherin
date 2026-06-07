@@ -81,9 +81,8 @@ const DomainMapPanel = () => {
   const [harvestErr, setHarvestErr] = useState<string | null>(null);
   const [activeHarvestCat, setActiveHarvestCat] = useState<string | null>(null);
   const [activeExt, setActiveExt] = useState<string | null>(null);
-  const [focusDomains, setFocusDomains] = useState<Set<string>>(new Set());
-  const [showFocus, setShowFocus] = useState(false);
-  const [strictFocus, setStrictFocus] = useState(true);
+  // Focus filter intentionally removed — harvest returns every document
+  // discovered on the user's exact input domain with no taxonomy gating.
   // Batch tracking — every input line is preserved so harvest can use the
   // exact URL the user typed as the priority seed for each domain.
   const [batchEntries, setBatchEntries] = useState<{ entryUrl: string; domain: string }[]>([]);
