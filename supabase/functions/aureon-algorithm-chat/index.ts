@@ -394,6 +394,7 @@ serve(async (req) => {
       text = await upstream.text();
     } catch (e) {
       clearTimeout(timeoutId);
+      console.error("[AUREON-ALGO] upstream fetch failed:", RAILWAY_URL, "hasAuth=", !!RAILWAY_AUTH, "err=", e instanceof Error ? `${e.name}: ${e.message}` : String(e));
       await refundUsage(admin, usageBucketKey);
       const aborted = e instanceof Error && e.name === "AbortError";
       return new Response(JSON.stringify({
