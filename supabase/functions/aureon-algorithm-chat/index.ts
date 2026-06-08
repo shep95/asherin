@@ -12,8 +12,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
-const RAILWAY_BASE = "https://web-production-f9b81.up.railway.app";
-const RAILWAY_URL = `${RAILWAY_BASE}/api/chat`;
+const _rawBase = (Deno.env.get("ZOPHIEL_API_URL") || "https://zophielalgorithm-production.up.railway.app").trim();
+const RAILWAY_BASE = (/^https?:\/\//i.test(_rawBase) ? _rawBase : `https://${_rawBase}`).replace(/\/$/, "");
+const RAILWAY_URL = `${RAILWAY_BASE}/ask`;
+const RAILWAY_AUTH = Deno.env.get("ZOPHIEL_API_KEY") || "";
 const ALGORITHM_PRICE_ID = "price_1TfC3oRxgCpmPfiFniV2cXAu";
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 // Manually gifted lifetime-unlimited algorithm access (treated as admin tier — no rate limit).
@@ -383,13 +385,17 @@ serve(async (req) => {
     try {
       upstream = await fetch(RAILWAY_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: upstreamMessage, session_id: sessionId }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(RAILWAY_AUTH ? { "Authorization": `Bearer ${RAILWAY_AUTH}` } : {}),
+        },
+        body: JSON.stringify({ query: upstreamMessage, session_id: sessionId }),
         signal: ac.signal,
       });
       text = await upstream.text();
     } catch (e) {
       clearTimeout(timeoutId);
+      console.error("[AUREON-ALGO] upstream fetch failed:", RAILWAY_URL, "hasAuth=", !!RAILWAY_AUTH, "err=", e instanceof Error ? `${e.name}: ${e.message}` : String(e));
       await refundUsage(admin, usageBucketKey);
       const aborted = e instanceof Error && e.name === "AbortError";
       return new Response(JSON.stringify({
