@@ -12,8 +12,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
-const RAILWAY_BASE = "https://web-production-f9b81.up.railway.app";
-const RAILWAY_URL = `${RAILWAY_BASE}/api/chat`;
+const RAILWAY_BASE = (Deno.env.get("ZOPHIEL_API_URL") || "https://zophielalgorithm-production.up.railway.app").replace(/\/$/, "");
+const RAILWAY_URL = `${RAILWAY_BASE}/ask`;
+const RAILWAY_AUTH = Deno.env.get("ZOPHIEL_API_KEY") || "";
 const ALGORITHM_PRICE_ID = "price_1TfC3oRxgCpmPfiFniV2cXAu";
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 // Manually gifted lifetime-unlimited algorithm access (treated as admin tier — no rate limit).
