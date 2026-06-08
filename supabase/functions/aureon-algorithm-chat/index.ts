@@ -384,8 +384,11 @@ serve(async (req) => {
     try {
       upstream = await fetch(RAILWAY_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: upstreamMessage, session_id: sessionId }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(RAILWAY_AUTH ? { "Authorization": `Bearer ${RAILWAY_AUTH}` } : {}),
+        },
+        body: JSON.stringify({ query: upstreamMessage, session_id: sessionId }),
         signal: ac.signal,
       });
       text = await upstream.text();
