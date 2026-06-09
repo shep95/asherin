@@ -81,35 +81,16 @@ function productToTier(productId: string | null): TierKey | null {
   return null;
 }
 
-/** Check if user has chat-only access */
-export function hasChatAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "lifetime" || tierKey === "chat" || tierKey === "aureon" || tierKey === "pro";
-}
-
-/** Check if user has access to Zophiel Search, Imagine Intelligence, Notebooks (chat+ tiers) */
-export function hasSearchAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "chat" || tierKey === "lifetime" || tierKey === "aureon" || tierKey === "pro";
-}
-
-/** Check if user has Aureon-tier ($199) access — required for NOMAD, Briefings, ZANOEM Design Lab, Vedic Strategy. Lifetime ($470) also grants this. */
-export function hasAureonAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "aureon" || tierKey === "pro" || tierKey === "lifetime";
-}
-
-/** Check if user has pro-level access */
-export function hasProAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "pro";
-}
-
-/** Check if user has enterprise-level access — required for Axrlen, Zeeion & Zerlal (admin only) */
-export function hasEnterpriseOnlyAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "pro";
-}
-
-/** @deprecated Use hasEnterpriseOnlyAccess instead */
-export function hasEnterpriseAccess(tierKey: TierKey | null): boolean {
-  return hasEnterpriseOnlyAccess(tierKey);
-}
+// ── Donation Era: Aureon is fully free ───────────────────────────────────────
+// All gating helpers return true. Paywalls have been removed in favor of an
+// optional donation model (Stripe / crypto via DonationBanner).
+export function hasChatAccess(_tierKey: TierKey | null): boolean { return true; }
+export function hasSearchAccess(_tierKey: TierKey | null): boolean { return true; }
+export function hasAureonAccess(_tierKey: TierKey | null): boolean { return true; }
+export function hasProAccess(_tierKey: TierKey | null): boolean { return true; }
+export function hasEnterpriseOnlyAccess(_tierKey: TierKey | null): boolean { return true; }
+/** @deprecated Aureon is free — always returns true. */
+export function hasEnterpriseAccess(_tierKey: TierKey | null): boolean { return true; }
 
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
