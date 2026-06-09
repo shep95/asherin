@@ -1,85 +1,111 @@
-// Global Cmd+K Command Palette — keyboard-first navigation
+// Global Command Palette — primary front door for navigation.
+// Cmd/Ctrl+K toggles; "/" also toggles outside text inputs.
+// Indexes every dashboard view by INTENT (plain-language label + synonyms),
+// with codename as secondary subtitle. Tracks recently-used items.
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Command } from "cmdk";
+import { Search, Clock, X } from "lucide-react";
 import {
-  Search, Folder, Bookmark, Bell, Eye, Network, Calendar,
-  FileText, History, Shield, Layers, Users, Settings, Database,
-  Image, Code, BookOpen, Brain, Zap, Globe, Sparkles, X
-} from "lucide-react";
+  NAV_INTENTS,
+  INTENT_GROUPS,
+  type IntentGroup,
+  type NavIntent,
+  getRecentIntents,
+  trackRecentIntent,
+} from "@/lib/navIntents";
 
-interface PaletteItem {
-  id: string;
-  label: string;
-  hint?: string;
-  icon: React.ReactNode;
-  action: () => void;
-  group: string;
-  keywords?: string[];
-}
+const isTypingTarget = (el: EventTarget | null): boolean => {
+  if (!(el instanceof HTMLElement)) return false;
+  const tag = el.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (el.isContentEditable) return true;
+  return false;
+};
+
+const intentHref = (i: NavIntent): string => {
+  if (i.route) return i.route;
+  if (i.view === "chat") return "/dashboard";
+  return `/dashboard/${i.view}`;
+};
 
 export default function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [recents, setRecents] = useState<NavIntent[]>(() => getRecentIntents());
   const navigate = useNavigate();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      // Cmd/Ctrl+K — always
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setOpen((o) => !o);
+        return;
+      }
+      // "/" — only outside text inputs
+      if (e.key === "/" && !isTypingTarget(e.target) && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setOpen(true);
+        return;
       }
       if (e.key === "Escape") setOpen(false);
     };
+    const onOpenEvt = () => setOpen(true);
+    const onRecents = () => setRecents(getRecentIntents());
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("aureon-open-command-palette", onOpenEvt as EventListener);
+    window.addEventListener("aureon-recents-changed", onRecents);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("aureon-open-command-palette", onOpenEvt as EventListener);
+      window.removeEventListener("aureon-recents-changed", onRecents);
+    };
   }, []);
 
-  const items: PaletteItem[] = useMemo(() => [
-    // Elite Suite
-    { id: "elite", label: "Open Elite Research Suite", icon: <Sparkles className="h-4 w-4" />, action: () => navigate("/elite"), group: "Elite", keywords: ["workspace", "research"] },
-    { id: "workspaces", label: "Research Workspaces", icon: <Folder className="h-4 w-4" />, action: () => navigate("/elite?tab=workspaces"), group: "Elite" },
-    { id: "saved", label: "Saved Searches & Alerts", icon: <Bell className="h-4 w-4" />, action: () => navigate("/elite?tab=alerts"), group: "Elite" },
-    { id: "watchlist", label: "Entity Watchlist", icon: <Eye className="h-4 w-4" />, action: () => navigate("/elite?tab=watchlist"), group: "Elite" },
-    { id: "timeline", label: "Timeline View", icon: <Calendar className="h-4 w-4" />, action: () => navigate("/elite?tab=timeline"), group: "Elite" },
-    { id: "rooms", label: "Shared Intel Rooms", icon: <Users className="h-4 w-4" />, action: () => navigate("/elite?tab=rooms"), group: "Elite" },
-    { id: "sources", label: "Custom Source Lists", icon: <Layers className="h-4 w-4" />, action: () => navigate("/elite?tab=sources"), group: "Elite" },
-    { id: "history", label: "Search History & Replay", icon: <History className="h-4 w-4" />, action: () => navigate("/elite?tab=history"), group: "Elite" },
-    { id: "audit", label: "Chain of Custody Audit Log", hint: "Forensic trail", icon: <Shield className="h-4 w-4" />, action: () => navigate("/elite?tab=audit"), group: "Elite" },
-    { id: "annotations", label: "My Annotations", icon: <Bookmark className="h-4 w-4" />, action: () => navigate("/elite?tab=annotations"), group: "Elite" },
+  useEffect(() => { if (open) setRecents(getRecentIntents()); }, [open]);
 
-    // Navigation
-    { id: "dashboard", label: "Dashboard", icon: <Database className="h-4 w-4" />, action: () => navigate("/dashboard"), group: "Navigate" },
-    { id: "search", label: "Zophiel Search", icon: <Search className="h-4 w-4" />, action: () => navigate("/zophiel"), group: "Navigate" },
-    { id: "whiteboard", label: "Whiteboard", icon: <Image className="h-4 w-4" />, action: () => navigate("/whiteboard"), group: "Navigate" },
-    { id: "ide", label: "Aureon IDE", icon: <Code className="h-4 w-4" />, action: () => navigate("/feature/ide"), group: "Navigate" },
-    { id: "notebooks", label: "Intelligence Notebooks", icon: <BookOpen className="h-4 w-4" />, action: () => navigate("/feature/notebooks"), group: "Navigate" },
-    { id: "brains", label: "Brains", icon: <Brain className="h-4 w-4" />, action: () => navigate("/feature/brains"), group: "Navigate" },
-    { id: "library", label: "Library", icon: <FileText className="h-4 w-4" />, action: () => navigate("/feature/library"), group: "Navigate" },
-    { id: "nomad", label: "NOMAD Investigation", icon: <Globe className="h-4 w-4" />, action: () => navigate("/feature/nomad"), group: "Navigate" },
-    { id: "azplen", label: "Azplen Foundry", icon: <Zap className="h-4 w-4" />, action: () => navigate("/feature/azplen"), group: "Navigate" },
-    { id: "agents", label: "Automated Agents", icon: <Network className="h-4 w-4" />, action: () => navigate("/feature/automated-agents"), group: "Navigate" },
-    { id: "pricing", label: "Pricing", icon: <Settings className="h-4 w-4" />, action: () => navigate("/pricing"), group: "Navigate" },
-  ], [navigate]);
+  const grouped = useMemo(() => {
+    const map = new Map<IntentGroup, NavIntent[]>();
+    for (const g of INTENT_GROUPS) map.set(g, []);
+    for (const i of NAV_INTENTS) map.get(i.group)?.push(i);
+    return map;
+  }, []);
+
+  const runIntent = (i: NavIntent) => {
+    trackRecentIntent((i.view ?? i.route)!);
+    setOpen(false);
+    navigate(intentHref(i));
+  };
 
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-start justify-center bg-background/80 backdrop-blur-sm pt-[15vh]"
+      className="fixed inset-0 z-[9999] flex items-start justify-center bg-background/80 backdrop-blur-sm pt-[12vh]"
       onClick={() => setOpen(false)}
     >
       <div
-        className="w-full max-w-xl mx-4 rounded-xl border border-border bg-card shadow-2xl overflow-hidden"
+        className="w-full max-w-2xl mx-4 rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <Command className="bg-card text-foreground">
+        <Command
+          className="bg-card text-foreground"
+          filter={(value, search) => {
+            // value is "label||codename||kw1 kw2 kw3"
+            const hay = value.toLowerCase();
+            const needle = search.toLowerCase().trim();
+            if (!needle) return 1;
+            // every space-separated token must appear somewhere
+            return needle.split(/\s+/).every((t) => hay.includes(t)) ? 1 : 0;
+          }}
+        >
           <div className="flex items-center gap-2 border-b border-border px-3">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Command.Input
               value={query}
               onValueChange={setQuery}
-              placeholder="Search commands, navigate, run actions..."
+              placeholder="What do you want to do?  (try: make a slideshow, check a website for threats, predict an event)"
               className="flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
               autoFocus
             />
@@ -92,30 +118,81 @@ export default function CommandPalette() {
               <X className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
           </div>
+
           <Command.List className="max-h-[60vh] overflow-y-auto p-2">
             <Command.Empty className="py-8 text-center text-sm text-muted-foreground">
-              No commands match "{query}"
+              Nothing matches “{query}”. Try a verb like “make”, “analyze”, “check”.
             </Command.Empty>
-            {["Elite", "Navigate"].map((g) => (
-              <Command.Group key={g} heading={g} className="text-[11px] uppercase tracking-wider text-muted-foreground px-2 py-1">
-                {items.filter((i) => i.group === g).map((i) => (
+
+            {!query.trim() && recents.length > 0 && (
+              <Command.Group
+                heading="Recent"
+                className="text-[10px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1"
+              >
+                {recents.map((i) => (
                   <Command.Item
-                    key={i.id}
-                    value={`${i.label} ${i.keywords?.join(" ") ?? ""}`}
-                    onSelect={() => { i.action(); setOpen(false); }}
+                    key={`recent-${i.view ?? i.route}`}
+                    value={`${i.label}||${i.codename ?? ""}||recent ${i.keywords.join(" ")}`}
+                    onSelect={() => runIntent(i)}
                     className="flex items-center gap-3 rounded-md px-3 py-2 text-sm cursor-pointer aria-selected:bg-muted"
                   >
-                    <span className="text-muted-foreground">{i.icon}</span>
-                    <span className="flex-1">{i.label}</span>
-                    {i.hint && <span className="text-xs text-muted-foreground">{i.hint}</span>}
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground/70" />
+                    <span className="flex-1">
+                      <span className="text-foreground">{i.label}</span>
+                      {i.codename && (
+                        <span className="text-muted-foreground/60 ml-2 text-xs">{i.codename}</span>
+                      )}
+                    </span>
                   </Command.Item>
                 ))}
               </Command.Group>
-            ))}
+            )}
+
+            {INTENT_GROUPS.map((g) => {
+              const items = grouped.get(g) ?? [];
+              if (items.length === 0) return null;
+              return (
+                <Command.Group
+                  key={g}
+                  heading={g.toUpperCase()}
+                  className="text-[10px] uppercase tracking-wider text-muted-foreground/60 px-2 py-1 mt-1"
+                >
+                  {items.map((i) => (
+                    <Command.Item
+                      key={i.view ?? i.route}
+                      value={`${i.label}||${i.codename ?? ""}||${i.keywords.join(" ")} ${g}`}
+                      onSelect={() => runIntent(i)}
+                      className="flex items-start gap-3 rounded-md px-3 py-2 text-sm cursor-pointer aria-selected:bg-muted"
+                    >
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-foreground truncate">{i.label}</span>
+                        {(i.codename || i.blurb) && (
+                          <span className="block text-[11px] text-muted-foreground/70 truncate">
+                            {i.codename}
+                            {i.codename && i.blurb ? " · " : ""}
+                            {i.blurb}
+                          </span>
+                        )}
+                      </span>
+                      {i.access === "pro" && (
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground/50 mt-0.5">Pro</span>
+                      )}
+                    </Command.Item>
+                  ))}
+                </Command.Group>
+              );
+            })}
           </Command.List>
+
           <div className="border-t border-border px-3 py-2 text-[10px] text-muted-foreground flex items-center justify-between">
-            <span>Press <kbd className="rounded border border-border px-1">↑↓</kbd> navigate <kbd className="rounded border border-border px-1 ml-1">↵</kbd> select</span>
-            <span><kbd className="rounded border border-border px-1">⌘K</kbd> toggle</span>
+            <span>
+              <kbd className="rounded border border-border px-1">↑↓</kbd> navigate{" "}
+              <kbd className="rounded border border-border px-1 ml-1">↵</kbd> select
+            </span>
+            <span>
+              <kbd className="rounded border border-border px-1">⌘K</kbd>{" "}
+              or <kbd className="rounded border border-border px-1">/</kbd> toggle
+            </span>
           </div>
         </Command>
       </div>
