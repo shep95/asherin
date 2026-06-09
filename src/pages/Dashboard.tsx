@@ -203,15 +203,15 @@ const Dashboard = () => {
   const [depth, setDepth] = useState<ResponseDepth>("standard");
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  // Free users (no paid tier) are auto-routed to the Algorithm LLM and cannot toggle.
-  // Admin + any paid tier (algorithm/chat/aureon/pro/lifetime) sees the toggle.
+  // Donation Era: Aureon is fully free. Everyone gets the toggle and can pick
+  // between the Algorithm LLM and BYOK chat. Nothing is locked behind a tier.
   const isAdminUser = user?.email === "ashernewtonx@gmail.com";
-  const isFreeUser = !isAdminUser && !tierKey;
+  const isFreeUser = false;
   const [algorithmModeRaw, setAlgorithmMode] = useState<boolean>(() => {
     try { return localStorage.getItem("aureon_algorithm_mode") === "1"; } catch { return false; }
   });
-  const algorithmMode = isFreeUser ? true : algorithmModeRaw;
-  const showAlgorithmToggle = !isFreeUser;
+  const algorithmMode = algorithmModeRaw;
+  const showAlgorithmToggle = true;
   const toggleAlgorithmMode = () => {
     if (isFreeUser) return;
     setAlgorithmMode((v) => {
