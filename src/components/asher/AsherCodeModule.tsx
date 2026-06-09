@@ -254,10 +254,11 @@ export default function AsherCodeModule() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLIFrameElement>(null);
 
-  // BYOK config — stored per-tab in localStorage
+  // BYOK config — provider/model persisted (non-secret); apiKey is SESSION-ONLY
+  // to keep it out of localStorage (XSS exfil risk if any HTML sink ever leaks).
   const [provider, setProvider] = useState(() => localStorage.getItem("asherCode.provider") || "anthropic");
   const [model, setModel] = useState(() => localStorage.getItem("asherCode.model") || "claude-sonnet-4-5");
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("asherCode.apiKey") || "");
+  const [apiKey, setApiKey] = useState(() => sessionStorage.getItem("asherCode.apiKey") || "");
 
   // ── Shared IDE upgrade pack state ──
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -278,7 +279,12 @@ export default function AsherCodeModule() {
 
   useEffect(() => { localStorage.setItem("asherCode.provider", provider); }, [provider]);
   useEffect(() => { localStorage.setItem("asherCode.model", model); }, [model]);
-  useEffect(() => { localStorage.setItem("asherCode.apiKey", apiKey); }, [apiKey]);
+  useEffect(() => {
+    // Migrate any legacy plaintext key out of localStorage and into sessionStorage.
+    try { if (localStorage.getItem("asherCode.apiKey")) localStorage.removeItem("asherCode.apiKey"); } catch {}
+    if (apiKey) sessionStorage.setItem("asherCode.apiKey", apiKey);
+    else sessionStorage.removeItem("asherCode.apiKey");
+  }, [apiKey]);
   useEffect(() => { localStorage.setItem("asherCode.orchestrate", orchestrateMode ? "1" : "0"); }, [orchestrateMode]);
   useEffect(() => { localStorage.setItem("asherCode.showFiles", showFiles ? "1" : "0"); }, [showFiles]);
   useEffect(() => { localStorage.setItem("asherCode.showPreview", showPreview ? "1" : "0"); }, [showPreview]);
