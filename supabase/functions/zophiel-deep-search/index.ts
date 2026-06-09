@@ -1,5 +1,5 @@
 import { isValidByok } from '../_shared/zophielByokRouter.ts';
-import { getCorsHeaders } from \"../_shared/cors.ts\";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // Default platform models (used when no BYOK provided). When the user supplies
 // a Google BYOK key, we substitute their model id into these URLs.
@@ -300,7 +300,6 @@ function crossValidateSources(sources: ScrapedSource[]): CrossValidation {
 // MAIN HANDLER
 // ══════════════════════════════════════════════════════════════════════════════
 Deno.serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
   const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

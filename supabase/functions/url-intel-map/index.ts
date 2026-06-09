@@ -106,7 +106,6 @@ function extractHeadingsHtml(html: string): string[] {
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
-  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const { url } = await req.json().catch(() => ({} as { url?: string }));

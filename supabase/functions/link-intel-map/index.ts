@@ -8,7 +8,7 @@
 
 import { resolveKey, byokErrorResponse } from '../_shared/adminGate.ts';
 import { isValidByok, callByokJson, type ZophielByokConfig } from '../_shared/zophielByokRouter.ts';
-import { getCorsHeaders } from \"../_shared/cors.ts\";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 interface GraphNode {
   id: string;
@@ -92,7 +92,6 @@ async function callGemini(apiKey: string, model: string, sys: string, usr: strin
 }
 
 Deno.serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
   const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 

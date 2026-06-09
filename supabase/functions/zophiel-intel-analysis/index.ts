@@ -4,7 +4,7 @@
 // BYOK provider when supplied (skips queue, no DB storage of the key).
 
 import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from '../_shared/zophielByokRouter.ts';
-import { getCorsHeaders } from \"../_shared/cors.ts\";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 type AnalysisType =
   | 'temporal'
@@ -351,7 +351,6 @@ async function callGateway(type: AnalysisType, query: string, results: ResultIn[
 }
 
 Deno.serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
   const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
