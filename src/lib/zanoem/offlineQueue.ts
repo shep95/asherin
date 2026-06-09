@@ -196,11 +196,13 @@ export function startQueueWorker(opts: { intervalMs?: number } = {}) {
   window.addEventListener("zanoem-queue:enqueued", wake);
   window.addEventListener("online", wake);
   // Reclaim "running" jobs left behind by a crash on next mount.
+  // Add 0-2s jitter so multiple tabs reclaiming the same stuck jobs don't
+  // race in environments without navigator.locks (e.g. some iframe previews).
   void (async () => {
     const stuck = (await listJobs("running"));
     for (const j of stuck) {
       j.status = "pending";
-      j.createdAt = Date.now();
+      j.createdAt = Date.now() + Math.floor(Math.random() * 2000);
       await update(j);
     }
   })();

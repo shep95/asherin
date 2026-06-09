@@ -62,13 +62,9 @@ export async function requireTier(
     const { data: au } = await (sb as any).rpc("get_user_id_by_email", { _email: email });
     userId = (typeof au === "string" && au) || undefined;
   } catch { /* fall through */ }
-  if (!userId) {
-    // Fallback: page through admin.listUsers (cheap for small projects).
-    try {
-      const { data: au } = await (sb as any).auth.admin.listUsers({ page: 1, perPage: 200 });
-      userId = au?.users?.find((u: any) => (u.email || "").toLowerCase() === email)?.id;
-    } catch { /* ignore */ }
-  }
+  // No listUsers() fallback — that path silently downgraded paid users to
+  // "free" past the perPage cap. If the RPC fails we fail safe: tier stays
+  // "free" only when there is genuinely no matching auth user.
 
   let tier: Tier = "free";
   if (userId) {

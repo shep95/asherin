@@ -211,8 +211,20 @@ Deno.serve(async (req) => {
     const { action } = body;
     const supabase = getSupabase(authHeader);
     const serviceDb = getServiceSupabase();
-    const privateKey = Deno.env.get("HYPERLIQUID_PRIVATE_KEY")!;
-    const walletAddress = Deno.env.get("HYPERLIQUID_WALLET_ADDRESS")!;
+    // Only read-only actions are allowed without a configured trading key.
+    const READ_ONLY_ACTIONS = new Set(["get_dashboard", "get_state", "get_trades", "get_pnl"]);
+    const walletAddress = Deno.env.get("HYPERLIQUID_WALLET_ADDRESS") ?? "";
+    let privateKey = "";
+    if (!READ_ONLY_ACTIONS.has(action)) {
+      const pk = Deno.env.get("HYPERLIQUID_PRIVATE_KEY");
+      if (!pk) {
+        return new Response(
+          JSON.stringify({ error: "Trading not configured (missing HYPERLIQUID_PRIVATE_KEY)" }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      privateKey = pk;
+    }
 
     // ── GET DASHBOARD DATA ──
     if (action === "get_dashboard") {

@@ -374,6 +374,10 @@ const Dashboard = () => {
   // Process queued messages — actually persist to DB and trigger AI
   const processMessageQueue = useCallback(async () => {
     if (processingQueue.current || !user) return;
+    // Don't drain the offline queue while the main chat is mid-stream — two
+    // streamChat calls would interleave tokens into the same conversation
+    // (BUG-CODE-02).
+    if (isStreamingRef.current) return;
     processingQueue.current = true;
     try {
       const pending = await getPendingMessages();
@@ -899,6 +903,16 @@ const Dashboard = () => {
   // Core send logic (called sequentially by queue processor)
   const sendMessageCore = async (content: string, convId: string, attachments?: FileAttachment[]) => {
     if (!user) return;
+    // Hard guard against rapid double-send / concurrent streams (STRESS-01).
+    if (isStreamingRef.current) {
+      toast({ title: "Already responding", description: "Wait for the current reply or hit Stop." });
+      return;
+    }
+    // Claim the streaming lock and abort handle BEFORE any async work so a
+    // mid-flight Stop or second send can actually cancel us (BUG-CODE-01).
+    isStreamingRef.current = true;
+    const earlyController = new AbortController();
+    abortRef.current = earlyController;
     setSuggestions([]);
 
     // Auto-suggest persona based on task content
@@ -976,16 +990,19 @@ const Dashboard = () => {
       setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "queued" }));
       registerBackgroundSync().catch(() => {});
       toast({ title: "Message queued", description: "Network issue. Will retry automatically." });
+      // Release the early streaming lock if we bail here.
+      isStreamingRef.current = false;
+      abortRef.current = null;
       return;
     }
 
     trackUsage(mode);
     setIsStreaming(true);
-    isStreamingRef.current = true;
     let assistantContent = "";
     const assistantId = crypto.randomUUID();
     tagMessageBranch(assistantId, currentBranch);
-    const controller = new AbortController();
+    // Reuse the controller we already assigned above so Stop works during pre-flight.
+    const controller = earlyController;
     abortRef.current = controller;
 
     setConversations((prev) =>
@@ -1187,30 +1204,25 @@ const Dashboard = () => {
         onDone: async () => {
           setIsStreaming(false);
           isStreamingRef.current = false;
-          // Persist assistant message — retry once on failure to prevent disappearing messages
-          try {
+          // Persist assistant message via upsert — idempotent so a retry on a
+          // flaky network cannot create a duplicate row when the first insert
+          // actually succeeded (BUG-FLOW-03).
+          const persistOnce = async () => {
             const encryptedAssistant = await encryptText(assistantContent, user.id);
-            await supabase.from("messages").insert({
+            await supabase.from("messages").upsert({
               id: assistantId,
               conversation_id: convId,
               user_id: user.id,
               role: "assistant",
               content: encryptedAssistant,
-            });
+            }, { onConflict: "id", ignoreDuplicates: true });
+          };
+          try {
+            await persistOnce();
           } catch (saveErr) {
             console.error("Failed to save assistant message, retrying:", saveErr);
-            try {
-              const enc2 = await encryptText(assistantContent, user.id);
-              await supabase.from("messages").insert({
-                id: assistantId,
-                conversation_id: convId,
-                user_id: user.id,
-                role: "assistant",
-                content: enc2,
-              });
-            } catch (retryErr) {
+            try { await persistOnce(); } catch (retryErr) {
               console.error("Retry save also failed:", retryErr);
-              // Message remains in local state even if DB save fails
             }
           }
           try {
