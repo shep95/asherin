@@ -60,135 +60,80 @@ interface NavGroup { label: string; subgroups: SubGroup[] }
 
 const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, label: "Subscription" };
 
-const navGroups: NavGroup[] = [
-  {
-    label: "Intelligence",
-    subgroups: [
-      {
-        label: "Research",
-        items: [
-          { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
-          { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
-          { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
-        ],
-      },
-      {
-        label: "Vision & Agents",
-        items: [
-          { id: "video-intelligence", icon: Crosshair, label: "Video Intelligence", access: "pro" },
-          { id: "reverse-engineer" as DashboardView, icon: Search, label: "Reverse Engineer", access: "search" },
-          { id: "zahten" as DashboardView, icon: Workflow, label: "Zahten Agent Forge" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Data & Analysis",
-    subgroups: [
-      {
-        label: "Platforms",
-        items: [
-          { id: "azplen", icon: Database, label: "Azplen Intelligence", access: "pro" },
-          { id: "pattern-analysis", icon: Activity, label: "Pattern Engine", access: "pro" },
-          { id: "cross" as DashboardView, icon: Crosshair, label: "Cross", access: "pro" },
-        ],
-      },
-      {
-        label: "Specialized Engines",
-        items: [
-          { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "pro" },
-          { id: "axrlen" as DashboardView, icon: Brain, label: "Axrlen", access: "pro" },
-          { id: "zerlal" as DashboardView, icon: Shield, label: "Zerlal", access: "pro" },
-        ],
-      },
-      {
-        label: "Analysis Tools",
-        items: [
-          { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
-          { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
-          { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Creation",
-    subgroups: [
-      {
-        label: "Design & Code",
-        items: [
-          { id: "zali", icon: Zap, label: "ZANOEM Design Lab" },
-          { id: "ide", icon: Terminal, label: "AUREON IDE" },
-          { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
-          { id: "snippets", icon: Code2, label: "Code Snippets" },
-          { id: "projects", icon: Layers, label: "Projects" },
-        ],
-      },
-      {
-        label: "Media Generation",
-        items: [
-          { id: "vibe-imager" as DashboardView, icon: Sparkles, label: "Vibe Imager" },
-          { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
-          { id: "ebook" as DashboardView, icon: FileText, label: "E-Book Generator" },
-          { id: "slideshow", icon: Layers, label: "Slideshow Generator", access: "search" },
-        ],
-      },
-      {
-        label: "Utilities",
-        items: [
-          { id: "file-scrapper" as DashboardView, icon: FileText, label: "File Scrapper", access: "search" },
-          { id: "cipher" as DashboardView, icon: Shield, label: "Cipher Toolkit", access: "search" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Workspace",
-    subgroups: [
-      {
-        label: "Collaboration",
-        items: [
-          { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
-          { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
-        ],
-      },
-      {
-        label: "Personal",
-        items: [
-          { id: "persona-store", icon: Sparkles, label: "Persona Store" },
-          { id: "library", icon: FolderOpen, label: "Library" },
-          { id: "memory", icon: Brain, label: "Memory Center" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "System",
-    subgroups: [
-      {
-        label: "Security & Operations",
-        items: [
-          { id: "agents" as DashboardView, icon: Zap, label: "Agents", access: "pro" },
-          { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
-          { id: "guardian-vault" as DashboardView, icon: LockIcon, label: "Guardian Vault" },
-          { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
-          { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
-        ],
-      },
-      {
-        label: "Account",
-        items: [
-          { id: "self-access", icon: FileText, label: "Self-Access Learning" },
-          { id: "bug-reports" as DashboardView, icon: ClipboardList, label: "Bug Reports" },
-          { id: "stats", icon: BarChart3, label: "My Stats" },
-          { id: "vedic-astrology" as DashboardView, icon: Moon, label: "Vedic Astrology" },
-          { id: "settings", icon: Settings, label: "Settings" },
-        ],
-      },
-    ],
-  },
+// Icon mapping by view/route — keeps a consistent monochrome icon per intent.
+import { NAV_INTENTS as ALL_INTENTS, INTENT_GROUPS, INTENT_GROUP_BLURB, type NavIntent } from "@/lib/navIntents";
 
-];
+const VIEW_ICON: Record<string, React.ElementType> = {
+  "vibe-imager": Sparkles,
+  "vibe-video": Sparkles,
+  "imagine-to-code": Code2,
+  "zali": Zap,
+  "pdf-generator": FileText,
+  "/whiteboard": Layers,
+  "azplen": Database,
+  "zeeion": Database,
+  "pattern-analysis": Activity,
+  "timeseries": Activity,
+  "geospatial": Globe,
+  "video-intelligence": Crosshair,
+  "search": Zap,
+  "nomad": Crosshair,
+  "axrlen": Brain,
+  "zerlal": Shield,
+  "reverse-engineer": Search,
+  "file-scrapper": FileText,
+  "cipher": Shield,
+  "briefing": Newspaper,
+  "cross": Crosshair,
+  "ide": Terminal,
+  "notebooks": FileText,
+  "agents": Zap,
+  "zahten": Workflow,
+  "plugins": Puzzle,
+  "snippets": Code2,
+  "library": FolderOpen,
+  "projects": Layers,
+  "memory": Brain,
+  "teams": Users,
+  "community": MessagesSquare,
+  "persona-store": Sparkles,
+  "vedic-astrology": Moon,
+  "guardian-vault": LockIcon,
+  "settings": Settings,
+  "subscription": CreditCard,
+  "stats": BarChart3,
+  "audit": ClipboardList,
+  "bug-reports": ClipboardList,
+  "security": ShieldCheck,
+  "self-access": FileText,
+};
+
+interface IntentNavItem extends NavItem {
+  codename?: string;
+  route?: string;
+  adminOnly?: boolean;
+}
+
+// Build sidebar groups directly from the single source of truth (NAV_INTENTS),
+// using verb-first intent groups (Create / Analyze / Investigate / Build /
+// Workspace / Account). Plain-language label is primary; codename is a subtitle.
+const navGroupsFlat: { label: string; blurb: string; items: IntentNavItem[] }[] =
+  INTENT_GROUPS.map((g) => ({
+    label: g,
+    blurb: INTENT_GROUP_BLURB[g],
+    items: ALL_INTENTS
+      .filter((i: NavIntent) => i.group === g && i.view !== "subscription")
+      .map((i: NavIntent) => ({
+        id: (i.view ?? (i.route as DashboardView)),
+        icon: VIEW_ICON[(i.view ?? i.route) as string] ?? FileText,
+        label: i.label,
+        codename: i.codename,
+        route: i.route,
+        access: i.access,
+        adminOnly: i.adminOnly,
+      })),
+  }));
+
 
 function groupByDate(convs: Conversation[]) {
   const now = new Date();
