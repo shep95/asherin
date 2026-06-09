@@ -986,16 +986,19 @@ const Dashboard = () => {
       setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "queued" }));
       registerBackgroundSync().catch(() => {});
       toast({ title: "Message queued", description: "Network issue. Will retry automatically." });
+      // Release the early streaming lock if we bail here.
+      isStreamingRef.current = false;
+      abortRef.current = null;
       return;
     }
 
     trackUsage(mode);
     setIsStreaming(true);
-    isStreamingRef.current = true;
     let assistantContent = "";
     const assistantId = crypto.randomUUID();
     tagMessageBranch(assistantId, currentBranch);
-    const controller = new AbortController();
+    // Reuse the controller we already assigned above so Stop works during pre-flight.
+    const controller = earlyController;
     abortRef.current = controller;
 
     setConversations((prev) =>
