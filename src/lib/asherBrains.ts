@@ -65,7 +65,7 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
 
 // Hard cap PDF extraction at 5MB to prevent main-thread freezes on huge files.
 export const MAX_PDF_BRAIN_BYTES = 5 * 1024 * 1024;
-};
+
 
 export const readBrainFile = async (file: File): Promise<string> => {
   const ext = file.name.split(".").pop()?.toLowerCase();
