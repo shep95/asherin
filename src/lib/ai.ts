@@ -64,7 +64,7 @@ export async function streamChat({
   // Load BYOK preferences from localStorage cache (set by AIKeysSettings).
   // DEFAULT ENGINE = Aureon Algorithm. If nothing is stored, or the user
   // hasn't explicitly chosen a BYOK provider, we route through the Aureon
-  // Algorithm (Railway SOLIA brain). Lovable AI / Gemini is NOT used.
+  // Algorithm (Railway Zophiel Algorithm brain). Lovable AI / Gemini is NOT used.
   let byokProvider: string | undefined = "aureon";
   let byokModel: string | undefined = "aureon-algorithm";
   try {
@@ -106,7 +106,7 @@ export async function streamChat({
   // UNIFIED PIPELINE: free, paid, and admin all flow through /chat by default
   // (same system prompt, skill injection, swarm orchestrator, archive grounding).
   // The /chat edge function enforces its own tier gating and rate limits.
-  // Users can still EXPLICITLY pick the Aureon Algorithm (Railway SOLIA brain)
+  // Users can still EXPLICITLY pick the Aureon Algorithm (Railway Zophiel Algorithm brain)
   // via the AureonEngineToggle — that sets byokProvider="aureon" themselves.
   // Previously free users were force-routed to Railway, which produced
   // off-topic news-feed answers for general queries. Removed.

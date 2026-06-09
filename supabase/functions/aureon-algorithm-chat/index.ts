@@ -216,7 +216,7 @@ serve(async (req) => {
       brainContext?: { prompt?: string; fileContents?: { name: string; content: string }[] } | null;
     };
 
-    // ─── Generic POST/PUT/DELETE passthrough for SOLIA endpoints ───
+    // ─── Generic POST/PUT/DELETE passthrough for Zophiel Algorithm endpoints ───
     // Admin-only writes (bootstrap, brain/run, pipeline/run, labels/review, github-sync, demos).
     if (passthrough?.path && isAllowedUpstreamPath(passthrough.path)) {
       const method = (passthrough.method ?? "POST").toUpperCase();
@@ -284,7 +284,7 @@ serve(async (req) => {
     }
     // ─── AUREON BRAIN INJECTION ─────────────────────────────────────────
     // Active custom Brain (system_prompt + attached files) — mirrors what the
-    // standard /chat function does so SOLIA follows the same user directives.
+    // standard /chat function does so the Zophiel Algorithm follows the same user directives.
     const brainSections: string[] = [];
     if (brainContext?.prompt && brainContext.prompt.trim()) {
       brainSections.push(`[ACTIVE AUREON BRAIN — FOLLOW AS PRIMARY DIRECTIVES]\n${brainContext.prompt.trim()}`);
