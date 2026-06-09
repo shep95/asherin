@@ -374,6 +374,10 @@ const Dashboard = () => {
   // Process queued messages — actually persist to DB and trigger AI
   const processMessageQueue = useCallback(async () => {
     if (processingQueue.current || !user) return;
+    // Don't drain the offline queue while the main chat is mid-stream — two
+    // streamChat calls would interleave tokens into the same conversation
+    // (BUG-CODE-02).
+    if (isStreamingRef.current) return;
     processingQueue.current = true;
     try {
       const pending = await getPendingMessages();
