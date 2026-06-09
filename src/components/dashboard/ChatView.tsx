@@ -359,6 +359,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [determinism, setDeterminism] = useState(33);
   const [qosMode, setQosMode] = useState<QoSMode>("fast");
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [activeBranch, setActiveBranch] = useState<string>(() => getActiveBranch(conversation.id));
   const messagesEndRef = useRef<HTMLDivElement>(null);
