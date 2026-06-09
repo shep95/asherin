@@ -16,7 +16,7 @@ import FreeManifesto from "@/components/FreeManifesto";
 import SiteFooter from "@/components/SiteFooter";
 import LiveDemoStrip from "@/components/landing/LiveDemoStrip";
 import TrustBand from "@/components/landing/TrustBand";
-import TierComparisonMatrix from "@/components/landing/TierComparisonMatrix";
+
 import CommandPaletteHint from "@/components/landing/CommandPaletteHint";
 import MagneticSpotlightButton from "@/components/landing/MagneticSpotlightButton";
 import CountUp from "@/components/landing/CountUp";
