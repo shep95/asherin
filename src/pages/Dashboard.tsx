@@ -84,6 +84,8 @@ const ImagineToCodeView = lazyWithRetry(() => import("@/components/dashboard/Ima
 const PersonaStoreView = lazyWithRetry(() => import("@/components/dashboard/PersonaStoreView"));
 const AureonIdeView = lazyWithRetry(() => import("@/components/dashboard/ide/AureonIdeView"));
 const PdfGeneratorView = lazyWithRetry(() => import("@/components/dashboard/PdfGeneratorView"));
+const DocumentExportLanding = lazyWithRetry(() => import("@/components/dashboard/DocumentExportLanding"));
+
 const PatternAnalysisView = lazyWithRetry(() => import("@/components/dashboard/PatternAnalysisView"));
 const SlideshowGeneratorView = lazyWithRetry(() => import("@/components/dashboard/SlideshowGeneratorView"));
 
