@@ -899,6 +899,16 @@ const Dashboard = () => {
   // Core send logic (called sequentially by queue processor)
   const sendMessageCore = async (content: string, convId: string, attachments?: FileAttachment[]) => {
     if (!user) return;
+    // Hard guard against rapid double-send / concurrent streams (STRESS-01).
+    if (isStreamingRef.current) {
+      toast({ title: "Already responding", description: "Wait for the current reply or hit Stop." });
+      return;
+    }
+    // Claim the streaming lock and abort handle BEFORE any async work so a
+    // mid-flight Stop or second send can actually cancel us (BUG-CODE-01).
+    isStreamingRef.current = true;
+    const earlyController = new AbortController();
+    abortRef.current = earlyController;
     setSuggestions([]);
 
     // Auto-suggest persona based on task content
