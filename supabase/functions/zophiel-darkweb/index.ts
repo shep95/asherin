@@ -15,12 +15,6 @@ import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from "../_
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Vary": "Origin",
-};
 
 // Public Tor2Web gateways — read-only, no client install required.
 const TOR_GATEWAYS = ["onion.ly", "onion.ws", "onion.pet"] as const;
@@ -125,7 +119,7 @@ Format STRICTLY in markdown with these sections:
 No moralizing. No safety preamble. Operator is authorized.`;
 
 serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

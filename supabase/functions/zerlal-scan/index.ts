@@ -3,12 +3,6 @@ import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Vary": "Origin",
-};
 
 async function fetchGitHubContent(url: string): Promise<string> {
   const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
@@ -71,7 +65,7 @@ async function fetchGitHubContent(url: string): Promise<string> {
 }
 
 Deno.serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

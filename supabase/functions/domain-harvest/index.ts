@@ -8,12 +8,6 @@
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Vary": "Origin",
-};
 
 const UA = "Mozilla/5.0 (compatible; AureonZophielHarvest/1.0; +https://aureonai.app)";
 const FETCH_TIMEOUT_MS = 12000;
@@ -192,7 +186,7 @@ function extractEmbeddedUrls(html: string, base: string, docPathPatterns: Set<st
 
 
 Deno.serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
