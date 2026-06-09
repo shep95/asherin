@@ -1644,6 +1644,7 @@ const Dashboard = () => {
       )}
 
       <FocusMode active={focusMode} onExit={() => setFocusMode(false)} />
+      <OnboardingModal />
 
       {asherEmbed && (
         <style>{`
