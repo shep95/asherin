@@ -14,7 +14,16 @@ export function writeAutoSave(sessionId: string, snap: AutoSaveSnapshot) {
   try {
     localStorage.setItem(KEY(sessionId), JSON.stringify(snap));
     localStorage.setItem(META(sessionId), String(snap.savedAt));
-  } catch { /* quota exceeded — ignore */ }
+  } catch (e) {
+    // Surface quota errors so the UI can warn the user before they lose work.
+    if (typeof window !== "undefined") {
+      const isQuota = e instanceof DOMException &&
+        (e.name === "QuotaExceededError" || e.name === "NS_ERROR_DOM_QUOTA_REACHED");
+      window.dispatchEvent(new CustomEvent("ide:autosave-error", {
+        detail: { sessionId, quotaExceeded: isQuota, error: String(e) },
+      }));
+    }
+  }
 }
 
 export function readAutoSave(sessionId: string): AutoSaveSnapshot | null {

@@ -41,8 +41,12 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers();
-    
+    // O(1) lookup via RPC — works at any user-base size (was previously
+    // listUsers() which silently failed past the 1000-user default page).
+    const { data: uid, error } = await (supabaseAdmin as any).rpc("get_user_id_by_email", {
+      _email: email.toLowerCase(),
+    });
+
     if (error) {
       console.error("Error checking email:", error);
       return new Response(
@@ -51,7 +55,7 @@ serve(async (req) => {
       );
     }
 
-    const userExists = data?.users?.some((u) => u.email?.toLowerCase() === email.toLowerCase());
+    const userExists = typeof uid === "string" && uid.length > 0;
 
     return new Response(
       JSON.stringify({ exists: userExists }),

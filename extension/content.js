@@ -297,7 +297,13 @@
     el.querySelector(".aureon-alert-close").onclick = () => el.remove();
     root.appendChild(el);
 
-    // Stack multiple alerts
+    // Cap visible alerts to 5 — drop oldest to prevent DOM/CPU blowup over
+    // long trading sessions (STRESS-05).
+    const all = root.querySelectorAll(".aureon-alert");
+    if (all.length > 5) {
+      for (let i = 0; i < all.length - 5; i++) all[i].remove();
+    }
+    // Stack multiple alerts (forced reflow once per render, not per element).
     const existing = root.querySelectorAll(".aureon-alert");
     let offset = 16;
     existing.forEach((a) => { a.style.top = offset + "px"; offset += a.offsetHeight + 8; });
@@ -373,4 +379,20 @@
       toggleActive();
     }
   });
+
+  // ── LIFECYCLE CLEANUP ──
+  // Stop the capture interval when the tab is hidden or unloaded so the
+  // service worker stops getting messages from a dead background, and CPU
+  // isn't drained on inactive tabs (BUG-FLOW-05).
+  function stopCapture() {
+    if (captureInterval) { clearInterval(captureInterval); captureInterval = null; }
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopCapture();
+    else if (isActive && !captureInterval) {
+      captureInterval = setInterval(analyzeFrame, settings.frameRate * 1000);
+    }
+  });
+  window.addEventListener("pagehide", stopCapture);
+  window.addEventListener("beforeunload", stopCapture);
 })();

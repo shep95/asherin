@@ -1,8 +1,16 @@
 // Aureon Service Worker — PWA + Background Sync + Message Queue
-const CACHE_NAME = 'aureon-v2';
+const CACHE_NAME = 'aureon-v3';
+// Pre-cache the Swiss Ephemeris WASM so Vedic chart calculations work offline
+// after first load (previously the 2-3MB file silently 504'd offline).
+const PRECACHE_URLS = ['/wasm/swisseph.wasm'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.allSettled(PRECACHE_URLS.map((u) => cache.add(u))),
+    ),
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -21,8 +29,32 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests; let the browser handle the rest
   if (event.request.method !== 'GET') return;
 
+  const url = new URL(event.request.url);
+  const isWasm = url.pathname.endsWith('.wasm');
+
   event.respondWith(
     (async () => {
+      // Stale-while-revalidate for WASM: serve cache fast, refresh in background.
+      if (isWasm) {
+        const cached = await caches.match(event.request);
+        const networkPromise = fetch(event.request)
+          .then(async (resp) => {
+            if (resp && resp.ok) {
+              const c = await caches.open(CACHE_NAME);
+              c.put(event.request, resp.clone()).catch(() => {});
+            }
+            return resp;
+          })
+          .catch(() => null);
+        if (cached) {
+          networkPromise.catch(() => {});
+          return cached;
+        }
+        const fresh = await networkPromise;
+        if (fresh) return fresh;
+        return new Response('', { status: 504, statusText: 'Gateway Timeout (offline)' });
+      }
+
       try {
         const networkResponse = await fetch(event.request);
         return networkResponse;
@@ -70,22 +102,12 @@ async function processQueuedMessages() {
 
     for (const msg of pending) {
       try {
-        // Notify clients that we're processing
         const allClients = await clients.matchAll();
         allClients.forEach(client => {
-          client.postMessage({
-            type: 'QUEUE_STATUS',
-            messageId: msg.id,
-            status: 'sending',
-          });
+          client.postMessage({ type: 'QUEUE_STATUS', messageId: msg.id, status: 'sending' });
         });
-
-        // The actual send is handled by the client when it receives QUEUE_STATUS
-        // This wakes up the client to process the queue
         allClients.forEach(client => {
-          client.postMessage({
-            type: 'PROCESS_QUEUE',
-          });
+          client.postMessage({ type: 'PROCESS_QUEUE' });
         });
       } catch (e) {
         console.error('Background sync failed for message:', msg.id, e);
@@ -96,10 +118,8 @@ async function processQueuedMessages() {
   }
 }
 
-// Listen for messages from the client
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'QUEUE_UPDATE') {
-    // Broadcast to all clients
     clients.matchAll().then(allClients => {
       allClients.forEach(client => {
         if (client.id !== event.source?.id) {

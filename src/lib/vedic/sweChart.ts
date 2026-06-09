@@ -51,6 +51,11 @@ async function getSwissEph() {
       const swe = await SwissEPH.init(wasmUrl);
       swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
       return swe;
+    }).catch((e) => {
+      // Clear cached rejected promise so the next chart calculation can retry
+      // instead of permanently failing for the rest of the session.
+      swePromise = null;
+      throw e;
     });
   }
   return swePromise;
@@ -63,9 +68,11 @@ export async function calculateSweVedicChart(input: ChartInput): Promise<SweVedi
   const localDecimalHours = hour + minute / 60;
   const utHours = localDecimalHours - input.tzOffset;
   const birthUtc = new Date(Date.UTC(year, month - 1, day, hour, minute) - input.tzOffset * 3_600_000);
-  const bishopDashaOffset = Math.trunc(input.tzOffset);
-  const dashaUtHours = localDecimalHours - bishopDashaOffset;
-  const dashaBirthUtc = new Date(Date.UTC(year, month - 1, day, hour, minute) - bishopDashaOffset * 3_600_000);
+  // Use full fractional tz offset — Math.trunc() previously dropped the
+  // 30/45-minute component for IST (+5.5), NPT (+5.75), IRST (+3.5), etc.,
+  // throwing every Dasha calculation off by up to 45 minutes for life.
+  const dashaUtHours = localDecimalHours - input.tzOffset;
+  const dashaBirthUtc = new Date(Date.UTC(year, month - 1, day, hour, minute) - input.tzOffset * 3_600_000);
 
   const jd = swe.swe_julday(year, month, day, utHours, swe.SE_GREG_CAL);
   const dashaJd = swe.swe_julday(year, month, day, dashaUtHours, swe.SE_GREG_CAL);

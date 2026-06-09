@@ -55,7 +55,16 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
     const extra = readable.filter((s) => /[a-zA-Z]{3,}/.test(s) && !/^[%/\[\]<>{}]+$/.test(s.trim())).join("\n");
     if (extra.length > text.length) text = extra;
   }
-  return text || `[PDF: ${file.name} — limited extraction. Re-upload as .txt/.md for best results]`;
+  if (!text && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("brain:pdf-extraction-failed", {
+      detail: { fileName: file.name },
+    }));
+  }
+  return text || `[PDF: ${file.name} — extraction failed. Re-upload as .txt/.md for reliable AI context]`;
+};
+
+// Hard cap PDF extraction at 5MB to prevent main-thread freezes on huge files.
+export const MAX_PDF_BRAIN_BYTES = 5 * 1024 * 1024;
 };
 
 export const readBrainFile = async (file: File): Promise<string> => {
@@ -75,7 +84,7 @@ export const loadActiveBrains = async (
   if (categories && categories.length) q = q.in("category", categories);
   const { data, error } = await q.order("category", { ascending: true }).limit(50);
   if (error || !data) return [];
-  return data as any;
+  return data as Pick<AsherBrain, "name" | "category" | "content">[];
 };
 
 export const buildBrainContext = async (

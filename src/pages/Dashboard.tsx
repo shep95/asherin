@@ -1187,30 +1187,25 @@ const Dashboard = () => {
         onDone: async () => {
           setIsStreaming(false);
           isStreamingRef.current = false;
-          // Persist assistant message — retry once on failure to prevent disappearing messages
-          try {
+          // Persist assistant message via upsert — idempotent so a retry on a
+          // flaky network cannot create a duplicate row when the first insert
+          // actually succeeded (BUG-FLOW-03).
+          const persistOnce = async () => {
             const encryptedAssistant = await encryptText(assistantContent, user.id);
-            await supabase.from("messages").insert({
+            await supabase.from("messages").upsert({
               id: assistantId,
               conversation_id: convId,
               user_id: user.id,
               role: "assistant",
               content: encryptedAssistant,
-            });
+            }, { onConflict: "id", ignoreDuplicates: true });
+          };
+          try {
+            await persistOnce();
           } catch (saveErr) {
             console.error("Failed to save assistant message, retrying:", saveErr);
-            try {
-              const enc2 = await encryptText(assistantContent, user.id);
-              await supabase.from("messages").insert({
-                id: assistantId,
-                conversation_id: convId,
-                user_id: user.id,
-                role: "assistant",
-                content: enc2,
-              });
-            } catch (retryErr) {
+            try { await persistOnce(); } catch (retryErr) {
               console.error("Retry save also failed:", retryErr);
-              // Message remains in local state even if DB save fails
             }
           }
           try {

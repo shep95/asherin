@@ -53,9 +53,14 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_URL") ?? "",
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
       );
-      const { data: recipientUser } = await supabaseAdmin.auth.admin.listUsers();
-      const recipientExists = recipientUser?.users?.some((u) => u.email === giftRecipientEmail);
-      
+      // O(1) lookup via RPC — previous listUsers() silently failed past the
+      // 1000-user default page, blocking gifts to newer accounts.
+      const { data: recipientId } = await (supabaseAdmin as any).rpc(
+        "get_user_id_by_email",
+        { _email: giftRecipientEmail.toLowerCase() },
+      );
+      const recipientExists = typeof recipientId === "string" && recipientId.length > 0;
+
       if (!recipientExists) {
         logStep("Gift recipient email not found in system", { giftRecipientEmail });
         throw new Error("Recipient email must be a registered account in the system");
@@ -63,7 +68,8 @@ serve(async (req) => {
       logStep("Gift recipient validated", { giftRecipientEmail });
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const stripeApiVersion = (Deno.env.get("STRIPE_API_VERSION") || "2025-08-27.basil") as any;
+    const stripe = new Stripe(stripeKey, { apiVersion: stripeApiVersion });
 
     // Find or reference existing customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });

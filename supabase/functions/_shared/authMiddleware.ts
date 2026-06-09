@@ -4,9 +4,10 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-export const ADMIN_EMAILS = new Set<string>([
-  (Deno.env.get("AUREON_ADMIN_EMAIL") || "ashernewtonx@gmail.com").toLowerCase(),
-]);
+// Admin email is project-scoped (memory rule: ashernewtonx@gmail.com has a
+// hard-coded bypass). Allow override via env var for staging/test environments.
+const _adminEnv = (Deno.env.get("AUREON_ADMIN_EMAIL") || "ashernewtonx@gmail.com").toLowerCase();
+export const ADMIN_EMAILS = new Set<string>([_adminEnv]);
 
 export interface AuthedUser {
   id: string;
