@@ -1058,7 +1058,7 @@ serve(async (req) => {
           console.error('zophiel fallback failed:', fallbackErr);
         }
       }
-      return _gate.byokErrorResponse(_e, (globalThis as any).corsHeaders ?? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' });
+      return _gate.byokErrorResponse(_e, corsHeaders);
     }
   }
 

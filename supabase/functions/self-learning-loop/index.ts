@@ -381,7 +381,7 @@ serve(async (req) => {
       await _gate.resolveKey(req, _byok);
     } catch (_e) {
       const _gate = await import('../_shared/adminGate.ts');
-      return _gate.byokErrorResponse(_e, (globalThis as any).corsHeaders ?? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' });
+      return _gate.byokErrorResponse(_e, corsHeaders);
     }
   }
 
