@@ -266,11 +266,9 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
 
 // ── Access Helpers ───────────────────────────────────────────────────────────
 
-/** Check if a tier has access to a specific feature */
-export function tierHasFeature(tierKey: TierKey | null, feature: FeatureId): boolean {
-  if (!tierKey) return false;
-  const plan = SUBSCRIPTION_PLANS.find(p => p.id === tierKey);
-  return plan?.features.includes(feature) ?? false;
+/** Donation Era: Aureon is fully free — every feature is unlocked for every user. */
+export function tierHasFeature(_tierKey: TierKey | null, _feature: FeatureId): boolean {
+  return true;
 }
 
 /** Get the plan definition for a tier */
