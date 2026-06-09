@@ -185,7 +185,7 @@ const DashboardSidebar = ({
   
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
-    navGroups.forEach((g, i) => { init[g.label] = i < 2; });
+    navGroupsFlat.forEach((g, i) => { init[g.label] = i < 2; });
     return init;
   });
 
@@ -193,11 +193,12 @@ const DashboardSidebar = ({
     setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
-  const itemAllowed = (item: NavItem) => {
+  const itemAllowed = (item: IntentNavItem) => {
     if (item.id === "security") return user?.email === ADMIN_EMAIL;
     if (item.id === "self-access") return user?.email === ADMIN_EMAIL;
     if (item.id === "ebook") return user?.email === ADMIN_EMAIL;
-    const featureId = VIEW_FEATURE_MAP[item.id];
+    if (item.adminOnly) return user?.email === ADMIN_EMAIL;
+    const featureId = VIEW_FEATURE_MAP[item.id as string];
     if (featureId) {
       return tierHasFeature(tierKey, featureId) || user?.email === ADMIN_EMAIL;
     }
@@ -208,28 +209,24 @@ const DashboardSidebar = ({
     return true;
   };
 
-  const filteredGroups = navGroups.map(group => ({
-    ...group,
-    subgroups: group.subgroups
-      .map(sg => ({ ...sg, items: sg.items.filter(itemAllowed) }))
-      .filter(sg => sg.items.length > 0),
-  })).filter(group => group.subgroups.length > 0);
+  const filteredGroups = navGroupsFlat
+    .map((group) => ({ ...group, items: group.items.filter(itemAllowed) }))
+    .filter((group) => group.items.length > 0);
 
-  // Append Zahten-published agents as a dynamic nav group (mirrors Asher Dashboard).
-  const dynamicGroups: NavGroup[] = publishedAgents.length
+  // Append Zahten-published agents as a dynamic intent group.
+  const dynamicGroups = publishedAgents.length
     ? [{
         label: "Deployed Agents",
-        subgroups: [{
-          label: "Zahten",
-          items: publishedAgents.map((a) => ({
-            id: `agent:${a.id}` as DashboardView,
-            icon: Workflow,
-            label: a.name,
-          })),
-        }],
+        blurb: "Your Zahten-deployed agents",
+        items: publishedAgents.map((a) => ({
+          id: `agent:${a.id}` as DashboardView,
+          icon: Workflow,
+          label: a.name,
+        })) as IntentNavItem[],
       }]
     : [];
   const allGroups = [...filteredGroups, ...dynamicGroups];
+
 
   // Load archived conversations
   const loadArchived = useCallback(async () => {
