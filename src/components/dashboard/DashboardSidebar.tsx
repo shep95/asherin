@@ -512,60 +512,60 @@ const DashboardSidebar = ({
 
                 {allGroups.map((group) => {
                   const isOpen = expandedGroups[group.label] ?? false;
-                  const hasActive = group.subgroups.some(sg => sg.items.some(item => activeView === item.id));
+                  const hasActive = group.items.some((item) => activeView === item.id);
+                  const navigate = (item: IntentNavItem) => {
+                    if (item.route) {
+                      window.location.assign(item.route);
+                    } else {
+                      onViewChange(item.id);
+                      onToggleSidebar();
+                    }
+                  };
 
                   return (
                     <div key={group.label}>
                       <button
                         onClick={() => toggleGroup(group.label)}
-                        className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-1.5 text-[10px] font-medium tracking-[0.12em] uppercase transition-colors ${
-                          hasActive ? "text-foreground" : "text-muted-foreground/50 hover:text-muted-foreground"
+                        className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-1.5 text-[10px] font-medium tracking-[0.14em] uppercase transition-colors ${
+                          hasActive ? "text-foreground" : "text-muted-foreground/60 hover:text-muted-foreground"
                         }`}
+                        title={group.blurb}
                       >
-                        {group.label}
+                        <span className="flex items-center gap-2">
+                          {group.label}
+                          <span className="hidden xl:inline text-[8px] font-light tracking-normal normal-case text-muted-foreground/40">
+                            — {group.blurb}
+                          </span>
+                        </span>
                         <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                       </button>
                       {isOpen && (
-                        <div className="mt-0.5 mb-1 space-y-1 pl-2 border-l border-border/15 ml-3">
-                          {group.subgroups.map((sg) => {
-                            const sgKey = `${group.label}::${sg.label}`;
-                            const sgOpen = expandedGroups[sgKey] ?? false;
-                            const sgHasActive = sg.items.some(item => activeView === item.id);
-                            return (
-                              <div key={sg.label}>
-                                <button
-                                  onClick={() => toggleGroup(sgKey)}
-                                  className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1 text-[9px] font-light tracking-[0.18em] uppercase transition-colors ${
-                                    sgHasActive ? "text-foreground/80" : "text-muted-foreground/40 hover:text-muted-foreground/70"
-                                  }`}
-                                >
-                                  {sg.label}
-                                  <ChevronDown className={`h-2.5 w-2.5 transition-transform duration-200 ${sgOpen ? "rotate-180" : ""}`} />
-                                </button>
-                                {sgOpen && (
-                                  <div className="space-y-0.5 mt-0.5 mb-1">
-                                    {sg.items.map((item) => (
-                                      <button
-                                        key={item.id}
-                                        onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
-                                        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                                          activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                                        }`}
-                                      >
-                                        <item.icon className="h-4 w-4" />
-                                        {item.label}
-                                      </button>
-                                    ))}
-                                  </div>
+                        <div className="mt-0.5 mb-1 space-y-0.5 pl-2 border-l border-border/15 ml-3">
+                          {group.items.map((item) => (
+                            <button
+                              key={item.id}
+                              onClick={() => navigate(item)}
+                              className={`flex w-full items-start gap-2.5 rounded-xl px-3 py-2 text-left transition-colors ${
+                                activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                              }`}
+                            >
+                              <item.icon className="h-4 w-4 mt-0.5 shrink-0" />
+                              <span className="flex flex-col min-w-0">
+                                <span className="text-xs font-light leading-tight truncate">{item.label}</span>
+                                {item.codename && item.codename !== item.label && (
+                                  <span className="text-[9px] font-light tracking-wider uppercase text-muted-foreground/40 truncate">
+                                    {item.codename}
+                                  </span>
                                 )}
-                              </div>
-                            );
-                          })}
+                              </span>
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>
                   );
                 })}
+
               </div>
 
               <div className="p-3 pb-5 border-t border-border/20 space-y-1">
