@@ -346,32 +346,31 @@ serve(async (req) => {
       if (data.user) { userId = data.user.id; userEmail = data.user.email ?? null; }
     }
 
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    // Aureon is free to use. No Stripe gating, no paid tiers.
+    // Light anti-abuse rate limit applied per signed-in user / per IP+fp anon bucket.
     const emailLc = userEmail?.toLowerCase() ?? null;
     const isAdmin = emailLc === ADMIN_EMAIL;
     const isGiftedUnlimited = !!emailLc && GIFTED_UNLIMITED_EMAILS.has(emailLc);
-    let tier: "admin" | "paid" | "free" = "free";
-    if (isAdmin || isGiftedUnlimited) tier = "admin";
-    else if (userId && userEmail && stripeKey && (await hasActiveAlgorithmSub(stripeKey, userEmail))) tier = "paid";
+    const tier: "admin" | "user" = (isAdmin || isGiftedUnlimited || userId) ? (isAdmin || isGiftedUnlimited ? "admin" : "user") : "user";
 
     let gate = { ok: true, remaining: -1, resetAt: 0 };
     let usageBucketKey: string | null = null;
-    if (tier === "free") {
-      const ip = getClientIp(req);
-      usageBucketKey = `anon:${ip}::${(fp || "").slice(0, 64)}`;
-      gate = await consume(admin, usageBucketKey, "anon", FREE_LIMIT, FREE_WINDOW_MS);
-    } else if (tier === "paid") {
-      usageBucketKey = `user:${userId}`;
-      gate = await consume(admin, usageBucketKey, "user", PAID_LIMIT, PAID_WINDOW_MS);
+    if (!isAdmin && !isGiftedUnlimited) {
+      if (userId) {
+        usageBucketKey = `user:${userId}`;
+        gate = await consume(admin, usageBucketKey, "user", PAID_LIMIT, PAID_WINDOW_MS);
+      } else {
+        const ip = getClientIp(req);
+        usageBucketKey = `anon:${ip}::${(fp || "").slice(0, 64)}`;
+        gate = await consume(admin, usageBucketKey, "anon", PAID_LIMIT, PAID_WINDOW_MS);
+      }
     }
 
     if (!gate.ok) {
       return new Response(JSON.stringify({
         error: "rate_limited", tier, mode: "algorithm",
-        message: tier === "free"
-          ? "Free limit reached (10 / 2 hours). Upgrade for 20 / hour, switch to your own key, or wait for reset."
-          : "Hourly limit reached (20 / hour). Resets soon.",
-        remaining: 0, resetAt: gate.resetAt, upgrade: tier === "free",
+        message: "Anti-abuse rate limit hit (20 / hour). Aureon is free — no upgrade needed, just wait for reset or connect your own API key (BYOK) for unlimited.",
+        remaining: 0, resetAt: gate.resetAt, upgrade: false,
       }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
