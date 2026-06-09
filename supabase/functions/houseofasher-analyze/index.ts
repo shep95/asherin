@@ -65,6 +65,7 @@ async function sendEmail(supabase: any, templateName: string, recipientEmail: st
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   try {
     const body = await req.json()
