@@ -12,8 +12,7 @@ import ReactMarkdown from "react-markdown";
 import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
 import NeuralThinkingModal from "@/components/dashboard/NeuralThinkingModal";
 import houseOfAsherLogo from "@/assets/HouseOfAsher_Flag.png";
-import PricingComparisonTable from "@/components/subscription/PricingComparisonTable";
-import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
+import FreeManifesto from "@/components/FreeManifesto";
 import SiteFooter from "@/components/SiteFooter";
 import LiveDemoStrip from "@/components/landing/LiveDemoStrip";
 import TrustBand from "@/components/landing/TrustBand";
@@ -983,47 +982,26 @@ const Index = () => {
       </div>
       </ScrollSection>
 
-      {/* ───────── Tier Selection ───────── */}
+      {/* ───────── The Free Manifesto ───────── */}
       <ScrollSection>
       <div className="relative z-10 px-6 py-28 sm:py-36 overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/4 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.05),transparent_70%)] blur-3xl" />
         <div className="mx-auto max-w-6xl text-center relative">
           <div className="inline-flex items-center gap-3 mb-7">
             <span className="h-px w-12 bg-gradient-to-r from-transparent to-foreground/30" />
-            <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-foreground/50">◊ Section · 03 / 06</span>
+            <span className="font-mono text-[10px] tracking-[0.35em] uppercase text-foreground/50">◊ Section · 03 / 06 · Free Forever</span>
             <span className="h-px w-12 bg-gradient-to-l from-transparent to-foreground/30" />
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-tight leading-[1.05] text-foreground">
-            Choose Your Intelligence Level.
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-tight leading-[1.05] text-foreground mb-16">
+            Aureon Doesn't Charge You.
             <br />
-            <span className="text-muted-foreground">No Free Tiers. No Data Harvesting.</span>
+            <span className="text-muted-foreground">Not Now. Not Ever.</span>
           </h2>
-
-          <div className="mt-16 max-w-7xl mx-auto text-left">
-            <TierComparisonMatrix />
-          </div>
-
-          <div className="mt-24 max-w-5xl mx-auto text-left">
-            <div className="text-center mb-12">
-              <p className="font-mono text-[10px] tracking-[0.3em] text-foreground/40 uppercase mb-3">◈ Tier Capability Matrix</p>
-              <h3 className="text-2xl sm:text-3xl font-extralight tracking-tight text-foreground">
-                What Powers Each Tier.
-              </h3>
-            </div>
-            <TierFeatureTabs />
-          </div>
-
-          <div className="mt-20 relative mx-auto max-w-2xl rounded-3xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl px-10 py-12 text-center overflow-hidden">
-            <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-foreground/30 rounded-tl-3xl" />
-            <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-foreground/20 rounded-br-3xl" />
-            <p className="text-lg font-extralight tracking-wide text-foreground italic">"Why no free tier?"</p>
-            <p className="mt-4 max-w-lg mx-auto text-sm font-extralight leading-relaxed text-muted-foreground">
-              Because free tiers turn users into products. You pay for the tool — the tool works for you. That's the only honest model.
-            </p>
-          </div>
+          <FreeManifesto compact />
         </div>
       </div>
       </ScrollSection>
+
 
       {/* ───────── Zahten Agent Forge ───────── */}
       <ScrollSection>
