@@ -1,9 +1,16 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import DOMPurify from "dompurify";
 import { FileText, Upload, Download, Image as ImageIcon, Loader2, Trash2, Plus, Wand2 } from "lucide-react";
 import { ALL_WALLPAPERS as WALLPAPERS } from "@/lib/wallpapers";
 const wallpaperDefault = WALLPAPERS[0].src;
+
+// Strip scripts / event handlers from any user/AI-derived HTML before injecting
+// into the live DOM for html2canvas rasterization. Keep inline styles (needed
+// for the ebook layout) but block all execution surfaces.
+const sanitizePdfHtml = (html: string) =>
+  DOMPurify.sanitize(html, { ADD_ATTR: ["style"], FORBID_TAGS: ["script", "iframe", "object", "embed"] });
 
 // Standard ebook trim size: 6" × 9" @ 96dpi → 576 × 864 px (preview)
 // jsPDF uses points: 6" × 9" = 432pt × 648pt
@@ -107,7 +114,7 @@ const paginateSections = (sections: PdfSection[], title: string, author: string)
   measure.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_INNER_W}px;visibility:hidden;overflow:visible;box-sizing:border-box;`;
   document.body.appendChild(measure);
   const measureHtml = (html: string) => {
-    measure.innerHTML = html;
+    measure.innerHTML = sanitizePdfHtml(html);
     return Math.ceil(measure.getBoundingClientRect().height || measure.scrollHeight || measure.offsetHeight);
   };
 
@@ -262,7 +269,7 @@ const PdfGeneratorView = () => {
       for (let i = 0; i < pages.length; i++) {
         const pageEl = document.createElement("div");
         pageEl.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_W}px;height:${PAGE_H}px;overflow:hidden;background:#0a0a0a;`;
-        pageEl.innerHTML = `
+        pageEl.innerHTML = sanitizePdfHtml(`
           <div style="position:absolute;inset:0;background-image:url(${wallpaperSrc});background-size:cover;background-position:center;opacity:${bgOpacity};"></div>
           <div style="position:absolute;inset:0;background:rgba(10,10,10,${overlayOpacity});"></div>
           <div style="position:absolute;top:${PAGE_PAD_Y - 14}px;left:${PAGE_PAD_X - 14}px;right:${PAGE_PAD_X - 14}px;bottom:${PAGE_PAD_Y - 14}px;border:1px solid rgba(216,200,154,0.45);border-radius:2px;pointer-events:none;"></div>
@@ -271,7 +278,7 @@ const PdfGeneratorView = () => {
             ${pages[i]}
           </div>
           <div style="position:absolute;bottom:${PAGE_PAD_Y - 28}px;left:0;right:0;text-align:center;font-family:${FONT_BODY};font-size:9px;color:#a89968;letter-spacing:0.2em;z-index:10;">— ${i + 1} —</div>
-        `;
+        `);
         document.body.appendChild(pageEl);
 
         const canvas = await html2canvas(pageEl, {

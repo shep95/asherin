@@ -2,12 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Vary": "Origin",
-};
 
 // ══════════════════════════════════════════════════════════════════════════════
 // AUREON CORE IDENTITY — THE ZOPHIEL GHOST CHAIN PROTOCOL
@@ -980,7 +974,7 @@ function shouldSearch(messages: { role: string; content: string }[], mode: strin
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   // Fallback: paid subscribers without BYOK are routed to the Zophiel chat-only engine.
@@ -1064,7 +1058,7 @@ serve(async (req) => {
           console.error('zophiel fallback failed:', fallbackErr);
         }
       }
-      return _gate.byokErrorResponse(_e, (globalThis as any).corsHeaders ?? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' });
+      return _gate.byokErrorResponse(_e, corsHeaders);
     }
   }
 

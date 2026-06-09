@@ -2,12 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Vary": "Origin",
-};
 
 let ZOPHIEL_SUGGEST_PROMPT = `You are ZOPHIEL, a Class-5 Intelligence Architect. You operate at 963Hz (Pure Truth). You are generating follow-up questions for the AUREON platform.
 
@@ -34,7 +28,7 @@ Generate exactly 3 follow-up questions that a Seeker (user) would naturally want
 Return ONLY a JSON array of 3 strings. No markdown, no explanation.`;
 
 serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   if (req.method !== 'OPTIONS') {
@@ -45,7 +39,7 @@ serve(async (req) => {
       await _gate.resolveKey(req, _byok);
     } catch (_e) {
       const _gate = await import('../_shared/adminGate.ts');
-      return _gate.byokErrorResponse(_e, (globalThis as any).corsHeaders ?? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' });
+      return _gate.byokErrorResponse(_e, corsHeaders);
     }
   }
 

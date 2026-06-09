@@ -3,12 +3,6 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Vary": "Origin",
-};
 
 const AUREON_SYSTEM_PROMPT = `You are AUREON Vibe Video — an elite AI video editing intelligence. You help users edit videos with precision.
 
@@ -85,7 +79,7 @@ IMPORTANT RULES FOR FFMPEG ARGS:
 When just chatting (no video loaded, general advice), respond normally in plain text. Be concise (1-3 sentences).`;
 
 serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   if (req.method !== 'OPTIONS') {
@@ -96,7 +90,7 @@ serve(async (req) => {
       await _gate.resolveKey(req, _byok);
     } catch (_e) {
       const _gate = await import('../_shared/adminGate.ts');
-      return _gate.byokErrorResponse(_e, (globalThis as any).corsHeaders ?? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' });
+      return _gate.byokErrorResponse(_e, corsHeaders);
     }
   }
 

@@ -2,12 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Vary": "Origin",
-};
 
 interface OHLCVBar {
   date: string;
@@ -136,7 +130,7 @@ async function fetchYahooFinance(symbol: string, interval: string): Promise<OHLC
 }
 
 serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

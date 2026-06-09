@@ -9,12 +9,6 @@
 //     are NEVER promoted above clearnet primary/established sources by sort.
 
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Vary": "Origin",
-};
 
 interface OnionResult {
   title: string;
@@ -178,7 +172,7 @@ async function ahmiaJsonFallback(query: string, limit: number): Promise<OnionRes
 }
 
 Deno.serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

@@ -41,7 +41,8 @@ const LiveFeedsPanel = ({ label, lat, lng, onClose }: Props) => {
     setAltIdx(0);
     (async () => {
       try {
-        const byok = localStorage.getItem("byok_gemini_key") || undefined;
+        // BYOK key — session-scoped only (never persisted to localStorage to avoid XSS exfil).
+        const byok = sessionStorage.getItem("byok_gemini_key") || undefined;
         const { data, error: invErr } = await supabase.functions.invoke("asher-live-feed", {
           body: { location: place, lat, lng, kind, byokGeminiKey: byok },
         });

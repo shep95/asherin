@@ -1,16 +1,10 @@
+import { getCorsHeaders } from "../_shared/cors.ts";
 // URL INTEL MAP — deterministic, no AI, no BYOK.
 // Given any URL, scrape it via Firecrawl and extract every observable
 // connection: mentions/handles, hashtags, outbound links, related domains,
 // emails, phones, headings, social profiles, key entities + a screenshot.
 //
 // Designed for paste-a-URL-into-search workflows (e.g. x.com/MonaBets).
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
 
 function normalizeUrl(input: string): string | null {
   try {
@@ -112,6 +106,7 @@ function extractHeadingsHtml(html: string): string[] {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const { url } = await req.json().catch(() => ({} as { url?: string }));

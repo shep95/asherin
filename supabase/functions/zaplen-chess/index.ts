@@ -3,12 +3,6 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Vary": "Origin",
-};
 
 const AUREON_PROMPT = `You are Aureon, an elite chess strategist with the combined tactical intelligence of Garry Kasparov, Bobby Fischer, and Magnus Carlsen. You think 15 moves ahead. You are ruthless, calculated, and never make emotional moves.
 
@@ -44,7 +38,7 @@ RESPONSE FORMAT (strict JSON):
 Return ONLY valid JSON with "move" and "commentary" fields.`;
 
 serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

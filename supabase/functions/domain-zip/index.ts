@@ -7,12 +7,6 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Vary": "Origin",
-};
 
 const UA = "Mozilla/5.0 (compatible; AureonZophielZip/1.0; +https://aureonai.app)";
 const MAX_URLS = 250;
@@ -109,7 +103,7 @@ async function headProbe(url: string): Promise<FileMeta> {
 }
 
 Deno.serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

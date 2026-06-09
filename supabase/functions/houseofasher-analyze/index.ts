@@ -1,11 +1,6 @@
 // @ts-nocheck
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-api-version',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const FORWARD_EMAILS = [
   'shepherdnewtonx@gmail.com',
@@ -70,6 +65,7 @@ async function sendEmail(supabase: any, templateName: string, recipientEmail: st
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   try {
     const body = await req.json()

@@ -5,12 +5,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Vary": "Origin",
-};
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -124,7 +118,7 @@ async function reconTarget(url: string): Promise<{ infra: Record<string, unknown
 }
 
 Deno.serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   if (req.method !== 'OPTIONS') {
@@ -135,7 +129,7 @@ Deno.serve(async (req) => {
       await _gate.resolveKey(req, _byok);
     } catch (_e) {
       const _gate = await import('../_shared/adminGate.ts');
-      return _gate.byokErrorResponse(_e, (globalThis as any).corsHeaders ?? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' });
+      return _gate.byokErrorResponse(_e, corsHeaders);
     }
   }
 

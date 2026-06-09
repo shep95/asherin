@@ -2,12 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Vary": "Origin",
-};
 
 const SOURCES = {
   // USA
@@ -237,7 +231,7 @@ async function fetchCountryNationalData(cc: string): Promise<{ source: string; d
 }
 
 serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Require authenticated caller — prevent anonymous fan-out to expensive gov APIs

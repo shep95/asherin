@@ -2,12 +2,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
-let corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "https://aureonai.app",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Vary": "Origin",
-};
 
 // [Finding #2 & #10] — Stream data in batches instead of buffering entire dataset in memory
 const BATCH_SIZE = 500;
@@ -28,7 +22,7 @@ async function* fetchTableBatched(supabase: any, table: string, userId: string) 
 }
 
 Deno.serve(async (req) => {
-  corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
