@@ -1,6 +1,7 @@
 // IDE Pain Point #21: Multi-model routing for coding tasks.
-// Dispatches a coding request to the best model for the job, using either
-// Lovable AI Gateway (default) or the user's BYOK provider/key.
+// Dispatches coding requests through Gemini for the admin platform path, or
+// through the user's BYOK provider/key. No Lovable AI gateway fallback.
+import { getCorsHeaders } from "../_shared/cors.ts";
 //
 // Body:
 //   {
@@ -27,15 +28,19 @@ type TaskKind =
 // Default routing — mirrors src/lib/ide/modelRouter.ts
 function pickModel(task: TaskKind): string {
   switch (task) {
-    case "frontend-ui":   return "google/gemini-2.5-pro";
-    case "backend-logic": return "openai/gpt-5";
-    case "debug":         return "openai/gpt-5";
-    case "refactor":      return "openai/gpt-5-mini";
+    case "frontend-ui":   return "gemini-2.5-pro";
+    case "backend-logic": return "gemini-2.5-pro";
+    case "debug":         return "gemini-2.5-pro";
+    case "refactor":      return "gemini-2.5-pro";
     case "tests":         return "google/gemini-2.5-flash";
     case "docs":          return "google/gemini-2.5-flash-lite";
     case "explain":       return "google/gemini-2.5-flash";
-    default:              return "google/gemini-3-flash-preview";
+    default:              return "gemini-2.5-flash";
   }
+}
+
+function normalizeGeminiModel(model: string): string {
+  return model.replace(/^google\//, "");
 }
 
 // Provider endpoints for BYOK
