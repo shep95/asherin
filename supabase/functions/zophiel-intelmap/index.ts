@@ -2,12 +2,6 @@
 // using Lovable AI Gateway. Returns nodes (sources, people, orgs, locations,
 // topics) and edges (mentions, affiliations, references) for Palantir-style mapping.
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
-
 interface ResultIn {
   title: string;
   url: string;
@@ -90,6 +84,8 @@ interface ByokConfig {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
