@@ -37,19 +37,8 @@ export function useAccess() {
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
 
-  const canAccess = (view: DashboardView): boolean => {
-    if (isAdmin) return true;
-    // If payment failed, only allow public views (settings, subscription, etc.)
-    if (isPastDue) return PUBLIC_VIEWS.includes(view);
-    if (PUBLIC_VIEWS.includes(view)) return true;
-    if (ENTERPRISE_VIEWS.includes(view)) return hasEnterpriseOnlyAccess(tierKey);
-    if (CHAT_VIEWS.includes(view)) return hasChatAccess(tierKey);
-    if (SEARCH_VIEWS.includes(view)) return hasSearchAccess(tierKey);
-    if (AUREON_VIEWS.includes(view)) return hasAureonAccess(tierKey);
-    if (PRO_VIEWS.includes(view)) return hasProAccess(tierKey);
-    if (!PUBLIC_VIEWS.includes(view) && !CHAT_VIEWS.includes(view)) return hasSearchAccess(tierKey);
-    return true;
-  };
+  // Donation Era: Aureon is fully free — every authenticated user gets every view.
+  const canAccess = (_view: DashboardView): boolean => true;
 
-  return { canAccess, isAdmin, tierKey, isPastDue, hasChat: hasChatAccess(tierKey), hasSearch: hasSearchAccess(tierKey), hasAureon: hasAureonAccess(tierKey), hasPro: hasProAccess(tierKey), hasEnterprise: hasEnterpriseOnlyAccess(tierKey) };
+  return { canAccess, isAdmin, tierKey, isPastDue, hasChat: true, hasSearch: true, hasAureon: true, hasPro: true, hasEnterprise: true };
 }

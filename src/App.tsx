@@ -82,6 +82,7 @@ import AureonDomainGate from "./components/AureonDomainGate";
 import RouteSessionTracker from "./components/RouteSessionTracker";
 import RouteSeo from "./components/RouteSeo";
 import AureonEngineToggle from "./components/AureonEngineToggle";
+import DonationBanner from "./components/DonationBanner";
 
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -105,6 +106,8 @@ const App = () => (
           <RouteSessionTracker />
           <RouteSeo />
           <ByokRequiredDialog />
+          <DonationBanner />
+          
           
           <Suspense fallback={<PageLoader />}>
           <main>
