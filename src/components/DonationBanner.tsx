@@ -23,6 +23,8 @@ export default function DonationBanner() {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
+  const location = useLocation();
+  if (HIDE_ON_ROUTES.has(location.pathname)) return null;
   if (dismissed) return null;
 
   const dismiss = () => {
