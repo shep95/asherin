@@ -1,5 +1,10 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { X, Heart, Copy, Check } from "lucide-react";
+
+// Routes where the donation banner is redundant (FreeManifesto already shown)
+// or where it would visually collide with a fixed/floating header.
+const HIDE_ON_ROUTES = new Set<string>(["/", "/pricing"]);
 
 const WALLETS: { label: string; address: string }[] = [
   { label: "ETH", address: "0xa7bDbAA58f908007F1bED6f8AE6c582557B00c2B" },
