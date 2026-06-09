@@ -1,3 +1,4 @@
+import { getCorsHeaders } from "../_shared/cors.ts";
 // URL INTEL MAP — deterministic, no AI, no BYOK.
 // Given any URL, scrape it via Firecrawl and extract every observable
 // connection: mentions/handles, hashtags, outbound links, related domains,

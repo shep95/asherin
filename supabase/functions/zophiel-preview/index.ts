@@ -1,3 +1,4 @@
+import { getCorsHeaders } from "../_shared/cors.ts";
 function cleanHtml(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
