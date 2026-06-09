@@ -905,7 +905,7 @@ const Index = () => {
       <DashboardPreview />
       </ScrollSection>
 
-      {/* ───────── SOLIA — Sovereign Organism with Living Intelligence Architecture ───────── */}
+      {/* ───────── ZOPHIEL CUSTOM ALGORITHM ───────── */}
       <ScrollSection>
       <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40">
@@ -917,27 +917,28 @@ const Index = () => {
           <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[0.04] px-3 py-1 mb-6">
               <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-light tracking-[0.3em] text-emerald-200/80 uppercase">Open-Weight · Self-Hosted</span>
+              <span className="text-[10px] font-light tracking-[0.3em] text-emerald-200/80 uppercase">Custom Algorithm · Self-Hosted</span>
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
-              SOLIA.
+              Zophiel Custom Algorithm.
             </h2>
             <p className="mt-4 text-xl sm:text-2xl font-extralight tracking-wide text-muted-foreground italic">
-              Sovereign Organism with Living Intelligence Architecture.
+              Our in-house reasoning algorithm — not a wrapper, not a fine-tune.
             </p>
             <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
-              Our own open-weight large language model — fine-tuned for uncensored reasoning, code generation,
-              and analytical dialogue. Not a wrapper around GPT-4 or Claude. An independent inference engine
-              we compile, quantize, and serve ourselves. The weights are open. The stack is ours.
+              The Zophiel Custom Algorithm is the engine we wrote from scratch for uncensored reasoning, code
+              generation, and analytical dialogue. Built around an IDF-weighted retrieval ranker, a hidden
+              self-reflection layer, and a 17-organ adaptive immune system. The full source — every retriever,
+              corpus builder, code-pattern engine, and immune module — is public.
             </p>
           </div>
 
           {/* Capability cards */}
           <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { n: "01", Icon: Cpu, title: "Self-Hosted Inference", desc: "No third-party API keys. No external rate limits. No surprise price hikes. We own the stack from weights to wire." },
-              { n: "02", Icon: Code, title: "Open-Weight Architecture", desc: "Download the model, inspect the layers, verify the training data, or fork the inference server for your own infrastructure." },
-              { n: "03", Icon: Github, title: "Public on GitHub", desc: "The full repository — weights, server, and deployment manifests — is open for community audit and contribution." },
+              { n: "01", Icon: Cpu, title: "Self-Hosted Inference", desc: "No third-party API keys. No external rate limits. No surprise price hikes. We own the stack from corpus to wire." },
+              { n: "02", Icon: Code, title: "Open Source", desc: "Every retriever, corpus builder, code-pattern engine, and reflection layer is in the repo. Audit it, fork it, run your own node." },
+              { n: "03", Icon: Github, title: "Public on GitHub", desc: "The full repository — algorithm, knowledge corpus, immune system, and deployment manifests — is open for community audit." },
             ].map(({ n, Icon, title, desc }) => (
               <div key={n} className="group relative rounded-3xl overflow-hidden">
                 <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-emerald-400/10 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-700" />
@@ -962,12 +963,12 @@ const Index = () => {
               <div>
                 <p className="font-mono text-[10px] tracking-[0.3em] text-foreground/40 uppercase mb-2">◈ Architecture Snapshot</p>
                 <p className="text-sm font-extralight text-muted-foreground leading-relaxed">
-                  6 brain regions · 30 domains · 135 subdomains · 862 micro-subdomains · 6,162 micro-agents.
-                  1M context attention LM with KV-cache, retrieval-augmented generation. Auto-learn runs 24/7.
+                  IDF-weighted retrieval ranker · hidden self-reflection layer · 17-organ adaptive immune system.
+                  102/107 code patterns pass, 59/60 domain test, 46/46 blind test. Knowledge corpus grows daily.
                 </p>
               </div>
               <a
-                href="https://github.com/houseofasher/SOLIA"
+                href="https://github.com/houseofasher/zophiel-algorithm"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="shrink-0 group inline-flex items-center gap-2 rounded-xl border border-border/25 bg-card/30 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-card/50 hover:border-border/50"

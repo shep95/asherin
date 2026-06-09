@@ -9,7 +9,7 @@ import { AI_PROVIDERS } from "@/components/dashboard/AIKeysSettings";
  *
  * Lets the user switch every AI-powered surface (free pages, paid features,
  * dashboard, standalone tools) between:
- *   1. AUREON ALGORITHM — the in-house SOLIA → AUREON Brains route.
+ *   1. AUREON ALGORITHM — the in-house Zophiel Algorithm → AUREON Brains route.
  *   2. BRING YOUR OWN MODEL — any provider/model the user has configured
  *      in Settings → AI Keys.
  *
@@ -143,7 +143,7 @@ export default function AureonEngineToggle() {
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-[11px] font-light text-foreground block">Aureon Algorithm</span>
-                <span className="text-[9px] text-muted-foreground/50">SOLIA → AUREON Brains</span>
+                <span className="text-[9px] text-muted-foreground/50">Zophiel Algorithm → AUREON Brains</span>
               </div>
               {onAureon && <Check className="h-3 w-3 text-accent shrink-0" />}
             </button>
