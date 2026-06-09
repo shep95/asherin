@@ -359,6 +359,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [determinism, setDeterminism] = useState(33);
   const [qosMode, setQosMode] = useState<QoSMode>("fast");
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [activeBranch, setActiveBranch] = useState<string>(() => getActiveBranch(conversation.id));
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -556,22 +558,84 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             />
           </div>
 
-          {/* Advanced controls — hidden on mobile, visible on sm+ */}
-          <div className="hidden sm:flex items-center gap-2 overflow-x-auto scrollbar-hide min-w-0 flex-1 py-1">
+          {/* U-05 Adjust panel — single collapsed entry point for the 9 advanced
+              chat controls. Keeps the toolbar clean; users opt into the depth
+              only when they want it. Mode + Context Health stay visible inline. */}
+          <div className="hidden sm:flex items-center gap-2 min-w-0 py-1 shrink-0">
             <ContextHealthIndicator messageCount={branchMessages.length} />
-            <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
-            <DepthSelector active={depth} onChange={onDepthChange} />
-            <DeterminismSlider value={determinism} onChange={setDeterminism} />
-            <QualityOfServiceControls mode={qosMode} onChange={setQosMode} />
-            {/* Assumption Tracker */}
             <div className="relative shrink-0">
               <button
-                onClick={() => setAssumptionsOpen(!assumptionsOpen)}
-                className={`p-1.5 rounded-md transition-colors ${assumptionsOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
-                title="Assumptions"
+                onClick={() => setAdjustOpen(!adjustOpen)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-light transition-colors ${
+                  adjustOpen ? "bg-foreground/10 text-foreground" : "text-muted-foreground/70 hover:text-foreground hover:bg-foreground/5"
+                }`}
+                title="Adjust mode, depth, reasoning, QA, style…"
               >
-                <AlertTriangle className="h-4 w-4" />
+                <Gauge className="h-3.5 w-3.5" />
+                <span>Adjust</span>
               </button>
+              {adjustOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setAdjustOpen(false)} />
+                  <div className="absolute left-0 top-full mt-1.5 z-50 w-[340px] rounded-xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-2xl p-3 space-y-3 animate-fade-in">
+                    <p className="text-[9px] font-light tracking-[0.18em] text-muted-foreground/50 uppercase">Response Controls</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
+                      <DepthSelector active={depth} onChange={onDepthChange} />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <DeterminismSlider value={determinism} onChange={setDeterminism} />
+                      <QualityOfServiceControls mode={qosMode} onChange={setQosMode} />
+                    </div>
+                    <div className="pt-2 border-t border-border/20">
+                      <p className="text-[9px] font-light tracking-[0.18em] text-muted-foreground/50 uppercase pb-2">Tracking & QA</p>
+                      <div className="grid grid-cols-2 gap-1">
+                        <button
+                          onClick={() => { setAssumptionsOpen(true); setAdjustOpen(false); }}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-light text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                        >
+                          <AlertTriangle className="h-3.5 w-3.5" /> Assumptions
+                        </button>
+                        <button
+                          onClick={() => { setDecisionsOpen(true); setAdjustOpen(false); }}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-light text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                        >
+                          <Gavel className="h-3.5 w-3.5" /> Decision Log
+                        </button>
+                        <button
+                          onClick={() => { setQaTogglesOpen(true); setAdjustOpen(false); }}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-light text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                        >
+                          <Shield className="h-3.5 w-3.5" /> Output QA
+                        </button>
+                        <button
+                          onClick={() => { setStyleProfileOpen(true); setAdjustOpen(false); }}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-light text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                        >
+                          <Palette className="h-3.5 w-3.5" /> Writing Style
+                        </button>
+                      </div>
+                    </div>
+                    {onConsensusToggle && onConsensusModelsChange && (
+                      <div className="pt-2 border-t border-border/20">
+                        <p className="text-[9px] font-light tracking-[0.18em] text-muted-foreground/50 uppercase pb-2">Consensus</p>
+                        <MultiModelSelector
+                          enabled={consensusEnabled}
+                          onToggle={onConsensusToggle}
+                          selectedModels={consensusModels}
+                          onModelsChange={onConsensusModelsChange}
+                          storedProviders={storedProviders}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Detached panel anchors — keep popovers mounted so their state
+                survives Adjust-close without losing in-flight edits. */}
+            <div className="relative shrink-0">
               <AssumptionTracker
                 conversationId={conversation.id}
                 open={assumptionsOpen}
@@ -586,50 +650,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                   setAssumptionsOpen(false);
                 }}
               />
-            </div>
-            {/* Decision Log */}
-            <div className="relative shrink-0">
-              <button
-                onClick={() => setDecisionsOpen(!decisionsOpen)}
-                className={`p-1.5 rounded-md transition-colors ${decisionsOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
-                title="Decision Log"
-              >
-                <Gavel className="h-4 w-4" />
-              </button>
               <DecisionLog conversationId={conversation.id} open={decisionsOpen} onClose={() => setDecisionsOpen(false)} />
-            </div>
-            {/* Output QA Toggles */}
-            <div className="relative shrink-0">
-              <button
-                onClick={() => setQaTogglesOpen(!qaTogglesOpen)}
-                className={`p-1.5 rounded-md transition-colors ${qaTogglesOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
-                title="Output QA Controls"
-              >
-                <Shield className="h-4 w-4" />
-              </button>
               <OutputQAToggles conversationId={conversation.id} open={qaTogglesOpen} onClose={() => setQaTogglesOpen(false)} />
-            </div>
-            {/* Personal Style Profile */}
-            <div className="relative shrink-0">
-              <button
-                onClick={() => setStyleProfileOpen(!styleProfileOpen)}
-                className={`p-1.5 rounded-md transition-colors ${styleProfileOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
-                title="Writing Style"
-              >
-                <Palette className="h-4 w-4" />
-              </button>
               <PersonalStyleProfile open={styleProfileOpen} onClose={() => setStyleProfileOpen(false)} />
             </div>
-            {onConsensusToggle && onConsensusModelsChange && (
-              <MultiModelSelector
-                enabled={consensusEnabled}
-                onToggle={onConsensusToggle}
-                selectedModels={consensusModels}
-                onModelsChange={onConsensusModelsChange}
-                storedProviders={storedProviders}
-              />
-            )}
           </div>
+
 
           {/* Mobile overflow menu — visible only on mobile */}
           <div className="relative sm:hidden shrink-0">

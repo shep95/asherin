@@ -60,135 +60,80 @@ interface NavGroup { label: string; subgroups: SubGroup[] }
 
 const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, label: "Subscription" };
 
-const navGroups: NavGroup[] = [
-  {
-    label: "Intelligence",
-    subgroups: [
-      {
-        label: "Research",
-        items: [
-          { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
-          { id: "briefing", icon: Newspaper, label: "Intel Briefings" },
-          { id: "nomad", icon: Crosshair, label: "NOMAD Agent" },
-        ],
-      },
-      {
-        label: "Vision & Agents",
-        items: [
-          { id: "video-intelligence", icon: Crosshair, label: "Video Intelligence", access: "pro" },
-          { id: "reverse-engineer" as DashboardView, icon: Search, label: "Reverse Engineer", access: "search" },
-          { id: "zahten" as DashboardView, icon: Workflow, label: "Zahten Agent Forge" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Data & Analysis",
-    subgroups: [
-      {
-        label: "Platforms",
-        items: [
-          { id: "azplen", icon: Database, label: "Azplen Intelligence", access: "pro" },
-          { id: "pattern-analysis", icon: Activity, label: "Pattern Engine", access: "pro" },
-          { id: "cross" as DashboardView, icon: Crosshair, label: "Cross", access: "pro" },
-        ],
-      },
-      {
-        label: "Specialized Engines",
-        items: [
-          { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "pro" },
-          { id: "axrlen" as DashboardView, icon: Brain, label: "Axrlen", access: "pro" },
-          { id: "zerlal" as DashboardView, icon: Shield, label: "Zerlal", access: "pro" },
-        ],
-      },
-      {
-        label: "Analysis Tools",
-        items: [
-          { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
-          { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
-          { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Creation",
-    subgroups: [
-      {
-        label: "Design & Code",
-        items: [
-          { id: "zali", icon: Zap, label: "ZANOEM Design Lab" },
-          { id: "ide", icon: Terminal, label: "AUREON IDE" },
-          { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
-          { id: "snippets", icon: Code2, label: "Code Snippets" },
-          { id: "projects", icon: Layers, label: "Projects" },
-        ],
-      },
-      {
-        label: "Media Generation",
-        items: [
-          { id: "vibe-imager" as DashboardView, icon: Sparkles, label: "Vibe Imager" },
-          { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
-          { id: "ebook" as DashboardView, icon: FileText, label: "E-Book Generator" },
-          { id: "slideshow", icon: Layers, label: "Slideshow Generator", access: "search" },
-        ],
-      },
-      {
-        label: "Utilities",
-        items: [
-          { id: "file-scrapper" as DashboardView, icon: FileText, label: "File Scrapper", access: "search" },
-          { id: "cipher" as DashboardView, icon: Shield, label: "Cipher Toolkit", access: "search" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Workspace",
-    subgroups: [
-      {
-        label: "Collaboration",
-        items: [
-          { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
-          { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
-        ],
-      },
-      {
-        label: "Personal",
-        items: [
-          { id: "persona-store", icon: Sparkles, label: "Persona Store" },
-          { id: "library", icon: FolderOpen, label: "Library" },
-          { id: "memory", icon: Brain, label: "Memory Center" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "System",
-    subgroups: [
-      {
-        label: "Security & Operations",
-        items: [
-          { id: "agents" as DashboardView, icon: Zap, label: "Agents", access: "pro" },
-          { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
-          { id: "guardian-vault" as DashboardView, icon: LockIcon, label: "Guardian Vault" },
-          { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
-          { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
-        ],
-      },
-      {
-        label: "Account",
-        items: [
-          { id: "self-access", icon: FileText, label: "Self-Access Learning" },
-          { id: "bug-reports" as DashboardView, icon: ClipboardList, label: "Bug Reports" },
-          { id: "stats", icon: BarChart3, label: "My Stats" },
-          { id: "vedic-astrology" as DashboardView, icon: Moon, label: "Vedic Astrology" },
-          { id: "settings", icon: Settings, label: "Settings" },
-        ],
-      },
-    ],
-  },
+// Icon mapping by view/route — keeps a consistent monochrome icon per intent.
+import { NAV_INTENTS as ALL_INTENTS, INTENT_GROUPS, INTENT_GROUP_BLURB, type NavIntent } from "@/lib/navIntents";
 
-];
+const VIEW_ICON: Record<string, React.ElementType> = {
+  "vibe-imager": Sparkles,
+  "vibe-video": Sparkles,
+  "imagine-to-code": Code2,
+  "zali": Zap,
+  "pdf-generator": FileText,
+  "/whiteboard": Layers,
+  "azplen": Database,
+  "zeeion": Database,
+  "pattern-analysis": Activity,
+  "timeseries": Activity,
+  "geospatial": Globe,
+  "video-intelligence": Crosshair,
+  "search": Zap,
+  "nomad": Crosshair,
+  "axrlen": Brain,
+  "zerlal": Shield,
+  "reverse-engineer": Search,
+  "file-scrapper": FileText,
+  "cipher": Shield,
+  "briefing": Newspaper,
+  "cross": Crosshair,
+  "ide": Terminal,
+  "notebooks": FileText,
+  "agents": Zap,
+  "zahten": Workflow,
+  "plugins": Puzzle,
+  "snippets": Code2,
+  "library": FolderOpen,
+  "projects": Layers,
+  "memory": Brain,
+  "teams": Users,
+  "community": MessagesSquare,
+  "persona-store": Sparkles,
+  "vedic-astrology": Moon,
+  "guardian-vault": LockIcon,
+  "settings": Settings,
+  "subscription": CreditCard,
+  "stats": BarChart3,
+  "audit": ClipboardList,
+  "bug-reports": ClipboardList,
+  "security": ShieldCheck,
+  "self-access": FileText,
+};
+
+interface IntentNavItem extends NavItem {
+  codename?: string;
+  route?: string;
+  adminOnly?: boolean;
+}
+
+// Build sidebar groups directly from the single source of truth (NAV_INTENTS),
+// using verb-first intent groups (Create / Analyze / Investigate / Build /
+// Workspace / Account). Plain-language label is primary; codename is a subtitle.
+const navGroupsFlat: { label: string; blurb: string; items: IntentNavItem[] }[] =
+  INTENT_GROUPS.map((g) => ({
+    label: g,
+    blurb: INTENT_GROUP_BLURB[g],
+    items: ALL_INTENTS
+      .filter((i: NavIntent) => i.group === g && i.view !== "subscription")
+      .map((i: NavIntent) => ({
+        id: (i.view ?? (i.route as DashboardView)),
+        icon: VIEW_ICON[(i.view ?? i.route) as string] ?? FileText,
+        label: i.label,
+        codename: i.codename,
+        route: i.route,
+        access: i.access,
+        adminOnly: i.adminOnly,
+      })),
+  }));
+
 
 function groupByDate(convs: Conversation[]) {
   const now = new Date();
@@ -240,7 +185,7 @@ const DashboardSidebar = ({
   
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
-    navGroups.forEach((g, i) => { init[g.label] = i < 2; });
+    navGroupsFlat.forEach((g, i) => { init[g.label] = i < 2; });
     return init;
   });
 
@@ -248,11 +193,12 @@ const DashboardSidebar = ({
     setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
-  const itemAllowed = (item: NavItem) => {
+  const itemAllowed = (item: IntentNavItem) => {
     if (item.id === "security") return user?.email === ADMIN_EMAIL;
     if (item.id === "self-access") return user?.email === ADMIN_EMAIL;
     if (item.id === "ebook") return user?.email === ADMIN_EMAIL;
-    const featureId = VIEW_FEATURE_MAP[item.id];
+    if (item.adminOnly) return user?.email === ADMIN_EMAIL;
+    const featureId = VIEW_FEATURE_MAP[item.id as string];
     if (featureId) {
       return tierHasFeature(tierKey, featureId) || user?.email === ADMIN_EMAIL;
     }
@@ -263,28 +209,24 @@ const DashboardSidebar = ({
     return true;
   };
 
-  const filteredGroups = navGroups.map(group => ({
-    ...group,
-    subgroups: group.subgroups
-      .map(sg => ({ ...sg, items: sg.items.filter(itemAllowed) }))
-      .filter(sg => sg.items.length > 0),
-  })).filter(group => group.subgroups.length > 0);
+  const filteredGroups = navGroupsFlat
+    .map((group) => ({ ...group, items: group.items.filter(itemAllowed) }))
+    .filter((group) => group.items.length > 0);
 
-  // Append Zahten-published agents as a dynamic nav group (mirrors Asher Dashboard).
-  const dynamicGroups: NavGroup[] = publishedAgents.length
+  // Append Zahten-published agents as a dynamic intent group.
+  const dynamicGroups = publishedAgents.length
     ? [{
         label: "Deployed Agents",
-        subgroups: [{
-          label: "Zahten",
-          items: publishedAgents.map((a) => ({
-            id: `agent:${a.id}` as DashboardView,
-            icon: Workflow,
-            label: a.name,
-          })),
-        }],
+        blurb: "Your Zahten-deployed agents",
+        items: publishedAgents.map((a) => ({
+          id: `agent:${a.id}` as DashboardView,
+          icon: Workflow,
+          label: a.name,
+        })) as IntentNavItem[],
       }]
     : [];
   const allGroups = [...filteredGroups, ...dynamicGroups];
+
 
   // Load archived conversations
   const loadArchived = useCallback(async () => {
@@ -570,60 +512,60 @@ const DashboardSidebar = ({
 
                 {allGroups.map((group) => {
                   const isOpen = expandedGroups[group.label] ?? false;
-                  const hasActive = group.subgroups.some(sg => sg.items.some(item => activeView === item.id));
+                  const hasActive = group.items.some((item) => activeView === item.id);
+                  const navigate = (item: IntentNavItem) => {
+                    if (item.route) {
+                      window.location.assign(item.route);
+                    } else {
+                      onViewChange(item.id);
+                      onToggleSidebar();
+                    }
+                  };
 
                   return (
                     <div key={group.label}>
                       <button
                         onClick={() => toggleGroup(group.label)}
-                        className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-1.5 text-[10px] font-medium tracking-[0.12em] uppercase transition-colors ${
-                          hasActive ? "text-foreground" : "text-muted-foreground/50 hover:text-muted-foreground"
+                        className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-1.5 text-[10px] font-medium tracking-[0.14em] uppercase transition-colors ${
+                          hasActive ? "text-foreground" : "text-muted-foreground/60 hover:text-muted-foreground"
                         }`}
+                        title={group.blurb}
                       >
-                        {group.label}
+                        <span className="flex items-center gap-2">
+                          {group.label}
+                          <span className="hidden xl:inline text-[8px] font-light tracking-normal normal-case text-muted-foreground/40">
+                            — {group.blurb}
+                          </span>
+                        </span>
                         <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                       </button>
                       {isOpen && (
-                        <div className="mt-0.5 mb-1 space-y-1 pl-2 border-l border-border/15 ml-3">
-                          {group.subgroups.map((sg) => {
-                            const sgKey = `${group.label}::${sg.label}`;
-                            const sgOpen = expandedGroups[sgKey] ?? false;
-                            const sgHasActive = sg.items.some(item => activeView === item.id);
-                            return (
-                              <div key={sg.label}>
-                                <button
-                                  onClick={() => toggleGroup(sgKey)}
-                                  className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1 text-[9px] font-light tracking-[0.18em] uppercase transition-colors ${
-                                    sgHasActive ? "text-foreground/80" : "text-muted-foreground/40 hover:text-muted-foreground/70"
-                                  }`}
-                                >
-                                  {sg.label}
-                                  <ChevronDown className={`h-2.5 w-2.5 transition-transform duration-200 ${sgOpen ? "rotate-180" : ""}`} />
-                                </button>
-                                {sgOpen && (
-                                  <div className="space-y-0.5 mt-0.5 mb-1">
-                                    {sg.items.map((item) => (
-                                      <button
-                                        key={item.id}
-                                        onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
-                                        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                                          activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                                        }`}
-                                      >
-                                        <item.icon className="h-4 w-4" />
-                                        {item.label}
-                                      </button>
-                                    ))}
-                                  </div>
+                        <div className="mt-0.5 mb-1 space-y-0.5 pl-2 border-l border-border/15 ml-3">
+                          {group.items.map((item) => (
+                            <button
+                              key={item.id}
+                              onClick={() => navigate(item)}
+                              className={`flex w-full items-start gap-2.5 rounded-xl px-3 py-2 text-left transition-colors ${
+                                activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                              }`}
+                            >
+                              <item.icon className="h-4 w-4 mt-0.5 shrink-0" />
+                              <span className="flex flex-col min-w-0">
+                                <span className="text-xs font-light leading-tight truncate">{item.label}</span>
+                                {item.codename && item.codename !== item.label && (
+                                  <span className="text-[9px] font-light tracking-wider uppercase text-muted-foreground/40 truncate">
+                                    {item.codename}
+                                  </span>
                                 )}
-                              </div>
-                            );
-                          })}
+                              </span>
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>
                   );
                 })}
+
               </div>
 
               <div className="p-3 pb-5 border-t border-border/20 space-y-1">

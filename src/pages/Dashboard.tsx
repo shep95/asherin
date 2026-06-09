@@ -84,6 +84,8 @@ const ImagineToCodeView = lazyWithRetry(() => import("@/components/dashboard/Ima
 const PersonaStoreView = lazyWithRetry(() => import("@/components/dashboard/PersonaStoreView"));
 const AureonIdeView = lazyWithRetry(() => import("@/components/dashboard/ide/AureonIdeView"));
 const PdfGeneratorView = lazyWithRetry(() => import("@/components/dashboard/PdfGeneratorView"));
+const DocumentExportLanding = lazyWithRetry(() => import("@/components/dashboard/DocumentExportLanding"));
+
 const PatternAnalysisView = lazyWithRetry(() => import("@/components/dashboard/PatternAnalysisView"));
 const SlideshowGeneratorView = lazyWithRetry(() => import("@/components/dashboard/SlideshowGeneratorView"));
 
@@ -1327,6 +1329,21 @@ const Dashboard = () => {
   const sendMessage = async (content: string, attachments?: FileAttachment[]) => {
     const convId = activeConvIdRef.current;
     if (!user || !convId) return;
+
+    // F-01 Auto-config: on the FIRST user message of a conversation, infer the
+    // best Mode / Depth from intent keywords so users don't have to think about
+    // controls. Manual changes after the first message always win.
+    try {
+      const conv = conversations.find((c) => c.id === convId);
+      const hasPriorUser = conv?.messages.some((m) => m.role === "user");
+      if (!hasPriorUser) {
+        const { inferChatConfig } = await import("@/lib/navIntents");
+        const hint = inferChatConfig(content);
+        if (hint.mode && hint.mode !== mode) setMode(hint.mode as ChatMode);
+        if (hint.depth && hint.depth !== depth) setDepth(hint.depth as ResponseDepth);
+      }
+    } catch { /* non-fatal */ }
+
     // Store attachments for the first message in a ref-based map
     if (attachments?.length) {
       attachmentMapRef.current.set(content, attachments);
@@ -1346,6 +1363,7 @@ const Dashboard = () => {
     pendingQueue.current.push(`${convId}||${content}`);
     processQueue();
   };
+
 
   const removeFromQueue = useCallback((id: string) => {
     setQueueItems(prev => {
@@ -1525,7 +1543,7 @@ const Dashboard = () => {
       case "subscription": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SubscriptionView /></Suspense></ErrorBoundary>;
       case "persona-store": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><PersonaStoreView /></Suspense></ErrorBoundary>;
       case "ide": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense></ErrorBoundary>;
-      case "pdf-generator": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><PdfGeneratorView /></Suspense></ErrorBoundary>;
+      case "pdf-generator": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><DocumentExportLanding /></Suspense></ErrorBoundary>;
       case "ebook": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><EBookGeneratorView /></Suspense></ErrorBoundary>;
       case "slideshow": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense></ErrorBoundary>;
       
