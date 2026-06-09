@@ -11,9 +11,8 @@ interface Props {
 }
 
 const ALL_MODELS: { id: IdeModelId; label: string }[] = [
-  { id: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (default)" },
+  { id: "google/gemini-2.5-flash",      label: "Gemini 2.5 Flash (default)" },
   { id: "google/gemini-2.5-pro",        label: "Gemini 2.5 Pro" },
-  { id: "google/gemini-2.5-flash",      label: "Gemini 2.5 Flash" },
   { id: "openai/gpt-5",                 label: "GPT-5" },
   { id: "openai/gpt-5-mini",            label: "GPT-5 Mini" },
   { id: "openai/gpt-5.2",               label: "GPT-5.2 (reasoning)" },

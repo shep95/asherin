@@ -5,7 +5,6 @@
 export type IdeModelId =
   | "google/gemini-2.5-pro"
   | "google/gemini-2.5-flash"
-  | "google/gemini-3-flash-preview"
   | "openai/gpt-5"
   | "openai/gpt-5-mini"
   | "openai/gpt-5.2";
@@ -34,8 +33,8 @@ const PREFS: Record<IdeTaskKind, { model: IdeModelId; alts: IdeModelId[]; reason
   "docs-writing":     { model: "google/gemini-2.5-pro", alts: ["openai/gpt-5-mini"],                       reason: "Long-form prose quality." },
   "math-algorithms":  { model: "openai/gpt-5.2",      alts: ["google/gemini-2.5-pro", "openai/gpt-5"],     reason: "Strongest pure-reasoning model." },
   "refactor":         { model: "google/gemini-2.5-pro", alts: ["openai/gpt-5"],                            reason: "Large context window for whole-file refactors." },
-  "debug-explain":    { model: "openai/gpt-5-mini",   alts: ["google/gemini-3-flash-preview"],             reason: "Fast + clear plain-English explanations." },
-  "general":          { model: "google/gemini-3-flash-preview", alts: ["openai/gpt-5-mini"],               reason: "Balanced default." },
+  "debug-explain":    { model: "openai/gpt-5-mini",   alts: ["google/gemini-2.5-flash"],                   reason: "Fast + clear plain-English explanations." },
+  "general":          { model: "google/gemini-2.5-flash", alts: ["openai/gpt-5-mini"],                    reason: "Balanced default." },
 };
 
 const KEYWORDS: { task: IdeTaskKind; words: RegExp }[] = [
