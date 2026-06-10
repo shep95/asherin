@@ -75,9 +75,11 @@ const GeospatialView = () => {
     setAnalyzing(true);
     try {
       const { data: session } = await supabase.auth.getSession();
+      const _geoToken = session?.session?.access_token;
+      if (!_geoToken) throw new Error("Sign in required.");
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asha-query`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.session?.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${_geoToken}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
         body: JSON.stringify({ query: `[GEOSPATIAL ANALYSIS] Analyze dataset ${datasetId} for geospatial intelligence. Return ONLY valid JSON: {"locations":[{"id":"1","name":"Name","lat":0,"lng":0,"type":"office|warehouse|cluster|prospect","value":0,"status":"active|hot|warm|monitoring|prospect"}],"heatmap":[{"region":"Name","density":0,"revenue":"$0","growth":"+0%"}],"routes":[{"route":"A → B","distance":"0 mi","efficiency":0,"cost":"$0","suggestion":"text"}],"territories":[{"name":"Name","performance":0,"reps":0,"customers":0,"revenue":"$0"}]}` }),
       });
       if (res.ok) {

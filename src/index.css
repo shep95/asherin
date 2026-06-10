@@ -16,8 +16,16 @@ h1, h2, h3, h4, h5, h6 { overflow-wrap: anywhere; word-break: break-word; }
   [class*="grid-cols-"]:not(.no-mobile-scroll) > * { min-width: 0; }
   /* Tame wide tables that aren't already wrapped */
   table { display: block; max-width: 100%; overflow-x: auto; }
-  /* Force dialogs/sheets to respect viewport */
-  [role="dialog"] { max-width: calc(100vw - 1rem) !important; }
+  /* Force dialogs/sheets to respect viewport (height + width) */
+  [role="dialog"] {
+    max-width: calc(100vw - 1rem) !important;
+    max-height: calc(100dvh - 2rem) !important;
+    overflow-y: auto !important;
+  }
+  /* Tame oversized hero typography on phones (no override existed below 640px) */
+  .text-7xl { font-size: clamp(2rem, 10vw, 3rem) !important; line-height: 1.05 !important; }
+  .text-8xl { font-size: clamp(2.25rem, 11vw, 3.5rem) !important; line-height: 1.05 !important; }
+  .text-9xl { font-size: clamp(2.5rem, 12vw, 4rem) !important; line-height: 1.05 !important; }
 }
 @media (max-width: 480px) {
   /* On phones, collapse fixed-width side rails so content gets room */

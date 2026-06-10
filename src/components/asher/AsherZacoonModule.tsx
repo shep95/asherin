@@ -587,12 +587,15 @@ const ZacoonChatPanel = ({
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asher-ai`;
       const system = `You are the ZACOON browser-agent co-pilot inside the Asher Dashboard. Help the operator design and refine browser automation tasks: target URLs, success criteria, selectors, anti-bot considerations, extraction shape. Be surgical. No filler. Format with short bold headers and tight bullets.${activeRun ? `\n\n[ACTIVE RUN]\nTask: ${activeRun.task}\nStatus: ${activeRun.status}\nSteps so far: ${activeRun.steps.length}` : ""}`;
 
+      const { data: { session: _zacoonSession } } = await supabase.auth.getSession();
+      const _zacoonToken = _zacoonSession?.access_token;
+      if (!_zacoonToken) throw new Error("Sign in required.");
       const resp = await fetch(url, {
         method: "POST",
         signal: ctl.signal,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${_zacoonToken}`,
           ...(byok ? { "x-byok-gemini-key": byok.apiKey } : {}),
         },
         body: JSON.stringify({

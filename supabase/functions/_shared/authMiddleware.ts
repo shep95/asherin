@@ -3,12 +3,10 @@
 // requireAdmin instead of re-implementing the JWT dance.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { ADMIN_EMAILS } from "./constants.ts";
 
-// Admin email is project-scoped (memory rule: ashernewtonx@gmail.com has a
-// hard-coded bypass). Allow override via env var for staging/test environments.
-// Admin emails are project-scoped. Comma-separated env override supported.
-const _adminEnv = (Deno.env.get("AUREON_ADMIN_EMAIL") || "ashernewtonx@gmail.com,28numberofmoney@gmail.com").toLowerCase();
-export const ADMIN_EMAILS = new Set<string>(_adminEnv.split(",").map(s => s.trim()).filter(Boolean));
+// Re-export for backwards compatibility with existing imports.
+export { ADMIN_EMAILS };
 
 export interface AuthedUser {
   id: string;

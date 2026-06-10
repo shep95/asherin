@@ -322,13 +322,21 @@ const AsherZaliModule = () => {
           }
         } catch (e) { console.error("Failed to load ZANOEM brain context:", e); }
       }
+      let _zaliToken: string | undefined;
+      try {
+        const { data: { session: _zaliSession } } = await supabase.auth.getSession();
+        _zaliToken = _zaliSession?.access_token;
+      } catch (e) {
+        console.error("[Zali] getSession failed", e);
+      }
+      if (!_zaliToken) throw new Error("Sign in required to use Zali chat.");
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zali-chat`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${_zaliToken}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
