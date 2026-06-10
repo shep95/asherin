@@ -275,7 +275,7 @@ const AIKeysSettings = () => {
       setPreferences(prev => ({ ...prev, active_provider: provider, active_model: model }));
       // Sync to localStorage for streamChat to read
       localStorage.setItem("aureon_byok_active", JSON.stringify({ provider, model }));
-      const providerName = provider === "default" ? "Aureon Default" : AI_PROVIDERS.find(p => p.id === provider)?.name;
+      const providerName = provider === "default" ? "No model selected" : AI_PROVIDERS.find(p => p.id === provider)?.name;
       toast({ title: "Model updated", description: `Now using ${providerName}${model !== "default" ? ` → ${model}` : ""}` });
     }
   };
