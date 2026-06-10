@@ -27,6 +27,8 @@ import AsherOrganizationsModule from "@/components/asher/AsherOrganizationsModul
 import AsherInvitationsBanner from "@/components/asher/AsherInvitationsBanner";
 import AsherCodeModule from "@/components/asher/AsherCodeModule";
 import VedicAstrologyView from "@/components/dashboard/VedicAstrologyView";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import AsherPublishedTabRenderer from "@/components/asher/AsherPublishedTabRenderer";
 import AsherBrainsModule from "@/components/asher/AsherBrainsModule";
 import AsherAureonDataModule from "@/components/asher/AsherAureonDataModule";
@@ -208,6 +210,11 @@ type AgentStoreEntry = { id: string; name: string; icon: string; entry_html: str
 
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
+  const [vedicOpen, setVedicOpen] = useState(false);
+  const selectTab = (id: AsherTab) => {
+    if (id === "vedic") { setVedicOpen(true); return; }
+    setActive(id);
+  };
   const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, agentstore: true, comms: true, vault: false, governance: true, analytics: true });
   const [publishedTabs, setPublishedTabs] = useState<PublishedTab[]>([]);
   const [agentStore, setAgentStore] = useState<AgentStoreEntry[]>([]);
@@ -335,8 +342,8 @@ const AsherDashboard = () => {
                                   return (
                                     <button
                                       key={c.id}
-                                      onClick={() => setActive(c.id)}
-                                      onMouseEnter={() => setActive(c.id)}
+                                      onClick={() => selectTab(c.id)}
+                                      onMouseEnter={() => { if (c.id !== "vedic") setActive(c.id); }}
                                       className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors ${
                                         cActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                                       }`}
@@ -356,8 +363,8 @@ const AsherDashboard = () => {
                       return (
                         <button
                           key={n.id}
-                          onClick={() => setActive(n.id)}
-                          onMouseEnter={() => setActive(n.id)}
+                          onClick={() => selectTab(n.id)}
+                          onMouseEnter={() => { if (n.id !== "vedic") setActive(n.id); }}
                           className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors ${
                             isActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                           }`}
@@ -404,7 +411,7 @@ const AsherDashboard = () => {
           {active === "whiteboard"&& <AsherWhiteboardModule />}
           {active === "axrlen"    && <AsherAxrlenModule />}
           {active === "notebooks" && <AsherNotebooksModule />}
-          {active === "vedic"     && <VedicAstrologyView />}
+          {/* Vedic Strategy renders as a popout dialog below */}
           {active === "zahten"    && <AsherZahtenModule />}
           {active === "zacoon"    && <AsherZacoonModule />}
           
@@ -429,6 +436,15 @@ const AsherDashboard = () => {
           })()}
         </div>
       </main>
+
+      <Dialog open={vedicOpen} onOpenChange={setVedicOpen}>
+        <DialogContent className="p-0 gap-0 max-w-[min(1200px,95vw)] w-[95vw] h-[90vh] overflow-hidden bg-background border-border/30">
+          <VisuallyHidden><DialogTitle>Vedic Strategy</DialogTitle></VisuallyHidden>
+          <div className="h-full w-full overflow-auto">
+            <VedicAstrologyView />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
