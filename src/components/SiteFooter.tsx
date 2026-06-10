@@ -19,10 +19,8 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
             <p className="text-sm font-light tracking-[0.2em] text-foreground">AUREON</p>
             <div className="flex items-center gap-x-6 gap-y-2 flex-wrap justify-center">
               <Link to="/" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-              <Link to="/features" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Features</Link>
-              <Link to="/pricing" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
               <Link to="/forums" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Forums</Link>
-              <Link to="/benchmarks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Benchmarks</Link>
+              <Link to="/founder" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Founder</Link>
               <Link to="/terms" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
               <Link to="/privacy" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
             </div>
@@ -35,63 +33,17 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
 
   const sections = [
     {
-      heading: "Intelligence",
+      heading: "Platform",
       links: [
-        { to: "/llm-models", label: "LLM Models" },
-        { to: "/feature/zophiel", label: "Zophiel Search" },
-        { to: "/feature/nomad", label: "NOMAD Public Intel" },
-        { to: "/feature/azplen", label: "Azplen Intelligence" },
-        { to: "/feature/predictive", label: "Predictive Intelligence" },
-        { to: "/feature/oracle-locus", label: "Oracle Locus" },
-        { to: "/feature/video-intelligence", label: "Video Intelligence" },
-        { to: "/feature/cross", label: "CROSS Live Screen" },
-        { to: "/ww3", label: "WW3 Trajectory", destructive: true },
-      ],
-    },
-    {
-      heading: "Security",
-      links: [
-        { to: "/feature/zerlal", label: "ZERLAL Cyber Security" },
-        { to: "/feature/security", label: "Guardian Vault" },
-        { to: "/feature/zeeion", label: "ZEEION FI Forensics" },
-        { to: "/feature/axrlen", label: "AXRLEN Engine" },
-        { to: "/feature/byok", label: "Bring Your Own Key" },
-      ],
-    },
-    {
-      heading: "Agents & Tools",
-      links: [
-        { to: "/feature/zahten", label: "Zahten Agent Forge" },
-        
-        { to: "/feature/personas", label: "AI Personas" },
-        { to: "/feature/briefings", label: "Daily Briefings" },
-        { to: "/feature/notebooks", label: "Notebooks" },
-        { to: "/feature/plugin-marketplace", label: "Plugin Marketplace" },
-        { to: "/vedic-astrology", label: "Vedic Astrology · Free" },
-      ],
-    },
-    {
-      heading: "Creation",
-      links: [
-        { to: "/feature/zali", label: "ZANOEM Design Lab" },
-        { to: "/feature/ide", label: "Aureon IDE" },
-        { to: "/feature/vibe-imager", label: "Vibe Imager" },
-        { to: "/feature/ebook", label: "E-Book Generator" },
-        { to: "/feature/whiteboard", label: "Whiteboard" },
-        { to: "/feature/cipher", label: "Cipher Toolkit" },
-        { to: "/feature/file-scrapper", label: "File Scrapper" },
-      ],
-    },
-    {
-      heading: "Company",
-      links: [
-        { to: "/features", label: "All Features" },
-        { to: "/pricing", label: "Pricing" },
-        { to: "/founder", label: "Founder" },
+        { to: "/", label: "Home" },
+        { to: "/dashboard", label: "Dashboard" },
         { to: "/forums", label: "Forums" },
-        { to: "/prompt-engineering", label: "Prompt Engineering" },
-        { to: "/benchmarks", label: "Benchmarks" },
-        { to: "/nda", label: "NDA" },
+        { to: "/founder", label: "Founder" },
+      ],
+    },
+    {
+      heading: "Legal",
+      links: [
         { to: "/terms", label: "Terms of Service" },
         { to: "/privacy", label: "Privacy Policy" },
       ],
@@ -172,11 +124,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
                       <Link
                         key={link.to + link.label}
                         to={link.to}
-                        className={`group inline-flex items-center gap-1.5 text-xs font-extralight tracking-wide transition-colors ${
-                          link.destructive
-                            ? "text-destructive/70 hover:text-destructive"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
+                        className="group inline-flex items-center gap-1.5 text-xs font-extralight tracking-wide transition-colors text-muted-foreground hover:text-foreground"
                       >
                         <span className="h-px w-0 bg-current opacity-60 transition-all duration-300 group-hover:w-3" />
                         {link.label}

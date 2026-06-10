@@ -254,8 +254,7 @@ const Asher = () => {
             <p className="mt-1 text-[10px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">Military Intelligence Systems</p>
           </div>
           <div className="flex items-center justify-center gap-5 text-[11px] font-light tracking-[0.15em] text-muted-foreground uppercase">
-            <Link to="/feature/security" className="hover:text-foreground">Security</Link>
-            <Link to="/llm-models" className="hover:text-foreground">Documentation</Link>
+            <Link to="/dashboard" className="hover:text-foreground">Dashboard</Link>
             <Link to="/terms" className="hover:text-foreground">Compliance</Link>
             <a href="mailto:asher@aureonai.app" className="hover:text-foreground">Contact</a>
           </div>

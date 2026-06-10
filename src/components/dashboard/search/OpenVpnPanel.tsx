@@ -1,4 +1,4 @@
-import AureonShield from "@/pages/OpenVpn";
+import AureonShield from "@/components/aureon-shield/OpenVpn";
 
 /**
  * OpenVpnPanel — renders the full Aureon Shield / OpenVPN suite directly

@@ -14,10 +14,10 @@ interface Tier {
 }
 
 const TIERS: Tier[] = [
-  { key: "chat", name: "Chat", price: "$47", cadence: "/mo", blurb: "Uncensored core chat & basic tools", cta: "Start Chat", href: "/pricing#chat" },
-  { key: "aureon", name: "Aureon", price: "$199", cadence: "/mo", blurb: "Full creation suite + Zophiel", cta: "Get Aureon", href: "/pricing#aureon" },
-  { key: "pro", name: "Pro", price: "$740", cadence: "/mo", blurb: "Pro intelligence, predictive, trading", cta: "Go Pro", href: "/pricing#pro" },
-  { key: "lifetime", name: "Lifetime", price: "$470", cadence: "once", blurb: "Everything in Aureon ($199/mo) — forever, one payment", cta: "Claim Lifetime", href: "/pricing#lifetime", highlight: true },
+  { key: "chat", name: "Chat", price: "$47", cadence: "/mo", blurb: "Uncensored core chat & basic tools", cta: "Start Chat", href: "/dashboard" },
+  { key: "aureon", name: "Aureon", price: "$199", cadence: "/mo", blurb: "Full creation suite + Zophiel", cta: "Get Aureon", href: "/dashboard" },
+  { key: "pro", name: "Pro", price: "$740", cadence: "/mo", blurb: "Pro intelligence, predictive, trading", cta: "Go Pro", href: "/dashboard" },
+  { key: "lifetime", name: "Lifetime", price: "$470", cadence: "once", blurb: "Everything in Aureon ($199/mo) — forever, one payment", cta: "Claim Lifetime", href: "/dashboard", highlight: true },
 ];
 
 interface Row {

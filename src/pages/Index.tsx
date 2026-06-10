@@ -1142,16 +1142,16 @@ const Index = () => {
 
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
-              to="/feature/zahten"
+              to="/dashboard"
               className="inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 px-7 py-3 text-xs font-light tracking-[0.18em] text-foreground hover:bg-foreground hover:text-background transition-all uppercase"
             >
-              Explore Zahten <ArrowRight className="h-3.5 w-3.5" />
+              Open Dashboard <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             <Link
-              to="/feature/byok"
+              to="/forums"
               className="inline-flex items-center gap-2 rounded-full border border-border/30 px-7 py-3 text-xs font-light tracking-[0.18em] text-muted-foreground hover:text-foreground transition-all uppercase"
             >
-              Bring Your Own Key
+              Visit Forums
             </Link>
           </div>
         </div>
@@ -1263,8 +1263,8 @@ const Index = () => {
                 This is the same principle behind every serious intelligence operation in history. Your best asset isn't the technology — it's the intelligence feeding it. That's why we built <span className="text-foreground font-light">Aureon</span> — and <span className="text-foreground font-light">Zophiel</span> as our intelligence officer.
               </p>
 
-              <Link to="/prompt-engineering" className="mt-8 inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.18em] uppercase text-foreground transition-all hover:bg-foreground hover:text-background">
-                Read the Prompt Masterclass <ArrowRight className="h-3.5 w-3.5" />
+              <Link to="/dashboard" className="mt-8 inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.18em] uppercase text-foreground transition-all hover:bg-foreground hover:text-background">
+                Open Dashboard <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 

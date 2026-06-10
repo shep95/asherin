@@ -1,4 +1,4 @@
-import Whiteboard from "@/pages/Whiteboard";
+import Whiteboard from "@/components/whiteboard/Whiteboard";
 
 /**
  * Asher's mount of the Whiteboard (infinite canvas, layers, snap grids).
