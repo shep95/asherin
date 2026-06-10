@@ -17,6 +17,7 @@
 import type { SignIngress } from "./transits";
 import type { SensitivePoints, PointCode } from "./sensitivePoints";
 import { whyTransitMatters } from "./sensitivePoints";
+import { getDignityMultiplier, dignityLabel } from "./dignities";
 
 export type WindowKind =
   | "wealth" | "soulmate" | "health"
@@ -147,11 +148,22 @@ const POINT_BONUS: Partial<Record<PointCode, number>> = {
   L10: 3, L3: 1, Surya: 1, L5: 1,
 };
 
-function applyRetro(w: number, retro: boolean): number {
-  return retro ? Math.round(w * 0.6) : w;
+/**
+ * Retrograde scaling is now consolidated in getDignityMultiplier() (which
+ * amplifies retrograde benefics by 1.15× and leaves malefics unchanged).
+ * This used to halve weights by ~0.6× for any retrograde, which double-counted
+ * the effect once dignity also touches retrograde. Kept as a no-op for call-site
+ * stability — remove once nothing else imports it.
+ */
+function applyRetro(w: number, _retro: boolean): number {
+  return w;
 }
 
 function gradeScore(score: number): KarmicWindow["grade"] {
+  // NOTE: thresholds unchanged. Because dignity can now amplify weights up to
+  // 1.5× (and a retrograde benefic up to 1.725×), more windows may reach "Peak"
+  // on highly dignified charts. TODO: consider scaling thresholds to 5 / 10 / 17
+  // if calibration drifts — leave as-is until empirically validated.
   const s = Math.abs(score);
   if (s >= 14) return "Peak — once-a-decade";
   if (s >= 8)  return "Strong";
@@ -213,9 +225,23 @@ export function detectWindows(
       const baseW = planetWeights[ing.planet];
       if (baseW === undefined) continue;
       const bonus = POINT_BONUS[w.pointCode] ?? 0;
-      const weight = applyRetro(baseW + Math.sign(baseW) * bonus, ing.retrograde);
+
+      // Dignity multiplier applied to MAGNITUDE only — preserves sign so a
+      // malefic's negative weight stays negative (debilitated Saturn hurts
+      // less; exalted Saturn hurts more). Retrograde scaling is consolidated
+      // inside getDignityMultiplier (applyRetro is now a no-op).
+      const dignity = getDignityMultiplier(ing.planet, ing.toSignIndex, ing.retrograde);
+      const rawScore = (baseW + Math.sign(baseW) * bonus) * dignity;
+      const weight = applyRetro(Math.round(rawScore), ing.retrograde);
       if (weight === 0) continue;
-      raw.push(makeHit(ing, w.pointCode, w.pointLabel, w.signName, weight, w.text, w.plain));
+
+      // Surface WHY the window scored high/low so users see the dignity
+      // signal in the reasoning trace (only when dignity actually shifted it).
+      const dTag = dignity !== 1.0 ? dignityLabel(ing.planet, ing.toSignIndex, ing.retrograde) : null;
+      const reasoningOut = dTag ? `${w.text} (${ing.planet} ${dTag})` : w.text;
+      const plainOut     = dTag ? `${w.plain} (${ing.planet} ${dTag})` : w.plain;
+
+      raw.push(makeHit(ing, w.pointCode, w.pointLabel, w.signName, weight, reasoningOut, plainOut));
     }
   }
   if (!raw.length) return [];

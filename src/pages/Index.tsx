@@ -319,14 +319,30 @@ const Index = () => {
                 forecasting, and forensic-grade reasoning — for operators who need answers, not apologies.
               </p>
 
-              <div className="mt-9 flex flex-col sm:flex-row items-start gap-3">
-                <MagneticSpotlightButton href="/zophiel" variant="primary">
-                  Try Free Search <ArrowRight className="h-4 w-4" />
+              {/* CTA cluster — Fitts (large primary), Hick (one dominant choice), Von Restorff (primary pops),
+                  Proximity (CTA + reassurance tightly grouped), Peak-End (first thing the user touches). */}
+              <div className="mt-9 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
+                <MagneticSpotlightButton
+                  href="/zophiel"
+                  variant="primary"
+                  size="xl"
+                  ariaLabel="Start a free intelligence search — primary action"
+                >
+                  Start Free — No Card <ArrowRight className="h-4 w-4" />
                 </MagneticSpotlightButton>
-                <MagneticSpotlightButton href="#demos" variant="secondary">
+                <a
+                  href="#demos"
+                  className="group inline-flex items-center gap-2 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 hover:text-foreground transition-colors min-h-[44px] px-1"
+                >
                   See it live
-                </MagneticSpotlightButton>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </a>
               </div>
+              {/* Parkinson's-Law-style reassurance: shortens the perceived commitment. */}
+              <p className="mt-3 text-[11px] tracking-[0.18em] uppercase font-mono text-muted-foreground/55">
+                ◈ 30-second setup · No credit card · Cancel anytime
+              </p>
+
 
               {/* Telemetry bento */}
               <div className="mt-12 grid grid-cols-3 gap-px rounded-xl overflow-hidden border border-foreground/10 bg-foreground/[0.02] backdrop-blur-xl">
