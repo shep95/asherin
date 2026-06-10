@@ -24,8 +24,8 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     name: "Aureon Algorithm",
     icon: "▲",
     placeholder: "",
-    helpUrl: "https://github.com/houseofasher/Aureon-LLM",
-    helpText: "Open-weight Aureon LLM — self-hosted on Railway by House of Asher",
+    helpUrl: "https://github.com/shep95/gpt-oss",
+    helpText: "Open-weight Aureon LLM — self-hosted on Railway",
     isPlatform: true,
     platformNote: "Free tier: 10 msgs / 2hrs. Algorithm sub ($10/mo): 20 msgs / hr. Admin: unlimited.",
     models: [
