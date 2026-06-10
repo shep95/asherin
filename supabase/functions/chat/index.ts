@@ -1398,7 +1398,7 @@ ${truncatedDoctrine}
         "system-brains/zophiel_elite_prompt_engine.txt",
         "system-brains/anti_spiral_protocol.md",
         "system-brains/aureon_philosophy_consciousness.txt",
-        // Zophiel Algorithm — full brain digest (shep95/gpt-oss)
+        // Zophiel coding brain digests — internal reference only
         "system-brains/zophiel_algorithm_coding.md",
         "system-brains/zophiel_algorithm_mind.md",
         "system-brains/zophiel_algorithm_intel.md",
@@ -1450,7 +1450,7 @@ ${zophielCodingBrainContent}
       const latestUser = [...prunedMessages].reverse().find((m: any) => m.role === "user");
       const latestText = latestUser?.content || "";
       const recentCtx = prunedMessages.slice(-4).map((m: any) => `${m.role}: ${m.content || ""}`).join("\n");
-      const routingKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
+      const routingKey = byokProvider === "google" ? (userApiKey || "") : "";
       if (latestText && routingKey) {
         const wf = await buildCognitiveWorkflow(latestText, recentCtx, routingKey);
         if (wf) {
@@ -1635,7 +1635,7 @@ ${zophielCodingBrainContent}
     // Determine which provider to call
     let isGeminiResponse = true; // true if we need to transform Gemini SSE format
     let isAnthropicResponse = false;
-    let isResponsesApi = false; // true when upstream is OpenAI Responses API (gpt-oss)
+    let isResponsesApi = false; // true when an upstream BYOK provider uses the OpenAI Responses API
 
     const MAX_RETRIES = 4;
     let response: Response | null = null;
