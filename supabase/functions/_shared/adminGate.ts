@@ -81,6 +81,22 @@ export async function resolveKey(
     return { mode: "admin", geminiKey: k };
   }
 
+  // Free-tier fallback: route non-admin callers without BYOK through the
+  // platform Venice key. They never see the key itself; their requests are
+  // billed to the platform. Users with their own BYOK never get here (handled
+  // above) — saves us money.
+  const veniceKey = Deno.env.get("VENICE_API_KEY") || "";
+  if (veniceKey) {
+    return {
+      mode: "byok",
+      byok: {
+        provider: "venice",
+        model: VENICE_FREE_MODEL,
+        apiKey: veniceKey,
+      },
+    };
+  }
+
   const e: any = new Error("BYOK_REQUIRED");
   e.status = 403;
   e.code = "BYOK_REQUIRED";
