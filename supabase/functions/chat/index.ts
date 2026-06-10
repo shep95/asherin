@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { BRAIN_ORCHESTRATOR } from "../_shared/brainOrchestrator.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { COMEDY_BRAIN } from "../_shared/comedyBrain.ts";
 import { ASHER_LOGIC_BRAIN } from "../_shared/asherLogicBrain.ts";
@@ -1506,6 +1507,7 @@ ${zophielCodingBrainContent}
 
     const systemParts = [
       AUREON_CORE_IDENTITY,
+      BRAIN_ORCHESTRATOR,
       AUREON_SCENARIO_MATRIX,
       AUREON_DEBUGGING_PROTOCOLS,
       AUREON_CODING_MASTERY,
