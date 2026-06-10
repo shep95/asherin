@@ -13,6 +13,10 @@ export const BYOK_REQUIRED_BODY = {
     "Bring your own AI key to use the Zophiel Engine. Open the BYOK panel and add your Gemini key.",
 };
 
+// Cheapest uncensored Venice model that handles code + vision.
+// See https://docs.venice.ai/api-reference/models
+const VENICE_FREE_MODEL = "mistral-31-24b";
+
 /** Returns the authenticated caller's email, or null if anon / invalid. */
 export async function getCallerEmail(req: Request): Promise<string | null> {
   const auth = req.headers.get("Authorization") || "";
@@ -75,6 +79,22 @@ export async function resolveKey(
       throw e;
     }
     return { mode: "admin", geminiKey: k };
+  }
+
+  // Free-tier fallback: route non-admin callers without BYOK through the
+  // platform Venice key. They never see the key itself; their requests are
+  // billed to the platform. Users with their own BYOK never get here (handled
+  // above) — saves us money.
+  const veniceKey = Deno.env.get("VENICE_API_KEY") || "";
+  if (veniceKey) {
+    return {
+      mode: "byok",
+      byok: {
+        provider: "venice",
+        model: VENICE_FREE_MODEL,
+        apiKey: veniceKey,
+      },
+    };
   }
 
   const e: any = new Error("BYOK_REQUIRED");
