@@ -10,7 +10,7 @@ const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion", "axrlen"];
 const PRO_VIEWS: DashboardView[] = [
   "community", "azplen",
   "teams", "geospatial", "plugins", "timeseries",
-  "audit", "predictive", "security", "imagine-to-code", "tracker",
+  "audit", "predictive", "security", "tracker",
   "google", "pattern-analysis", "video-intelligence", "lavba", "cross",
   "zaplen",
 ];
@@ -19,7 +19,7 @@ const PRO_VIEWS: DashboardView[] = [
 const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks"];
 
 // Views that require any paid plan (search-tier)
-const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "reverse-engineer", "file-scrapper", "cipher"];
+const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "file-scrapper", "cipher"];
 
 // Views that require any paid plan (chat-tier minimum)
 const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow", "zahten"];

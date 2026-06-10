@@ -167,7 +167,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","imagine-to-code","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","vibe-imager","vibe-video","agents","bug-reports","ebook","reverse-engineer","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","file-scrapper","cipher","vedic-astrology","zahten"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","vibe-imager","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","file-scrapper","cipher","vedic-astrology","zahten"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -1501,7 +1501,6 @@ const Dashboard = () => {
       case "timeseries": return gatedView("timeseries", TimeSeriesView, "Time-Series Intelligence", "Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro plans.");
       case "audit": return gatedView("audit", AuditLogView, "Audit Trail", "Complete access and activity logging for compliance and security. Available on Pro plans.");
       case "zahten": return gatedView("zahten" as DashboardView, AsherZahtenModule, "Zahten Agent Forge", "Autonomous agent builder — design, scaffold, and harden production-grade automated agents. Available on the Chat plan ($47/mo) and above.");
-      case "imagine-to-code": return gatedView("imagine-to-code", ImagineToCodeView, "Imagine To Code", "AI-powered pixel art editor — paint, upload images, and ask AUREON to design directly on the canvas. Available on Pro plans.");
       
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
       case "cross": return gatedView("cross", CrossView, "Cross — Live Screen Intelligence", "Real-time screen analysis — share your screen with Aureon for instant pattern detection, alerts, and recommendations. Admin only.");
@@ -1513,11 +1512,8 @@ const Dashboard = () => {
       case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Aureon ($199/mo) and above.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro plans.");
       case "vibe-imager": return gatedView("vibe-imager", VibeImagerView, "Vibe Imager", "Conversational AI image creation — describe, iterate, version control. Available on all paid plans.");
-      case "vibe-video": return gatedView("vibe-video", VibeVideoView, "Vibe Video", "Conversational AI video editing — upload, describe edits, and Aureon analyzes your footage. Available on Pro plans.");
-      case "agents": return gatedView("agents", AgentsView, "Automated Agents", "AI-powered automation — create agents that run tasks on autopilot forever. Available as an add-on subscription.");
       case "bug-reports": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense></ErrorBoundary>;
       case "guardian-vault": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GuardianVaultView /></Suspense></ErrorBoundary>;
-      case "reverse-engineer": return gatedView("reverse-engineer", ReverseEngineerView, "Reverse Engineering Intelligence", "Upload screenshots of any software or hardware system — Aureon deconstructs the entire architecture. Available on Aureon and Pro plans.");
       case "cipher": return gatedView("cipher", CipherView, "Cipher — Data Operations", "Intelligence-grade data toolkit — encoding, hashing, encryption, format conversion, and recipe chaining. All operations run client-side. Available on Aureon and above.");
       // Always-accessible views
       case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;

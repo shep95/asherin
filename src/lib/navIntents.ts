@@ -37,11 +37,8 @@ export interface NavIntent {
 export const NAV_INTENTS: NavIntent[] = [
   // CREATE
   { view: "vibe-imager", label: "Generate Images", codename: "Vibe Imager", blurb: "Conversational AI image creation", keywords: ["image", "picture", "art", "draw", "paint", "generate image", "ai art", "imager"], group: "Create" },
-  { view: "vibe-video", label: "Edit & Generate Video", codename: "Vibe Video", blurb: "Conversational AI video editing", keywords: ["video", "clip", "edit video", "film"], group: "Create", access: "pro", adminOnly: true },
-  { view: "imagine-to-code", label: "Imagine to Code", codename: "Imagine-to-Code", blurb: "Sketch UI and turn it into code", keywords: ["pixel", "sketch", "ui to code", "design to code", "canvas"], group: "Create", access: "pro" },
   { view: "zali", label: "Universal Design Lab", codename: "ZANOEM", blurb: "First-principles design from atoms to universes", keywords: ["design", "engineer", "cad", "fea", "thermal", "material", "physics", "simulation"], group: "Create" },
   { view: "pdf-generator", label: "Create a Document", codename: "PDF / eBook / Slides", blurb: "Turn content into PDF, eBook, or slideshow", keywords: ["pdf", "ebook", "book", "slides", "slideshow", "presentation", "export", "document"], group: "Create" },
-  { route: "/whiteboard", label: "Open Whiteboard", codename: "Whiteboard", blurb: "Infinite canvas with layers", keywords: ["whiteboard", "canvas", "draw", "diagram", "sketch"], group: "Create" },
 
   // ANALYZE
   { view: "azplen", label: "Data Intelligence", codename: "Azplen", blurb: "Ingest, analyze, branch, and visualize datasets", keywords: ["data", "dataset", "csv", "analyze data", "spreadsheet", "intelligence", "foundry"], group: "Analyze", access: "pro" },
@@ -56,7 +53,6 @@ export const NAV_INTENTS: NavIntent[] = [
   { view: "nomad", label: "OSINT Investigation", codename: "NOMAD", blurb: "30+ source OSINT with AI correlation", keywords: ["osint", "investigate", "intelligence", "background check", "person", "dossier"], group: "Investigate" },
   { view: "axrlen", label: "Predictive Intelligence", codename: "Axrlen", blurb: "Live global event prediction and policy simulation", keywords: ["predict", "prediction", "future", "forecast event", "scenario", "monte carlo"], group: "Investigate", access: "pro" },
   { view: "zerlal", label: "Cyber Security", codename: "Zerlal", blurb: "Threat analysis, vulnerability detection, defense", keywords: ["security", "cyber", "vulnerability", "exploit", "hack", "threat", "scan", "pentest"], group: "Investigate", access: "pro", adminOnly: true },
-  { view: "reverse-engineer", label: "Reverse Engineer", codename: "RE Intel", blurb: "Deconstruct software/hardware from screenshots", keywords: ["reverse", "deconstruct", "architecture", "rebuild"], group: "Investigate", access: "search" },
   { view: "file-scrapper", label: "Extract Document Text", codename: "File Scrapper", blurb: "Pull all text from any document", keywords: ["scrape", "extract", "ocr", "pdf text", "document text"], group: "Investigate", access: "search" },
   { view: "cipher", label: "Cipher & Crypto Toolkit", codename: "Cipher", blurb: "Encoding, hashing, encryption — client-side", keywords: ["cipher", "encode", "decode", "hash", "encrypt", "base64", "rot13"], group: "Investigate", access: "search" },
   { view: "briefing", label: "Daily Intel Briefings", codename: "Briefings", blurb: "Competitor, regulatory, market signals", keywords: ["briefing", "daily", "news", "feed", "digest"], group: "Investigate" },
@@ -65,7 +61,6 @@ export const NAV_INTENTS: NavIntent[] = [
   // BUILD
   { view: "ide", label: "Code IDE", codename: "Aureon IDE", blurb: "Browser IDE with project files and BYOK AI", keywords: ["ide", "code", "editor", "develop", "monaco", "programming"], group: "Build" },
   { view: "notebooks", label: "Intelligence Notebooks", codename: "Notebooks", blurb: "Shared analysis sessions with SQL execution", keywords: ["notebook", "sql", "jupyter", "analysis"], group: "Build", access: "pro" },
-  { view: "agents", label: "Automated Agents", codename: "Agents", blurb: "Schedule tasks on autopilot", keywords: ["agent", "automation", "schedule", "cron", "bot"], group: "Build", access: "pro", adminOnly: true },
   { view: "zahten", label: "Agent Forge", codename: "Zahten", blurb: "Design, scaffold, and harden agents", keywords: ["forge", "agent builder", "scaffold"], group: "Build" },
   { view: "plugins", label: "Plugin Marketplace", codename: "Plugins", blurb: "Connectors and modules", keywords: ["plugin", "marketplace", "connector", "extension"], group: "Build", access: "pro" },
   { view: "snippets", label: "Code Snippets", codename: "Snippets", blurb: "Save and reuse code blocks", keywords: ["snippet", "code library", "save code"], group: "Build" },
@@ -82,7 +77,7 @@ export const NAV_INTENTS: NavIntent[] = [
 
   // ACCOUNT
   { view: "settings", label: "Settings", codename: "Settings", keywords: ["settings", "preferences", "config", "options"], group: "Account" },
-  { view: "subscription", label: "Subscription & Billing", codename: "Subscription", keywords: ["billing", "subscription", "plan", "upgrade", "pricing"], group: "Account" },
+  { view: "subscription", label: "Donate to keep things running", codename: "Donate", keywords: ["billing", "subscription", "plan", "upgrade", "pricing"], group: "Account" },
   { view: "stats", label: "My Usage Stats", codename: "Stats", keywords: ["stats", "usage", "analytics"], group: "Account" },
   { view: "audit", label: "Audit Trail", codename: "Audit", keywords: ["audit", "log", "history", "trail"], group: "Account", access: "pro" },
   { view: "bug-reports", label: "Bug Reports", codename: "Bugs", keywords: ["bug", "report", "issue", "feedback"], group: "Account" },

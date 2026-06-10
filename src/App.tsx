@@ -127,13 +127,11 @@ const App = () => (
             <Route path="/feature/zahten" element={<FeatureZahten />} />
             <Route path="/feature/predictive" element={<FeaturePredictive />} />
             
-            <Route path="/feature/imagine-to-code" element={<FeatureImagineToCode />} />
             <Route path="/feature/ide" element={<FeatureIde />} />
             <Route path="/feature/imagine-intelligence" element={<FeatureImagineIntelligence />} />
             <Route path="/llm-models" element={<LLMModels />} />
             <Route path="/feature/notebooks" element={<FeatureNotebooks />} />
             <Route path="/feature/vibe-imager" element={<FeatureVibeImager />} />
-            <Route path="/feature/vibe-video" element={<FeatureVibeVideo />} />
             <Route path="/feature/video-intelligence" element={<FeatureVideoIntelligence />} />
             <Route path="/feature/byok" element={<FeatureBYOK />} />
             <Route path="/feature/zerlal" element={<FeatureZerlal />} />
@@ -145,12 +143,10 @@ const App = () => (
             <Route path="/feature/zaplen" element={<FeatureZaplen />} />
             <Route path="/feature/cipher" element={<FeatureCipher />} />
             <Route path="/feature/pattern-analysis" element={<FeaturePatternAnalysis />} />
-            <Route path="/feature/reverse-engineer" element={<FeatureReverseEngineer />} />
             <Route path="/feature/file-scrapper" element={<FeatureFileScrapper />} />
             <Route path="/feature/ebook" element={<FeatureEbook />} />
             <Route path="/feature/plugin-marketplace" element={<FeaturePluginMarketplace />} />
             <Route path="/feature/coding-laws" element={<FeatureCodingLaws />} />
-            <Route path="/feature/automated-agents" element={<FeatureAutomatedAgents />} />
             <Route path="/feature/memory-center" element={<FeatureMemoryCenter />} />
             <Route path="/feature/brains" element={<FeatureBrains />} />
             <Route path="/feature/library" element={<FeatureLibrary />} />
