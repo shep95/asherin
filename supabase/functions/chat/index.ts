@@ -1533,7 +1533,8 @@ ${zophielCodingBrainContent}
     const systemParts = [
       AUREON_CORE_IDENTITY,
       BRAIN_ORCHESTRATOR,
-      AUREON_SCENARIO_MATRIX,
+      WORKFLOW_SECRECY_DIRECTIVE,
+      cognitiveWorkflowDirective,
       AUREON_DEBUGGING_PROTOCOLS,
       AUREON_CODING_MASTERY,
       NARRATIVE_FORGE_BRAIN,
