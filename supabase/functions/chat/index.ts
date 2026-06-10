@@ -1759,13 +1759,16 @@ ${zophielCodingBrainContent}
         console.log(`[chat] BYOK failed (${byokFailStatus}: ${byokFailReason}) — falling back to default Gemini cascade`);
       }
 
-      // Default backend: gpt-oss OpenAI-compatible endpoint, then Railway /ask failover.
+      // Default backend: self-hosted gpt-oss on Railway (OpenAI **Responses API**).
+      // The upstream speaks `POST /v1/responses` with `instructions` + `input`;
+      // we translate its SSE stream into Chat-Completions delta SSE downstream
+      // so the existing browser client keeps working unchanged.
       isGeminiResponse = false;
       isAnthropicResponse = false;
+      isResponsesApi = true;
 
-      const GPT_OSS_URL = Deno.env.get("GPT_OSS_URL") || "https://gpt-oss-production-ace0.up.railway.app/v1";
-      const GPT_OSS_MODEL = Deno.env.get("GPT_OSS_MODEL") || "gpt-oss-20b";
-      const GPT_OSS_KEY = Deno.env.get("GPT_OSS_API_KEY") || "";
+      const { callGptOssStream, resolveGptOssConfig } = await import("../_shared/gptOss.ts");
+      const gptCfg = resolveGptOssConfig();
       const zophielBaseRaw = (Deno.env.get("ZOPHIEL_API_URL") || "").trim();
       const ZOPHIEL_BASE = zophielBaseRaw
         ? (/^https?:\/\//i.test(zophielBaseRaw) ? zophielBaseRaw : `https://${zophielBaseRaw}`).replace(/\/$/, "")
@@ -1814,41 +1817,11 @@ ${zophielCodingBrainContent}
       };
 
       let lastStatus = 0;
-      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        if (GPT_OSS_KEY) headers["Authorization"] = `Bearer ${GPT_OSS_KEY}`;
-
-        try {
-          response = await fetch(`${GPT_OSS_URL.replace(/\/$/, "")}/chat/completions`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              model: GPT_OSS_MODEL,
-              messages: openaiMessages,
-              stream: true,
-              temperature: 0.7,
-              max_tokens: 8192,
-            }),
-          });
-        } catch (error) {
-          response = null;
-          lastStatus = 502;
-          lastError = error instanceof Error ? error.message : String(error);
-          console.error("[chat] gpt-oss request threw:", lastError);
-        }
-
-        if (response?.ok) break;
-        if (response && !response.ok) {
-          lastStatus = response.status;
-          lastError = await response.text().catch(() => "");
-          console.error(`[chat] gpt-oss ${response.status}:`, lastError.slice(0, 200));
-        }
-
-        if ((lastStatus === 429 || lastStatus >= 500) && attempt < MAX_RETRIES) {
-          await new Promise((r) => setTimeout(r, Math.min(500 * Math.pow(2, attempt) + Math.random() * 200, 2000)));
-          continue;
-        }
-        break;
+      response = await callGptOssStream(openaiMessages as any, gptCfg, { retries: MAX_RETRIES });
+      if (!response.ok) {
+        lastStatus = response.status;
+        lastError = await response.text().catch(() => "");
+        console.error(`[chat] gpt-oss ${lastStatus}:`, lastError.slice(0, 200));
       }
 
       if (!response || !response.ok) {
