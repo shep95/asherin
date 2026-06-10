@@ -4,7 +4,7 @@ import { Lock, MessageSquare, X, AlertOctagon, ArrowUpRight, Sparkles, Shield, G
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
-import AureonFreeChat from "@/components/zophiel-free/AureonFreeChat";
+
 import ZophielSourcePulse from "@/components/zophiel-free/ZophielSourcePulse";
 import ZophielStatusBar from "@/components/zophiel-free/ZophielStatusBar";
 
