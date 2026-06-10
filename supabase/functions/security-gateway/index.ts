@@ -427,24 +427,14 @@ Deno.serve(async (req) => {
       }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
 
-    // ACTION: dashboard — Get security dashboard data
+    // ACTION: dashboard — Get security dashboard data (ADMIN ONLY)
     if (action === "dashboard") {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader?.startsWith("Bearer ")) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(req) });
+      try {
+        await requireAdmin(req);
+      } catch (e) {
+        return authErrorResponse(e, getCorsHeaders(req));
       }
 
-      const supabaseUser = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: authHeader } } }
-      );
-
-      const token = authHeader.replace("Bearer ", "");
-      const { data: claims, error: claimsErr } = await supabaseUser.auth.getClaims(token);
-      if (claimsErr || !claims?.claims) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(req) });
-      }
 
       const now = new Date();
       const last24h = new Date(now.getTime() - 86400000).toISOString();
