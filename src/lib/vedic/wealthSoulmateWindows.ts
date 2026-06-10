@@ -231,8 +231,8 @@ export function detectWindows(
       // less; exalted Saturn hurts more). Retrograde scaling is consolidated
       // inside getDignityMultiplier (applyRetro is now a no-op).
       const dignity = getDignityMultiplier(ing.planet, ing.toSignIndex, ing.retrograde);
-      const raw = (baseW + Math.sign(baseW) * bonus) * dignity;
-      const weight = applyRetro(Math.round(raw), ing.retrograde);
+      const rawScore = (baseW + Math.sign(baseW) * bonus) * dignity;
+      const weight = applyRetro(Math.round(rawScore), ing.retrograde);
       if (weight === 0) continue;
 
       // Surface WHY the window scored high/low so users see the dignity
@@ -241,7 +241,6 @@ export function detectWindows(
       const reasoningOut = dTag ? `${w.text} (${ing.planet} ${dTag})` : w.text;
       const plainOut     = dTag ? `${w.plain} (${ing.planet} ${dTag})` : w.plain;
 
-      raw.length; // (no-op; left so reviewers can grep this block)
       raw.push(makeHit(ing, w.pointCode, w.pointLabel, w.signName, weight, reasoningOut, plainOut));
     }
   }
