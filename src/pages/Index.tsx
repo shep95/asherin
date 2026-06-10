@@ -314,10 +314,16 @@ const Index = () => {
                 <span className="zophiel-shimmer-text italic font-thin">others miss.</span>
               </h1>
 
-              <p className="mt-7 max-w-xl text-base sm:text-lg font-extralight leading-relaxed text-muted-foreground/90">
-                A full-spectrum intelligence engine. Uncensored AI, 30-source intelligence, predictive
-                forecasting, and forensic-grade reasoning — for operators who need answers, not apologies.
+              <p className="mt-7 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
+                While other AI tells you what it thinks you should know,
+                Aureon gives you the complete picture — unfiltered, sourced, and ready to act on.
               </p>
+
+              {/* Free Forever trust badge — surfaces the #1 friction killer in the hero */}
+              <div className="mt-5 inline-flex self-start items-center gap-2 rounded-full border border-amber-300/40 bg-amber-400/[0.06] px-3.5 py-1.5 font-mono text-[10px] tracking-[0.32em] uppercase text-amber-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-300 animate-pulse" />
+                Free · Forever · No Catch
+              </div>
 
               {/* CTA cluster — Fitts (large primary), Hick (one dominant choice), Von Restorff (primary pops),
                   Proximity (CTA + reassurance tightly grouped), Peak-End (first thing the user touches). */}
@@ -327,6 +333,7 @@ const Index = () => {
                   variant="primary"
                   size="xl"
                   ariaLabel="Start a free intelligence search — primary action"
+                  className="!bg-amber-400 !text-black !border-amber-300 hover:!bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)] hover:shadow-[0_14px_50px_-8px_rgba(251,191,36,0.7)]"
                 >
                   Start Free — No Card <ArrowRight className="h-4 w-4" />
                 </MagneticSpotlightButton>
@@ -344,18 +351,19 @@ const Index = () => {
               </p>
 
 
-              {/* Telemetry bento */}
-              <div className="mt-12 grid grid-cols-3 gap-px rounded-xl overflow-hidden border border-foreground/10 bg-foreground/[0.02] backdrop-blur-xl">
+              {/* Telemetry bento — now with emotional labels, not raw integers */}
+              <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-px rounded-xl overflow-hidden border border-foreground/10 bg-foreground/[0.02] backdrop-blur-xl">
                 {[
-                  { v: 30, suf: "+", l: "Intelligence sources" },
-                  { v: 14, suf: "", l: "Analysis passes" },
-                  { v: 9, suf: "", l: "AI providers" },
+                  { v: 30, suf: "+", l: "Intelligence tools your competitors don't have" },
+                  { v: 14, suf: "", l: "Cross-validation passes per query" },
+                  { v: 9, suf: "", l: "AI providers, your key, your choice" },
+                  { v: 0, suf: "", l: "Dollars. Free forever. No catch." },
                 ].map((s) => (
                   <div key={s.l} className="bg-background/40 px-5 py-5">
                     <div className="text-3xl font-extralight text-foreground font-mono tabular-nums">
                       <CountUp to={s.v} suffix={s.suf} />
                     </div>
-                    <div className="text-[10px] tracking-[0.28em] uppercase text-muted-foreground/55 mt-1.5 font-mono">{s.l}</div>
+                    <div className="text-[10px] tracking-[0.22em] uppercase text-muted-foreground/70 mt-1.5 font-mono leading-snug">{s.l}</div>
                   </div>
                 ))}
               </div>
