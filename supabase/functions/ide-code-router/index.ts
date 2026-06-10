@@ -2,6 +2,7 @@
 // Dispatches coding requests through Gemini for the admin platform path, or
 // through the user's BYOK provider/key. No Lovable AI gateway fallback.
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 //
 // Body:
 //   {
@@ -69,7 +70,9 @@ Data theft & weak crypto • Concealment (steganography, audit-disable) •
 RCE/SSRF/Deserialization/Command-injection • Supply chain & dependency CVEs •
 Prompt injection / LLM misuse • Cloud misconfig •
 Race/TOCTOU/memory safety • OTHER (anything suspicious or "not good" that doesn't fit — never drop it).
-For each finding: WHAT, WHERE (file:line), WHY it matters, EXACT FIX. Be aggressive.`;
+For each finding: WHAT, WHERE (file:line), WHY it matters, EXACT FIX. Be aggressive.
+
+${NARRATIVE_FORGE_BRAIN}`;
     const stream: boolean = body.stream !== false;
 
     if (!prompt.trim()) {
