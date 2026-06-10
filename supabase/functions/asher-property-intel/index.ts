@@ -191,7 +191,7 @@ serve(async (req) => {
     }
 
     // GEMINI-ONLY: admin key or user BYOK
-    const isAdmin = user.email === "ashernewtonx@gmail.com";
+    const isAdmin = ["ashernewtonx@gmail.com","28numberofmoney@gmail.com"].includes(String(user.email||"").toLowerCase());
     const apiKey = (typeof byok === "string" && byok.trim())
       || (isAdmin ? Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") : null);
     if (!apiKey) {
