@@ -1741,83 +1741,52 @@ ${zophielCodingBrainContent}
         console.log(`[chat] BYOK failed (${byokFailStatus}: ${byokFailReason}) — falling back to default Gemini cascade`);
       }
 
-      // Use default Gemini — with model-cascade fallback when a model is overloaded (503)
-      isGeminiResponse = true;
+      // Default backend: self-hosted gpt-oss-20b on Railway (OpenAI-compatible /v1)
+      isGeminiResponse = false;
       isAnthropicResponse = false;
 
-      // Cascade order: primary → fast preview → pro fallback. Each entry retries with backoff.
-      const GEMINI_CASCADE = [
-        "gemini-2.5-flash",
-        "gemini-3-flash-preview",
-        "gemini-2.5-pro",
-      ];
+      const GPT_OSS_URL   = Deno.env.get("GPT_OSS_URL")   || "https://gpt-oss-production-ace0.up.railway.app/v1";
+      const GPT_OSS_MODEL = Deno.env.get("GPT_OSS_MODEL") || "gpt-oss-20b";
+      const GPT_OSS_KEY   = Deno.env.get("GPT_OSS_API_KEY") || "";
 
-      let cascadeSucceeded = false;
       let lastStatus = 0;
-
-      cascade: for (const modelId of GEMINI_CASCADE) {
-        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: geminiMessages,
-                generationConfig: { temperature: 0.7, maxOutputTokens: 65536 },
-              }),
-            },
-          );
-
-          if (response.ok) {
-            cascadeSucceeded = true;
-            if (modelId !== GEMINI_CASCADE[0]) {
-              console.log(`[chat] Primary model overloaded, succeeded with fallback: ${modelId}`);
-            }
-            break cascade;
-          }
-
-          lastStatus = response.status;
-
-          // 429 (quota) won't recover in seconds — cascade immediately to next model.
-          if (response.status === 429) {
-            lastError = await response.text();
-            console.error(`[chat] ${modelId} quota-limited (429), cascading immediately:`, lastError.slice(0, 200));
-            break; // next model
-          }
-
-          // 503 (transient overload) → short retry, max 2 attempts, capped delay
-          if (response.status === 503 && attempt < 2) {
-            const delay = Math.min(500 * Math.pow(2, attempt) + Math.random() * 200, 2000);
-            console.log(`[chat] ${modelId} returned 503, retry ${attempt + 1}/2 in ${Math.round(delay)}ms`);
-            await new Promise((r) => setTimeout(r, delay));
-            continue;
-          }
-
-          // Hard error or retries exhausted on this model → try next model in cascade
-          lastError = await response.text();
-          console.error(`[chat] ${modelId} failed (${response.status}), cascading to next model:`, lastError.slice(0, 200));
-          break; // exit attempt loop, go to next model
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (GPT_OSS_KEY) headers["Authorization"] = `Bearer ${GPT_OSS_KEY}`;
+        response = await fetch(`${GPT_OSS_URL.replace(/\/$/, "")}/chat/completions`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model: GPT_OSS_MODEL,
+            messages: openaiMessages,
+            stream: true,
+            temperature: 0.7,
+            max_tokens: 8192,
+          }),
+        });
+        if (response.ok) break;
+        lastStatus = response.status;
+        lastError = await response.text().catch(() => "");
+        console.error(`[chat] gpt-oss ${response.status}:`, lastError.slice(0, 200));
+        if ((response.status === 429 || response.status === 503) && attempt < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, Math.min(500 * Math.pow(2, attempt) + Math.random() * 200, 2000)));
+          continue;
         }
+        break;
       }
 
-      if (!cascadeSucceeded) {
+      if (!response || !response.ok) {
         if (lastStatus === 429) {
-          return new Response(JSON.stringify({ error: "All AI models are rate-limited right now. Please wait 30 seconds and try again." }), {
+          return new Response(JSON.stringify({ error: "AI is rate-limited. Please wait a moment and try again." }), {
             status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        if (lastStatus === 402) {
-          return new Response(JSON.stringify({ error: "Usage credits exhausted. Please add credits in Settings → Workspace → Usage." }), {
-            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
         if (lastStatus === 503) {
-          return new Response(JSON.stringify({ error: "All AI models are temporarily overloaded by high demand. This usually clears in 30-60 seconds — please try again." }), {
+          return new Response(JSON.stringify({ error: "AI engine is temporarily overloaded. Try again in 30-60 seconds." }), {
             status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        console.error("[chat] All Gemini cascade models failed. Last status:", lastStatus, "body:", lastError);
+        console.error("[chat] gpt-oss failed. Last status:", lastStatus, "body:", lastError);
         return new Response(JSON.stringify({ error: `AI gateway error (${lastStatus || 500}). Please try again in a moment.` }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
