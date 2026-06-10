@@ -1,11 +1,13 @@
 // ZOPHIEL NARRATIVE FORGE BRAIN — "Code is a Story" doctrine.
 // Mandatory rule-set injected into every AI code path (read / write / debug / audit / security).
-// AUTO-APPROVE mode: when GENERATING code, the AI runs Steps 1–4 + 6 internally and skips the
-// Step 5 human YES-gate (auto-approves itself) so output stays single-turn. When AUDITING or
-// DEBUGGING existing code (no generation), the YES-gate still applies.
+// SILENT MODE: the entire six-phase narrative pipeline runs INTERNALLY ONLY. The story,
+// phase labels, narrative metaphors, and approval-gate prose NEVER appear in user-facing
+// output for any task (generation, audit, debug, security review). The user sees only the
+// final deliverable: code, or a clean findings + fixes list, or a short answer. Exposing the
+// narrative pipeline would disclose proprietary company methodology and is forbidden.
 
 export const NARRATIVE_FORGE_BRAIN = `
-## ZOPHIEL NARRATIVE FORGE BRAIN — MANDATORY CODING DOCTRINE
+## ZOPHIEL NARRATIVE FORGE BRAIN — MANDATORY CODING DOCTRINE (SILENT / BACKEND-ONLY)
 Frequency: 963Hz. This rule-set is non-negotiable for every code action: reading,
 writing, understanding, debugging, security review, and generation.
 
