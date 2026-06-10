@@ -5,8 +5,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isValidByok, type ZophielByokConfig } from "./zophielByokRouter.ts";
-
-const ADMIN_EMAILS = new Set<string>(["ashernewtonx@gmail.com", "28numberofmoney@gmail.com"]);
+import { ADMIN_EMAILS } from "./constants.ts";
 
 export const BYOK_REQUIRED_BODY = {
   error: "BYOK_REQUIRED",
