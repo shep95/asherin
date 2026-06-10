@@ -1,4 +1,5 @@
 import { applySeoHead } from "@/lib/seoHead";
+import { isAdminEmail } from "@/lib/adminEmail";
 import heroBgDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
