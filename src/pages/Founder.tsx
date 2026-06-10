@@ -400,33 +400,42 @@ const Founder = () => {
         </div>
       </div>
 
-      {/* A Personal Note — short, intimate, distinct */}
-      <div className="relative z-10 px-6 py-20">
-        <div className="mx-auto max-w-3xl">
-          <div className="rounded-2xl border border-foreground/20 bg-foreground/[0.03] backdrop-blur-md p-10 sm:p-14">
-            <p className="text-[10px] font-extralight tracking-[0.42em] text-foreground/50 uppercase mb-8">
+      {/* A Personal Note — letter on a dark desk: narrow, sharp-cornered, warm */}
+      <div id="note" className="relative z-10 px-6 py-20 scroll-mt-24">
+        <div className="mx-auto" style={{ maxWidth: "620px" }}>
+          <div
+            className="border border-amber-300/15 p-10 sm:p-12 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.7)]"
+            style={{ background: "linear-gradient(180deg, rgba(40,30,20,0.55), rgba(20,18,16,0.55))" }}
+          >
+            <p className="text-[10px] font-extralight tracking-[0.42em] text-amber-200/70 uppercase mb-8">
               A Personal Note — Direct From Asher
             </p>
-            <p className="text-xl sm:text-2xl font-extralight leading-[1.5] tracking-[-0.005em] text-foreground/90 italic">
-              If you've read this far — you're already different from most people. You didn't scroll past. You didn't dismiss it as "weird." You stayed. <br /><br />
+            <p className="text-lg sm:text-xl font-extralight leading-[1.85] tracking-[-0.003em] text-foreground/90" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+              If you've read this far — you're already different from most people. You didn't scroll past. You didn't dismiss it as "weird." You stayed.
+              <br /><br />
               That matters more than you know. Aureon was built for the ones who stay.
             </p>
-            <p className="mt-10 text-right text-sm font-light tracking-[0.18em] text-foreground/80 italic" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
-              — Asher Newton · 05.05
+            <p className="mt-10 text-right text-base font-light tracking-[0.08em] text-foreground/85 italic" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+              — Asher Newton
+              <span className="ml-3 text-xs tracking-[0.22em] text-foreground/45 not-italic">05.05</span>
             </p>
           </div>
         </div>
       </div>
+
+      <SectionDivider variant="diamond" glyph="❖" />
+
 
       {/* Books Written By Asher — book covers as cards */}
       <div id="ebook" className="relative z-10 px-6 py-28 sm:py-36 scroll-mt-24">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <span className="founder-eyebrow mb-6">Chapter · 03 · Library</span>
-            <h2 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-extralight tracking-[-0.015em] leading-[1.05] text-foreground">
-              Books Written By Asher
+            <h2 className="font-display mt-6 text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.025em] leading-[1.02] text-foreground">
+              The Source Documents
             </h2>
-            <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-[1.75] text-foreground/75">
+            <p className="mt-4 text-sm font-light italic text-foreground/55">Books written by Asher Newton</p>
+            <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-[1.8] text-foreground/80">
               These are the documents the intelligence and research community downloads first. Read them on the page. Take them with you.
             </p>
           </div>
