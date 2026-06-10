@@ -249,49 +249,45 @@ serve(async (req) => {
       return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
-    // ── Text-only path: OpenAI-compat (supports tool calls)
-    // Retry on transient 503/overload with exponential backoff before failing
-    const MODELS_FALLBACK = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+    // Text-only path: self-hosted gpt-oss-20b on Railway (OpenAI-compatible /v1)
+    const GPT_OSS_URL   = Deno.env.get("GPT_OSS_URL")   || "https://gpt-oss-production-ace0.up.railway.app/v1";
+    const GPT_OSS_MODEL = Deno.env.get("GPT_OSS_MODEL") || "gpt-oss-20b";
+    const GPT_OSS_KEY   = Deno.env.get("GPT_OSS_API_KEY") || "";
+
     let response: Response | null = null;
     let lastErrText = "";
-    let lastStatus = 0;
-    outer: for (const model of MODELS_FALLBACK) {
-      for (let attempt = 0; attempt < 3; attempt++) {
-        response = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model,
-              messages: [{ role: "system", content: fullSystem }, ...cleaned.map((m) => ({ role: m.role, content: m.content }))],
-              tools: TOOLS,
-              stream: true,
-            }),
-          },
-        );
-        if (response.ok) break outer;
-        lastStatus = response.status;
-        if (response.status === 429 || response.status === 401 || response.status === 403) break outer;
-        if (response.status === 503 || response.status === 502 || response.status === 500) {
-          lastErrText = await response.text().catch(() => "");
-          console.warn(`[asher-ai] ${model} ${response.status} attempt ${attempt + 1}, backing off`);
-          await new Promise(r => setTimeout(r, 400 * Math.pow(2, attempt)));
-          continue;
-        }
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (GPT_OSS_KEY) headers["Authorization"] = `Bearer ${GPT_OSS_KEY}`;
+      response = await fetch(`${GPT_OSS_URL.replace(/\/$/, "")}/chat/completions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: GPT_OSS_MODEL,
+          messages: [{ role: "system", content: fullSystem }, ...cleaned.map((m) => ({ role: m.role, content: m.content }))],
+          tools: TOOLS,
+          stream: true,
+          temperature: 0.7,
+          max_tokens: 8192,
+        }),
+      });
+      if (response.ok) break;
+      if (response.status === 503 || response.status === 502 || response.status === 500) {
         lastErrText = await response.text().catch(() => "");
-        break outer;
+        console.warn(`[asher-ai] gpt-oss ${response.status} attempt ${attempt + 1}, backing off`);
+        await new Promise(r => setTimeout(r, 400 * Math.pow(2, attempt)));
+        continue;
       }
+      lastErrText = await response.text().catch(() => "");
+      break;
     }
 
     if (!response) {
-      return new Response(JSON.stringify({ error: "No response from Gemini" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "No response from AI engine" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (response.status === 429) return new Response(JSON.stringify({ error: "Gemini rate limit. Try again in a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (response.status === 401 || response.status === 403) return new Response(JSON.stringify({ error: "Gemini key invalid." }), { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (response.status === 429) return new Response(JSON.stringify({ error: "AI rate limit. Try again in a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!response.ok) {
-      console.error("asher-ai gemini:", response.status, lastErrText);
-      // Graceful fallback: stream a friendly message instead of a 500 (prevents blank screen)
+      console.error("asher-ai gpt-oss:", response.status, lastErrText);
       const friendly = response.status === 503
         ? "The intelligence model is currently overloaded. Please retry in a few seconds."
         : `Upstream model error (${response.status}). Please retry.`;
