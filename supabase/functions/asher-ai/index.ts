@@ -258,43 +258,15 @@ serve(async (req) => {
       return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
-    // Text-only path: self-hosted gpt-oss on Railway via the OpenAI **Responses API**.
-    const { callGptOssStream, responsesSseToChatCompletionsSse, resolveGptOssConfig } =
-      await import("../_shared/gptOss.ts");
-    const gptCfg = resolveGptOssConfig();
-
-    const messagesForUpstream = [
-      { role: "system" as const, content: fullSystem },
-      ...cleaned.map((m: any) => ({ role: m.role as "user" | "assistant", content: String(m.content ?? "") })),
-    ];
-
-    const response = await callGptOssStream(messagesForUpstream, gptCfg, { retries: 2 });
-
-    if (response.status === 429) {
-      return new Response(JSON.stringify({ error: "AI rate limit. Try again in a moment." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    if (!response.ok || !response.body) {
-      const lastErrText = await response.text().catch(() => "");
-      console.error("asher-ai gpt-oss:", response.status, lastErrText.slice(0, 300));
-      const friendly = response.status === 503
-        ? "The intelligence model is currently overloaded. Please retry in a few seconds."
-        : `Upstream model error (${response.status}). Please retry.`;
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode(sse({ choices: [{ delta: { content: friendly }, index: 0, finish_reason: "stop" }] })));
-          controller.enqueue(encoder.encode(sse("[DONE]")));
-          controller.close();
-        },
-      });
-      return new Response(stream, { status: 200, headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
-    }
-
-    // Translate Responses-API SSE → OpenAI Chat-Completions delta SSE
-    // so the existing frontend parser keeps working unchanged.
-    const translated = responsesSseToChatCompletionsSse(response.body);
-    return new Response(translated, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    // BYOK-ONLY: text path requires the operator to bring their own LLM key.
+    // No in-house / self-hosted fallback is used.
+    return new Response(
+      JSON.stringify({
+        error: "Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.",
+        code: "BYOK_REQUIRED",
+      }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("asher-ai error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),

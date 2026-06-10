@@ -399,51 +399,8 @@ const LLMModels = () => {
         ]}
       />
 
-      {/* ─── ZOPHIEL CUSTOM ALGORITHM ─── */}
-      <ModelSection
-        eyebrow="Custom Algorithm — Self-Hosted"
-        name="ZOPHIEL CUSTOM ALGORITHM"
-        tagline="Our in-house reasoning algorithm — written from scratch, not a wrapper, not a fine-tune. Deployed on Railway. The Zophiel Custom Algorithm serves free-tier users by default and provides an alternative routing path for every paid account inside the Aureon dashboard."
-        diagramTitle="Zophiel Custom Algorithm — Reasoning Architecture"
-        diagramCore="ZOPHIEL"
-        diagramSub="ALGORITHM"
-        diagramAccent="hsl(160, 80%, 45%)"
-        diagramNodes={[
-          { id: "al1", x: 140, y: 90, label: "Railway Node", sub: "Self-hosted" },
-          { id: "al2", x: 660, y: 90, label: "Aureon Chat", sub: "Free default" },
-          { id: "al3", x: 80, y: 230, label: "Edge Router", sub: "Supabase fn" },
-          { id: "al4", x: 720, y: 230, label: "Paid Toggle", sub: "Optional route" },
-          { id: "al5", x: 220, y: 340, label: "Open Source", sub: "Community" },
-          { id: "al6", x: 580, y: 340, label: "Rate Limiter", sub: "2h window" },
-        ]}
-        meaning={[
-          {
-            title: "What It Is",
-            body:
-              "The Zophiel Custom Algorithm is Aureon's own reasoning engine — written from scratch. It is not a wrapper around GPT-4 or Claude. It is an IDF-weighted retrieval ranker, a hidden self-reflection layer, a 17-organ adaptive immune system, and a curated code-pattern engine, all stitched together and served from a Railway deployment. The full source is open for audit, replication, and community research.",
-          },
-          {
-            title: "Why We Built It",
-            body:
-              "Every major consumer AI product is hostage to API pricing, rate limits, and corporate safety lobotomies. We built the Zophiel Custom Algorithm so Aureon can never be shut off by a third party. Free users get unlimited access (within fair-use windows). Paid users can toggle to it as a backup route or a primary brain when they want deterministic, unfiltered output without the overhead of external provider keys.",
-          },
-          {
-            title: "How It Is Deployed",
-            body:
-              "The algorithm runs inside a Railway container with auto-scaling, health-checking, and graceful degradation. The Supabase edge function `aureon-algorithm-chat` acts as a lightweight router: it validates the user's tier, enforces rate limits (free users get a refill every 2 hours), and streams the response back with identical formatting to the standard chat path. No special configuration is required.",
-          },
-          {
-            title: "Open Source",
-            body:
-              "The algorithm, knowledge corpus, immune-system modules, and inference server are published on GitHub under the House of Asher organization. You can audit the architecture, fork the repo, run your own inference node, or submit pull requests. The Zophiel Custom Algorithm is not a black box — it is a public utility with a private hosting option.",
-          },
-        ]}
-        capabilities={[
-          { icon: Server, label: "Self-Hosted Inference", body: "No third-party API keys, no external rate limits, no surprise price hikes. We own the stack from corpus to wire." },
-          { icon: Code, label: "Open Source", body: "Inspect every retriever, corpus builder, code-pattern, and reflection module. Fork the algorithm for your own infrastructure." },
-          { icon: Github, label: "Public on GitHub", body: "The full repository — algorithm, knowledge corpus, immune system, and deployment manifests — lives at github.com/shep95/gpt-oss for community audit and contribution." },
-        ]}
-      />
+
+
 
 
       {/* ─── ASHER ─── */}
@@ -496,10 +453,10 @@ const LLMModels = () => {
       {/* CTA */}
       <section className="relative z-10 px-6 py-24 text-center">
         <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
-          Four models. One company.
+          Three models. One company.
         </h2>
         <p className="text-sm font-extralight text-muted-foreground mb-8 max-w-xl mx-auto">
-          Zophiel sees. Aureon refines. The Zophiel Custom Algorithm deploys. Asher weighs.
+          Zophiel sees. Aureon refines. Asher weighs.
           Together they make up the intelligence stack we ship.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -509,15 +466,6 @@ const LLMModels = () => {
           >
             View Plans <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
-          <a
-            href="https://github.com/shep95/gpt-oss"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex items-center gap-2 rounded-xl border border-border/25 bg-card/30 backdrop-blur-md px-8 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-card/50 hover:border-border/50"
-          >
-            <Github className="h-4 w-4" />
-            Zophiel Algorithm on GitHub
-          </a>
         </div>
       </section>
 

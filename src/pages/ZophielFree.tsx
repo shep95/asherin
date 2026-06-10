@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Lock, MessageSquare, X, AlertOctagon, ArrowUpRight, Sparkles, Shield, Github } from "lucide-react";
+import { Lock, MessageSquare, X, AlertOctagon, ArrowUpRight, Sparkles } from "lucide-react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
-import AureonFreeChat from "@/components/zophiel-free/AureonFreeChat";
+
 import ZophielSourcePulse from "@/components/zophiel-free/ZophielSourcePulse";
 import ZophielStatusBar from "@/components/zophiel-free/ZophielStatusBar";
 
@@ -216,8 +216,11 @@ const ZophielFree = () => {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 overflow-hidden">
-              <AureonFreeChat />
+            <div className="flex-1 flex items-center justify-center p-6 text-center">
+              <p className="text-xs font-light text-muted-foreground leading-relaxed">
+                Aureon Chat requires your own LLM API key. Open the dashboard and add one in
+                <span className="text-foreground/80"> Settings → AI Keys</span> to start chatting.
+              </p>
             </div>
           </aside>
         </>
