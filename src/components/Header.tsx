@@ -1,10 +1,6 @@
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, ChevronDown, Search, ArrowUpRight, Target } from "lucide-react";
-import aureonLogo from "@/assets/aureon-logo.png";
-import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
-import { useToast } from "@/hooks/use-toast";
+import { Link, useLocation } from "react-router-dom";
+import { Menu, X, ChevronDown, ArrowUpRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { isAdminEmail } from "@/lib/adminEmail";
 import {
