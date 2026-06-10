@@ -332,7 +332,8 @@ const Founder = () => {
             </p>
             <div className="mt-5 flex justify-center"><ReadingTime minutes={8} /></div>
           </div>
-          </div>
+
+
 
           {/* Chapter I */}
           <div className="mb-16">
