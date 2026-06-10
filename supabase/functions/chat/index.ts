@@ -10,6 +10,7 @@ import { PROMPT_INTELLIGENCE_PROTOCOL } from "../_shared/promptIntelligenceProto
 import { EMOTIONAL_PERSONA_BRAIN } from "../_shared/emotionalPersonaBrain.ts";
 import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
 import { VISUAL_INTELLIGENCE_BRAIN } from "../_shared/visualIntelligenceBrain.ts";
+import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1508,9 +1509,32 @@ ${zophielCodingBrainContent}
       ? messages.slice(-MAX_HISTORY_MESSAGES)
       : messages;
 
+    // ── COGNITIVE WORKFLOW PRE-PASS (silent, backend-only) ────────────────
+    // Mimics how a human mind decomposes a question before answering:
+    // routing cortex → activate regions → write internal step plan → execute
+    // as ONE coherent voice. The workflow itself is NEVER surfaced to the UI.
+    let cognitiveWorkflowDirective = "";
+    try {
+      const latestUser = [...prunedMessages].reverse().find((m: any) => m.role === "user");
+      const latestText = latestUser?.content || "";
+      const recentCtx = prunedMessages.slice(-4).map((m: any) => `${m.role}: ${m.content || ""}`).join("\n");
+      const routingKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
+      if (latestText && routingKey) {
+        const wf = await buildCognitiveWorkflow(latestText, recentCtx, routingKey);
+        if (wf) {
+          console.log(`[chat] Workflow: ${wf.intent} → ${wf.regions.join(",")}`);
+          cognitiveWorkflowDirective = formatWorkflowDirective(wf);
+        }
+      }
+    } catch (e) {
+      console.error("[chat] cognitive workflow pre-pass error:", (e as Error).message);
+    }
+
     const systemParts = [
       AUREON_CORE_IDENTITY,
       BRAIN_ORCHESTRATOR,
+      WORKFLOW_SECRECY_DIRECTIVE,
+      cognitiveWorkflowDirective,
       AUREON_SCENARIO_MATRIX,
       AUREON_DEBUGGING_PROTOCOLS,
       AUREON_CODING_MASTERY,
