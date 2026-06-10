@@ -126,8 +126,10 @@ serve(async (req) => {
     const adminKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
     const apiKey = (headerKey || byokGeminiKey || adminKey || "").trim();
 
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "No Gemini API key configured. Add a BYOK key in Settings or contact admin." }),
+    // Gemini key only required for multimodal (image/video/pdf). Text path uses gpt-oss.
+    const hasAttachmentsEarly = Array.isArray(messages) && messages.some((m: any) => Array.isArray(m?.attachments) && m.attachments.length);
+    if (hasAttachmentsEarly && !apiKey) {
+      return new Response(JSON.stringify({ error: "Vision/file analysis needs a Gemini BYOK key. Add one in Settings." }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
