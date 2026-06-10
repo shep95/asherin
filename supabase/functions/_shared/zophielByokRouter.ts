@@ -89,6 +89,13 @@ export async function callByokJson(
       return callOpenAICompat('https://api.perplexity.ai', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
         timeoutMs, temperature, maxOutputTokens, jsonMode: false,
       });
+    case 'venice':
+      // Venice AI is OpenAI-compatible. Used as the free-tier platform fallback
+      // (uncensored, vision-capable, code-aware). Users with their own BYOK key
+      // never route here — they use whichever provider they brought.
+      return callOpenAICompat('https://api.venice.ai/api/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
+        timeoutMs, temperature, maxOutputTokens, jsonMode,
+      });
     default:
       throw new Error(`unsupported_byok_provider_${(cfg as { provider: string }).provider}`);
   }
