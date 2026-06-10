@@ -1038,83 +1038,8 @@ const Index = () => {
       <DashboardPreview />
       </ScrollSection>
 
-      {/* ───────── ZOPHIEL CUSTOM ALGORITHM ───────── */}
-      <ScrollSection>
-      <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40">
-          <div className="absolute left-[10%] top-[15%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,hsl(160_70%_50%/0.10),transparent_70%)] blur-3xl" />
-          <div className="absolute right-[5%] bottom-[10%] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.06),transparent_70%)] blur-3xl" />
-        </div>
 
-        <div className="relative mx-auto max-w-6xl">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[0.04] px-3 py-1 mb-6">
-              <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-light tracking-[0.3em] text-emerald-200/80 uppercase">Custom Algorithm · Self-Hosted</span>
-            </div>
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
-              Zophiel Custom Algorithm.
-            </h2>
-            <p className="mt-4 text-xl sm:text-2xl font-extralight tracking-wide text-muted-foreground italic">
-              Our in-house reasoning algorithm — not a wrapper, not a fine-tune.
-            </p>
-            <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
-              The Zophiel Custom Algorithm is the engine we wrote from scratch for uncensored reasoning, code
-              generation, and analytical dialogue. Built around an IDF-weighted retrieval ranker, a hidden
-              self-reflection layer, and a 17-organ adaptive immune system. The full source — every retriever,
-              corpus builder, code-pattern engine, and immune module — is public.
-            </p>
-          </div>
 
-          {/* Capability cards */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { n: "01", Icon: Cpu, title: "Self-Hosted Inference", desc: "No third-party API keys. No external rate limits. No surprise price hikes. We own the stack from corpus to wire." },
-              { n: "02", Icon: Code, title: "Open Source", desc: "Every retriever, corpus builder, code-pattern engine, and reflection layer is in the repo. Audit it, fork it, run your own node." },
-              { n: "03", Icon: Github, title: "Public on GitHub", desc: "The full repository — algorithm, knowledge corpus, immune system, and deployment manifests — is open for community audit." },
-            ].map(({ n, Icon, title, desc }) => (
-              <div key={n} className="group relative rounded-3xl overflow-hidden">
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-emerald-400/10 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-700" />
-                <div className="relative m-[1px] h-[calc(100%-2px)] rounded-3xl bg-gradient-to-b from-card/80 to-background/80 backdrop-blur-xl p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-foreground/15 bg-foreground/[0.04] group-hover:border-foreground/40 group-hover:bg-foreground/[0.08] transition-all">
-                      <Icon className="h-5 w-5 text-foreground/80 group-hover:text-foreground transition-colors" />
-                    </div>
-                    <span className="font-mono text-[10px] tracking-[0.3em] text-foreground/40">{n}</span>
-                  </div>
-                  <h3 className="text-base font-light tracking-tight text-foreground">{title}</h3>
-                  <p className="mt-3 text-xs font-extralight leading-relaxed text-muted-foreground">{desc}</p>
-                  <div className="mt-6 h-px bg-gradient-to-r from-foreground/30 via-foreground/10 to-transparent" />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Architecture snapshot */}
-          <div className="mt-12 rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <p className="font-mono text-[10px] tracking-[0.3em] text-foreground/40 uppercase mb-2">◈ Architecture Snapshot</p>
-                <p className="text-sm font-extralight text-muted-foreground leading-relaxed">
-                  IDF-weighted retrieval ranker · hidden self-reflection layer · 17-organ adaptive immune system.
-                  102/107 code patterns pass, 59/60 domain test, 46/46 blind test. Knowledge corpus grows daily.
-                </p>
-              </div>
-              <a
-                href="https://github.com/shep95/gpt-oss"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 group inline-flex items-center gap-2 rounded-xl border border-border/25 bg-card/30 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-card/50 hover:border-border/50"
-              >
-                <Github className="h-4 w-4" />
-                View on GitHub
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-      </ScrollSection>
 
       {/* ───────── The Free Manifesto ───────── */}
       <ScrollSection>
