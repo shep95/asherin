@@ -216,8 +216,11 @@ const ZophielFree = () => {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 overflow-hidden">
-              <AureonFreeChat />
+            <div className="flex-1 flex items-center justify-center p-6 text-center">
+              <p className="text-xs font-light text-muted-foreground leading-relaxed">
+                Aureon Chat requires your own LLM API key. Open the dashboard and add one in
+                <span className="text-foreground/80"> Settings → AI Keys</span> to start chatting.
+              </p>
             </div>
           </aside>
         </>
