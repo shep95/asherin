@@ -124,11 +124,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
                       <Link
                         key={link.to + link.label}
                         to={link.to}
-                        className={`group inline-flex items-center gap-1.5 text-xs font-extralight tracking-wide transition-colors ${
-                          link.destructive
-                            ? "text-destructive/70 hover:text-destructive"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
+                        className="group inline-flex items-center gap-1.5 text-xs font-extralight tracking-wide transition-colors text-muted-foreground hover:text-foreground"
                       >
                         <span className="h-px w-0 bg-current opacity-60 transition-all duration-300 group-hover:w-3" />
                         {link.label}
