@@ -1862,6 +1862,7 @@ ${zophielCodingBrainContent}
                 ? railwayJson.reply
                 : (typeof railwayText === "string" && railwayText.trim() ? railwayText : "(empty response)");
 
+              isResponsesApi = false; // synthetic stream is already chat-completions shaped
               response = createSyntheticOpenAiStream(reply);
             } else {
               lastStatus = railwayResponse.status;
