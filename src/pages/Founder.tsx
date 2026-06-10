@@ -195,10 +195,10 @@ const Founder = () => {
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-20">
             <span className="founder-eyebrow mb-6">Chapter · 01 · Origin</span>
-            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
+            <h2 className="font-display mt-6 text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-foreground">
               The Story Behind
               <br />
-              <span className="text-muted-foreground/70 italic">the machine.</span>
+              <span className="text-foreground/55 italic">the machine.</span>
             </h2>
           </div>
 
