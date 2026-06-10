@@ -19,19 +19,7 @@ export interface ProviderConfig {
 }
 
 export const AI_PROVIDERS: ProviderConfig[] = [
-  {
-    id: "aureon",
-    name: "Aureon Algorithm",
-    icon: "▲",
-    placeholder: "",
-    helpUrl: "https://github.com/shep95/gpt-oss",
-    helpText: "Open-weight Aureon LLM — self-hosted on Railway",
-    isPlatform: true,
-    platformNote: "Free tier: 10 msgs / 2hrs. Algorithm sub ($10/mo): 20 msgs / hr. Admin: unlimited.",
-    models: [
-      { id: "aureon-algorithm", name: "Aureon Algorithm", description: "Open-weight Aureon LLM on Railway — no key required" },
-    ],
-  },
+
   {
     id: "google",
     name: "Google AI (Gemini)",
@@ -287,7 +275,7 @@ const AIKeysSettings = () => {
       setPreferences(prev => ({ ...prev, active_provider: provider, active_model: model }));
       // Sync to localStorage for streamChat to read
       localStorage.setItem("aureon_byok_active", JSON.stringify({ provider, model }));
-      const providerName = provider === "default" ? "Aureon Default" : AI_PROVIDERS.find(p => p.id === provider)?.name;
+      const providerName = provider === "default" ? "No model selected" : AI_PROVIDERS.find(p => p.id === provider)?.name;
       toast({ title: "Model updated", description: `Now using ${providerName}${model !== "default" ? ` → ${model}` : ""}` });
     }
   };

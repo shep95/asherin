@@ -1,48 +1,40 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Cpu, KeyRound, ChevronDown, Check } from "lucide-react";
+import { KeyRound, ChevronDown, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AI_PROVIDERS } from "@/components/dashboard/AIKeysSettings";
 
 /**
- * Global Engine Toggle.
+ * Global Model Picker.
  *
- * Lets the user switch every AI-powered surface (free pages, paid features,
- * dashboard, standalone tools) between:
- *   1. AUREON ALGORITHM — the in-house Zophiel Algorithm → AUREON Brains route.
- *   2. BRING YOUR OWN MODEL — any provider/model the user has configured
- *      in Settings → AI Keys.
+ * BYOK-ONLY: every AI surface runs on the user's own provider key. There is
+ * no in-house fallback model. If no provider is connected, this widget
+ * routes the user to Settings → AI Keys to add one.
  *
  * Persisted via the existing `aureon_byok_active` localStorage contract,
- * which `src/lib/ai.ts` already reads on every chat call. No backend
- * changes needed — this is purely a UI surface over the existing router.
+ * which `src/lib/ai.ts` reads on every chat call.
  */
 
 const HIDDEN_ROUTES = ["/", "/pricing", "/terms", "/privacy", "/nda", "/unsubscribe"];
 
-type Active = { provider: string; model: string; label: string };
-
-const AUREON_ACTIVE: Active = {
-  provider: "aureon",
-  model: "aureon-algorithm",
-  label: "Aureon Algorithm",
-};
+type Active = { provider: string; model: string; label: string } | null;
 
 function loadActive(): Active {
   try {
     const raw = localStorage.getItem("aureon_byok_active");
-    if (!raw) return AUREON_ACTIVE;
+    if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed?.provider) return AUREON_ACTIVE;
-    if (parsed.provider === "aureon") return AUREON_ACTIVE;
+    if (!parsed?.provider) return null;
+    // Ignore legacy in-house engine entries.
+    if (parsed.provider === "aureon" || parsed.provider === "default") return null;
     const prov = AI_PROVIDERS.find((p) => p.id === parsed.provider);
     const mod = prov?.models.find((m) => m.id === parsed.model);
     if (prov && mod) {
       return { provider: prov.id, model: mod.id, label: `${prov.name} · ${mod.name}` };
     }
-    return AUREON_ACTIVE;
+    return null;
   } catch {
-    return AUREON_ACTIVE;
+    return null;
   }
 }
 
@@ -50,7 +42,7 @@ export default function AureonEngineToggle() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState<Active>(AUREON_ACTIVE);
+  const [active, setActive] = useState<Active>(null);
   const [storedProviders, setStoredProviders] = useState<string[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -80,7 +72,7 @@ export default function AureonEngineToggle() {
   const isHidden = HIDDEN_ROUTES.includes(location.pathname);
   if (isHidden) return null;
 
-  const select = async (next: Active) => {
+  const select = async (next: NonNullable<Active>) => {
     setActive(next);
     localStorage.setItem(
       "aureon_byok_active",
@@ -98,8 +90,8 @@ export default function AureonEngineToggle() {
     setOpen(false);
   };
 
-  const onAureon = active.provider === "aureon";
   const availableProviders = AI_PROVIDERS.filter((p) => storedProviders.includes(p.id));
+  const label = active?.label ?? "No model — connect a key";
 
   return (
     <div className="fixed bottom-4 right-4 z-[80]">
@@ -107,14 +99,14 @@ export default function AureonEngineToggle() {
         <button
           onClick={() => setOpen((o) => !o)}
           className={`flex items-center gap-2 rounded-full border px-3 py-1.5 backdrop-blur-xl text-[10px] font-light tracking-wider shadow-2xl transition-all ${
-            onAureon
-              ? "border-foreground/15 bg-background/70 text-foreground/80 hover:bg-background/90"
-              : "border-accent/30 bg-accent/10 text-accent hover:bg-accent/15"
+            active
+              ? "border-accent/30 bg-accent/10 text-accent hover:bg-accent/15"
+              : "border-foreground/15 bg-background/70 text-foreground/70 hover:bg-background/90"
           }`}
-          title="Switch AI Engine"
+          title="Switch AI Model"
         >
-          {onAureon ? <Cpu className="h-3 w-3" /> : <KeyRound className="h-3 w-3" />}
-          <span className="max-w-[140px] truncate">{active.label}</span>
+          <KeyRound className="h-3 w-3" />
+          <span className="max-w-[160px] truncate">{label}</span>
           <ChevronDown className={`h-2.5 w-2.5 transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
 
@@ -122,39 +114,16 @@ export default function AureonEngineToggle() {
           <div className="absolute bottom-full right-0 mb-2 w-72 rounded-xl border border-border/30 bg-card/95 backdrop-blur-2xl shadow-2xl p-2 space-y-1 animate-fade-in">
             <div className="px-2.5 py-1.5 border-b border-border/15">
               <p className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/50 uppercase">
-                AI Engine
+                Active AI Model
               </p>
               <p className="text-[9px] text-muted-foreground/40 mt-0.5 leading-relaxed">
-                Applies to every AI surface in the app.
+                Bring your own provider key — applies to every AI surface.
               </p>
             </div>
 
-            {/* Aureon Algorithm */}
-            <button
-              onClick={() => select(AUREON_ACTIVE)}
-              className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all border ${
-                onAureon
-                  ? "bg-foreground/10 border-foreground/20"
-                  : "border-transparent hover:bg-foreground/5"
-              }`}
-            >
-              <div className="w-6 h-6 rounded-md bg-foreground/10 flex items-center justify-center text-[10px] text-foreground shrink-0">
-                ◈
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[11px] font-light text-foreground block">Aureon Algorithm</span>
-                <span className="text-[9px] text-muted-foreground/50">Zophiel Algorithm → AUREON Brains</span>
-              </div>
-              {onAureon && <Check className="h-3 w-3 text-accent shrink-0" />}
-            </button>
-
-
-
-
-            {/* BYOK providers */}
             <div className="px-2.5 pt-2 pb-1">
               <span className="text-[9px] font-light tracking-[0.2em] text-muted-foreground/40 uppercase">
-                Bring Your Own Model
+                Your Connected Providers
               </span>
             </div>
 
@@ -166,7 +135,7 @@ export default function AureonEngineToggle() {
                 + Connect a provider in Settings → AI Keys
               </button>
             ) : (
-              <div className="max-h-[240px] overflow-y-auto space-y-0.5">
+              <div className="max-h-[280px] overflow-y-auto space-y-0.5">
                 {availableProviders.map((provider) => (
                   <div key={provider.id}>
                     <div className="px-2.5 pt-1.5 pb-0.5">
@@ -175,7 +144,7 @@ export default function AureonEngineToggle() {
                       </span>
                     </div>
                     {provider.models.map((model) => {
-                      const isActive = active.provider === provider.id && active.model === model.id;
+                      const isActive = active?.provider === provider.id && active?.model === model.id;
                       return (
                         <button
                           key={model.id}
@@ -211,7 +180,7 @@ export default function AureonEngineToggle() {
             )}
 
             <p className="text-[8px] text-muted-foreground/40 px-2.5 pt-2 border-t border-border/10 leading-relaxed">
-              Switching here updates every AI feature instantly. Manage keys in Settings → AI Keys.
+              Manage keys in Settings → AI Keys. Aureon does not ship a default model.
             </p>
           </div>
         )}

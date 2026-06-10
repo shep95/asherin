@@ -210,19 +210,11 @@ const Dashboard = () => {
   // between the Algorithm LLM and BYOK chat. Nothing is locked behind a tier.
   const isAdminUser = isAdminEmail(user?.email);
   const isFreeUser = false;
-  const [algorithmModeRaw, setAlgorithmMode] = useState<boolean>(() => {
-    try { return localStorage.getItem("aureon_algorithm_mode") === "1"; } catch { return false; }
-  });
-  const algorithmMode = algorithmModeRaw;
-  const showAlgorithmToggle = true;
-  const toggleAlgorithmMode = () => {
-    if (isFreeUser) return;
-    setAlgorithmMode((v) => {
-      const nv = !v;
-      try { localStorage.setItem("aureon_algorithm_mode", nv ? "1" : "0"); } catch {}
-      return nv;
-    });
-  };
+  // Algorithm-vs-Standard toggle removed — everything runs on the user's BYOK model.
+  const [algorithmModeRaw, setAlgorithmMode] = useState<boolean>(false);
+  const algorithmMode = false;
+  const showAlgorithmToggle = false;
+  const toggleAlgorithmMode = () => { /* no-op: BYOK only */ };
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -1550,20 +1542,7 @@ const Dashboard = () => {
       case "self-access": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense></ErrorBoundary>;
       default: return activeConv ? (
         <>
-          {showAlgorithmToggle && (
-            <button
-              onClick={toggleAlgorithmMode}
-              title={algorithmMode ? "Aureon Algorithm LLM (Railway) — click to switch to standard" : "Standard Aureon — click to switch to Algorithm LLM"}
-              className={`fixed top-3 right-4 z-40 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-light tracking-[0.2em] uppercase backdrop-blur-md transition ${
-                algorithmMode
-                  ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/20"
-                  : "border-foreground/20 bg-background/60 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${algorithmMode ? "bg-emerald-400" : "bg-foreground/40"}`} />
-              {algorithmMode ? "Algorithm" : "Standard"}
-            </button>
-          )}
+          {/* Standard vs Algorithm toggle removed — all chat now runs on the user's BYOK model. */}
         <ChatView
           conversation={activeConv}
           onSendMessage={sendMessage}
