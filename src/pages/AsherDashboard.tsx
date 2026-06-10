@@ -411,7 +411,7 @@ const AsherDashboard = () => {
           {active === "whiteboard"&& <AsherWhiteboardModule />}
           {active === "axrlen"    && <AsherAxrlenModule />}
           {active === "notebooks" && <AsherNotebooksModule />}
-          {active === "vedic"     && <VedicAstrologyView />}
+          {/* Vedic Strategy renders as a popout dialog below */}
           {active === "zahten"    && <AsherZahtenModule />}
           {active === "zacoon"    && <AsherZacoonModule />}
           
