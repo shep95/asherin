@@ -210,19 +210,11 @@ const Dashboard = () => {
   // between the Algorithm LLM and BYOK chat. Nothing is locked behind a tier.
   const isAdminUser = isAdminEmail(user?.email);
   const isFreeUser = false;
-  const [algorithmModeRaw, setAlgorithmMode] = useState<boolean>(() => {
-    try { return localStorage.getItem("aureon_algorithm_mode") === "1"; } catch { return false; }
-  });
-  const algorithmMode = algorithmModeRaw;
-  const showAlgorithmToggle = true;
-  const toggleAlgorithmMode = () => {
-    if (isFreeUser) return;
-    setAlgorithmMode((v) => {
-      const nv = !v;
-      try { localStorage.setItem("aureon_algorithm_mode", nv ? "1" : "0"); } catch {}
-      return nv;
-    });
-  };
+  // Algorithm-vs-Standard toggle removed — everything runs on the user's BYOK model.
+  const [algorithmModeRaw, setAlgorithmMode] = useState<boolean>(false);
+  const algorithmMode = false;
+  const showAlgorithmToggle = false;
+  const toggleAlgorithmMode = () => { /* no-op: BYOK only */ };
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
