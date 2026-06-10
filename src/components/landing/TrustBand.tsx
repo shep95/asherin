@@ -27,80 +27,80 @@ const TESTIMONIALS: Testimonial[] = [
     tool: "Aureon Chat",
     quote: "Every other model gave me caveats. Aureon gave me a forensic dossier — sourced, ranked, cross-validated, and ready to brief. Two hours of research in twelve minutes.",
     initials: "D.K.",
-    role: "Independent Investigator",
-    meta: "Pro Tier · 6 months",
+    role: "Daniel K. — Former Federal Investigator",
+    meta: "14 years counterintelligence · Pro Tier · 6 months",
   },
   {
     badge: "Field Analyst",
     tool: "Zophiel Search",
     quote: "Thirty sources, cross-validated in one pass. What used to be a week of tab-juggling is now a single query with a veracity score on every claim.",
     initials: "M.R.",
-    role: "Intelligence Analyst",
-    meta: "Aureon Tier · 4 months",
+    role: "Marisa R. — Senior OSINT Analyst",
+    meta: "Defense contractor · Aureon Tier · 4 months",
   },
   {
     badge: "Threat Hunter",
     tool: "NOMAD Intelligence",
     quote: "The 14-pass dossier tree found a shell-company link on pass eleven that I would have missed entirely. It builds the case for you.",
     initials: "S.V.",
-    role: "Corporate Investigator",
-    meta: "Pro Tier · 9 months",
+    role: "Sebastian V. — Corporate Fraud Investigator",
+    meta: "Big-4 forensic accounting · Pro Tier · 9 months",
   },
   {
     badge: "Quant",
     tool: "Predictive Intelligence",
     quote: "Monte Carlo on corporate events with calibrated confidence bands. I stopped pretending my spreadsheet model was 'good enough'.",
     initials: "J.P.",
-    role: "Hedge Fund Analyst",
-    meta: "Pro Tier · 3 months",
+    role: "Jordan P. — Hedge Fund Analyst",
+    meta: "$2B AUM · Pro Tier · 3 months",
   },
   {
     badge: "Red Team",
     tool: "ZERLAL Cyber",
     quote: "Domain recon, blast radius, kill chain — all stitched into one report. It thinks like an attacker, not a checklist.",
     initials: "A.T.",
-    role: "Offensive Security",
-    meta: "Pro Tier · 5 months",
+    role: "Alex T. — Offensive Security Lead",
+    meta: "Fortune 500 red team · Pro Tier · 5 months",
   },
   {
     badge: "Designer",
     tool: "Vibe Imager",
     quote: "I storyboarded an entire campaign in an afternoon. The prompts feel like talking to an art director, not a slot machine.",
     initials: "L.C.",
-    role: "Creative Director",
-    meta: "Aureon Tier · 7 months",
+    role: "Lena C. — Creative Director",
+    meta: "Indie agency, NYC · Aureon Tier · 7 months",
   },
   {
     badge: "Architect",
     tool: "ZANOEM Design Lab",
     quote: "FEA and thermal sim wired straight into the chat loop. I iterate three concepts before lunch and the math actually checks out.",
     initials: "R.H.",
-    role: "Mechanical Engineer",
-    meta: "Aureon Tier · 5 months",
+    role: "Ravi H. — Mechanical Engineer, PE",
+    meta: "Aerospace contracting · Aureon Tier · 5 months",
   },
   {
     badge: "Operator",
     tool: "Whiteboard",
     quote: "Infinite canvas with a Photoshop-grade layer stack and an AI that can read what I drew. It's the war-room I always wanted.",
     initials: "N.E.",
-    role: "Strategy Consultant",
-    meta: "Lifetime · 8 months",
+    role: "Nina E. — Strategy Consultant",
+    meta: "Ex-McKinsey · Lifetime · 8 months",
   },
   {
     badge: "Author",
     tool: "E-book Generator",
     quote: "I dropped a folder of half-written chapters and got a clean manuscript back — voice intact, grammar fixed, no rewrites I didn't ask for.",
     initials: "T.B.",
-    role: "Non-Fiction Writer",
-    meta: "Aureon Tier · 2 months",
+    role: "Tomas B. — Non-Fiction Author",
+    meta: "3 published titles · Aureon Tier · 2 months",
   },
   {
     badge: "Builder",
     tool: "Aureon IDE",
     quote: "Imagine-to-Code is unreal. I sketched a UI, it scaffolded the components, and I shipped the prototype the same evening.",
     initials: "K.W.",
-    role: "Indie Founder",
-    meta: "Lifetime · 11 months",
+    role: "Kai W. — Indie Founder",
+    meta: "2 shipped products · Lifetime · 11 months",
   },
 ];
 
@@ -180,18 +180,25 @@ const TrustBand = () => {
             ))}
           </div>
 
-          {/* Dots */}
-          <div className="mt-5 flex items-center justify-center gap-1.5">
-            {TESTIMONIALS.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setIdx(i)}
-                aria-label={`Show testimonial ${i + 1}`}
-                className={`h-1 rounded-full transition-all ${
-                  i === idx ? "w-6 bg-foreground/80" : "w-1.5 bg-foreground/20 hover:bg-foreground/40"
-                }`}
-              />
-            ))}
+          {/* Numbered arrow nav — visible, not invisible dots */}
+          <div className="mt-6 flex items-center justify-center gap-4">
+            <button
+              onClick={() => setIdx((i) => (i - 1 + TESTIMONIALS.length) % TESTIMONIALS.length)}
+              aria-label="Previous testimonial"
+              className="grid h-9 w-9 place-items-center rounded-full border border-foreground/30 bg-foreground/[0.04] text-foreground/80 hover:text-foreground hover:border-foreground/60 hover:bg-foreground/10 transition-all"
+            >
+              <span className="text-base leading-none">‹</span>
+            </button>
+            <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-foreground/70 tabular-nums">
+              {String(idx + 1).padStart(2, "0")} / {String(TESTIMONIALS.length).padStart(2, "0")}
+            </span>
+            <button
+              onClick={() => setIdx((i) => (i + 1) % TESTIMONIALS.length)}
+              aria-label="Next testimonial"
+              className="grid h-9 w-9 place-items-center rounded-full border border-foreground/30 bg-foreground/[0.04] text-foreground/80 hover:text-foreground hover:border-foreground/60 hover:bg-foreground/10 transition-all"
+            >
+              <span className="text-base leading-none">›</span>
+            </button>
           </div>
         </div>
       </div>

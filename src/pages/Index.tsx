@@ -12,6 +12,7 @@ import ReactMarkdown from "react-markdown";
 import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
 import NeuralThinkingModal from "@/components/dashboard/NeuralThinkingModal";
 import houseOfAsherLogo from "@/assets/HouseOfAsher_Flag.png";
+import asherPhoto from "@/assets/founder.jpg";
 import FreeManifesto from "@/components/FreeManifesto";
 import SiteFooter from "@/components/SiteFooter";
 import LiveDemoStrip from "@/components/landing/LiveDemoStrip";
@@ -177,6 +178,7 @@ const Index = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [authIsLogin, setAuthIsLogin] = useState(false);
   const [showHouseLogo, setShowHouseLogo] = useState(false);
+  const [arsenalExpanded, setArsenalExpanded] = useState(false);
   const maxDemos = 3;
   const location = useLocation();
 
@@ -314,10 +316,16 @@ const Index = () => {
                 <span className="zophiel-shimmer-text italic font-thin">others miss.</span>
               </h1>
 
-              <p className="mt-7 max-w-xl text-base sm:text-lg font-extralight leading-relaxed text-muted-foreground/90">
-                A full-spectrum intelligence engine. Uncensored AI, 30-source intelligence, predictive
-                forecasting, and forensic-grade reasoning — for operators who need answers, not apologies.
+              <p className="mt-7 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
+                While other AI tells you what it thinks you should know,
+                Aureon gives you the complete picture — unfiltered, sourced, and ready to act on.
               </p>
+
+              {/* Free Forever trust badge — surfaces the #1 friction killer in the hero */}
+              <div className="mt-5 inline-flex self-start items-center gap-2 rounded-full border border-amber-300/40 bg-amber-400/[0.06] px-3.5 py-1.5 font-mono text-[10px] tracking-[0.32em] uppercase text-amber-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-300 animate-pulse" />
+                Free · Forever · No Catch
+              </div>
 
               {/* CTA cluster — Fitts (large primary), Hick (one dominant choice), Von Restorff (primary pops),
                   Proximity (CTA + reassurance tightly grouped), Peak-End (first thing the user touches). */}
@@ -327,6 +335,7 @@ const Index = () => {
                   variant="primary"
                   size="xl"
                   ariaLabel="Start a free intelligence search — primary action"
+                  className="!bg-amber-400 !text-black !border-amber-300 hover:!bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)] hover:shadow-[0_14px_50px_-8px_rgba(251,191,36,0.7)]"
                 >
                   Start Free — No Card <ArrowRight className="h-4 w-4" />
                 </MagneticSpotlightButton>
@@ -344,18 +353,19 @@ const Index = () => {
               </p>
 
 
-              {/* Telemetry bento */}
-              <div className="mt-12 grid grid-cols-3 gap-px rounded-xl overflow-hidden border border-foreground/10 bg-foreground/[0.02] backdrop-blur-xl">
+              {/* Telemetry bento — now with emotional labels, not raw integers */}
+              <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-px rounded-xl overflow-hidden border border-foreground/10 bg-foreground/[0.02] backdrop-blur-xl">
                 {[
-                  { v: 30, suf: "+", l: "Intelligence sources" },
-                  { v: 14, suf: "", l: "Analysis passes" },
-                  { v: 9, suf: "", l: "AI providers" },
+                  { v: 30, suf: "+", l: "Intelligence tools your competitors don't have" },
+                  { v: 14, suf: "", l: "Cross-validation passes per query" },
+                  { v: 9, suf: "", l: "AI providers, your key, your choice" },
+                  { v: 0, suf: "", l: "Dollars. Free forever. No catch." },
                 ].map((s) => (
                   <div key={s.l} className="bg-background/40 px-5 py-5">
                     <div className="text-3xl font-extralight text-foreground font-mono tabular-nums">
                       <CountUp to={s.v} suffix={s.suf} />
                     </div>
-                    <div className="text-[10px] tracking-[0.28em] uppercase text-muted-foreground/55 mt-1.5 font-mono">{s.l}</div>
+                    <div className="text-[10px] tracking-[0.22em] uppercase text-muted-foreground/70 mt-1.5 font-mono leading-snug">{s.l}</div>
                   </div>
                 ))}
               </div>
@@ -492,9 +502,9 @@ const Index = () => {
 
           <div className="mt-20 text-center">
             <p className="text-2xl sm:text-3xl font-extralight tracking-tight text-foreground leading-snug">
-              Built for professionals who need precision.
+              Not an assistant. An intelligence platform.
               <br />
-              <span className="italic text-muted-foreground/60">Not an assistant. An intelligence platform.</span>
+              <span className="italic text-muted-foreground/70">Most people aren't ready for this.</span>
             </p>
           </div>
         </div>
@@ -605,8 +615,8 @@ const Index = () => {
           {/* Below Demo CTA */}
           <div className="mt-12 flex flex-col items-center gap-4">
             <p className="text-xl font-extralight tracking-wide text-foreground">Liked what you saw?</p>
-            <button onClick={() => { setAuthIsLogin(false); setShowAuth(true); }} className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90">
-              Get Full Access
+            <button onClick={() => { setAuthIsLogin(false); setShowAuth(true); }} className="group flex items-center gap-2 rounded-xl bg-amber-400 px-8 py-4 text-sm font-medium tracking-wide text-black transition-all hover:bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)]">
+              Get Full Access — No limits. No restrictions. No apologies.
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
           </div>
@@ -688,7 +698,7 @@ const Index = () => {
                   {title}
                 </h3>
                 <div aria-hidden className="relative mt-3 h-px w-10 bg-gradient-to-r from-foreground/60 to-transparent transition-all duration-500 group-hover:w-20" />
-                <p className="relative mt-4 text-[13px] font-extralight leading-relaxed text-muted-foreground/85">
+                <p className="relative mt-4 text-[14px] font-light leading-relaxed text-foreground/85">
                   {desc}
                 </p>
 
@@ -793,8 +803,8 @@ const Index = () => {
                 { icon: Lock, name: "Guardian Vault", codename: "Security Center", desc: "Centralized security command center with TOTP MFA and credential hygiene." },
               ]
             },
-          ].map((category) => (
-            <div key={category.group} className="mb-16 last:mb-0">
+          ].map((category, ci) => (
+            <div key={category.group} className={`mb-16 last:mb-0 ${ci >= 2 && !arsenalExpanded ? "hidden" : ""}`}>
               <div className="flex items-center gap-4 mb-6">
                 <span className="font-mono text-[10px] tracking-[0.3em] text-emerald-400/80 uppercase">{category.group}</span>
                 <span className="h-px flex-1 bg-gradient-to-r from-emerald-400/20 to-transparent" />
@@ -818,6 +828,17 @@ const Index = () => {
               </div>
             </div>
           ))}
+
+          {/* Curiosity-gap expand button */}
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={() => setArsenalExpanded((v) => !v)}
+              className="group inline-flex items-center gap-3 rounded-full border border-foreground/25 bg-foreground/[0.04] backdrop-blur-md px-7 py-3.5 text-xs font-light tracking-[0.22em] uppercase text-foreground hover:bg-foreground hover:text-background transition-all"
+            >
+              {arsenalExpanded ? "Hide the rest" : "See all 30+ tools"}
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${arsenalExpanded ? "rotate-180" : ""}`} />
+            </button>
+          </div>
         </div>
       </div>
       </ScrollSection>
@@ -1178,6 +1199,12 @@ const Index = () => {
               <p className="mt-8 pt-6 border-t border-foreground/10 text-[13px] font-extralight leading-relaxed text-muted-foreground">
                 Servers hosted in the United States. Your account data lives with you. Cancel and it's gone. Full stop.
               </p>
+              <Link
+                to="/privacy"
+                className="mt-5 inline-flex items-center gap-2 text-[11px] font-mono tracking-[0.25em] uppercase text-foreground/80 hover:text-foreground transition-colors"
+              >
+                Read Our Full Privacy Policy <ArrowRight className="h-3 w-3" />
+              </Link>
             </div>
 
             <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -1193,11 +1220,11 @@ const Index = () => {
                   <span aria-hidden className="absolute right-0 top-0 h-5 w-5 border-r border-t border-foreground/25 rounded-tr-2xl" />
                   <div className="flex items-center justify-between mb-4">
                     <div className="grid h-10 w-10 place-items-center rounded-xl border border-foreground/15 bg-foreground/[0.03]">
-                      <Icon className="h-4 w-4 text-foreground/80" strokeWidth={1.25} />
+                      <Icon className="h-4 w-4 text-foreground" strokeWidth={1.5} />
                     </div>
                     <span className="font-mono text-[9px] tracking-[0.3em] text-foreground/30">{n}</span>
                   </div>
-                  <span className="text-[12.5px] font-extralight tracking-wide text-foreground/85 leading-snug">{label}</span>
+                  <span className="text-[13px] font-light tracking-wide text-foreground leading-snug">{label}</span>
                   <div aria-hidden className="mt-3 h-px w-8 bg-gradient-to-r from-foreground/40 to-transparent transition-all duration-500 group-hover:w-16" />
                 </div>
               ))}
@@ -1317,6 +1344,8 @@ const Index = () => {
           </div>
 
           <div className="space-y-3">
+            <FaqItem q="Why is Aureon free when other AI charges $200 per month?" a='Because Asher built this to break the gate, not man it. The big AI labs charge $200/month and still hand you a censored, sanitized model that refuses half the work you actually need done. Aureon runs on your own API key — we take zero margin on the model, zero subscription, zero "pro tier" hostage fee. The truth shouldn&apos;t come with a paywall.' />
+            <FaqItem q="Is there a catch?" a="No. No credit card. No usage trap. No data harvesting. No upsell wall after the first week. You bring your own API key, you own your data, and you can walk away with a single click. If that sounds too good — read the founder&apos;s letter. This was built as a mission, not a funnel." />
             <FaqItem q="What makes Aureon different?" a="Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." />
             <FaqItem q="How good is the coding engine?" a="Aureon holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />
             <FaqItem q='What does "never trains our models" mean?' a="Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." />
@@ -1332,32 +1361,56 @@ const Index = () => {
       <ScrollSection>
         <div className="relative z-10 px-6 py-28 sm:py-36 overflow-hidden">
           <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.06),transparent_70%)] blur-3xl" />
-          <div className="mx-auto max-w-4xl relative">
-            <div className="relative rounded-3xl border border-foreground/15 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-12 sm:p-20 text-center overflow-hidden">
+          <div className="mx-auto max-w-5xl relative">
+            <div className="relative rounded-3xl border border-foreground/15 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-8 sm:p-14 overflow-hidden">
               <span aria-hidden className="absolute left-0 top-0 h-8 w-8 border-l border-t border-foreground/40 rounded-tl-3xl" />
               <span aria-hidden className="absolute right-0 top-0 h-8 w-8 border-r border-t border-foreground/30 rounded-tr-3xl" />
               <span aria-hidden className="absolute left-0 bottom-0 h-8 w-8 border-l border-b border-foreground/30 rounded-bl-3xl" />
               <span aria-hidden className="absolute right-0 bottom-0 h-8 w-8 border-r border-b border-foreground/40 rounded-br-3xl" />
               <span aria-hidden className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-foreground/40 to-transparent" />
 
-              <p className="font-mono text-[10px] tracking-[0.4em] text-foreground/40 uppercase mb-6">
+              <p className="font-mono text-[10px] tracking-[0.4em] text-foreground/40 uppercase mb-8 text-center sm:text-left">
                 ◊ Transmission · From The Founder
               </p>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-tight leading-[1.05] text-foreground">
-                Watch The Founder's Videos.
-                <br />
-                <span className="text-muted-foreground">Read His E-Book.</span>
-              </h2>
-              <p className="mt-8 max-w-2xl mx-auto text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
-                Step inside the mind behind Aureon. Asher Newton's archives, philosophy, and the full text of <em>The Book of Asher Aureon Elion</em> — all in one place.
-              </p>
-              <Link
-                to="/founder"
-                className="mt-10 inline-flex items-center gap-2.5 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-8 py-3.5 text-xs font-light tracking-[0.22em] text-foreground uppercase transition-all hover:bg-foreground hover:text-background"
-              >
-                Visit The Founder's Page
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-8 sm:gap-12 items-center">
+                {/* Photo */}
+                <div className="sm:col-span-4 flex justify-center sm:justify-start">
+                  <div className="relative">
+                    <span aria-hidden className="absolute -inset-2 rounded-2xl bg-gradient-to-br from-amber-300/20 via-foreground/10 to-transparent blur-xl" />
+                    <img
+                      src={asherPhoto}
+                      alt="Asher Newton, founder of Aureon"
+                      className="relative h-44 w-44 sm:h-56 sm:w-56 rounded-2xl object-cover border border-foreground/20 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]"
+                    />
+                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-background/90 border border-foreground/20 backdrop-blur font-mono text-[9px] tracking-[0.3em] uppercase text-foreground/80 whitespace-nowrap">
+                      Asher Newton · Founder
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quote + CTA */}
+                <div className="sm:col-span-8 text-left">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-extralight tracking-tight leading-[1.1] text-foreground">
+                    "I built Aureon because I was tired of being told what I was allowed to know."
+                  </h2>
+                  <p className="mt-6 text-base sm:text-lg font-extralight leading-relaxed text-foreground/85">
+                    Every other platform treats you like a liability.
+                    <span className="text-foreground"> You are not a liability. You are exactly who this was built for.</span>
+                  </p>
+                  <p className="mt-5 text-sm font-extralight leading-relaxed text-muted-foreground">
+                    Read the full archive — videos, philosophy, and the complete text of <em>The Book of Asher Aureon Elion</em>.
+                  </p>
+
+                  <Link
+                    to="/founder"
+                    className="mt-8 inline-flex items-center gap-2.5 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-8 py-3.5 text-xs font-light tracking-[0.22em] text-foreground uppercase transition-all hover:bg-foreground hover:text-background"
+                  >
+                    Visit The Founder's Page
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>
