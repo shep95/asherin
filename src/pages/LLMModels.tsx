@@ -453,10 +453,10 @@ const LLMModels = () => {
       {/* CTA */}
       <section className="relative z-10 px-6 py-24 text-center">
         <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
-          Four models. One company.
+          Three models. One company.
         </h2>
         <p className="text-sm font-extralight text-muted-foreground mb-8 max-w-xl mx-auto">
-          Zophiel sees. Aureon refines. The Zophiel Custom Algorithm deploys. Asher weighs.
+          Zophiel sees. Aureon refines. Asher weighs.
           Together they make up the intelligence stack we ship.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -466,15 +466,6 @@ const LLMModels = () => {
           >
             View Plans <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
-          <a
-            href="https://github.com/shep95/gpt-oss"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex items-center gap-2 rounded-xl border border-border/25 bg-card/30 backdrop-blur-md px-8 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-card/50 hover:border-border/50"
-          >
-            <Github className="h-4 w-4" />
-            Zophiel Algorithm on GitHub
-          </a>
         </div>
       </section>
 
