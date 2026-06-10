@@ -30,7 +30,7 @@ Return ONLY a JSON array of 3 strings. No markdown, no explanation.`;
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
-  // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
+  // ── BYOK gate — degrade gracefully (suggestions are non-critical UX) ──
   if (req.method !== 'OPTIONS') {
     try {
       const _b = await req.clone().json().catch(() => ({} as any));
@@ -38,8 +38,11 @@ serve(async (req) => {
       const _gate = await import('../_shared/adminGate.ts');
       await _gate.resolveKey(req, _byok);
     } catch (_e) {
-      const _gate = await import('../_shared/adminGate.ts');
-      return _gate.byokErrorResponse(_e, corsHeaders);
+      // Never block the UI with a 403 on follow-up suggestions.
+      return new Response(JSON.stringify({ suggestions: [] }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
   }
 
