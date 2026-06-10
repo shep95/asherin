@@ -19,12 +19,10 @@ interface Props {
 const MultiModelSelector = ({ enabled, onToggle, selectedModels, onModelsChange, storedProviders }: Props) => {
   const [open, setOpen] = useState(false);
 
-  const availableProviders = [
-    { provider: "default", model: "gemini-2.5-flash", label: "Aureon Default" },
-    ...AI_PROVIDERS.filter(p => storedProviders.includes(p.id)).flatMap(p =>
-      p.models.map(m => ({ provider: p.id, model: m.id, label: `${p.name} → ${m.name}` }))
-    ),
-  ];
+  // BYOK-only: consensus runs across the user's connected providers.
+  const availableProviders = AI_PROVIDERS
+    .filter(p => storedProviders.includes(p.id))
+    .flatMap(p => p.models.map(m => ({ provider: p.id, model: m.id, label: `${p.name} → ${m.name}` })));
 
   const toggleModel = (m: { provider: string; model: string; label: string }) => {
     const exists = selectedModels.find(s => s.provider === m.provider && s.model === m.model);
