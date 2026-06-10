@@ -1353,7 +1353,7 @@ try {
     setAiBusy(true);
     let assistantText = "";
     try {
-      const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/zali-chat`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zali-chat`;
       const { data: sess } = await supabase.auth.getSession();
       const resp = await fetch(url, {
         method: "POST",
