@@ -342,8 +342,8 @@ const AsherDashboard = () => {
                                   return (
                                     <button
                                       key={c.id}
-                                      onClick={() => setActive(c.id)}
-                                      onMouseEnter={() => setActive(c.id)}
+                                      onClick={() => selectTab(c.id)}
+                                      onMouseEnter={() => { if (c.id !== "vedic") setActive(c.id); }}
                                       className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors ${
                                         cActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                                       }`}
