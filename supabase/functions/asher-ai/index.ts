@@ -258,45 +258,25 @@ serve(async (req) => {
       return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
-    // Text-only path: self-hosted gpt-oss-20b on Railway (OpenAI-compatible /v1)
-    const GPT_OSS_URL   = Deno.env.get("GPT_OSS_URL")   || "https://gpt-oss-production-ace0.up.railway.app/v1";
-    const GPT_OSS_MODEL = Deno.env.get("GPT_OSS_MODEL") || "gpt-oss-20b";
-    const GPT_OSS_KEY   = Deno.env.get("GPT_OSS_API_KEY") || "";
+    // Text-only path: self-hosted gpt-oss on Railway via the OpenAI **Responses API**.
+    const { callGptOssStream, responsesSseToChatCompletionsSse, resolveGptOssConfig } =
+      await import("../_shared/gptOss.ts");
+    const gptCfg = resolveGptOssConfig();
 
-    let response: Response | null = null;
-    let lastErrText = "";
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (GPT_OSS_KEY) headers["Authorization"] = `Bearer ${GPT_OSS_KEY}`;
-      response = await fetch(`${GPT_OSS_URL.replace(/\/$/, "")}/chat/completions`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model: GPT_OSS_MODEL,
-          messages: [{ role: "system", content: fullSystem }, ...cleaned.map((m) => ({ role: m.role, content: m.content }))],
-          tools: TOOLS,
-          stream: true,
-          temperature: 0.7,
-          max_tokens: 8192,
-        }),
-      });
-      if (response.ok) break;
-      if (response.status === 503 || response.status === 502 || response.status === 500) {
-        lastErrText = await response.text().catch(() => "");
-        console.warn(`[asher-ai] gpt-oss ${response.status} attempt ${attempt + 1}, backing off`);
-        await new Promise(r => setTimeout(r, 400 * Math.pow(2, attempt)));
-        continue;
-      }
-      lastErrText = await response.text().catch(() => "");
-      break;
-    }
+    const messagesForUpstream = [
+      { role: "system" as const, content: fullSystem },
+      ...cleaned.map((m: any) => ({ role: m.role as "user" | "assistant", content: String(m.content ?? "") })),
+    ];
 
-    if (!response) {
-      return new Response(JSON.stringify({ error: "No response from AI engine" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const response = await callGptOssStream(messagesForUpstream, gptCfg, { retries: 2 });
+
+    if (response.status === 429) {
+      return new Response(JSON.stringify({ error: "AI rate limit. Try again in a moment." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (response.status === 429) return new Response(JSON.stringify({ error: "AI rate limit. Try again in a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (!response.ok) {
-      console.error("asher-ai gpt-oss:", response.status, lastErrText);
+    if (!response.ok || !response.body) {
+      const lastErrText = await response.text().catch(() => "");
+      console.error("asher-ai gpt-oss:", response.status, lastErrText.slice(0, 300));
       const friendly = response.status === 503
         ? "The intelligence model is currently overloaded. Please retry in a few seconds."
         : `Upstream model error (${response.status}). Please retry.`;
@@ -311,7 +291,10 @@ serve(async (req) => {
       return new Response(stream, { status: 200, headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
-    return new Response(response.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    // Translate Responses-API SSE → OpenAI Chat-Completions delta SSE
+    // so the existing frontend parser keeps working unchanged.
+    const translated = responsesSseToChatCompletionsSse(response.body);
+    return new Response(translated, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
   } catch (e) {
     console.error("asher-ai error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
