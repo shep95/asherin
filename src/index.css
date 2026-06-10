@@ -1,4 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
+
+/* Editorial display font — use for headlines that should feel powerful & cinematic */
+.font-display {
+  font-family: 'Cormorant Garamond', 'Inter', serif;
+  font-feature-settings: "liga", "dlig", "kern";
+  letter-spacing: -0.01em;
+}
 
 @tailwind base;
 @tailwind components;
