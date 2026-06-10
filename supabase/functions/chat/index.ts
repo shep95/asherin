@@ -994,8 +994,7 @@ function shouldSearch(messages: { role: string; content: string }[], mode: strin
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
-  // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
-  // Fallback: paid subscribers without BYOK are routed to the Zophiel chat-only engine.
+  // ── Strict BYOK gate — admin uses platform key, all other users MUST bring their own AI key ──
   if (req.method !== 'OPTIONS') {
     try {
       const _b = await req.clone().json().catch(() => ({} as any));
@@ -1004,78 +1003,6 @@ serve(async (req) => {
       await _gate.resolveKey(req, _byok);
     } catch (_e) {
       const _gate = await import('../_shared/adminGate.ts');
-      if ((_e as any)?.code === 'BYOK_REQUIRED') {
-        try {
-          const ZOPHIEL_URL = Deno.env.get('ZOPHIEL_API_URL');
-          const ZOPHIEL_KEY = Deno.env.get('ZOPHIEL_API_KEY');
-          if (!ZOPHIEL_URL || !ZOPHIEL_KEY) throw _e;
-
-          const authHeader = req.headers.get('Authorization') || '';
-          const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-          if (!token) throw _e;
-          const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
-          const anonSb = createClient(
-            Deno.env.get('SUPABASE_URL') || '',
-            Deno.env.get('SUPABASE_ANON_KEY') || '',
-            { auth: { persistSession: false } },
-          );
-          const { data: userData } = await anonSb.auth.getUser(token);
-          const uid = userData?.user?.id;
-          if (!uid) throw _e;
-          const adminSb = createClient(
-            Deno.env.get('SUPABASE_URL') || '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
-            { auth: { persistSession: false } },
-          );
-          const { data: sub } = await adminSb
-            .from('user_subscriptions')
-            .select('status,expires_at')
-            .eq('user_id', uid)
-            .eq('status', 'active')
-            .maybeSingle();
-          const stillValid = sub && (!sub.expires_at || new Date(sub.expires_at as any) > new Date());
-          if (!stillValid) throw _e;
-
-          const body = await req.clone().json().catch(() => ({} as any));
-          const msgs = Array.isArray(body?.messages) ? body.messages : [];
-          const lastUser = [...msgs].reverse().find((m: any) => m?.role === 'user');
-          const queryText = typeof lastUser?.content === 'string'
-            ? lastUser.content
-            : Array.isArray(lastUser?.content)
-              ? lastUser.content.map((p: any) => p?.text || '').join('\n')
-              : '';
-          if (!queryText) throw _e;
-
-          const zResp = await fetch(`${ZOPHIEL_URL.replace(/\/$/, '')}/ask`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${ZOPHIEL_KEY}`,
-            },
-            body: JSON.stringify({ query: queryText }),
-          });
-          if (!zResp.ok) throw new Error(`zophiel_${zResp.status}`);
-          const zJson = await zResp.json().catch(() => ({} as any));
-          const reply: string = String(zJson?.reply || zJson?.message || '').trim();
-          if (!reply) throw new Error('zophiel_empty');
-
-          const corsH = getCorsHeaders(req);
-          const enc = new TextEncoder();
-          const stream = new ReadableStream({
-            start(controller) {
-              const chunk = JSON.stringify({ choices: [{ delta: { content: reply } }] });
-              controller.enqueue(enc.encode(`data: ${chunk}\n\n`));
-              controller.enqueue(enc.encode('data: [DONE]\n\n'));
-              controller.close();
-            },
-          });
-          return new Response(stream, {
-            headers: { ...corsH, 'Content-Type': 'text/event-stream' },
-          });
-        } catch (fallbackErr) {
-          console.error('zophiel fallback failed:', fallbackErr);
-        }
-      }
       return _gate.byokErrorResponse(_e, corsHeaders);
     }
   }
