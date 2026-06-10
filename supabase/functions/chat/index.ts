@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ══════════════════════════════════════════════════════════════════════════════
