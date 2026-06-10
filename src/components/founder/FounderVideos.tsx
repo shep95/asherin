@@ -208,8 +208,56 @@ const FounderVideos = () => {
     );
   };
 
+  // Featured "start here" video — the first local video (highest editorial priority)
+  const featuredId = LOCAL_VIDEOS[0]?.id;
+  const featuredMeta = featuredId ? meta[featuredId] : undefined;
+  const featuredThumb = featuredMeta?.local?.poster || (featuredId ? `https://i.ytimg.com/vi/${featuredId}/hqdefault.jpg` : "");
+
   return (
     <>
+      {featuredId && (
+        <section className="mb-16">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="text-foreground text-sm">◆</span>
+            <h3 className="text-xs font-light tracking-[0.32em] uppercase text-foreground">
+              Start Here · Featured
+            </h3>
+            <div className="flex-1 h-px bg-foreground/20" />
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveId(featuredId)}
+            className="group block w-full text-left rounded-2xl border border-foreground/25 bg-card/40 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/40 transition-all hover:border-foreground/50"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr]">
+              <div className="relative aspect-video lg:aspect-auto overflow-hidden bg-background">
+                <img src={featuredThumb} alt={featuredMeta?.title || "Featured video"} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent lg:bg-gradient-to-l" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/60 bg-black/60 backdrop-blur-md transition-all group-hover:scale-110 group-hover:bg-black/80">
+                    <Play className="h-7 w-7 text-white ml-1" strokeWidth={1.5} fill="currentColor" />
+                  </div>
+                </div>
+              </div>
+              <div className="p-8 sm:p-10 flex flex-col justify-center">
+                <p className="text-[10px] font-extralight tracking-[0.42em] text-foreground/60 uppercase mb-4">
+                  If you watch one video, watch this one
+                </p>
+                <h4 className="text-2xl sm:text-3xl font-extralight tracking-[-0.01em] leading-tight text-foreground">
+                  {featuredMeta?.title || "Loading…"}
+                </h4>
+                <p className="mt-5 text-sm font-extralight leading-[1.75] text-muted-foreground/90">
+                  The clearest distillation of what Asher actually believes — and why Aureon exists at all. Begin here, then explore the rest of the library below.
+                </p>
+                <span className="mt-6 inline-flex items-center gap-2 text-xs font-light tracking-[0.22em] text-foreground uppercase">
+                  Play <Play className="h-3 w-3" fill="currentColor" />
+                </span>
+              </div>
+            </div>
+          </button>
+        </section>
+      )}
+
       {newIds.length > 0 && (
         <section className="mb-14">
           <div className="flex items-center gap-3 mb-5">
