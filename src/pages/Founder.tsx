@@ -569,7 +569,7 @@ const Founder = () => {
                 </div>
                 <div>
                   <p className="text-xs font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-3">Lesson 01</p>
-                  <h3 className="text-3xl sm:text-4xl font-extralight tracking-[-0.01em] text-foreground leading-tight">
+                  <h3 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-light tracking-[-0.02em] text-foreground leading-[1.05]">
                     Material Love vs. Divine Love
                   </h3>
                   <p className="mt-6 text-xl sm:text-2xl font-extralight leading-[1.4] text-foreground italic">
@@ -593,7 +593,7 @@ const Founder = () => {
                 </div>
                 <div className="lg:order-1">
                   <p className="text-xs font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-3">Lesson 02</p>
-                  <h3 className="text-3xl sm:text-4xl font-extralight tracking-[-0.01em] text-foreground leading-tight">
+                  <h3 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-light tracking-[-0.02em] text-foreground leading-[1.05]">
                     Control Tactics — Money &amp; War
                   </h3>
                   <p className="mt-6 text-xl sm:text-2xl font-extralight leading-[1.4] text-foreground italic">
@@ -617,7 +617,7 @@ const Founder = () => {
                 </div>
                 <div>
                   <p className="text-xs font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-3">Lesson 03</p>
-                  <h3 className="text-3xl sm:text-4xl font-extralight tracking-[-0.01em] text-foreground leading-tight">
+                  <h3 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-light tracking-[-0.02em] text-foreground leading-[1.05]">
                     The Religion Jesus Created
                   </h3>
                   <p className="mt-6 text-xl sm:text-2xl font-extralight leading-[1.4] text-foreground italic">
@@ -640,7 +640,7 @@ const Founder = () => {
                 </div>
                 <div>
                   <p className="text-xs font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-3">Lesson 04</p>
-                  <h3 className="text-3xl sm:text-4xl font-extralight tracking-[-0.01em] text-foreground leading-tight">
+                  <h3 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-light tracking-[-0.02em] text-foreground leading-[1.05]">
                     Where Do Gods Hide Among Men?
                   </h3>
                   <p className="mt-6 text-xl sm:text-2xl font-extralight leading-[1.4] text-foreground italic">
@@ -663,7 +663,7 @@ const Founder = () => {
                 </div>
                 <div>
                   <p className="text-xs font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-3">Lesson 05</p>
-                  <h3 className="text-3xl sm:text-4xl font-extralight tracking-[-0.01em] text-foreground leading-tight">
+                  <h3 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-light tracking-[-0.02em] text-foreground leading-[1.05]">
                     The Law of Chaos — Law One: Time
                   </h3>
                   <p className="mt-6 text-xl sm:text-2xl font-extralight leading-[1.4] text-foreground italic">
