@@ -5,6 +5,7 @@ import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { COMEDY_BRAIN } from "../_shared/comedyBrain.ts";
 import { ASHER_LOGIC_BRAIN } from "../_shared/asherLogicBrain.ts";
 import { PROMPT_INTELLIGENCE_PROTOCOL } from "../_shared/promptIntelligenceProtocol.ts";
+import { EMOTIONAL_PERSONA_BRAIN } from "../_shared/emotionalPersonaBrain.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1512,6 +1513,7 @@ ${zophielCodingBrainContent}
       COMEDY_BRAIN,
       ASHER_LOGIC_BRAIN,
       PROMPT_INTELLIGENCE_PROTOCOL,
+      EMOTIONAL_PERSONA_BRAIN,
       AUREON_PSYCHOLOGY_ENGINE,
       AUREON_FORENSIC_LINGUISTICS,
       AUREON_VEDIC_INTELLIGENCE,
