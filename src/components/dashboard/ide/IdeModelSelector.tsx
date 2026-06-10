@@ -87,7 +87,7 @@ const IdeModelSelector = () => {
       >
         <Key className="h-2.5 w-2.5" />
         <span className="truncate max-w-[70px]">
-          {active.provider !== "default" ? active.label.split(" → ").pop() : "Default"}
+          {active.provider !== "default" ? active.label.split(" → ").pop() : "No model"}
         </span>
         <ChevronDown className={`h-2 w-2 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
