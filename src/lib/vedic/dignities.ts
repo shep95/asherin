@@ -103,3 +103,63 @@ export function houseFromAsc(siderealDeg: number, ascSiderealDeg: number): numbe
   const planetSign = Math.floor(siderealDeg / 30);
   return ((planetSign - ascSign + 12) % 12) + 1;
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+ * DIGNITY MULTIPLIER — used by transit-scoring (wealthSoulmateWindows.ts).
+ *
+ * Returns a multiplier applied to a planet's base activator weight given
+ * the SIGN it is currently in and its motion state.
+ *
+ * Tiers (Parashara, simplified):
+ *   Exalted              → 1.5
+ *   Own sign / rulership → 1.25
+ *   Debilitated          → 0.5
+ *   Otherwise (neutral / friendly / no data) → 1.0
+ *
+ * Retrograde adjustment: natural benefics (Jupiter, Venus, Mercury) get
+ * an additional × 1.15 when retrograde — retrograde benefics are classically
+ * stronger / more sustained in transit. Malefics are NOT amplified by
+ * retrograde here (their friction is captured by their negative base weight).
+ *
+ * NOTE: This is now the single source of retrograde scaling. `applyRetro()`
+ * in wealthSoulmateWindows.ts has been turned into a no-op to avoid the
+ * previous 0.6× double-count.
+ * ────────────────────────────────────────────────────────────────────── */
+export function getDignityMultiplier(
+  planet: string,
+  signIndex: number,
+  retrograde: boolean,
+): number {
+  const p = planet as PlanetName;
+  const rulers = RULERSHIP[p];
+  const exalt = EXALTATION[p];
+  const debil = DEBILITATION[p];
+
+  let mult = 1.0;
+  if (exalt !== null && exalt === signIndex)        mult = 1.5;
+  else if (debil !== null && debil === signIndex)   mult = 0.5;
+  else if (rulers && rulers.includes(signIndex))    mult = 1.25;
+
+  if (retrograde && (p === "Jupiter" || p === "Venus" || p === "Mercury")) {
+    mult *= 1.15;
+  }
+  return mult;
+}
+
+/** Human-readable dignity tag for a (planet, sign, retro) triple. */
+export function dignityLabel(
+  planet: string,
+  signIndex: number,
+  retrograde: boolean,
+): string | null {
+  const p = planet as PlanetName;
+  const tags: string[] = [];
+  if (EXALTATION[p] === signIndex) tags.push("exalted — amplified");
+  else if (DEBILITATION[p] === signIndex) tags.push("debilitated — weakened");
+  else if (RULERSHIP[p]?.includes(signIndex)) tags.push("own sign — strong");
+  if (retrograde && (p === "Jupiter" || p === "Venus" || p === "Mercury")) {
+    tags.push("retrograde benefic — sustained");
+  }
+  return tags.length ? tags.join(", ") : null;
+}
+
