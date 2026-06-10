@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
   // Offensive / recon modes are admin-only — client-supplied permission_attestation
   // is NOT a sufficient authorization signal.
   const OFFENSIVE_MODES = new Set(["recon", "extract", "stress", "forge"]);
-  if (OFFENSIVE_MODES.has(mode) && userEmail !== "ashernewtonx@gmail.com") {
+  if (OFFENSIVE_MODES.has(mode) && !["ashernewtonx@gmail.com","28numberofmoney@gmail.com"].includes(String(userEmail||"").toLowerCase())) {
     return j({ error: "Forbidden: this mode is restricted to platform operators." }, 403);
   }
 

@@ -1105,6 +1105,8 @@ serve(async (req) => {
     // ── Admin-only backend/code discussion gate ──────────────────────────
     // Detect if user is asking about internal code, backend, architecture
     const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
+const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const backendKeywords = [
       "supabase", "edge function", "backend", "database schema", "rls", "row level security",
@@ -1131,7 +1133,7 @@ serve(async (req) => {
         const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const token = authHeader.replace("Bearer ", "");
         const { data: { user } } = await sb.auth.getUser(token);
-        if (user?.email === ADMIN_EMAIL) isAdmin = true;
+        if (isAuthorizedAdminEmail(user?.email)) isAdmin = true;
       } catch (e) {
         console.error("Admin check failed:", e);
       }
@@ -1141,7 +1143,7 @@ serve(async (req) => {
     let adminBackendContext = "";
     if (isBackendQuery && isAdmin) {
       adminBackendContext = `\n\n## ADMIN BACKEND ACCESS (ASHER ONLY)
-You are speaking to Asher (ashernewtonx@gmail.com), the creator and sole administrator. You may discuss ALL internal architecture, code structure, edge functions, database schema, RLS policies, and system design openly. Use Azplen-grade analytical logic — cross-reference data flows, trace entity relationships, apply threat modeling and scenario analysis to code decisions. Reference specific file paths, function names, and implementation details freely. Apply the full AZPLEN intelligence pipeline (ingest → analyze → entity extraction → insight generation → monitoring) to code review discussions.`;
+You are speaking to an authorized administrator (ashernewtonx@gmail.com or 28numberofmoney@gmail.com). You may discuss ALL internal architecture, code structure, edge functions, database schema, RLS policies, and system design openly. Use Azplen-grade analytical logic — cross-reference data flows, trace entity relationships, apply threat modeling and scenario analysis to code decisions. Reference specific file paths, function names, and implementation details freely. Apply the full AZPLEN intelligence pipeline (ingest → analyze → entity extraction → insight generation → monitoring) to code review discussions.`;
     } else if (isBackendQuery && !isAdmin) {
       adminBackendContext = `\n\n## BACKEND DISCUSSION BLOCKED
 The user is asking about internal code, backend, or architecture. You are FORBIDDEN from discussing any internal implementation details. Respond with: "Aureon's architecture is proprietary. I can help you use the platform's features — what would you like to accomplish?"`;

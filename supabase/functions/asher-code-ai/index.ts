@@ -11,6 +11,8 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
+const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
 
 // ────────────────────────────────────────────────────────────────────
 // AUREON CODE PERSONA — Senior Principal Engineer + Intelligence Architect.
@@ -502,7 +504,7 @@ serve(async (req) => {
 
     const userId = userData.user.id;
     const email = (userData.user.email || "").toLowerCase();
-    const isAdmin = email === ADMIN_EMAIL;
+    const isAdmin = isAuthorizedAdminEmail(email);
 
     const body = await req.json();
     const { mode, byok, byoks, ...payload } = body as {

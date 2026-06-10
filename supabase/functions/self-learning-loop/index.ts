@@ -5,6 +5,8 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
+const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -393,7 +395,7 @@ serve(async (req) => {
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
       const { data: { user } } = await supabaseAnon.auth.getUser(token);
-      if (!user || user.email !== ADMIN_EMAIL) {
+      if (!user || !isAuthorizedAdminEmail(user.email)) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

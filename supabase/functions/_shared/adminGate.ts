@@ -6,7 +6,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isValidByok, type ZophielByokConfig } from "./zophielByokRouter.ts";
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS = new Set<string>(["ashernewtonx@gmail.com", "28numberofmoney@gmail.com"]);
 
 export const BYOK_REQUIRED_BODY = {
   error: "BYOK_REQUIRED",
@@ -33,7 +33,7 @@ export async function getCallerEmail(req: Request): Promise<string | null> {
 }
 
 export function isAdminEmail(email: string | null): boolean {
-  return !!email && email.toLowerCase() === ADMIN_EMAIL;
+  return !!email && ADMIN_EMAILS.has(email.toLowerCase());
 }
 
 export interface KeyResolution {

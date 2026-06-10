@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
+const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
 const HL_API = "https://api.hyperliquid.xyz";
 const LEVERAGE = 10;
 const CAPITAL_PERCENT = 0.90;
@@ -39,7 +41,7 @@ function getServiceSupabase() {
 async function verifyAdmin(authHeader: string) {
   const supabase = getSupabase(authHeader);
   const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || user?.email !== ADMIN_EMAIL) return null;
+  if (error || !isAuthorizedAdminEmail(user?.email)) return null;
   return user;
 }
 

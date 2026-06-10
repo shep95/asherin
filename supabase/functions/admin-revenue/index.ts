@@ -5,6 +5,8 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { requireAdmin, authErrorResponse } from "../_shared/authMiddleware.ts";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
+const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
