@@ -500,9 +500,9 @@ const Index = () => {
 
           <div className="mt-20 text-center">
             <p className="text-2xl sm:text-3xl font-extralight tracking-tight text-foreground leading-snug">
-              Built for professionals who need precision.
+              Not an assistant. An intelligence platform.
               <br />
-              <span className="italic text-muted-foreground/60">Not an assistant. An intelligence platform.</span>
+              <span className="italic text-muted-foreground/70">Most people aren't ready for this.</span>
             </p>
           </div>
         </div>
