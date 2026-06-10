@@ -10,6 +10,7 @@ import { PROMPT_INTELLIGENCE_PROTOCOL } from "../_shared/promptIntelligenceProto
 import { EMOTIONAL_PERSONA_BRAIN } from "../_shared/emotionalPersonaBrain.ts";
 import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
 import { VISUAL_INTELLIGENCE_BRAIN } from "../_shared/visualIntelligenceBrain.ts";
+import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ══════════════════════════════════════════════════════════════════════════════
