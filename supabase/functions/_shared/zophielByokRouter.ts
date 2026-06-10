@@ -17,7 +17,8 @@ export type ZophielByokProvider =
   | 'xai'
   | 'deepseek'
   | 'mistral'
-  | 'perplexity';
+  | 'perplexity'
+  | 'venice';
 
 export interface ZophielByokConfig {
   provider: ZophielByokProvider;
