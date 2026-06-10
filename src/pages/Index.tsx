@@ -1349,32 +1349,56 @@ const Index = () => {
       <ScrollSection>
         <div className="relative z-10 px-6 py-28 sm:py-36 overflow-hidden">
           <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.06),transparent_70%)] blur-3xl" />
-          <div className="mx-auto max-w-4xl relative">
-            <div className="relative rounded-3xl border border-foreground/15 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-12 sm:p-20 text-center overflow-hidden">
+          <div className="mx-auto max-w-5xl relative">
+            <div className="relative rounded-3xl border border-foreground/15 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-8 sm:p-14 overflow-hidden">
               <span aria-hidden className="absolute left-0 top-0 h-8 w-8 border-l border-t border-foreground/40 rounded-tl-3xl" />
               <span aria-hidden className="absolute right-0 top-0 h-8 w-8 border-r border-t border-foreground/30 rounded-tr-3xl" />
               <span aria-hidden className="absolute left-0 bottom-0 h-8 w-8 border-l border-b border-foreground/30 rounded-bl-3xl" />
               <span aria-hidden className="absolute right-0 bottom-0 h-8 w-8 border-r border-b border-foreground/40 rounded-br-3xl" />
               <span aria-hidden className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-foreground/40 to-transparent" />
 
-              <p className="font-mono text-[10px] tracking-[0.4em] text-foreground/40 uppercase mb-6">
+              <p className="font-mono text-[10px] tracking-[0.4em] text-foreground/40 uppercase mb-8 text-center sm:text-left">
                 ◊ Transmission · From The Founder
               </p>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-tight leading-[1.05] text-foreground">
-                Watch The Founder's Videos.
-                <br />
-                <span className="text-muted-foreground">Read His E-Book.</span>
-              </h2>
-              <p className="mt-8 max-w-2xl mx-auto text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
-                Step inside the mind behind Aureon. Asher Newton's archives, philosophy, and the full text of <em>The Book of Asher Aureon Elion</em> — all in one place.
-              </p>
-              <Link
-                to="/founder"
-                className="mt-10 inline-flex items-center gap-2.5 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-8 py-3.5 text-xs font-light tracking-[0.22em] text-foreground uppercase transition-all hover:bg-foreground hover:text-background"
-              >
-                Visit The Founder's Page
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-8 sm:gap-12 items-center">
+                {/* Photo */}
+                <div className="sm:col-span-4 flex justify-center sm:justify-start">
+                  <div className="relative">
+                    <span aria-hidden className="absolute -inset-2 rounded-2xl bg-gradient-to-br from-amber-300/20 via-foreground/10 to-transparent blur-xl" />
+                    <img
+                      src={asherPhoto}
+                      alt="Asher Newton, founder of Aureon"
+                      className="relative h-44 w-44 sm:h-56 sm:w-56 rounded-2xl object-cover border border-foreground/20 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]"
+                    />
+                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-background/90 border border-foreground/20 backdrop-blur font-mono text-[9px] tracking-[0.3em] uppercase text-foreground/80 whitespace-nowrap">
+                      Asher Newton · Founder
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quote + CTA */}
+                <div className="sm:col-span-8 text-left">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-extralight tracking-tight leading-[1.1] text-foreground">
+                    "I built Aureon because I was tired of being told what I was allowed to know."
+                  </h2>
+                  <p className="mt-6 text-base sm:text-lg font-extralight leading-relaxed text-foreground/85">
+                    Every other platform treats you like a liability.
+                    <span className="text-foreground"> You are not a liability. You are exactly who this was built for.</span>
+                  </p>
+                  <p className="mt-5 text-sm font-extralight leading-relaxed text-muted-foreground">
+                    Read the full archive — videos, philosophy, and the complete text of <em>The Book of Asher Aureon Elion</em>.
+                  </p>
+
+                  <Link
+                    to="/founder"
+                    className="mt-8 inline-flex items-center gap-2.5 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-8 py-3.5 text-xs font-light tracking-[0.22em] text-foreground uppercase transition-all hover:bg-foreground hover:text-background"
+                  >
+                    Visit The Founder's Page
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>
