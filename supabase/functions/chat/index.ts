@@ -1679,6 +1679,7 @@ ${zophielCodingBrainContent}
     // Determine which provider to call
     let isGeminiResponse = true; // true if we need to transform Gemini SSE format
     let isAnthropicResponse = false;
+    let isResponsesApi = false; // true when upstream is OpenAI Responses API (gpt-oss)
 
     const MAX_RETRIES = 4;
     let response: Response | null = null;
