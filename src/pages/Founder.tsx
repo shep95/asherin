@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import LandingBackground from "@/components/LandingBackground";
-import founderImg from "@/assets/founder.jpg";
+import FounderPhotoCarousel from "@/components/founder/FounderPhotoCarousel";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { applySeoHead } from "@/lib/seoHead";
