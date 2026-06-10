@@ -97,7 +97,7 @@ const PRO_FEATURES: FeatureId[] = [
   "azplen", "pattern_analysis", "timeseries", "geospatial",
   "teams", "community", "security_dashboard", "plugins", "audit",
   "scenario_simulator", "video_intelligence",
-  "vibe_video", "agents", "zeeion", "axrlen", "zerlal", "cross", "lavba",
+  "zeeion", "axrlen", "zerlal", "cross", "lavba",
 ];
 
 // ── Plans Array ──────────────────────────────────────────────────────────────
