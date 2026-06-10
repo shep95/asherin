@@ -25,7 +25,7 @@ const INTEGRATIONS: Integration[] = [
   // Hosting
   { id: "vercel", name: "Vercel", description: "Git deploy, Edge Functions, Analytics", status: "available", icon: Triangle, category: "hosting" },
   { id: "netlify", name: "Netlify", description: "Git deploy, forms, split testing", status: "available", icon: Globe, category: "hosting" },
-  { id: "railway", name: "Railway", description: "Full-stack deploy, Postgres, Redis", status: "available", icon: Train, category: "hosting" },
+  
   { id: "flyio", name: "Fly.io", description: "Global edge, Docker, low latency", status: "available", icon: Plane, category: "hosting" },
   { id: "cloudflare", name: "Cloudflare Pages", description: "275+ cities, Workers, D1, R2", status: "available", icon: Cloud, category: "hosting" },
   // Payments
