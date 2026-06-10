@@ -180,18 +180,25 @@ const TrustBand = () => {
             ))}
           </div>
 
-          {/* Dots */}
-          <div className="mt-5 flex items-center justify-center gap-1.5">
-            {TESTIMONIALS.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setIdx(i)}
-                aria-label={`Show testimonial ${i + 1}`}
-                className={`h-1 rounded-full transition-all ${
-                  i === idx ? "w-6 bg-foreground/80" : "w-1.5 bg-foreground/20 hover:bg-foreground/40"
-                }`}
-              />
-            ))}
+          {/* Numbered arrow nav — visible, not invisible dots */}
+          <div className="mt-6 flex items-center justify-center gap-4">
+            <button
+              onClick={() => setIdx((i) => (i - 1 + TESTIMONIALS.length) % TESTIMONIALS.length)}
+              aria-label="Previous testimonial"
+              className="grid h-9 w-9 place-items-center rounded-full border border-foreground/30 bg-foreground/[0.04] text-foreground/80 hover:text-foreground hover:border-foreground/60 hover:bg-foreground/10 transition-all"
+            >
+              <span className="text-base leading-none">‹</span>
+            </button>
+            <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-foreground/70 tabular-nums">
+              {String(idx + 1).padStart(2, "0")} / {String(TESTIMONIALS.length).padStart(2, "0")}
+            </span>
+            <button
+              onClick={() => setIdx((i) => (i + 1) % TESTIMONIALS.length)}
+              aria-label="Next testimonial"
+              className="grid h-9 w-9 place-items-center rounded-full border border-foreground/30 bg-foreground/[0.04] text-foreground/80 hover:text-foreground hover:border-foreground/60 hover:bg-foreground/10 transition-all"
+            >
+              <span className="text-base leading-none">›</span>
+            </button>
           </div>
         </div>
       </div>
