@@ -30,7 +30,6 @@ export type FeatureId =
   | "geospatial"
   | "notebooks"
   | "zali"
-  | "imagine_to_code"
   | "teams"
   | "community"
   | "security_dashboard"
@@ -40,10 +39,7 @@ export type FeatureId =
   | "scenario_simulator"
   | "video_intelligence"
   | "vibe_imager"
-  | "vibe_video"
-  | "agents"
   | "zahten"
-  | "reverse_engineer"
   | "file_scrapper"
   | "cipher"
   | "whiteboard"
@@ -85,8 +81,8 @@ const CHAT_FEATURES: FeatureId[] = [
 
 const AUREON_FEATURES: FeatureId[] = [
   ...CHAT_FEATURES,
-  "ide", "memory", "personas", "code_snippets", "imagine_to_code",
-  "vibe_imager", "reverse_engineer", "file_scrapper", "cipher", "whiteboard",
+  "ide", "memory", "personas", "code_snippets",
+  "vibe_imager", "file_scrapper", "cipher", "whiteboard",
   "nomad", "briefings", "zali", "vedic",
   // Zophiel Engine modules included from Aureon tier and up
   "axrlen", "zeeion",
@@ -189,7 +185,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     tagline: "Full AI Suite",
     price: "$199",
     period: "/ month",
-    description: "Everything in Chat plus the Aureon IDE, persistent memory, custom personas, Imagine To Code, Vibe Imager, Reverse Engineer, File Scrapper, Cipher, Whiteboard, NOMAD Public Intelligence, Daily Intelligence Briefings, ZANOEM Design Lab, and Vedic Strategy.",
+    description: "Everything in Chat plus the Aureon IDE, persistent memory, custom personas, Vibe Imager, File Scrapper, Cipher, Whiteboard, NOMAD Public Intelligence, Daily Intelligence Briefings, ZANOEM Design Lab, and Vedic Strategy.",
     cta: "Get Aureon",
     highlight: false,
     publicVisible: true,
@@ -204,9 +200,8 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Persistent Memory & Calibration",
       "Custom Personas",
       "Code Snippets Vault",
-      "Imagine To Code — AI pixel & SVG editor",
       "Vibe Imager — conversational AI image creation",
-      "Reverse Engineering Intelligence",
+      "File Scrapper — extract text from any document",
       "File Scrapper — extract text from any document",
       "Cipher Toolkit — encoding, hashing, encryption",
       "Whiteboard — infinite canvas with layers",
@@ -249,14 +244,13 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Time-Series Intelligence & forecasting",
       "Geospatial analysis & location mapping",
       "Video Intelligence — behavioral & deception analysis",
-      "Vibe Video — AI video editing",
+      "Video Intelligence — behavioral & deception analysis",
       "Cross — live screen intelligence",
       "Lavba Strategy Engine",
       "Team Workspace with RBAC & email invites",
       "Plugin Marketplace",
       "Security Dashboard — WAF, honeypots & threat intel",
       "Audit Trail for compliance",
-      "Automated Agents",
       "Company & competitor tracking",
       "AXRLEN — Real-time global event prediction & policy simulation",
       "ZEEION FI — AI forensic financial intelligence platform",
@@ -300,7 +294,6 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   geospatial: "geospatial",
   notebooks: "notebooks",
   zali: "zali",
-  "imagine-to-code": "imagine_to_code",
   ide: "ide",
   teams: "teams",
   community: "community",
@@ -314,10 +307,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   snippets: "code_snippets",
   "video-intelligence": "video_intelligence",
   "vibe-imager": "vibe_imager",
-  "vibe-video": "vibe_video",
-  agents: "agents",
   // zahten intentionally omitted — always visible in sidebar; gating handled in Dashboard.tsx
-  "reverse-engineer": "reverse_engineer",
   "file-scrapper": "file_scrapper",
   cipher: "cipher",
   whiteboard: "whiteboard",

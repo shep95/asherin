@@ -74,10 +74,8 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
       heading: "Creation",
       links: [
         { to: "/feature/zali", label: "ZANOEM Design Lab" },
-        { to: "/feature/imagine-to-code", label: "Imagine To Code" },
         { to: "/feature/ide", label: "Aureon IDE" },
         { to: "/feature/vibe-imager", label: "Vibe Imager" },
-        { to: "/feature/vibe-video", label: "Vibe Video" },
         { to: "/feature/ebook", label: "E-Book Generator" },
         { to: "/feature/whiteboard", label: "Whiteboard" },
         { to: "/feature/cipher", label: "Cipher Toolkit" },
