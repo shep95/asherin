@@ -5,6 +5,8 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
+const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
 const HL_API = "https://api.hyperliquid.xyz";
 const LEVERAGE = 10;
 const CAPITAL_PERCENT = 0.90;
@@ -58,7 +60,7 @@ serve(async (req) => {
           global: { headers: { Authorization: authHeader } },
         });
         const { data: { user } } = await anonClient.auth.getUser();
-        if (user?.email !== ADMIN_EMAIL) {
+        if (!isAuthorizedAdminEmail(user?.email)) {
           return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
         adminUserId = user.id;

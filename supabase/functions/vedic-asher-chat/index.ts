@@ -9,6 +9,8 @@ const PLATFORM_GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("GEMI
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
+const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
 
 type Provider = "gemini" | "openai" | "anthropic";
 
@@ -185,7 +187,7 @@ async function checkAdmin(authHeader: string): Promise<boolean> {
       global: { headers: { Authorization: authHeader } },
     });
     const { data } = await supa.auth.getUser();
-    return data?.user?.email?.toLowerCase() === ADMIN_EMAIL;
+    return isAuthorizedAdminEmail(data?.user?.email?.toLowerCase());
   } catch {
     return false;
   }

@@ -10,6 +10,8 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
+const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
 
 interface Step { action: string; status: "ok" | "skipped" | "error"; detail?: string; }
 
@@ -29,7 +31,7 @@ Deno.serve(async (req) => {
     const auth = req.headers.get("Authorization") || "";
     const jwt = auth.replace(/^Bearer\s+/i, "");
     const { data: u } = await supabase.auth.getUser(jwt);
-    if (!u?.user || u.user.email !== ADMIN_EMAIL) {
+    if (!u?.user || !isAuthorizedAdminEmail(u.user.email)) {
       return new Response(JSON.stringify({ error: "forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

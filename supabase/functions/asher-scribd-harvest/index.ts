@@ -12,6 +12,8 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
+const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
 
 interface HarvestReq {
   topic: string;        // free-text e.g. "military strategy"
@@ -238,7 +240,7 @@ serve(async (req) => {
     const userClient = createClient(supaUrl, anon, { global: { headers: { Authorization: auth } } });
     const { data: u } = await userClient.auth.getUser();
     if (!u?.user) return new Response(JSON.stringify({ error: "unauthenticated" }), { status: 401, headers: corsHeaders });
-    if (u.user.email !== ADMIN_EMAIL) {
+    if (!isAuthorizedAdminEmail(u.user.email)) {
       return new Response(JSON.stringify({ error: "admin only" }), { status: 403, headers: corsHeaders });
     }
 

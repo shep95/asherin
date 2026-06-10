@@ -18,6 +18,8 @@ const RAILWAY_URL = `${RAILWAY_BASE}/ask`;
 const RAILWAY_AUTH = Deno.env.get("ZOPHIEL_API_KEY") || "";
 const ALGORITHM_PRICE_ID = "price_1TfC3oRxgCpmPfiFniV2cXAu";
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
+const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
 // Manually gifted lifetime-unlimited algorithm access (treated as admin tier — no rate limit).
 const GIFTED_UNLIMITED_EMAILS = new Set<string>([
   "28numberofmoney@gmail.com",
@@ -349,7 +351,7 @@ serve(async (req) => {
     // Aureon is free to use. No Stripe gating, no paid tiers.
     // Light anti-abuse rate limit applied per signed-in user / per IP+fp anon bucket.
     const emailLc = userEmail?.toLowerCase() ?? null;
-    const isAdmin = emailLc === ADMIN_EMAIL;
+    const isAdmin = isAuthorizedAdminEmail(emailLc);
     const isGiftedUnlimited = !!emailLc && GIFTED_UNLIMITED_EMAILS.has(emailLc);
     const tier: "admin" | "user" = (isAdmin || isGiftedUnlimited || userId) ? (isAdmin || isGiftedUnlimited ? "admin" : "user") : "user";
 

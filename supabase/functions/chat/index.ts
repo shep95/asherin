@@ -1105,6 +1105,8 @@ serve(async (req) => {
     // ── Admin-only backend/code discussion gate ──────────────────────────
     // Detect if user is asking about internal code, backend, architecture
     const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
+const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const backendKeywords = [
       "supabase", "edge function", "backend", "database schema", "rls", "row level security",
@@ -1131,7 +1133,7 @@ serve(async (req) => {
         const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const token = authHeader.replace("Bearer ", "");
         const { data: { user } } = await sb.auth.getUser(token);
-        if (user?.email === ADMIN_EMAIL) isAdmin = true;
+        if (isAuthorizedAdminEmail(user?.email)) isAdmin = true;
       } catch (e) {
         console.error("Admin check failed:", e);
       }
