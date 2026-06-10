@@ -1755,7 +1755,7 @@ ${zophielCodingBrainContent}
                 }
               } catch { /* skip */ }
             } else if (isResponsesApi) {
-              // OpenAI Responses API SSE (gpt-oss on Railway).
+              // OpenAI Responses API SSE.
               // Only surface `response.output_text.delta` as visible content;
               // drop reasoning_text deltas (model's internal scratchpad).
               if (!line.startsWith("data:")) continue;
