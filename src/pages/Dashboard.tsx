@@ -208,7 +208,7 @@ const Dashboard = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   // Donation Era: Aureon is fully free. Everyone gets the toggle and can pick
   // between the Algorithm LLM and BYOK chat. Nothing is locked behind a tier.
-  const isAdminUser = user?.email === "ashernewtonx@gmail.com";
+  const isAdminUser = isAdminEmail(user?.email);
   const isFreeUser = false;
   const [algorithmModeRaw, setAlgorithmMode] = useState<boolean>(() => {
     try { return localStorage.getItem("aureon_algorithm_mode") === "1"; } catch { return false; }
