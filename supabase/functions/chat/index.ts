@@ -3,6 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { COMEDY_BRAIN } from "../_shared/comedyBrain.ts";
+import { ASHER_LOGIC_BRAIN } from "../_shared/asherLogicBrain.ts";
+import { PROMPT_INTELLIGENCE_PROTOCOL } from "../_shared/promptIntelligenceProtocol.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1508,6 +1510,8 @@ ${zophielCodingBrainContent}
       AUREON_CODING_MASTERY,
       NARRATIVE_FORGE_BRAIN,
       COMEDY_BRAIN,
+      ASHER_LOGIC_BRAIN,
+      PROMPT_INTELLIGENCE_PROTOCOL,
       AUREON_PSYCHOLOGY_ENGINE,
       AUREON_FORENSIC_LINGUISTICS,
       AUREON_VEDIC_INTELLIGENCE,
