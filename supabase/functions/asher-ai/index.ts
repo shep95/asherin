@@ -9,6 +9,7 @@ import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { COMEDY_BRAIN } from "../_shared/comedyBrain.ts";
 import { ASHER_LOGIC_BRAIN } from "../_shared/asherLogicBrain.ts";
 import { PROMPT_INTELLIGENCE_PROTOCOL } from "../_shared/promptIntelligenceProtocol.ts";
+import { EMOTIONAL_PERSONA_BRAIN } from "../_shared/emotionalPersonaBrain.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
@@ -199,7 +200,7 @@ serve(async (req) => {
       }
     } catch (e) { console.error("[asher-ai] archive:", e); }
 
-    const fullSystem = SYSTEM_PROMPT + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + brainBlock + ctxBlock + leaksBlock + archiveBlock;
+    const fullSystem = SYSTEM_PROMPT + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + EMOTIONAL_PERSONA_BRAIN + brainBlock + ctxBlock + leaksBlock + archiveBlock;
 
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {
