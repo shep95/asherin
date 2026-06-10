@@ -1201,7 +1201,7 @@ const Index = () => {
                   <span aria-hidden className="absolute right-0 top-0 h-5 w-5 border-r border-t border-foreground/25 rounded-tr-2xl" />
                   <div className="flex items-center justify-between mb-4">
                     <div className="grid h-10 w-10 place-items-center rounded-xl border border-foreground/15 bg-foreground/[0.03]">
-                      <Icon className="h-4 w-4 text-foreground/80" strokeWidth={1.25} />
+                      <Icon className="h-4 w-4 text-foreground" strokeWidth={1.5} />
                     </div>
                     <span className="font-mono text-[9px] tracking-[0.3em] text-foreground/30">{n}</span>
                   </div>
