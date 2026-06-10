@@ -994,16 +994,23 @@ function shouldSearch(messages: { role: string; content: string }[], mode: strin
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
-  // ── Strict BYOK gate — admin uses platform key, all other users MUST bring their own AI key ──
+  // ── Strict BYOK gate — every caller MUST bring their own AI key ──
   if (req.method !== 'OPTIONS') {
     try {
       const _b = await req.clone().json().catch(() => ({} as any));
-      const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
-      const _gate = await import('../_shared/adminGate.ts');
-      await _gate.resolveKey(req, _byok);
+      const _provider = (_b && typeof _b === 'object') ? (_b as any).byokProvider : undefined;
+      const _model = (_b && typeof _b === 'object') ? (_b as any).byokModel : undefined;
+      if (!_provider || _provider === 'default' || !_model || _model === 'default') {
+        return new Response(
+          JSON.stringify({ error: 'Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.', code: 'BYOK_REQUIRED' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
     } catch (_e) {
-      const _gate = await import('../_shared/adminGate.ts');
-      return _gate.byokErrorResponse(_e, corsHeaders);
+      return new Response(
+        JSON.stringify({ error: 'Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.', code: 'BYOK_REQUIRED' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
   }
 
@@ -1011,8 +1018,6 @@ serve(async (req) => {
 
   try {
     const { messages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId } = await req.json();
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP is not configured");
 
     // ── BYOK: Load user's API key if they specified a provider ────────────
     let userApiKey: string | null = null;
