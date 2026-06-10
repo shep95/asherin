@@ -62,21 +62,23 @@ export async function streamChat({
   });
 
   // Load BYOK preferences from localStorage cache (set by AIKeysSettings).
-  // DEFAULT ENGINE = Aureon Algorithm. If nothing is stored, or the user
-  // hasn't explicitly chosen a BYOK provider, we route through the Aureon
-  // Algorithm (Railway Zophiel Algorithm brain). Lovable AI / Gemini is NOT used.
-  let byokProvider: string | undefined = "aureon";
-  let byokModel: string | undefined = "aureon-algorithm";
+  // BYOK-ONLY: users must connect their own provider key. If no key is
+  // selected, byokProvider stays undefined and the /chat edge function
+  // returns 403 BYOK_REQUIRED, which the client surfaces via the
+  // ByokRequiredDialog. No in-house fallback model is used.
+  let byokProvider: string | undefined;
+  let byokModel: string | undefined;
   try {
     const cached = localStorage.getItem("aureon_byok_active");
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (parsed?.provider) {
+      // Ignore legacy in-house engine entries ("aureon" / "default").
+      if (parsed?.provider && parsed.provider !== "aureon" && parsed.provider !== "default") {
         byokProvider = parsed.provider;
         byokModel = parsed.model;
       }
     }
-  } catch { /* default to aureon */ }
+  } catch { /* no selection */ }
 
   // Per-conversation API toggle: a globally-selected BYOK provider (set in Settings)
   // applies to ALL conversations by default. Users can EXPLICITLY disable it for a
@@ -103,40 +105,7 @@ export async function streamChat({
     userEmail = session?.user?.email ?? null;
   } catch { /* fallback to anon key */ }
 
-  // UNIFIED PIPELINE: free, paid, and admin all flow through /chat by default
-  // (same system prompt, skill injection, swarm orchestrator, archive grounding).
-  // The /chat edge function enforces its own tier gating and rate limits.
-  // Users can still EXPLICITLY pick the Aureon Algorithm (Railway Zophiel Algorithm brain)
-  // via the AureonEngineToggle — that sets byokProvider="aureon" themselves.
-  // Previously free users were force-routed to Railway, which produced
-  // off-topic news-feed answers for general queries. Removed.
 
-  // ── AUREON ALGORITHM ROUTING ──────────────────────────────────────────
-  // When the user picks "aureon" as their provider, proxy to the dedicated
-  // /aureon-algorithm-chat function (Railway-hosted open-weight Aureon LLM).
-  // It handles its own rate limiting + subscription gating.
-  if (byokProvider === "aureon") {
-    const ALGO_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/aureon-algorithm-chat`;
-    const lastUser = [...apiMessages].reverse().find(m => m.role === "user")?.content || "";
-    const resp = await fetch(ALGO_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-      body: JSON.stringify({ message: lastUser, messages: apiMessages, session_id: conversationId ?? undefined }),
-      signal,
-    });
-    const data = await resp.json().catch(() => ({ error: "Invalid response" }));
-    if (!resp.ok) throw new Error(data?.message || data?.error || `HTTP ${resp.status}`);
-    const reply: string = data?.reply || "(empty response)";
-    // Simulate streaming for a smooth UI experience
-    const tokens = reply.match(/\S+\s*|\s+/g) || [reply];
-    for (const tok of tokens) {
-      if (signal?.aborted) break;
-      onDelta(tok);
-      await new Promise(r => setTimeout(r, 12));
-    }
-    onDone();
-    return;
-  }
 
   // Auto-detect and inject domain skills based on conversation context
   const detectedSkills = detectRelevantSkills(messages.map(m => ({ role: m.role, content: m.content })));
