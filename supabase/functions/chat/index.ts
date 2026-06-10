@@ -1759,34 +1759,92 @@ ${zophielCodingBrainContent}
         console.log(`[chat] BYOK failed (${byokFailStatus}: ${byokFailReason}) — falling back to default Gemini cascade`);
       }
 
-      // Default backend: self-hosted gpt-oss-20b on Railway (OpenAI-compatible /v1)
+      // Default backend: gpt-oss OpenAI-compatible endpoint, then Railway /ask failover.
       isGeminiResponse = false;
       isAnthropicResponse = false;
 
-      const GPT_OSS_URL   = Deno.env.get("GPT_OSS_URL")   || "https://gpt-oss-production-ace0.up.railway.app/v1";
+      const GPT_OSS_URL = Deno.env.get("GPT_OSS_URL") || "https://gpt-oss-production-ace0.up.railway.app/v1";
       const GPT_OSS_MODEL = Deno.env.get("GPT_OSS_MODEL") || "gpt-oss-20b";
-      const GPT_OSS_KEY   = Deno.env.get("GPT_OSS_API_KEY") || "";
+      const GPT_OSS_KEY = Deno.env.get("GPT_OSS_API_KEY") || "";
+      const zophielBaseRaw = (Deno.env.get("ZOPHIEL_API_URL") || "").trim();
+      const ZOPHIEL_BASE = zophielBaseRaw
+        ? (/^https?:\/\//i.test(zophielBaseRaw) ? zophielBaseRaw : `https://${zophielBaseRaw}`).replace(/\/$/, "")
+        : "";
+      const ZOPHIEL_ASK_URL = ZOPHIEL_BASE ? `${ZOPHIEL_BASE}/ask` : "";
+      const ZOPHIEL_API_KEY = Deno.env.get("ZOPHIEL_API_KEY") || "";
+
+      const buildFallbackRailwayPrompt = () => {
+        const recentTurns = prunedMessages
+          .filter((m: { role: string; content?: string }) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+          .slice(-8)
+          .map((m: { role: string; content?: string }) => `${m.role === "assistant" ? "AUREON" : "USER"}: ${m.content ?? ""}`)
+          .join("\n\n");
+        const latestUserMessage = [...prunedMessages]
+          .reverse()
+          .find((m: { role: string; content?: string }) => m.role === "user" && typeof m.content === "string")?.content?.trim() || "";
+
+        return [
+          "[SYSTEM DIRECTIVES]",
+          typeof systemParts === "string" ? systemParts.slice(0, 24000) : String(systemParts).slice(0, 24000),
+          recentTurns ? `[RECENT THREAD]\n${recentTurns}` : "",
+          `[CURRENT USER MESSAGE]\n${latestUserMessage || "Continue the conversation."}`,
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+      };
+
+      const createSyntheticOpenAiStream = (reply: string) => {
+        const encoder = new TextEncoder();
+        const chunks = reply.match(/\S+\s*|\s+/g) || [reply];
+        const stream = new ReadableStream({
+          async start(controller) {
+            for (const chunkText of chunks) {
+              const chunk = JSON.stringify({ choices: [{ delta: { content: chunkText } }] });
+              controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
+            }
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+            controller.close();
+          },
+        });
+
+        return new Response(stream, {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+        });
+      };
 
       let lastStatus = 0;
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (GPT_OSS_KEY) headers["Authorization"] = `Bearer ${GPT_OSS_KEY}`;
-        response = await fetch(`${GPT_OSS_URL.replace(/\/$/, "")}/chat/completions`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            model: GPT_OSS_MODEL,
-            messages: openaiMessages,
-            stream: true,
-            temperature: 0.7,
-            max_tokens: 8192,
-          }),
-        });
-        if (response.ok) break;
-        lastStatus = response.status;
-        lastError = await response.text().catch(() => "");
-        console.error(`[chat] gpt-oss ${response.status}:`, lastError.slice(0, 200));
-        if ((response.status === 429 || response.status === 503) && attempt < MAX_RETRIES) {
+
+        try {
+          response = await fetch(`${GPT_OSS_URL.replace(/\/$/, "")}/chat/completions`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              model: GPT_OSS_MODEL,
+              messages: openaiMessages,
+              stream: true,
+              temperature: 0.7,
+              max_tokens: 8192,
+            }),
+          });
+        } catch (error) {
+          response = null;
+          lastStatus = 502;
+          lastError = error instanceof Error ? error.message : String(error);
+          console.error("[chat] gpt-oss request threw:", lastError);
+        }
+
+        if (response?.ok) break;
+        if (response && !response.ok) {
+          lastStatus = response.status;
+          lastError = await response.text().catch(() => "");
+          console.error(`[chat] gpt-oss ${response.status}:`, lastError.slice(0, 200));
+        }
+
+        if ((lastStatus === 429 || lastStatus >= 500) && attempt < MAX_RETRIES) {
           await new Promise((r) => setTimeout(r, Math.min(500 * Math.pow(2, attempt) + Math.random() * 200, 2000)));
           continue;
         }
@@ -1799,49 +1857,56 @@ ${zophielCodingBrainContent}
             status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        if (lastStatus === 503) {
-          return new Response(JSON.stringify({ error: "AI engine is temporarily overloaded. Try again in 30-60 seconds." }), {
-            status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
+
         console.error("[chat] gpt-oss failed. Last status:", lastStatus, "body:", lastError);
 
-        // Fallback: Lovable AI Gateway (OpenAI-compatible streaming) when self-hosted backend is unreachable
-        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-        if (LOVABLE_API_KEY) {
+        if (ZOPHIEL_ASK_URL) {
           try {
-            console.log("[chat] Falling back to Lovable AI Gateway");
-            const fbResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            console.log("[chat] Falling back to Railway /ask API");
+            const railwayResponse = await fetch(ZOPHIEL_ASK_URL, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+                ...(ZOPHIEL_API_KEY ? { "Authorization": `Bearer ${ZOPHIEL_API_KEY}` } : {}),
               },
               body: JSON.stringify({
-                model: "google/gemini-3-flash-preview",
-                messages: openaiMessages,
-                stream: true,
-                temperature: 0.7,
-                max_tokens: 8192,
+                query: buildFallbackRailwayPrompt(),
+                session_id: activeAgentId || personaId || "aureon-chat-fallback",
               }),
             });
-            if (fbResp.ok) {
-              response = fbResp;
+
+            const railwayText = await railwayResponse.text().catch(() => "");
+            if (railwayResponse.ok) {
+              let railwayJson: Record<string, unknown> = {};
+              try {
+                railwayJson = railwayText ? JSON.parse(railwayText) : {};
+              } catch {
+                railwayJson = { reply: railwayText };
+              }
+
+              const reply = typeof railwayJson.reply === "string"
+                ? railwayJson.reply
+                : (typeof railwayText === "string" && railwayText.trim() ? railwayText : "(empty response)");
+
+              response = createSyntheticOpenAiStream(reply);
             } else {
-              const fbErr = await fbResp.text().catch(() => "");
-              console.error("[chat] Lovable AI fallback failed:", fbResp.status, fbErr.slice(0, 200));
-              return new Response(JSON.stringify({ error: "AI is temporarily unavailable. Please try again in a moment.", fallback: true }), {
-                status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-              });
+              lastStatus = railwayResponse.status;
+              lastError = railwayText;
+              console.error("[chat] Railway /ask fallback failed:", railwayResponse.status, railwayText.slice(0, 200));
             }
-          } catch (e) {
-            console.error("[chat] Lovable AI fallback threw:", e);
-            return new Response(JSON.stringify({ error: "AI is temporarily unavailable. Please try again in a moment.", fallback: true }), {
-              status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
+          } catch (error) {
+            lastStatus = 502;
+            lastError = error instanceof Error ? error.message : String(error);
+            console.error("[chat] Railway /ask fallback threw:", lastError);
           }
-        } else {
-          return new Response(JSON.stringify({ error: `AI is temporarily unavailable (${lastStatus || 502}). Please try again in a moment.`, fallback: true }), {
+        }
+
+        if (!response || !response.ok) {
+          return new Response(JSON.stringify({
+            error: `AI is temporarily unavailable (${lastStatus || 502}). Please try again in a moment.`,
+            fallback: true,
+            degraded: true,
+          }), {
             status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -1849,8 +1914,8 @@ ${zophielCodingBrainContent}
     }
 
     if (!response || !response.ok) {
-      return new Response(JSON.stringify({ error: "AI gateway error after retries" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "AI is temporarily unavailable. Please try again in a moment.", fallback: true, degraded: true }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
