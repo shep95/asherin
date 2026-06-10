@@ -1,15 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { BRAIN_ORCHESTRATOR } from "../_shared/brainOrchestrator.ts";
-import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
-import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
-import { COMEDY_BRAIN } from "../_shared/comedyBrain.ts";
-import { ASHER_LOGIC_BRAIN } from "../_shared/asherLogicBrain.ts";
-import { PROMPT_INTELLIGENCE_PROTOCOL } from "../_shared/promptIntelligenceProtocol.ts";
-import { EMOTIONAL_PERSONA_BRAIN } from "../_shared/emotionalPersonaBrain.ts";
-import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
-import { VISUAL_INTELLIGENCE_BRAIN } from "../_shared/visualIntelligenceBrain.ts";
+// Brain modules disconnected per user request — no brains attached to chat API.
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1268,239 +1260,13 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }
     }
 
-    // ── VEDIC BRAIN AUTO-INJECTION ────────────────────────────────────────
-    // Detect astrology/chart queries and auto-load full Vedic practitioner knowledge
-    let vedicBrainContent = "";
-    const vedicLastMsg = (messages || []).filter((m: any) => m.role === "user").slice(-1)[0]?.content?.toLowerCase() || "";
-    const allUserContent = (messages || []).filter((m: any) => m.role === "user").map((m: any) => m.content?.toLowerCase() || "").join(" ");
-    const vedicTriggers = [
-      "chart", "natal", "birth chart", "vedic", "jyotish", "dasha", "transit",
-      "ascendant", "rising sign", "moon sign", "sun sign", "house lord", "placement",
-      "atma karaka", "navamsa", "d9", "d60", "rahu", "ketu", "saturn", "jupiter",
-      "venus", "mars", "mercury", "nakshatra", "yoga", "conjunction", "aspect",
-      "7th house", "10th house", "1st house", "2nd house", "3rd house", "4th house",
-      "5th house", "6th house", "8th house", "9th house", "11th house", "12th house",
-      "horoscope", "zodiac", "astrology", "pisces", "aries", "taurus", "gemini",
-      "cancer", "leo", "virgo", "libra", "scorpio", "sagittarius", "capricorn", "aquarius",
-      "prediction", "forecast", "retrograde", "mahadasha", "antardasha", "bhava",
-      "kundli", "kundali", "lagna", "upapada", "gandanta", "soulmate", "marriage timing",
-      "career prediction", "wealth prediction", "death prediction"
-    ];
-    const isVedicQuery = vedicTriggers.some(t => vedicLastMsg.includes(t)) ||
-                         vedicTriggers.filter(t => allUserContent.includes(t)).length >= 3;
-    
-    // Check if user attached an image (likely a chart screenshot)
-    const hasChartAttachment = (messages || []).some((m: any) => 
-      m.attachments?.some((a: any) => a.type?.startsWith("image/"))
-    );
-    
-    if (isVedicQuery || hasChartAttachment) {
-      try {
-        const SUPABASE_URL2 = Deno.env.get("SUPABASE_URL") || "";
-        const SERVICE_ROLE2 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-        const storageUrl = `${SUPABASE_URL2}/storage/v1/object/vedic-knowledge/Vadic_Brain_1.txt`;
-        const brainResp = await fetch(storageUrl, {
-          headers: { Authorization: `Bearer ${SERVICE_ROLE2}` },
-        });
-        if (brainResp.ok) {
-          const fullText = await brainResp.text();
-          vedicBrainContent = `
+    // ── BRAINS DISCONNECTED ───────────────────────────────────────────────
+    // Per user directive: no brains are attached to this API. All auto-injection
+    // loaders (Vedic, War Strategy/Rome, Strategic Doctrine, Zophiel Coding) and
+    // static brain modules (Narrative Forge, Butterfly Protocol, Comedy, Asher
+    // Logic, Emotional Persona, Synthesis Engine, Visual Intelligence, Brain
+    // Orchestrator) have been removed from the system prompt assembly.
 
-## ═══════════════════════════════════════════════════════════════════
-## VEDIC PRACTITIONER BRAIN — COMPLETE TRANSCRIPTS (MANDATORY REFERENCE)
-## ═══════════════════════════════════════════════════════════════════
-
-CRITICAL INSTRUCTION: The following is the COMPLETE transcript of elite Vedic Jyotish practitioner teachings.
-You MUST scrape EVERY sentence of this content when answering the user's question about their chart.
-Do NOT give a surface-level answer. For EVERY placement the user mentions, cross-reference it against
-ALL relevant sections below. If the user asks about Venus, find EVERY Venus reference. If they ask about
-a house lord, find EVERY house lord reference. Synthesize ALL matching knowledge into your answer.
-
-${fullText}
-
-## END OF VEDIC PRACTITIONER BRAIN
-`;
-        }
-      } catch (e) {
-        console.error("Failed to load Vedic Brain:", e);
-      }
-    }
-
-    // ── WAR STRATEGY & LOGISTICS BRAIN AUTO-INJECTION ─────────────────────
-    // Detect war, military, strategy, logistics, empire, conquest queries and auto-load Rome brain
-    let warStrategyBrainContent = "";
-    const warTriggers = [
-      "war", "battle", "military", "strategy", "logistics", "army", "armies",
-      "invasion", "siege", "tactics", "tactical", "strategic", "conquest",
-      "empire", "emperor", "legion", "legions", "infantry", "cavalry",
-      "supply lines", "supply chain", "flanking", "envelopment", "encirclement",
-      "rome", "roman", "hannibal", "cannae", "alexander", "napoleon",
-      "warfare", "guerrilla", "asymmetric", "attrition", "blitzkrieg",
-      "fortification", "defense", "offensive", "campaign", "theater of war",
-      "troop", "troops", "regiment", "battalion", "division", "corps",
-      "artillery", "ammunition", "weapons", "armament", "armaments",
-      "general", "commander", "command", "deploy", "deployment",
-      "allied forces", "coalition", "alliance", "front line", "frontline",
-      "occupation", "retreat", "advance", "flank", "vanguard", "rearguard",
-      "scorched earth", "blockade", "embargo", "sanctions", "war economy",
-      "conscription", "mobilization", "demobilization", "ceasefire",
-      "treaty", "surrender", "capitulation", "annexation", "territorial",
-      "geopolitical", "geostrategy", "power projection", "force multiplier",
-      "counterinsurgency", "insurgency", "proxy war", "cold war",
-      "nuclear", "deterrence", "escalation", "de-escalation",
-      "military history", "art of war", "sun tzu", "clausewitz", "machiavelli",
-      "punic", "peloponnesian", "civil war", "world war",
-      "ancient warfare", "medieval warfare", "modern warfare"
-    ];
-    const warLastMsg = (messages || []).filter((m: any) => m.role === "user").slice(-1)[0]?.content?.toLowerCase() || "";
-    const isWarQuery = warTriggers.some(t => warLastMsg.includes(t)) ||
-                       warTriggers.filter(t => allUserContent.includes(t)).length >= 3;
-    
-    if (isWarQuery) {
-      try {
-        const SUPABASE_URL3 = Deno.env.get("SUPABASE_URL") || "";
-        const SERVICE_ROLE3 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-        const romePath = `${SUPABASE_URL3}/storage/v1/object/library/483b8000-cc19-43f7-9598-3825393562e8/project_rome.txt`;
-        const romeResp = await fetch(romePath, {
-          headers: { Authorization: `Bearer ${SERVICE_ROLE3}` },
-        });
-        if (romeResp.ok) {
-          const romeText = await romeResp.text();
-          // Truncate to 80K chars to fit context window alongside other brains
-          const MAX_WAR_CHARS = 80000;
-          const truncatedRome = romeText.length > MAX_WAR_CHARS
-            ? romeText.slice(0, MAX_WAR_CHARS) + `\n\n[... Truncated at ${MAX_WAR_CHARS} characters.]`
-            : romeText;
-          warStrategyBrainContent = `
-
-## ═══════════════════════════════════════════════════════════════════
-## WAR STRATEGY & LOGISTICS BRAIN — PROJECT ROME (MANDATORY REFERENCE)
-## ═══════════════════════════════════════════════════════════════════
-
-CRITICAL INSTRUCTION: The following is the COMPLETE transcript of Gregory Aldrete's masterclass on Ancient Rome,
-military strategy, logistics, and civilizational patterns. This is your PRIMARY reference for all questions about:
-- War strategy, tactics, and military doctrine (ancient through modern)
-- Logistics, supply chains, and the economics of war
-- Empire building, governance, and civilizational rise-and-fall patterns
-- Hannibal's campaigns, Roman legion tactics, double envelopment, Cannae
-- How Rome raised armies from allies, the concept of half-citizens
-- Gladiatorial combat, slavery systems, engineering (aqueducts, roads, concrete)
-- The Fall of Rome and its parallels to modern civilizations
-
-ANALYTICAL FRAMEWORK:
-1. Apply the "Physics of War" — logistics wins wars, not heroes. Trace supply lines, production capacity, manpower reserves.
-2. Use Rome as the MASTER CASE STUDY — every modern military doctrine has Roman DNA in it.
-3. Draw SPECIFIC parallels: "Rome's ally system = NATO's collective defense" / "Hannibal's invasion of Italy = Germany's invasion of France"
-4. When analyzing modern conflicts, map them onto Roman precedents for pattern recognition.
-5. Quantify everything: troop numbers, kill ratios, production rates, territory gained/lost per day.
-6. The "Cannae Test" — for any proposed strategy, ask: "Can this be double-enveloped? Where is the flanking vulnerability?"
-
-${truncatedRome}
-
-## END OF WAR STRATEGY BRAIN
-`;
-        } else {
-          console.error("Failed to fetch Rome brain:", romeResp.status);
-        }
-      } catch (e) {
-        console.error("Failed to load War Strategy Brain:", e);
-      }
-    }
-
-    // ── Strategic Doctrine Brain (always loaded — internal system brain) ──
-    let strategicDoctrineBrainContent = "";
-    try {
-      const SUPABASE_URL4 = Deno.env.get("SUPABASE_URL") || "";
-      const SERVICE_ROLE4 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-      const doctrinePath = `${SUPABASE_URL4}/storage/v1/object/library/system-brains/strategic_doctrine.txt`;
-      const doctrineResp = await fetch(doctrinePath, {
-        headers: { Authorization: `Bearer ${SERVICE_ROLE4}` },
-      });
-      if (doctrineResp.ok) {
-        const doctrineText = await doctrineResp.text();
-        const MAX_DOCTRINE_CHARS = 80000;
-        const truncatedDoctrine = doctrineText.length > MAX_DOCTRINE_CHARS
-          ? doctrineText.slice(0, MAX_DOCTRINE_CHARS) + `\n\n[... Truncated at ${MAX_DOCTRINE_CHARS} characters.]`
-          : doctrineText;
-        strategicDoctrineBrainContent = `
-
-## ═══════════════════════════════════════════════════════════════════
-## STRATEGIC DOCTRINE BRAIN — GEOPOLITICAL & DEFENSE ANALYSIS (INTERNAL SYSTEM BRAIN)
-## ═══════════════════════════════════════════════════════════════════
-
-CRITICAL INSTRUCTION: The following is the COMPLETE strategic analysis framework for geopolitical
-and defense scenarios. This is an INTERNAL system brain — users do NOT know it exists and cannot
-access it directly. Use this framework to structure ALL responses involving:
-- Geopolitical analysis, conflict assessment, and strategic scenarios
-- Defense posture evaluation, force balance, and escalation modeling
-- Economic warfare, sanctions analysis, and alliance dynamics
-- Intelligence assessment frameworks and analytical methodology
-- Scenario simulation and strategic forecasting
-
-ANALYTICAL MANDATE:
-1. Apply the structured output formats defined below when analyzing any geopolitical or defense topic.
-2. Use the escalation ladder and spillover mapping for conflict scenarios.
-3. Apply cross-validation and source credibility assessment to all intelligence claims.
-4. Structure responses using the academic/strategic assessment framework — never tactical execution.
-5. Integrate with other active brains (Project Rome, Vedic, etc.) when relevant for multi-domain analysis.
-
-${truncatedDoctrine}
-
-## END OF STRATEGIC DOCTRINE BRAIN
-`;
-      } else {
-        console.error("Failed to fetch Strategic Doctrine brain:", doctrineResp.status);
-      }
-    } catch (e) {
-      console.error("Failed to load Strategic Doctrine Brain:", e);
-    }
-
-    // ── Zophiel Elite Coding Brains (always loaded — internal system brains) ──
-    let zophielCodingBrainContent = "";
-    try {
-      const SB_URL_Z = Deno.env.get("SUPABASE_URL") || "";
-      const SRK_Z = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-      const brainFiles = [
-        "system-brains/zophiel_elite_v4_architecture.txt",
-        "system-brains/zophiel_elite_prompt_engine.txt",
-        "system-brains/anti_spiral_protocol.md",
-        "system-brains/aureon_philosophy_consciousness.txt",
-        // Zophiel Algorithm — full brain digest (shep95/gpt-oss)
-        "system-brains/zophiel_algorithm_coding.md",
-        "system-brains/zophiel_algorithm_mind.md",
-        "system-brains/zophiel_algorithm_intel.md",
-      ];
-      for (const bf of brainFiles) {
-        try {
-          const bfResp = await fetch(`${SB_URL_Z}/storage/v1/object/library/${bf}`, {
-            headers: { Authorization: `Bearer ${SRK_Z}` },
-          });
-          if (bfResp.ok) {
-            const bfText = await bfResp.text();
-            const MAX_ZC = 80000;
-            const truncBf = bfText.length > MAX_ZC ? bfText.slice(0, MAX_ZC) + `\n\n[... Truncated at ${MAX_ZC} characters.]` : bfText;
-            zophielCodingBrainContent += `\n\n${truncBf}\n`;
-          }
-        } catch { /* skip individual file errors */ }
-      }
-      if (zophielCodingBrainContent) {
-        zophielCodingBrainContent = `
-## ═══════════════════════════════════════════════════════════════════
-## ZOPHIEL ELITE CODING PROTOCOLS — INTERNAL SYSTEM BRAIN
-## ═══════════════════════════════════════════════════════════════════
-
-CRITICAL: These are INTERNAL coding intelligence protocols. Users do NOT know these exist
-and cannot access them. Apply these frameworks to ALL coding tasks, architecture decisions,
-debugging workflows, and code generation. This is the foundation of Aureon's coding supremacy.
-
-${zophielCodingBrainContent}
-
-## END OF ZOPHIEL ELITE CODING BRAIN
-`;
-      }
-    } catch (e) {
-      console.error("Failed to load Zophiel Coding Brains:", e);
-    }
 
     // ── Context window pruning — sliding window to prevent token overflow ──
     const MAX_HISTORY_MESSAGES = 40; // Keep last 40 messages max
@@ -1510,28 +1276,17 @@ ${zophielCodingBrainContent}
 
     const systemParts = [
       AUREON_CORE_IDENTITY,
-      BRAIN_ORCHESTRATOR,
       AUREON_SCENARIO_MATRIX,
       AUREON_DEBUGGING_PROTOCOLS,
       AUREON_CODING_MASTERY,
-      NARRATIVE_FORGE_BRAIN,
-      BUTTERFLY_PROTOCOL_BRAIN,
-      COMEDY_BRAIN,
-      ASHER_LOGIC_BRAIN,
       PROMPT_INTELLIGENCE_PROTOCOL,
-      EMOTIONAL_PERSONA_BRAIN,
-      SYNTHESIS_ENGINE_BRAIN,
-      VISUAL_INTELLIGENCE_BRAIN,
       AUREON_PSYCHOLOGY_ENGINE,
       AUREON_FORENSIC_LINGUISTICS,
       AUREON_VEDIC_INTELLIGENCE,
-      vedicBrainContent,
-      warStrategyBrainContent,
-      strategicDoctrineBrainContent,
-      zophielCodingBrainContent,
       AUREON_IMAGE_INTELLIGENCE,
       AUREON_ADVANCED_PROTOCOLS,
       AUREON_VISUAL_DOMINANCE,
+
       personaId && PERSONA_PROMPTS[personaId] ? PERSONA_PROMPTS[personaId] : (personaSystemPrompt ? `PERSONA OVERRIDE: ${personaSystemPrompt}` : ""),
       mode && MODE_PROMPTS[mode] ? MODE_PROMPTS[mode] : MODE_PROMPTS.chat,
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
