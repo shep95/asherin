@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import AuthOverlay from "@/components/AuthOverlay";
-import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap, GitBranch, Key, Layers, Cpu, Shuffle, Github } from "lucide-react";
+import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap, GitBranch, Key, Layers, Cpu, Shuffle, Github, Clock, Moon, FileText } from "lucide-react";
 import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
 import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
@@ -700,6 +700,124 @@ const Index = () => {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+      </ScrollSection>
+
+      {/* ===== SOFTWARE ARSENAL — Dashboard Modules ===== */}
+      <ScrollSection>
+      <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-30">
+          <div className="absolute left-[10%] top-[20%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%_/_0.08),transparent_70%)] blur-3xl" />
+          <div className="absolute right-[5%] bottom-[10%] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%_/_0.05),transparent_70%)] blur-3xl" />
+        </div>
+
+        <div className="relative mx-auto max-w-7xl">
+          <div className="flex flex-col items-center text-center mb-20">
+            <div className="inline-flex items-center gap-2 rounded-full border border-foreground/15 bg-foreground/[0.03] px-3 py-1 mb-8">
+              <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase">/ 03 — Arsenal</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
+              Every Tool.
+              <br />
+              <span className="italic text-muted-foreground/60">One Dashboard.</span>
+            </h2>
+            <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground/80">
+              All software modules available inside your Aureon workspace. No paywalls. No gated features. Every tool listed below is live and accessible.
+            </p>
+          </div>
+
+          {[
+            {
+              group: "Core",
+              blurb: "The intelligence engine",
+              items: [
+                { icon: Brain, name: "Aureon Chat", codename: "Intelligence Engine", desc: "Uncensored AI with persistent memory, multi-model consensus, and end-to-end encryption. Bring your own key." },
+              ]
+            },
+            {
+              group: "Create",
+              blurb: "Generate images, documents, and designs",
+              items: [
+                { icon: Zap, name: "Vibe Imager", codename: "AI Image Generation", desc: "Conversational AI image creation. Describe what you want and watch it render." },
+                { icon: Cpu, name: "ZANOEM Design Lab", codename: "Universal Design", desc: "First-principles design from atoms to universes — FEA, thermal, material simulation." },
+                { icon: FileText, name: "Document Generator", codename: "PDF / eBook / Slides", desc: "Turn any content into a polished PDF, eBook, or slideshow instantly." },
+              ]
+            },
+            {
+              group: "Analyze",
+              blurb: "Data intelligence, forecasting, and behavioral analysis",
+              items: [
+                { icon: BarChart3, name: "Azplen", codename: "Data Intelligence", desc: "Ingest, analyze, branch, and visualize datasets of any size." },
+                { icon: Target, name: "Zeeion", codename: "Financial Intelligence", desc: "Cost savings, efficiency scoring, and budget optimization engine." },
+                { icon: Cpu, name: "Pattern Analysis", codename: "Pattern Engine", desc: "Visual pattern recognition and forecasting across complex datasets." },
+                { icon: Clock, name: "Time-Series", codename: "Temporal Analysis", desc: "Temporal analysis with anomaly detection and forecasting." },
+                { icon: Globe, name: "Geospatial", codename: "Geo Intelligence", desc: "Spatial-temporal analysis and route optimization." },
+                { icon: Monitor, name: "Video Intelligence", codename: "Behavior Analysis", desc: "Deception detection, personality profiling, and FACS behavioral tracking from video." },
+              ]
+            },
+            {
+              group: "Investigate",
+              blurb: "Search, OSINT, prediction, and security tools",
+              items: [
+                { icon: Search, name: "Zophiel", codename: "Search Intelligence", desc: "Privacy-first source-credibility search across 30+ intelligence lanes." },
+                { icon: Globe, name: "NOMAD", codename: "OSINT Investigation", desc: "30+ source open-source intelligence with AI correlation and dossier output." },
+                { icon: Brain, name: "AXRLEN", codename: "Predictive Intelligence", desc: "Live global event prediction, scenario simulation, and Monte Carlo modeling." },
+                { icon: Download, name: "File Scrapper", codename: "Document Extraction", desc: "Pull all text from any document format via AI-powered extraction." },
+                { icon: Lock, name: "Cipher Toolkit", codename: "Crypto Tools", desc: "Encoding, hashing, and encryption — all client-side, zero server exposure." },
+                { icon: Flag, name: "Daily Briefings", codename: "Intel Briefings", desc: "Competitor, regulatory, and market signals delivered every morning." },
+              ]
+            },
+            {
+              group: "Build",
+              blurb: "IDE, notebooks, agents, and plugins",
+              items: [
+                { icon: Code, name: "Aureon IDE", codename: "Cloud IDE", desc: "Browser IDE with project files, terminals, sessions, and BYOK AI assistance." },
+                { icon: Feather, name: "Intelligence Notebooks", codename: "Notebooks", desc: "Shared analysis sessions with live SQL execution and team collaboration." },
+                { icon: GitBranch, name: "Zahten", codename: "Agent Forge", desc: "Design, scaffold, and harden autonomous agents — publish them as custom tabs." },
+                { icon: Cpu, name: "Plugin Marketplace", codename: "Plugins", desc: "Connectors and modules to extend Aureon with third-party integrations." },
+                { icon: Code, name: "Code Snippets", codename: "Snippet Vault", desc: "Save, tag, and reuse code blocks across all your conversations." },
+              ]
+            },
+            {
+              group: "Workspace",
+              blurb: "Library, memory, teams, and security",
+              items: [
+                { icon: Layers, name: "Library", codename: "Knowledge Base", desc: "Saved files, references, and centralized document repository." },
+                { icon: Layers, name: "Projects", codename: "Project Folders", desc: "Organize conversations, files, and intelligence into dedicated workspaces." },
+                { icon: Brain, name: "Memory Center", codename: "Long-Term Memory", desc: "Persistent context and recall that carries across every session." },
+                { icon: Users, name: "Team Workspace", codename: "Teams", desc: "Collaborate in real time with role-based access control." },
+                { icon: Users, name: "Community", codename: "Community Hub", desc: "Ask questions, request features, and vote on the roadmap." },
+                { icon: Brain, name: "Persona Store", codename: "AI Personas", desc: "Browse and configure custom AI personalities for any task." },
+                { icon: Moon, name: "Vedic Astrology", codename: "Sidereal Charts", desc: "Sidereal chart calculations, dasha cycles, and astro-temporal forecasting." },
+                { icon: Lock, name: "Guardian Vault", codename: "Security Center", desc: "Centralized security command center with TOTP MFA and credential hygiene." },
+              ]
+            },
+          ].map((category) => (
+            <div key={category.group} className="mb-16 last:mb-0">
+              <div className="flex items-center gap-4 mb-6">
+                <span className="font-mono text-[10px] tracking-[0.3em] text-emerald-400/80 uppercase">{category.group}</span>
+                <span className="h-px flex-1 bg-gradient-to-r from-emerald-400/20 to-transparent" />
+                <span className="text-[10px] font-light tracking-wide text-muted-foreground/50">{category.blurb}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {category.items.map((item) => (
+                  <div key={item.name} className="group relative rounded-2xl border border-border/15 bg-card/30 backdrop-blur-md p-5 hover:border-foreground/20 hover:bg-card/50 transition-all duration-500">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-foreground/10 bg-foreground/[0.03] group-hover:border-foreground/25 transition-all">
+                        <item.icon className="h-4 w-4 text-foreground/70 group-hover:text-foreground transition-colors" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-light tracking-tight text-foreground">{item.name}</h3>
+                        <p className="text-[10px] font-mono tracking-wider text-muted-foreground/50 uppercase mt-0.5">{item.codename}</p>
+                        <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground/80">{item.desc}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
       </ScrollSection>
