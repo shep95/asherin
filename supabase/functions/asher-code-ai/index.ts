@@ -112,8 +112,10 @@ function clampJoin(
 
 // ── Build the active system prompt: AUREON CODE base + active persona + active brain.
 // This makes Asher Code inherit the same brain/persona stack the rest of Aureon uses.
+import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
+
 function buildSystemPrompt(payload: any): string {
-  const parts: string[] = [ASHER_CODE_SYSTEM_PROMPT];
+  const parts: string[] = [ASHER_CODE_SYSTEM_PROMPT, NARRATIVE_FORGE_BRAIN];
   const persona = (payload?.personaSystemPrompt || "").toString().trim();
   const brain = payload?.brainContext || null;
   if (persona) {
