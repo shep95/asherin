@@ -1205,7 +1205,7 @@ const Index = () => {
                     </div>
                     <span className="font-mono text-[9px] tracking-[0.3em] text-foreground/30">{n}</span>
                   </div>
-                  <span className="text-[12.5px] font-extralight tracking-wide text-foreground/85 leading-snug">{label}</span>
+                  <span className="text-[13px] font-light tracking-wide text-foreground leading-snug">{label}</span>
                   <div aria-hidden className="mt-3 h-px w-8 bg-gradient-to-r from-foreground/40 to-transparent transition-all duration-500 group-hover:w-16" />
                 </div>
               ))}
