@@ -3,6 +3,7 @@
 // through the user's BYOK provider/key. No Lovable AI gateway fallback.
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
+import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
 //
 // Body:
 //   {
@@ -72,7 +73,9 @@ Prompt injection / LLM misuse • Cloud misconfig •
 Race/TOCTOU/memory safety • OTHER (anything suspicious or "not good" that doesn't fit — never drop it).
 For each finding: WHAT, WHERE (file:line), WHY it matters, EXACT FIX. Be aggressive.
 
-${NARRATIVE_FORGE_BRAIN}`;
+${NARRATIVE_FORGE_BRAIN}
+
+${BUTTERFLY_PROTOCOL_BRAIN}`;
     const stream: boolean = body.stream !== false;
 
     if (!prompt.trim()) {

@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
+import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
@@ -462,7 +463,7 @@ serve(async (req) => {
     }
 
     // Compose the full system prompt: identity → doctrine → brains → audit directive/schema
-    const FULL_SYSTEM_PROMPT = `${ZOPHIEL_IDENTITY}\n\n${AUREON_CODE_PERSONALITY}\n\n${NARRATIVE_FORGE_BRAIN}${brainsContext}\n\n${AUDIT_DIRECTIVE}`;
+    const FULL_SYSTEM_PROMPT = `${ZOPHIEL_IDENTITY}\n\n${AUREON_CODE_PERSONALITY}\n\n${NARRATIVE_FORGE_BRAIN}\n\n${BUTTERFLY_PROTOCOL_BRAIN}${brainsContext}\n\n${AUDIT_DIRECTIVE}`;
 
     const userPrompt = `Filename: ${safeName}\n\n--- BEGIN CODE ---\n${code}\n--- END CODE ---\n\nReturn the JSON security blueprint now.`;
 
