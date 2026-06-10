@@ -6,6 +6,9 @@ import { Link } from "react-router-dom";
 import { applySeoHead } from "@/lib/seoHead";
 import { ArrowLeft, ArrowRight, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube, Sparkles, MessageCircle } from "lucide-react";
 import FounderVideos from "@/components/founder/FounderVideos";
+import FounderTOC from "@/components/founder/FounderTOC";
+import { ReadingTime, SectionDivider } from "@/components/founder/FounderBits";
+import ScrollProgressBar from "@/components/landing/ScrollProgressBar";
 import imagineMaterialVsDivine from "@/assets/founder-imagine-material-vs-divine-love.png";
 import imagineMoneyWarControl from "@/assets/founder-imagine-money-war-control.png";
 import imagineReligionJesusCreated from "@/assets/founder-imagine-religion-jesus-created.png";
@@ -68,13 +71,22 @@ const Founder = () => {
 
   return (
     <LandingBackground>
+      <ScrollProgressBar />
+      <FounderTOC />
+
+      {/* Faint warm amber tint — the page is a study, not a lab */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{ background: "radial-gradient(ellipse at 50% 30%, rgba(251,191,36,0.025), transparent 70%)" }}
+      />
 
       <Header />
 
       <div className="zophiel-aurora-shell">
 
       {/* Hero Section — large dominant photo */}
-      <div className="relative z-10 px-6 pt-28 pb-20 sm:pt-32">
+      <div id="top" className="relative z-10 px-6 pt-28 pb-20 sm:pt-32 scroll-mt-24">
         <Link to="/" className="inline-flex items-center gap-2 text-[10px] font-extralight tracking-[0.32em] text-muted-foreground/60 hover:text-foreground transition-colors mb-12 uppercase">
           <ArrowLeft className="h-3 w-3" />
           Back to Home
@@ -94,15 +106,19 @@ const Founder = () => {
               Founder · Creator of Aureon
             </span>
 
-            <h1 className="text-6xl sm:text-7xl md:text-8xl font-extralight tracking-[-0.02em] leading-[0.9] text-foreground">
+            <h1 className="font-display text-7xl sm:text-8xl md:text-9xl lg:text-[8rem] font-light tracking-[-0.025em] leading-[0.88] text-foreground">
               Asher
               <br />
-              <span className="zophiel-shimmer-text">Newton</span>
+              <span className="zophiel-shimmer-text italic font-light">Newton</span>
             </h1>
 
-            <div className="mt-10 max-w-xl">
-              <p className="text-xl sm:text-2xl md:text-[1.65rem] font-extralight leading-[1.4] tracking-[-0.005em] text-foreground/90">
-                <span className="text-foreground/40">"</span>I didn't build Aureon for investors or corporations. I built it because <span className="text-foreground italic">the tools humanity deserves don't exist yet</span> — and no one else was going to make them.<span className="text-foreground/40">"</span>
+            <p className="mt-5 text-[11px] font-mono tracking-[0.42em] uppercase text-foreground/55">
+              Founder · Aureon · Intelligence Systems
+            </p>
+
+            <div className="mt-9 max-w-xl">
+              <p className="font-display text-2xl sm:text-[1.7rem] md:text-[1.85rem] font-light italic leading-[1.45] tracking-[-0.005em] text-foreground/85">
+                <span className="text-foreground/30 not-italic">"</span>I didn't build Aureon for investors or corporations. I built it because <span className="text-amber-200/90">the tools humanity deserves don't exist yet</span> — and no one else was going to make them.<span className="text-foreground/30 not-italic">"</span>
               </p>
             </div>
 
@@ -132,23 +148,26 @@ const Founder = () => {
         </div>
       </div>
 
+      <SectionDivider variant="diamond" glyph="◆" />
+
       {/* Genesis — Personal Story with hero pullquote */}
-      <div className="relative z-10 px-6 py-28 sm:py-36">
+      <div id="genesis" className="relative z-10 px-6 py-28 sm:py-36 scroll-mt-24">
         <div className="mx-auto max-w-5xl">
           <div className="text-center mb-16">
             <span className="founder-eyebrow mb-6">Chapter · 00 · Genesis</span>
-            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
+            <h2 className="font-display mt-6 text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-foreground">
               Before Aureon.
               <br />
-              <span className="text-muted-foreground/70 italic">Before everything.</span>
+              <span className="text-foreground/55 italic">Before everything.</span>
             </h2>
+            <div className="mt-6 flex justify-center"><ReadingTime minutes={3} /></div>
           </div>
 
           {/* The standalone hero quote — the page's emotional anchor */}
-          <figure className="mx-auto max-w-4xl text-center mb-20">
-            <p className="text-3xl sm:text-4xl md:text-5xl font-extralight leading-[1.2] tracking-[-0.015em] text-foreground">
+          <figure className="mx-auto max-w-4xl text-center mb-20 border-l-2 border-amber-300/60 pl-8 sm:pl-12 text-left">
+            <p className="font-display text-3xl sm:text-4xl md:text-[2.75rem] font-light leading-[1.18] tracking-[-0.02em] text-foreground">
               "Every system he builds carries the memory of that transition —
-              <span className="text-muted-foreground/80 italic"> from abandoned to adopted, from broken to rebuilt, from impossible to made possible."</span>
+              <span className="text-foreground/65 italic"> from abandoned to adopted, from broken to rebuilt, from impossible to made possible."</span>
             </p>
           </figure>
 
@@ -176,10 +195,10 @@ const Founder = () => {
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-20">
             <span className="founder-eyebrow mb-6">Chapter · 01 · Origin</span>
-            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
+            <h2 className="font-display mt-6 text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-foreground">
               The Story Behind
               <br />
-              <span className="text-muted-foreground/70 italic">the machine.</span>
+              <span className="text-foreground/55 italic">the machine.</span>
             </h2>
           </div>
 
@@ -209,22 +228,39 @@ const Founder = () => {
                 pull: "Truth exists in layers. The best tools help you see through each one.",
                 body: "My interests go deeper than technology. I'm drawn to spirituality and the occult — the hidden patterns beneath the surface of things. That same instinct drives Aureon: the belief that truth exists in layers, and the best tools are the ones that help you see through each one.",
               },
-            ].map(({ Icon, title, pull, body }, i) => (
-              <div key={title} className="founder-glass founder-corner rounded-2xl border border-border/30 bg-card/40 backdrop-blur-md p-8 sm:p-10 text-left">
-                <div className="flex items-center justify-between mb-6">
-                  <Icon className="h-7 w-7 text-foreground" strokeWidth={1.25} />
-                  <span className="text-[11px] font-extralight tracking-[0.32em] text-foreground/40 uppercase">{String(i + 1).padStart(2, "0")}</span>
+            ].map(({ Icon, title, pull, body }, i) => {
+              const isBeyondCode = title === "Beyond Code";
+              return (
+                <div
+                  key={title}
+                  className={`group relative founder-glass founder-corner rounded-2xl border p-8 sm:p-10 text-left overflow-hidden backdrop-blur-md transition-all ${
+                    isBeyondCode
+                      ? "border-amber-300/30 bg-amber-400/[0.04]"
+                      : "border-border/30 bg-card/40 hover:border-foreground/40"
+                  }`}
+                >
+                  {/* hover top accent line — slides in left → right */}
+                  <span
+                    aria-hidden
+                    className={`absolute top-0 left-0 h-px transition-all duration-300 ease-out ${
+                      isBeyondCode ? "bg-amber-300/70 w-full" : "bg-amber-300/70 w-0 group-hover:w-full"
+                    }`}
+                  />
+                  <div className="flex items-center justify-between mb-6">
+                    <Icon className={`h-7 w-7 ${isBeyondCode ? "text-amber-200" : "text-foreground"}`} strokeWidth={1.25} />
+                    <span className="text-[11px] font-extralight tracking-[0.32em] text-foreground/40 uppercase">{String(i + 1).padStart(2, "0")}</span>
+                  </div>
+                  <h3 className={`font-display text-2xl sm:text-3xl font-light tracking-tight ${isBeyondCode ? "text-amber-100" : "text-foreground"}`}>{title}</h3>
+                  <div className={`mt-3 h-px w-10 ${isBeyondCode ? "bg-amber-300/60" : "bg-foreground/30"}`} />
+                  <p className="mt-6 font-display text-xl sm:text-2xl font-light italic leading-[1.3] tracking-[-0.005em] text-foreground/95">
+                    "{pull}"
+                  </p>
+                  <p className="mt-5 text-[15px] font-extralight leading-[1.8] text-foreground/85 transition-opacity group-hover:text-foreground/95">
+                    {body}
+                  </p>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-light tracking-wide text-foreground">{title}</h3>
-                <div className="mt-3 h-px w-10 bg-foreground/30" />
-                <p className="mt-6 text-lg sm:text-xl font-extralight leading-[1.35] tracking-[-0.005em] text-foreground italic">
-                  "{pull}"
-                </p>
-                <p className="mt-5 text-base font-extralight leading-[1.75] text-foreground/75">
-                  {body}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <DirectionalCTA to="humanity" label="Continue · Why This Exists" />
@@ -235,10 +271,10 @@ const Founder = () => {
       {/* For Humanity - Full Width Statement */}
       <div id="humanity" className="relative z-10 px-6 py-28 sm:py-36 scroll-mt-24">
         <div className="mx-auto max-w-5xl text-center">
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-[-0.015em] leading-[1.05] text-foreground">
+          <h2 className="font-display text-6xl sm:text-7xl md:text-8xl font-light tracking-[-0.025em] leading-[1] text-foreground">
             Built For Humanity.
             <br />
-            <span className="text-muted-foreground/70">Not Shareholders.</span>
+            <span className="text-foreground/40 italic font-light">Not Shareholders.</span>
           </h2>
           <p className="mt-10 max-w-2xl mx-auto text-base sm:text-lg font-extralight leading-[1.75] text-foreground/80">
             Aureon isn't built for shareholders. It's built for researchers who need real answers, developers who need real code, and thinkers who refuse to accept a sanitized version of reality. <span className="text-foreground">If you're here, you're the reason this exists.</span>
@@ -281,18 +317,23 @@ const Founder = () => {
         </div>
       </div>
 
+      <SectionDivider variant="diamond" glyph="✦" />
+
       {/* The Wound of Worship — chaptered, large-typography essay */}
-      <div className="relative z-10 px-6 py-28 sm:py-36">
+      <div id="manifesto" className="relative z-10 px-6 py-28 sm:py-36 scroll-mt-24">
         <div className="mx-auto max-w-3xl">
           <div className="text-center mb-16">
             <p className="founder-eyebrow mb-6">Chapter · 02 · Manifesto</p>
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-[-0.015em] leading-[1.05] zophiel-shimmer-text">
+            <h2 className="font-display text-5xl sm:text-7xl md:text-[5.5rem] font-light italic tracking-[-0.025em] leading-[1] zophiel-shimmer-text">
               The Wound of Worship
             </h2>
             <p className="mt-6 text-sm font-extralight tracking-[0.18em] text-muted-foreground/70 uppercase">
               A founder's manifesto
             </p>
+            <div className="mt-5 flex justify-center"><ReadingTime minutes={8} /></div>
           </div>
+
+
 
           {/* Chapter I */}
           <div className="mb-16">
@@ -359,33 +400,42 @@ const Founder = () => {
         </div>
       </div>
 
-      {/* A Personal Note — short, intimate, distinct */}
-      <div className="relative z-10 px-6 py-20">
-        <div className="mx-auto max-w-3xl">
-          <div className="rounded-2xl border border-foreground/20 bg-foreground/[0.03] backdrop-blur-md p-10 sm:p-14">
-            <p className="text-[10px] font-extralight tracking-[0.42em] text-foreground/50 uppercase mb-8">
+      {/* A Personal Note — letter on a dark desk: narrow, sharp-cornered, warm */}
+      <div id="note" className="relative z-10 px-6 py-20 scroll-mt-24">
+        <div className="mx-auto" style={{ maxWidth: "620px" }}>
+          <div
+            className="border border-amber-300/15 p-10 sm:p-12 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.7)]"
+            style={{ background: "linear-gradient(180deg, rgba(40,30,20,0.55), rgba(20,18,16,0.55))" }}
+          >
+            <p className="text-[10px] font-extralight tracking-[0.42em] text-amber-200/70 uppercase mb-8">
               A Personal Note — Direct From Asher
             </p>
-            <p className="text-xl sm:text-2xl font-extralight leading-[1.5] tracking-[-0.005em] text-foreground/90 italic">
-              If you've read this far — you're already different from most people. You didn't scroll past. You didn't dismiss it as "weird." You stayed. <br /><br />
+            <p className="text-lg sm:text-xl font-extralight leading-[1.85] tracking-[-0.003em] text-foreground/90" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+              If you've read this far — you're already different from most people. You didn't scroll past. You didn't dismiss it as "weird." You stayed.
+              <br /><br />
               That matters more than you know. Aureon was built for the ones who stay.
             </p>
-            <p className="mt-10 text-right text-sm font-light tracking-[0.18em] text-foreground/80 italic" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
-              — Asher Newton · 05.05
+            <p className="mt-10 text-right text-base font-light tracking-[0.08em] text-foreground/85 italic" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
+              — Asher Newton
+              <span className="ml-3 text-xs tracking-[0.22em] text-foreground/45 not-italic">05.05</span>
             </p>
           </div>
         </div>
       </div>
+
+      <SectionDivider variant="diamond" glyph="❖" />
+
 
       {/* Books Written By Asher — book covers as cards */}
       <div id="ebook" className="relative z-10 px-6 py-28 sm:py-36 scroll-mt-24">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <span className="founder-eyebrow mb-6">Chapter · 03 · Library</span>
-            <h2 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-extralight tracking-[-0.015em] leading-[1.05] text-foreground">
-              Books Written By Asher
+            <h2 className="font-display mt-6 text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.025em] leading-[1.02] text-foreground">
+              The Source Documents
             </h2>
-            <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-[1.75] text-foreground/75">
+            <p className="mt-4 text-sm font-light italic text-foreground/55">Books written by Asher Newton</p>
+            <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-[1.8] text-foreground/80">
               These are the documents the intelligence and research community downloads first. Read them on the page. Take them with you.
             </p>
           </div>
@@ -483,7 +533,7 @@ const Founder = () => {
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <span className="founder-eyebrow mb-6">Chapter · 04 · Media</span>
-            <h2 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-extralight tracking-[-0.015em] leading-[1.05] text-foreground">
+            <h2 className="mt-6 font-display text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.025em] leading-[1.02] text-foreground">
               The Video Archives
             </h2>
             <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-[1.75] text-foreground/75">
@@ -502,7 +552,7 @@ const Founder = () => {
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <span className="founder-eyebrow mb-6">Chapter · 05 · Teachings</span>
-            <h2 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-extralight tracking-[-0.015em] leading-[1.05] text-foreground">
+            <h2 className="mt-6 font-display text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.025em] leading-[1.02] text-foreground">
               The Teachings
             </h2>
             <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-[1.75] text-foreground/75">
@@ -519,7 +569,7 @@ const Founder = () => {
                 </div>
                 <div>
                   <p className="text-xs font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-3">Lesson 01</p>
-                  <h3 className="text-3xl sm:text-4xl font-extralight tracking-[-0.01em] text-foreground leading-tight">
+                  <h3 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-light tracking-[-0.02em] text-foreground leading-[1.05]">
                     Material Love vs. Divine Love
                   </h3>
                   <p className="mt-6 text-xl sm:text-2xl font-extralight leading-[1.4] text-foreground italic">
@@ -543,7 +593,7 @@ const Founder = () => {
                 </div>
                 <div className="lg:order-1">
                   <p className="text-xs font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-3">Lesson 02</p>
-                  <h3 className="text-3xl sm:text-4xl font-extralight tracking-[-0.01em] text-foreground leading-tight">
+                  <h3 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-light tracking-[-0.02em] text-foreground leading-[1.05]">
                     Control Tactics — Money &amp; War
                   </h3>
                   <p className="mt-6 text-xl sm:text-2xl font-extralight leading-[1.4] text-foreground italic">
@@ -567,7 +617,7 @@ const Founder = () => {
                 </div>
                 <div>
                   <p className="text-xs font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-3">Lesson 03</p>
-                  <h3 className="text-3xl sm:text-4xl font-extralight tracking-[-0.01em] text-foreground leading-tight">
+                  <h3 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-light tracking-[-0.02em] text-foreground leading-[1.05]">
                     The Religion Jesus Created
                   </h3>
                   <p className="mt-6 text-xl sm:text-2xl font-extralight leading-[1.4] text-foreground italic">
@@ -590,7 +640,7 @@ const Founder = () => {
                 </div>
                 <div>
                   <p className="text-xs font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-3">Lesson 04</p>
-                  <h3 className="text-3xl sm:text-4xl font-extralight tracking-[-0.01em] text-foreground leading-tight">
+                  <h3 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-light tracking-[-0.02em] text-foreground leading-[1.05]">
                     Where Do Gods Hide Among Men?
                   </h3>
                   <p className="mt-6 text-xl sm:text-2xl font-extralight leading-[1.4] text-foreground italic">
@@ -613,7 +663,7 @@ const Founder = () => {
                 </div>
                 <div>
                   <p className="text-xs font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-3">Lesson 05</p>
-                  <h3 className="text-3xl sm:text-4xl font-extralight tracking-[-0.01em] text-foreground leading-tight">
+                  <h3 className="font-display text-4xl sm:text-5xl md:text-[3.25rem] font-light tracking-[-0.02em] text-foreground leading-[1.05]">
                     The Law of Chaos — Law One: Time
                   </h3>
                   <p className="mt-6 text-xl sm:text-2xl font-extralight leading-[1.4] text-foreground italic">
