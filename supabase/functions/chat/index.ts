@@ -1947,6 +1947,24 @@ ${zophielCodingBrainContent}
                   await writer.write(encoder.encode(`data: ${chunk}\n\n`));
                 }
               } catch { /* skip */ }
+            } else if (isResponsesApi) {
+              // OpenAI Responses API SSE (gpt-oss on Railway).
+              // Only surface `response.output_text.delta` as visible content;
+              // drop reasoning_text deltas (model's internal scratchpad).
+              if (!line.startsWith("data:")) continue;
+              const jsonStr = line.slice(5).trim();
+              if (!jsonStr) continue;
+              try {
+                const parsed = JSON.parse(jsonStr);
+                if (parsed?.type === "response.output_text.delta" && typeof parsed.delta === "string" && parsed.delta) {
+                  const chunk = JSON.stringify({ choices: [{ delta: { content: parsed.delta } }] });
+                  await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+                } else if (parsed?.type === "error") {
+                  const msg = parsed?.error?.message || parsed?.message || "upstream error";
+                  const chunk = JSON.stringify({ choices: [{ delta: { content: `\n\n[error] ${msg}` } }] });
+                  await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+                }
+              } catch { /* skip */ }
             } else {
               // OpenAI-compatible SSE format (OpenAI, xAI, Mistral, Venice, DeepSeek, Together)
               if (!line.startsWith("data: ")) continue;
