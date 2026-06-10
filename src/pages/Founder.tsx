@@ -533,7 +533,7 @@ const Founder = () => {
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <span className="founder-eyebrow mb-6">Chapter · 04 · Media</span>
-            <h2 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-extralight tracking-[-0.015em] leading-[1.05] text-foreground">
+            <h2 className="mt-6 font-display text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.025em] leading-[1.02] text-foreground">
               The Video Archives
             </h2>
             <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-[1.75] text-foreground/75">
@@ -552,7 +552,7 @@ const Founder = () => {
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <span className="founder-eyebrow mb-6">Chapter · 05 · Teachings</span>
-            <h2 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-extralight tracking-[-0.015em] leading-[1.05] text-foreground">
+            <h2 className="mt-6 font-display text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.025em] leading-[1.02] text-foreground">
               The Teachings
             </h2>
             <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-[1.75] text-foreground/75">
