@@ -13,6 +13,10 @@ export const BYOK_REQUIRED_BODY = {
     "Bring your own AI key to use the Zophiel Engine. Open the BYOK panel and add your Gemini key.",
 };
 
+// Cheapest uncensored Venice model that handles code + vision.
+// See https://docs.venice.ai/api-reference/models
+const VENICE_FREE_MODEL = "mistral-31-24b";
+
 /** Returns the authenticated caller's email, or null if anon / invalid. */
 export async function getCallerEmail(req: Request): Promise<string | null> {
   const auth = req.headers.get("Authorization") || "";
