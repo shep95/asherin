@@ -119,10 +119,10 @@ const ZophielDemo = () => {
       </div>
 
       <Link
-        to="/zophiel"
+        to="/dashboard"
         className="mt-1 inline-flex items-center gap-1 text-[10px] tracking-wider uppercase text-muted-foreground/70 hover:text-foreground transition-colors"
       >
-        Open full search <ArrowRight className="h-3 w-3" />
+        Open dashboard <ArrowRight className="h-3 w-3" />
       </Link>
     </div>
   );
@@ -311,10 +311,10 @@ const WhiteboardDemo = () => {
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-light text-muted-foreground/50">4 nodes · 4 edges</span>
         <Link
-          to="/whiteboard"
+          to="/dashboard"
           className="inline-flex items-center gap-1 text-[10px] tracking-wider uppercase text-muted-foreground/70 hover:text-foreground transition-colors"
         >
-          Open canvas <ArrowRight className="h-3 w-3" />
+          Open dashboard <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
     </div>
