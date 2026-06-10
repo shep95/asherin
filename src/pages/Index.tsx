@@ -803,8 +803,8 @@ const Index = () => {
                 { icon: Lock, name: "Guardian Vault", codename: "Security Center", desc: "Centralized security command center with TOTP MFA and credential hygiene." },
               ]
             },
-          ].map((category) => (
-            <div key={category.group} className="mb-16 last:mb-0">
+          ].map((category, ci) => (
+            <div key={category.group} className={`mb-16 last:mb-0 ${ci >= 2 && !arsenalExpanded ? "hidden" : ""}`}>
               <div className="flex items-center gap-4 mb-6">
                 <span className="font-mono text-[10px] tracking-[0.3em] text-emerald-400/80 uppercase">{category.group}</span>
                 <span className="h-px flex-1 bg-gradient-to-r from-emerald-400/20 to-transparent" />
@@ -828,6 +828,17 @@ const Index = () => {
               </div>
             </div>
           ))}
+
+          {/* Curiosity-gap expand button */}
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={() => setArsenalExpanded((v) => !v)}
+              className="group inline-flex items-center gap-3 rounded-full border border-foreground/25 bg-foreground/[0.04] backdrop-blur-md px-7 py-3.5 text-xs font-light tracking-[0.22em] uppercase text-foreground hover:bg-foreground hover:text-background transition-all"
+            >
+              {arsenalExpanded ? "Hide the rest" : "See all 30+ tools"}
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${arsenalExpanded ? "rotate-180" : ""}`} />
+            </button>
+          </div>
         </div>
       </div>
       </ScrollSection>
