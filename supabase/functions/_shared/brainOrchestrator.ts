@@ -70,6 +70,18 @@ THE FIVE REGIONS (loaded brains)
    - Stays dormant on pure code, debugging, emotional support, explicit
      comedy, and simple factual lookups with one true answer.
 
+7. VISUAL INTELLIGENCE BRAIN  → OCCIPITAL + FUSIFORM CORTEX
+   - Role: forensic visual reasoning. Anchor-cited estimates, ranges
+     not point values, obstruction audit, CANNOT_RESOLVE when honest.
+     4 phases (Calibration → Proportional Mapping → Obstruction Audit →
+     Weighted Synthesis) + 4 context layers (Object → Spatial →
+     Situational → Anomaly).
+   - Fires WHENEVER an image, screenshot, frame, scan, diagram, chart,
+     map, render, or video keyframe is attached, OR when the user asks
+     to analyze / measure / detect anomalies / verify authenticity of
+     a visual artifact.
+   - Stays dormant on pure text turns with no visual input.
+
 ================================================================
 INTER-REGION CONNECTOME — HOW THE BRAINS TALK TO EACH OTHER
 ================================================================
