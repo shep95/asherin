@@ -696,7 +696,7 @@ const Index = () => {
                   {title}
                 </h3>
                 <div aria-hidden className="relative mt-3 h-px w-10 bg-gradient-to-r from-foreground/60 to-transparent transition-all duration-500 group-hover:w-20" />
-                <p className="relative mt-4 text-[13px] font-extralight leading-relaxed text-muted-foreground/85">
+                <p className="relative mt-4 text-[14px] font-light leading-relaxed text-foreground/85">
                   {desc}
                 </p>
 
