@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, forwardRef, useImperativeHandle } from "react";
-import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff, ClipboardPaste, FileUp } from "lucide-react";
+import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff, ClipboardPaste, FileUp, Image as ImageLucide, Video, FileIcon, Files } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
 import VoiceRecordingOrb from "./VoiceRecordingOrb";
@@ -550,7 +551,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
         )}
 
         <div className={`flex items-end gap-2 sm:gap-3 rounded-2xl border ${online ? "border-border/30" : "border-amber-500/30"} bg-card/40 backdrop-blur-xl p-2 sm:p-3 transition-all min-w-0`}>
-          {/* Attach button */}
+          {/* Attach button — categorized tabs (Photos / Videos / Documents / Files) */}
           <input
             ref={fileInputRef}
             type="file"
@@ -558,14 +559,51 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
             onChange={handleFileSelect}
             className="hidden"
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || isStreaming || isRecording}
-            className="shrink-0 p-2 rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all disabled:opacity-30"
-            title="Attach files or images"
-          >
-            <Paperclip className="h-4 w-4" />
-          </button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                disabled={disabled || isStreaming || isRecording}
+                className="shrink-0 p-2 rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all disabled:opacity-30"
+                title="Attach files, images, videos, or documents"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              side="top"
+              sideOffset={8}
+              className="w-64 p-2 bg-card/95 backdrop-blur-xl border-border/40 rounded-2xl"
+            >
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { label: "Photos", icon: ImageLucide, accept: "image/*" },
+                  { label: "Videos", icon: Video, accept: "video/*" },
+                  { label: "Documents", icon: FileIcon, accept: ".pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.xlsx,.xls,.ppt,.pptx,.rtf" },
+                  { label: "All Files", icon: Files, accept: "*/*" },
+                ].map(({ label, icon: Icon, accept }) => (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      const el = fileInputRef.current;
+                      if (!el) return;
+                      el.setAttribute("accept", accept);
+                      el.click();
+                      // close popover by blurring
+                      (document.activeElement as HTMLElement | null)?.blur();
+                    }}
+                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border border-border/30 bg-background/40 hover:bg-foreground/5 hover:border-border/60 transition-all text-xs font-light text-foreground"
+                  >
+                    <Icon className="h-5 w-5 text-muted-foreground" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground/60 text-center mt-2 px-1">
+                Up to 20MB per file · 10 files max
+              </p>
+            </PopoverContent>
+          </Popover>
 
           {/* Voice record — orb when active, mic icon when idle */}
           {isRecording ? (
