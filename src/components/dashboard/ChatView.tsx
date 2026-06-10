@@ -183,10 +183,10 @@ const VALID_INTERNAL_PATHS = new Set([
   "/terms", "/privacy", "/nda", "/prompt-engineering",
   "/feature/zophiel", "/feature/nomad", "/feature/azplen", "/feature/briefings",
   "/feature/personas", "/feature/zali", "/feature/predictive", "/feature/elion",
-  "/feature/tracker", "/feature/imagine-to-code", "/feature/ide",
+  "/feature/tracker", "/feature/ide",
   "/feature/imagine-intelligence", "/feature/google-intelligence",
   "/feature/security", "/feature/notebooks", "/feature/vibe-imager",
-  "/feature/vibe-video", "/feature/video-intelligence",
+  "/feature/video-intelligence",
 ]);
 
 function isInternalLink(href: string): string | null {

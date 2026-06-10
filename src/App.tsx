@@ -31,13 +31,11 @@ const FeatureZali = lazy(() => import("./pages/FeatureZali"));
 const FeatureZahten = lazy(() => import("./pages/FeatureZahten"));
 const FeaturePredictive = lazy(() => import("./pages/FeaturePredictive"));
 
-const FeatureImagineToCode = lazy(() => import("./pages/FeatureImagineToCode"));
 const FeatureIde = lazy(() => import("./pages/FeatureIde"));
 const FeatureImagineIntelligence = lazy(() => import("./pages/FeatureOracleLocus"));
 const LLMModels = lazy(() => import("./pages/LLMModels"));
 const FeatureNotebooks = lazy(() => import("./pages/FeatureNotebooks"));
 const FeatureVibeImager = lazy(() => import("./pages/FeatureVibeImager"));
-const FeatureVibeVideo = lazy(() => import("./pages/FeatureVibeVideo"));
 const FeatureVideoIntelligence = lazy(() => import("./pages/FeatureVideoIntelligence"));
 const FeatureBYOK = lazy(() => import("./pages/FeatureBYOK"));
 const FeatureZerlal = lazy(() => import("./pages/FeatureZerlal"));
@@ -49,12 +47,10 @@ const FeatureCross = lazy(() => import("./pages/FeatureCross"));
 const FeatureZaplen = lazy(() => import("./pages/FeatureZaplen"));
 const FeatureCipher = lazy(() => import("./pages/FeatureCipher"));
 const FeaturePatternAnalysis = lazy(() => import("./pages/FeaturePatternAnalysis"));
-const FeatureReverseEngineer = lazy(() => import("./pages/FeatureReverseEngineer"));
 const FeatureFileScrapper = lazy(() => import("./pages/FeatureFileScrapper"));
 const FeatureEbook = lazy(() => import("./pages/FeatureEbook"));
 const FeaturePluginMarketplace = lazy(() => import("./pages/FeaturePluginMarketplace"));
 const FeatureCodingLaws = lazy(() => import("./pages/FeatureCodingLaws"));
-const FeatureAutomatedAgents = lazy(() => import("./pages/FeatureAutomatedAgents"));
 const FeatureMemoryCenter = lazy(() => import("./pages/FeatureMemoryCenter"));
 const FeatureBrains = lazy(() => import("./pages/FeatureBrains"));
 const FeatureLibrary = lazy(() => import("./pages/FeatureLibrary"));
@@ -131,13 +127,11 @@ const App = () => (
             <Route path="/feature/zahten" element={<FeatureZahten />} />
             <Route path="/feature/predictive" element={<FeaturePredictive />} />
             
-            <Route path="/feature/imagine-to-code" element={<FeatureImagineToCode />} />
             <Route path="/feature/ide" element={<FeatureIde />} />
             <Route path="/feature/imagine-intelligence" element={<FeatureImagineIntelligence />} />
             <Route path="/llm-models" element={<LLMModels />} />
             <Route path="/feature/notebooks" element={<FeatureNotebooks />} />
             <Route path="/feature/vibe-imager" element={<FeatureVibeImager />} />
-            <Route path="/feature/vibe-video" element={<FeatureVibeVideo />} />
             <Route path="/feature/video-intelligence" element={<FeatureVideoIntelligence />} />
             <Route path="/feature/byok" element={<FeatureBYOK />} />
             <Route path="/feature/zerlal" element={<FeatureZerlal />} />
@@ -149,12 +143,10 @@ const App = () => (
             <Route path="/feature/zaplen" element={<FeatureZaplen />} />
             <Route path="/feature/cipher" element={<FeatureCipher />} />
             <Route path="/feature/pattern-analysis" element={<FeaturePatternAnalysis />} />
-            <Route path="/feature/reverse-engineer" element={<FeatureReverseEngineer />} />
             <Route path="/feature/file-scrapper" element={<FeatureFileScrapper />} />
             <Route path="/feature/ebook" element={<FeatureEbook />} />
             <Route path="/feature/plugin-marketplace" element={<FeaturePluginMarketplace />} />
             <Route path="/feature/coding-laws" element={<FeatureCodingLaws />} />
-            <Route path="/feature/automated-agents" element={<FeatureAutomatedAgents />} />
             <Route path="/feature/memory-center" element={<FeatureMemoryCenter />} />
             <Route path="/feature/brains" element={<FeatureBrains />} />
             <Route path="/feature/library" element={<FeatureLibrary />} />

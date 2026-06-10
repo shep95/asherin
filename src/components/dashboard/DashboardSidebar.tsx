@@ -58,15 +58,13 @@ type NavItem = { id: DashboardView; icon: React.ElementType; label: string; acce
 interface SubGroup { label: string; items: NavItem[] }
 interface NavGroup { label: string; subgroups: SubGroup[] }
 
-const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, label: "Subscription" };
+const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, label: "Donate to keep things running" };
 
 // Icon mapping by view/route — keeps a consistent monochrome icon per intent.
 import { NAV_INTENTS as ALL_INTENTS, INTENT_GROUPS, INTENT_GROUP_BLURB, type NavIntent } from "@/lib/navIntents";
 
 const VIEW_ICON: Record<string, React.ElementType> = {
   "vibe-imager": Sparkles,
-  "vibe-video": Sparkles,
-  "imagine-to-code": Code2,
   "zali": Zap,
   "pdf-generator": FileText,
   "/whiteboard": Layers,

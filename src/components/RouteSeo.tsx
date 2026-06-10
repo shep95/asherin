@@ -104,10 +104,6 @@ const SEO: Record<string, SeoEntry> = {
     title: "Predictive Intelligence — Corporate Event Forecasting | Aureon",
     description: "Forecast corporate events, market dislocations, and policy moves with Monte Carlo modeling.",
   },
-  "/feature/imagine-to-code": {
-    title: "Imagine-to-Code — Visual Prompt to Production Code | Aureon",
-    description: "Turn sketches, screenshots, and visual prompts into production-grade code in seconds.",
-  },
   "/feature/ide": {
     title: "Aureon IDE — In-Dashboard Monaco Development | Aureon",
     description:
@@ -125,10 +121,6 @@ const SEO: Record<string, SeoEntry> = {
   "/feature/vibe-imager": {
     title: "Vibe Imager — Aesthetic Image Generation | Aureon",
     description: "Vibe Imager: aesthetic-first image generation tuned for editorial and brand-grade output.",
-  },
-  "/feature/vibe-video": {
-    title: "Vibe Video — AI Video Generation | Aureon",
-    description: "Vibe Video: cinematic AI video generation with consistent style, motion, and pacing.",
   },
   "/feature/video-intelligence": {
     title: "Video Intelligence — FACS Behavioral Tracking | Aureon",
@@ -177,10 +169,6 @@ const SEO: Record<string, SeoEntry> = {
     description:
       "Pattern Analysis: pro-tier forecasting with Recharts visualizations and pattern-recognition on live data.",
   },
-  "/feature/reverse-engineer": {
-    title: "Reverse Engineering Intelligence — From Image to Architecture | Aureon",
-    description: "Deconstruct architecture from images, video, and live captures with AI reverse-engineering.",
-  },
   "/feature/file-scrapper": {
     title: "File Scrapper — Unstructured Document Extraction | Aureon",
     description: "File Scrapper: extract structured intelligence from PDFs, images, and unstructured documents.",
@@ -198,11 +186,6 @@ const SEO: Record<string, SeoEntry> = {
     title: "Coding Laws — Aureon's Engineering Doctrine | Aureon",
     description:
       "The Aureon coding laws: production-hardened patterns, session persistence, race-condition discipline, and security defaults.",
-  },
-  "/feature/automated-agents": {
-    title: "Automated Agents — Scheduled Intelligence | Aureon",
-    description:
-      "Automated Agents: scheduled tasks with multi-channel webhook delivery for continuous intelligence ops.",
   },
   "/feature/memory-center": {
     title: "Memory Center — Persistent AI Context | Aureon",
