@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check, Keyboard, GitBranch, X, Upload, Lock, Plus, Send } from "lucide-react";
+import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check, Keyboard, GitBranch, X, Upload, Lock, Plus, Send, Brain } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { useGitHub } from "@/hooks/useGitHub";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import AIKeysSettings from "./AIKeysSettings";
+import { isAdminEmail } from "@/lib/adminEmail";
 import wallpaperDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
@@ -437,8 +438,44 @@ const SettingsView = () => {
               <label className="text-xs text-muted-foreground">Email</label>
               <p className="text-sm text-foreground/70 mt-1">{user?.email}</p>
             </div>
+            {isAdminEmail(user?.email) && (
+              <div className="pt-3 border-t border-border/15">
+                <label className="text-xs text-muted-foreground flex items-center gap-2">
+                  <Brain className="h-3.5 w-3.5" /> Admin · Cortical Brain Archive
+                </label>
+                <p className="text-[11px] text-muted-foreground/60 mt-1">
+                  Download all Aureon Chat cortical brain doctrines as a single zip.
+                </p>
+                <button
+                  onClick={async () => {
+                    try {
+                      const { data: sess } = await supabase.auth.getSession();
+                      const token = sess.session?.access_token;
+                      if (!token) throw new Error("Not authenticated");
+                      const url = `https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1/download-brains`;
+                      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+                      if (!res.ok) throw new Error(`Failed (${res.status})`);
+                      const blob = await res.blob();
+                      const a = document.createElement("a");
+                      a.href = URL.createObjectURL(blob);
+                      a.download = `aureon-brains-${Date.now()}.zip`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      toast({ title: "Brains exported", description: "Zip download started." });
+                    } catch (e: any) {
+                      toast({ title: "Download failed", description: e.message, variant: "destructive" });
+                    }
+                  }}
+                  className="mt-2 inline-flex items-center gap-2 text-xs bg-foreground text-background px-3 py-2 rounded-lg hover:bg-foreground/90 transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" /> Download All Brains (.zip)
+                </button>
+              </div>
+            )}
           </div>
         </div>
+
 
         {/* Wallpaper */}
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
