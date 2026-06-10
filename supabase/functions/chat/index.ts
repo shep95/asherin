@@ -1,15 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { BRAIN_ORCHESTRATOR } from "../_shared/brainOrchestrator.ts";
-import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
-import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
-import { COMEDY_BRAIN } from "../_shared/comedyBrain.ts";
-import { ASHER_LOGIC_BRAIN } from "../_shared/asherLogicBrain.ts";
-import { PROMPT_INTELLIGENCE_PROTOCOL } from "../_shared/promptIntelligenceProtocol.ts";
-import { EMOTIONAL_PERSONA_BRAIN } from "../_shared/emotionalPersonaBrain.ts";
-import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
-import { VISUAL_INTELLIGENCE_BRAIN } from "../_shared/visualIntelligenceBrain.ts";
+// Brain modules disconnected per user request — no brains attached to chat API.
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ══════════════════════════════════════════════════════════════════════════════
