@@ -271,10 +271,10 @@ const Founder = () => {
       {/* For Humanity - Full Width Statement */}
       <div id="humanity" className="relative z-10 px-6 py-28 sm:py-36 scroll-mt-24">
         <div className="mx-auto max-w-5xl text-center">
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-[-0.015em] leading-[1.05] text-foreground">
+          <h2 className="font-display text-6xl sm:text-7xl md:text-8xl font-light tracking-[-0.025em] leading-[1] text-foreground">
             Built For Humanity.
             <br />
-            <span className="text-muted-foreground/70">Not Shareholders.</span>
+            <span className="text-foreground/40 italic font-light">Not Shareholders.</span>
           </h2>
           <p className="mt-10 max-w-2xl mx-auto text-base sm:text-lg font-extralight leading-[1.75] text-foreground/80">
             Aureon isn't built for shareholders. It's built for researchers who need real answers, developers who need real code, and thinkers who refuse to accept a sanitized version of reality. <span className="text-foreground">If you're here, you're the reason this exists.</span>
@@ -317,17 +317,21 @@ const Founder = () => {
         </div>
       </div>
 
+      <SectionDivider variant="diamond" glyph="✦" />
+
       {/* The Wound of Worship — chaptered, large-typography essay */}
-      <div className="relative z-10 px-6 py-28 sm:py-36">
+      <div id="manifesto" className="relative z-10 px-6 py-28 sm:py-36 scroll-mt-24">
         <div className="mx-auto max-w-3xl">
           <div className="text-center mb-16">
             <p className="founder-eyebrow mb-6">Chapter · 02 · Manifesto</p>
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-[-0.015em] leading-[1.05] zophiel-shimmer-text">
+            <h2 className="font-display text-5xl sm:text-7xl md:text-[5.5rem] font-light italic tracking-[-0.025em] leading-[1] zophiel-shimmer-text">
               The Wound of Worship
             </h2>
             <p className="mt-6 text-sm font-extralight tracking-[0.18em] text-muted-foreground/70 uppercase">
               A founder's manifesto
             </p>
+            <div className="mt-5 flex justify-center"><ReadingTime minutes={8} /></div>
+          </div>
           </div>
 
           {/* Chapter I */}
