@@ -166,6 +166,13 @@ export function responsesSseToChatCompletionsSse(upstream: ReadableStream<Uint8A
         if (type === "response.output_text.delta") {
           const delta = parsed?.delta;
           if (typeof delta === "string" && delta.length > 0) {
+            // Detect upstream "backend not configured" sentinel and surface a clean message
+            if (/\[backend not configured\]/i.test(delta)) {
+              const friendly = "Aureon's free-tier engine is temporarily offline. Add your own API key in Settings → BYOK to continue uninterrupted, or try again in a few minutes.";
+              const chunk = JSON.stringify({ choices: [{ delta: { content: friendly }, index: 0, finish_reason: "stop" }] });
+              controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
+              return;
+            }
             const chunk = JSON.stringify({ choices: [{ delta: { content: delta }, index: 0, finish_reason: null }] });
             controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
           }
