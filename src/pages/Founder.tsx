@@ -6,6 +6,9 @@ import { Link } from "react-router-dom";
 import { applySeoHead } from "@/lib/seoHead";
 import { ArrowLeft, ArrowRight, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube, Sparkles, MessageCircle } from "lucide-react";
 import FounderVideos from "@/components/founder/FounderVideos";
+import FounderTOC from "@/components/founder/FounderTOC";
+import { ReadingTime, SectionDivider } from "@/components/founder/FounderBits";
+import ScrollProgressBar from "@/components/landing/ScrollProgressBar";
 import imagineMaterialVsDivine from "@/assets/founder-imagine-material-vs-divine-love.png";
 import imagineMoneyWarControl from "@/assets/founder-imagine-money-war-control.png";
 import imagineReligionJesusCreated from "@/assets/founder-imagine-religion-jesus-created.png";
@@ -68,13 +71,22 @@ const Founder = () => {
 
   return (
     <LandingBackground>
+      <ScrollProgressBar />
+      <FounderTOC />
+
+      {/* Faint warm amber tint — the page is a study, not a lab */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{ background: "radial-gradient(ellipse at 50% 30%, rgba(251,191,36,0.025), transparent 70%)" }}
+      />
 
       <Header />
 
       <div className="zophiel-aurora-shell">
 
       {/* Hero Section — large dominant photo */}
-      <div className="relative z-10 px-6 pt-28 pb-20 sm:pt-32">
+      <div id="top" className="relative z-10 px-6 pt-28 pb-20 sm:pt-32 scroll-mt-24">
         <Link to="/" className="inline-flex items-center gap-2 text-[10px] font-extralight tracking-[0.32em] text-muted-foreground/60 hover:text-foreground transition-colors mb-12 uppercase">
           <ArrowLeft className="h-3 w-3" />
           Back to Home
@@ -94,15 +106,19 @@ const Founder = () => {
               Founder · Creator of Aureon
             </span>
 
-            <h1 className="text-6xl sm:text-7xl md:text-8xl font-extralight tracking-[-0.02em] leading-[0.9] text-foreground">
+            <h1 className="font-display text-7xl sm:text-8xl md:text-9xl lg:text-[8rem] font-light tracking-[-0.025em] leading-[0.88] text-foreground">
               Asher
               <br />
-              <span className="zophiel-shimmer-text">Newton</span>
+              <span className="zophiel-shimmer-text italic font-light">Newton</span>
             </h1>
 
-            <div className="mt-10 max-w-xl">
-              <p className="text-xl sm:text-2xl md:text-[1.65rem] font-extralight leading-[1.4] tracking-[-0.005em] text-foreground/90">
-                <span className="text-foreground/40">"</span>I didn't build Aureon for investors or corporations. I built it because <span className="text-foreground italic">the tools humanity deserves don't exist yet</span> — and no one else was going to make them.<span className="text-foreground/40">"</span>
+            <p className="mt-5 text-[11px] font-mono tracking-[0.42em] uppercase text-foreground/55">
+              Founder · Aureon · Intelligence Systems
+            </p>
+
+            <div className="mt-9 max-w-xl">
+              <p className="font-display text-2xl sm:text-[1.7rem] md:text-[1.85rem] font-light italic leading-[1.45] tracking-[-0.005em] text-foreground/85">
+                <span className="text-foreground/30 not-italic">"</span>I didn't build Aureon for investors or corporations. I built it because <span className="text-amber-200/90">the tools humanity deserves don't exist yet</span> — and no one else was going to make them.<span className="text-foreground/30 not-italic">"</span>
               </p>
             </div>
 
@@ -132,23 +148,26 @@ const Founder = () => {
         </div>
       </div>
 
+      <SectionDivider variant="diamond" glyph="◆" />
+
       {/* Genesis — Personal Story with hero pullquote */}
-      <div className="relative z-10 px-6 py-28 sm:py-36">
+      <div id="genesis" className="relative z-10 px-6 py-28 sm:py-36 scroll-mt-24">
         <div className="mx-auto max-w-5xl">
           <div className="text-center mb-16">
             <span className="founder-eyebrow mb-6">Chapter · 00 · Genesis</span>
-            <h2 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-extralight tracking-[-0.01em] leading-[1.05] text-foreground">
+            <h2 className="font-display mt-6 text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-foreground">
               Before Aureon.
               <br />
-              <span className="text-muted-foreground/70 italic">Before everything.</span>
+              <span className="text-foreground/55 italic">Before everything.</span>
             </h2>
+            <div className="mt-6 flex justify-center"><ReadingTime minutes={3} /></div>
           </div>
 
           {/* The standalone hero quote — the page's emotional anchor */}
-          <figure className="mx-auto max-w-4xl text-center mb-20">
-            <p className="text-3xl sm:text-4xl md:text-5xl font-extralight leading-[1.2] tracking-[-0.015em] text-foreground">
+          <figure className="mx-auto max-w-4xl text-center mb-20 border-l-2 border-amber-300/60 pl-8 sm:pl-12 text-left">
+            <p className="font-display text-3xl sm:text-4xl md:text-[2.75rem] font-light leading-[1.18] tracking-[-0.02em] text-foreground">
               "Every system he builds carries the memory of that transition —
-              <span className="text-muted-foreground/80 italic"> from abandoned to adopted, from broken to rebuilt, from impossible to made possible."</span>
+              <span className="text-foreground/65 italic"> from abandoned to adopted, from broken to rebuilt, from impossible to made possible."</span>
             </p>
           </figure>
 
