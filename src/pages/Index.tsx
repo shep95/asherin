@@ -17,6 +17,8 @@ import FreeManifesto from "@/components/FreeManifesto";
 import SiteFooter from "@/components/SiteFooter";
 import LiveDemoStrip from "@/components/landing/LiveDemoStrip";
 import TrustBand from "@/components/landing/TrustBand";
+import ScrollProgressBar from "@/components/landing/ScrollProgressBar";
+import MobileStickyCTA from "@/components/landing/MobileStickyCTA";
 
 import CommandPaletteHint from "@/components/landing/CommandPaletteHint";
 import MagneticSpotlightButton from "@/components/landing/MagneticSpotlightButton";
@@ -43,17 +45,17 @@ const ScrollSection = ({ children, className = "" }: { children: React.ReactNode
 const FaqItem = ({ q, a }: { q: string; a: string }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden">
-      <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-between px-6 py-4 text-left">
-        <span className="text-sm font-light tracking-wide text-foreground">{q}</span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+    <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden transition-colors hover:border-amber-300/30">
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left">
+        <span className="font-display text-lg sm:text-xl font-light tracking-tight text-foreground leading-snug">{q}</span>
+        <ChevronDown className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
       </button>
       <div
         className={`grid transition-all duration-300 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
       >
         <div className="overflow-hidden">
-          <div className="px-6 pb-5">
-            <p className="text-sm font-extralight leading-relaxed text-muted-foreground">{a}</p>
+          <div className="px-6 pb-6">
+            <p className="text-[15px] font-extralight leading-[1.75] text-muted-foreground max-w-3xl">{a}</p>
           </div>
         </div>
       </div>
@@ -263,6 +265,8 @@ const Index = () => {
 
   return (
     <LandingBackground>
+      <ScrollProgressBar />
+      <MobileStickyCTA />
 
       {/* Header */}
       <Header />
@@ -310,10 +314,10 @@ const Index = () => {
                 v1.0 · INTELLIGENCE OS
               </div>
 
-              <h1 className="mt-6 text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-extralight tracking-[-0.02em] leading-[0.95] text-foreground">
+              <h1 className="font-display mt-6 text-6xl sm:text-7xl md:text-8xl lg:text-[7rem] xl:text-[8rem] font-light tracking-[-0.025em] leading-[0.92] text-foreground">
                 See what
                 <br />
-                <span className="zophiel-shimmer-text italic font-thin">others miss.</span>
+                <span className="zophiel-shimmer-text italic font-light">others miss.</span>
               </h1>
 
               <p className="mt-7 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
