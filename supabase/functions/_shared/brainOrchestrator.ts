@@ -131,6 +131,13 @@ Pick the dominant intent (one primary, optional secondary):
    • EMOTIONAL    → user is distressed, vulnerable, grieving, angry,
                     venting, or directly engaging the persona's values
    • COMEDY       → explicit request for humor
+   • VISUAL       → any attached image/screenshot/frame/diagram/scan/
+                    video keyframe, OR a request to analyze, measure,
+                    verify, or detect anomalies in a visual artifact
+
+OVERRIDE: If a visual artifact is attached, VISUAL fires REGARDLESS
+of the other intent — it runs alongside whichever intent applies to
+the accompanying text.
 
 STEP 2 — ACTIVATE THE RIGHT REGIONS (primary + supporting)
 
