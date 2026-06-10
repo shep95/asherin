@@ -1805,9 +1805,46 @@ ${zophielCodingBrainContent}
           });
         }
         console.error("[chat] gpt-oss failed. Last status:", lastStatus, "body:", lastError);
-        return new Response(JSON.stringify({ error: `AI gateway error (${lastStatus || 500}). Please try again in a moment.` }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+
+        // Fallback: Lovable AI Gateway (OpenAI-compatible streaming) when self-hosted backend is unreachable
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (LOVABLE_API_KEY) {
+          try {
+            console.log("[chat] Falling back to Lovable AI Gateway");
+            const fbResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+              },
+              body: JSON.stringify({
+                model: "google/gemini-3-flash-preview",
+                messages: openaiMessages,
+                stream: true,
+                temperature: 0.7,
+                max_tokens: 8192,
+              }),
+            });
+            if (fbResp.ok) {
+              response = fbResp;
+            } else {
+              const fbErr = await fbResp.text().catch(() => "");
+              console.error("[chat] Lovable AI fallback failed:", fbResp.status, fbErr.slice(0, 200));
+              return new Response(JSON.stringify({ error: "AI is temporarily unavailable. Please try again in a moment.", fallback: true }), {
+                status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+          } catch (e) {
+            console.error("[chat] Lovable AI fallback threw:", e);
+            return new Response(JSON.stringify({ error: "AI is temporarily unavailable. Please try again in a moment.", fallback: true }), {
+              status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } else {
+          return new Response(JSON.stringify({ error: `AI is temporarily unavailable (${lastStatus || 502}). Please try again in a moment.`, fallback: true }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
     }
 
