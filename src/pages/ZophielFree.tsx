@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Lock, MessageSquare, X, AlertOctagon, ArrowUpRight, Sparkles, Shield, Github } from "lucide-react";
+import { Lock, AlertOctagon } from "lucide-react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
