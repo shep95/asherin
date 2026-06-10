@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, LogOut } from "lucide-react";
 
-const ALLOWED_EMAILS = new Set([ADMIN_EMAIL, "ekk447@gmail.com"]);
+const ALLOWED_EMAILS = new Set([ADMIN_EMAIL, "ekk447@gmail.com", "28numberofmoney@gmail.com"]);
 const RESTRICTED_HOSTS = new Set(["aureonai.app", "www.aureonai.app"]);
 
 /**
