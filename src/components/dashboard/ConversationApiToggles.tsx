@@ -86,20 +86,7 @@ const ConversationApiToggles = ({ conversationId, storedProviders }: Props) => {
             </button>
           </div>
 
-          {/* Default Aureon (always on) */}
-          <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 bg-foreground/5 border border-border/10">
-            <div className="w-6 h-6 rounded-md bg-foreground/10 flex items-center justify-center text-[10px] text-foreground shrink-0">
-              ◈
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[11px] font-light text-foreground block">Aureon Default</span>
-              <span className="text-[9px] text-muted-foreground/40">Always active</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Power className="h-3 w-3 text-emerald-400" />
-              <span className="text-[9px] text-emerald-400/70">ON</span>
-            </div>
-          </div>
+          {/* Aureon Default removed — all chat runs on the user's connected BYOK providers. */}
 
           {/* BYOK providers */}
           <div className="space-y-1 max-h-64 overflow-y-auto">
