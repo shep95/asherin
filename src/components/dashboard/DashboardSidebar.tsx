@@ -65,8 +65,6 @@ import { NAV_INTENTS as ALL_INTENTS, INTENT_GROUPS, INTENT_GROUP_BLURB, type Nav
 
 const VIEW_ICON: Record<string, React.ElementType> = {
   "vibe-imager": Sparkles,
-  "vibe-video": Sparkles,
-  "imagine-to-code": Code2,
   "zali": Zap,
   "pdf-generator": FileText,
   "/whiteboard": Layers,
