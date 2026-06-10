@@ -1682,161 +1682,17 @@ ${zophielCodingBrainContent}
       }
     }
 
-    // Fallback to default Gemini if BYOK not used or failed
+    // BYOK-ONLY: no in-house fallback. If the user has not supplied a working
+    // BYOK provider, return 403 BYOK_REQUIRED so the client surfaces the
+    // ByokRequiredDialog. We never proxy to any platform/in-house model.
     if (!response) {
-      if (byokFailed && !( await (async () => {
-        // Check fallback preference
-        try {
-          const authH = req.headers.get("Authorization");
-          if (!authH) return true; // default fallback
-          const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-          const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
-          const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
-          const sb = createClient(SUPABASE_URL, ANON_KEY);
-          const { data: { user: u } } = await sb.auth.getUser(authH.replace("Bearer ", ""));
-          if (!u) return true;
-          const { createClient: createAdmin } = await import("https://esm.sh/@supabase/supabase-js@2");
-          const adminSb = createAdmin(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "");
-          const { data: pref } = await adminSb.from("user_model_preferences").select("fallback_to_default").eq("user_id", u.id).single();
-          return pref?.fallback_to_default !== false;
-        } catch { return true; }
-      })())) {
-        return new Response(JSON.stringify({
-          error: `${byokFailReason || `Your ${byokProvider} API key returned an error.`} Update it in Settings → AI Model Keys, or enable "Fallback to default model" to auto-route around this.`
-        }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (byokFailed) {
-        console.log(`[chat] BYOK failed (${byokFailStatus}: ${byokFailReason}) — falling back to default Gemini cascade`);
-      }
-
-      // Default backend: self-hosted gpt-oss on Railway (OpenAI **Responses API**).
-      // The upstream speaks `POST /v1/responses` with `instructions` + `input`;
-      // we translate its SSE stream into Chat-Completions delta SSE downstream
-      // so the existing browser client keeps working unchanged.
-      isGeminiResponse = false;
-      isAnthropicResponse = false;
-      isResponsesApi = true;
-
-      const { callGptOssStream, resolveGptOssConfig } = await import("../_shared/gptOss.ts");
-      const gptCfg = resolveGptOssConfig();
-      const zophielBaseRaw = (Deno.env.get("ZOPHIEL_API_URL") || "").trim();
-      const ZOPHIEL_BASE = zophielBaseRaw
-        ? (/^https?:\/\//i.test(zophielBaseRaw) ? zophielBaseRaw : `https://${zophielBaseRaw}`).replace(/\/$/, "")
-        : "";
-      const ZOPHIEL_ASK_URL = ZOPHIEL_BASE ? `${ZOPHIEL_BASE}/ask` : "";
-      const ZOPHIEL_API_KEY = Deno.env.get("ZOPHIEL_API_KEY") || "";
-
-      const buildFallbackRailwayPrompt = () => {
-        const recentTurns = prunedMessages
-          .filter((m: { role: string; content?: string }) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-          .slice(-8)
-          .map((m: { role: string; content?: string }) => `${m.role === "assistant" ? "AUREON" : "USER"}: ${m.content ?? ""}`)
-          .join("\n\n");
-        const latestUserMessage = [...prunedMessages]
-          .reverse()
-          .find((m: { role: string; content?: string }) => m.role === "user" && typeof m.content === "string")?.content?.trim() || "";
-
-        return [
-          "[SYSTEM DIRECTIVES]",
-          typeof systemParts === "string" ? systemParts.slice(0, 24000) : String(systemParts).slice(0, 24000),
-          recentTurns ? `[RECENT THREAD]\n${recentTurns}` : "",
-          `[CURRENT USER MESSAGE]\n${latestUserMessage || "Continue the conversation."}`,
-        ]
-          .filter(Boolean)
-          .join("\n\n");
-      };
-
-      const createSyntheticOpenAiStream = (reply: string) => {
-        const encoder = new TextEncoder();
-        const chunks = reply.match(/\S+\s*|\s+/g) || [reply];
-        const stream = new ReadableStream({
-          async start(controller) {
-            for (const chunkText of chunks) {
-              const chunk = JSON.stringify({ choices: [{ delta: { content: chunkText } }] });
-              controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
-            }
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-            controller.close();
-          },
-        });
-
-        return new Response(stream, {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-        });
-      };
-
-      let lastStatus = 0;
-      response = await callGptOssStream(openaiMessages as any, gptCfg, { retries: MAX_RETRIES });
-      if (!response.ok) {
-        lastStatus = response.status;
-        lastError = await response.text().catch(() => "");
-        console.error(`[chat] gpt-oss ${lastStatus}:`, lastError.slice(0, 200));
-      }
-
-      if (!response || !response.ok) {
-        if (lastStatus === 429) {
-          return new Response(JSON.stringify({ error: "AI is rate-limited. Please wait a moment and try again." }), {
-            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        console.error("[chat] gpt-oss failed. Last status:", lastStatus, "body:", lastError);
-
-        if (ZOPHIEL_ASK_URL) {
-          try {
-            console.log("[chat] Falling back to Railway /ask API");
-            const railwayResponse = await fetch(ZOPHIEL_ASK_URL, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(ZOPHIEL_API_KEY ? { "Authorization": `Bearer ${ZOPHIEL_API_KEY}` } : {}),
-              },
-              body: JSON.stringify({
-                query: buildFallbackRailwayPrompt(),
-                session_id: activeAgentId || personaId || "aureon-chat-fallback",
-              }),
-            });
-
-            const railwayText = await railwayResponse.text().catch(() => "");
-            if (railwayResponse.ok) {
-              let railwayJson: Record<string, unknown> = {};
-              try {
-                railwayJson = railwayText ? JSON.parse(railwayText) : {};
-              } catch {
-                railwayJson = { reply: railwayText };
-              }
-
-              const reply = typeof railwayJson.reply === "string"
-                ? railwayJson.reply
-                : (typeof railwayText === "string" && railwayText.trim() ? railwayText : "(empty response)");
-
-              isResponsesApi = false; // synthetic stream is already chat-completions shaped
-              response = createSyntheticOpenAiStream(reply);
-            } else {
-              lastStatus = railwayResponse.status;
-              lastError = railwayText;
-              console.error("[chat] Railway /ask fallback failed:", railwayResponse.status, railwayText.slice(0, 200));
-            }
-          } catch (error) {
-            lastStatus = 502;
-            lastError = error instanceof Error ? error.message : String(error);
-            console.error("[chat] Railway /ask fallback threw:", lastError);
-          }
-        }
-
-        if (!response || !response.ok) {
-          return new Response(JSON.stringify({
-            error: `AI is temporarily unavailable (${lastStatus || 502}). Please try again in a moment.`,
-            fallback: true,
-            degraded: true,
-          }), {
-            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
+      const reason = byokFailed
+        ? (byokFailReason || `Your ${byokProvider} API key returned an error.`)
+        : "Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.";
+      return new Response(
+        JSON.stringify({ error: reason, code: "BYOK_REQUIRED" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     if (!response || !response.ok) {
