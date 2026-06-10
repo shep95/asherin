@@ -2,6 +2,7 @@
 // Dispatches coding requests through Gemini for the admin platform path, or
 // through the user's BYOK provider/key. No Lovable AI gateway fallback.
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 //
 // Body:
 //   {
