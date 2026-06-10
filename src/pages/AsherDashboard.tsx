@@ -27,6 +27,8 @@ import AsherOrganizationsModule from "@/components/asher/AsherOrganizationsModul
 import AsherInvitationsBanner from "@/components/asher/AsherInvitationsBanner";
 import AsherCodeModule from "@/components/asher/AsherCodeModule";
 import VedicAstrologyView from "@/components/dashboard/VedicAstrologyView";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import AsherPublishedTabRenderer from "@/components/asher/AsherPublishedTabRenderer";
 import AsherBrainsModule from "@/components/asher/AsherBrainsModule";
 import AsherAureonDataModule from "@/components/asher/AsherAureonDataModule";
