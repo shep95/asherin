@@ -1,10 +1,6 @@
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, ChevronDown, Search, ArrowUpRight, Target } from "lucide-react";
-import aureonLogo from "@/assets/aureon-logo.png";
-import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
-import { useToast } from "@/hooks/use-toast";
+import { Link, useLocation } from "react-router-dom";
+import { Menu, X, ChevronDown, ArrowUpRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { isAdminEmail } from "@/lib/adminEmail";
 import {
@@ -125,24 +121,6 @@ const Header = () => {
               </Link>
             ) : (
               <>
-                <Link
-                  to="/zophiel"
-                  className="group flex items-center gap-2 px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <Search className="h-3.5 w-3.5" strokeWidth={1.5} />
-                  <span>Zophiel</span>
-                  <span className="hidden md:inline-block ml-1 rounded-sm border border-foreground/30 bg-foreground/5 px-1 text-[8px] tracking-[0.15em] text-foreground/70">FREE SOFTWARE</span>
-                </Link>
-                <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
-                <Link
-                  to="/axrlen"
-                  className="group flex items-center gap-2 px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <Target className="h-3.5 w-3.5" strokeWidth={1.5} />
-                  <span>Axrlen</span>
-                  <span className="hidden md:inline-block ml-1 rounded-sm border border-amber-300/40 bg-amber-300/10 px-1 text-[8px] tracking-[0.15em] text-amber-200/90">FREE · BYOK · BETA · PREDICTION AI MODEL</span>
-                </Link>
-                <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
 
                 {!loading && user ? (
                   <Link
@@ -182,8 +160,6 @@ const Header = () => {
               <div className="flex flex-col gap-2">
                 <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Founder</Link>
                 <div className="my-1 border-t border-border/20 mx-4" />
-                <Link to="/zophiel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-light tracking-wide text-emerald-300 transition-colors hover:bg-emerald-400/20 text-center">Free AI Search</Link>
-                <Link to="/axrlen" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-amber-300/30 bg-amber-300/10 px-4 py-2.5 text-sm font-light tracking-wide text-amber-200 transition-colors hover:bg-amber-300/20 text-center">AXRLEN · Free · BYOK · Beta · Prediction AI Model</Link>
                 {!loading && user ? (
                   <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90 text-center">
                     Go to Dashboard
