@@ -62,7 +62,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
       heading: "Agents & Tools",
       links: [
         { to: "/feature/zahten", label: "Zahten Agent Forge" },
-        { to: "/feature/automated-agents", label: "Automated Agents" },
+        
         { to: "/feature/personas", label: "AI Personas" },
         { to: "/feature/briefings", label: "Daily Briefings" },
         { to: "/feature/notebooks", label: "Notebooks" },

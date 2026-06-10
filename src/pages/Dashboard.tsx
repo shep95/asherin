@@ -80,8 +80,6 @@ const TimeSeriesView = lazyWithRetry(() => import("@/components/dashboard/TimeSe
 const AuditLogView = lazyWithRetry(() => import("@/components/dashboard/AuditLogView"));
 const PredictiveIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/PredictiveIntelligenceView"));
 
-const ImagineToCodeView = lazyWithRetry(() => import("@/components/dashboard/ImagineToCodeView"));
-
 const PersonaStoreView = lazyWithRetry(() => import("@/components/dashboard/PersonaStoreView"));
 const AureonIdeView = lazyWithRetry(() => import("@/components/dashboard/ide/AureonIdeView"));
 const PdfGeneratorView = lazyWithRetry(() => import("@/components/dashboard/PdfGeneratorView"));
@@ -94,11 +92,8 @@ const SelfAccessLearningView = lazyWithRetry(() => import("@/components/dashboar
 const ImagineIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/OracleLocusView"));
 const VideoIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/VideoIntelligenceView"));
 const VibeImagerView = lazyWithRetry(() => import("@/components/dashboard/VibeImagerView"));
-const VibeVideoView = lazyWithRetry(() => import("@/components/dashboard/VibeVideoView"));
-const AgentsView = lazyWithRetry(() => import("@/components/dashboard/agents/AgentsView"));
 const BugReportsView = lazyWithRetry(() => import("@/components/dashboard/BugReportsView"));
 const EBookGeneratorView = lazyWithRetry(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
-const ReverseEngineerView = lazyWithRetry(() => import("@/components/dashboard/ReverseEngineerView"));
 const CrossView = lazyWithRetry(() => import("@/components/dashboard/cross/CrossView"));
 const GuardianVaultView = lazyWithRetry(() => import("@/components/dashboard/GuardianVaultView"));
 const ZeeionView = lazyWithRetry(() => import("@/components/dashboard/zeeion/ZeeionView"));
