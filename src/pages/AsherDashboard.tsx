@@ -210,6 +210,11 @@ type AgentStoreEntry = { id: string; name: string; icon: string; entry_html: str
 
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
+  const [vedicOpen, setVedicOpen] = useState(false);
+  const selectTab = (id: AsherTab) => {
+    if (id === "vedic") { setVedicOpen(true); return; }
+    setActive(id);
+  };
   const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, agentstore: true, comms: true, vault: false, governance: true, analytics: true });
   const [publishedTabs, setPublishedTabs] = useState<PublishedTab[]>([]);
   const [agentStore, setAgentStore] = useState<AgentStoreEntry[]>([]);
