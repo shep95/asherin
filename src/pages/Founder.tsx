@@ -96,7 +96,7 @@ const Founder = () => {
           {/* Dominant founder portrait — 3-4x previous size */}
           <div className="relative order-2 lg:order-1">
             <div className="founder-halo relative aspect-[4/5] w-full max-w-[560px] mx-auto rounded-[2rem] overflow-hidden border border-border/30 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.8)]">
-              <img src={founderImg} alt="Asher Newton, founder of Aureon" className="w-full h-full object-cover" />
+              <FounderPhotoCarousel />
               <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent pointer-events-none" />
             </div>
           </div>
