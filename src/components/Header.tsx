@@ -79,95 +79,9 @@ const Header = () => {
                 onMouseLeave={() => setPagesOpen(false)}
                 className="w-72 max-h-[70vh] overflow-y-auto bg-background/80 backdrop-blur-2xl border border-foreground/15 p-3 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] animate-fade-in"
               >
-                {/* Intelligence Branch */}
-                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Intelligence</p>
-                <DropdownMenuItem asChild>
-                  <Link to="/llm-models" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">LLM Models</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/zophiel" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zophiel Search</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/nomad" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">NOMAD Public Intelligence</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/asha" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Azplen Intelligence</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/predictive" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Predictive Intelligence</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/oracle-locus" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Oracle Locus</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/ww3" className="cursor-pointer text-sm font-light tracking-wide rounded-lg text-destructive">WW3 Trajectory</Link>
-                </DropdownMenuItem>
-
-                <div className="my-2 border-t border-foreground/10" />
-
-                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Agents & Tools</p>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/personas" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">AI Personas</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/briefings" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Daily Briefings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/zahten" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zahten Agent Forge</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/vedic-astrology" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Vedic Astrology (Free)</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/notebooks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Notebooks</Link>
-                </DropdownMenuItem>
-
-                <div className="my-2 border-t border-foreground/10" />
-
-                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Creation</p>
-                <DropdownMenuItem asChild>
-                  <Link to="/whiteboard" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Whiteboard</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/zali" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">ZANOEM Design Lab</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/imagine-to-code" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Imagine To Code</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/ide" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Aureon IDE</Link>
-                </DropdownMenuItem>
-
-                <div className="my-2 border-t border-foreground/10" />
-
-                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Platform</p>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/byok" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Bring Your Own AI Key</Link>
-                </DropdownMenuItem>
-
-                <div className="my-2 border-t border-foreground/10" />
-
                 <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Company</p>
                 <DropdownMenuItem asChild>
-                  <Link to="/houseofasher-ventures" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">HouseOfAsher Ventures</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/features" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">All Features</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
                   <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Founder</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Pricing</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Prompt Engineering</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/benchmarks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Benchmarks</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/openvpn" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">OpenVPN · Free</Link>
                 </DropdownMenuItem>
                 {isAdminEmail(user?.email) && (
                   <>
@@ -266,32 +180,10 @@ const Header = () => {
             <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
             <div className="absolute right-4 top-full z-50 mt-2 w-64 max-h-[80vh] overflow-y-auto rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl p-4 shadow-2xl lg:hidden">
               <div className="flex flex-col gap-2">
+                <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Founder</Link>
+                <div className="my-1 border-t border-border/20 mx-4" />
                 <Link to="/zophiel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-light tracking-wide text-emerald-300 transition-colors hover:bg-emerald-400/20 text-center">Free AI Search</Link>
                 <Link to="/axrlen" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-amber-300/30 bg-amber-300/10 px-4 py-2.5 text-sm font-light tracking-wide text-amber-200 transition-colors hover:bg-amber-300/20 text-center">AXRLEN · Free · BYOK · Beta · Prediction AI Model</Link>
-                <Link to="/features" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">All Features</Link>
-                <div className="my-1 border-t border-border/20 mx-4" />
-                <Link to="/llm-models" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">LLM Models</Link>
-                <Link to="/feature/zophiel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Zophiel Search</Link>
-                <Link to="/feature/nomad" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">NOMAD Public Intelligence</Link>
-                <Link to="/feature/asha" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Azplen Intelligence</Link>
-                <Link to="/feature/oracle-locus" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Oracle Locus</Link>
-                <Link to="/feature/predictive" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Predictive Intelligence</Link>
-                <Link to="/feature/briefings" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Daily Briefings</Link>
-                <Link to="/feature/vedic" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Vedic Strategy</Link>
-                <Link to="/feature/personas" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">AI Personas</Link>
-                <Link to="/feature/zahten" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Zahten Agent Forge</Link>
-                
-                <Link to="/feature/notebooks" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Notebooks</Link>
-                <Link to="/feature/zali" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">ZANOEM Design Lab</Link>
-                <Link to="/feature/imagine-to-code" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Imagine To Code</Link>
-                <Link to="/whiteboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Whiteboard</Link>
-                <Link to="/feature/ide" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Aureon IDE</Link>
-                <Link to="/feature/byok" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Bring Your Own AI Key</Link>
-                <div className="my-1 border-t border-border/20 mx-4" />
-                <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Founder</Link>
-                <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Pricing</Link>
-                <Link to="/prompt-engineering" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Prompt Engineering</Link>
-                <Link to="/benchmarks" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Benchmarks</Link>
                 {!loading && user ? (
                   <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90 text-center">
                     Go to Dashboard
