@@ -12,6 +12,7 @@ import ReactMarkdown from "react-markdown";
 import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
 import NeuralThinkingModal from "@/components/dashboard/NeuralThinkingModal";
 import houseOfAsherLogo from "@/assets/HouseOfAsher_Flag.png";
+import asherPhoto from "@/assets/founder.jpg";
 import FreeManifesto from "@/components/FreeManifesto";
 import SiteFooter from "@/components/SiteFooter";
 import LiveDemoStrip from "@/components/landing/LiveDemoStrip";
