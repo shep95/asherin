@@ -1465,7 +1465,7 @@ ${truncatedDoctrine}
         "system-brains/zophiel_elite_prompt_engine.txt",
         "system-brains/anti_spiral_protocol.md",
         "system-brains/aureon_philosophy_consciousness.txt",
-        // Zophiel Algorithm — full brain digest (houseofasher/zophiel-algorithm)
+        // Zophiel Algorithm — full brain digest (shep95/gpt-oss)
         "system-brains/zophiel_algorithm_coding.md",
         "system-brains/zophiel_algorithm_mind.md",
         "system-brains/zophiel_algorithm_intel.md",
