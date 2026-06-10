@@ -164,8 +164,6 @@ const Header = () => {
               <div className="flex flex-col gap-2">
                 <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Founder</Link>
                 <div className="my-1 border-t border-border/20 mx-4" />
-                <Link to="/zophiel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-light tracking-wide text-emerald-300 transition-colors hover:bg-emerald-400/20 text-center">Free AI Search</Link>
-                <Link to="/axrlen" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-amber-300/30 bg-amber-300/10 px-4 py-2.5 text-sm font-light tracking-wide text-amber-200 transition-colors hover:bg-amber-300/20 text-center">AXRLEN · Free · BYOK · Beta · Prediction AI Model</Link>
                 {!loading && user ? (
                   <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90 text-center">
                     Go to Dashboard
