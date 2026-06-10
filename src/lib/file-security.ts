@@ -32,7 +32,9 @@ const ALLOWED_EXTENSIONS: Record<string, string[]> = {
   ".jpeg": ["image/jpeg"],
   ".gif": ["image/gif"],
   ".webp": ["image/webp"],
-  ".svg": ["image/svg+xml"],
+  // .svg intentionally NOT allowed — SVG can embed <script>, <foreignObject>,
+  // and onload handlers. If you ever need to allow SVG uploads, sanitize
+  // server-side with DOMPurify before storing.
 };
 
 // Blocked extensions (executable / dangerous)
