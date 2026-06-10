@@ -1186,6 +1186,12 @@ const Index = () => {
               <p className="mt-8 pt-6 border-t border-foreground/10 text-[13px] font-extralight leading-relaxed text-muted-foreground">
                 Servers hosted in the United States. Your account data lives with you. Cancel and it's gone. Full stop.
               </p>
+              <Link
+                to="/privacy"
+                className="mt-5 inline-flex items-center gap-2 text-[11px] font-mono tracking-[0.25em] uppercase text-foreground/80 hover:text-foreground transition-colors"
+              >
+                Read Our Full Privacy Policy <ArrowRight className="h-3 w-3" />
+              </Link>
             </div>
 
             <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-4">
