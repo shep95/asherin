@@ -441,7 +441,7 @@ const LLMModels = () => {
         capabilities={[
           { icon: Server, label: "Self-Hosted Inference", body: "No third-party API keys, no external rate limits, no surprise price hikes. We own the stack from corpus to wire." },
           { icon: Code, label: "Open Source", body: "Inspect every retriever, corpus builder, code-pattern, and reflection module. Fork the algorithm for your own infrastructure." },
-          { icon: Github, label: "Public on GitHub", body: "The full repository — algorithm, knowledge corpus, immune system, and deployment manifests — lives at github.com/houseofasher/zophiel-algorithm for community audit and contribution." },
+          { icon: Github, label: "Public on GitHub", body: "The full repository — algorithm, knowledge corpus, immune system, and deployment manifests — lives at github.com/shep95/gpt-oss for community audit and contribution." },
         ]}
       />
 
@@ -510,7 +510,7 @@ const LLMModels = () => {
             View Plans <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
           <a
-            href="https://github.com/houseofasher/zophiel-algorithm"
+            href="https://github.com/shep95/gpt-oss"
             target="_blank"
             rel="noopener noreferrer"
             className="group inline-flex items-center gap-2 rounded-xl border border-border/25 bg-card/30 backdrop-blur-md px-8 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-card/50 hover:border-border/50"

@@ -983,7 +983,7 @@ const Index = () => {
                 </p>
               </div>
               <a
-                href="https://github.com/houseofasher/zophiel-algorithm"
+                href="https://github.com/shep95/gpt-oss"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="shrink-0 group inline-flex items-center gap-2 rounded-xl border border-border/25 bg-card/30 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-card/50 hover:border-border/50"

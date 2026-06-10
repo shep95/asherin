@@ -111,7 +111,6 @@ const AsherZahtenModule = lazyWithRetry(() => import("@/components/asher/AsherZa
 const AsherPublishedTabRenderer = lazyWithRetry(() => import("@/components/asher/AsherPublishedTabRenderer"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
-import OnboardingModal from "@/components/dashboard/OnboardingModal";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
@@ -1664,7 +1663,6 @@ const Dashboard = () => {
       )}
 
       <FocusMode active={focusMode} onExit={() => setFocusMode(false)} />
-      <OnboardingModal />
 
       {asherEmbed && (
         <style>{`
