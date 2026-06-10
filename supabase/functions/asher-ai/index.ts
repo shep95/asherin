@@ -196,7 +196,7 @@ serve(async (req) => {
       }
     } catch (e) { console.error("[asher-ai] archive:", e); }
 
-    const fullSystem = SYSTEM_PROMPT + brainBlock + ctxBlock + leaksBlock + archiveBlock;
+    const fullSystem = SYSTEM_PROMPT + "\n\n" + NARRATIVE_FORGE_BRAIN + brainBlock + ctxBlock + leaksBlock + archiveBlock;
 
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {
