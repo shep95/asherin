@@ -19,19 +19,7 @@ export interface ProviderConfig {
 }
 
 export const AI_PROVIDERS: ProviderConfig[] = [
-  {
-    id: "aureon",
-    name: "Aureon Algorithm",
-    icon: "▲",
-    placeholder: "",
-    helpUrl: "https://github.com/shep95/gpt-oss",
-    helpText: "Open-weight Aureon LLM — self-hosted on Railway",
-    isPlatform: true,
-    platformNote: "Free tier: 10 msgs / 2hrs. Algorithm sub ($10/mo): 20 msgs / hr. Admin: unlimited.",
-    models: [
-      { id: "aureon-algorithm", name: "Aureon Algorithm", description: "Open-weight Aureon LLM on Railway — no key required" },
-    ],
-  },
+
   {
     id: "google",
     name: "Google AI (Gemini)",
