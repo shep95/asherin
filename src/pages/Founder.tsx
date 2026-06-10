@@ -228,22 +228,39 @@ const Founder = () => {
                 pull: "Truth exists in layers. The best tools help you see through each one.",
                 body: "My interests go deeper than technology. I'm drawn to spirituality and the occult — the hidden patterns beneath the surface of things. That same instinct drives Aureon: the belief that truth exists in layers, and the best tools are the ones that help you see through each one.",
               },
-            ].map(({ Icon, title, pull, body }, i) => (
-              <div key={title} className="founder-glass founder-corner rounded-2xl border border-border/30 bg-card/40 backdrop-blur-md p-8 sm:p-10 text-left">
-                <div className="flex items-center justify-between mb-6">
-                  <Icon className="h-7 w-7 text-foreground" strokeWidth={1.25} />
-                  <span className="text-[11px] font-extralight tracking-[0.32em] text-foreground/40 uppercase">{String(i + 1).padStart(2, "0")}</span>
+            ].map(({ Icon, title, pull, body }, i) => {
+              const isBeyondCode = title === "Beyond Code";
+              return (
+                <div
+                  key={title}
+                  className={`group relative founder-glass founder-corner rounded-2xl border p-8 sm:p-10 text-left overflow-hidden backdrop-blur-md transition-all ${
+                    isBeyondCode
+                      ? "border-amber-300/30 bg-amber-400/[0.04]"
+                      : "border-border/30 bg-card/40 hover:border-foreground/40"
+                  }`}
+                >
+                  {/* hover top accent line — slides in left → right */}
+                  <span
+                    aria-hidden
+                    className={`absolute top-0 left-0 h-px transition-all duration-300 ease-out ${
+                      isBeyondCode ? "bg-amber-300/70 w-full" : "bg-amber-300/70 w-0 group-hover:w-full"
+                    }`}
+                  />
+                  <div className="flex items-center justify-between mb-6">
+                    <Icon className={`h-7 w-7 ${isBeyondCode ? "text-amber-200" : "text-foreground"}`} strokeWidth={1.25} />
+                    <span className="text-[11px] font-extralight tracking-[0.32em] text-foreground/40 uppercase">{String(i + 1).padStart(2, "0")}</span>
+                  </div>
+                  <h3 className={`font-display text-2xl sm:text-3xl font-light tracking-tight ${isBeyondCode ? "text-amber-100" : "text-foreground"}`}>{title}</h3>
+                  <div className={`mt-3 h-px w-10 ${isBeyondCode ? "bg-amber-300/60" : "bg-foreground/30"}`} />
+                  <p className="mt-6 font-display text-xl sm:text-2xl font-light italic leading-[1.3] tracking-[-0.005em] text-foreground/95">
+                    "{pull}"
+                  </p>
+                  <p className="mt-5 text-[15px] font-extralight leading-[1.8] text-foreground/85 transition-opacity group-hover:text-foreground/95">
+                    {body}
+                  </p>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-light tracking-wide text-foreground">{title}</h3>
-                <div className="mt-3 h-px w-10 bg-foreground/30" />
-                <p className="mt-6 text-lg sm:text-xl font-extralight leading-[1.35] tracking-[-0.005em] text-foreground italic">
-                  "{pull}"
-                </p>
-                <p className="mt-5 text-base font-extralight leading-[1.75] text-foreground/75">
-                  {body}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <DirectionalCTA to="humanity" label="Continue · Why This Exists" />
