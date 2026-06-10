@@ -178,6 +178,7 @@ const Index = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [authIsLogin, setAuthIsLogin] = useState(false);
   const [showHouseLogo, setShowHouseLogo] = useState(false);
+  const [arsenalExpanded, setArsenalExpanded] = useState(false);
   const maxDemos = 3;
   const location = useLocation();
 
