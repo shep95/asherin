@@ -101,20 +101,7 @@ const IdeModelSelector = () => {
             </button>
           </div>
 
-          {/* Default */}
-          <button
-            onClick={() => selectModel("default", "default", "Aureon Default")}
-            className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-all ${
-              active.provider === "default" ? "bg-foreground/10 border border-foreground/20" : "border border-transparent hover:bg-foreground/5"
-            }`}
-          >
-            <div className="w-4 h-4 rounded-md bg-foreground/10 flex items-center justify-center text-[8px] text-foreground shrink-0">◈</div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[10px] font-light text-foreground block">Aureon Default</span>
-              <span className="text-[8px] text-muted-foreground/40">Built-in engine</span>
-            </div>
-            {active.provider === "default" && <Check className="h-3 w-3 text-accent shrink-0" />}
-          </button>
+          {/* "Aureon Default" removed — IDE runs on the user's BYOK model only. */}
 
           {/* BYOK providers */}
           <div className="space-y-0.5 max-h-[240px] overflow-y-auto">
