@@ -7,7 +7,10 @@ import { Brain, Send, Loader2, ChevronRight, ChevronLeft, Image as ImageIcon, Sp
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { logAsherEvent } from "@/lib/asherAudit";
+import { routeBrainsForPrompt } from "@/lib/asherBrainRouter";
 import { toast } from "sonner";
+
+const IMAGINE_SESSION_KEY = "imagine_chat_messages_v1";
 
 interface Msg {
   id: string;
@@ -16,20 +19,36 @@ interface Msg {
   image?: string;
 }
 
+const WELCOME_MSG: Msg = {
+  id: "welcome",
+  role: "assistant",
+  content:
+    "**ASHER AI · Imagine Console**\n\nI'm wired into the full Aureon brain. Ask me anything or have me generate tactical imagery.\n\n- *Imagine a SAM site at sunset, top-down satellite view*\n- *Sketch a fortified compound with perimeter wall*\n- *Render an urban operations diagram*\n- *Explain the doctrinal use of an L-shaped ambush*",
+};
+
 const AsherImagineAIPanel = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content:
-        "**ASHER AI · Imagine Console**\n\nI'm wired into the full Aureon brain. Ask me anything or have me generate tactical imagery.\n\n- *Imagine a SAM site at sunset, top-down satellite view*\n- *Sketch a fortified compound with perimeter wall*\n- *Render an urban operations diagram*\n- *Explain the doctrinal use of an L-shaped ambush*",
-    },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>(() => {
+    try {
+      const saved = sessionStorage.getItem(IMAGINE_SESSION_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed as Msg[];
+      }
+    } catch { /* fall through */ }
+    return [WELCOME_MSG];
+  });
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [imagineBusy, setImagineBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Persist conversation across module switches (component unmount/remount)
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(IMAGINE_SESSION_KEY, JSON.stringify(messages));
+    } catch { /* quota or disabled */ }
+  }, [messages]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -77,9 +96,32 @@ const AsherImagineAIPanel = () => {
 
     setBusy(true);
     try {
+      // FLAW 1 FIX — Route brains BEFORE the AI call so the Imagine
+      // module gets the same context-aware brain stack the rest of
+      // Aureon uses. Best-effort: failures here must not block chat.
+      let brainContext: string | null = null;
+      let brainRationale: unknown = undefined;
+      try {
+        const brainResult = await routeBrainsForPrompt(text, {
+          topK: 6,
+          charBudget: 60_000,
+          recentMessages: messages.slice(-2).map((m) => ({ role: m.role, content: m.content })),
+        });
+        if (brainResult?.brains?.length) {
+          brainContext = brainResult.brains
+            .map((b: any) => `[BRAIN: ${b.name}]\n${b.content}`)
+            .join("\n\n---\n\n");
+          brainRationale = brainResult.rationale;
+        }
+      } catch (brainErr) {
+        console.warn("[imagine] brain router failed; continuing without brain context", brainErr);
+      }
+
       const { data, error } = await supabase.functions.invoke("asher-ai", {
         body: {
           mapContext: { module: "imagine" },
+          brainContext,
+          brainRationale,
           messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
         },
       });
