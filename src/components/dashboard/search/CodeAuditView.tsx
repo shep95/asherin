@@ -1344,6 +1344,8 @@ const LiveScanView = ({
   </div>
 );
 
+// Unified flaw counter — counts every finding once (criticals + each branch leaf),
+// matching the FlawTypeTotalsPanel so header "Flaws Found" == panel grand total.
 const countSeverities = (b: Blueprint) => {
   const counts = { critical: 0, high: 0, med: 0, low: 0 };
   (b.criticals || []).forEach(c => {
@@ -1352,8 +1354,12 @@ const countSeverities = (b: Blueprint) => {
     else counts.low++;
   });
   b.branches.forEach(br => {
-    if (br.tone === "critical") counts.high += 1;
-    else if (br.tone === "warn") counts.med += 1;
+    const sev: "high" | "med" | "low" = br.tone === "critical" ? "high" : br.tone === "warn" ? "med" : "low";
+    br.leaves.forEach(() => {
+      if (sev === "high") counts.high++;
+      else if (sev === "med") counts.med++;
+      else counts.low++;
+    });
   });
   return counts;
 };
