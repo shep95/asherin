@@ -437,8 +437,8 @@ const AxrlenDashboard = ({ session }: Props) => {
 /* ── Helpers ── */
 const Kpi = ({ label, value, tone }: { label: string; value: any; tone?: string }) => (
   <div className="rounded-xl border border-border/[0.08] bg-foreground/[0.025] px-3 py-2 flex flex-col justify-center">
-    <p className="text-[7px] uppercase tracking-[0.22em] text-muted-foreground/45">{label}</p>
-    <p className={`text-[12px] font-light mt-0.5 truncate ${tone || "text-foreground/85"}`}>{String(value)}</p>
+    <p className="text-[8px] uppercase tracking-[0.28em] text-muted-foreground/55">{label}</p>
+    <p className={`text-[16px] font-extralight mt-1 truncate tracking-tight ${tone || "text-foreground"}`}>{String(value)}</p>
   </div>
 );
 
