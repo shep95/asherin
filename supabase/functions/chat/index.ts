@@ -994,35 +994,69 @@ function shouldSearch(messages: { role: string; content: string }[], mode: strin
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
-  // ── Strict BYOK gate — every caller MUST bring their own AI key ──
-  if (req.method !== 'OPTIONS') {
-    try {
-      const _b = await req.clone().json().catch(() => ({} as any));
-      const _provider = (_b && typeof _b === 'object') ? (_b as any).byokProvider : undefined;
-      const _model = (_b && typeof _b === 'object') ? (_b as any).byokModel : undefined;
-      if (!_provider || _provider === 'default' || !_model || _model === 'default') {
-        return new Response(
-          JSON.stringify({ error: 'Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.', code: 'BYOK_REQUIRED' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-    } catch (_e) {
-      return new Response(
-        JSON.stringify({ error: 'Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.', code: 'BYOK_REQUIRED' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-  }
-
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // ── BYOK gate via adminGate.resolveKey ──
+  // - Admin → platform GEMINI_API_KEY (injected as a Google BYOK config below).
+  // - BYOK user → their own key wins.
+  // - Free user (no BYOK, non-admin) → platform VENICE_API_KEY (mistral-31-24b).
+  // - No fallback available → 403 BYOK_REQUIRED.
+  let _parsedBody: any = {};
   try {
-    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId } = await req.json();
+    _parsedBody = await req.clone().json();
+  } catch {
+    _parsedBody = {};
+  }
 
-    // ── BYOK: Load user's API key if they specified a provider ────────────
+  let _injectedKey: string | null = null;
+  try {
+    const { resolveKey } = await import("../_shared/adminGate.ts");
+    const incomingByok =
+      _parsedBody?.byokProvider && _parsedBody?.byokProvider !== "default" &&
+      _parsedBody?.byokModel && _parsedBody?.byokModel !== "default"
+        ? {
+            provider: _parsedBody.byokProvider,
+            model: _parsedBody.byokModel,
+            apiKey: "__pending__", // real key loaded from DB downstream
+          }
+        : null;
+
+    if (!incomingByok) {
+      const resolved = await resolveKey(req, null);
+      if (resolved.mode === "admin" && resolved.geminiKey) {
+        _parsedBody.byokProvider = "google";
+        _parsedBody.byokModel = "gemini-2.0-flash-exp";
+        _injectedKey = resolved.geminiKey;
+      } else if (resolved.mode === "byok" && resolved.byok) {
+        _parsedBody.byokProvider = resolved.byok.provider;
+        _parsedBody.byokModel = resolved.byok.model;
+        _injectedKey = resolved.byok.apiKey;
+      }
+    }
+  } catch (e: any) {
+    if (e?.code === "BYOK_REQUIRED") {
+      return new Response(
+        JSON.stringify({ error: "Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.", code: "BYOK_REQUIRED" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    return new Response(
+      JSON.stringify({ error: "internal_error", message: String(e?.message || e) }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  try {
+    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId } = _parsedBody;
+
+    // ── BYOK: Use platform-injected key (admin/Venice) or load user's own ──
     let userApiKey: string | null = null;
     let useByok = false;
-    if (byokProvider && byokProvider !== "default" && byokModel && byokModel !== "default") {
+    if (_injectedKey && byokProvider && byokModel) {
+      // Admin → platform Gemini, or free-tier non-admin → platform Venice.
+      userApiKey = _injectedKey;
+      useByok = true;
+    } else if (byokProvider && byokProvider !== "default" && byokModel && byokModel !== "default") {
       const authHeader2 = req.headers.get("Authorization");
       if (authHeader2) {
         try {
