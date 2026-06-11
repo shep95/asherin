@@ -1344,6 +1344,8 @@ const LiveScanView = ({
   </div>
 );
 
+// Unified flaw counter — counts every finding once (criticals + each branch leaf),
+// matching the FlawTypeTotalsPanel so header "Flaws Found" == panel grand total.
 const countSeverities = (b: Blueprint) => {
   const counts = { critical: 0, high: 0, med: 0, low: 0 };
   (b.criticals || []).forEach(c => {
@@ -1352,8 +1354,12 @@ const countSeverities = (b: Blueprint) => {
     else counts.low++;
   });
   b.branches.forEach(br => {
-    if (br.tone === "critical") counts.high += 1;
-    else if (br.tone === "warn") counts.med += 1;
+    const sev: "high" | "med" | "low" = br.tone === "critical" ? "high" : br.tone === "warn" ? "med" : "low";
+    br.leaves.forEach(() => {
+      if (sev === "high") counts.high++;
+      else if (sev === "med") counts.med++;
+      else counts.low++;
+    });
   });
   return counts;
 };
@@ -1385,6 +1391,16 @@ const RiskScoreHeader = ({ blueprint }: { blueprint: Blueprint }) => {
           {blueprint.target} · {blueprint.branches.length} surfaces analyzed
         </p>
       </div>
+      {(() => {
+        const c = countSeverities(blueprint);
+        const total = c.critical + c.high + c.med + c.low;
+        return (
+          <div className="hidden sm:flex flex-col items-center justify-center min-w-[88px] border-l border-current/15 pl-4">
+            <span className="text-3xl font-light tabular-nums">{total}</span>
+            <span className="text-[8px] font-extralight tracking-[0.25em] uppercase opacity-70">Flaws Found</span>
+          </div>
+        );
+      })()}
     </div>
   );
 };
