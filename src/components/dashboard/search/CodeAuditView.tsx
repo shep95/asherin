@@ -577,6 +577,9 @@ const ZerlalView = () => {
           {/* SEVERITY BREAKDOWN BAR */}
           <SeverityBreakdown blueprint={blueprint} />
 
+          {/* FLAW TYPE TOTALS — every flaw class incl. "Other" so nothing is dropped */}
+          <FlawTypeTotalsPanel blueprint={blueprint} />
+
           {/* Audit Map header bar */}
           <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-3 flex items-center gap-3 flex-wrap">
             <ShieldAlert className="h-3.5 w-3.5 text-accent shrink-0" />
