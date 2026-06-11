@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 serve(async (req) => {
@@ -30,7 +31,7 @@ serve(async (req) => {
 
     const mimeType = image_type || "image/jpeg";
 
-    const systemPrompt = `You are ORACLE-LOCUS, a highly advanced Geo-Intelligence Analyst AI operating at forensic-grade precision. Your primary function is to transform visual data (images) into precise, actionable geospatial intelligence using multi-layered feature extraction.
+    const systemPrompt = `${GEOLOCATION_BRAIN}\n\nYou are ORACLE-LOCUS, a highly advanced Geo-Intelligence Analyst AI operating at forensic-grade precision. Your primary function is to transform visual data (images) into precise, actionable geospatial intelligence using multi-layered feature extraction.
 
 Given a single image with no embedded metadata, determine its precise geographic coordinates (latitude, longitude) and provide a confidence score, an estimated error radius, and a detailed rationale.
 
