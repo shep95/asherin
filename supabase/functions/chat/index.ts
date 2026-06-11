@@ -1049,10 +1049,14 @@ serve(async (req) => {
   try {
     const { messages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId } = _parsedBody;
 
-    // ── BYOK: Load user's API key if they specified a provider ────────────
+    // ── BYOK: Use platform-injected key (admin/Venice) or load user's own ──
     let userApiKey: string | null = null;
     let useByok = false;
-    if (byokProvider && byokProvider !== "default" && byokModel && byokModel !== "default") {
+    if (_injectedKey && byokProvider && byokModel) {
+      // Admin → platform Gemini, or free-tier non-admin → platform Venice.
+      userApiKey = _injectedKey;
+      useByok = true;
+    } else if (byokProvider && byokProvider !== "default" && byokModel && byokModel !== "default") {
       const authHeader2 = req.headers.get("Authorization");
       if (authHeader2) {
         try {
