@@ -34,7 +34,7 @@ Aureon ships a suite of intelligence modules — Zophiel OSINT search, NOMAD inv
 - [Imagine to Code](/feature/imagine-to-code): Visual-to-code generation.
 - [Aureon IDE](/feature/ide): In-dashboard Monaco IDE with BYOK.
 - [Notebooks](/feature/notebooks): Intelligence notebooks with SQL.
-- [Vibe Imager](/feature/vibe-imager): Image generation.
+
 - [Vibe Video](/feature/vibe-video): Video generation.
 - [Video Intelligence](/feature/video-intelligence): Behavioral video tracking.
 - [BYOK](/feature/byok): Bring-your-own-key configuration.

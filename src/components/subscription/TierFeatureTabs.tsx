@@ -60,7 +60,7 @@ const AUREON_FEATURE_GROUPS = [
   {
     category: "Creation & Vision",
     features: [
-      { name: "Vibe Imager", desc: "Conversational AI image creation and editing — describe what you want, get instant results.", link: "/feature/vibe-imager" },
+      
       { name: "Reverse Engineering Intelligence", desc: "Upload screenshots of any software or hardware system — Aureon deconstructs the architecture.", link: "/feature/reverse-engineer" },
       { name: "File Scrapper", desc: "Extract text from any document — PDF, DOCX, images and more.", link: "/feature/file-scrapper" },
       { name: "Cipher Toolkit", desc: "Encoding, hashing, encryption, format conversion and recipe chaining — all client-side.", link: "/feature/cipher" },
@@ -153,7 +153,7 @@ const PRO_FEATURE_GROUPS = [
       { name: "Aureon IDE", desc: "Full cloud development environment with AI chat, terminals and ZIP export.", link: "/feature/ide" },
       { name: "Persistent Memory", desc: "Aureon remembers your context across every session.", link: null },
       { name: "Custom Personas & Persona Store", desc: "Switch between specialized AI personas; browse community-built ones.", link: "/feature/personas" },
-      { name: "Vibe Imager", desc: "Conversational AI image creation and editing.", link: "/feature/vibe-imager" },
+      
       { name: "Imagine To Code", desc: "AI-powered pixel art & SVG editor that draws directly on canvas.", link: "/feature/imagine-to-code" },
       { name: "Reverse Engineering Intelligence", desc: "Deconstructs the architecture of any software/hardware screenshot.", link: "/feature/reverse-engineer" },
       { name: "File Scrapper", desc: "Extract clean text from PDF, DOCX, images and more.", link: "/feature/file-scrapper" },

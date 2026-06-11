@@ -91,7 +91,7 @@ const SlideshowGeneratorView = lazyWithRetry(() => import("@/components/dashboar
 const SelfAccessLearningView = lazyWithRetry(() => import("@/components/dashboard/SelfAccessLearningView"));
 const ImagineIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/OracleLocusView"));
 const VideoIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/VideoIntelligenceView"));
-const VibeImagerView = lazyWithRetry(() => import("@/components/dashboard/VibeImagerView"));
+
 const BugReportsView = lazyWithRetry(() => import("@/components/dashboard/BugReportsView"));
 const EBookGeneratorView = lazyWithRetry(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
 const CrossView = lazyWithRetry(() => import("@/components/dashboard/cross/CrossView"));
@@ -167,7 +167,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","vibe-imager","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","file-scrapper","cipher","vedic-astrology","zahten"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","file-scrapper","cipher","vedic-astrology","zahten"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -1448,7 +1448,7 @@ const Dashboard = () => {
       // case "imagine-intelligence" removed
       case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Aureon ($199/mo) and above.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro plans.");
-      case "vibe-imager": return gatedView("vibe-imager", VibeImagerView, "Vibe Imager", "Conversational AI image creation — describe, iterate, version control. Available on all paid plans.");
+      
       case "bug-reports": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense></ErrorBoundary>;
       case "guardian-vault": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GuardianVaultView /></Suspense></ErrorBoundary>;
       case "cipher": return gatedView("cipher", CipherView, "Cipher — Data Operations", "Intelligence-grade data toolkit — encoding, hashing, encryption, format conversion, and recipe chaining. All operations run client-side. Available on Aureon and above.");

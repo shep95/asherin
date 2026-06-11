@@ -118,10 +118,6 @@ const SEO: Record<string, SeoEntry> = {
     description:
       "Intelligence Notebooks: live SQL execution, AI reasoning, and 800ms-debounced query analysis with SECURITY DEFINER.",
   },
-  "/feature/vibe-imager": {
-    title: "Vibe Imager — Aesthetic Image Generation | Aureon",
-    description: "Vibe Imager: aesthetic-first image generation tuned for editorial and brand-grade output.",
-  },
   "/feature/video-intelligence": {
     title: "Video Intelligence — FACS Behavioral Tracking | Aureon",
     description:

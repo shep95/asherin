@@ -38,7 +38,7 @@ export type FeatureId =
   | "audit"
   | "scenario_simulator"
   | "video_intelligence"
-  | "vibe_imager"
+  
   | "zahten"
   | "file_scrapper"
   | "cipher"
@@ -82,7 +82,7 @@ const CHAT_FEATURES: FeatureId[] = [
 const AUREON_FEATURES: FeatureId[] = [
   ...CHAT_FEATURES,
   "ide", "memory", "personas", "code_snippets",
-  "vibe_imager", "file_scrapper", "cipher", "whiteboard",
+  "file_scrapper", "cipher", "whiteboard",
   "nomad", "briefings", "zali", "vedic",
   // Zophiel Engine modules included from Aureon tier and up
   "axrlen", "zeeion",
@@ -306,7 +306,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   ebook: "ebook",
   snippets: "code_snippets",
   "video-intelligence": "video_intelligence",
-  "vibe-imager": "vibe_imager",
+  
   // zahten intentionally omitted — always visible in sidebar; gating handled in Dashboard.tsx
   "file-scrapper": "file_scrapper",
   cipher: "cipher",

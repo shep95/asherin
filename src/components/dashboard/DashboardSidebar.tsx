@@ -64,7 +64,6 @@ const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, lab
 import { NAV_INTENTS as ALL_INTENTS, INTENT_GROUPS, INTENT_GROUP_BLURB, type NavIntent } from "@/lib/navIntents";
 
 const VIEW_ICON: Record<string, React.ElementType> = {
-  "vibe-imager": Sparkles,
   "zali": Zap,
   "pdf-generator": FileText,
   "/whiteboard": Layers,
