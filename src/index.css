@@ -491,3 +491,93 @@ header[data-aureon-header] > a {
 @media (prefers-reduced-motion: reduce) {
   .founder-halo::before, .founder-halo::after { animation: none !important; }
 }
+
+/* ============================================================
+   AUREON SIGNAL LAYER — shared polish primitives
+   ============================================================ */
+.aureon-grid-bg {
+  background-image:
+    linear-gradient(to right,  hsl(var(--foreground) / 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--foreground) / 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+@keyframes aureon-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 hsl(var(--accent) / 0.35); }
+  70%  { box-shadow: 0 0 0 14px hsl(var(--accent) / 0); }
+  100% { box-shadow: 0 0 0 0 hsl(var(--accent) / 0); }
+}
+.aureon-pulse-ring { animation: aureon-pulse-ring 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+@keyframes aureon-scanline {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+.aureon-scanline { position: relative; overflow: hidden; }
+.aureon-scanline::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    hsl(var(--accent) / 0.10) 48%,
+    hsl(var(--accent) / 0.28) 50%,
+    hsl(var(--accent) / 0.10) 52%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: aureon-scanline 2.2s ease-in-out infinite;
+}
+
+@keyframes aureon-diffuse {
+  0%, 100% { opacity: 0.25; transform: translate3d(0,0,0); }
+  50%      { opacity: 0.7;  transform: translate3d(0,-8px,0); }
+}
+.aureon-diffuse-dot { animation: aureon-diffuse 3.4s ease-in-out infinite; }
+
+@keyframes aureon-marching-ants {
+  to { background-position: 32px 0, -32px 100%, 0 -32px, 100% 32px; }
+}
+.aureon-dropzone {
+  background-image:
+    linear-gradient(90deg, hsl(var(--accent) / 0.6) 50%, transparent 50%),
+    linear-gradient(90deg, hsl(var(--accent) / 0.6) 50%, transparent 50%),
+    linear-gradient(0deg,  hsl(var(--accent) / 0.6) 50%, transparent 50%),
+    linear-gradient(0deg,  hsl(var(--accent) / 0.6) 50%, transparent 50%);
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  background-size: 16px 1.5px, 16px 1.5px, 1.5px 16px, 1.5px 16px;
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
+  animation: aureon-marching-ants 1.4s linear infinite;
+}
+
+.aureon-amber-glow {
+  box-shadow:
+    0 0 0 1px hsl(38 92% 55% / 0.28),
+    0 0 28px -4px hsl(38 92% 55% / 0.4);
+}
+
+.aureon-scroll-fade {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+}
+
+.aureon-branch-pct {
+  font-variant-numeric: tabular-nums;
+  font-weight: 200;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+@keyframes aureon-confidence-pulse {
+  0%, 100% { filter: drop-shadow(0 0 0 hsl(var(--accent) / 0)); }
+  50%      { filter: drop-shadow(0 0 8px hsl(var(--accent) / 0.55)); }
+}
+.aureon-confidence-pulse { animation: aureon-confidence-pulse 3.2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .aureon-pulse-ring,
+  .aureon-scanline::before,
+  .aureon-diffuse-dot,
+  .aureon-dropzone,
+  .aureon-confidence-pulse { animation: none !important; }
+}
