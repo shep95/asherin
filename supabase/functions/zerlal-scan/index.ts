@@ -386,7 +386,7 @@ async function callAI(prompt: string, lovableKey: string | undefined, geminiKey:
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: "You are ZERLAL, an elite vulnerability scanner. Return ONLY valid JSON. No markdown." },
+              { role: "system", content: "You are ZERLAL. Always run the CODE → NARRATIVE → FLAWS → FIX loop internally (max 6 iterations) before responding: (1) convert every file into a plain-language narrative, (2) hunt logic/security/UI/workflow/bug flaws on the narrative, (3) when fixes are requested, regenerate code and re-narrate until zero medium+ flaws remain or 6 iterations are hit. Return ONLY valid JSON. No markdown." },
               { role: "user", content: prompt },
             ],
             temperature: 0.1,
