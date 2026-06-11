@@ -645,7 +645,7 @@ const AxrlenView = () => {
             <AxrlenDashboard session={activeSession} />
           </div>
         ) : (
-          <div className="relative flex flex-1 flex-col items-center justify-start px-4 py-10 sm:py-16 gap-10 overflow-y-auto">
+          <div className="relative flex flex-1 min-w-0 flex-col items-center justify-start px-4 py-10 sm:py-16 gap-10 overflow-y-auto">
             {/* Ambient backdrop */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
               <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[420px] w-[720px] rounded-full bg-foreground/[0.04] blur-3xl" />
