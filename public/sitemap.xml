@@ -1,69 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://aureonai.app/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://aureonai.app/pricing</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/features</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/benchmarks</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://aureonai.app/founder</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://aureonai.app/prompt-engineering</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://aureonai.app/vedic-astrology</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://aureonai.app/analytics</loc><changefreq>weekly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://aureonai.app/nda</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://aureonai.app/asher</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://aureonai.app/forums</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
   <url><loc>https://aureonai.app/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://aureonai.app/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://aureonai.app/llm-models</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://aureonai.app/zophiel</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://aureonai.app/search</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/forums</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/proj-aureon</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://aureonai.app/whiteboard</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://aureonai.app/ww3</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://aureonai.app/feature/zophiel</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/nomad</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/azplen</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/briefings</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/personas</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/zali</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/zahten</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/predictive</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/imagine-to-code</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/ide</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/imagine-intelligence</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/notebooks</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/vibe-imager</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/vibe-video</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/video-intelligence</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/byok</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/zerlal</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/zeeion</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/aziion</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/axrlen</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/cross</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  
-  <url><loc>https://aureonai.app/feature/zaplen</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/cipher</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/pattern-analysis</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/reverse-engineer</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/file-scrapper</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/ebook</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/plugin-marketplace</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/coding-laws</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/automated-agents</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/memory-center</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/brains</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/library</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/whiteboard-info</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/feature/vedic</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/i</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://aureonai.app/elite</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://aureonai.app/asher</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://aureonai.app/avapicks</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://aureonai.app/openvpn</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://aureonai.app/dashboard</loc><changefreq>weekly</changefreq><priority>0.4</priority></url>
   <url><loc>https://aureonai.app/asher-dashboard</loc><changefreq>weekly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://aureonai.app/vedic</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://aureonai.app/axrlen</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/houseofasher-ventures</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://aureonai.app/unsubscribe</loc><changefreq>yearly</changefreq><priority>0.1</priority></url>
+  <url><loc>https://aureonai.app/dashboard/search</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/zali</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/azplen</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/nomad</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/briefing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/notebooks</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/axrlen</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/zeeion</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/zerlal</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/cipher</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/vibe-imager</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/video-intelligence</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/file-scrapper</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/ebook</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/ide</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/dashboard/library</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://aureonai.app/dashboard/persona-store</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://aureonai.app/dashboard/vedic-astrology</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://aureonai.app/dashboard/plugins</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://aureonai.app/dashboard/teams</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://aureonai.app/dashboard/community</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://aureonai.app/dashboard/settings</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://aureonai.app/dashboard/subscription</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
 </urlset>
-
