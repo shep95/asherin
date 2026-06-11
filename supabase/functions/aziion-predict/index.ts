@@ -48,24 +48,28 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { action, userId } = body;
 
-    // ── MANUAL TRIGGER or CRON ──
-    // For cron: no auth needed (service key). For manual: verify admin.
-    let adminUserId = userId;
+    // ── Resolve adminUserId securely ──
+    // Priority: 1) JWT identity (admin only); 2) Cron secret with body userId; otherwise reject.
+    let adminUserId: string | null = null;
+    const authHeader = req.headers.get("Authorization");
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const isCron = !!cronSecret && req.headers.get("x-cron-secret") === cronSecret;
 
-    if (!adminUserId) {
-      // Try to get from auth header
-      const authHeader = req.headers.get("Authorization");
-      if (authHeader?.startsWith("Bearer ")) {
-        const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-          global: { headers: { Authorization: authHeader } },
-        });
-        const { data: { user } } = await anonClient.auth.getUser();
-        if (!isAuthorizedAdminEmail(user?.email)) {
-          return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        adminUserId = user.id;
+    if (authHeader?.startsWith("Bearer ")) {
+      const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await anonClient.auth.getUser();
+      if (!isAuthorizedAdminEmail(user?.email)) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+      adminUserId = user!.id;
+    } else if (isCron && userId) {
+      adminUserId = userId;
+    } else {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
 
     // ── GET STATUS ──
     if (action === "get_status") {
