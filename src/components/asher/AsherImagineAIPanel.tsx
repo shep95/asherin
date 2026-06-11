@@ -7,7 +7,10 @@ import { Brain, Send, Loader2, ChevronRight, ChevronLeft, Image as ImageIcon, Sp
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { logAsherEvent } from "@/lib/asherAudit";
+import { routeBrainsForPrompt } from "@/lib/asherBrainRouter";
 import { toast } from "sonner";
+
+const IMAGINE_SESSION_KEY = "imagine_chat_messages_v1";
 
 interface Msg {
   id: string;
