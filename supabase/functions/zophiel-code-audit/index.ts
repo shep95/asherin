@@ -474,7 +474,7 @@ serve(async (req) => {
         raw = await callByokJsonWithRetry(byok as ZophielByokConfig, FULL_SYSTEM_PROMPT, userPrompt, {
           timeoutMs: 90_000,
           temperature: 0.2,
-          maxOutputTokens: 32768,
+          maxOutputTokens: 65535,
           attempts: 2,
         });
       } catch (e) {
@@ -502,7 +502,7 @@ serve(async (req) => {
             generationConfig: {
               responseMimeType: "application/json",
               temperature: 0.2,
-              maxOutputTokens: 32768,
+              maxOutputTokens: 65535,
             },
           }),
         },
@@ -532,11 +532,8 @@ serve(async (req) => {
     }
 
     if (finishReason === "MAX_TOKENS") {
-      console.error("[code-audit] truncated", { length: raw.length });
-      return new Response(
-        JSON.stringify({ error: "AI response truncated — try a smaller file or retry" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      // Don't fail — attempt tolerant repair downstream, fall back to deterministic blueprint if needed.
+      console.warn("[code-audit] hit MAX_TOKENS, attempting JSON repair", { length: raw.length });
     }
 
     const cleaned = extractJsonCandidate(raw);
