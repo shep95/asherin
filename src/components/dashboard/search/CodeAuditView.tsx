@@ -66,7 +66,13 @@ const CODE_EXTS = /\.(js|jsx|ts|tsx|mjs|cjs|py|rb|go|rs|java|kt|kts|c|h|cc|cpp|h
 const SKIP_DIR = /(^|\/)(node_modules|\.git|dist|build|out|\.next|\.cache|coverage|vendor|__pycache__|\.venv|venv|target)(\/|$)/i;
 
 type ScanDepth = "quick" | "standard" | "deep";
-type ScanCategory = "injection" | "auth" | "crypto" | "deps" | "secrets" | "logic";
+type ScanCategory =
+  | "injection" | "auth" | "crypto" | "deps" | "secrets" | "logic"
+  | "workflow" | "bugs" | "breaking" | "duplication" | "performance"
+  | "concurrency" | "errorhandling" | "memory" | "validation"
+  | "accessibility" | "api" | "config" | "supplychain" | "ai_prompt"
+  | "ui_ux" | "business" | "observability" | "privacy" | "compliance"
+  | "deadcode" | "other";
 type InputMode = "zip" | "github" | "paste";
 type ZerlalPage = "scan" | "history" | "compliance" | "patterns";
 type ScanHistoryEntry = { id: string; target: string; risk: number; files: number; timestamp: string; critical: number; high: number; medium: number; low: number };
@@ -77,6 +83,27 @@ const ALL_CATEGORIES: { id: ScanCategory; label: string }[] = [
   { id: "deps", label: "Dependencies" },
   { id: "secrets", label: "Secrets/Leaks" },
   { id: "logic", label: "Logic Flaws" },
+  { id: "workflow", label: "Workflow Flaws" },
+  { id: "bugs", label: "Bugs" },
+  { id: "breaking", label: "Code Breaking" },
+  { id: "duplication", label: "Duplication" },
+  { id: "performance", label: "Performance" },
+  { id: "concurrency", label: "Race / Concurrency" },
+  { id: "errorhandling", label: "Error Handling" },
+  { id: "memory", label: "Memory / Leaks" },
+  { id: "validation", label: "Input Validation" },
+  { id: "accessibility", label: "Accessibility" },
+  { id: "api", label: "API Contract" },
+  { id: "config", label: "Misconfiguration" },
+  { id: "supplychain", label: "Supply Chain" },
+  { id: "ai_prompt", label: "Prompt Injection" },
+  { id: "ui_ux", label: "UI / UX Flaws" },
+  { id: "business", label: "Business Logic" },
+  { id: "observability", label: "Logging / Observability" },
+  { id: "privacy", label: "Privacy / PII" },
+  { id: "compliance", label: "Compliance" },
+  { id: "deadcode", label: "Dead / Unused Code" },
+  { id: "other", label: "Other / Uncategorized" },
 ];
 
 const normalizeGithubUrl = (url: string) => {
@@ -549,6 +576,9 @@ const ZerlalView = () => {
 
           {/* SEVERITY BREAKDOWN BAR */}
           <SeverityBreakdown blueprint={blueprint} />
+
+          {/* FLAW TYPE TOTALS — every flaw class incl. "Other" so nothing is dropped */}
+          <FlawTypeTotalsPanel blueprint={blueprint} />
 
           {/* Audit Map header bar */}
           <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-3 flex items-center gap-3 flex-wrap">
@@ -1354,6 +1384,103 @@ const RiskScoreHeader = ({ blueprint }: { blueprint: Blueprint }) => {
         <p className="text-[10px] font-extralight opacity-60 mt-0.5 truncate">
           {blueprint.target} · {blueprint.branches.length} surfaces analyzed
         </p>
+      </div>
+    </div>
+  );
+};
+
+// Classify any finding text into a flaw-type bucket. Falls back to "Other".
+const FLAW_TYPE_RULES: { id: ScanCategory; label: string; rx: RegExp }[] = [
+  { id: "injection", label: "Injection", rx: /inject|sqli|xss|ssrf|rce|command exec|eval\(|innerhtml|prompt inject/i },
+  { id: "auth", label: "Auth / Session", rx: /auth|session|jwt|oauth|password|token|login|rbac|role|privilege|csrf/i },
+  { id: "crypto", label: "Crypto", rx: /crypt|cipher|aes|rsa|md5|sha1|hash|salt|nonce|iv|tls|ssl|key/i },
+  { id: "secrets", label: "Secrets / Leaks", rx: /secret|api[_ -]?key|leak|hardcoded|credential|\.env|private[_ -]?key/i },
+  { id: "deps", label: "Dependencies", rx: /dependen|outdated|cve|vulnerab.*package|lockfile|npm audit|version pin/i },
+  { id: "supplychain", label: "Supply Chain", rx: /supply chain|typosquat|sbom|provenance|transitive|registry/i },
+  { id: "concurrency", label: "Race / Concurrency", rx: /race condition|concurren|deadlock|mutex|lock |atomic|thread/i },
+  { id: "memory", label: "Memory / Leaks", rx: /memory leak|buffer overflow|use[- ]after[- ]free|gc pressure|retain cycle/i },
+  { id: "performance", label: "Performance", rx: /performance|o\(n.?2\)|slow|n\+1|inefficien|bottleneck|expensive|render thrash/i },
+  { id: "errorhandling", label: "Error Handling", rx: /error handl|unhandled|swallow|catch \{|throw missing|try block|null check/i },
+  { id: "validation", label: "Input Validation", rx: /validation|sanitiz|unchecked input|missing check|boundary|schema mismatch/i },
+  { id: "breaking", label: "Code Breaking", rx: /breaking change|compile error|runtime crash|throws|broken build|fatal/i },
+  { id: "duplication", label: "Duplication", rx: /duplicat|copy[- ]paste|repeated|dry violation|same logic/i },
+  { id: "deadcode", label: "Dead / Unused", rx: /dead code|unused|unreachable|orphan|never called/i },
+  { id: "accessibility", label: "Accessibility", rx: /a11y|accessib|aria|wcag|contrast|screen reader/i },
+  { id: "ui_ux", label: "UI / UX", rx: /ui flaw|ux|layout|overflow|z-index|focus trap|hit ?target|responsive/i },
+  { id: "workflow", label: "Workflow", rx: /workflow|state machine|step missing|orchestrat|flow break|sequence/i },
+  { id: "business", label: "Business Logic", rx: /business logic|invariant|policy|pricing|billing|tax|refund/i },
+  { id: "api", label: "API Contract", rx: /api contract|schema drift|openapi|rest|graphql|endpoint mismatch|response shape/i },
+  { id: "config", label: "Misconfig", rx: /misconfig|configuration|env var|cors|csp|header missing|default password/i },
+  { id: "observability", label: "Logging / Observability", rx: /log|telemetry|metric|trace|observab|monitor/i },
+  { id: "privacy", label: "Privacy / PII", rx: /pii|gdpr|privacy|personal data|email leak|ssn|phone number/i },
+  { id: "compliance", label: "Compliance", rx: /compliance|hipaa|pci|soc2|iso 27|nist/i },
+  { id: "ai_prompt", label: "Prompt Injection", rx: /prompt inject|jailbreak|system prompt leak|llm exfil/i },
+  { id: "bugs", label: "Bugs", rx: /bug|defect|fault|wrong result|incorrect|off[- ]by[- ]one|typo/i },
+  { id: "logic", label: "Logic Flaws", rx: /logic flaw|incorrect logic|wrong branch|condition wrong|impossible state/i },
+];
+
+const classifyFlaw = (text: string): { id: ScanCategory; label: string } => {
+  for (const r of FLAW_TYPE_RULES) if (r.rx.test(text)) return { id: r.id, label: r.label };
+  return { id: "other", label: "Other / Uncategorized" };
+};
+
+const FlawTypeTotalsPanel = ({ blueprint }: { blueprint: Blueprint }) => {
+  const buckets = useMemo(() => {
+    const m = new Map<string, { label: string; count: number; sev: { c: number; h: number; m: number; l: number } }>();
+    const bump = (text: string, sev: "high" | "med" | "low" | "critical") => {
+      const c = classifyFlaw(text);
+      const cur = m.get(c.id) || { label: c.label, count: 0, sev: { c: 0, h: 0, m: 0, l: 0 } };
+      cur.count += 1;
+      if (sev === "critical") cur.sev.c += 1;
+      else if (sev === "high") cur.sev.h += 1;
+      else if (sev === "med") cur.sev.m += 1;
+      else cur.sev.l += 1;
+      m.set(c.id, cur);
+    };
+    (blueprint.criticals || []).forEach(c => bump(`${c.branch} ${c.finding}`, c.severity === "high" ? "critical" : c.severity));
+    blueprint.branches.forEach(b => {
+      b.leaves.forEach(lf => {
+        const sev: "high" | "med" | "low" = b.tone === "critical" ? "high" : b.tone === "warn" ? "med" : "low";
+        bump(`${b.label} ${lf.label} ${lf.value}`, sev);
+      });
+    });
+    return Array.from(m.entries())
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => b.count - a.count);
+  }, [blueprint]);
+
+  const grandTotal = buckets.reduce((a, b) => a + b.count, 0);
+  if (grandTotal === 0) return null;
+
+  return (
+    <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Bug className="h-3 w-3 text-foreground/60" />
+        <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70 uppercase">Flaw Type Totals</span>
+        <span className="ml-auto text-[10px] font-light text-muted-foreground/60 tabular-nums">
+          {grandTotal} flaws · {buckets.length} type{buckets.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <p className="text-[10px] font-extralight text-muted-foreground/55 leading-relaxed">
+        Every finding (security, logic, workflow, bugs, breaking, duplication, performance, UX, business logic, etc.) bucketed by type. Anything that doesn't match a known taxonomy lands in <span className="text-foreground/70">Other / Uncategorized</span> so nothing is silently dropped.
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        {buckets.map(b => (
+          <div key={b.id} className={`rounded-lg border px-3 py-2 ${
+            b.id === "other" ? "border-cyan-400/30 bg-cyan-500/[0.04]" : "border-border/20 bg-background/40"
+          }`}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[10px] font-medium tracking-wide text-foreground/85 truncate">{b.label}</span>
+              <span className="text-sm font-light tabular-nums text-foreground/90">{b.count}</span>
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 text-[9px] font-extralight text-muted-foreground/60 tabular-nums">
+              {b.sev.c > 0 && <span className="text-red-300/80">C {b.sev.c}</span>}
+              {b.sev.h > 0 && <span className="text-orange-300/80">H {b.sev.h}</span>}
+              {b.sev.m > 0 && <span className="text-amber-300/80">M {b.sev.m}</span>}
+              {b.sev.l > 0 && <span className="text-emerald-300/70">L {b.sev.l}</span>}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
