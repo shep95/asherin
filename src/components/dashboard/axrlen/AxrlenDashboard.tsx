@@ -385,13 +385,19 @@ const AxrlenDashboard = ({ session }: Props) => {
                   )}
                   {d.esotericTrigger && <p className="text-[8px] text-foreground/45 italic">⊛ {d.esotericTrigger}</p>}
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="p-2 rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04]">
-                      <p className="text-[7px] uppercase tracking-wider text-emerald-400/60 mb-0.5">Branch A · {d.branchA?.probability}%</p>
-                      <p className="text-[8px] text-foreground/60 leading-snug">{d.branchA?.description}</p>
+                    <div className="relative p-3 rounded-lg border border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.08] via-emerald-500/[0.04] to-transparent overflow-hidden">
+                      <div className="flex items-baseline justify-between mb-1">
+                        <span className="text-[8px] font-semibold uppercase tracking-[0.28em] text-emerald-300/90">Branch A</span>
+                        <span className="aureon-branch-pct text-[26px] text-emerald-300">{d.branchA?.probability ?? 0}<span className="text-[12px] text-emerald-300/60">%</span></span>
+                      </div>
+                      <p className="text-[9px] text-foreground/70 leading-snug">{d.branchA?.description}</p>
                     </div>
-                    <div className="p-2 rounded-lg border border-amber-500/15 bg-amber-500/[0.04]">
-                      <p className="text-[7px] uppercase tracking-wider text-amber-400/60 mb-0.5">Branch B · {d.branchB?.probability}%</p>
-                      <p className="text-[8px] text-foreground/60 leading-snug">{d.branchB?.description}</p>
+                    <div className="relative p-3 rounded-lg border border-amber-500/25 bg-gradient-to-br from-amber-500/[0.08] via-amber-500/[0.04] to-transparent overflow-hidden">
+                      <div className="flex items-baseline justify-between mb-1">
+                        <span className="text-[8px] font-semibold uppercase tracking-[0.28em] text-amber-300/90">Branch B</span>
+                        <span className="aureon-branch-pct text-[26px] text-amber-300">{d.branchB?.probability ?? 0}<span className="text-[12px] text-amber-300/60">%</span></span>
+                      </div>
+                      <p className="text-[9px] text-foreground/70 leading-snug">{d.branchB?.description}</p>
                     </div>
                   </div>
                   {d.keyIndicators?.length > 0 && (
