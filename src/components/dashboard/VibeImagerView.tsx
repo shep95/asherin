@@ -642,35 +642,76 @@ const VibeImagerView = () => {
         </div>
 
         {/* Image Canvas */}
-        <div className="flex-1 relative min-h-0 overflow-auto flex items-center justify-center bg-[hsl(var(--background))] p-4">
+        <div className={`flex-1 relative min-h-0 overflow-hidden flex items-center justify-center bg-[hsl(var(--background))] p-4 aureon-grid-bg ${isEditing ? "aureon-scanline" : ""}`}>
           {activeVersion ? (
-            <img
-              src={activeVersion.image_url}
-              alt={`Version ${activeVersion.version_number}`}
-              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl shadow-black/30 transition-transform duration-200"
-              style={{ transform: `scale(${imageZoom / 100})`, transformOrigin: "center" }}
-            />
+            <div className="relative max-w-full max-h-full">
+              <img
+                src={activeVersion.image_url}
+                alt={`Version ${activeVersion.version_number}`}
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl shadow-black/30 transition-transform duration-200"
+                style={{ transform: `scale(${imageZoom / 100})`, transformOrigin: "center" }}
+              />
+              {/* Active version pulse */}
+              <div className="pointer-events-none absolute -inset-px rounded-xl ring-1 ring-amber-500/20" />
+            </div>
           ) : (
-            <div className="flex flex-col items-center gap-4 text-center">
-              <div className="p-6 rounded-3xl border border-dashed border-border/30 bg-card/20">
-                <Upload className="h-10 w-10 text-muted-foreground/30" />
+            // EMPTY STATE — animated drop-zone with personality (amber signal)
+            <div
+              onDragOver={(e) => { e.preventDefault(); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files?.[0];
+                if (file && fileInputRef.current) {
+                  const dt = new DataTransfer();
+                  dt.items.add(file);
+                  fileInputRef.current.files = dt.files;
+                  fileInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
+                }
+              }}
+              className="relative aureon-dropzone rounded-2xl w-full max-w-xl h-72 flex flex-col items-center justify-center gap-5 transition-all hover:scale-[1.01] cursor-pointer group"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {/* Floating diffusion dots */}
+              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+                <span className="aureon-diffuse-dot absolute top-6 left-8 h-1 w-1 rounded-full bg-amber-400/40" style={{ animationDelay: "0s" }} />
+                <span className="aureon-diffuse-dot absolute top-12 right-10 h-1 w-1 rounded-full bg-amber-400/30" style={{ animationDelay: "0.8s" }} />
+                <span className="aureon-diffuse-dot absolute bottom-10 left-14 h-1.5 w-1.5 rounded-full bg-amber-400/40" style={{ animationDelay: "1.4s" }} />
+                <span className="aureon-diffuse-dot absolute bottom-14 right-8 h-1 w-1 rounded-full bg-amber-400/35" style={{ animationDelay: "2.1s" }} />
+                <span className="aureon-diffuse-dot absolute top-1/2 left-1/3 h-0.5 w-0.5 rounded-full bg-amber-400/50" style={{ animationDelay: "1.0s" }} />
               </div>
-              <p className="text-sm font-extralight text-muted-foreground/50">Upload an image to start editing</p>
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="gap-2 text-xs rounded-xl"
-              >
-                <Upload className="h-3.5 w-3.5" /> Choose Image
-              </Button>
+
+              <div className="relative">
+                <div className="absolute inset-0 rounded-2xl bg-amber-500/20 blur-2xl group-hover:bg-amber-500/30 transition-colors" />
+                <div className="relative p-5 rounded-2xl bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/30 aureon-amber-glow">
+                  <Upload className="h-8 w-8 text-amber-400" strokeWidth={1.5} />
+                </div>
+              </div>
+              <div className="text-center space-y-1.5 px-6">
+                <p className="text-sm font-light text-foreground tracking-wide">Drop an image or <span className="text-amber-400">click to upload</span></p>
+                <p className="text-[10px] text-muted-foreground/55 leading-relaxed">
+                  PNG · JPG · WEBP — Aureon will branch every edit and version your history
+                </p>
+              </div>
+              <div className="flex items-center gap-3 text-[9px] uppercase tracking-[0.28em] text-muted-foreground/40">
+                <span className="h-px w-8 bg-border/40" />
+                <span>or describe in chat →</span>
+                <span className="h-px w-8 bg-border/40" />
+              </div>
             </div>
           )}
           {isEditing && (
-            <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center rounded-b-2xl">
-              <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card/80 border border-border/20 backdrop-blur-md">
-                <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                <p className="text-sm font-light text-foreground/70">Aureon is analyzing your request…</p>
-                <p className="text-[10px] text-muted-foreground/50">This may take a few seconds</p>
+            <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
+              <div className="flex flex-col items-center gap-3 px-6 py-4 rounded-2xl bg-card/80 border border-amber-500/30 backdrop-blur-md aureon-amber-glow">
+                <div className="relative">
+                  <Loader2 className="h-7 w-7 animate-spin text-amber-400" />
+                  <div className="absolute inset-0 rounded-full aureon-pulse-ring" />
+                </div>
+                <p className="text-[11px] font-light text-foreground/90 tracking-wide">Aureon is generating…</p>
+                <div className="flex items-center gap-1">
+                  <span className="h-1 w-1 rounded-full bg-amber-400/80 aureon-diffuse-dot" />
+                  <span className="h-1 w-1 rounded-full bg-amber-400/80 aureon-diffuse-dot" style={{ animationDelay: "0.4s" }} />
+                  <span className="h-1 w-1 rounded-full bg-amber-400/80 aureon-diffuse-dot" style={{ animationDelay: "0.8s" }} />
+                </div>
               </div>
             </div>
           )}
@@ -887,7 +928,7 @@ const VibeImagerView = () => {
               size="sm"
               onClick={sendMessage}
               disabled={!input.trim()}
-              className="h-10 w-10 p-0 rounded-xl bg-accent hover:bg-accent/80"
+              className="h-10 w-10 p-0 rounded-xl bg-amber-500 hover:bg-amber-400 text-black aureon-amber-glow disabled:opacity-30 disabled:shadow-none"
             >
               {isEditing ? <Plus className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
             </Button>
