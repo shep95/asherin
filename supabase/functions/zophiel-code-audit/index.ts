@@ -465,54 +465,27 @@ serve(async (req) => {
     // Compose the full system prompt: identity → doctrine → brains → audit directive/schema
     const FULL_SYSTEM_PROMPT = `${ZOPHIEL_IDENTITY}\n\n${AUREON_CODE_PERSONALITY}\n\n${NARRATIVE_FORGE_BRAIN}\n\n${BUTTERFLY_PROTOCOL_BRAIN}${brainsContext}\n\n${AUDIT_DIRECTIVE}`;
 
-    // ── Chunk the code so a single API call never blows token/quota limits.
-    // If file markers ("--- FILE: …") are present, split on those; otherwise slice by size.
-    const CHUNK_BYTES = 35_000;
-    const buildChunks = (src: string): Array<{ label: string; body: string }> => {
-      const enc = new TextEncoder();
-      if (enc.encode(src).length <= CHUNK_BYTES) return [{ label: safeName, body: src }];
-      // File-marker split
-      if (/^---\s*FILE:/m.test(src)) {
-        const parts = src.split(/(?=^---\s*FILE:)/m).filter((p) => p.trim());
-        const out: Array<{ label: string; body: string }> = [];
-        let buf = "";
-        let bufLabel = "section 1";
-        let n = 1;
-        for (const p of parts) {
-          if (enc.encode(buf + p).length > CHUNK_BYTES && buf) {
-            out.push({ label: bufLabel, body: buf });
-            buf = p; bufLabel = `section ${++n}`;
-          } else buf += p;
-        }
-        if (buf) out.push({ label: bufLabel, body: buf });
-        return out;
-      }
-      // Line-based slicing
-      const lines = src.split(/\r?\n/);
-      const out: Array<{ label: string; body: string }> = [];
-      let buf = ""; let n = 1;
-      for (const ln of lines) {
-        if (enc.encode(buf).length + ln.length > CHUNK_BYTES && buf) {
-          out.push({ label: `${safeName} (section ${n++})`, body: buf });
-          buf = "";
-        }
-        buf += ln + "\n";
-      }
-      if (buf) out.push({ label: `${safeName} (section ${n})`, body: buf });
-      return out;
-    };
+    const userPrompt = `Filename: ${safeName}\n\n--- BEGIN CODE ---\n${code}\n--- END CODE ---\n\nReturn the JSON security blueprint now.`;
 
-    const chunks = buildChunks(code);
-    console.log(`[code-audit] processing ${chunks.length} chunk(s)`);
-
-    const auditOne = async (label: string, body: string): Promise<{ raw: string; finishReason?: string }> => {
-      const userPrompt = `Filename: ${label}${chunks.length > 1 ? ` (chunk ${chunks.indexOf(chunks.find((c) => c.body === body)!) + 1} of ${chunks.length} — audit ONLY this slice; ignore missing context)` : ""}\n\n--- BEGIN CODE ---\n${body}\n--- END CODE ---\n\nReturn the JSON security blueprint now.`;
-      if (useByok) {
-        const r = await callByokJsonWithRetry(byok as ZophielByokConfig, FULL_SYSTEM_PROMPT, userPrompt, {
-          timeoutMs: 90_000, temperature: 0.2, maxOutputTokens: 65535, attempts: 2,
+    let raw = "";
+    let finishReason: string | undefined;
+    if (useByok) {
+      try {
+        raw = await callByokJsonWithRetry(byok as ZophielByokConfig, FULL_SYSTEM_PROMPT, userPrompt, {
+          timeoutMs: 90_000,
+          temperature: 0.2,
+          maxOutputTokens: 32768,
+          attempts: 2,
         });
-        return { raw: r };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "BYOK call failed";
+        console.error("[code-audit] BYOK error", msg);
+        return new Response(
+          JSON.stringify({ error: `Your AI key call failed: ${msg}` }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
+    } else {
       const aiResp = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
         {
@@ -520,79 +493,68 @@ serve(async (req) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: FULL_SYSTEM_PROMPT }] },
-            contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-            generationConfig: { responseMimeType: "application/json", temperature: 0.2, maxOutputTokens: 65535 },
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: userPrompt }],
+              },
+            ],
+            generationConfig: {
+              responseMimeType: "application/json",
+              temperature: 0.2,
+              maxOutputTokens: 32768,
+            },
           }),
         },
       );
-      if (!aiResp.ok) throw new Error(`Gemini: ${aiResp.status} ${(await aiResp.text()).slice(0, 200)}`);
+
+      if (!aiResp.ok) {
+        const errText = await aiResp.text();
+        console.error("[code-audit] AI error", aiResp.status, errText);
+        return new Response(
+          JSON.stringify({ error: `Gemini: ${aiResp.status}` }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       const aiData = await aiResp.json();
       const candidate = aiData?.candidates?.[0];
-      const raw = candidate?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
-      return { raw, finishReason: candidate?.finishReason };
-    };
+      finishReason = candidate?.finishReason;
+      raw = candidate?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
+    }
 
-    const parseChunk = (raw: string, body: string, label: string): any => {
-      const cleaned = extractJsonCandidate(raw);
-      try { return JSON.parse(cleaned); } catch {}
-      try { return JSON.parse(repairJson(cleaned)); } catch {}
-      console.warn("[code-audit] chunk parse failed, using fallback for", label);
-      return fallbackBlueprint(body, label, raw);
-    };
+    if (!raw.trim()) {
+      console.error("[code-audit] empty response", { finishReason });
+      return new Response(
+        JSON.stringify({ error: `Empty AI response (finish: ${finishReason || "unknown"})` }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
-    // Run chunks sequentially with a small inter-call delay to avoid rate spikes.
-    const chunkBlueprints: any[] = [];
-    for (let i = 0; i < chunks.length; i++) {
-      const c = chunks[i];
+    if (finishReason === "MAX_TOKENS") {
+      console.error("[code-audit] truncated", { length: raw.length });
+      return new Response(
+        JSON.stringify({ error: "AI response truncated — try a smaller file or retry" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const cleaned = extractJsonCandidate(raw);
+
+    let blueprint: unknown;
+    try {
+      blueprint = JSON.parse(cleaned);
+    } catch {
+      // Tolerant repair: truncate to last balanced brace, close open strings/arrays
+      const repaired = repairJson(cleaned);
       try {
-        const { raw } = await auditOne(c.label, c.body);
-        if (!raw.trim()) {
-          chunkBlueprints.push(fallbackBlueprint(c.body, c.label, ""));
-        } else {
-          chunkBlueprints.push(parseChunk(raw, c.body, c.label));
-        }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "chunk failed";
-        console.error("[code-audit] chunk error", c.label, msg);
-        chunkBlueprints.push(fallbackBlueprint(c.body, c.label, ""));
+        blueprint = JSON.parse(repaired);
+        console.warn("[code-audit] recovered via repair");
+      } catch (parseErr) {
+        console.error("[code-audit] parse failed; returning deterministic fallback", parseErr, "len:", raw.length, "tail:", raw.slice(-300));
+        blueprint = fallbackBlueprint(code, safeName, raw);
       }
-      if (i < chunks.length - 1) await new Promise((r) => setTimeout(r, 600));
     }
-
-    // Merge blueprints. Single chunk → return as-is.
-    let blueprint: any;
-    if (chunkBlueprints.length === 1) {
-      blueprint = chunkBlueprints[0];
-    } else {
-      const merged: any = JSON.parse(JSON.stringify(chunkBlueprints[0]));
-      merged.target = safeName;
-      merged.summary = `Composite audit across ${chunkBlueprints.length} sections.\n\n` +
-        chunkBlueprints.map((b, i) => `[Section ${i + 1}] ${b?.summary || ""}`).join("\n");
-      // Average scores
-      const avg = (k: string) => Math.round(chunkBlueprints.reduce((s, b) => s + (b?.score?.[k] || 0), 0) / chunkBlueprints.length);
-      merged.score = { security: avg("security"), integrity: avg("integrity"), complexity: avg("complexity") };
-      // Merge branch leaves by id
-      const branchMap = new Map<string, any>();
-      for (const b of merged.branches || []) branchMap.set(b.id, { ...b, leaves: [...(b.leaves || [])] });
-      for (let i = 1; i < chunkBlueprints.length; i++) {
-        for (const br of chunkBlueprints[i]?.branches || []) {
-          const ex = branchMap.get(br.id);
-          if (ex) ex.leaves.push(...(br.leaves || []));
-          else branchMap.set(br.id, { ...br, leaves: [...(br.leaves || [])] });
-        }
-      }
-      // Cap leaves per branch
-      merged.branches = Array.from(branchMap.values()).map((b) => ({ ...b, leaves: b.leaves.slice(0, 15) }));
-      // Concat criticals
-      merged.criticals = chunkBlueprints.flatMap((b) => b?.criticals || []).slice(0, 30);
-      // Union edges
-      const edgeKey = (e: any) => `${e.from}->${e.to}`;
-      const edgeMap = new Map<string, any>();
-      for (const b of chunkBlueprints) for (const e of b?.edges || []) edgeMap.set(edgeKey(e), e);
-      merged.edges = Array.from(edgeMap.values());
-      blueprint = merged;
-    }
-
 
     return new Response(
       JSON.stringify({ success: true, blueprint }),
