@@ -63,7 +63,7 @@ export default function AsherCodeDevOps({ projectId, previewIframe, onClose, fil
             );
           })}
         </div>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1.5"><X className="h-3.5 w-3.5" /></button>
+        <button onClick={onClose} aria-label="Close DevOps panel" className="text-muted-foreground hover:text-foreground p-1.5"><X className="h-3.5 w-3.5" /></button>
       </div>
 
       <div className="flex-1 overflow-auto">

@@ -309,11 +309,13 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
     return <hr className="my-3 border-border/20" {...props} />;
   },
   img({ src, alt, ...props }: any) {
+    const hasAlt = typeof alt === "string" && alt.trim().length > 0;
     return (
       <span className="relative inline-block group cursor-pointer" onClick={() => (window as any).__aureonLightbox?.(src)}>
         <img
           src={src}
-          alt={alt || "Chart analysis"}
+          alt={hasAlt ? alt : ""}
+          role={hasAlt ? undefined : "presentation"}
           className="rounded-xl border border-border/20 max-w-full my-3 shadow-lg transition-transform hover:scale-[1.02]"
           style={{ maxHeight: "500px", objectFit: "contain" }}
           loading="lazy"

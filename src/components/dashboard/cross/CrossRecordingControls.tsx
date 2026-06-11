@@ -74,7 +74,7 @@ const CrossRecordingControls: React.FC<CrossRecordingControlsProps> = ({
         <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
           <Circle className="h-4 w-4 text-red-400" /> Recording Controls
         </h3>
-        <button onClick={onClose}><X className="h-4 w-4 text-muted-foreground" /></button>
+        <button onClick={onClose} aria-label="Close recording controls"><X className="h-4 w-4 text-muted-foreground" /></button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
