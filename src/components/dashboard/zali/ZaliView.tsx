@@ -607,16 +607,16 @@ const ZaliView = () => {
           </div>
         </div>
 
-        {/* Tabs - scrollable on mobile */}
-        <div className="mt-2 sm:mt-4 flex gap-0.5 sm:gap-1 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+        {/* Tabs - scrollable on mobile with edge fade */}
+        <div className="mt-2 sm:mt-4 flex gap-0.5 sm:gap-1 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 aureon-scroll-fade">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`whitespace-nowrap rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-light transition-colors flex-shrink-0 active:scale-95 ${
                 activeTab === tab.id
-                  ? "bg-foreground/10 text-foreground"
-                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                  ? "bg-amber-500/15 text-amber-300 border border-amber-500/25"
+                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground border border-transparent"
               }`}
             >
               {tab.label}
