@@ -392,11 +392,19 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     const supabaseAnon = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
-    if (authHeader) {
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const isCron = !!cronSecret && req.headers.get("x-cron-secret") === cronSecret;
+    if (!isCron) {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const token = authHeader.replace("Bearer ", "");
       const { data: { user } } = await supabaseAnon.auth.getUser(token);
       if (!user || !isAuthorizedAdminEmail(user.email)) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
