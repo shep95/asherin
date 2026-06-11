@@ -9,7 +9,7 @@ import FreeManifesto from "@/components/FreeManifesto";
  */
 const SubscriptionView = () => {
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-8 sm:py-14">
+    <div className="mx-auto h-full w-full max-w-6xl overflow-y-auto px-4 py-10 sm:px-8 sm:py-14">
       <div className="mb-10 flex items-center gap-3">
         <Heart className="h-5 w-5 text-foreground/80" />
         <div>
