@@ -21,18 +21,36 @@ interface Msg {
 
 const AsherImagineAIPanel = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content:
-        "**ASHER AI · Imagine Console**\n\nI'm wired into the full Aureon brain. Ask me anything or have me generate tactical imagery.\n\n- *Imagine a SAM site at sunset, top-down satellite view*\n- *Sketch a fortified compound with perimeter wall*\n- *Render an urban operations diagram*\n- *Explain the doctrinal use of an L-shaped ambush*",
-    },
-  ]);
+const WELCOME_MSG: Msg = {
+  id: "welcome",
+  role: "assistant",
+  content:
+    "**ASHER AI · Imagine Console**\n\nI'm wired into the full Aureon brain. Ask me anything or have me generate tactical imagery.\n\n- *Imagine a SAM site at sunset, top-down satellite view*\n- *Sketch a fortified compound with perimeter wall*\n- *Render an urban operations diagram*\n- *Explain the doctrinal use of an L-shaped ambush*",
+};
+
+const AsherImagineAIPanel = () => {
+  const [collapsed, setCollapsed] = useState(false);
+  const [messages, setMessages] = useState<Msg[]>(() => {
+    try {
+      const saved = sessionStorage.getItem(IMAGINE_SESSION_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed as Msg[];
+      }
+    } catch { /* fall through */ }
+    return [WELCOME_MSG];
+  });
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [imagineBusy, setImagineBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Persist conversation across module switches (component unmount/remount)
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(IMAGINE_SESSION_KEY, JSON.stringify(messages));
+    } catch { /* quota or disabled */ }
+  }, [messages]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
