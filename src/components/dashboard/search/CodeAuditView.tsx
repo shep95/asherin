@@ -66,7 +66,13 @@ const CODE_EXTS = /\.(js|jsx|ts|tsx|mjs|cjs|py|rb|go|rs|java|kt|kts|c|h|cc|cpp|h
 const SKIP_DIR = /(^|\/)(node_modules|\.git|dist|build|out|\.next|\.cache|coverage|vendor|__pycache__|\.venv|venv|target)(\/|$)/i;
 
 type ScanDepth = "quick" | "standard" | "deep";
-type ScanCategory = "injection" | "auth" | "crypto" | "deps" | "secrets" | "logic";
+type ScanCategory =
+  | "injection" | "auth" | "crypto" | "deps" | "secrets" | "logic"
+  | "workflow" | "bugs" | "breaking" | "duplication" | "performance"
+  | "concurrency" | "errorhandling" | "memory" | "validation"
+  | "accessibility" | "api" | "config" | "supplychain" | "ai_prompt"
+  | "ui_ux" | "business" | "observability" | "privacy" | "compliance"
+  | "deadcode" | "other";
 type InputMode = "zip" | "github" | "paste";
 type ZerlalPage = "scan" | "history" | "compliance" | "patterns";
 type ScanHistoryEntry = { id: string; target: string; risk: number; files: number; timestamp: string; critical: number; high: number; medium: number; low: number };
@@ -77,6 +83,27 @@ const ALL_CATEGORIES: { id: ScanCategory; label: string }[] = [
   { id: "deps", label: "Dependencies" },
   { id: "secrets", label: "Secrets/Leaks" },
   { id: "logic", label: "Logic Flaws" },
+  { id: "workflow", label: "Workflow Flaws" },
+  { id: "bugs", label: "Bugs" },
+  { id: "breaking", label: "Code Breaking" },
+  { id: "duplication", label: "Duplication" },
+  { id: "performance", label: "Performance" },
+  { id: "concurrency", label: "Race / Concurrency" },
+  { id: "errorhandling", label: "Error Handling" },
+  { id: "memory", label: "Memory / Leaks" },
+  { id: "validation", label: "Input Validation" },
+  { id: "accessibility", label: "Accessibility" },
+  { id: "api", label: "API Contract" },
+  { id: "config", label: "Misconfiguration" },
+  { id: "supplychain", label: "Supply Chain" },
+  { id: "ai_prompt", label: "Prompt Injection" },
+  { id: "ui_ux", label: "UI / UX Flaws" },
+  { id: "business", label: "Business Logic" },
+  { id: "observability", label: "Logging / Observability" },
+  { id: "privacy", label: "Privacy / PII" },
+  { id: "compliance", label: "Compliance" },
+  { id: "deadcode", label: "Dead / Unused Code" },
+  { id: "other", label: "Other / Uncategorized" },
 ];
 
 const normalizeGithubUrl = (url: string) => {
