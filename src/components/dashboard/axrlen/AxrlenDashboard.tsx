@@ -60,21 +60,25 @@ const ConfidenceRing = ({ value }: { value: number }) => {
   const c = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, value || 0));
   const dash = (pct / 100) * c;
+  const tone =
+    pct >= 70 ? "stroke-emerald-400/85" :
+    pct >= 40 ? "stroke-amber-400/85" :
+    "stroke-red-400/80";
   return (
-    <div className="relative h-[88px] w-[88px] shrink-0">
+    <div className="relative h-[96px] w-[96px] shrink-0 aureon-confidence-pulse">
       <svg viewBox="0 0 80 80" className="-rotate-90">
         <circle cx="40" cy="40" r={r} className="fill-none stroke-foreground/[0.06]" strokeWidth="4" />
         <circle
           cx="40" cy="40" r={r}
-          className="fill-none stroke-foreground/70 transition-all duration-700"
+          className={`fill-none ${tone} transition-all duration-700`}
           strokeWidth="4"
           strokeLinecap="round"
           strokeDasharray={`${dash} ${c}`}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-lg font-light tracking-tight text-foreground/90 leading-none">{pct}</span>
-        <span className="text-[7px] uppercase tracking-[0.22em] text-muted-foreground/50 mt-0.5">conf</span>
+        <span className="text-2xl font-extralight tracking-tight text-foreground leading-none tabular-nums">{pct}</span>
+        <span className="text-[8px] uppercase tracking-[0.32em] text-muted-foreground/55 mt-1">conf</span>
       </div>
     </div>
   );
