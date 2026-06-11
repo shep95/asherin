@@ -36,7 +36,6 @@ export interface NavIntent {
 
 export const NAV_INTENTS: NavIntent[] = [
   // CREATE
-  { view: "vibe-imager", label: "Generate Images", codename: "Vibe Imager", blurb: "Conversational AI image creation", keywords: ["image", "picture", "art", "draw", "paint", "generate image", "ai art", "imager"], group: "Create" },
   { view: "zali", label: "Universal Design Lab", codename: "ZANOEM", blurb: "First-principles design from atoms to universes", keywords: ["design", "engineer", "cad", "fea", "thermal", "material", "physics", "simulation"], group: "Create" },
   { view: "pdf-generator", label: "Create a Document", codename: "PDF / eBook / Slides", blurb: "Turn content into PDF, eBook, or slideshow", keywords: ["pdf", "ebook", "book", "slides", "slideshow", "presentation", "export", "document"], group: "Create" },
 

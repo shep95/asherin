@@ -1067,7 +1067,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/elite": "Elite Suite",
   "/whiteboard": "Whiteboard",
   "/proj-aureon": "Aureon IDE",
-  "/vibe-imager": "Vibe Imager",
+  
   "/vibe-video": "Vibe Video",
   "/zali": "Zali",
   "/azplen": "Azplen Foundry",

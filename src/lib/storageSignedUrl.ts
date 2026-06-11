@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Helpers for serving files from PRIVATE Supabase storage buckets.
  *
- * After privatizing the `vibe-imager`, `vibe-video`, and `custom-wallpapers`
+ * After privatizing the `vibe-video` and `custom-wallpapers`
  * buckets, any stored `/storage/v1/object/public/<bucket>/<path>` URL stops
  * working. We keep that URL format in the database (it's a stable encoding of
  * bucket + path) and resolve it to a short-lived signed URL at display time.

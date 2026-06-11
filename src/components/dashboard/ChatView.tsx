@@ -185,7 +185,7 @@ const VALID_INTERNAL_PATHS = new Set([
   "/feature/personas", "/feature/zali", "/feature/predictive", "/feature/elion",
   "/feature/tracker", "/feature/ide",
   "/feature/imagine-intelligence", "/feature/google-intelligence",
-  "/feature/security", "/feature/notebooks", "/feature/vibe-imager",
+  "/feature/security", "/feature/notebooks",
   "/feature/video-intelligence",
 ]);
 
