@@ -1532,8 +1532,12 @@ ${zophielCodingBrainContent}
       console.error("[chat] cognitive workflow pre-pass error:", (e as Error).message);
     }
 
+    // Inject the CODE → NARRATIVE → FLAWS → FIX loop protocol — applies
+    // whenever a ZIP/code attachment is present OR code generation is requested.
+    const { CODE_NARRATIVE_PROTOCOL } = await import("../_shared/codeNarrativeProtocol.ts");
     const systemParts = [
       AUREON_CORE_IDENTITY,
+      CODE_NARRATIVE_PROTOCOL,
       BRAIN_ORCHESTRATOR,
       WORKFLOW_SECRECY_DIRECTIVE,
       cognitiveWorkflowDirective,
