@@ -96,9 +96,32 @@ const AsherImagineAIPanel = () => {
 
     setBusy(true);
     try {
+      // FLAW 1 FIX — Route brains BEFORE the AI call so the Imagine
+      // module gets the same context-aware brain stack the rest of
+      // Aureon uses. Best-effort: failures here must not block chat.
+      let brainContext: string | null = null;
+      let brainRationale: unknown = undefined;
+      try {
+        const brainResult = await routeBrainsForPrompt(text, {
+          topK: 6,
+          charBudget: 60_000,
+          recentMessages: messages.slice(-2).map((m) => ({ role: m.role, content: m.content })),
+        });
+        if (brainResult?.brains?.length) {
+          brainContext = brainResult.brains
+            .map((b: any) => `[BRAIN: ${b.name}]\n${b.content}`)
+            .join("\n\n---\n\n");
+          brainRationale = brainResult.rationale;
+        }
+      } catch (brainErr) {
+        console.warn("[imagine] brain router failed; continuing without brain context", brainErr);
+      }
+
       const { data, error } = await supabase.functions.invoke("asher-ai", {
         body: {
           mapContext: { module: "imagine" },
+          brainContext,
+          brainRationale,
           messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
         },
       });
