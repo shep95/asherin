@@ -190,42 +190,57 @@ const BlueprintFindingsTable = ({ findings, onSelectFinding, onExpandFinding }: 
 
   return (
     <div
-      className="palantir-blueprint-table rounded-xl border border-border/[0.06] overflow-hidden"
+      className="palantir-blueprint-table bp5-dark rounded-xl border border-border/[0.08] overflow-hidden bg-card/20"
       style={{
-        // Override Blueprint's default white theme to match Aureon dark
         ["--pt-table-background-color" as string]: "transparent",
       }}
     >
       <style>{`
-        .palantir-blueprint-table .bp5-table-container {
+        .palantir-blueprint-table,
+        .palantir-blueprint-table .bp5-table-container,
+        .palantir-blueprint-table .bp5-table-quadrant,
+        .palantir-blueprint-table .bp5-table-quadrant-scroll-container,
+        .palantir-blueprint-table .bp5-table-quadrant-main,
+        .palantir-blueprint-table .bp5-table-top-container,
+        .palantir-blueprint-table .bp5-table-bottom-container,
+        .palantir-blueprint-table .bp5-table-body,
+        .palantir-blueprint-table .bp5-table-body-virtual-client,
+        .palantir-blueprint-table .bp5-table-cell-client {
           background: transparent !important;
+          background-color: transparent !important;
+          color: hsl(var(--foreground)) !important;
         }
         .palantir-blueprint-table .bp5-table-cell {
           background: transparent !important;
-          border-bottom: 1px solid hsl(var(--border) / 0.04) !important;
+          background-color: transparent !important;
+          border-bottom: 1px solid hsl(var(--border) / 0.06) !important;
+          border-right: 1px solid hsl(var(--border) / 0.04) !important;
           box-shadow: none !important;
           font-family: inherit !important;
+          color: hsl(var(--foreground)) !important;
+        }
+        .palantir-blueprint-table .bp5-table-cell-ledger-odd,
+        .palantir-blueprint-table .bp5-table-cell-ledger-even {
+          background: transparent !important;
+          background-color: transparent !important;
         }
         .palantir-blueprint-table .bp5-table-cell:hover {
-          background: hsl(var(--foreground) / 0.02) !important;
+          background: hsl(var(--foreground) / 0.03) !important;
         }
-        .palantir-blueprint-table .bp5-table-header {
-          background: hsl(var(--card) / 0.3) !important;
+        .palantir-blueprint-table .bp5-table-header,
+        .palantir-blueprint-table .bp5-table-column-header-cell {
+          background: hsl(var(--card) / 0.5) !important;
+          background-color: hsl(var(--card) / 0.5) !important;
           box-shadow: none !important;
-          border-bottom: 1px solid hsl(var(--border) / 0.06) !important;
+          border-right: 1px solid hsl(var(--border) / 0.06) !important;
+          border-bottom: 1px solid hsl(var(--border) / 0.1) !important;
+          color: hsl(var(--muted-foreground)) !important;
         }
         .palantir-blueprint-table .bp5-table-column-headers {
           background: transparent !important;
         }
-        .palantir-blueprint-table .bp5-table-column-header-cell {
-          background: transparent !important;
-          border-right: 1px solid hsl(var(--border) / 0.04) !important;
-        }
         .palantir-blueprint-table .bp5-table-row-headers {
           display: none !important;
-        }
-        .palantir-blueprint-table .bp5-table-quadrant-scroll-container {
-          background: transparent !important;
         }
         .palantir-blueprint-table .bp5-table-selection-region {
           background: hsl(var(--primary) / 0.08) !important;
@@ -233,6 +248,13 @@ const BlueprintFindingsTable = ({ findings, onSelectFinding, onExpandFinding }: 
         }
         .palantir-blueprint-table .bp5-table-resize-handle-target {
           opacity: 0.3;
+        }
+        .palantir-blueprint-table .bp5-table-overlay-layer,
+        .palantir-blueprint-table .bp5-table-quadrant-top,
+        .palantir-blueprint-table .bp5-table-quadrant-left,
+        .palantir-blueprint-table .bp5-table-quadrant-top-left {
+          background: transparent !important;
+          background-color: transparent !important;
         }
       `}</style>
       <Table2
