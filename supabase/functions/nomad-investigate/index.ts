@@ -2816,8 +2816,29 @@ serve(async (req) => {
 
   try {
     const startTime = Date.now();
-    const { messages, userId, byok = null } = await req.json();
+    const { messages, userId: bodyUserId, byok = null } = await req.json();
     const lastUserMessage = messages[messages.length - 1]?.content || '';
+
+    // Resolve userId from JWT — never trust body for identity.
+    // Admin callers may override via body only when paired with CRON_SECRET.
+    let userId: string | null = null;
+    const _authHeader = req.headers.get('Authorization');
+    const _cronSecret = Deno.env.get('CRON_SECRET');
+    const _isCron = !!_cronSecret && req.headers.get('x-cron-secret') === _cronSecret;
+    if (_authHeader?.startsWith('Bearer ')) {
+      try {
+        const _anon = (await import('https://esm.sh/@supabase/supabase-js@2.49.4')).createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_ANON_KEY')!,
+          { global: { headers: { Authorization: _authHeader } } }
+        );
+        const { data: { user: _u } } = await _anon.auth.getUser();
+        if (_u?.id) userId = _u.id;
+      } catch { /* ignore */ }
+    }
+    if (!userId && _isCron && bodyUserId) userId = bodyUserId;
+    // If neither auth nor cron, leave userId null — persistence calls below
+    // are gated on `if (userId && ...)` so they will be skipped safely.
 
     // STRICT BYOK GATE — non-admin must supply BYOK config.
     let _resolved;
