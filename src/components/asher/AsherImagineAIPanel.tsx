@@ -19,8 +19,6 @@ interface Msg {
   image?: string;
 }
 
-const AsherImagineAIPanel = () => {
-  const [collapsed, setCollapsed] = useState(false);
 const WELCOME_MSG: Msg = {
   id: "welcome",
   role: "assistant",
