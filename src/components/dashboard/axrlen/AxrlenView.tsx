@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Brain, Globe, Loader2, Trash2, Clock, Send, ArrowDown, Copy, Check, MessageSquare, Zap, X, PanelRightClose, PanelRightOpen, Search, Target, Activity, TrendingUp } from "lucide-react";
+import { Brain, Globe, Loader2, Trash2, Clock, Send, ArrowDown, Copy, Check, MessageSquare, Zap, X, PanelRightClose, PanelRightOpen, Search, Target, Activity, TrendingUp, Plus, ChevronRight, Shield, Coins, Landmark, Radar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
@@ -645,24 +645,116 @@ const AxrlenView = () => {
             <AxrlenDashboard session={activeSession} />
           </div>
         ) : (
-          <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-6 p-8 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-foreground/[0.03] border border-border/[0.08] flex items-center justify-center">
-              <Brain className="h-7 w-7 text-foreground/20" />
+          <div className="relative flex flex-1 flex-col items-center justify-start px-4 py-10 sm:py-16 gap-10 overflow-y-auto">
+            {/* Ambient backdrop */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[420px] w-[720px] rounded-full bg-foreground/[0.04] blur-3xl" />
+              <div className="absolute top-40 left-10 h-64 w-64 rounded-full bg-foreground/[0.03] blur-3xl" />
+              <div className="absolute top-20 right-10 h-72 w-72 rounded-full bg-amber-400/[0.04] blur-3xl" />
             </div>
-            <div className="space-y-2 max-w-md">
-              <h2 className="text-sm font-light text-foreground/60 tracking-wide">AXRLEN Command Center</h2>
-              <p className="text-[10px] text-muted-foreground/40 leading-relaxed">
-                NEXUS-PRIME 30-domain predictive engine. Type <span className="text-foreground/60 font-medium">"Scan [region]"</span> in the chat rail to populate the bento — predictions, threat matrix, resource vitals, policy simulations, and timeline divergences will render here in one glance.
+
+            {/* Hero */}
+            <div className="relative text-center space-y-5 max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/30 bg-card/40 backdrop-blur-md px-3 py-1">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
+                </span>
+                <span className="text-[9px] font-medium tracking-[0.25em] text-muted-foreground uppercase">Nexus-Prime · Predictive Intelligence</span>
+              </div>
+              <div className="flex items-center justify-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-2xl bg-amber-400/20 blur-xl" />
+                  <div className="relative p-3.5 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-400/5 border border-amber-400/30 backdrop-blur-md">
+                    <Brain className="h-7 w-7 text-amber-300" />
+                  </div>
+                </div>
+                <h1 className="text-3xl sm:text-5xl font-extralight tracking-[0.18em] bg-gradient-to-b from-foreground to-foreground/60 bg-clip-text text-transparent">
+                  AXRLEN
+                </h1>
+              </div>
+              <p className="text-sm sm:text-[15px] font-extralight text-muted-foreground/90 max-w-lg mx-auto leading-relaxed">
+                Name a region. Pick a domain. Aureon forecasts what's next — every scan branched, scored, and timestamped.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-1.5 w-full max-w-lg">
-              {suggestions.slice(0, 6).map((s, i) => (
-                <button key={i} onClick={() => { setChatCollapsed(false); setInput(s); inputRef.current?.focus(); }}
-                  className="text-left px-3 py-2 rounded-xl border border-border/[0.08] bg-foreground/[0.02] text-[10px] text-foreground/45 hover:bg-foreground/[0.06] transition-all">
-                  {s}
+
+            {/* Quick-scan grid */}
+            <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-3xl">
+              {[
+                { id: "comprehensive", label: "Full Scan", desc: "All 30 domains", icon: Radar, region: "Global" },
+                { id: "security", label: "Security", desc: "Threats & conflict", icon: Shield, region: "Global" },
+                { id: "economic", label: "Economic", desc: "Markets & resources", icon: Coins, region: "Global" },
+                { id: "political", label: "Political", desc: "Power & policy", icon: Landmark, region: "Global" },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => { setChatCollapsed(false); setInput(`Scan ${t.region} ${t.id}`); setTimeout(() => inputRef.current?.focus(), 50); }}
+                  className="relative flex flex-col items-start gap-3 rounded-2xl border border-border/30 bg-gradient-to-br from-card/60 to-card/20 backdrop-blur-md p-4 hover:border-amber-400/40 hover:from-card/80 hover:to-amber-400/5 transition-all duration-300 group overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-400/0 to-amber-400/0 group-hover:from-amber-400/5 group-hover:to-transparent transition-all" />
+                  <div className="relative p-2 rounded-xl bg-foreground/5 border border-border/20 group-hover:bg-amber-400/10 group-hover:border-amber-400/30 transition-colors">
+                    <t.icon className="h-4 w-4 text-muted-foreground group-hover:text-amber-300 transition-colors" strokeWidth={1.5} />
+                  </div>
+                  <div className="relative space-y-0.5">
+                    <div className="text-xs font-light tracking-wide text-foreground">{t.label}</div>
+                    <div className="text-[10px] text-muted-foreground/60 leading-tight">{t.desc}</div>
+                  </div>
+                  <ChevronRight className="absolute top-3 right-3 h-3 w-3 text-muted-foreground/30 group-hover:text-amber-300 group-hover:translate-x-0.5 transition-all" />
                 </button>
               ))}
             </div>
+
+            <div className="relative flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-muted-foreground/40">
+              <span className="h-px w-10 bg-border/40" />
+              <span>or</span>
+              <span className="h-px w-10 bg-border/40" />
+            </div>
+
+            <button
+              onClick={() => { setChatCollapsed(false); setTimeout(() => inputRef.current?.focus(), 50); }}
+              className="relative inline-flex items-center gap-2 text-xs font-light rounded-xl px-6 h-10 border border-border/40 hover:border-amber-400/40 hover:bg-amber-400/5 transition-colors text-foreground/80"
+            >
+              <Plus className="h-3.5 w-3.5" /> Start Custom Scan
+            </button>
+
+            {sessions.length > 0 && (
+              <div className="relative w-full max-w-3xl space-y-3">
+                <p className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/50 uppercase px-1">Recent Sessions</p>
+                <div className="space-y-1 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-2">
+                  {sessions.slice(0, 6).map((s) => {
+                    const conf = s.confidenceScore ?? 0;
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => openSession(s)}
+                        className="flex items-center justify-between rounded-xl px-3.5 py-2.5 hover:bg-foreground/5 transition-colors group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="p-1.5 rounded-lg bg-muted/30 shrink-0">
+                            <Globe className="h-3.5 w-3.5 text-muted-foreground/50" />
+                          </div>
+                          <span className="text-xs font-light text-foreground truncate">{s.title}</span>
+                          <span className="text-[10px] text-muted-foreground/40 shrink-0">
+                            {s.createdAt.toLocaleDateString()}
+                          </span>
+                          {conf > 0 && (
+                            <span className="text-[9px] tabular-nums tracking-wider text-amber-300/70 shrink-0 ml-auto pr-2">{conf}%</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <button onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }} className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors" aria-label="Delete session">
+                            <Trash2 className="h-3 w-3 text-destructive/60" />
+                          </button>
+                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <p className="relative text-[9px] text-muted-foreground/30 tracking-wider pb-4">NEXUS-PRIME · 30-Domain Predictive Engine · Powered by AUREON</p>
           </div>
         )}
 
