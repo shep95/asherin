@@ -198,11 +198,11 @@ const ZaliWorkspace = ({ project, autoBuild, modelPrompt, codeFiles = [] }: Prop
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <Atom className="h-5 w-5 sm:h-8 sm:w-8 text-accent/40 mx-auto animate-pulse" />
-                    <p className="text-[8px] sm:text-[10px] font-extralight text-muted-foreground/50 mt-2 tracking-wider">
-                      AWAITING DESIGN DATA
+                    <Atom className="h-6 w-6 sm:h-9 sm:w-9 text-amber-400/60 mx-auto animate-pulse" />
+                    <p className="text-[10px] sm:text-xs font-light text-foreground/85 mt-3 tracking-[0.28em] uppercase">
+                      Awaiting Design Data
                     </p>
-                    <p className="text-[7px] sm:text-[9px] text-muted-foreground/30">
+                    <p className="text-[8px] sm:text-[10px] text-muted-foreground/55 mt-1 tracking-wide">
                       Answer ZANOEM's questions to generate
                     </p>
                   </div>
