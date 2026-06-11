@@ -928,7 +928,7 @@ const VibeImagerView = () => {
               size="sm"
               onClick={sendMessage}
               disabled={!input.trim()}
-              className="h-10 w-10 p-0 rounded-xl bg-accent hover:bg-accent/80"
+              className="h-10 w-10 p-0 rounded-xl bg-amber-500 hover:bg-amber-400 text-black aureon-amber-glow disabled:opacity-30 disabled:shadow-none"
             >
               {isEditing ? <Plus className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
             </Button>
