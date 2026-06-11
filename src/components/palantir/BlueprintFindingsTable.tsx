@@ -157,14 +157,16 @@ const BlueprintFindingsTable = ({ findings, onSelectFinding, onExpandFinding }: 
         );
       case "age_days":
         return <Cell><span className="text-[9px] text-muted-foreground/40">{f.age_days}d</span></Cell>;
-      case "cvss_score":
+      case "cvss_score": {
+        const score = typeof f.cvss_score === "number" && Number.isFinite(f.cvss_score) ? f.cvss_score : null;
         return (
           <Cell>
-            <span className="text-[10px] font-mono" style={{ color: f.cvss_score >= 9 ? "#ef4444" : f.cvss_score >= 7 ? "#f97316" : f.cvss_score >= 4 ? "#eab308" : "#6b7280" }}>
-              {f.cvss_score.toFixed(1)}
+            <span className="text-[10px] font-mono" style={{ color: score === null ? "#6b7280" : score >= 9 ? "#ef4444" : score >= 7 ? "#f97316" : score >= 4 ? "#eab308" : "#6b7280" }}>
+              {score === null ? "—" : score.toFixed(1)}
             </span>
           </Cell>
         );
+      }
       case "status":
         return (
           <Cell>
