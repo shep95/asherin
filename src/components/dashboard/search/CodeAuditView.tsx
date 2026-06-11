@@ -1385,6 +1385,16 @@ const RiskScoreHeader = ({ blueprint }: { blueprint: Blueprint }) => {
           {blueprint.target} · {blueprint.branches.length} surfaces analyzed
         </p>
       </div>
+      {(() => {
+        const c = countSeverities(blueprint);
+        const total = c.critical + c.high + c.med + c.low;
+        return (
+          <div className="hidden sm:flex flex-col items-center justify-center min-w-[88px] border-l border-current/15 pl-4">
+            <span className="text-3xl font-light tabular-nums">{total}</span>
+            <span className="text-[8px] font-extralight tracking-[0.25em] uppercase opacity-70">Flaws Found</span>
+          </div>
+        );
+      })()}
     </div>
   );
 };
