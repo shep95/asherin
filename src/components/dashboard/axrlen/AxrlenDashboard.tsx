@@ -42,8 +42,8 @@ const Tile = ({
     {title && (
       <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-2 border-b border-border/[0.05]">
         <div className="flex items-center gap-2">
-          {Icon && <Icon className="h-3 w-3 text-foreground/40" strokeWidth={1.5} />}
-          <h3 className="text-[9px] uppercase tracking-[0.22em] text-foreground/55 font-light">{title}</h3>
+          {Icon && <Icon className="h-3.5 w-3.5 text-foreground/55" strokeWidth={1.5} />}
+          <h3 className="text-[11px] uppercase tracking-[0.26em] text-foreground/85 font-normal">{title}</h3>
         </div>
         {action}
       </div>
