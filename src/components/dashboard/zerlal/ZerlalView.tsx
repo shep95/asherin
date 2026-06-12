@@ -71,6 +71,13 @@ const ZerlalView = () => {
     setRefreshKey(k => k + 1);
   };
 
+  const handleScanStarted = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    setActiveScreen("project");
+    setScanModalOpen(false);
+    setRefreshKey(k => k + 1);
+  };
+
   const renderScreen = () => {
     const toolScreens: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
       "sigma-rules": SigmaRuleEngine,
