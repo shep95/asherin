@@ -48,7 +48,14 @@ async function sendCompletionEmail(job: any, success: boolean, errorMsg?: string
         cvss_score: f.cvss_score,
       }));
 
-    const templateData = success
+    const scanErrors: any[] = Array.isArray(job.scan_errors) ? job.scan_errors : [];
+    const errorsForEmail = scanErrors.slice(0, 15).map((e: any) => ({
+      phase: e.phase || "section",
+      section: typeof e.section === "number" ? e.section : null,
+      message: String(e.message || "").slice(0, 400),
+    }));
+
+    const templateData: Record<string, unknown> = success
       ? {
           projectName: job.project_name || "Untitled project",
           riskGrade: job.final_risk_grade || "F",
@@ -65,6 +72,9 @@ async function sendCompletionEmail(job: any, success: boolean, errorMsg?: string
           summary: job.final_summary || job.first_pass_summary || "",
           completedAt: job.completed_at || new Date().toISOString(),
           findings: topFindings,
+          errors: errorsForEmail,
+          errorsCount: scanErrors.length,
+          scanStatus: scanErrors.length > 0 ? "completed_with_errors" : "completed",
         }
       : {
           projectName: job.project_name || "Untitled project",
@@ -73,6 +83,12 @@ async function sendCompletionEmail(job: any, success: boolean, errorMsg?: string
           summary: `Background scan failed: ${errorMsg || "Unknown error"}`,
           completedAt: new Date().toISOString(),
           findings: [],
+          errors: [
+            ...errorsForEmail,
+            { phase: "fatal", section: null, message: String(errorMsg || "Unknown error").slice(0, 400) },
+          ],
+          errorsCount: scanErrors.length + 1,
+          scanStatus: "failed",
         };
 
     await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
@@ -131,26 +147,42 @@ async function advanceJob(job: any) {
       await admin.from("zerlal_background_jobs").update({ status: "finalizing" }).eq("id", job.id);
       return;
     }
-    const sec = await callScan({
-      ...baseBody,
-      mode: "section",
-      scan_id: job.scan_id,
-      section_index: job.current_section,
-      total_sections: job.total_sections,
-      provider_profile: job.provider_profile,
-    });
-    const newFindings = Array.isArray(sec.findings) ? sec.findings : [];
-    const merged = [...(job.aggregated_findings || []), ...newFindings];
-    const update: any = {
-      aggregated_findings: merged,
-      current_section: job.current_section + 1,
-      last_error: null,
-    };
-    if (job.current_section === 0) {
-      update.first_pass_summary = sec.summary || "";
-      update.first_pass_risk_grade = sec.risk_grade || "F";
+    try {
+      const sec = await callScan({
+        ...baseBody,
+        mode: "section",
+        scan_id: job.scan_id,
+        section_index: job.current_section,
+        total_sections: job.total_sections,
+        provider_profile: job.provider_profile,
+      });
+      const newFindings = Array.isArray(sec.findings) ? sec.findings : [];
+      const merged = [...(job.aggregated_findings || []), ...newFindings];
+      const update: any = {
+        aggregated_findings: merged,
+        current_section: job.current_section + 1,
+        last_error: null,
+      };
+      if (job.current_section === 0) {
+        update.first_pass_summary = sec.summary || "";
+        update.first_pass_risk_grade = sec.risk_grade || "F";
+      }
+      await admin.from("zerlal_background_jobs").update(update).eq("id", job.id);
+    } catch (e) {
+      // Don't fail the whole scan — record section error, skip section, continue
+      const msg = (e as Error).message || String(e);
+      console.error(`[BG-WORKER] Section ${job.current_section} error:`, msg);
+      const existingErrors = Array.isArray(job.scan_errors) ? job.scan_errors : [];
+      const newErrors = [
+        ...existingErrors,
+        { phase: "section", section: job.current_section, message: msg, at: new Date().toISOString() },
+      ];
+      await admin.from("zerlal_background_jobs").update({
+        scan_errors: newErrors,
+        current_section: job.current_section + 1,
+        last_error: msg,
+      }).eq("id", job.id);
     }
-    await admin.from("zerlal_background_jobs").update(update).eq("id", job.id);
     return;
   }
 

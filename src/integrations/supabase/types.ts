@@ -8009,6 +8009,7 @@ export type Database = {
           project_name: string | null
           provider_profile: Json | null
           recipient_email: string
+          scan_errors: Json
           scan_id: string | null
           scan_profile: string
           status: string
@@ -8039,6 +8040,7 @@ export type Database = {
           project_name?: string | null
           provider_profile?: Json | null
           recipient_email: string
+          scan_errors?: Json
           scan_id?: string | null
           scan_profile?: string
           status?: string
@@ -8069,6 +8071,7 @@ export type Database = {
           project_name?: string | null
           provider_profile?: Json | null
           recipient_email?: string
+          scan_errors?: Json
           scan_id?: string | null
           scan_profile?: string
           status?: string
