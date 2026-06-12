@@ -46,7 +46,7 @@ function loadAccessCodes(): Record<string, string> {
 }
 
 async function fingerprintRequest(req: Request): Promise<string> {
-  const ip = getClientIP(req) || "unknown-ip";
+  const ip = getClientIp(req) || "unknown-ip";
   const ua = req.headers.get("user-agent") || "unknown-ua";
   const enc = new TextEncoder().encode(`${ip}::${ua}`);
   const buf = await crypto.subtle.digest("SHA-256", enc);
