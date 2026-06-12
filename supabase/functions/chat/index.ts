@@ -1536,8 +1536,10 @@ ${zophielCodingBrainContent}
     // Inject the CODE → NARRATIVE → FLAWS → FIX loop protocol — applies
     // whenever a ZIP/code attachment is present OR code generation is requested.
     const { CODE_NARRATIVE_PROTOCOL } = await import("../_shared/codeNarrativeProtocol.ts");
+    const NUMBERED_OFF_OVERRIDE = `\n\n## NUMBERED-LIST BRAIN: DISABLED FOR THIS CONVERSATION\nThe operator has explicitly turned OFF the numbered-list answer brain for this thread. This override has the HIGHEST priority and replaces any rule above that mandates \`1.\`, \`2.\`, \`3.\` formatting.\n- Do NOT default every structured answer to a numbered list.\n- Write in natural prose, paragraphs, headers, tables, or bullet points — whatever fits the question best.\n- Numbered lists are allowed ONLY when the content is genuinely ordinal (steps in a procedure, ranked items the user asked for).\n- All other rules (secrecy, tone, formatting richness, mode classifier) still apply.\n`;
     const systemParts = [
       AUREON_CORE_IDENTITY,
+      ...(NUMBERED_BRAIN_ON ? [] : [NUMBERED_OFF_OVERRIDE]),
       CODE_NARRATIVE_PROTOCOL,
       BRAIN_ORCHESTRATOR,
       WORKFLOW_SECRECY_DIRECTIVE,
