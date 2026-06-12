@@ -152,19 +152,33 @@ Deno.serve(async (req) => {
       console.log("[ZERLAL] Brains load skipped:", e);
     }
 
-    // Cap code to stay within limits
-    const truncatedCode = codeToAnalyze.substring(0, 50000);
-
-    const analysisPrompt = buildAnalysisPrompt(scan_profile, file_name, truncatedCode, brainsContext);
-    console.log("[ZERLAL] Prompt length:", analysisPrompt.length);
+    // ─── Multi-chunk sweep: large uploads were previously truncated to 50KB (~1% of a 4MB zip).
+    // We now slice the codebase into up to 4 windows of ~80KB each and scan in parallel passes,
+    // then run a deep-dive Pass 2 on the densest window. Deduplication uses file_path+line+title
+    // so semantically distinct findings aren't collapsed.
+    const CHUNK_SIZE = 80000;
+    const MAX_CHUNKS = 4;
+    const totalLen = codeToAnalyze.length;
+    const chunkCount = Math.min(MAX_CHUNKS, Math.max(1, Math.ceil(totalLen / CHUNK_SIZE)));
+    const stride = chunkCount > 1 ? Math.floor((totalLen - CHUNK_SIZE) / (chunkCount - 1)) : 0;
+    const chunks: string[] = [];
+    for (let i = 0; i < chunkCount; i++) {
+      const start = chunkCount === 1 ? 0 : i * stride;
+      chunks.push(codeToAnalyze.substring(start, start + CHUNK_SIZE));
+    }
+    console.log(`[ZERLAL] Sweeping ${chunks.length} chunks of ~${CHUNK_SIZE} chars (total code: ${totalLen})`);
 
     const scanStartTime = Date.now();
+    let allFindings: any[] = [];
+    let analysis: any = { findings: [], risk_grade: "F", summary: "" };
 
-    // PASS 1
-    let analysis: any;
+    // PASS 1 — first chunk is authoritative for risk grade / summary
     try {
-      analysis = await callAI(analysisPrompt, LOVABLE_API_KEY, GEMINI_KEY);
-      console.log("[ZERLAL] Pass 1 findings:", analysis.findings?.length || 0);
+      const firstPrompt = buildAnalysisPrompt(scan_profile, file_name, chunks[0], brainsContext);
+      console.log("[ZERLAL] Pass 1 chunk 1 prompt length:", firstPrompt.length);
+      analysis = await callAI(firstPrompt, LOVABLE_API_KEY, GEMINI_KEY);
+      allFindings = analysis.findings || [];
+      console.log("[ZERLAL] Chunk 1 findings:", allFindings.length);
     } catch (err: any) {
       console.error("[ZERLAL] Pass 1 failed:", err.message);
       await failScan(supabase, scan.id, project_id, err.message);
@@ -174,38 +188,69 @@ Deno.serve(async (req) => {
       });
     }
 
-    let allFindings = analysis.findings || [];
+    // Dedup key: file_path::line_number::lowercased title (semantically distinct findings preserved)
+    const keyOf = (f: any) =>
+      `${(f.file_path || "").toLowerCase()}::${f.line_number || 0}::${(f.title || "").toLowerCase().trim()}`;
+    const seen = new Set(allFindings.map(keyOf));
 
-    // PASS 2: Deep dive if few findings and time permits
+    // Additional chunks — scan each (cap total elapsed at 180s to stay within request budget)
+    for (let i = 1; i < chunks.length; i++) {
+      if (Date.now() - scanStartTime > 180000) {
+        console.log("[ZERLAL] Time budget reached, stopping chunk sweep at", i, "/", chunks.length);
+        break;
+      }
+      try {
+        const cPrompt = buildAnalysisPrompt(scan_profile, file_name, chunks[i], brainsContext);
+        console.log(`[ZERLAL] Pass 1 chunk ${i + 1}/${chunks.length}`);
+        const cRes = await callAI(cPrompt, LOVABLE_API_KEY, GEMINI_KEY);
+        const cFindings = cRes.findings || [];
+        let added = 0;
+        for (const f of cFindings) {
+          const k = keyOf(f);
+          if (!seen.has(k)) { seen.add(k); allFindings.push(f); added++; }
+        }
+        console.log(`[ZERLAL] Chunk ${i + 1} added ${added} (raw ${cFindings.length})`);
+      } catch (e: any) {
+        console.log(`[ZERLAL] Chunk ${i + 1} non-fatal error:`, e.message);
+      }
+    }
+
+    // PASS 2 — deep dive targeting categories the sweep often misses (CORS, auth, crypto, DoS, supply chain)
     const elapsedMs = Date.now() - scanStartTime;
-    if (allFindings.length > 0 && allFindings.length < 25 && elapsedMs < 90000) {
-      console.log("[ZERLAL] Starting Pass 2 (elapsed:", Math.round(elapsedMs / 1000), "s)");
-      const existingTitles = allFindings.map((f: any) => f.title).join(", ");
+    if (elapsedMs < 220000) {
+      const existingTitles = allFindings.slice(0, 40).map((f: any) => f.title).join(", ");
+      // Pick the densest unused tail of code for Pass 2 (different slice than chunk 1)
+      const pass2Slice = codeToAnalyze.substring(
+        Math.floor(totalLen / 2),
+        Math.floor(totalLen / 2) + 60000,
+      ) || chunks[chunks.length - 1] || chunks[0];
+
       const pass2Prompt = `You are ZERLAL. Already found: ${existingTitles}
 
-Find ALL additional vulnerabilities NOT listed above. Check: input validation, logic flaws, race conditions, dependency risks, CORS/headers, info disclosure, access control, crypto, DoS, missing security controls.
+Find ALL additional vulnerabilities NOT listed above. Focus areas: input validation, logic flaws, race conditions, dependency risks, CORS/headers, info disclosure, access control, crypto weaknesses, DoS vectors, missing security controls, hardcoded secrets, insecure deserialization, SSRF, prototype pollution.
 
 Return ONLY JSON: { "findings": [...] }
 Each finding needs: severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps (array of strings), code_snippet, suggested_fix, dataflow_trace (array of {file,line,label}), compliance_controls (array), similar_cves (array), age_estimate_days.
 
-CODE:\n\`\`\`\n${truncatedCode.substring(0, 30000)}\n\`\`\``;
+CODE:\n\`\`\`\n${pass2Slice}\n\`\`\``;
 
       try {
         const pass2 = await callAI(pass2Prompt, LOVABLE_API_KEY, GEMINI_KEY);
         const pass2Findings = pass2.findings || [];
-        console.log("[ZERLAL] Pass 2 additional:", pass2Findings.length);
-        const existingSet = new Set(allFindings.map((f: any) => (f.title || "").toLowerCase().trim()));
+        let added = 0;
         for (const f of pass2Findings) {
-          if (!existingSet.has((f.title || "").toLowerCase().trim())) {
-            allFindings.push(f);
-          }
+          const k = keyOf(f);
+          if (!seen.has(k)) { seen.add(k); allFindings.push(f); added++; }
         }
+        console.log("[ZERLAL] Pass 2 added", added, "(raw", pass2Findings.length, ")");
       } catch (e: any) {
         console.log("[ZERLAL] Pass 2 non-fatal error:", e.message);
       }
     }
 
     console.log("[ZERLAL] Total findings:", allFindings.length);
+
+
 
     // Clear old findings for session isolation
     await supabase.from("zerlal_findings").delete().eq("project_id", project_id);
