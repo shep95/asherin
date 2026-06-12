@@ -63,6 +63,7 @@ export const NAV_INTENTS: NavIntent[] = [
   { view: "zahten", label: "Agent Forge", codename: "Zahten", blurb: "Design, scaffold, and harden agents", keywords: ["forge", "agent builder", "scaffold"], group: "Build" },
   { view: "plugins", label: "Plugin Marketplace", codename: "Plugins", blurb: "Connectors and modules", keywords: ["plugin", "marketplace", "connector", "extension"], group: "Build", access: "pro" },
   { view: "snippets", label: "Code Snippets", codename: "Snippets", blurb: "Save and reuse code blocks", keywords: ["snippet", "code library", "save code"], group: "Build" },
+  { view: "media2code", label: "Media to Code", codename: "Media → Code", blurb: "Turn images and video into clean HTML/CSS embeds", keywords: ["media", "image", "video", "embed", "html", "css", "visual", "convert"], group: "Build" },
 
   // WORKSPACE
   { view: "library", label: "Library", codename: "Library", blurb: "Saved files and references", keywords: ["library", "files", "storage", "documents"], group: "Workspace" },

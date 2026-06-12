@@ -100,6 +100,7 @@ const ZeeionView = lazyWithRetry(() => import("@/components/dashboard/zeeion/Zee
 const AxrlenView = lazyWithRetry(() => import("@/components/dashboard/axrlen/AxrlenView"));
 const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/ZerlalView"));
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
+const MediaToCodeView = lazyWithRetry(() => import("@/components/asher/AsherMediaToCodeModule"));
 
 const CipherView = lazyWithRetry(() => import("@/components/dashboard/cipher/CipherToolkit"));
 const AsherZahtenModule = lazyWithRetry(() => import("@/components/asher/AsherZahtenModule"));
@@ -167,7 +168,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","file-scrapper","cipher","vedic-astrology","zahten"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","file-scrapper","cipher","vedic-astrology","zahten","media2code"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -1455,6 +1456,7 @@ const Dashboard = () => {
       // Always-accessible views
       case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;
       case "snippets": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense></ErrorBoundary>;
+      case "media2code": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><MediaToCodeView /></Suspense></ErrorBoundary>;
       case "projects": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><ProjectsView /></Suspense></ErrorBoundary>;
       case "memory": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><MemoryCenterView /></Suspense></ErrorBoundary>;
       case "stats": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><StatsView /></Suspense></ErrorBoundary>;
