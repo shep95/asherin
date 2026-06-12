@@ -11,6 +11,8 @@ import IdeSessionManager, { type IdeSession } from "./IdeSessionManager";
 import IdeSearchPanel from "./IdeSearchPanel";
 import IdeQuickOpen from "./IdeQuickOpen";
 import IdeGitPanel from "./IdeGitPanel";
+import IdeAgentsPanel from "./IdeAgentsPanel";
+import { detectCrash, buildCrashPrompt, type CrashEvent } from "@/lib/ide/crashHook";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
 import {
   IdeHistoryPanel,
@@ -57,7 +59,7 @@ interface ChatMsg {
 
 type CenterTab = "code" | "preview" | "workflow";
 type MobilePanel = "explorer" | "editor" | "chat" | "terminal";
-type LeftTab = "files" | "search" | "sessions" | "git";
+type LeftTab = "files" | "search" | "sessions" | "git" | "agents";
 
 const STARTER_FILES: IdeFile[] = [
   {
