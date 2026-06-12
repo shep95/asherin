@@ -108,6 +108,7 @@ Deno.serve(async (req) => {
       scan_id,
       scan_profile,
       code_content,
+      source_storage_path,
       file_name,
       github_url,
       byok = null,
@@ -169,6 +170,16 @@ Deno.serve(async (req) => {
 
     // Fetch code from GitHub if URL provided and no direct content
     let codeToAnalyze = code_content || "";
+    if (!codeToAnalyze && source_storage_path) {
+      console.log("[ZERLAL] Loading code from storage:", source_storage_path);
+      const { data: storedFile, error: storedFileErr } = await supabase.storage
+        .from("zerlal-scan-sources")
+        .download(source_storage_path);
+      if (storedFileErr) {
+        throw new Error(`Failed to load stored scan source: ${storedFileErr.message}`);
+      }
+      codeToAnalyze = await storedFile.text();
+    }
     if (!codeToAnalyze && github_url) {
       console.log("[ZERLAL] Fetching code from GitHub:", github_url);
       codeToAnalyze = await fetchGitHubContent(github_url);

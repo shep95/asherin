@@ -165,6 +165,24 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
        .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
        .replace(/(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "$1");
     const safeCode = finalCode ? sanitize(finalCode) : null;
+    let sourceStoragePath: string | null = null;
+
+    if (safeCode) {
+      const fileExt = files[0]?.name?.split(".").pop()?.toLowerCase() || "txt";
+      sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.${fileExt}`;
+      const uploadPayload = new Blob([safeCode], { type: "text/plain;charset=utf-8" });
+      const { error: uploadErr } = await supabase.storage
+        .from("zerlal-scan-sources")
+        .upload(sourceStoragePath, uploadPayload, {
+          upsert: false,
+          contentType: "text/plain; charset=utf-8",
+        });
+
+      if (uploadErr) {
+        setScanError("Failed to upload scan source: " + (uploadErr.message || JSON.stringify(uploadErr)));
+        return;
+      }
+    }
 
     const payload: Record<string, unknown> = {
       user_id: user.id,
@@ -173,7 +191,8 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
       scan_profile: selectedProfile,
       file_name: files[0]?.name || projectName,
       github_url: githubUrl || null,
-      code_content: safeCode,
+      code_content: safeCode && safeCode.length <= 300_000 ? safeCode : null,
+      source_storage_path: sourceStoragePath,
       recipient_email: user.email,
       status: "pending",
     };
