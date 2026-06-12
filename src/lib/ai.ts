@@ -122,7 +122,7 @@ export async function streamChat({
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
     },
-    body: JSON.stringify({ messages: apiMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId }),
+    body: JSON.stringify({ messages: apiMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat: (() => { try { const m = JSON.parse(localStorage.getItem("aureon_numbered_format_off") || "{}"); return !(conversationId && m[conversationId] === true); } catch { return true; } })() }),
     signal,
   });
 
