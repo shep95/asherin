@@ -502,6 +502,7 @@ const AsherDashboard = () => {
           {active === "settings"  && <AsherSettingsModule />}
           {active === "profile"   && <AsherProfile />}
           {active === "code"      && <AsherCodeModule />}
+          {active === "media2code"&& <AsherMediaToCodeModule />}
           {typeof active === "string" && active.startsWith("pub:") && (() => {
             const tab = publishedTabs.find((t) => `pub:${t.id}` === active);
             return tab ? <AsherPublishedTabRenderer name={tab.name} entryHtml={tab.entry_html} /> : null;
