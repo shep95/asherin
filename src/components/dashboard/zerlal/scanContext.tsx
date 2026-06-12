@@ -54,6 +54,7 @@ interface ScanContextValue {
     fileCount: number;
     githubUrl?: string;
   }) => void;
+  cancelScan: () => void;
   clear: () => void;
 }
 
