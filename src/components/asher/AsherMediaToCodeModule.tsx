@@ -106,7 +106,7 @@ const AsherMediaToCodeModule = () => {
   // AI code substitutes placeholder {{MEDIA_SRC}} so AI never needs the heavy base64.
   const finalCode = useMemo(() => {
     if (!aiCode) return generatedCode;
-    return aiCode.replaceAll("{{MEDIA_SRC}}", codeSrc);
+    return aiCode.split("{{MEDIA_SRC}}").join(codeSrc);
   }, [aiCode, generatedCode, codeSrc]);
 
   // ── Validation + upload ──────────────────────────────────────────────────
