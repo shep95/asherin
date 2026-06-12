@@ -5,6 +5,9 @@ import { useActiveScan } from "./scanContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import JSZip from "jszip";
+import { triggerByokRequired } from "@/components/ByokRequiredDialog";
+
+const ADMIN_EMAILS = new Set(["ashernewtonx@gmail.com", "28numberofmoney@gmail.com"]);
 
 interface ScanModalProps {
   open: boolean;
