@@ -158,19 +158,33 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
     } catch { /* ignore */ }
 
     const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
-    const { error: insErr } = await supabase.from("zerlal_background_jobs" as any).insert({
+    // Strip NUL bytes and lone surrogates — Postgres TEXT rejects \u0000 and
+    // these characters cause PostgREST to reject the request body as invalid JSON.
+    const sanitize = (s: string) =>
+      s.replace(/\u0000/g, "")
+       .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
+       .replace(/(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "$1");
+    const safeCode = finalCode ? sanitize(finalCode) : null;
+
+    const payload: Record<string, unknown> = {
       user_id: user.id,
       project_id: project.id,
       project_name: projectName,
       scan_profile: selectedProfile,
       file_name: files[0]?.name || projectName,
       github_url: githubUrl || null,
-      code_content: finalCode || null,
+      code_content: safeCode,
       recipient_email: user.email,
-      byok,
       status: "pending",
-    });
-    if (insErr) { setScanError("Failed to queue background scan: " + insErr.message); return; }
+    };
+    if (byok) payload.byok = byok;
+
+    const { error: insErr } = await supabase.from("zerlal_background_jobs" as any).insert(payload);
+    if (insErr) {
+      const msg = insErr.message || JSON.stringify(insErr);
+      setScanError("Failed to queue background scan: " + msg + (safeCode ? ` (payload ~${Math.round(safeCode.length/1024)}KB)` : ""));
+      return;
+    }
     toast.success("Scan queued. We'll email you the report when it's done — you can close this tab.");
     onScanComplete();
     onClose();
