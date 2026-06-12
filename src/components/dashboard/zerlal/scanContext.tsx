@@ -107,7 +107,7 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
     if (!session?.access_token) throw new Error("Not authenticated");
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    const controller = new AbortController();
+    const controller = abortRef.current ?? new AbortController();
     const to = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const resp = await fetch(`${supabaseUrl}/functions/v1/zerlal-scan`, {
@@ -133,6 +133,7 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
 
   const sleepWithCountdown = async (seconds: number, onTick: (remaining: number) => void) => {
     for (let r = seconds; r > 0; r--) {
+      if (canceledRef.current) throw new DOMException("Canceled", "AbortError");
       onTick(r);
       await new Promise(res => setTimeout(res, 1000));
     }
