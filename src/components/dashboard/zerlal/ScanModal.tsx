@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe, Binary, CloudOff } from "lucide-react";
 import { useCreateProject, useRunScan } from "./useZerlalData";
+import { useActiveScan } from "./scanContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import JSZip from "jszip";
@@ -9,6 +10,7 @@ interface ScanModalProps {
   open: boolean;
   onClose: () => void;
   onScanComplete: () => void;
+  onScanStarted?: (projectId: string) => void;
 }
 
 type Step = 1 | 2 | 3;
