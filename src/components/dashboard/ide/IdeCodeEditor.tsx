@@ -6,12 +6,18 @@ import type { IdeFile } from "./IdeFileTree";
 import { getLanguage } from "./IdeFileTree";
 import { validateCode } from "@/lib/ide";
 
+interface HoverFetcher {
+  (args: { symbol: string; file_path: string; language: string; line_text: string; surrounding: string }): Promise<string>;
+}
+
 interface Props {
   openFiles: IdeFile[];
   activeFileId: string | null;
   onSelectTab: (id: string) => void;
   onCloseTab: (id: string) => void;
   onContentChange: (id: string, content: string) => void;
+  /** Optional RAG-grounded AI hover provider. When supplied, Monaco hover shows AUREON intel. */
+  onHover?: HoverFetcher;
 }
 
 // Map our friendly language ids to Monaco's expected ids.
@@ -68,7 +74,7 @@ function registerAureonTheme(monaco: Monaco) {
   });
 }
 
-const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onContentChange }: Props) => {
+const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onContentChange, onHover }: Props) => {
   const [copied, setCopied] = useState(false);
   const [wordWrap, setWordWrap] = useState(false);
   const [showMinimap, setShowMinimap] = useState(false);
@@ -106,6 +112,18 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
     }
   }, [content, language, activeFile]);
 
+  // Refs hold latest props so the long-lived Monaco hover provider always
+  // sees the active file / language / fetcher without re-registering.
+  const onHoverRef = useRef<HoverFetcher | undefined>(onHover);
+  const activeFileRef = useRef(activeFile);
+  const languageRef = useRef(language);
+  useEffect(() => { onHoverRef.current = onHover; }, [onHover]);
+  useEffect(() => { activeFileRef.current = activeFile; }, [activeFile]);
+  useEffect(() => { languageRef.current = language; }, [language]);
+
+  // Per-language registration guard so we only attach one hover provider per Monaco lang.
+  const hoverRegistered = useRef<Set<string>>(new Set());
+
   const handleMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
@@ -115,6 +133,53 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
       setCursor({ line: e.position.lineNumber, col: e.position.column });
     });
   }, []);
+
+  // Register one AUREON RAG-grounded hover provider per Monaco language.
+  useEffect(() => {
+    const monaco = monacoRef.current;
+    if (!monaco || !monacoLang) return;
+    if (hoverRegistered.current.has(monacoLang)) return;
+    hoverRegistered.current.add(monacoLang);
+
+    monaco.languages.registerHoverProvider(monacoLang, {
+      provideHover: async (model, position) => {
+        const fetcher = onHoverRef.current;
+        if (!fetcher) return null;
+        const word = model.getWordAtPosition(position);
+        if (!word || word.word.length < 2) return null;
+        const file = activeFileRef.current;
+        if (!file) return null;
+        // Only hover on the currently active editor model
+        if (model.uri.path.replace(/^\//, "") !== file.id) return null;
+
+        const totalLines = model.getLineCount();
+        const startLine = Math.max(1, position.lineNumber - 12);
+        const endLine = Math.min(totalLines, position.lineNumber + 12);
+        const surrounding = model.getValueInRange({
+          startLineNumber: startLine, startColumn: 1,
+          endLineNumber: endLine, endColumn: model.getLineMaxColumn(endLine),
+        });
+        const lineText = model.getLineContent(position.lineNumber);
+
+        try {
+          const md = await fetcher({
+            symbol: word.word,
+            file_path: file.name,
+            language: languageRef.current,
+            line_text: lineText,
+            surrounding,
+          });
+          if (!md) return null;
+          return {
+            range: new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
+            contents: [{ value: `**AUREON CODE**\n\n${md}` }],
+          };
+        } catch {
+          return null;
+        }
+      },
+    });
+  }, [monacoLang]);
 
   const handleCopyAll = () => {
     navigator.clipboard.writeText(content);
