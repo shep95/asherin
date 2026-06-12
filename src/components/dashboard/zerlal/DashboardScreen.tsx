@@ -1,8 +1,11 @@
-import { useMemo } from "react";
-import { TrendingDown, TrendingUp, AlertTriangle, ArrowRight, User, Loader2, FolderPlus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { TrendingDown, TrendingUp, AlertTriangle, ArrowRight, User, Loader2, FolderPlus, Trash2 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import { useZerlalProjects, useZerlalFindings } from "./useZerlalData";
 import type { ZerlalScreen } from "./types";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import IdeDeleteConfirm from "@/components/dashboard/ide/IdeDeleteConfirm";
 
 interface DashboardScreenProps {
   onNavigate: (screen: ZerlalScreen) => void;
