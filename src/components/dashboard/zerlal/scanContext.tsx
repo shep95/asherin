@@ -244,12 +244,22 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
       toast.success(`Scan complete: ${final.findings_count} vulnerabilities`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
-      update({ status: "failed", error: msg });
-      toast.error("Scan failed: " + msg);
+      if (canceledRef.current || (e instanceof DOMException && e.name === "AbortError")) {
+        update({ status: "failed", error: "Canceled by user" });
+        toast.message("Scan canceled");
+      } else {
+        update({ status: "failed", error: msg });
+        toast.error("Scan failed: " + msg);
+      }
+    } finally {
+      abortRef.current = null;
     }
   };
 
   const startScan: ScanContextValue["startScan"] = useCallback(args => {
+    // Reset cancel state and create a fresh controller for this run
+    canceledRef.current = false;
+    abortRef.current = new AbortController();
     setActive({
       projectId: args.projectId,
       projectName: args.projectName,
@@ -276,10 +286,17 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const cancelScan = useCallback(() => {
+    if (!activeRef.current || activeRef.current.status !== "running") return;
+    canceledRef.current = true;
+    try { abortRef.current?.abort(); } catch { /* noop */ }
+    update({ status: "failed", error: "Canceled by user", progress: activeRef.current.progress ? { ...activeRef.current.progress, message: "Canceling…" } : null });
+  }, [update]);
+
   const clear = useCallback(() => setActive(null), []);
 
   return (
-    <ScanContext.Provider value={{ active, startScan, clear }}>
+    <ScanContext.Provider value={{ active, startScan, cancelScan, clear }}>
       {children}
     </ScanContext.Provider>
   );
