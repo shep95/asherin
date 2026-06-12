@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe, Binary, CloudOff } from "lucide-react";
 import { useCreateProject, useRunScan } from "./useZerlalData";
+import { useActiveScan } from "./scanContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import JSZip from "jszip";
@@ -9,6 +10,7 @@ interface ScanModalProps {
   open: boolean;
   onClose: () => void;
   onScanComplete: () => void;
+  onScanStarted?: (projectId: string) => void;
 }
 
 type Step = 1 | 2 | 3;
@@ -32,7 +34,7 @@ const scanProfiles = [
   { id: "deep-scan", name: "Full Deep Scan", desc: "AI-assisted novel pattern detection, chain analysis, quantum crypto audit, red team simulation", time: "45-120 min", includes: ["Full SAST", "SCA", "AI Analysis", "Chain Detection", "Dataflow Tracing", "Quantum Crypto Audit", "Supply Chain Intel", "Zero-Trust Validation", "PoC Generation"] },
 ];
 
-const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
+const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalProps) => {
   const [step, setStep] = useState<Step>(1);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState("security-audit");
@@ -47,6 +49,7 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { createProject, creating } = useCreateProject();
   const { runScan, scanning, progress } = useRunScan();
+  const { startScan: startLiveScan } = useActiveScan();
 
   const handleFileSelect = useCallback(async (selectedFiles: FileList) => {
     const fileArray = Array.from(selectedFiles);
@@ -101,7 +104,6 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
       return;
     }
 
-    // For paste-code source, use the pasted code
     const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
 
     if (!finalCode && !url && selectedSource !== "github" && selectedSource !== "docker") {
@@ -114,6 +116,26 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
     if (!project) return;
 
     const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
+
+    // If we have a navigation handler, kick off the live narrative scan and jump
+    // to the project page immediately. Otherwise fall back to the in-modal flow.
+    if (onScanStarted) {
+      startLiveScan({
+        projectId: project.id,
+        projectName,
+        codeContent: finalCode,
+        fileName: files[0]?.name || projectName,
+        scanProfile: selectedProfile,
+        sourceType,
+        fileCount: files.length || (finalCode ? 1 : 0),
+        githubUrl,
+      });
+      onScanComplete();
+      onScanStarted(project.id);
+      resetState();
+      return;
+    }
+
     const result = await runScan(project.id, finalCode, files[0]?.name || projectName, selectedProfile, githubUrl);
     if (result) {
       onScanComplete();

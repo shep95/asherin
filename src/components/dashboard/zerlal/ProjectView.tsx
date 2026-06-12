@@ -1,9 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2, Copy, Check, FolderOpen, Download, Eye, RefreshCw, LayoutGrid, List } from "lucide-react";
 import { useZerlalFindings, useZerlalProjects, useZerlalScans, useUpdateFinding } from "./useZerlalData";
 import type { FindingSeverity, FindingStatus, ZerlalFinding } from "./types";
 import { toast } from "sonner";
 import BlueprintFindingsTable from "@/components/palantir/BlueprintFindingsTable";
+import LiveScanNarrative from "./LiveScanNarrative";
+import { useActiveScan } from "./scanContext";
 
 interface ProjectViewProps {
   projectId: string | null;
@@ -123,6 +125,20 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
   const { findings, loading: fLoading, refetch } = useZerlalFindings(projectId);
   const { scans, loading: sLoading } = useZerlalScans(projectId);
   const { markFalsePositive, waiveFinding, resolveFinding, assignFinding } = useUpdateFinding();
+  const { active: activeScan } = useActiveScan();
+  const isLiveForThisProject = activeScan && activeScan.projectId === projectId;
+
+  // Refetch findings + project once the live scan completes
+  const lastStatusRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isLiveForThisProject) return;
+    if (activeScan!.status === "complete" && lastStatusRef.current !== "complete") {
+      lastStatusRef.current = "complete";
+      refetch();
+    } else {
+      lastStatusRef.current = activeScan!.status;
+    }
+  }, [isLiveForThisProject, activeScan, refetch]);
 
   const project = projects.find(p => p.id === projectId);
 
@@ -141,13 +157,17 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
     project.risk_grade === "A" ? "text-emerald-400" : project.risk_grade === "B" ? "text-blue-400" :
     project.risk_grade === "C" ? "text-yellow-400" : project.risk_grade === "D" ? "text-orange-400" : "text-red-400";
 
-  if (fLoading) {
+  // While a live scan is running for this project, render even if findings are loading
+  if (fLoading && !isLiveForThisProject) {
     return <div className="flex-1 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground/20" /></div>;
   }
 
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="p-5 max-w-[1200px] mx-auto space-y-4">
+        {isLiveForThisProject && (
+          <LiveScanNarrative projectId={projectId!} onSelectFinding={onSelectFinding} />
+        )}
         {/* Header */}
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="text-[10px] text-muted-foreground/30 hover:text-foreground/50">← Back</button>
