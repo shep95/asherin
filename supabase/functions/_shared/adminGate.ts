@@ -59,6 +59,7 @@ export interface KeyResolution {
 export async function resolveKey(
   req: Request,
   byok: unknown,
+  opts: { strict?: boolean } = {},
 ): Promise<KeyResolution> {
   const validByok = isValidByok(byok) ? (byok as ZophielByokConfig) : null;
   const email = await getCallerEmail(req);
@@ -79,6 +80,15 @@ export async function resolveKey(
       throw e;
     }
     return { mode: "admin", geminiKey: k };
+  }
+
+  // Strict mode (Zerlal, Video Intelligence): no platform fallback.
+  // Non-admin callers MUST bring their own key.
+  if (opts.strict) {
+    const e: any = new Error("BYOK_REQUIRED");
+    e.status = 403;
+    e.code = "BYOK_REQUIRED";
+    throw e;
   }
 
   // Free-tier fallback: route non-admin callers without BYOK through the
