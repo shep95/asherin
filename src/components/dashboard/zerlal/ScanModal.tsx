@@ -474,22 +474,34 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
           >
             {step > 1 ? "← Back" : "Cancel"}
           </button>
-          <button
-            onClick={() => {
-              if (step < 3) setStep((step + 1) as Step);
-              else handleStartScan();
-            }}
-            disabled={(step === 1 && (!selectedSource || !projectName.trim())) || isBusy}
-            className="px-4 py-1.5 rounded-lg bg-foreground/[0.08] text-[10px] text-foreground/60 hover:bg-foreground/[0.12] transition-colors disabled:opacity-30 flex items-center gap-1"
-          >
-            {isBusy ? (
-              <><Loader2 className="h-3 w-3 animate-spin" /> {scanning ? "Scanning..." : "Processing..."}</>
-            ) : step === 3 ? (
-              <><Check className="h-3 w-3" /> Start Scan</>
-            ) : (
-              <>Next <ChevronRight className="h-3 w-3" /></>
+          <div className="flex items-center gap-2">
+            {step === 3 && (
+              <button
+                onClick={handleQueueBackground}
+                disabled={isBusy}
+                title="Runs on our servers. Survives WiFi drops, browser close, sleep mode. Result emailed when done."
+                className="px-3 py-1.5 rounded-lg border border-border/[0.1] text-[10px] text-foreground/55 hover:bg-foreground/[0.04] transition-colors disabled:opacity-30 flex items-center gap-1"
+              >
+                <CloudOff className="h-3 w-3" /> Run in background & email me
+              </button>
             )}
-          </button>
+            <button
+              onClick={() => {
+                if (step < 3) setStep((step + 1) as Step);
+                else handleStartScan();
+              }}
+              disabled={(step === 1 && (!selectedSource || !projectName.trim())) || isBusy}
+              className="px-4 py-1.5 rounded-lg bg-foreground/[0.08] text-[10px] text-foreground/60 hover:bg-foreground/[0.12] transition-colors disabled:opacity-30 flex items-center gap-1"
+            >
+              {isBusy ? (
+                <><Loader2 className="h-3 w-3 animate-spin" /> {scanning ? "Scanning..." : "Processing..."}</>
+              ) : step === 3 ? (
+                <><Check className="h-3 w-3" /> Start Scan</>
+              ) : (
+                <>Next <ChevronRight className="h-3 w-3" /></>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
