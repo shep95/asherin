@@ -49,6 +49,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { createProject, creating } = useCreateProject();
   const { runScan, scanning, progress } = useRunScan();
+  const { startScan: startLiveScan } = useActiveScan();
 
   const handleFileSelect = useCallback(async (selectedFiles: FileList) => {
     const fileArray = Array.from(selectedFiles);
