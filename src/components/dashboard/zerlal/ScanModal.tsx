@@ -34,7 +34,7 @@ const scanProfiles = [
   { id: "deep-scan", name: "Full Deep Scan", desc: "AI-assisted novel pattern detection, chain analysis, quantum crypto audit, red team simulation", time: "45-120 min", includes: ["Full SAST", "SCA", "AI Analysis", "Chain Detection", "Dataflow Tracing", "Quantum Crypto Audit", "Supply Chain Intel", "Zero-Trust Validation", "PoC Generation"] },
 ];
 
-const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
+const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalProps) => {
   const [step, setStep] = useState<Step>(1);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState("security-audit");
