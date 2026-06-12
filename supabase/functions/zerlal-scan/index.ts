@@ -109,13 +109,50 @@ Deno.serve(async (req) => {
       provider_profile = null,
     } = await req.json();
 
+    // BYOK PRIORITY — if caller didn't pass byok in body, auto-load their saved
+    // active provider/key from user_model_preferences + user_api_keys. This makes
+    // BYOK win automatically (even for admin) so we don't burn the platform key
+    // when the user has their own configured.
+    let effectiveByok: any = byok;
+    if (!effectiveByok && authHeader) {
+      try {
+        const anonSb = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || "", { auth: { persistSession: false } });
+        const { data: { user: reqUser } } = await anonSb.auth.getUser(token);
+        if (reqUser) {
+          const { data: pref } = await supabase
+            .from("user_model_preferences")
+            .select("active_provider, active_model")
+            .eq("user_id", reqUser.id)
+            .maybeSingle();
+          const activeProvider = pref?.active_provider;
+          const activeModel = pref?.active_model;
+          if (activeProvider && activeProvider !== "default" && activeModel && activeModel !== "default") {
+            const { data: keyRow } = await supabase
+              .from("user_api_keys")
+              .select("api_key")
+              .eq("user_id", reqUser.id)
+              .eq("provider", activeProvider)
+              .eq("is_active", true)
+              .maybeSingle();
+            if (keyRow?.api_key) {
+              effectiveByok = { provider: activeProvider, model: activeModel, apiKey: keyRow.api_key };
+              console.log("[ZERLAL] Using user BYOK:", activeProvider, "/", activeModel);
+            }
+          }
+        }
+      } catch (e) {
+        console.log("[ZERLAL] BYOK auto-load skipped:", (e as Error).message);
+      }
+    }
+
     // STRICT BYOK GATE — non-admin must supply a BYOK config.
     let _resolved;
     try {
-      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, byok);
+      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, effectiveByok);
     } catch (e: any) {
       return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
     }
+    console.log("[ZERLAL] Key mode:", _resolved.mode, _resolved.mode === "byok" ? `(${_resolved.byok?.provider}/${_resolved.byok?.model})` : "(platform)");
     if (!project_id) throw new Error("project_id is required");
 
     console.log("[ZERLAL] Starting scan for project:", project_id, "mode:", mode, "profile:", scan_profile, "github_url:", github_url || "none");
