@@ -3,6 +3,15 @@ import * as React from 'npm:react@18.3.1'
 import type { TemplateEntry } from './registry.ts'
 import { Shell, Hed, Prose, MetaCard, Cta, Note, Subhed } from '../email-theme.tsx'
 
+interface Finding {
+  title: string
+  severity: string
+  file_path?: string
+  line_number?: number
+  cwe_id?: string
+  cvss_score?: number
+}
+
 interface Props {
   projectName?: string
   riskGrade?: string
@@ -17,6 +26,7 @@ interface Props {
   summary?: string
   reportUrl?: string
   completedAt?: string
+  findings?: Finding[]
 }
 
 const ZerlalScanReportEmail = ({
@@ -33,6 +43,7 @@ const ZerlalScanReportEmail = ({
   summary,
   reportUrl = 'https://aureonai.app/dashboard/zerlal',
   completedAt = new Date().toUTCString(),
+  findings = [],
 }: Props) => (
   <Shell preview={`ZERLAL scan complete — Grade ${riskGrade} · ${findingsCount} findings`} eyebrow="ZERLAL · Security Report">
     <Hed>Scan complete.</Hed>
@@ -60,6 +71,17 @@ const ZerlalScanReportEmail = ({
       ]}
     />
     {summary && <Prose>{summary}</Prose>}
+    {findings.length > 0 && (
+      <>
+        <Subhed>All findings ({findings.length})</Subhed>
+        <MetaCard
+          rows={findings.map((f) => ({
+            label: `${(f.severity || 'INFO').toString().toUpperCase()}${f.cwe_id ? ` · ${f.cwe_id}` : ''}`,
+            value: `${f.title}${f.file_path ? ` — ${f.file_path}${f.line_number ? `:${f.line_number}` : ''}` : ''}${typeof f.cvss_score === 'number' && f.cvss_score > 0 ? ` (CVSS ${f.cvss_score})` : ''}`,
+          }))}
+        />
+      </>
+    )}
     <Cta href={reportUrl} label="Open full report" />
     <Note>Manage scan cadence and alert preferences from ZERLAL Settings.</Note>
   </Shell>

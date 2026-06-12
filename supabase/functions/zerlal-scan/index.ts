@@ -349,15 +349,22 @@ CODE:\n\`\`\`\n${pass2Slice}\n\`\`\``;
               summary: analysis.summary || "",
               reportUrl,
               completedAt: completedAtStr,
+              findings: allFindings.map((f: any) => ({
+                title: f.title || "Unnamed finding",
+                severity: (f.severity || "info").toLowerCase(),
+                file_path: f.file_path || "",
+                line_number: f.line_number || 0,
+                cwe_id: f.cwe_id || "",
+                cvss_score: f.cvss_score || 0,
+              })),
             },
           },
         }).catch((e) => console.error("[ZERLAL] scan-report email failed:", e));
 
         // Immediate critical alert
         if (criticalCount > 0 && settings?.notify_critical !== false) {
-          const topCritical = allFindings
+          const allCritical = allFindings
             .filter((f: any) => (f.severity || "").toLowerCase() === "critical")
-            .slice(0, 5)
             .map((f: any) => ({
               title: f.title || "Unnamed finding",
               severity: "critical",
@@ -374,7 +381,7 @@ CODE:\n\`\`\`\n${pass2Slice}\n\`\`\``;
               templateData: {
                 projectName,
                 criticalCount,
-                findings: topCritical,
+                findings: allCritical,
                 reportUrl,
                 completedAt: completedAtStr,
               },
