@@ -780,19 +780,77 @@ async function callAI(
 }
 
 function parseFindings(text: string): any {
-  const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fencedMatch?.[1] || text;
-  const jsonMatch = candidate.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    try {
-      return JSON.parse(jsonMatch[0]);
-    } catch (e) {
-      // Try fixing common JSON issues
-      const cleaned = jsonMatch[0]
-        .replace(/,\s*}/g, "}")
-        .replace(/,\s*\]/g, "]");
-      return JSON.parse(cleaned);
+  if (!text || !text.trim()) throw new Error("Empty AI response");
+
+  // Strip reasoning / thinking blocks some models leak
+  let cleaned = text
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, "")
+    .replace(/<ant_thinking>[\s\S]*?<\/ant_thinking>/gi, "")
+    .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "")
+    .trim();
+
+  // Prefer the LAST fenced ```json``` block (often the final answer)
+  const fences = [...cleaned.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi)];
+  const candidates: string[] = [];
+  if (fences.length) candidates.push(fences[fences.length - 1][1]);
+  candidates.push(cleaned);
+
+  const tryParse = (raw: string): any => {
+    const repaired = raw
+      .replace(/^\uFEFF/, "")
+      .replace(/,\s*([}\]])/g, "$1")
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+    return JSON.parse(repaired);
+  };
+
+  for (const c of candidates) {
+    const s = c.trim();
+    // Extract balanced top-level { ... } or [ ... ]
+    const startIdx = (() => {
+      const b = s.indexOf("{");
+      const a = s.indexOf("[");
+      if (b === -1) return a;
+      if (a === -1) return b;
+      return Math.min(a, b);
+    })();
+    if (startIdx === -1) continue;
+
+    const open = s[startIdx];
+    const close = open === "{" ? "}" : "]";
+    let depth = 0, inStr = false, esc = false, end = -1;
+    for (let i = startIdx; i < s.length; i++) {
+      const ch = s[i];
+      if (esc) { esc = false; continue; }
+      if (ch === "\\") { esc = true; continue; }
+      if (ch === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (ch === open) depth++;
+      else if (ch === close) { depth--; if (depth === 0) { end = i; break; } }
+    }
+
+    const slice = end !== -1 ? s.slice(startIdx, end + 1) : s.slice(startIdx);
+    try { return tryParse(slice); } catch { /* try next */ }
+
+    // Auto-close unbalanced braces/brackets as a last resort
+    if (end === -1) {
+      let opens = 0, brOpens = 0, inS = false, es = false;
+      for (let i = startIdx; i < s.length; i++) {
+        const ch = s[i];
+        if (es) { es = false; continue; }
+        if (ch === "\\") { es = true; continue; }
+        if (ch === '"') { inS = !inS; continue; }
+        if (inS) continue;
+        if (ch === "{") opens++; else if (ch === "}") opens--;
+        else if (ch === "[") brOpens++; else if (ch === "]") brOpens--;
+      }
+      let patched = s.slice(startIdx).replace(/,\s*$/, "");
+      if (inS) patched += '"';
+      while (brOpens-- > 0) patched += "]";
+      while (opens-- > 0) patched += "}";
+      try { return tryParse(patched); } catch { /* fall through */ }
     }
   }
+
+  console.log("[ZERLAL] parseFindings failed. Preview:", cleaned.slice(0, 500));
   throw new Error("No valid JSON found in AI response");
 }
