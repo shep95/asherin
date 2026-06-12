@@ -57,6 +57,7 @@ import MultiModelSelector, { type SelectedModel } from "./MultiModelSelector";
 import ConsensusMessage from "./ConsensusMessage";
 import BrainsManager from "./BrainsManager";
 import ConversationApiToggles from "./ConversationApiToggles";
+import NumberedFormatToggle from "./NumberedFormatToggle";
 import TradingProofButton from "./TradingProofButton";
 
 interface ChatViewProps {
@@ -719,6 +720,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           {onBrainChange && (
             <BrainsManager activeBrainId={activeBrainId ?? null} onBrainChange={onBrainChange} />
           )}
+          <NumberedFormatToggle scopeId={conversation.id} />
           <ConversationApiToggles conversationId={conversation.id} storedProviders={storedProviders} />
         </div>
       )}
