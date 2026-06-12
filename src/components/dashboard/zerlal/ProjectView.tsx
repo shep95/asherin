@@ -4,6 +4,8 @@ import { useZerlalFindings, useZerlalProjects, useZerlalScans, useUpdateFinding 
 import type { FindingSeverity, FindingStatus, ZerlalFinding } from "./types";
 import { toast } from "sonner";
 import BlueprintFindingsTable from "@/components/palantir/BlueprintFindingsTable";
+import LiveScanNarrative from "./LiveScanNarrative";
+import { useActiveScan } from "./scanContext";
 
 interface ProjectViewProps {
   projectId: string | null;
