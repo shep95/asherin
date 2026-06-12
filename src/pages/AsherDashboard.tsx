@@ -240,6 +240,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
     { id: "axrlen",  label: "AXRLEN Predict", icon: Activity, sub: "Live" },
     { id: "code",    label: "Asher IDE",      icon: Code2,    sub: "IDE" },
+    { id: "media2code", label: "Media → Code", icon: Wand2,   sub: "New" },
   ]},
   { id: "intel", label: "Intelligence", items: [
     { id: "azplen",    label: "Azplen Intel",    icon: Database, sub: "Live" },
