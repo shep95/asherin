@@ -120,6 +120,7 @@ async function advanceJob(job: any) {
     project_id: job.project_id,
     scan_profile: job.scan_profile,
     code_content: job.code_content,
+    source_storage_path: job.source_storage_path,
     file_name: job.file_name,
     github_url: job.github_url || undefined,
     byok: job.byok || null,
