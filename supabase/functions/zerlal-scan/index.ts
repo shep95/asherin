@@ -152,21 +152,18 @@ Deno.serve(async (req) => {
       console.log("[ZERLAL] Brains load skipped:", e);
     }
 
-    // ─── Multi-chunk sweep: large uploads were previously truncated to 50KB (~1% of a 4MB zip).
-    // We now slice the codebase into up to 4 windows of ~80KB each and scan in parallel passes,
-    // then run a deep-dive Pass 2 on the densest window. Deduplication uses file_path+line+title
-    // so semantically distinct findings aren't collapsed.
+    // ─── UNCAPPED multi-chunk sweep: walk the ENTIRE codebase in ~80KB non-overlapping windows.
+    // Findings are never capped — we keep scanning until the request time budget is exhausted.
+    // Deduplication uses file_path+line+title so semantically distinct findings aren't collapsed.
     const CHUNK_SIZE = 80000;
-    const MAX_CHUNKS = 4;
     const totalLen = codeToAnalyze.length;
-    const chunkCount = Math.min(MAX_CHUNKS, Math.max(1, Math.ceil(totalLen / CHUNK_SIZE)));
-    const stride = chunkCount > 1 ? Math.floor((totalLen - CHUNK_SIZE) / (chunkCount - 1)) : 0;
+    const chunkCount = Math.max(1, Math.ceil(totalLen / CHUNK_SIZE));
     const chunks: string[] = [];
     for (let i = 0; i < chunkCount; i++) {
-      const start = chunkCount === 1 ? 0 : i * stride;
+      const start = i * CHUNK_SIZE;
       chunks.push(codeToAnalyze.substring(start, start + CHUNK_SIZE));
     }
-    console.log(`[ZERLAL] Sweeping ${chunks.length} chunks of ~${CHUNK_SIZE} chars (total code: ${totalLen})`);
+    console.log(`[ZERLAL] Sweeping ${chunks.length} chunks of ~${CHUNK_SIZE} chars (total code: ${totalLen}) — NO CAP`);
 
     const scanStartTime = Date.now();
     let allFindings: any[] = [];
@@ -193,9 +190,10 @@ Deno.serve(async (req) => {
       `${(f.file_path || "").toLowerCase()}::${f.line_number || 0}::${(f.title || "").toLowerCase().trim()}`;
     const seen = new Set(allFindings.map(keyOf));
 
-    // Additional chunks — scan each (cap total elapsed at 180s to stay within request budget)
+    // Sweep EVERY remaining chunk — only stop if the request time budget is at risk.
+    const TIME_BUDGET_MS = 230000; // leave headroom under the 5-min edge limit
     for (let i = 1; i < chunks.length; i++) {
-      if (Date.now() - scanStartTime > 180000) {
+      if (Date.now() - scanStartTime > TIME_BUDGET_MS) {
         console.log("[ZERLAL] Time budget reached, stopping chunk sweep at", i, "/", chunks.length);
         break;
       }
@@ -215,11 +213,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // PASS 2 — deep dive targeting categories the sweep often misses (CORS, auth, crypto, DoS, supply chain)
+    // PASS 2 — deep-dive on a different slice for vuln classes the sweep often misses.
+    // No findings cap — runs whenever time remains.
     const elapsedMs = Date.now() - scanStartTime;
-    if (elapsedMs < 220000) {
-      const existingTitles = allFindings.slice(0, 40).map((f: any) => f.title).join(", ");
-      // Pick the densest unused tail of code for Pass 2 (different slice than chunk 1)
+    if (elapsedMs < TIME_BUDGET_MS) {
+      const existingTitles = allFindings.slice(0, 60).map((f: any) => f.title).join(", ");
       const pass2Slice = codeToAnalyze.substring(
         Math.floor(totalLen / 2),
         Math.floor(totalLen / 2) + 60000,
