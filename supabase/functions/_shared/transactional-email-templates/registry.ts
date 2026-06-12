@@ -23,6 +23,8 @@ import { template as exportReady } from './export-ready.tsx'
 import { template as accountDeletionScheduled } from './account-deletion-scheduled.tsx'
 import { template as vcApplicationDecision } from './vc-application-decision.tsx'
 import { template as vcApplicationForward } from './vc-application-forward.tsx'
+import { template as zerlalScanReport } from './zerlal-scan-report.tsx'
+import { template as zerlalCriticalAlert } from './zerlal-critical-alert.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   welcome,
@@ -39,4 +41,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'account-deletion-scheduled': accountDeletionScheduled,
   'vc-application-decision': vcApplicationDecision,
   'vc-application-forward': vcApplicationForward,
+  'zerlal-scan-report': zerlalScanReport,
+  'zerlal-critical-alert': zerlalCriticalAlert,
 }
