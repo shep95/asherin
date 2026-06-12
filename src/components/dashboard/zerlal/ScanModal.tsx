@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from "react";
-import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe, Binary } from "lucide-react";
+import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe, Binary, CloudOff } from "lucide-react";
 import { useCreateProject, useRunScan } from "./useZerlalData";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import JSZip from "jszip";
 
 interface ScanModalProps {
