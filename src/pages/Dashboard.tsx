@@ -1444,7 +1444,7 @@ const Dashboard = () => {
       case "cross": return gatedView("cross", CrossView, "Cross — Live Screen Intelligence", "Real-time screen analysis — share your screen with Aureon for instant pattern detection, alerts, and recommendations. Admin only.");
       case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.");
       case "axrlen": return gatedView("axrlen", AxrlenView, "Axrlen — Predictive Intelligence", "Real-time global event prediction and policy simulation — powered by live data from 9+ intelligence sources. Available on Pro plans.");
-      case "zerlal": return gatedView("zerlal", ZerlalView, "Zerlal — Cyber Security", "AI-powered cyber security intelligence — threat analysis, vulnerability detection, and defense strategies powered by AUREON. Available on Pro plans.");
+      case "zerlal": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><ZerlalView /></Suspense></ErrorBoundary>;
       
       // case "imagine-intelligence" removed
       case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Aureon ($199/mo) and above.");
