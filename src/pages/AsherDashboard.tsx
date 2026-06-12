@@ -6,7 +6,7 @@ import {
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
   Building2, Wrench, PenSquare, Activity, NotebookPen, Code2, Package, Moon,
-  BrainCircuit, BarChart3, Workflow, Bot,
+  BrainCircuit, BarChart3, Workflow, Bot, Wand2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,7 @@ import AsherBrainsModule from "@/components/asher/AsherBrainsModule";
 import AsherAureonDataModule from "@/components/asher/AsherAureonDataModule";
 import AsherZahtenModule from "@/components/asher/AsherZahtenModule";
 import AsherZacoonModule from "@/components/asher/AsherZacoonModule";
+import AsherMediaToCodeModule from "@/components/asher/AsherMediaToCodeModule";
 
 import { isSuperOwner } from "@/lib/asherOrgs";
 
@@ -239,6 +240,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
     { id: "axrlen",  label: "AXRLEN Predict", icon: Activity, sub: "Live" },
     { id: "code",    label: "Asher IDE",      icon: Code2,    sub: "IDE" },
+    { id: "media2code", label: "Media → Code", icon: Wand2,   sub: "New" },
   ]},
   { id: "intel", label: "Intelligence", items: [
     { id: "azplen",    label: "Azplen Intel",    icon: Database, sub: "Live" },
@@ -500,6 +502,7 @@ const AsherDashboard = () => {
           {active === "settings"  && <AsherSettingsModule />}
           {active === "profile"   && <AsherProfile />}
           {active === "code"      && <AsherCodeModule />}
+          {active === "media2code"&& <AsherMediaToCodeModule />}
           {typeof active === "string" && active.startsWith("pub:") && (() => {
             const tab = publishedTabs.find((t) => `pub:${t.id}` === active);
             return tab ? <AsherPublishedTabRenderer name={tab.name} entryHtml={tab.entry_html} /> : null;
