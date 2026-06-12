@@ -466,6 +466,17 @@ const AureonIdeView = () => {
   }, [user, sessions.length, loadSession]);
 
   const deleteSession = useCallback(async (id: string) => {
+    // Phase 5: Purge local IndexedDB checkpoints and localStorage autosave so
+    // deleting a project doesn't leave ghost recovery snapshots behind.
+    try {
+      const { listCheckpoints, deleteCheckpoint } = await import("@/lib/ide/checkpoints");
+      const { clearAutoSave } = await import("@/lib/ide/autoSave");
+      const ckpts = await listCheckpoints("aureon", id);
+      await Promise.all(ckpts.map(c => c.id ? deleteCheckpoint(c.id) : Promise.resolve()));
+      clearAutoSave(id);
+    } catch (e) {
+      console.warn("[ide] local cleanup failed", e);
+    }
     await supabase.from("ide_sessions").delete().eq("id", id);
     setSessions(prev => prev.filter(s => s.id !== id));
     if (activeSessionId === id) { setActiveSessionId(null); setFiles(STARTER_FILES); setOpenFileIds(["app"]); setActiveFileId("app"); }
