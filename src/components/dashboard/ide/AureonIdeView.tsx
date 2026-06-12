@@ -981,7 +981,7 @@ const AureonIdeView = () => {
               <div className="flex-1 min-h-0"><IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} /></div>
             </div>
           )}
-          {mobilePanel === "terminal" && <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} />}
+          {mobilePanel === "terminal" && <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} onCrashDetected={handleCrashEvent} />}
         </div>
 
         {/* Simple 4-tab bottom nav */}
@@ -1219,7 +1219,7 @@ const AureonIdeView = () => {
                         </div>
                       </div>
                       <div className="flex-1 min-h-0 overflow-hidden">
-                        <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} />
+                        <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} onCrashDetected={handleCrashEvent} />
                       </div>
                     </div>
                   </ResizablePanel>
