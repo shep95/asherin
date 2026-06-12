@@ -89,8 +89,18 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userErr } = await supabase.auth.getUser(token);
-    if (userErr || !user) throw new Error("Unauthorized");
+    // Internal server-to-server bypass (background worker): if the caller presents
+    // the service-role key + matching x-internal-key + body.user_id_override, trust it.
+    const internalKey = req.headers.get("x-internal-key");
+    const bodyPeek = await req.clone().json().catch(() => ({}));
+    let user: any;
+    if (internalKey && internalKey === serviceRoleKey && bodyPeek?.user_id_override) {
+      user = { id: bodyPeek.user_id_override };
+    } else {
+      const { data: { user: authedUser }, error: userErr } = await supabase.auth.getUser(token);
+      if (userErr || !authedUser) throw new Error("Unauthorized");
+      user = authedUser;
+    }
 
     const {
       mode = "plan",
