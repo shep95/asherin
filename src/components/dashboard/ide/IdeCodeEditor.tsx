@@ -1,5 +1,7 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { X, Copy, Check, Search, WrapText, AlignLeft } from "lucide-react";
+import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
+import type { editor as MonacoEditor } from "monaco-editor";
 import type { IdeFile } from "./IdeFileTree";
 import { getLanguage } from "./IdeFileTree";
 import { validateCode } from "@/lib/ide";
@@ -12,66 +14,115 @@ interface Props {
   onContentChange: (id: string, content: string) => void;
 }
 
+// Map our friendly language ids to Monaco's expected ids.
+const toMonacoLang = (lang: string): string => {
+  const m: Record<string, string> = {
+    js: "javascript", jsx: "javascript", ts: "typescript", tsx: "typescript",
+    py: "python", rb: "ruby", sh: "shell", yml: "yaml", md: "markdown",
+    plaintext: "plaintext",
+  };
+  return m[lang] ?? lang;
+};
+
+// Custom monochrome Monaco theme matching the Aureon dark glass palette.
+// Registered once on first mount.
+let themeRegistered = false;
+function registerAureonTheme(monaco: Monaco) {
+  if (themeRegistered) return;
+  themeRegistered = true;
+  monaco.editor.defineTheme("aureon-dark", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "", foreground: "d4d4d4" },
+      { token: "comment", foreground: "6b7280", fontStyle: "italic" },
+      { token: "keyword", foreground: "c4b5fd" },
+      { token: "string", foreground: "a3a3a3" },
+      { token: "number", foreground: "e5e5e5" },
+      { token: "type", foreground: "d1d5db" },
+      { token: "function", foreground: "f3f4f6" },
+      { token: "variable", foreground: "d4d4d4" },
+    ],
+    colors: {
+      "editor.background": "#00000000",
+      "editor.foreground": "#e5e5e5",
+      "editorLineNumber.foreground": "#4b5563",
+      "editorLineNumber.activeForeground": "#9ca3af",
+      "editor.lineHighlightBackground": "#ffffff08",
+      "editor.selectionBackground": "#ffffff15",
+      "editor.inactiveSelectionBackground": "#ffffff0a",
+      "editorCursor.foreground": "#ffffff",
+      "editorWidget.background": "#0a0a0acc",
+      "editorWidget.border": "#ffffff14",
+      "editorSuggestWidget.background": "#0a0a0aee",
+      "editorSuggestWidget.border": "#ffffff14",
+      "editorSuggestWidget.selectedBackground": "#ffffff14",
+      "editorHoverWidget.background": "#0a0a0aee",
+      "editorBracketMatch.background": "#ffffff10",
+      "editorBracketMatch.border": "#ffffff30",
+      "scrollbarSlider.background": "#ffffff10",
+      "scrollbarSlider.hoverBackground": "#ffffff20",
+      "scrollbarSlider.activeBackground": "#ffffff30",
+      "minimap.background": "#00000000",
+    },
+  });
+}
+
 const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onContentChange }: Props) => {
   const [copied, setCopied] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const [wordWrap, setWordWrap] = useState(false);
   const [showMinimap, setShowMinimap] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const [cursor, setCursor] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
+  const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<Monaco | null>(null);
 
   const activeFile = useMemo(() => openFiles.find(f => f.id === activeFileId), [openFiles, activeFileId]);
   const content = activeFile?.content ?? "";
-  const lines = content.split("\n");
   const language = activeFile ? getLanguage(activeFile.name) : "plaintext";
+  const monacoLang = toMonacoLang(language);
 
-  // Red-line error highlighting (powered by the shared ZANOEM validator).
-  const errorLines = useMemo(() => {
-    if (!activeFile || !content) return new Set<number>();
+  // Run our shared ZANOEM validator and convert issues into Monaco markers (red squiggles).
+  useEffect(() => {
+    if (!activeFile || !editorRef.current || !monacoRef.current) return;
+    const monaco = monacoRef.current;
+    const model = editorRef.current.getModel();
+    if (!model) return;
     try {
       const result = validateCode(content, language);
-      return new Set(result.issues.filter((i) => i.severity === "error").map((i) => i.line));
-    } catch { return new Set<number>(); }
+      const markers: MonacoEditor.IMarkerData[] = (result.issues ?? []).map((i) => ({
+        severity:
+          i.severity === "error" ? monaco.MarkerSeverity.Error :
+          i.severity === "warning" ? monaco.MarkerSeverity.Warning :
+          monaco.MarkerSeverity.Info,
+        message: i.message ?? "Validator finding",
+        startLineNumber: i.line ?? 1,
+        endLineNumber: i.line ?? 1,
+        startColumn: 1,
+        endColumn: 1000,
+      }));
+      monaco.editor.setModelMarkers(model, "aureon-zanoem", markers);
+    } catch {
+      monaco.editor.setModelMarkers(model, "aureon-zanoem", []);
+    }
   }, [content, language, activeFile]);
 
-  const handleScroll = useCallback(() => {
-    if (textareaRef.current && lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
-    }
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
-        e.preventDefault();
-        setShowSearch(s => !s);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+  const handleMount: OnMount = useCallback((editor, monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+    registerAureonTheme(monaco);
+    monaco.editor.setTheme("aureon-dark");
+    editor.onDidChangeCursorPosition((e) => {
+      setCursor({ line: e.position.lineNumber, col: e.position.column });
+    });
   }, []);
 
   const handleCopyAll = () => {
     navigator.clipboard.writeText(content);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 1500);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Tab") {
-      e.preventDefault();
-      const ta = e.currentTarget;
-      const start = ta.selectionStart;
-      const end = ta.selectionEnd;
-      const newContent = content.slice(0, start) + "  " + content.slice(end);
-      onContentChange(activeFile!.id, newContent);
-      setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + 2; }, 0);
-    }
-  };
-
-  // Search match count
-  const matchCount = searchTerm ? (content.match(new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'))?.length ?? 0) : 0;
+  const handleFind = () => editorRef.current?.getAction("actions.find")?.run();
 
   if (openFiles.length === 0) {
     return (
@@ -86,7 +137,7 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
 
   return (
     <div className="flex flex-col flex-1 min-w-0 h-full">
-      {/* Tabs — horizontally scrollable */}
+      {/* Tabs */}
       <div className="flex items-center border-b border-border/20 bg-card/20 overflow-x-auto scrollbar-none">
         <div className="flex items-center min-w-0 overflow-x-auto scrollbar-none">
           {openFiles.map(f => (
@@ -113,98 +164,61 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
           <button onClick={() => setShowMinimap(m => !m)} className={`p-1 rounded transition-colors hidden md:block ${showMinimap ? "text-accent" : "text-muted-foreground/40 hover:text-foreground"}`} title="Minimap">
             <AlignLeft className="h-3 w-3" />
           </button>
-          <button onClick={() => setShowSearch(s => !s)} className="p-1 rounded text-muted-foreground/40 hover:text-foreground transition-colors">
+          <button onClick={handleFind} className="p-1 rounded text-muted-foreground/40 hover:text-foreground transition-colors" title="Find (Ctrl+F)">
             <Search className="h-3 w-3" />
           </button>
-          <button onClick={handleCopyAll} className="p-1 rounded text-muted-foreground/40 hover:text-foreground transition-colors">
+          <button onClick={handleCopyAll} className="p-1 rounded text-muted-foreground/40 hover:text-foreground transition-colors" title="Copy all">
             {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
           </button>
         </div>
       </div>
 
-      {/* Search bar */}
-      {showSearch && (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-card/30 border-b border-border/10">
-          <Search className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-          <input
-            autoFocus value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Find in file..."
-            className="flex-1 bg-transparent text-[11px] font-light outline-none text-foreground placeholder:text-muted-foreground/30 min-w-0"
-          />
-          {searchTerm && <span className="text-[9px] text-muted-foreground/40 shrink-0">{matchCount} found</span>}
-          <button onClick={() => { setShowSearch(false); setSearchTerm(""); }} className="p-0.5 shrink-0">
-            <X className="h-3 w-3 text-muted-foreground/40" />
-          </button>
-        </div>
-      )}
-
-      {/* Editor area */}
-      <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Line numbers */}
-        <div
-          ref={lineNumbersRef}
-          className="flex-shrink-0 overflow-hidden select-none bg-card/10 border-r border-border/10 py-3 px-1 hidden sm:block"
-          style={{ width: "40px" }}
-        >
-          {lines.map((_, i) => {
-            const isErr = errorLines.has(i + 1);
-            return (
-              <div
-                key={i}
-                className={`text-[10px] font-light text-right pr-2 leading-[1.6rem] ${isErr ? "text-red-400 bg-red-500/15 border-l-2 border-red-500" : "text-muted-foreground/30"}`}
-                title={isErr ? "ZANOEM validator: error on this line" : undefined}
-              >
-                {i + 1}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Code textarea */}
-        <div className="flex-1 relative overflow-hidden min-w-0">
-          {/* Red-line overlay (under the textarea, scrolls with it) */}
-          {errorLines.size > 0 && (
-            <div
-              aria-hidden
-              className="absolute inset-0 pointer-events-none p-3 font-mono text-[11px] sm:text-[12px] leading-[1.6rem] overflow-hidden"
-              style={{ transform: `translateY(${-(textareaRef.current?.scrollTop ?? 0)}px)` }}
-            >
-              {lines.map((_, i) => (
-                <div key={i} className={`h-[1.6rem] ${errorLines.has(i + 1) ? "bg-red-500/15 border-l-2 border-red-500" : ""}`} />
-              ))}
-            </div>
-          )}
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => activeFile && onContentChange(activeFile.id, e.target.value)}
-            onScroll={handleScroll}
-            onKeyDown={handleKeyDown}
-            spellCheck={false}
-            className="absolute inset-0 w-full h-full resize-none bg-transparent text-[11px] sm:text-[12px] font-mono leading-[1.6rem] text-foreground/90 p-3 outline-none overflow-auto caret-accent"
-            style={{ tabSize: 2, whiteSpace: wordWrap ? "pre-wrap" : "pre", overflowWrap: wordWrap ? "break-word" : "normal" }}
-          />
-        </div>
-
-        {/* Minimap */}
-        {showMinimap && (
-          <div className="w-[60px] flex-shrink-0 bg-card/5 border-l border-border/10 overflow-hidden hidden md:block">
-            <div className="p-1 text-[2px] leading-[3px] text-muted-foreground/20 font-mono whitespace-pre overflow-hidden select-none" style={{ maxHeight: "100%" }}>
-              {content.slice(0, 3000)}
-            </div>
-          </div>
-        )}
+      {/* Monaco editor */}
+      <div className="flex-1 min-h-0 relative">
+        <Editor
+          height="100%"
+          path={activeFile?.id}
+          language={monacoLang}
+          value={content}
+          onMount={handleMount}
+          onChange={(v) => activeFile && onContentChange(activeFile.id, v ?? "")}
+          theme="aureon-dark"
+          options={{
+            fontSize: 12,
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            minimap: { enabled: showMinimap },
+            wordWrap: wordWrap ? "on" : "off",
+            tabSize: 2,
+            insertSpaces: true,
+            scrollBeyondLastLine: false,
+            renderLineHighlight: "line",
+            smoothScrolling: true,
+            cursorBlinking: "smooth",
+            cursorSmoothCaretAnimation: "on",
+            bracketPairColorization: { enabled: true },
+            guides: { bracketPairs: true, indentation: true },
+            automaticLayout: true,
+            padding: { top: 12, bottom: 12 },
+            scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
+            stickyScroll: { enabled: true },
+            quickSuggestions: { other: true, comments: false, strings: false },
+            suggestOnTriggerCharacters: true,
+            formatOnPaste: false,
+            formatOnType: false,
+          }}
+          loading={<div className="h-full flex items-center justify-center text-[10px] text-muted-foreground/40">Loading editor…</div>}
+        />
       </div>
 
       {/* Status bar */}
       <div className="flex items-center justify-between px-3 py-1 bg-card/20 border-t border-border/10 text-[9px] font-light text-muted-foreground/40">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <span className="shrink-0">{language}</span>
-          <span className="hidden sm:inline">Ln {textareaRef.current?.selectionStart ? content.slice(0, textareaRef.current.selectionStart).split("\n").length : 1}</span>
+          <span className="hidden sm:inline">Ln {cursor.line}, Col {cursor.col}</span>
           <span className="hidden sm:inline">UTF-8</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          <span>{lines.length} lines</span>
+          <span>{content.split("\n").length} lines</span>
           <span className="hidden sm:inline">{content.length} chars</span>
         </div>
       </div>
