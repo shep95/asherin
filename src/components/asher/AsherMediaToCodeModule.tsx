@@ -345,7 +345,7 @@ const AsherMediaToCodeModule = () => {
               <div className="mt-3 rounded-lg border border-border/15 p-3 bg-foreground/[0.02]">
                 <p className="text-[9px] font-light tracking-[0.25em] uppercase text-muted-foreground/60 mb-2">Source Video</p>
                 <video
-                  ref={videoRef} src={objectUrl} controls playsinline
+                  ref={videoRef} src={objectUrl} controls playsInline
                   onLoadedData={() => setVideoReady(true)}
                   className="w-full rounded max-h-40 bg-black"
                 />
