@@ -122,6 +122,61 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
     }
   };
 
+  const handleQueueBackground = async () => {
+    setScanError(null);
+    if (!projectName.trim()) { setScanError("Project name is required"); return; }
+    const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
+    if (!finalCode && !url) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) { setScanError("Sign in required"); return; }
+
+    const sourceType = selectedSource || "upload";
+    const project = await createProject(projectName, sourceType, url || undefined);
+    if (!project) return;
+
+    // Load BYOK preference so the worker uses the user's key
+    let byok: any = null;
+    try {
+      const { data: pref } = await supabase
+        .from("user_model_preferences" as any)
+        .select("active_provider, active_model")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const ap = (pref as any)?.active_provider;
+      const am = (pref as any)?.active_model;
+      if (ap && ap !== "default" && am) {
+        const { data: keyRow } = await supabase
+          .from("user_api_keys" as any)
+          .select("api_key")
+          .eq("user_id", user.id)
+          .eq("provider", ap)
+          .eq("is_active", true)
+          .maybeSingle();
+        if ((keyRow as any)?.api_key) byok = { provider: ap, model: am, apiKey: (keyRow as any).api_key };
+      }
+    } catch { /* ignore */ }
+
+    const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
+    const { error: insErr } = await supabase.from("zerlal_background_jobs" as any).insert({
+      user_id: user.id,
+      project_id: project.id,
+      project_name: projectName,
+      scan_profile: selectedProfile,
+      file_name: files[0]?.name || projectName,
+      github_url: githubUrl || null,
+      code_content: finalCode || null,
+      recipient_email: user.email,
+      byok,
+      status: "pending",
+    });
+    if (insErr) { setScanError("Failed to queue background scan: " + insErr.message); return; }
+    toast.success("Scan queued. We'll email you the report when it's done — you can close this tab.");
+    onScanComplete();
+    onClose();
+    resetState();
+  };
+
   const resetState = () => {
     setStep(1);
     setSelectedSource(null);
