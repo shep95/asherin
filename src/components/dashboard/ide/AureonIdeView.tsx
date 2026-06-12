@@ -415,6 +415,20 @@ const AureonIdeView = () => {
   const openFiles = openFileIds.map(id => allFiles.find(f => f.id === id)).filter(Boolean) as IdeFile[];
   const activeFile = allFiles.find(f => f.id === activeFileId);
 
+  // ── Phase 4: RAG codebase memory (pgvector-backed) ──
+  // Re-uses the active session as the project scope so embeddings follow the user's project.
+  const rag = useCodeRag(activeSessionId);
+  // Auto-index project files into pgvector whenever the file set changes (debounced).
+  useEffect(() => {
+    if (!activeSessionId) return;
+    const payload = allFiles
+      .filter(f => f.type === "file" && typeof f.content === "string" && (f.content?.length ?? 0) > 20)
+      .map(f => ({ id: f.id, path: f.name, content: f.content ?? "", language: getLanguage(f.name) }));
+    if (!payload.length) return;
+    rag.indexFilesDebounced(payload, 6000);
+  }, [files, activeSessionId, allFiles, rag]);
+
+
   useEffect(() => {
     if (isMobile) { setLeftOpen(false); setRightOpen(false); setBottomOpen(false); }
   }, [isMobile]);
