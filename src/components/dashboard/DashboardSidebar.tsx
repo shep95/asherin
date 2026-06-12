@@ -265,8 +265,14 @@ const DashboardSidebar = ({
   };
 
   const permanentlyDeleteArchived = async (id: string) => {
-    await supabase.from("messages").delete().eq("conversation_id", id);
-    await supabase.from("conversations").delete().eq("id", id);
+    // Transactional RPC: ownership-checked, atomic. The CASCADE FK on
+    // messages.conversation_id wipes children automatically inside the same
+    // transaction — no more race between message delete and conversation delete.
+    const { error } = await supabase.rpc("delete_conversation", { p_conv_id: id });
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
     setArchivedConvos((prev) => prev.filter((c) => c.id !== id));
     toast({ title: "Conversation permanently deleted" });
   };

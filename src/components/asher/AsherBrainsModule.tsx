@@ -372,10 +372,19 @@ const AsherBrainsModule = () => {
       return;
     }
     if (!confirm(`Delete "${b.name}"? This cannot be undone.`)) return;
-    setBrains((p) => p.filter((x) => x.id !== b.id));
+    // Storage-first, hard-fail: never delete the DB row if storage cleanup
+    // failed, or the file becomes unreferenced debris forever.
     if (b.file_path) {
-      await supabase.storage.from("asher-brains").remove([b.file_path]).catch(() => {});
+      const { error: storageErr } = await supabase
+        .storage.from("asher-brains").remove([b.file_path]);
+      if (storageErr) {
+        console.error("[brains] storage cleanup failed", storageErr);
+        toast.error(`Storage cleanup failed: ${storageErr.message}. DB row preserved.`);
+        return;
+      }
     }
+    // Optimistic UI removal only after storage confirms
+    setBrains((p) => p.filter((x) => x.id !== b.id));
     const { error } = await supabase.from("asher_brains").delete().eq("id", b.id);
     if (error) {
       toast.error(error.message);
