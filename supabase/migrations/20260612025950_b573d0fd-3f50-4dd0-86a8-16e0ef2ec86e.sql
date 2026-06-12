@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "service role manages gate attempts" ON public.asher_gate_attempts;
