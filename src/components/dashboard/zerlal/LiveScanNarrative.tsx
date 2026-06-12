@@ -133,6 +133,16 @@ const LiveScanNarrative = ({ projectId, onSelectFinding }: Props) => {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[9px] text-muted-foreground/40 font-mono">{elapsed}s</span>
+          {a.status === "running" && (
+            <button
+              onClick={() => {
+                if (confirm("Cancel this scan? Partial findings will be kept.")) cancelScan();
+              }}
+              className="text-[9px] px-2 py-1 rounded-md border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-colors flex items-center gap-1"
+            >
+              <X className="h-3 w-3" /> Cancel
+            </button>
+          )}
           {a.status !== "running" && (
             <button onClick={clear} className="p-1 rounded-md hover:bg-foreground/[0.06] text-muted-foreground/40 hover:text-foreground/60">
               <X className="h-3 w-3" />
