@@ -1,8 +1,11 @@
-import { useMemo } from "react";
-import { TrendingDown, TrendingUp, AlertTriangle, ArrowRight, User, Loader2, FolderPlus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { TrendingDown, TrendingUp, AlertTriangle, ArrowRight, User, Loader2, FolderPlus, Trash2 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import { useZerlalProjects, useZerlalFindings } from "./useZerlalData";
 import type { ZerlalScreen } from "./types";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import IdeDeleteConfirm from "@/components/dashboard/ide/IdeDeleteConfirm";
 
 interface DashboardScreenProps {
   onNavigate: (screen: ZerlalScreen) => void;
@@ -38,8 +41,26 @@ const categoryLabels: Record<string, string> = {
 };
 
 const DashboardScreen = ({ onNavigate, onSelectProject, onSelectFinding, onOpenScan }: DashboardScreenProps) => {
-  const { projects, loading: pLoading } = useZerlalProjects();
+  const { projects, loading: pLoading, refetch: refetchProjects } = useZerlalProjects();
   const { findings, loading: fLoading } = useZerlalFindings();
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("zerlal_projects").delete().eq("id", pendingDelete.id);
+      if (error) throw error;
+      toast.success(`Deleted "${pendingDelete.name}"`);
+      setPendingDelete(null);
+      await refetchProjects();
+    } catch (e: any) {
+      toast.error("Delete failed: " + (e?.message ?? "unknown"));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const stats = useMemo(() => {
     const s = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
@@ -203,30 +224,41 @@ const DashboardScreen = ({ onNavigate, onSelectProject, onSelectFinding, onOpenS
             </div>
             <div className="divide-y divide-border/[0.04]">
               {projects.map(p => (
-                <button
+                <div
                   key={p.id}
-                  onClick={() => onSelectProject(p.id)}
-                  className="w-full px-4 py-3 flex items-center gap-4 hover:bg-foreground/[0.02] transition-colors text-left"
+                  className="group w-full px-4 py-3 flex items-center gap-4 hover:bg-foreground/[0.02] transition-colors text-left"
                 >
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-medium ${
-                    p.risk_grade === "A" ? "bg-emerald-500/10 text-emerald-400" :
-                    p.risk_grade === "B" ? "bg-blue-500/10 text-blue-400" :
-                    p.risk_grade === "C" ? "bg-yellow-500/10 text-yellow-400" :
-                    p.risk_grade === "D" ? "bg-orange-500/10 text-orange-400" :
-                    "bg-red-500/10 text-red-400"
-                  }`}>
-                    {p.risk_grade}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-foreground/70 truncate">{p.name}</div>
-                    <div className="text-[9px] text-muted-foreground/30">{p.language} • {p.source_type}</div>
-                  </div>
-                  <div className="flex items-center gap-2 text-[9px]">
-                    {p.critical_count > 0 && <span className="text-red-400">{p.critical_count}C</span>}
-                    {p.high_count > 0 && <span className="text-orange-400">{p.high_count}H</span>}
-                    <span className="text-muted-foreground/25">{p.medium_count + p.low_count + p.info_count} other</span>
-                  </div>
-                </button>
+                  <button
+                    onClick={() => onSelectProject(p.id)}
+                    className="flex items-center gap-4 flex-1 min-w-0 text-left"
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-medium ${
+                      p.risk_grade === "A" ? "bg-emerald-500/10 text-emerald-400" :
+                      p.risk_grade === "B" ? "bg-blue-500/10 text-blue-400" :
+                      p.risk_grade === "C" ? "bg-yellow-500/10 text-yellow-400" :
+                      p.risk_grade === "D" ? "bg-orange-500/10 text-orange-400" :
+                      "bg-red-500/10 text-red-400"
+                    }`}>
+                      {p.risk_grade}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] text-foreground/70 truncate">{p.name}</div>
+                      <div className="text-[9px] text-muted-foreground/30">{p.language} • {p.source_type}</div>
+                    </div>
+                    <div className="flex items-center gap-2 text-[9px]">
+                      {p.critical_count > 0 && <span className="text-red-400">{p.critical_count}C</span>}
+                      {p.high_count > 0 && <span className="text-orange-400">{p.high_count}H</span>}
+                      <span className="text-muted-foreground/25">{p.medium_count + p.low_count + p.info_count} other</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setPendingDelete({ id: p.id, name: p.name }); }}
+                    title="Delete project"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/5 transition-all"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
               ))}
               {projects.length === 0 && (
                 <div className="px-4 py-8 text-center text-[10px] text-muted-foreground/25">No projects yet</div>
@@ -271,6 +303,12 @@ const DashboardScreen = ({ onNavigate, onSelectProject, onSelectFinding, onOpenS
           </div>
         </div>
       </div>
+      <IdeDeleteConfirm
+        open={!!pendingDelete}
+        fileName={pendingDelete?.name ?? ""}
+        onConfirm={handleDelete}
+        onCancel={() => !deleting && setPendingDelete(null)}
+      />
     </div>
   );
 };
