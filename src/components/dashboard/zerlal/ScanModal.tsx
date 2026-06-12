@@ -182,6 +182,13 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       }
     } catch { /* ignore */ }
 
+    // Strict BYOK: non-admin users must bring their own key
+    const isAdmin = ADMIN_EMAILS.has((user.email || "").toLowerCase());
+    if (!byok && !isAdmin) {
+      triggerByokRequired({ source: "zerlal", reason: "Zerlal scans require your own AI key. Add one in Settings → AI Keys." });
+      return;
+    }
+
     const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
     // Strip NUL bytes and lone surrogates — Postgres TEXT rejects \u0000 and
     // these characters cause PostgREST to reject the request body as invalid JSON.
