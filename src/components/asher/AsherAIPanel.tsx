@@ -300,6 +300,7 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
         },
         body: JSON.stringify({
           mapContext,
+          numberedFormat: isNumberedFormatEnabled("asher-ai"),
           messages: [...messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: m.content })), { role: "user", content: text }],
         }),
       });
