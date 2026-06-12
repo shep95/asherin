@@ -14,6 +14,7 @@ import IdeGitPanel from "./IdeGitPanel";
 import IdeAgentsPanel from "./IdeAgentsPanel";
 import { detectCrash, buildCrashPrompt, type CrashEvent } from "@/lib/ide/crashHook";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
+import { useCodeRag } from "@/hooks/useCodeRag";
 import {
   IdeHistoryPanel,
   IdeErrorExplainer,
@@ -414,6 +415,20 @@ const AureonIdeView = () => {
   const openFiles = openFileIds.map(id => allFiles.find(f => f.id === id)).filter(Boolean) as IdeFile[];
   const activeFile = allFiles.find(f => f.id === activeFileId);
 
+  // ── Phase 4: RAG codebase memory (pgvector-backed) ──
+  // Re-uses the active session as the project scope so embeddings follow the user's project.
+  const rag = useCodeRag(activeSessionId);
+  // Auto-index project files into pgvector whenever the file set changes (debounced).
+  useEffect(() => {
+    if (!activeSessionId) return;
+    const payload = allFiles
+      .filter(f => f.type === "file" && typeof f.content === "string" && (f.content?.length ?? 0) > 20)
+      .map(f => ({ id: f.id, path: f.name, content: f.content ?? "", language: getLanguage(f.name) }));
+    if (!payload.length) return;
+    rag.indexFilesDebounced(payload, 6000);
+  }, [files, activeSessionId, allFiles, rag]);
+
+
   useEffect(() => {
     if (isMobile) { setLeftOpen(false); setRightOpen(false); setBottomOpen(false); }
   }, [isMobile]);
@@ -732,6 +747,21 @@ const AureonIdeView = () => {
     if (activeFile?.content) {
       contextParts.push(`[IDE Context] Currently editing: ${activeFile.name}\n\`\`\`${getLanguage(activeFile.name)}\n${activeFile.content.slice(0, 4000)}\n\`\`\``);
     }
+
+    // ── Phase 4: RAG-grounded codebase recall ──
+    // Pull the top-k most semantically similar chunks from the project's pgvector index
+    // and inject them as additional grounding so the model never hallucinates symbols.
+    try {
+      const matches = await rag.search(content, 6);
+      const cross = matches
+        .filter(m => m.file_path !== activeFile?.name)
+        .slice(0, 5)
+        .map(m => `// ${m.file_path} · chunk ${m.chunk_index} · sim ${(m.similarity ?? 0).toFixed(2)}\n${m.content.slice(0, 900)}`)
+        .join("\n\n");
+      if (cross) {
+        contextParts.push(`[Codebase RAG — top matches across project]\n${cross}`);
+      }
+    } catch { /* RAG is best-effort; never block chat */ }
     if (terminalOutput.length > 0) {
       contextParts.push(`[Terminal Output]\n${terminalOutput.join("\n")}`);
     }
@@ -827,7 +857,7 @@ const AureonIdeView = () => {
       }
       setIsStreaming(false);
     }
-  }, [chatMessages, activeFile, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, zanoemMode, autopilotZanoem, activeSessionId]);
+  }, [chatMessages, activeFile, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, zanoemMode, autopilotZanoem, activeSessionId, rag]);
 
   // Expose sendChatMessage to the offline queue worker as a stable ref.
   useEffect(() => { sendZanoemTurnRef.current = (p: string) => sendChatMessage(p, undefined, true); }, [sendChatMessage]);
@@ -972,7 +1002,7 @@ const AureonIdeView = () => {
             centerTab === "workflow"
               ? <AsherWorkflowMap liveAgents={swarmAgents} events={workflowEvents} fileStats={Object.values(fileWorkflowStats)} />
               : centerTab === "code"
-                ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} />
+                ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
                 : <IdePreviewPanel files={files} />
           )}
           {mobilePanel === "chat" && (
@@ -1200,7 +1230,7 @@ const AureonIdeView = () => {
                     {centerTab === "workflow"
                       ? <AsherWorkflowMap liveAgents={swarmAgents} events={workflowEvents} fileStats={Object.values(fileWorkflowStats)} />
                       : centerTab === "code"
-                        ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} />
+                        ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
                         : <IdePreviewPanel files={files} />}
                   </div>
                 </div>
