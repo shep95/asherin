@@ -41,35 +41,105 @@ import AsherProfile from "@/components/asher/AsherProfile";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { useAsherAutoLock } from "@/components/asher/useAsherAutoLock";
 
-// Authorized clearance codes (each tied to an admin operator).
-const ASHER_ACCESS_CODES: Record<string, string> = {
-  "Asher092625": ADMIN_EMAIL,
-  "Elias011023": "ekk447@gmail.com",
-};
+// Passcodes now live in the `ASHER_ACCESS_CODES_JSON` Supabase secret and are
+// verified by the `verify-asher-passcode` edge function. The client no longer
+// ships the codes in the bundle.
 const ASHER_GATE_KEY = "asher_dashboard_unlocked";
 const ASHER_OPERATOR_KEY = "asher_dashboard_operator";
+const ASHER_LOCKOUT_KEY = "asher_dashboard_locked_until";
 
 const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(() => {
+    try {
+      const raw = sessionStorage.getItem(ASHER_LOCKOUT_KEY);
+      if (!raw) return null;
+      const ts = Number(raw);
+      return Number.isFinite(ts) && ts > Date.now() ? ts : null;
+    } catch { return null; }
+  });
+  const [now, setNow] = useState(Date.now());
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Tick once a second while a lockout is active so the countdown updates.
+  useEffect(() => {
+    if (!lockedUntil) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [lockedUntil]);
+
+  // Auto-clear the lockout banner when it expires.
+  useEffect(() => {
+    if (lockedUntil && lockedUntil <= now) {
+      setLockedUntil(null);
+      try { sessionStorage.removeItem(ASHER_LOCKOUT_KEY); } catch {}
+    }
+  }, [lockedUntil, now]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const operator = ASHER_ACCESS_CODES[code];
-    if (operator) {
-      try {
-        sessionStorage.setItem(ASHER_GATE_KEY, "1");
-        sessionStorage.setItem(ASHER_OPERATOR_KEY, operator);
-      } catch {}
-      logAsherEvent("passcode_success", { operator });
-      onUnlock();
-    } else {
+    if (busy || lockedUntil) return;
+    setBusy(true);
+    setError("");
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-asher-passcode`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ code }),
+      });
+      const data = await resp.json().catch(() => ({}));
+
+      if (resp.ok && data?.ok && data?.operator) {
+        try {
+          sessionStorage.setItem(ASHER_GATE_KEY, "1");
+          sessionStorage.setItem(ASHER_OPERATOR_KEY, data.operator);
+          sessionStorage.removeItem(ASHER_LOCKOUT_KEY);
+        } catch {}
+        logAsherEvent("passcode_success", { operator: data.operator });
+        onUnlock();
+        return;
+      }
+
+      if (resp.status === 429 && data?.lockedUntil) {
+        const ts = new Date(data.lockedUntil).getTime();
+        if (Number.isFinite(ts)) {
+          setLockedUntil(ts);
+          try { sessionStorage.setItem(ASHER_LOCKOUT_KEY, String(ts)); } catch {}
+        }
+        setError(data?.message || "Gate locked. Too many failed attempts.");
+        logAsherEvent("passcode_failure", { attempted_length: code.length, locked: true });
+        setCode("");
+        return;
+      }
+
       logAsherEvent("passcode_failure", { attempted_length: code.length });
-      setError("ACCESS DENIED — Invalid clearance code.");
+      const remaining = typeof data?.remainingAttempts === "number" ? data.remainingAttempts : null;
+      setError(
+        remaining !== null && remaining > 0
+          ? `ACCESS DENIED — Invalid clearance code. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`
+          : "ACCESS DENIED — Invalid clearance code.",
+      );
       setCode("");
+    } catch (err) {
+      console.error("[AsherPasscodeGate] verify failed:", err);
+      setError("Gate unreachable. Check your connection and retry.");
+    } finally {
+      setBusy(false);
     }
   };
+
+  const remainingMs = lockedUntil ? Math.max(0, lockedUntil - now) : 0;
+  const remainingMin = Math.floor(remainingMs / 60000);
+  const remainingSec = Math.floor((remainingMs % 60000) / 1000);
+  const lockedLabel = lockedUntil
+    ? `Locked — retry in ${remainingMin}:${String(remainingSec).padStart(2, "0")}`
+    : null;
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-background text-foreground px-6">
@@ -98,25 +168,29 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
               <input
                 type="password"
                 autoFocus
+                disabled={busy || !!lockedUntil}
                 value={code}
                 onChange={(e) => { setCode(e.target.value); setError(""); }}
-                className="w-full rounded-lg border border-border/30 bg-background/40 px-4 py-3 text-sm font-light tracking-wider text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none transition-colors"
-                placeholder="Enter clearance code"
+                className="w-full rounded-lg border border-border/30 bg-background/40 px-4 py-3 text-sm font-light tracking-wider text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none transition-colors disabled:opacity-50"
+                placeholder={lockedUntil ? "Gate locked" : "Enter clearance code"}
               />
             </div>
 
-            {error && (
+            {(error || lockedLabel) && (
               <div className="flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2">
                 <ShieldAlert className="h-3.5 w-3.5 text-red-400" strokeWidth={1.5} />
-                <p className="text-[11px] font-light tracking-wide text-red-300">{error}</p>
+                <p className="text-[11px] font-light tracking-wide text-red-300">
+                  {lockedLabel || error}
+                </p>
               </div>
             )}
 
             <button
               type="submit"
-              className="w-full rounded-lg bg-foreground/90 px-4 py-3 text-xs font-light tracking-[0.2em] text-background hover:bg-foreground transition-colors uppercase"
+              disabled={busy || !!lockedUntil || !code}
+              className="w-full rounded-lg bg-foreground/90 px-4 py-3 text-xs font-light tracking-[0.2em] text-background hover:bg-foreground transition-colors uppercase disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Authenticate
+              {busy ? "Verifying…" : lockedUntil ? "Locked" : "Authenticate"}
             </button>
 
             <button
