@@ -88,6 +88,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   "zahten": Workflow,
   "plugins": Puzzle,
   "snippets": Code2,
+  "media2code": Wand2,
   "library": FolderOpen,
   "projects": Layers,
   "memory": Brain,
