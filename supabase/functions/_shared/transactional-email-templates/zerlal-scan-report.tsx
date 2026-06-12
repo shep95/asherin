@@ -12,6 +12,12 @@ interface Finding {
   cvss_score?: number
 }
 
+interface ScanError {
+  phase?: string
+  section?: number | null
+  message?: string
+}
+
 interface Props {
   projectName?: string
   riskGrade?: string
@@ -27,6 +33,15 @@ interface Props {
   reportUrl?: string
   completedAt?: string
   findings?: Finding[]
+  errors?: ScanError[]
+  errorsCount?: number
+  scanStatus?: 'completed' | 'completed_with_errors' | 'failed'
+}
+
+const statusLabel = (s?: string) => {
+  if (s === 'failed') return 'Failed'
+  if (s === 'completed_with_errors') return 'Completed with errors'
+  return 'Completed cleanly'
 }
 
 const ZerlalScanReportEmail = ({
@@ -44,18 +59,26 @@ const ZerlalScanReportEmail = ({
   reportUrl = 'https://aureonai.app/dashboard/zerlal',
   completedAt = new Date().toUTCString(),
   findings = [],
+  errors = [],
+  errorsCount = 0,
+  scanStatus = 'completed',
 }: Props) => (
-  <Shell preview={`ZERLAL scan complete — Grade ${riskGrade} · ${findingsCount} findings`} eyebrow="ZERLAL · Security Report">
-    <Hed>Scan complete.</Hed>
+  <Shell preview={`ZERLAL ${statusLabel(scanStatus)} — Grade ${riskGrade} · ${findingsCount} findings${errorsCount ? ` · ${errorsCount} errors` : ''}`} eyebrow="ZERLAL · Security Report">
+    <Hed>{scanStatus === 'failed' ? 'Scan failed.' : 'Scan complete.'}</Hed>
     <Prose>
       <strong>{projectName}</strong> finished a <strong>{scanProfile}</strong> sweep. Overall risk grade
       assessed at <strong>{riskGrade}</strong> across <strong>{findingsCount}</strong> findings.
+      {errorsCount > 0 && (
+        <> The audit encountered <strong>{errorsCount}</strong> error{errorsCount === 1 ? '' : 's'} during execution — see details below.</>
+      )}
     </Prose>
     <MetaCard
       rows={[
         { label: 'Project', value: projectName },
         { label: 'Profile', value: scanProfile },
+        { label: 'Status', value: statusLabel(scanStatus) },
         { label: 'Risk grade', value: riskGrade },
+        { label: 'Errors', value: String(errorsCount) },
         { label: 'Completed', value: completedAt },
         ...(typeof durationSec === 'number' ? [{ label: 'Duration', value: `${durationSec}s` }] : []),
       ]}
@@ -71,9 +94,23 @@ const ZerlalScanReportEmail = ({
       ]}
     />
     {summary && <Prose>{summary}</Prose>}
+    {errors.length > 0 && (
+      <>
+        <Subhed>Audit errors ({errorsCount})</Subhed>
+        <Prose>
+          The following sections did not complete normally. Findings from these sections may be missing or incomplete.
+        </Prose>
+        <MetaCard
+          rows={errors.map((e) => ({
+            label: `${(e.phase || 'section').toUpperCase()}${typeof e.section === 'number' ? ` · #${e.section}` : ''}`,
+            value: e.message || 'Unknown error',
+          }))}
+        />
+      </>
+    )}
     {findings.length > 0 && (
       <>
-        <Subhed>All findings ({findings.length})</Subhed>
+        <Subhed>Top findings ({findings.length})</Subhed>
         <MetaCard
           rows={findings.map((f) => ({
             label: `${(f.severity || 'INFO').toString().toUpperCase()}${f.cwe_id ? ` · ${f.cwe_id}` : ''}`,
