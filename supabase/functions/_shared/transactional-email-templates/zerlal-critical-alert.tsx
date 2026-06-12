@@ -42,9 +42,9 @@ const ZerlalCriticalAlertEmail = ({
     />
     {findings.length > 0 && (
       <>
-        <Subhed>Top findings</Subhed>
+        <Subhed>All critical findings ({findings.length})</Subhed>
         <MetaCard
-          rows={findings.slice(0, 5).map((f) => ({
+          rows={findings.map((f) => ({
             label: (f.cwe_id || f.severity || 'CRIT').toString().toUpperCase(),
             value: `${f.title}${f.file_path ? ` — ${f.file_path}${f.line_number ? `:${f.line_number}` : ''}` : ''}${typeof f.cvss_score === 'number' && f.cvss_score > 0 ? ` (CVSS ${f.cvss_score})` : ''}`,
           }))}
