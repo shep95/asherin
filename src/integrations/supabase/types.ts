@@ -485,6 +485,13 @@ export type Database = {
             referencedRelation: "asha_sessions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "asha_documents_session_id_fkey_cascade"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "asha_sessions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       asha_entity_matches: {
@@ -939,11 +946,19 @@ export type Database = {
             referencedRelation: "asher_ai_sessions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "asher_ai_messages_session_id_fkey_cascade"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "asher_ai_sessions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       asher_ai_sessions: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           title: string
           updated_at: string
@@ -951,6 +966,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           title?: string
           updated_at?: string
@@ -958,6 +974,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           title?: string
           updated_at?: string
@@ -997,6 +1014,7 @@ export type Database = {
           category: Database["public"]["Enums"]["asher_brain_category"]
           content: string
           created_at: string
+          deleted_at: string | null
           description: string | null
           file_name: string
           file_path: string | null
@@ -1011,6 +1029,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["asher_brain_category"]
           content?: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           file_name?: string
           file_path?: string | null
@@ -1025,6 +1044,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["asher_brain_category"]
           content?: string
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           file_name?: string
           file_path?: string | null
@@ -1219,6 +1239,13 @@ export type Database = {
             referencedRelation: "asher_code_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "asher_code_branches_project_id_fkey_cascade"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "asher_code_projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
       asher_code_chat_messages: {
@@ -1249,6 +1276,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "asher_code_chat_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "asher_code_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_code_chat_messages_project_id_fkey_cascade"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "asher_code_projects"
@@ -1299,7 +1333,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "asher_code_embeddings_project_id_fkey_cascade"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "asher_code_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       asher_code_files: {
         Row: {
@@ -1347,11 +1389,19 @@ export type Database = {
             referencedRelation: "asher_code_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "asher_code_files_project_id_fkey_cascade"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "asher_code_projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
       asher_code_projects: {
         Row: {
           created_at: string
+          deleted_at: string | null
           description: string | null
           id: string
           language: string
@@ -1365,6 +1415,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           language?: string
@@ -1378,6 +1429,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           language?: string
@@ -1537,6 +1589,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "asher_conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "asher_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_conversation_members_conversation_id_fkey_cascade"
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "asher_conversations"
@@ -1915,6 +1974,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "asher_messages_conversation_id_fkey_cascade"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "asher_conversations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "asher_messages_reply_to_fkey"
             columns: ["reply_to"]
             isOneToOne: false
@@ -2179,6 +2245,7 @@ export type Database = {
       asher_saved_targets: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           label: string
           lat: number
@@ -2190,6 +2257,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           label: string
           lat: number
@@ -2201,6 +2269,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           label?: string
           lat?: number
@@ -2527,6 +2596,7 @@ export type Database = {
           confidence_score: number | null
           created_at: string
           data_sources: Json | null
+          deleted_at: string | null
           id: string
           policy_simulations: Json | null
           prediction_type: string
@@ -2545,6 +2615,7 @@ export type Database = {
           confidence_score?: number | null
           created_at?: string
           data_sources?: Json | null
+          deleted_at?: string | null
           id?: string
           policy_simulations?: Json | null
           prediction_type?: string
@@ -2563,6 +2634,7 @@ export type Database = {
           confidence_score?: number | null
           created_at?: string
           data_sources?: Json | null
+          deleted_at?: string | null
           id?: string
           policy_simulations?: Json | null
           prediction_type?: string
@@ -2758,6 +2830,13 @@ export type Database = {
             referencedRelation: "aziion_sessions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "aziion_trades_session_id_fkey_cascade"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "aziion_sessions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       brains: {
@@ -2855,6 +2934,7 @@ export type Database = {
           content: string
           created_at: string
           critical_items: number
+          deleted_at: string | null
           id: string
           monitoring_items: number
           significant_items: number
@@ -2866,6 +2946,7 @@ export type Database = {
           content?: string
           created_at?: string
           critical_items?: number
+          deleted_at?: string | null
           id?: string
           monitoring_items?: number
           significant_items?: number
@@ -2877,6 +2958,7 @@ export type Database = {
           content?: string
           created_at?: string
           critical_items?: number
+          deleted_at?: string | null
           id?: string
           monitoring_items?: number
           significant_items?: number
@@ -3077,6 +3159,13 @@ export type Database = {
             referencedRelation: "code_folders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "code_snippets_folder_id_fkey_setnull"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "code_folders"
+            referencedColumns: ["id"]
+          },
         ]
       }
       coding_laws: {
@@ -3232,6 +3321,13 @@ export type Database = {
             referencedRelation: "community_posts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "community_replies_post_id_fkey_cascade"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       community_votes: {
@@ -3264,6 +3360,13 @@ export type Database = {
             referencedRelation: "community_posts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "community_votes_post_id_fkey_cascade"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       conversations: {
@@ -3271,6 +3374,7 @@ export type Database = {
           archived: boolean
           branches: Json | null
           created_at: string
+          deleted_at: string | null
           id: string
           mode: string
           persona_id: string | null
@@ -3284,6 +3388,7 @@ export type Database = {
           archived?: boolean
           branches?: Json | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           mode?: string
           persona_id?: string | null
@@ -3297,6 +3402,7 @@ export type Database = {
           archived?: boolean
           branches?: Json | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           mode?: string
           persona_id?: string | null
@@ -3599,6 +3705,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ebook_text_uploads_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ebook_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebook_text_uploads_session_id_fkey_cascade"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "ebook_sessions"
@@ -4083,6 +4196,7 @@ export type Database = {
         Row: {
           active_file_id: string | null
           created_at: string
+          deleted_at: string | null
           files: Json
           id: string
           name: string
@@ -4094,6 +4208,7 @@ export type Database = {
         Insert: {
           active_file_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           files?: Json
           id?: string
           name?: string
@@ -4105,6 +4220,7 @@ export type Database = {
         Update: {
           active_file_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           files?: Json
           id?: string
           name?: string
@@ -4663,6 +4779,13 @@ export type Database = {
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "messages_conversation_id_fkey_cascade"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       nomad_calibration_events: {
@@ -4940,6 +5063,13 @@ export type Database = {
             referencedRelation: "notebooks"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notebook_cells_notebook_id_fkey_cascade"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
         ]
       }
       notebook_comments: {
@@ -4980,6 +5110,13 @@ export type Database = {
           },
           {
             foreignKeyName: "notebook_comments_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notebook_comments_notebook_id_fkey_cascade"
             columns: ["notebook_id"]
             isOneToOne: false
             referencedRelation: "notebooks"
@@ -5028,6 +5165,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "notebook_shares_notebook_id_fkey_cascade"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "notebook_shares_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
@@ -5067,6 +5211,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "notebook_versions_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notebook_versions_notebook_id_fkey_cascade"
             columns: ["notebook_id"]
             isOneToOne: false
             referencedRelation: "notebooks"
@@ -5830,11 +5981,19 @@ export type Database = {
             referencedRelation: "scrapper_sessions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "scrapper_files_session_id_fkey_cascade"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "scrapper_sessions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       scrapper_sessions: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           name: string
           status: string
@@ -5845,6 +6004,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name?: string
           status?: string
@@ -5855,6 +6015,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name?: string
           status?: string
@@ -6553,6 +6714,13 @@ export type Database = {
             referencedRelation: "teams"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "team_invites_team_id_fkey_cascade"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
         ]
       }
       team_members: {
@@ -6580,6 +6748,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_team_id_fkey_cascade"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
@@ -7214,6 +7389,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vibe_video_messages_project_id_fkey_cascade"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_video_projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vibe_video_messages_version_id_fkey"
             columns: ["version_id"]
             isOneToOne: false
@@ -7305,6 +7487,13 @@ export type Database = {
           },
           {
             foreignKeyName: "vibe_video_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_video_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibe_video_versions_project_id_fkey_cascade"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "vibe_video_projects"
@@ -7646,6 +7835,13 @@ export type Database = {
             referencedRelation: "zali_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "zali_research_project_id_fkey_cascade"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "zali_projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
       zali_simulation_results: {
@@ -7945,7 +8141,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "zerlal_findings_project_id_fkey_cascade"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "zerlal_projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "zerlal_findings_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "zerlal_scans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zerlal_findings_scan_id_fkey_cascade"
             columns: ["scan_id"]
             isOneToOne: false
             referencedRelation: "zerlal_scans"
@@ -7957,6 +8167,7 @@ export type Database = {
         Row: {
           created_at: string
           critical_count: number | null
+          deleted_at: string | null
           file_size: number | null
           high_count: number | null
           id: string
@@ -7978,6 +8189,7 @@ export type Database = {
         Insert: {
           created_at?: string
           critical_count?: number | null
+          deleted_at?: string | null
           file_size?: number | null
           high_count?: number | null
           id?: string
@@ -7999,6 +8211,7 @@ export type Database = {
         Update: {
           created_at?: string
           critical_count?: number | null
+          deleted_at?: string | null
           file_size?: number | null
           high_count?: number | null
           id?: string
@@ -8079,6 +8292,13 @@ export type Database = {
             referencedRelation: "zerlal_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "zerlal_sbom_components_project_id_fkey_cascade"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "zerlal_projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
       zerlal_scans: {
@@ -8139,6 +8359,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "zerlal_scans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "zerlal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zerlal_scans_project_id_fkey_cascade"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "zerlal_projects"
@@ -8305,6 +8532,7 @@ export type Database = {
         Args: { _section: string; _uid: string }
         Returns: boolean
       }
+      delete_conversation: { Args: { p_conv_id: string }; Returns: undefined }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -8380,6 +8608,7 @@ export type Database = {
         Returns: number
       }
       notebook_team_id: { Args: { _notebook_id: string }; Returns: string }
+      purge_soft_deleted: { Args: { p_retention_days?: number }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -8390,6 +8619,14 @@ export type Database = {
       }
       release_intel_slot: {
         Args: { _job_id: string; _success?: boolean }
+        Returns: undefined
+      }
+      restore_soft_deleted: {
+        Args: { p_id: string; p_table: string }
+        Returns: undefined
+      }
+      soft_delete_row: {
+        Args: { p_id: string; p_table: string }
         Returns: undefined
       }
       try_acquire_intel_slot: {
