@@ -1,0 +1,1 @@
+ALTER TABLE public.zerlal_background_jobs ADD COLUMN IF NOT EXISTS scan_errors jsonb NOT NULL DEFAULT '[]'::jsonb;
