@@ -69,12 +69,42 @@ const FileScrapperView = () => {
   };
 
   const deleteSession = async (id: string) => {
+    // Storage-first: fetch every file's storage_path, remove the objects, then
+    // delete the session. The CASCADE FK on scrapper_files.session_id auto-removes
+    // the DB rows when the session row goes — but storage objects must be wiped
+    // explicitly or they become orphans forever.
+    const { data: childFiles, error: listErr } = await supabase
+      .from("scrapper_files")
+      .select("storage_path")
+      .eq("session_id", id);
+    if (listErr) {
+      toast({ title: "Error", description: listErr.message, variant: "destructive" });
+      return;
+    }
+    const paths = (childFiles ?? [])
+      .map((f) => (f as any).storage_path as string | null)
+      .filter((p): p is string => !!p);
+    if (paths.length > 0) {
+      const { error: storageErr } = await supabase.storage
+        .from("scrapper-uploads")
+        .remove(paths);
+      if (storageErr) {
+        console.error("[scrapper] storage cleanup failed", storageErr);
+        toast({
+          title: "Storage cleanup failed",
+          description: `${storageErr.message}. Session NOT deleted — retry or contact support.`,
+          variant: "destructive",
+        });
+        return; // hard-fail — do not orphan storage
+      }
+    }
     const { error } = await supabase.from("scrapper_sessions").delete().eq("id", id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       setSessions((prev) => prev.filter((s) => s.id !== id));
       if (activeSessionId === id) setActiveSessionId(null);
+      toast({ title: `Session and ${paths.length} file(s) removed` });
     }
   };
 
