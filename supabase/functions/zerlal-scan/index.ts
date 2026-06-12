@@ -432,7 +432,7 @@ async function detectProviderProfile(resolved: any, lovableKey: string | undefin
     : (lovableKey ? "lovable-gateway/google-gemini-2.5-flash" : "google/gemini-2.5-flash");
 
   const baseTimeout = resolved.mode === "byok"
-    ? providerTimeoutForByok(resolved.byok.provider)
+    ? providerTimeoutForByok(resolved.byok.provider, resolved.byok.model)
     : 55_000;
 
   let probeLatencyMs = 2500;
@@ -443,7 +443,7 @@ async function detectProviderProfile(resolved: any, lovableKey: string | undefin
       resolved,
       lovableKey,
       geminiKey,
-      Math.min(12_000, baseTimeout),
+      Math.min(20_000, baseTimeout),
       "You are ZERLAL. Return ONLY valid JSON."
     );
     probeLatencyMs = Math.max(900, Date.now() - started);
@@ -457,27 +457,35 @@ async function detectProviderProfile(resolved: any, lovableKey: string | undefin
   const latencyFactor = probeLatencyMs > 8000 ? 0.58 : probeLatencyMs > 5000 ? 0.72 : probeLatencyMs > 3000 ? 0.84 : 1;
   const chunkSize = Math.max(12000, Math.floor(baseChunkSize * latencyFactor));
 
+  // Section timeout: scale with provider base, allow up to 110s (client allots 140s+ per section call)
+  const sectionTimeout = Math.max(30_000, Math.min(baseTimeout - 5000, 110_000));
+
   return {
     provider_label: providerLabel,
     provider_timeout_ms: baseTimeout,
-    section_timeout_ms: Math.max(18_000, Math.min(baseTimeout - 5000, 55_000)),
+    section_timeout_ms: sectionTimeout,
     chunk_size: chunkSize,
     break_seconds: 15,
     probe_latency_ms: probeLatencyMs,
   };
 }
 
-function providerTimeoutForByok(provider: string) {
+function providerTimeoutForByok(provider: string, model?: string) {
+  const m = (model || "").toLowerCase();
+  // Reasoning / slow models need much more headroom
+  const isSlowReasoning =
+    /^gpt-5/.test(m) || /^o\d/.test(m) || /opus/.test(m) || /reason/.test(m) || /thinking/.test(m);
+  if (isSlowReasoning) return 115_000;
   switch (provider) {
-    case "google": return 60_000;
-    case "anthropic": return 65_000;
+    case "google": return 70_000;
+    case "anthropic": return 75_000;
     case "openai":
     case "xai":
     case "deepseek":
     case "mistral":
     case "perplexity":
     case "venice":
-    default: return 50_000;
+    default: return 70_000;
   }
 }
 
@@ -494,6 +502,7 @@ function byokChunkSize(provider: string) {
     default: return 22000;
   }
 }
+
 
 async function sendEmails({ supabase, user, project_id, scan_id, scan_profile, summary, riskGrade, duration, allFindings, criticalCount, highCount, mediumCount, lowCount, infoCount }: any) {
   try {
