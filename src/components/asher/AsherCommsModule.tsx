@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from "react";
-import { Lock, Send, Plus, Shield, Users, UserPlus, X } from "lucide-react";
+import { Lock, Send, Plus, Shield, Users, UserPlus, X, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   generateIdentity, hasIdentity, unlockIdentity, getLocalPublicKey, fingerprintPubkey,
 } from "@/lib/asherCrypto";
 import {
   uploadPublicKey, listOperators, listConversations, fetchMessages, decryptInbox,
-  sendMessage, createDM, createGroup, addMembers, listMembers, updateOwnPresence,
+  sendMessage, createDM, createGroup, addMembers, listMembers, updateOwnPresence, softDeleteMessage,
   type Operator, type Conversation, type DecryptedMessage,
 } from "@/lib/asherComms";
 import { toast } from "sonner";
