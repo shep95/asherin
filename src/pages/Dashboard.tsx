@@ -1456,6 +1456,7 @@ const Dashboard = () => {
       // Always-accessible views
       case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;
       case "snippets": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense></ErrorBoundary>;
+      case "media2code": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><MediaToCodeView /></Suspense></ErrorBoundary>;
       case "projects": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><ProjectsView /></Suspense></ErrorBoundary>;
       case "memory": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><MemoryCenterView /></Suspense></ErrorBoundary>;
       case "stats": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><StatsView /></Suspense></ErrorBoundary>;
