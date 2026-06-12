@@ -41,8 +41,26 @@ const categoryLabels: Record<string, string> = {
 };
 
 const DashboardScreen = ({ onNavigate, onSelectProject, onSelectFinding, onOpenScan }: DashboardScreenProps) => {
-  const { projects, loading: pLoading } = useZerlalProjects();
+  const { projects, loading: pLoading, refetch: refetchProjects } = useZerlalProjects();
   const { findings, loading: fLoading } = useZerlalFindings();
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("zerlal_projects").delete().eq("id", pendingDelete.id);
+      if (error) throw error;
+      toast.success(`Deleted "${pendingDelete.name}"`);
+      setPendingDelete(null);
+      await refetchProjects();
+    } catch (e: any) {
+      toast.error("Delete failed: " + (e?.message ?? "unknown"));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const stats = useMemo(() => {
     const s = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
