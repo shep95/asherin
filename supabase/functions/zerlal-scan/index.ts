@@ -276,6 +276,72 @@ CODE:\n\`\`\`\n${truncatedCode.substring(0, 30000)}\n\`\`\``;
 
     console.log("[ZERLAL] Scan complete. Findings:", allFindings.length, "Grade:", analysis.risk_grade, "Duration:", duration, "s");
 
+    // ───── Automated security email notifications ─────
+    try {
+      const [{ data: project }, { data: settings }] = await Promise.all([
+        supabase.from("zerlal_projects").select("name").eq("id", project_id).maybeSingle(),
+        supabase.from("zerlal_settings").select("alert_email, notify_critical").eq("user_id", user.id).maybeSingle(),
+      ]);
+      const recipient = (settings?.alert_email && settings.alert_email.trim()) || user.email;
+      const projectName = project?.name || "Untitled project";
+      const reportUrl = "https://aureonai.app/dashboard/zerlal";
+      const completedAtStr = new Date().toUTCString();
+
+      if (recipient) {
+        // Scan-complete report
+        await supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "zerlal-scan-report",
+            recipientEmail: recipient,
+            idempotencyKey: `zerlal-report-${scan.id}`,
+            templateData: {
+              projectName,
+              riskGrade: analysis.risk_grade || "F",
+              findingsCount: allFindings.length,
+              criticalCount, highCount, mediumCount, lowCount, infoCount,
+              durationSec: duration,
+              scanProfile: scan_profile || "security-audit",
+              summary: analysis.summary || "",
+              reportUrl,
+              completedAt: completedAtStr,
+            },
+          },
+        }).catch((e) => console.error("[ZERLAL] scan-report email failed:", e));
+
+        // Immediate critical alert
+        if (criticalCount > 0 && settings?.notify_critical !== false) {
+          const topCritical = allFindings
+            .filter((f: any) => (f.severity || "").toLowerCase() === "critical")
+            .slice(0, 5)
+            .map((f: any) => ({
+              title: f.title || "Unnamed finding",
+              severity: "critical",
+              file_path: f.file_path || "",
+              line_number: f.line_number || 0,
+              cwe_id: f.cwe_id || "",
+              cvss_score: f.cvss_score || 0,
+            }));
+          await supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "zerlal-critical-alert",
+              recipientEmail: recipient,
+              idempotencyKey: `zerlal-critical-${scan.id}`,
+              templateData: {
+                projectName,
+                criticalCount,
+                findings: topCritical,
+                reportUrl,
+                completedAt: completedAtStr,
+              },
+            },
+          }).catch((e) => console.error("[ZERLAL] critical-alert email failed:", e));
+        }
+      }
+    } catch (mailErr) {
+      console.error("[ZERLAL] Email dispatch error (non-fatal):", mailErr);
+    }
+
+
     return new Response(JSON.stringify({
       scan_id: scan.id,
       findings_count: allFindings.length,
