@@ -268,6 +268,32 @@ const VideoIntelligenceView = () => {
     setAnalyzing(true);
     try {
       const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user?.id;
+
+      // Load user's active BYOK so the function can use their key
+      let byok: any = null;
+      if (userId) {
+        try {
+          const { data: pref } = await supabase
+            .from("user_model_preferences" as any)
+            .select("active_provider, active_model")
+            .eq("user_id", userId)
+            .maybeSingle();
+          const ap = (pref as any)?.active_provider;
+          const am = (pref as any)?.active_model;
+          if (ap && ap !== "default" && am) {
+            const { data: keyRow } = await supabase
+              .from("user_api_keys" as any)
+              .select("api_key")
+              .eq("user_id", userId)
+              .eq("provider", ap)
+              .eq("is_active", true)
+              .maybeSingle();
+            if ((keyRow as any)?.api_key) byok = { provider: ap, model: am, apiKey: (keyRow as any).api_key };
+          }
+        } catch { /* ignore */ }
+      }
+
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/video-intelligence`, {
         method: "POST",
         headers: {
@@ -279,8 +305,16 @@ const VideoIntelligenceView = () => {
           video_base64: mediaBase64,
           video_type: mediaType,
           analysis_mode: analysisMode,
+          byok,
         }),
       });
+      if (res.status === 403) {
+        const body = await res.json().catch(() => ({}));
+        if (body?.error === "BYOK_REQUIRED") {
+          triggerByokRequired({ source: "video-intelligence", reason: "Video Intelligence requires your own AI key." });
+          return;
+        }
+      }
       if (!res.ok) throw new Error("Analysis failed");
       const data = await res.json();
       if (data.error) throw new Error(data.error);
