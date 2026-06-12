@@ -14,6 +14,7 @@ import IdeGitPanel from "./IdeGitPanel";
 import IdeAgentsPanel from "./IdeAgentsPanel";
 import { detectCrash, buildCrashPrompt, type CrashEvent } from "@/lib/ide/crashHook";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
+import { useCodeRag } from "@/hooks/useCodeRag";
 import {
   IdeHistoryPanel,
   IdeErrorExplainer,
