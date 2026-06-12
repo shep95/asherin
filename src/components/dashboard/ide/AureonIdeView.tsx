@@ -747,6 +747,21 @@ const AureonIdeView = () => {
     if (activeFile?.content) {
       contextParts.push(`[IDE Context] Currently editing: ${activeFile.name}\n\`\`\`${getLanguage(activeFile.name)}\n${activeFile.content.slice(0, 4000)}\n\`\`\``);
     }
+
+    // ── Phase 4: RAG-grounded codebase recall ──
+    // Pull the top-k most semantically similar chunks from the project's pgvector index
+    // and inject them as additional grounding so the model never hallucinates symbols.
+    try {
+      const matches = await rag.search(content, 6);
+      const cross = matches
+        .filter(m => m.file_path !== activeFile?.name)
+        .slice(0, 5)
+        .map(m => `// ${m.file_path} · chunk ${m.chunk_index} · sim ${(m.similarity ?? 0).toFixed(2)}\n${m.content.slice(0, 900)}`)
+        .join("\n\n");
+      if (cross) {
+        contextParts.push(`[Codebase RAG — top matches across project]\n${cross}`);
+      }
+    } catch { /* RAG is best-effort; never block chat */ }
     if (terminalOutput.length > 0) {
       contextParts.push(`[Terminal Output]\n${terminalOutput.join("\n")}`);
     }
