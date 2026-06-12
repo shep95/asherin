@@ -34,6 +34,7 @@ import AsherBrainsModule from "@/components/asher/AsherBrainsModule";
 import AsherAureonDataModule from "@/components/asher/AsherAureonDataModule";
 import AsherZahtenModule from "@/components/asher/AsherZahtenModule";
 import AsherZacoonModule from "@/components/asher/AsherZacoonModule";
+import AsherMediaToCodeModule from "@/components/asher/AsherMediaToCodeModule";
 
 import { isSuperOwner } from "@/lib/asherOrgs";
 
