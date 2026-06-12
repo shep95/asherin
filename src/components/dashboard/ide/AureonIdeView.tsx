@@ -1157,6 +1157,7 @@ const AureonIdeView = () => {
                     {([
                       { id: "files" as LeftTab, icon: FolderKanban, label: "Files" },
                       { id: "search" as LeftTab, icon: Search, label: "Search" },
+                      { id: "agents" as LeftTab, icon: Bot, label: "Agents" },
                     ]).map(tab => (
                       <button key={tab.id} onClick={() => setLeftTab(tab.id)}
                         className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-light transition-colors ${leftTab === tab.id ? "bg-accent/15 text-accent" : "text-muted-foreground/40 hover:text-foreground"}`}
@@ -1171,6 +1172,13 @@ const AureonIdeView = () => {
                     {leftTab === "search" && <IdeSearchPanel files={files} onOpenFile={selectFile} />}
                     {leftTab === "sessions" && <IdeSessionManager sessions={sessions} activeSessionId={activeSessionId} loading={sessionsLoading} onSelect={loadSession} onCreate={createSession} onDelete={deleteSession} onRename={renameSession} />}
                     {leftTab === "git" && <IdeGitPanel files={files} onImportFiles={(imported) => setFiles(imported)} />}
+                    {leftTab === "agents" && (
+                      <IdeAgentsPanel
+                        sessionId={activeSessionId}
+                        onRunAgent={(goal, name) => { sendChatMessage(`[Agent: ${name}]\n${goal}`); if (!rightOpen && !isMobile) setRightOpen(true); }}
+                        onRegisterCrashHandler={(handler) => { crashAgentTriggerRef.current = handler; }}
+                      />
+                    )}
                   </div>
                 </div>
               </ResizablePanel>
