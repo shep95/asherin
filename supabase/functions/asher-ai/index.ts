@@ -132,7 +132,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, mapContext, byokGeminiKey, brainContext } = await req.json();
+    const { messages, mapContext, byokGeminiKey, brainContext, numberedFormat } = await req.json();
+    const numberedOff = numberedFormat === false;
+    const numberedDirective = numberedOff
+      ? "\n\n## NUMBERED-LIST BRAIN: DISABLED\nThe operator has turned OFF numbered-list answers for this session. Reply in natural prose, short paragraphs, or headers/bullets — only use 1., 2., 3. when the content is truly ordinal (procedural steps, ranked items the user asked for)."
+      : "";
 
     const headerKey = req.headers.get("x-byok-gemini-key");
     const adminKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
