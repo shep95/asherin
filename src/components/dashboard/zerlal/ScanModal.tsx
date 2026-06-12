@@ -104,7 +104,6 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       return;
     }
 
-    // For paste-code source, use the pasted code
     const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
 
     if (!finalCode && !url && selectedSource !== "github" && selectedSource !== "docker") {
@@ -117,6 +116,26 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     if (!project) return;
 
     const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
+
+    // If we have a navigation handler, kick off the live narrative scan and jump
+    // to the project page immediately. Otherwise fall back to the in-modal flow.
+    if (onScanStarted) {
+      startLiveScan({
+        projectId: project.id,
+        projectName,
+        codeContent: finalCode,
+        fileName: files[0]?.name || projectName,
+        scanProfile: selectedProfile,
+        sourceType,
+        fileCount: files.length || (finalCode ? 1 : 0),
+        githubUrl,
+      });
+      onScanComplete();
+      onScanStarted(project.id);
+      resetState();
+      return;
+    }
+
     const result = await runScan(project.id, finalCode, files[0]?.name || projectName, selectedProfile, githubUrl);
     if (result) {
       onScanComplete();
