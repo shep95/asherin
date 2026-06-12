@@ -1256,6 +1256,51 @@ export type Database = {
           },
         ]
       }
+      asher_code_embeddings: {
+        Row: {
+          chunk_index: number
+          content: string
+          content_hash: string
+          created_at: string
+          embedding: string
+          file_id: string
+          file_path: string
+          id: string
+          language: string | null
+          project_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chunk_index?: number
+          content: string
+          content_hash: string
+          created_at?: string
+          embedding: string
+          file_id: string
+          file_path: string
+          id?: string
+          language?: string | null
+          project_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          content_hash?: string
+          created_at?: string
+          embedding?: string
+          file_id?: string
+          file_path?: string
+          id?: string
+          language?: string | null
+          project_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asher_code_files: {
         Row: {
           branch_id: string | null
@@ -8307,6 +8352,23 @@ export type Database = {
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
+      }
+      match_asher_code_chunks: {
+        Args: {
+          _project_id: string
+          _user_id: string
+          match_count?: number
+          query_embedding: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          file_id: string
+          file_path: string
+          id: string
+          language: string
+          similarity: number
+        }[]
       }
       move_to_dlq: {
         Args: {
