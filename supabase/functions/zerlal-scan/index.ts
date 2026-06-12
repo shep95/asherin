@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
     // STRICT BYOK GATE — non-admin must supply a BYOK config.
     let _resolved;
     try {
-      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, effectiveByok);
+      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, effectiveByok, { strict: true });
     } catch (e: any) {
       return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
     }

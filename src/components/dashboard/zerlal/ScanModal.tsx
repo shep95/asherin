@@ -5,6 +5,9 @@ import { useActiveScan } from "./scanContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import JSZip from "jszip";
+import { triggerByokRequired } from "@/components/ByokRequiredDialog";
+
+const ADMIN_EMAILS = new Set(["ashernewtonx@gmail.com", "28numberofmoney@gmail.com"]);
 
 interface ScanModalProps {
   open: boolean;
@@ -178,6 +181,13 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         if ((keyRow as any)?.api_key) byok = { provider: ap, model: am, apiKey: (keyRow as any).api_key };
       }
     } catch { /* ignore */ }
+
+    // Strict BYOK: non-admin users must bring their own key
+    const isAdmin = ADMIN_EMAILS.has((user.email || "").toLowerCase());
+    if (!byok && !isAdmin) {
+      triggerByokRequired({ source: "zerlal", reason: "Zerlal scans require your own AI key. Add one in Settings → AI Keys." });
+      return;
+    }
 
     const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
     // Strip NUL bytes and lone surrogates — Postgres TEXT rejects \u0000 and
