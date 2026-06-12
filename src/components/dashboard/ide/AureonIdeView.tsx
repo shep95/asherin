@@ -857,7 +857,7 @@ const AureonIdeView = () => {
       }
       setIsStreaming(false);
     }
-  }, [chatMessages, activeFile, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, zanoemMode, autopilotZanoem, activeSessionId]);
+  }, [chatMessages, activeFile, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, zanoemMode, autopilotZanoem, activeSessionId, rag]);
 
   // Expose sendChatMessage to the offline queue worker as a stable ref.
   useEffect(() => { sendZanoemTurnRef.current = (p: string) => sendChatMessage(p, undefined, true); }, [sendChatMessage]);
@@ -1002,7 +1002,7 @@ const AureonIdeView = () => {
             centerTab === "workflow"
               ? <AsherWorkflowMap liveAgents={swarmAgents} events={workflowEvents} fileStats={Object.values(fileWorkflowStats)} />
               : centerTab === "code"
-                ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} />
+                ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
                 : <IdePreviewPanel files={files} />
           )}
           {mobilePanel === "chat" && (
@@ -1230,7 +1230,7 @@ const AureonIdeView = () => {
                     {centerTab === "workflow"
                       ? <AsherWorkflowMap liveAgents={swarmAgents} events={workflowEvents} fileStats={Object.values(fileWorkflowStats)} />
                       : centerTab === "code"
-                        ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} />
+                        ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
                         : <IdePreviewPanel files={files} />}
                   </div>
                 </div>
