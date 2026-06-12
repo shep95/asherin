@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from "react";
-import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe, Binary } from "lucide-react";
+import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe, Binary, CloudOff } from "lucide-react";
 import { useCreateProject, useRunScan } from "./useZerlalData";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import JSZip from "jszip";
 
 interface ScanModalProps {
@@ -118,6 +120,61 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
       onClose();
       resetState();
     }
+  };
+
+  const handleQueueBackground = async () => {
+    setScanError(null);
+    if (!projectName.trim()) { setScanError("Project name is required"); return; }
+    const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
+    if (!finalCode && !url) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) { setScanError("Sign in required"); return; }
+
+    const sourceType = selectedSource || "upload";
+    const project = await createProject(projectName, sourceType, url || undefined);
+    if (!project) return;
+
+    // Load BYOK preference so the worker uses the user's key
+    let byok: any = null;
+    try {
+      const { data: pref } = await supabase
+        .from("user_model_preferences" as any)
+        .select("active_provider, active_model")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const ap = (pref as any)?.active_provider;
+      const am = (pref as any)?.active_model;
+      if (ap && ap !== "default" && am) {
+        const { data: keyRow } = await supabase
+          .from("user_api_keys" as any)
+          .select("api_key")
+          .eq("user_id", user.id)
+          .eq("provider", ap)
+          .eq("is_active", true)
+          .maybeSingle();
+        if ((keyRow as any)?.api_key) byok = { provider: ap, model: am, apiKey: (keyRow as any).api_key };
+      }
+    } catch { /* ignore */ }
+
+    const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
+    const { error: insErr } = await supabase.from("zerlal_background_jobs" as any).insert({
+      user_id: user.id,
+      project_id: project.id,
+      project_name: projectName,
+      scan_profile: selectedProfile,
+      file_name: files[0]?.name || projectName,
+      github_url: githubUrl || null,
+      code_content: finalCode || null,
+      recipient_email: user.email,
+      byok,
+      status: "pending",
+    });
+    if (insErr) { setScanError("Failed to queue background scan: " + insErr.message); return; }
+    toast.success("Scan queued. We'll email you the report when it's done — you can close this tab.");
+    onScanComplete();
+    onClose();
+    resetState();
   };
 
   const resetState = () => {
@@ -417,22 +474,34 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
           >
             {step > 1 ? "← Back" : "Cancel"}
           </button>
-          <button
-            onClick={() => {
-              if (step < 3) setStep((step + 1) as Step);
-              else handleStartScan();
-            }}
-            disabled={(step === 1 && (!selectedSource || !projectName.trim())) || isBusy}
-            className="px-4 py-1.5 rounded-lg bg-foreground/[0.08] text-[10px] text-foreground/60 hover:bg-foreground/[0.12] transition-colors disabled:opacity-30 flex items-center gap-1"
-          >
-            {isBusy ? (
-              <><Loader2 className="h-3 w-3 animate-spin" /> {scanning ? "Scanning..." : "Processing..."}</>
-            ) : step === 3 ? (
-              <><Check className="h-3 w-3" /> Start Scan</>
-            ) : (
-              <>Next <ChevronRight className="h-3 w-3" /></>
+          <div className="flex items-center gap-2">
+            {step === 3 && (
+              <button
+                onClick={handleQueueBackground}
+                disabled={isBusy}
+                title="Runs on our servers. Survives WiFi drops, browser close, sleep mode. Result emailed when done."
+                className="px-3 py-1.5 rounded-lg border border-border/[0.1] text-[10px] text-foreground/55 hover:bg-foreground/[0.04] transition-colors disabled:opacity-30 flex items-center gap-1"
+              >
+                <CloudOff className="h-3 w-3" /> Run in background & email me
+              </button>
             )}
-          </button>
+            <button
+              onClick={() => {
+                if (step < 3) setStep((step + 1) as Step);
+                else handleStartScan();
+              }}
+              disabled={(step === 1 && (!selectedSource || !projectName.trim())) || isBusy}
+              className="px-4 py-1.5 rounded-lg bg-foreground/[0.08] text-[10px] text-foreground/60 hover:bg-foreground/[0.12] transition-colors disabled:opacity-30 flex items-center gap-1"
+            >
+              {isBusy ? (
+                <><Loader2 className="h-3 w-3 animate-spin" /> {scanning ? "Scanning..." : "Processing..."}</>
+              ) : step === 3 ? (
+                <><Check className="h-3 w-3" /> Start Scan</>
+              ) : (
+                <>Next <ChevronRight className="h-3 w-3" /></>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

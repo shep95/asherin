@@ -209,3 +209,7 @@ verify_jwt = false
 [functions.domain-zip]
 verify_jwt = false
 
+[functions.zerlal-bg-worker]
+verify_jwt = false
+
+
