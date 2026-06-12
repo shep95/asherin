@@ -17,7 +17,7 @@
 //     so a page refresh, tab close, or browser switch cannot reset them.
 // ════════════════════════════════════════════════════════════════════════════
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { getCorsHeaders, getClientIP } from "../_shared/cors.ts";
+import { getCorsHeaders, getClientIp } from "../_shared/cors.ts";
 
 const MAX_FAILURES = 3;
 const FAILURE_WINDOW_MS = 5 * 60 * 1000;   // 5 minutes
