@@ -8012,6 +8012,7 @@ export type Database = {
           scan_errors: Json
           scan_id: string | null
           scan_profile: string
+          source_storage_path: string | null
           status: string
           total_sections: number
           updated_at: string
@@ -8043,6 +8044,7 @@ export type Database = {
           scan_errors?: Json
           scan_id?: string | null
           scan_profile?: string
+          source_storage_path?: string | null
           status?: string
           total_sections?: number
           updated_at?: string
@@ -8074,6 +8076,7 @@ export type Database = {
           scan_errors?: Json
           scan_id?: string | null
           scan_profile?: string
+          source_storage_path?: string | null
           status?: string
           total_sections?: number
           updated_at?: string
