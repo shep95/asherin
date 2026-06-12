@@ -79,7 +79,7 @@ const NarrativeCard = ({ entry }: { entry: NarrativeEntry }) => {
 };
 
 const LiveScanNarrative = ({ projectId, onSelectFinding }: Props) => {
-  const { active, clear } = useActiveScan();
+  const { active, clear, cancelScan } = useActiveScan();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
 
