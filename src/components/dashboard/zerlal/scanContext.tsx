@@ -80,6 +80,8 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
   const [active, setActive] = useState<ActiveScanState | null>(null);
   const activeRef = useRef<ActiveScanState | null>(null);
   activeRef.current = active;
+  const abortRef = useRef<AbortController | null>(null);
+  const canceledRef = useRef<boolean>(false);
 
   const update = useCallback((patch: Partial<ActiveScanState>) => {
     setActive(prev => (prev ? { ...prev, ...patch } : prev));
