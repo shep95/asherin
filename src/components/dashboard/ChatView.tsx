@@ -57,6 +57,7 @@ import MultiModelSelector, { type SelectedModel } from "./MultiModelSelector";
 import ConsensusMessage from "./ConsensusMessage";
 import BrainsManager from "./BrainsManager";
 import ConversationApiToggles from "./ConversationApiToggles";
+import NumberedFormatToggle from "./NumberedFormatToggle";
 import TradingProofButton from "./TradingProofButton";
 
 interface ChatViewProps {
