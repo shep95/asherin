@@ -841,6 +841,64 @@ const AureonIdeView = () => {
     if (isMobile) setMobilePanel("chat");
   }, [sendChatMessage, rightOpen, isMobile]);
 
+  // ── Crash hook wiring ─────────────────────────────────────
+  // 1. Holds the IdeAgentsPanel "on_crash" trigger so we can fire it.
+  // 2. Recent-crash dedupe (avoid spamming the AI when one error repeats).
+  const crashAgentTriggerRef = useRef<((summary: string) => void) | null>(null);
+  const lastCrashRef = useRef<{ sig: string; at: number }>({ sig: "", at: 0 });
+
+  const handleCrashEvent = useCallback((evt: CrashEvent) => {
+    const sig = `${evt.type || ""}|${evt.file || ""}:${evt.line || ""}|${evt.message.slice(0, 80)}`;
+    const now = Date.now();
+    if (sig === lastCrashRef.current.sig && now - lastCrashRef.current.at < 8000) return;
+    lastCrashRef.current = { sig, at: now };
+
+    // Best-effort locate file by basename
+    let snippet: { name: string; content: string; startLine: number } | undefined;
+    if (evt.file) {
+      const baseName = evt.file.split("/").pop() || evt.file;
+      const match = allFiles.find(f => f.name === baseName || f.name.endsWith("/" + baseName));
+      if (match) {
+        selectFile(match);
+        if (match.content && evt.line) {
+          const lines = match.content.split("\n");
+          const start = Math.max(0, evt.line - 8);
+          const end = Math.min(lines.length, evt.line + 8);
+          snippet = { name: match.name, content: lines.slice(start, end).map((l, i) => `${start + i + 1} | ${l}`).join("\n"), startLine: start + 1 };
+        }
+      }
+    }
+    const prompt = buildCrashPrompt(evt, snippet);
+    sendChatMessage(prompt);
+    if (!rightOpen && !isMobile) setRightOpen(true);
+    if (isMobile) setMobilePanel("chat");
+    toast({ title: "◈ Crash detected", description: `${evt.type ?? "Error"}${evt.file ? " in " + (evt.file.split("/").pop() || evt.file) : ""} — AI dispatched` });
+
+    // Fire on_crash agents
+    crashAgentTriggerRef.current?.(prompt);
+  }, [allFiles, selectFile, sendChatMessage, rightOpen, isMobile, toast]);
+
+  // Global runtime error capture — uncaught exceptions + unhandled promise rejections.
+  useEffect(() => {
+    const onErr = (e: ErrorEvent) => {
+      const text = `${e.error?.stack || e.message}${e.filename ? `\n    at ${e.filename}:${e.lineno}:${e.colno}` : ""}`;
+      const evt = detectCrash(text);
+      if (evt) handleCrashEvent(evt);
+    };
+    const onRej = (e: PromiseRejectionEvent) => {
+      const reason: any = e.reason;
+      const text = reason?.stack || String(reason);
+      const evt = detectCrash(text);
+      if (evt) handleCrashEvent(evt);
+    };
+    window.addEventListener("error", onErr);
+    window.addEventListener("unhandledrejection", onRej);
+    return () => {
+      window.removeEventListener("error", onErr);
+      window.removeEventListener("unhandledrejection", onRej);
+    };
+  }, [handleCrashEvent]);
+
   // ── ZANOEM toggle strip (rendered above the chat panel on both layouts) ──
   const zanoemToggleBar = (
     <div className="border-b border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5 flex-wrap">
