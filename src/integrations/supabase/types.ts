@@ -1525,6 +1525,39 @@ export type Database = {
           },
         ]
       }
+      asher_gate_attempts: {
+        Row: {
+          created_at: string
+          failed_count: number
+          fingerprint: string
+          first_failure_at: string
+          id: string
+          last_failure_at: string
+          locked_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          failed_count?: number
+          fingerprint: string
+          first_failure_at?: string
+          id?: string
+          last_failure_at?: string
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          failed_count?: number
+          fingerprint?: string
+          first_failure_at?: string
+          id?: string
+          last_failure_at?: string
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       asher_identity_keys: {
         Row: {
           algorithm: string
