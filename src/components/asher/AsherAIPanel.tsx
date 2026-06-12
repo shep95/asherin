@@ -507,13 +507,16 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
           </button>
         </div>
         <div className="flex items-center justify-between">
-          <button
-            onClick={() => input.trim() && runImagine(input.trim())}
-            disabled={imagineBusy || !input.trim()}
-            className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] text-muted-foreground hover:text-foreground uppercase disabled:opacity-30"
-          >
-            <ImageIcon className="h-3 w-3" strokeWidth={1.5} /> Imagine
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => input.trim() && runImagine(input.trim())}
+              disabled={imagineBusy || !input.trim()}
+              className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] text-muted-foreground hover:text-foreground uppercase disabled:opacity-30"
+            >
+              <ImageIcon className="h-3 w-3" strokeWidth={1.5} /> Imagine
+            </button>
+            <NumberedFormatToggle scopeId="asher-ai" />
+          </div>
           <p className="text-[9px] tracking-[0.2em] text-muted-foreground/40 uppercase">Enter to send · Shift+Enter newline</p>
         </div>
       </div>
