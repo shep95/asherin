@@ -1083,7 +1083,8 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId } = _parsedBody;
+    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat } = _parsedBody;
+    const NUMBERED_BRAIN_ON = numberedFormat !== false; // default ON
 
     // ── BYOK: Use platform-injected key (admin/Venice) or load user's own ──
     let userApiKey: string | null = null;
