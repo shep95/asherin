@@ -145,22 +145,30 @@ export const useCreateProject = () => {
   return { createProject, creating };
 };
 
+export interface ScanProgress {
+  phase: "planning" | "probing" | "scanning" | "finalizing" | "complete";
+  section: number;
+  totalSections: number;
+  percent: number;
+  message: string;
+  providerLabel?: string;
+  breakSeconds?: number;
+  breakRemaining?: number;
+  findingsSoFar?: number;
+}
+
 export const useRunScan = () => {
   const [scanning, setScanning] = useState(false);
+  const [progress, setProgress] = useState<ScanProgress | null>(null);
 
-  const runScan = async (projectId: string, codeContent: string, fileName: string, scanProfile?: string, githubUrl?: string) => {
-    setScanning(true);
+  const callPhase = async (body: Record<string, unknown>, timeoutMs = 90_000) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error("Not authenticated");
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const controller = new AbortController();
+    const to = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      // Use fetch directly with a longer timeout since scans can take 2+ minutes
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error("Not authenticated");
-
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 300000); // 5 min timeout
-
       const resp = await fetch(`${supabaseUrl}/functions/v1/zerlal-scan`, {
         method: "POST",
         headers: {
@@ -168,53 +176,128 @@ export const useRunScan = () => {
           "Authorization": `Bearer ${session.access_token}`,
           "apikey": anonKey,
         },
-        body: JSON.stringify({
-          project_id: projectId,
-          scan_profile: scanProfile || "security-audit",
-          code_content: codeContent,
-          file_name: fileName,
-          github_url: githubUrl || undefined,
-        }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
+      const raw = await resp.text();
+      let parsed: any = {};
+      try { parsed = raw ? JSON.parse(raw) : {}; } catch { parsed = { error: raw }; }
+      if (!resp.ok) throw new Error(parsed?.error || parsed?.message || `Status ${resp.status}`);
+      if (parsed?.error) throw new Error(parsed.error);
+      return parsed;
+    } finally {
+      clearTimeout(to);
+    }
+  };
 
-      clearTimeout(timeout);
+  const sleepWithCountdown = async (seconds: number, onTick: (remaining: number) => void) => {
+    for (let r = seconds; r > 0; r--) {
+      onTick(r);
+      await new Promise((res) => setTimeout(res, 1000));
+    }
+  };
 
-      if (!resp.ok) {
-        const raw = await resp.text();
-        let message = raw || `Scan failed with status ${resp.status}`;
+  const runScan = async (
+    projectId: string,
+    codeContent: string,
+    fileName: string,
+    scanProfile?: string,
+    githubUrl?: string,
+  ) => {
+    setScanning(true);
+    setProgress({ phase: "planning", section: 0, totalSections: 1, percent: 2, message: "Initializing scan…" });
+    try {
+      const baseBody = {
+        project_id: projectId,
+        scan_profile: scanProfile || "security-audit",
+        code_content: codeContent,
+        file_name: fileName,
+        github_url: githubUrl || undefined,
+      };
 
-        try {
-          const parsed = JSON.parse(raw);
-          message = parsed?.error || parsed?.message || message;
-        } catch {
-          // Ignore parse errors and keep the raw response body.
+      setProgress((p) => ({ ...(p as ScanProgress), phase: "probing", percent: 5, message: "Detecting provider latency…" }));
+      const plan = await callPhase({ ...baseBody, mode: "plan" }, 90_000);
+      const totalSections: number = plan.total_sections || 1;
+      const breakSeconds: number = plan.break_seconds || 15;
+      const profile = plan.provider_profile;
+      const scanId: string = plan.scan_id;
+      const providerLabel: string = profile?.provider_label || "auto";
+
+      setProgress({
+        phase: "scanning",
+        section: 0,
+        totalSections,
+        percent: 8,
+        message: `Plan ready · ${totalSections} section${totalSections > 1 ? "s" : ""} via ${providerLabel}`,
+        providerLabel,
+        breakSeconds,
+      });
+
+      let aggregated: any[] = [];
+      let firstSummary = "";
+      let firstRisk = "F";
+      for (let i = 0; i < totalSections; i++) {
+        const sectionPct = 10 + Math.floor((i / totalSections) * 75);
+        setProgress({
+          phase: "scanning", section: i + 1, totalSections, percent: sectionPct,
+          message: `Scanning section ${i + 1} of ${totalSections}…`,
+          providerLabel, breakSeconds, findingsSoFar: aggregated.length,
+        });
+        const sec = await callPhase({
+          ...baseBody, mode: "section", scan_id: scanId,
+          section_index: i, total_sections: totalSections, provider_profile: profile,
+        }, Math.max(120_000, (profile?.section_timeout_ms || 60_000) + 30_000));
+        if (Array.isArray(sec.findings)) aggregated = aggregated.concat(sec.findings);
+        if (i === 0) { firstSummary = sec.summary || ""; firstRisk = sec.risk_grade || "F"; }
+        const donePct = 10 + Math.floor(((i + 1) / totalSections) * 75);
+        setProgress({
+          phase: "scanning", section: i + 1, totalSections, percent: donePct,
+          message: `Section ${i + 1} complete · ${aggregated.length} findings so far`,
+          providerLabel, breakSeconds, findingsSoFar: aggregated.length,
+        });
+        if (i < totalSections - 1) {
+          await sleepWithCountdown(breakSeconds, (remaining) => {
+            setProgress({
+              phase: "scanning", section: i + 1, totalSections, percent: donePct,
+              message: `Cooling down · ${remaining}s until section ${i + 2}`,
+              providerLabel, breakSeconds, breakRemaining: remaining,
+              findingsSoFar: aggregated.length,
+            });
+          });
         }
-
-        throw new Error(message);
       }
 
-      const data = await resp.json();
+      setProgress({
+        phase: "finalizing", section: totalSections, totalSections, percent: 92,
+        message: "Deduplicating findings & writing report…",
+        providerLabel, findingsSoFar: aggregated.length,
+      });
+      const final = await callPhase({
+        ...baseBody, mode: "finalize", scan_id: scanId,
+        aggregated_findings: aggregated,
+        first_pass_summary: firstSummary, first_pass_risk_grade: firstRisk,
+        provider_profile: profile,
+      }, 180_000);
 
-      if (data.error) throw new Error(data.error);
-
-      toast.success(`Scan complete: ${data.findings_count} vulnerabilities found`);
-      return data;
+      setProgress({
+        phase: "complete", section: totalSections, totalSections, percent: 100,
+        message: `Scan complete · ${final.findings_count} vulnerabilities`,
+        providerLabel, findingsSoFar: final.findings_count,
+      });
+      toast.success(`Scan complete: ${final.findings_count} vulnerabilities found`);
+      return final;
     } catch (e) {
       console.error("Scan failed:", e);
       const msg = e instanceof Error ? e.message : "Unknown error";
-      if (msg.includes("aborted")) {
-        toast.error("Scan is still running in the background. Refresh to see results.");
-      } else {
-        toast.error("Scan failed: " + msg);
-      }
+      toast.error("Scan failed: " + msg);
+      setProgress((p) => p ? { ...p, message: `Failed: ${msg}` } : null);
       return null;
     } finally {
       setScanning(false);
     }
   };
 
-  return { runScan, scanning };
+  return { runScan, scanning, progress };
 };
 
 export const useUpdateFinding = () => {

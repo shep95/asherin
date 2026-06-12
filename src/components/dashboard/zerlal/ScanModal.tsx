@@ -44,7 +44,7 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { createProject, creating } = useCreateProject();
-  const { runScan, scanning } = useRunScan();
+  const { runScan, scanning, progress } = useRunScan();
 
   const handleFileSelect = useCallback(async (selectedFiles: FileList) => {
     const fileArray = Array.from(selectedFiles);
@@ -353,6 +353,33 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
                   <span className="text-foreground/60">{((selectedSource === "paste-code" ? pastedCode.length : codeContent.length) / 1024).toFixed(1)} KB</span>
                 </div>
               </div>
+
+              {progress && (
+                <div className="rounded-xl border border-border/[0.08] bg-foreground/[0.02] p-3 space-y-2">
+                  <div className="flex items-center justify-between text-[9px]">
+                    <span className="text-foreground/60 uppercase tracking-wider">
+                      {progress.phase === "scanning"
+                        ? `Section ${progress.section}/${progress.totalSections}`
+                        : progress.phase}
+                    </span>
+                    <span className="text-muted-foreground/50">{progress.percent}%</span>
+                  </div>
+                  <div className="h-1 w-full rounded-full bg-foreground/[0.06] overflow-hidden">
+                    <div
+                      className="h-full bg-foreground/40 transition-all duration-300 ease-out"
+                      style={{ width: `${progress.percent}%` }}
+                    />
+                  </div>
+                  <p className="text-[9px] text-muted-foreground/50 leading-tight">{progress.message}</p>
+                  <div className="flex items-center justify-between text-[8px] text-muted-foreground/30">
+                    <span>{progress.providerLabel || ""}</span>
+                    <span>
+                      {typeof progress.findingsSoFar === "number" ? `${progress.findingsSoFar} findings` : ""}
+                      {progress.breakRemaining ? ` · cooldown ${progress.breakRemaining}s` : ""}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {scanError && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/[0.05] border border-red-500/[0.1]">
