@@ -12,6 +12,7 @@ import DomainReconScreen from "./DomainReconScreen";
 import ScanModal from "./ScanModal";
 import { useZerlalFindings } from "./useZerlalData";
 import type { ZerlalScreen } from "./types";
+import { ScanProvider } from "./scanContext";
 
 const SigmaRuleEngine = lazy(() => import("./SigmaRuleEngine"));
 const StixTaxiiFeed = lazy(() => import("./StixTaxiiFeed"));
