@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
+import { callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
@@ -64,6 +65,17 @@ async function fetchGitHubContent(url: string): Promise<string> {
   return allContent;
 }
 
+type ScanMode = "plan" | "section" | "finalize";
+
+interface ProviderProfile {
+  provider_label: string;
+  provider_timeout_ms: number;
+  section_timeout_ms: number;
+  chunk_size: number;
+  break_seconds: number;
+  probe_latency_ms: number;
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -80,7 +92,22 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userErr } = await supabase.auth.getUser(token);
     if (userErr || !user) throw new Error("Unauthorized");
 
-    const { project_id, scan_profile, code_content, file_name, github_url, byok = null } = await req.json();
+    const {
+      mode = "plan",
+      project_id,
+      scan_id,
+      scan_profile,
+      code_content,
+      file_name,
+      github_url,
+      byok = null,
+      section_index = 0,
+      total_sections = 1,
+      aggregated_findings = [],
+      first_pass_summary = "",
+      first_pass_risk_grade = "F",
+      provider_profile = null,
+    } = await req.json();
 
     // STRICT BYOK GATE — non-admin must supply a BYOK config.
     let _resolved;
@@ -91,7 +118,7 @@ Deno.serve(async (req) => {
     }
     if (!project_id) throw new Error("project_id is required");
 
-    console.log("[ZERLAL] Starting scan for project:", project_id, "profile:", scan_profile, "github_url:", github_url || "none");
+    console.log("[ZERLAL] Starting scan for project:", project_id, "mode:", mode, "profile:", scan_profile, "github_url:", github_url || "none");
 
     // Fetch code from GitHub if URL provided and no direct content
     let codeToAnalyze = code_content || "";
@@ -106,33 +133,10 @@ Deno.serve(async (req) => {
       throw new Error("No code content to analyze. Upload files or provide a valid GitHub URL.");
     }
 
-    // Create scan record
-    const { data: scan, error: scanErr } = await supabase
-      .from("zerlal_scans")
-      .insert({
-        user_id: user.id,
-        project_id,
-        scan_profile: scan_profile || "security-audit",
-        status: "running",
-        started_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (scanErr) {
-      console.error("[ZERLAL] Failed to create scan record:", scanErr);
-      throw new Error("Failed to create scan record: " + scanErr.message);
-    }
-
-    // Update project to scanning
-    await supabase.from("zerlal_projects").update({ status: "scanning" }).eq("id", project_id);
-
-    console.log("[ZERLAL] Scan record created:", scan.id, "Code size:", codeToAnalyze.length);
-
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const GEMINI_KEY = _resolved.mode === 'admin' ? (_resolved.geminiKey || '') : '';
+    const BYOK = _resolved.mode === "byok" ? (_resolved.byok as ZophielByokConfig) : null;
     if (_resolved.mode === 'admin' && !LOVABLE_API_KEY && !GEMINI_KEY) {
-      await failScan(supabase, scan.id, project_id, "No AI API key configured");
       throw new Error("No AI API key configured");
     }
 
@@ -152,78 +156,78 @@ Deno.serve(async (req) => {
       console.log("[ZERLAL] Brains load skipped:", e);
     }
 
-    // ─── UNCAPPED multi-chunk sweep: walk the ENTIRE codebase in ~80KB non-overlapping windows.
-    // Findings are never capped — we keep scanning until the request time budget is exhausted.
-    // Deduplication uses file_path+line+title so semantically distinct findings aren't collapsed.
-    const CHUNK_SIZE = 80000;
+    const profile = provider_profile || await detectProviderProfile(_resolved, LOVABLE_API_KEY, GEMINI_KEY);
     const totalLen = codeToAnalyze.length;
-    const chunkCount = Math.max(1, Math.ceil(totalLen / CHUNK_SIZE));
-    const chunks: string[] = [];
-    for (let i = 0; i < chunkCount; i++) {
-      const start = i * CHUNK_SIZE;
-      chunks.push(codeToAnalyze.substring(start, start + CHUNK_SIZE));
-    }
-    console.log(`[ZERLAL] Sweeping ${chunks.length} chunks of ~${CHUNK_SIZE} chars (total code: ${totalLen}) — NO CAP`);
+    const chunkCount = Math.max(1, Math.ceil(totalLen / profile.chunk_size));
 
-    const scanStartTime = Date.now();
-    let allFindings: any[] = [];
-    let analysis: any = { findings: [], risk_grade: "F", summary: "" };
+    if (mode === "plan") {
+      const { data: scan, error: scanErr } = await supabase
+        .from("zerlal_scans")
+        .insert({
+          user_id: user.id,
+          project_id,
+          scan_profile: scan_profile || "security-audit",
+          status: "running",
+          started_at: new Date().toISOString(),
+          findings_count: 0,
+        })
+        .select()
+        .single();
 
-    // PASS 1 — first chunk is authoritative for risk grade / summary
-    try {
-      const firstPrompt = buildAnalysisPrompt(scan_profile, file_name, chunks[0], brainsContext);
-      console.log("[ZERLAL] Pass 1 chunk 1 prompt length:", firstPrompt.length);
-      analysis = await callAI(firstPrompt, LOVABLE_API_KEY, GEMINI_KEY);
-      allFindings = analysis.findings || [];
-      console.log("[ZERLAL] Chunk 1 findings:", allFindings.length);
-    } catch (err: any) {
-      console.error("[ZERLAL] Pass 1 failed:", err.message);
-      await failScan(supabase, scan.id, project_id, err.message);
-      return new Response(JSON.stringify({ error: err.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (scanErr) {
+        console.error("[ZERLAL] Failed to create scan record:", scanErr);
+        throw new Error("Failed to create scan record: " + scanErr.message);
+      }
+
+      await supabase.from("zerlal_projects").update({ status: "scanning" }).eq("id", project_id);
+
+      return jsonResponse(corsHeaders, {
+        scan_id: scan.id,
+        provider_profile: profile,
+        total_sections: chunkCount,
+        code_length: totalLen,
+        break_seconds: profile.break_seconds,
+        estimated_total_seconds: Math.ceil((chunkCount * (profile.probe_latency_ms + profile.break_seconds * 1000)) / 1000),
       });
     }
 
-    // Dedup key: file_path::line_number::lowercased title (semantically distinct findings preserved)
-    const keyOf = (f: any) =>
-      `${(f.file_path || "").toLowerCase()}::${f.line_number || 0}::${(f.title || "").toLowerCase().trim()}`;
-    const seen = new Set(allFindings.map(keyOf));
+    if (!scan_id) throw new Error("scan_id is required");
 
-    // Sweep EVERY remaining chunk — only stop if the request time budget is at risk.
-    const TIME_BUDGET_MS = 230000; // leave headroom under the 5-min edge limit
-    for (let i = 1; i < chunks.length; i++) {
-      if (Date.now() - scanStartTime > TIME_BUDGET_MS) {
-        console.log("[ZERLAL] Time budget reached, stopping chunk sweep at", i, "/", chunks.length);
-        break;
-      }
-      try {
-        const cPrompt = buildAnalysisPrompt(scan_profile, file_name, chunks[i], brainsContext);
-        console.log(`[ZERLAL] Pass 1 chunk ${i + 1}/${chunks.length}`);
-        const cRes = await callAI(cPrompt, LOVABLE_API_KEY, GEMINI_KEY);
-        const cFindings = cRes.findings || [];
-        let added = 0;
-        for (const f of cFindings) {
-          const k = keyOf(f);
-          if (!seen.has(k)) { seen.add(k); allFindings.push(f); added++; }
-        }
-        console.log(`[ZERLAL] Chunk ${i + 1} added ${added} (raw ${cFindings.length})`);
-      } catch (e: any) {
-        console.log(`[ZERLAL] Chunk ${i + 1} non-fatal error:`, e.message);
-      }
+    if (mode === "section") {
+      const normalizedIndex = Math.max(0, Math.min(section_index, chunkCount - 1));
+      const start = normalizedIndex * profile.chunk_size;
+      const codeSlice = codeToAnalyze.substring(start, start + profile.chunk_size);
+      console.log(`[ZERLAL] Section ${normalizedIndex + 1}/${chunkCount} using ${profile.provider_label} (${profile.section_timeout_ms}ms timeout)`);
+
+      const analysis = await callScanAI(
+        buildAnalysisPrompt(scan_profile, file_name, codeSlice, brainsContext),
+        _resolved,
+        LOVABLE_API_KEY,
+        GEMINI_KEY,
+        profile.section_timeout_ms,
+      );
+
+      return jsonResponse(corsHeaders, {
+        scan_id,
+        section_index: normalizedIndex,
+        total_sections: total_sections || chunkCount,
+        findings: analysis.findings || [],
+        risk_grade: normalizedIndex === 0 ? (analysis.risk_grade || "F") : undefined,
+        summary: normalizedIndex === 0 ? (analysis.summary || "") : undefined,
+      });
     }
 
-    // PASS 2 — deep-dive on a different slice for vuln classes the sweep often misses.
-    // No findings cap — runs whenever time remains.
-    const elapsedMs = Date.now() - scanStartTime;
-    if (elapsedMs < TIME_BUDGET_MS) {
+    if (mode === "finalize") {
+      let allFindings = dedupeFindings(Array.isArray(aggregated_findings) ? aggregated_findings : []);
       const existingTitles = allFindings.slice(0, 60).map((f: any) => f.title).join(", ");
       const pass2Slice = codeToAnalyze.substring(
         Math.floor(totalLen / 2),
-        Math.floor(totalLen / 2) + 60000,
-      ) || chunks[chunks.length - 1] || chunks[0];
+        Math.floor(totalLen / 2) + Math.min(60000, profile.chunk_size),
+      ) || codeToAnalyze.substring(Math.max(0, totalLen - profile.chunk_size));
 
-      const pass2Prompt = `You are ZERLAL. Already found: ${existingTitles}
+      if (pass2Slice.trim()) {
+        try {
+          const pass2Prompt = `You are ZERLAL. Already found: ${existingTitles}
 
 Find ALL additional vulnerabilities NOT listed above. Focus areas: input validation, logic flaws, race conditions, dependency risks, CORS/headers, info disclosure, access control, crypto weaknesses, DoS vectors, missing security controls, hardcoded secrets, insecure deserialization, SSRF, prototype pollution.
 
@@ -231,182 +235,116 @@ Return ONLY JSON: { "findings": [...] }
 Each finding needs: severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps (array of strings), code_snippet, suggested_fix, dataflow_trace (array of {file,line,label}), compliance_controls (array), similar_cves (array), age_estimate_days.
 
 CODE:\n\`\`\`\n${pass2Slice}\n\`\`\``;
-
-      try {
-        const pass2 = await callAI(pass2Prompt, LOVABLE_API_KEY, GEMINI_KEY);
-        const pass2Findings = pass2.findings || [];
-        let added = 0;
-        for (const f of pass2Findings) {
-          const k = keyOf(f);
-          if (!seen.has(k)) { seen.add(k); allFindings.push(f); added++; }
+          const pass2 = await callScanAI(pass2Prompt, _resolved, LOVABLE_API_KEY, GEMINI_KEY, profile.section_timeout_ms);
+          allFindings = dedupeFindings([...allFindings, ...(pass2.findings || [])]);
+        } catch (e: any) {
+          console.log("[ZERLAL] Pass 2 non-fatal error:", e.message);
         }
-        console.log("[ZERLAL] Pass 2 added", added, "(raw", pass2Findings.length, ")");
-      } catch (e: any) {
-        console.log("[ZERLAL] Pass 2 non-fatal error:", e.message);
       }
-    }
 
-    console.log("[ZERLAL] Total findings:", allFindings.length);
+      await supabase.from("zerlal_findings").delete().eq("project_id", project_id);
 
+      let criticalCount = 0, highCount = 0, mediumCount = 0, lowCount = 0, infoCount = 0;
+      for (const f of allFindings) {
+        const severity = (f.severity || "medium").toLowerCase();
+        if (severity === "critical") criticalCount++;
+        else if (severity === "high") highCount++;
+        else if (severity === "medium") mediumCount++;
+        else if (severity === "low") lowCount++;
+        else infoCount++;
 
+        const { error: insertErr } = await supabase.from("zerlal_findings").insert({
+          user_id: user.id,
+          project_id,
+          scan_id,
+          severity,
+          title: f.title || "Unnamed finding",
+          file_path: f.file_path || file_name || "unknown",
+          line_number: f.line_number || 0,
+          category: f.category || "logic",
+          confidence: Math.min(100, Math.max(0, f.confidence || 50)),
+          age_days: f.age_estimate_days || 0,
+          first_seen_at: new Date().toISOString(),
+          status: "open",
+          cwe_id: f.cwe_id || "",
+          cvss_score: Math.min(10, Math.max(0, f.cvss_score || 0)),
+          description: f.description || "",
+          impact: f.impact || "",
+          exploitation_steps: f.exploitation_steps || [],
+          code_snippet: f.code_snippet || "",
+          suggested_fix: f.suggested_fix || "",
+          dataflow_trace: f.dataflow_trace || [],
+          compliance_controls: f.compliance_controls || [],
+          similar_cves: f.similar_cves || [],
+        });
+        if (insertErr) console.error("[ZERLAL] Insert error:", insertErr, "Title:", f.title);
+      }
 
-    // Clear old findings for session isolation
-    await supabase.from("zerlal_findings").delete().eq("project_id", project_id);
+      const { data: scanRow } = await supabase.from("zerlal_scans").select("created_at").eq("id", scan_id).single();
+      const duration = Math.floor((Date.now() - new Date(scanRow?.created_at || Date.now()).getTime()) / 1000);
+      const riskGrade = first_pass_risk_grade || "F";
+      const summary = first_pass_summary || "";
 
-    // Insert findings
-    let criticalCount = 0, highCount = 0, mediumCount = 0, lowCount = 0, infoCount = 0;
+      await supabase.from("zerlal_scans").update({
+        status: "complete",
+        completed_at: new Date().toISOString(),
+        duration,
+        findings_count: allFindings.length,
+        critical_count: criticalCount,
+        high_count: highCount,
+        medium_count: mediumCount,
+        low_count: lowCount,
+        info_count: infoCount,
+        error: null,
+      }).eq("id", scan_id);
 
-    for (const f of allFindings) {
-      const severity = f.severity || "medium";
-      if (severity === "critical") criticalCount++;
-      else if (severity === "high") highCount++;
-      else if (severity === "medium") mediumCount++;
-      else if (severity === "low") lowCount++;
-      else infoCount++;
+      await supabase.from("zerlal_projects").update({
+        risk_grade: riskGrade,
+        last_scan_at: new Date().toISOString(),
+        critical_count: criticalCount,
+        high_count: highCount,
+        medium_count: mediumCount,
+        low_count: lowCount,
+        info_count: infoCount,
+        status: "complete",
+      }).eq("id", project_id);
 
-      const { error: insertErr } = await supabase.from("zerlal_findings").insert({
-        user_id: user.id,
+      await sendEmails({
+        supabase,
+        user,
         project_id,
-        scan_id: scan.id,
-        severity,
-        title: f.title || "Unnamed finding",
-        file_path: f.file_path || file_name || "unknown",
-        line_number: f.line_number || 0,
-        category: f.category || "logic",
-        confidence: Math.min(100, Math.max(0, f.confidence || 50)),
-        age_days: f.age_estimate_days || 0,
-        first_seen_at: new Date().toISOString(),
-        status: "open",
-        cwe_id: f.cwe_id || "",
-        cvss_score: Math.min(10, Math.max(0, f.cvss_score || 0)),
-        description: f.description || "",
-        impact: f.impact || "",
-        exploitation_steps: f.exploitation_steps || [],
-        code_snippet: f.code_snippet || "",
-        suggested_fix: f.suggested_fix || "",
-        dataflow_trace: f.dataflow_trace || [],
-        compliance_controls: f.compliance_controls || [],
-        similar_cves: f.similar_cves || [],
+        scan_id,
+        scan_profile,
+        summary,
+        riskGrade,
+        duration,
+        allFindings,
+        criticalCount,
+        highCount,
+        mediumCount,
+        lowCount,
+        infoCount,
       });
 
-      if (insertErr) console.error("[ZERLAL] Insert error:", insertErr, "Title:", f.title);
+      return jsonResponse(corsHeaders, {
+        scan_id,
+        findings_count: allFindings.length,
+        risk_grade: riskGrade,
+        summary,
+        duration,
+      });
     }
 
-    const duration = Math.floor((Date.now() - new Date(scan.created_at).getTime()) / 1000);
-
-    await supabase.from("zerlal_scans").update({
-      status: "complete",
-      completed_at: new Date().toISOString(),
-      duration,
-      findings_count: allFindings.length,
-      critical_count: criticalCount,
-      high_count: highCount,
-      medium_count: mediumCount,
-      low_count: lowCount,
-      info_count: infoCount,
-    }).eq("id", scan.id);
-
-    await supabase.from("zerlal_projects").update({
-      risk_grade: analysis.risk_grade || "F",
-      last_scan_at: new Date().toISOString(),
-      critical_count: criticalCount,
-      high_count: highCount,
-      medium_count: mediumCount,
-      low_count: lowCount,
-      info_count: infoCount,
-      status: "complete",
-    }).eq("id", project_id);
-
-    console.log("[ZERLAL] Scan complete. Findings:", allFindings.length, "Grade:", analysis.risk_grade, "Duration:", duration, "s");
-
-    // ───── Automated security email notifications ─────
-    try {
-      const [{ data: project }, { data: settings }] = await Promise.all([
-        supabase.from("zerlal_projects").select("name").eq("id", project_id).maybeSingle(),
-        supabase.from("zerlal_settings").select("alert_email, notify_critical").eq("user_id", user.id).maybeSingle(),
-      ]);
-      const recipient = (settings?.alert_email && settings.alert_email.trim()) || user.email;
-      const projectName = project?.name || "Untitled project";
-      const reportUrl = "https://aureonai.app/dashboard/zerlal";
-      const completedAtStr = new Date().toUTCString();
-
-      if (recipient) {
-        // Scan-complete report
-        await supabase.functions.invoke("send-transactional-email", {
-          body: {
-            templateName: "zerlal-scan-report",
-            recipientEmail: recipient,
-            idempotencyKey: `zerlal-report-${scan.id}`,
-            templateData: {
-              projectName,
-              riskGrade: analysis.risk_grade || "F",
-              findingsCount: allFindings.length,
-              criticalCount, highCount, mediumCount, lowCount, infoCount,
-              durationSec: duration,
-              scanProfile: scan_profile || "security-audit",
-              summary: analysis.summary || "",
-              reportUrl,
-              completedAt: completedAtStr,
-              findings: allFindings.map((f: any) => ({
-                title: f.title || "Unnamed finding",
-                severity: (f.severity || "info").toLowerCase(),
-                file_path: f.file_path || "",
-                line_number: f.line_number || 0,
-                cwe_id: f.cwe_id || "",
-                cvss_score: f.cvss_score || 0,
-              })),
-            },
-          },
-        }).catch((e) => console.error("[ZERLAL] scan-report email failed:", e));
-
-        // Immediate critical alert
-        if (criticalCount > 0 && settings?.notify_critical !== false) {
-          const allCritical = allFindings
-            .filter((f: any) => (f.severity || "").toLowerCase() === "critical")
-            .map((f: any) => ({
-              title: f.title || "Unnamed finding",
-              severity: "critical",
-              file_path: f.file_path || "",
-              line_number: f.line_number || 0,
-              cwe_id: f.cwe_id || "",
-              cvss_score: f.cvss_score || 0,
-            }));
-          await supabase.functions.invoke("send-transactional-email", {
-            body: {
-              templateName: "zerlal-critical-alert",
-              recipientEmail: recipient,
-              idempotencyKey: `zerlal-critical-${scan.id}`,
-              templateData: {
-                projectName,
-                criticalCount,
-                findings: allCritical,
-                reportUrl,
-                completedAt: completedAtStr,
-              },
-            },
-          }).catch((e) => console.error("[ZERLAL] critical-alert email failed:", e));
-        }
-      }
-    } catch (mailErr) {
-      console.error("[ZERLAL] Email dispatch error (non-fatal):", mailErr);
-    }
-
-
-    return new Response(JSON.stringify({
-      scan_id: scan.id,
-      findings_count: allFindings.length,
-      risk_grade: analysis.risk_grade,
-      summary: analysis.summary,
-      quantum_status: analysis.quantum_status,
-      supply_chain_risks: analysis.supply_chain_risks,
-      compliance_gaps: analysis.compliance_gaps,
-      zero_trust_score: analysis.zero_trust_score,
-      duration,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    throw new Error(`Unsupported mode: ${mode}`);
   } catch (e: any) {
     console.error("[ZERLAL] Scan error:", e);
+    const body = await safeReadBody(req);
+    if (body?.scan_id && body?.project_id) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+      await failScan(supabase, body.scan_id, body.project_id, e.message || "Unknown error");
+    }
     return new Response(JSON.stringify({ error: e.message || "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -417,6 +355,178 @@ CODE:\n\`\`\`\n${pass2Slice}\n\`\`\``;
 async function failScan(supabase: any, scanId: string, projectId: string, error: string) {
   await supabase.from("zerlal_scans").update({ status: "failed", error, completed_at: new Date().toISOString() }).eq("id", scanId);
   await supabase.from("zerlal_projects").update({ status: "failed" }).eq("id", projectId);
+}
+
+async function safeReadBody(req: Request) {
+  try {
+    return await req.clone().json();
+  } catch {
+    return null;
+  }
+}
+
+function jsonResponse(corsHeaders: Record<string, string>, payload: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function keyOf(f: any) {
+  return `${(f.file_path || "").toLowerCase()}::${f.line_number || 0}::${(f.title || "").toLowerCase().trim()}`;
+}
+
+function dedupeFindings(findings: any[]) {
+  const seen = new Set<string>();
+  const out: any[] = [];
+  for (const finding of findings) {
+    const key = keyOf(finding);
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(finding);
+    }
+  }
+  return out;
+}
+
+async function detectProviderProfile(resolved: any, lovableKey: string | undefined, geminiKey: string | undefined): Promise<ProviderProfile> {
+  const providerLabel = resolved.mode === "byok"
+    ? `${resolved.byok.provider}/${resolved.byok.model}`
+    : (lovableKey ? "lovable-gateway/google-gemini-2.5-flash" : "google/gemini-2.5-flash");
+
+  const baseTimeout = resolved.mode === "byok"
+    ? providerTimeoutForByok(resolved.byok.provider)
+    : 55_000;
+
+  let probeLatencyMs = 2500;
+  try {
+    const started = Date.now();
+    await callScanAI(
+      "Return ONLY JSON: {\"ok\":true}",
+      resolved,
+      lovableKey,
+      geminiKey,
+      Math.min(12_000, baseTimeout),
+      "You are ZERLAL. Return ONLY valid JSON."
+    );
+    probeLatencyMs = Math.max(900, Date.now() - started);
+  } catch (e) {
+    console.log("[ZERLAL] Provider probe failed, using defaults:", (e as Error).message);
+  }
+
+  const baseChunkSize = resolved.mode === "byok"
+    ? byokChunkSize(resolved.byok.provider)
+    : 26000;
+  const latencyFactor = probeLatencyMs > 8000 ? 0.58 : probeLatencyMs > 5000 ? 0.72 : probeLatencyMs > 3000 ? 0.84 : 1;
+  const chunkSize = Math.max(12000, Math.floor(baseChunkSize * latencyFactor));
+
+  return {
+    provider_label: providerLabel,
+    provider_timeout_ms: baseTimeout,
+    section_timeout_ms: Math.max(18_000, Math.min(baseTimeout - 5000, 55_000)),
+    chunk_size: chunkSize,
+    break_seconds: 15,
+    probe_latency_ms: probeLatencyMs,
+  };
+}
+
+function providerTimeoutForByok(provider: string) {
+  switch (provider) {
+    case "google": return 60_000;
+    case "anthropic": return 65_000;
+    case "openai":
+    case "xai":
+    case "deepseek":
+    case "mistral":
+    case "perplexity":
+    case "venice":
+    default: return 50_000;
+  }
+}
+
+function byokChunkSize(provider: string) {
+  switch (provider) {
+    case "google": return 30000;
+    case "anthropic": return 28000;
+    case "openai": return 24000;
+    case "xai": return 22000;
+    case "deepseek": return 20000;
+    case "mistral": return 22000;
+    case "perplexity": return 18000;
+    case "venice": return 20000;
+    default: return 22000;
+  }
+}
+
+async function sendEmails({ supabase, user, project_id, scan_id, scan_profile, summary, riskGrade, duration, allFindings, criticalCount, highCount, mediumCount, lowCount, infoCount }: any) {
+  try {
+    const [{ data: project }, { data: settings }] = await Promise.all([
+      supabase.from("zerlal_projects").select("name").eq("id", project_id).maybeSingle(),
+      supabase.from("zerlal_settings").select("alert_email, notify_critical").eq("user_id", user.id).maybeSingle(),
+    ]);
+    const recipient = (settings?.alert_email && settings.alert_email.trim()) || user.email;
+    const projectName = project?.name || "Untitled project";
+    const reportUrl = "https://aureonai.app/dashboard/zerlal";
+    const completedAtStr = new Date().toUTCString();
+
+    if (!recipient) return;
+
+    await supabase.functions.invoke("send-transactional-email", {
+      body: {
+        templateName: "zerlal-scan-report",
+        recipientEmail: recipient,
+        idempotencyKey: `zerlal-report-${scan_id}`,
+        templateData: {
+          projectName,
+          riskGrade,
+          findingsCount: allFindings.length,
+          criticalCount, highCount, mediumCount, lowCount, infoCount,
+          durationSec: duration,
+          scanProfile: scan_profile || "security-audit",
+          summary,
+          reportUrl,
+          completedAt: completedAtStr,
+          findings: allFindings.map((f: any) => ({
+            title: f.title || "Unnamed finding",
+            severity: (f.severity || "info").toLowerCase(),
+            file_path: f.file_path || "",
+            line_number: f.line_number || 0,
+            cwe_id: f.cwe_id || "",
+            cvss_score: f.cvss_score || 0,
+          })),
+        },
+      },
+    }).catch((e) => console.error("[ZERLAL] scan-report email failed:", e));
+
+    if (criticalCount > 0 && settings?.notify_critical !== false) {
+      const allCritical = allFindings
+        .filter((f: any) => (f.severity || "").toLowerCase() === "critical")
+        .map((f: any) => ({
+          title: f.title || "Unnamed finding",
+          severity: "critical",
+          file_path: f.file_path || "",
+          line_number: f.line_number || 0,
+          cwe_id: f.cwe_id || "",
+          cvss_score: f.cvss_score || 0,
+        }));
+      await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "zerlal-critical-alert",
+          recipientEmail: recipient,
+          idempotencyKey: `zerlal-critical-${scan_id}`,
+          templateData: {
+            projectName,
+            criticalCount,
+            findings: allCritical,
+            reportUrl,
+            completedAt: completedAtStr,
+          },
+        },
+      }).catch((e) => console.error("[ZERLAL] critical-alert email failed:", e));
+    }
+  } catch (mailErr) {
+    console.error("[ZERLAL] Email dispatch error (non-fatal):", mailErr);
+  }
 }
 
 function buildAnalysisPrompt(scanProfile: string, fileName: string, code: string, brainsContext: string): string {
@@ -487,28 +597,61 @@ ${code}
 \`\`\``;
 }
 
-async function callAI(prompt: string, lovableKey: string | undefined, geminiKey: string | undefined): Promise<any> {
+async function callScanAI(
+  prompt: string,
+  resolved: any,
+  lovableKey: string | undefined,
+  geminiKey: string | undefined,
+  timeoutMs = 55_000,
+  systemPrompt = "You are ZERLAL. Always run the CODE → NARRATIVE → FLAWS → FIX loop internally (max 6 iterations) before responding: (1) convert every file into a plain-language narrative, (2) hunt logic/security/UI/workflow/bug flaws on the narrative, (3) when fixes are requested, regenerate code and re-narrate until zero medium+ flaws remain or 6 iterations are hit. Return ONLY valid JSON. No markdown."
+): Promise<any> {
+  if (resolved.mode === "byok" && resolved.byok) {
+    const text = await callByokJsonWithRetry(resolved.byok as ZophielByokConfig, systemPrompt, prompt, {
+      attempts: 3,
+      timeoutMs,
+      temperature: 0.1,
+      maxOutputTokens: 32000,
+      jsonMode: true,
+    });
+    if (!text.trim()) throw new Error("Empty BYOK response");
+    return parseFindings(text);
+  }
+
+  return callAI(prompt, lovableKey, geminiKey, timeoutMs, systemPrompt);
+}
+
+async function callAI(
+  prompt: string,
+  lovableKey: string | undefined,
+  geminiKey: string | undefined,
+  timeoutMs = 55_000,
+  systemPrompt = "You are ZERLAL. Always run the CODE → NARRATIVE → FLAWS → FIX loop internally (max 6 iterations) before responding: (1) convert every file into a plain-language narrative, (2) hunt logic/security/UI/workflow/bug flaws on the narrative, (3) when fixes are requested, regenerate code and re-narrate until zero medium+ flaws remain or 6 iterations are hit. Return ONLY valid JSON. No markdown."
+): Promise<any> {
   // Try Lovable AI Gateway first
   if (lovableKey) {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         console.log("[ZERLAL] AI attempt", attempt + 1, "via Lovable Gateway");
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), timeoutMs);
         const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${lovableKey}`,
           },
+          signal: ctl.signal,
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: "You are ZERLAL. Always run the CODE → NARRATIVE → FLAWS → FIX loop internally (max 6 iterations) before responding: (1) convert every file into a plain-language narrative, (2) hunt logic/security/UI/workflow/bug flaws on the narrative, (3) when fixes are requested, regenerate code and re-narrate until zero medium+ flaws remain or 6 iterations are hit. Return ONLY valid JSON. No markdown." },
+              { role: "system", content: systemPrompt },
               { role: "user", content: prompt },
             ],
             temperature: 0.1,
             max_tokens: 32000,
           }),
         });
+        clearTimeout(timer);
 
         if (resp.ok) {
           const data = await resp.json();
@@ -546,17 +689,22 @@ async function callAI(prompt: string, lovableKey: string | undefined, geminiKey:
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         console.log("[ZERLAL] AI attempt via Gemini fallback");
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), timeoutMs);
         const resp = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            signal: ctl.signal,
             body: JSON.stringify({
+              systemInstruction: { parts: [{ text: systemPrompt }] },
               contents: [{ parts: [{ text: prompt }] }],
               generationConfig: { temperature: 0.1, maxOutputTokens: 32000 },
             }),
           }
         );
+        clearTimeout(timer);
 
         if (resp.ok) {
           const data = await resp.json();
