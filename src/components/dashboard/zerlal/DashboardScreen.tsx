@@ -224,30 +224,41 @@ const DashboardScreen = ({ onNavigate, onSelectProject, onSelectFinding, onOpenS
             </div>
             <div className="divide-y divide-border/[0.04]">
               {projects.map(p => (
-                <button
+                <div
                   key={p.id}
-                  onClick={() => onSelectProject(p.id)}
-                  className="w-full px-4 py-3 flex items-center gap-4 hover:bg-foreground/[0.02] transition-colors text-left"
+                  className="group w-full px-4 py-3 flex items-center gap-4 hover:bg-foreground/[0.02] transition-colors text-left"
                 >
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-medium ${
-                    p.risk_grade === "A" ? "bg-emerald-500/10 text-emerald-400" :
-                    p.risk_grade === "B" ? "bg-blue-500/10 text-blue-400" :
-                    p.risk_grade === "C" ? "bg-yellow-500/10 text-yellow-400" :
-                    p.risk_grade === "D" ? "bg-orange-500/10 text-orange-400" :
-                    "bg-red-500/10 text-red-400"
-                  }`}>
-                    {p.risk_grade}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-foreground/70 truncate">{p.name}</div>
-                    <div className="text-[9px] text-muted-foreground/30">{p.language} • {p.source_type}</div>
-                  </div>
-                  <div className="flex items-center gap-2 text-[9px]">
-                    {p.critical_count > 0 && <span className="text-red-400">{p.critical_count}C</span>}
-                    {p.high_count > 0 && <span className="text-orange-400">{p.high_count}H</span>}
-                    <span className="text-muted-foreground/25">{p.medium_count + p.low_count + p.info_count} other</span>
-                  </div>
-                </button>
+                  <button
+                    onClick={() => onSelectProject(p.id)}
+                    className="flex items-center gap-4 flex-1 min-w-0 text-left"
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-medium ${
+                      p.risk_grade === "A" ? "bg-emerald-500/10 text-emerald-400" :
+                      p.risk_grade === "B" ? "bg-blue-500/10 text-blue-400" :
+                      p.risk_grade === "C" ? "bg-yellow-500/10 text-yellow-400" :
+                      p.risk_grade === "D" ? "bg-orange-500/10 text-orange-400" :
+                      "bg-red-500/10 text-red-400"
+                    }`}>
+                      {p.risk_grade}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] text-foreground/70 truncate">{p.name}</div>
+                      <div className="text-[9px] text-muted-foreground/30">{p.language} • {p.source_type}</div>
+                    </div>
+                    <div className="flex items-center gap-2 text-[9px]">
+                      {p.critical_count > 0 && <span className="text-red-400">{p.critical_count}C</span>}
+                      {p.high_count > 0 && <span className="text-orange-400">{p.high_count}H</span>}
+                      <span className="text-muted-foreground/25">{p.medium_count + p.low_count + p.info_count} other</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setPendingDelete({ id: p.id, name: p.name }); }}
+                    title="Delete project"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/5 transition-all"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
               ))}
               {projects.length === 0 && (
                 <div className="px-4 py-8 text-center text-[10px] text-muted-foreground/25">No projects yet</div>
