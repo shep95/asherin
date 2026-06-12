@@ -113,7 +113,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
           try { sessionStorage.setItem(ASHER_LOCKOUT_KEY, String(ts)); } catch {}
         }
         setError(data?.message || "Gate locked. Too many failed attempts.");
-        logAsherEvent("passcode_lockout", { attempted_length: code.length });
+        logAsherEvent("passcode_failure", { attempted_length: code.length, locked: true });
         setCode("");
         return;
       }
