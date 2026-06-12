@@ -303,6 +303,12 @@ const DashboardScreen = ({ onNavigate, onSelectProject, onSelectFinding, onOpenS
           </div>
         </div>
       </div>
+      <IdeDeleteConfirm
+        open={!!pendingDelete}
+        fileName={pendingDelete?.name ?? ""}
+        onConfirm={handleDelete}
+        onCancel={() => !deleting && setPendingDelete(null)}
+      />
     </div>
   );
 };
