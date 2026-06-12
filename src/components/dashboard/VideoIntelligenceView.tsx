@@ -7,6 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { triggerByokRequired } from "@/components/ByokRequiredDialog";
+import { loadActiveByok } from "@/lib/byok";
 
 // ─── TYPES ───
 interface MicroExpression {
