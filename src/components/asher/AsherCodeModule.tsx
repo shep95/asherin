@@ -927,6 +927,17 @@ export default function AsherCodeModule() {
 
   async function deleteProject(p: AsherCodeProject) {
     if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
+    // Phase 5: Purge local IndexedDB checkpoints + autosave snapshots first so
+    // a freshly deleted project never resurrects from a stale local cache.
+    try {
+      const { listCheckpoints, deleteCheckpoint } = await import("@/lib/ide/checkpoints");
+      const { clearAutoSave } = await import("@/lib/ide/autoSave");
+      const ckpts = await listCheckpoints("asher", p.id);
+      await Promise.all(ckpts.map(c => c.id ? deleteCheckpoint(c.id) : Promise.resolve()));
+      clearAutoSave(p.id);
+    } catch (e) {
+      console.warn("[asher-code] local cleanup failed", e);
+    }
     const { error } = await supabase.from("asher_code_projects").delete().eq("id", p.id);
     if (error) { toast.error(error.message); return; }
     if (activeProject?.id === p.id) { setActiveProject(null); setFiles([]); setOpenTabs([]); setActiveFileId(null); }

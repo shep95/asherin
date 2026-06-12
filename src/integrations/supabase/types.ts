@@ -8625,6 +8625,10 @@ export type Database = {
         Args: { p_id: string; p_table: string }
         Returns: undefined
       }
+      soft_delete_asher_message: {
+        Args: { p_message_id: string }
+        Returns: undefined
+      }
       soft_delete_row: {
         Args: { p_id: string; p_table: string }
         Returns: undefined

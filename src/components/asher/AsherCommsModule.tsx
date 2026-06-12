@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from "react";
-import { Lock, Send, Plus, Shield, Users, UserPlus, X } from "lucide-react";
+import { Lock, Send, Plus, Shield, Users, UserPlus, X, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   generateIdentity, hasIdentity, unlockIdentity, getLocalPublicKey, fingerprintPubkey,
 } from "@/lib/asherCrypto";
 import {
   uploadPublicKey, listOperators, listConversations, fetchMessages, decryptInbox,
-  sendMessage, createDM, createGroup, addMembers, listMembers, updateOwnPresence,
+  sendMessage, createDM, createGroup, addMembers, listMembers, updateOwnPresence, softDeleteMessage,
   type Operator, type Conversation, type DecryptedMessage,
 } from "@/lib/asherComms";
 import { toast } from "sonner";
@@ -275,9 +275,28 @@ const AsherCommsModule = () => {
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {msgs.map((m) => (
-                <div key={m.id} className={`max-w-xl ${m.sender_id === userId ? "ml-auto" : ""}`}>
-                  <div className={`px-3 py-2 rounded-xl text-sm ${m.sender_id === userId ? "bg-foreground/10 text-foreground" : "bg-card/40 border border-border/15 text-foreground/90"}`}>
-                    {m.body}
+                <div key={m.id} className={`group max-w-xl ${m.sender_id === userId ? "ml-auto" : ""}`}>
+                  <div className="flex items-start gap-1.5">
+                    <div className={`flex-1 px-3 py-2 rounded-xl text-sm ${m.sender_id === userId ? "bg-foreground/10 text-foreground" : "bg-card/40 border border-border/15 text-foreground/90"}`}>
+                      {m.body}
+                    </div>
+                    {m.sender_id === userId && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Delete this message? It can be recovered for 30 days.")) return;
+                          try {
+                            await softDeleteMessage(m.id);
+                            setMsgs(prev => prev.filter(x => x.id !== m.id));
+                          } catch (e) {
+                            toast.error(e instanceof Error ? e.message : "Delete failed");
+                          }
+                        }}
+                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:text-destructive transition-opacity p-1 mt-1"
+                        title="Delete message (recoverable 30d)"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                   <div className="text-[9px] text-muted-foreground mt-0.5 tracking-[0.1em] uppercase">
                     {new Date(m.created_at).toLocaleTimeString()} · {m.classification}

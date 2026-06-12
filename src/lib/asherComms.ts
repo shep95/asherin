@@ -405,6 +405,12 @@ export async function markRead(messageId: string) {
     .upsert({ message_id: messageId, user_id: auth.user.id }, { onConflict: "message_id,user_id" });
 }
 
+// Phase 3: soft-delete a message (sender can recover within 30 days via purge_soft_deleted).
+export async function softDeleteMessage(messageId: string): Promise<void> {
+  const { error } = await supabase.rpc("soft_delete_asher_message" as never, { p_message_id: messageId } as never);
+  if (error) throw error;
+}
+
 // ---------- Audit ----------
 export async function audit(action: string, metadata: Record<string, unknown>) {
   const { data: auth } = await supabase.auth.getUser();
