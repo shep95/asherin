@@ -7985,6 +7985,99 @@ export type Database = {
         }
         Relationships: []
       }
+      zerlal_background_jobs: {
+        Row: {
+          aggregated_findings: Json
+          attempts: number
+          byok: Json | null
+          code_content: string | null
+          completed_at: string | null
+          created_at: string
+          current_section: number
+          email_sent_at: string | null
+          file_name: string | null
+          final_risk_grade: string | null
+          final_summary: string | null
+          findings_count: number
+          first_pass_risk_grade: string | null
+          first_pass_summary: string | null
+          github_url: string | null
+          id: string
+          last_error: string | null
+          last_run_at: string | null
+          project_id: string
+          project_name: string | null
+          provider_profile: Json | null
+          recipient_email: string
+          scan_id: string | null
+          scan_profile: string
+          status: string
+          total_sections: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aggregated_findings?: Json
+          attempts?: number
+          byok?: Json | null
+          code_content?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_section?: number
+          email_sent_at?: string | null
+          file_name?: string | null
+          final_risk_grade?: string | null
+          final_summary?: string | null
+          findings_count?: number
+          first_pass_risk_grade?: string | null
+          first_pass_summary?: string | null
+          github_url?: string | null
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          project_id: string
+          project_name?: string | null
+          provider_profile?: Json | null
+          recipient_email: string
+          scan_id?: string | null
+          scan_profile?: string
+          status?: string
+          total_sections?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aggregated_findings?: Json
+          attempts?: number
+          byok?: Json | null
+          code_content?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_section?: number
+          email_sent_at?: string | null
+          file_name?: string | null
+          final_risk_grade?: string | null
+          final_summary?: string | null
+          findings_count?: number
+          first_pass_risk_grade?: string | null
+          first_pass_summary?: string | null
+          github_url?: string | null
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          project_id?: string
+          project_name?: string | null
+          provider_profile?: Json | null
+          recipient_email?: string
+          scan_id?: string | null
+          scan_profile?: string
+          status?: string
+          total_sections?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       zerlal_compliance_mappings: {
         Row: {
           control_id: string
