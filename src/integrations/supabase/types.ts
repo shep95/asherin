@@ -1134,6 +1134,54 @@ export type Database = {
           },
         ]
       }
+      asher_code_agents: {
+        Row: {
+          config: Json
+          created_at: string
+          enabled: boolean
+          goal: string
+          id: string
+          last_result: Json | null
+          last_run_at: string | null
+          name: string
+          session_id: string | null
+          status: string
+          trigger: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          goal: string
+          id?: string
+          last_result?: Json | null
+          last_run_at?: string | null
+          name: string
+          session_id?: string | null
+          status?: string
+          trigger?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          goal?: string
+          id?: string
+          last_result?: Json | null
+          last_run_at?: string | null
+          name?: string
+          session_id?: string | null
+          status?: string
+          trigger?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asher_code_branches: {
         Row: {
           created_at: string

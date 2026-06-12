@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Save, Loader2, Download, Search, Terminal as TerminalIcon, Sparkles, ChevronDown, ChevronUp, MoreHorizontal, Plus, Network } from "lucide-react";
+import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Save, Loader2, Download, Search, Terminal as TerminalIcon, Sparkles, ChevronDown, ChevronUp, MoreHorizontal, Plus, Network, Bot } from "lucide-react";
 import AsherWorkflowMap, { type WorkflowEvent, type FileWorkflowStat, type SwarmAgent } from "@/components/asher/AsherWorkflowMap";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
@@ -11,6 +11,8 @@ import IdeSessionManager, { type IdeSession } from "./IdeSessionManager";
 import IdeSearchPanel from "./IdeSearchPanel";
 import IdeQuickOpen from "./IdeQuickOpen";
 import IdeGitPanel from "./IdeGitPanel";
+import IdeAgentsPanel from "./IdeAgentsPanel";
+import { detectCrash, buildCrashPrompt, type CrashEvent } from "@/lib/ide/crashHook";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
 import {
   IdeHistoryPanel,
@@ -57,7 +59,7 @@ interface ChatMsg {
 
 type CenterTab = "code" | "preview" | "workflow";
 type MobilePanel = "explorer" | "editor" | "chat" | "terminal";
-type LeftTab = "files" | "search" | "sessions" | "git";
+type LeftTab = "files" | "search" | "sessions" | "git" | "agents";
 
 const STARTER_FILES: IdeFile[] = [
   {
@@ -839,6 +841,64 @@ const AureonIdeView = () => {
     if (isMobile) setMobilePanel("chat");
   }, [sendChatMessage, rightOpen, isMobile]);
 
+  // ── Crash hook wiring ─────────────────────────────────────
+  // 1. Holds the IdeAgentsPanel "on_crash" trigger so we can fire it.
+  // 2. Recent-crash dedupe (avoid spamming the AI when one error repeats).
+  const crashAgentTriggerRef = useRef<((summary: string) => void) | null>(null);
+  const lastCrashRef = useRef<{ sig: string; at: number }>({ sig: "", at: 0 });
+
+  const handleCrashEvent = useCallback((evt: CrashEvent) => {
+    const sig = `${evt.type || ""}|${evt.file || ""}:${evt.line || ""}|${evt.message.slice(0, 80)}`;
+    const now = Date.now();
+    if (sig === lastCrashRef.current.sig && now - lastCrashRef.current.at < 8000) return;
+    lastCrashRef.current = { sig, at: now };
+
+    // Best-effort locate file by basename
+    let snippet: { name: string; content: string; startLine: number } | undefined;
+    if (evt.file) {
+      const baseName = evt.file.split("/").pop() || evt.file;
+      const match = allFiles.find(f => f.name === baseName || f.name.endsWith("/" + baseName));
+      if (match) {
+        selectFile(match);
+        if (match.content && evt.line) {
+          const lines = match.content.split("\n");
+          const start = Math.max(0, evt.line - 8);
+          const end = Math.min(lines.length, evt.line + 8);
+          snippet = { name: match.name, content: lines.slice(start, end).map((l, i) => `${start + i + 1} | ${l}`).join("\n"), startLine: start + 1 };
+        }
+      }
+    }
+    const prompt = buildCrashPrompt(evt, snippet);
+    sendChatMessage(prompt);
+    if (!rightOpen && !isMobile) setRightOpen(true);
+    if (isMobile) setMobilePanel("chat");
+    toast({ title: "◈ Crash detected", description: `${evt.type ?? "Error"}${evt.file ? " in " + (evt.file.split("/").pop() || evt.file) : ""} — AI dispatched` });
+
+    // Fire on_crash agents
+    crashAgentTriggerRef.current?.(prompt);
+  }, [allFiles, selectFile, sendChatMessage, rightOpen, isMobile, toast]);
+
+  // Global runtime error capture — uncaught exceptions + unhandled promise rejections.
+  useEffect(() => {
+    const onErr = (e: ErrorEvent) => {
+      const text = `${e.error?.stack || e.message}${e.filename ? `\n    at ${e.filename}:${e.lineno}:${e.colno}` : ""}`;
+      const evt = detectCrash(text);
+      if (evt) handleCrashEvent(evt);
+    };
+    const onRej = (e: PromiseRejectionEvent) => {
+      const reason: any = e.reason;
+      const text = reason?.stack || String(reason);
+      const evt = detectCrash(text);
+      if (evt) handleCrashEvent(evt);
+    };
+    window.addEventListener("error", onErr);
+    window.addEventListener("unhandledrejection", onRej);
+    return () => {
+      window.removeEventListener("error", onErr);
+      window.removeEventListener("unhandledrejection", onRej);
+    };
+  }, [handleCrashEvent]);
+
   // ── ZANOEM toggle strip (rendered above the chat panel on both layouts) ──
   const zanoemToggleBar = (
     <div className="border-b border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5 flex-wrap">
@@ -921,7 +981,7 @@ const AureonIdeView = () => {
               <div className="flex-1 min-h-0"><IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} /></div>
             </div>
           )}
-          {mobilePanel === "terminal" && <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} />}
+          {mobilePanel === "terminal" && <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} onCrashDetected={handleCrashEvent} />}
         </div>
 
         {/* Simple 4-tab bottom nav */}
@@ -1097,6 +1157,7 @@ const AureonIdeView = () => {
                     {([
                       { id: "files" as LeftTab, icon: FolderKanban, label: "Files" },
                       { id: "search" as LeftTab, icon: Search, label: "Search" },
+                      { id: "agents" as LeftTab, icon: Bot, label: "Agents" },
                     ]).map(tab => (
                       <button key={tab.id} onClick={() => setLeftTab(tab.id)}
                         className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-light transition-colors ${leftTab === tab.id ? "bg-accent/15 text-accent" : "text-muted-foreground/40 hover:text-foreground"}`}
@@ -1111,6 +1172,13 @@ const AureonIdeView = () => {
                     {leftTab === "search" && <IdeSearchPanel files={files} onOpenFile={selectFile} />}
                     {leftTab === "sessions" && <IdeSessionManager sessions={sessions} activeSessionId={activeSessionId} loading={sessionsLoading} onSelect={loadSession} onCreate={createSession} onDelete={deleteSession} onRename={renameSession} />}
                     {leftTab === "git" && <IdeGitPanel files={files} onImportFiles={(imported) => setFiles(imported)} />}
+                    {leftTab === "agents" && (
+                      <IdeAgentsPanel
+                        sessionId={activeSessionId}
+                        onRunAgent={(goal, name) => { sendChatMessage(`[Agent: ${name}]\n${goal}`); if (!rightOpen && !isMobile) setRightOpen(true); }}
+                        onRegisterCrashHandler={(handler) => { crashAgentTriggerRef.current = handler; }}
+                      />
+                    )}
                   </div>
                 </div>
               </ResizablePanel>
@@ -1151,7 +1219,7 @@ const AureonIdeView = () => {
                         </div>
                       </div>
                       <div className="flex-1 min-h-0 overflow-hidden">
-                        <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} />
+                        <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} onCrashDetected={handleCrashEvent} />
                       </div>
                     </div>
                   </ResizablePanel>

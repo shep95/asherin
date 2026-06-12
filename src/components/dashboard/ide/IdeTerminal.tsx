@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Terminal, Maximize2, Minimize2, Trash2, Plus, X } from "lucide-react";
 import type { IdeFile } from "./IdeFileTree";
+import { detectCrash, type CrashEvent } from "@/lib/ide/crashHook";
 
 interface TerminalLine {
   id: string;
@@ -27,6 +28,8 @@ interface Props {
   onUpdateContent?: (id: string, content: string) => void;
   /** Expose terminal output to AI */
   onTerminalOutput?: (output: string) => void;
+  /** Fired when the crash hook detects a runtime error in terminal output. */
+  onCrashDetected?: (evt: CrashEvent) => void;
 }
 
 const WELCOME: TerminalLine[] = [
@@ -76,7 +79,7 @@ function listDir(files: IdeFile[], cwd: string): IdeFile[] {
   return node?.children ?? [];
 }
 
-const IdeTerminal = ({ onAiCommand, files = [], onCreateFile, onDeleteFile, onUpdateContent, onTerminalOutput }: Props) => {
+const IdeTerminal = ({ onAiCommand, files = [], onCreateFile, onDeleteFile, onUpdateContent, onTerminalOutput, onCrashDetected }: Props) => {
   const [terminals, setTerminals] = useState<TerminalInstance[]>([
     { id: "t1", name: "Terminal 1", lines: [...WELCOME], cwd: "", history: [], histIdx: -1, env: { USER: "aureon-dev", HOME: "/", SHELL: "/bin/zsh", NODE_ENV: "development" } },
   ]);
@@ -115,7 +118,12 @@ const IdeTerminal = ({ onAiCommand, files = [], onCreateFile, onDeleteFile, onUp
     if (onTerminalOutput && (type === "output" || type === "error")) {
       onTerminalOutput(`[${type}] ${text}`);
     }
-  }, [onTerminalOutput]);
+    // ── Crash hook: scan every error/output line for runtime stack traces ──
+    if (onCrashDetected && (type === "error" || type === "output")) {
+      const evt = detectCrash(text);
+      if (evt) onCrashDetected(evt);
+    }
+  }, [onTerminalOutput, onCrashDetected]);
 
   const processCommand = useCallback((raw: string) => {
     const tid = activeTermId;
