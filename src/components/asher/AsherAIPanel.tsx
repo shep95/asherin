@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { toast } from "sonner";
+import NumberedFormatToggle, { isNumberedFormatEnabled } from "@/components/dashboard/NumberedFormatToggle";
 
 export type ReconDetection = {
   lat: number; lng: number;
