@@ -118,6 +118,18 @@ export function useGitHub() {
   const getCommits = useCallback((branch?: string) => callGitHub("get_commits", { branch }), [callGitHub]);
   const createRepo = useCallback((name: string, description?: string, is_private?: boolean) => callGitHub("create_repo", { name, description, is_private }), [callGitHub]);
   const deleteFile = useCallback((path: string, message?: string) => callGitHub("delete_file", { path, message }), [callGitHub]);
+  const getTreeRecursive = useCallback((branch?: string) => callGitHub("get_tree_recursive", { branch }), [callGitHub]);
+  const getBlobs = useCallback((paths: string[], branch?: string) => callGitHub("get_blobs", { paths, branch }), [callGitHub]);
+  const getPathShas = useCallback((branch?: string) => callGitHub("get_path_shas", { branch }), [callGitHub]);
+  const createBranch = useCallback((name: string, from?: string) => callGitHub("create_branch", { name, from }), [callGitHub]);
+  const deleteBranch = useCallback((name: string) => callGitHub("delete_branch", { name }), [callGitHub]);
+  const switchBranch = useCallback(async (name: string) => {
+    const r = await callGitHub("switch_branch", { name });
+    await fetchConnection();
+    return r;
+  }, [callGitHub, fetchConnection]);
+  const listPullRequests = useCallback((state: "open" | "closed" | "all" = "open") => callGitHub("list_pull_requests", { state }), [callGitHub]);
+  const createPullRequest = useCallback((args: { head?: string; base?: string; title: string; body?: string; draft?: boolean }) => callGitHub("create_pull_request", args), [callGitHub]);
 
   return {
     connection,
@@ -135,5 +147,13 @@ export function useGitHub() {
     getCommits,
     createRepo,
     deleteFile,
+    getTreeRecursive,
+    getBlobs,
+    getPathShas,
+    createBranch,
+    deleteBranch,
+    switchBranch,
+    listPullRequests,
+    createPullRequest,
   };
 }
