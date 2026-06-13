@@ -544,11 +544,20 @@ const Whiteboard = () => {
   useEffect(() => {
     if (!loadedRef.current) return;
     const storageKey = `${STORAGE_NAMESPACE}:${storageUserKey}`;
-    const saveBoards = async () => {
-      const encrypted = await encryptText(JSON.stringify({ boards, activeBoardId, activeLayerId }), storageUserKey);
-      window.localStorage.setItem(storageKey, encrypted);
-    };
-    saveBoards();
+    // Debounce persistence so we don't encrypt + serialize on every pointermove
+    // while drawing — that was the primary cause of stroke lag.
+    const handle = window.setTimeout(async () => {
+      try {
+        const encrypted = await encryptText(
+          JSON.stringify({ boards, activeBoardId, activeLayerId }),
+          storageUserKey,
+        );
+        window.localStorage.setItem(storageKey, encrypted);
+      } catch {
+        /* ignore — next change will retry */
+      }
+    }, 600);
+    return () => window.clearTimeout(handle);
   }, [boards, activeBoardId, activeLayerId, storageUserKey]);
 
   const activeBoard = useMemo(() => {
