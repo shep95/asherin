@@ -27,6 +27,8 @@ export const useAzplenNav = () => useContext(AzplenNavContext);
 const tabs: { id: AzplenTab; icon: React.ElementType; label: string; sub: string }[] = [
   { id: "ingest",      icon: Upload,      label: "Ingest",         sub: "Upload financial data" },
   { id: "table",       icon: Table2,      label: "Ledger",         sub: "Tabular review" },
+  { id: "docintel",    icon: FileText,    label: "Documents",      sub: "Document intelligence" },
+  { id: "graph",       icon: Network,     label: "Graph",          sub: "Document & entity mapping" },
   { id: "entities",    icon: Fingerprint, label: "Counterparties", sub: "Entity resolution" },
   { id: "predictions", icon: Brain,       label: "Forecasts",      sub: "Predictive signals" },
   { id: "insights",    icon: Lightbulb,   label: "Anomalies",      sub: "AI surfaced findings" },
