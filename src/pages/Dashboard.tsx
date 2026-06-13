@@ -82,6 +82,7 @@ const PredictiveIntelligenceView = lazyWithRetry(() => import("@/components/dash
 
 const PersonaStoreView = lazyWithRetry(() => import("@/components/dashboard/PersonaStoreView"));
 const AureonIdeView = lazyWithRetry(() => import("@/components/dashboard/ide/AureonIdeView"));
+const WhiteboardView = lazyWithRetry(() => import("@/components/whiteboard/Whiteboard"));
 const PdfGeneratorView = lazyWithRetry(() => import("@/components/dashboard/PdfGeneratorView"));
 const DocumentExportLanding = lazyWithRetry(() => import("@/components/dashboard/DocumentExportLanding"));
 
