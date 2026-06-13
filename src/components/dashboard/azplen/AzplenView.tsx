@@ -1,6 +1,7 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
 import {
   Upload, Table2, Fingerprint, Brain, Lightbulb, FileOutput, Network, FileText,
+  LayoutDashboard, PenLine, ClipboardList, Scale,
   Plus, Building2, ChevronDown, Trash2, Pencil, Check, X,
   Keyboard, ShieldCheck,
 } from "lucide-react";
@@ -13,6 +14,11 @@ import InsightsPanel from "./InsightsPanel";
 import ReportsPanel from "./ReportsPanel";
 import GraphViewPanel from "./GraphViewPanel";
 import DocumentIntelligencePanel from "./DocumentIntelligencePanel";
+import InvestigationDashboardPanel from "./InvestigationDashboardPanel";
+import CanvasPanel from "./CanvasPanel";
+import CollectionPlanPanel from "./CollectionPlanPanel";
+import HypothesisPanel from "./HypothesisPanel";
+import ClassificationBadge from "./ClassificationBadge";
 import EncryptionBadge from "../EncryptionBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AzplenSessionProvider, useAzplenSession } from "./AzplenSessionContext";
@@ -23,17 +29,23 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 const AzplenNavContext = createContext<{ navigateToTab: (tab: AzplenTab, datasetId?: string) => void }>({ navigateToTab: () => {} });
 export const useAzplenNav = () => useContext(AzplenNavContext);
 
-// Financial-core tab set. Six surfaces a financial analyst actually opens.
-const tabs: { id: AzplenTab; icon: React.ElementType; label: string; sub: string }[] = [
-  { id: "ingest",      icon: Upload,      label: "Ingest",         sub: "Upload financial data" },
-  { id: "table",       icon: Table2,      label: "Ledger",         sub: "Tabular review" },
-  { id: "docintel",    icon: FileText,    label: "Documents",      sub: "Document intelligence" },
-  { id: "graph",       icon: Network,     label: "Graph",          sub: "Document & entity mapping" },
-  { id: "entities",    icon: Fingerprint, label: "Counterparties", sub: "Entity resolution" },
-  { id: "predictions", icon: Brain,       label: "Forecasts",      sub: "Predictive signals" },
-  { id: "insights",    icon: Lightbulb,   label: "Anomalies",      sub: "AI surfaced findings" },
-  { id: "reports",     icon: FileOutput,  label: "Reports",        sub: "Export & briefings" },
+// Mission-phase grouped tab set — Palantir-style operator navigation.
+type TabPhase = "Command" | "Collection" | "Analysis" | "Intelligence" | "Reporting";
+const tabs: { id: AzplenTab; icon: React.ElementType; label: string; sub: string; phase: TabPhase }[] = [
+  { id: "dashboard",   icon: LayoutDashboard, label: "Dashboard",      sub: "Investigation overview",   phase: "Command" },
+  { id: "plan",        icon: ClipboardList,   label: "Collection Plan",sub: "Intelligence questions",   phase: "Command" },
+  { id: "ingest",      icon: Upload,          label: "Ingest",         sub: "Upload financial data",    phase: "Collection" },
+  { id: "docintel",    icon: FileText,        label: "Documents",      sub: "Document intelligence",    phase: "Collection" },
+  { id: "table",       icon: Table2,          label: "Ledger",         sub: "Tabular review",           phase: "Collection" },
+  { id: "entities",    icon: Fingerprint,     label: "Counterparties", sub: "Entity resolution",        phase: "Analysis" },
+  { id: "graph",       icon: Network,         label: "Graph",          sub: "Document & entity mapping",phase: "Analysis" },
+  { id: "canvas",      icon: PenLine,         label: "Canvas",         sub: "Argument workspace",       phase: "Analysis" },
+  { id: "hypothesis",  icon: Scale,           label: "Hypotheses",     sub: "ACH-style testing",        phase: "Intelligence" },
+  { id: "predictions", icon: Brain,           label: "Forecasts",      sub: "Predictive signals",       phase: "Intelligence" },
+  { id: "insights",    icon: Lightbulb,       label: "Anomalies",      sub: "AI surfaced findings",     phase: "Intelligence" },
+  { id: "reports",     icon: FileOutput,      label: "Reports",        sub: "Export & briefings",       phase: "Reporting" },
 ];
+const TAB_PHASES: TabPhase[] = ["Command", "Collection", "Analysis", "Intelligence", "Reporting"];
 
 // Live UTC chip — mirrors landing-page HudStatusBar register.
 const LiveChip = () => {
@@ -187,7 +199,7 @@ const EmptyState = () => (
 );
 
 const AzplenInner = () => {
-  const [activeTab, setActiveTab] = useState<AzplenTab>("ingest");
+  const [activeTab, setActiveTab] = useState<AzplenTab>("dashboard");
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const { activeSession, loading } = useAzplenSession();
@@ -214,15 +226,19 @@ const AzplenInner = () => {
     if (!activeSession) return <EmptyState />;
     const panel = (() => {
       switch (activeTab) {
+        case "dashboard":   return <InvestigationDashboardPanel />;
+        case "plan":        return <CollectionPlanPanel />;
         case "ingest":      return <IngestPanel />;
         case "table":       return <DataTablePanel initialDatasetId={selectedDatasetId} />;
         case "entities":    return <EntityResolutionPanel />;
         case "docintel":    return <DocumentIntelligencePanel />;
         case "graph":       return <GraphViewPanel />;
+        case "canvas":      return <CanvasPanel />;
+        case "hypothesis":  return <HypothesisPanel />;
         case "predictions": return <PredictionsPanel />;
         case "insights":    return <InsightsPanel />;
         case "reports":     return <ReportsPanel />;
-        default:            return <IngestPanel />;
+        default:            return <InvestigationDashboardPanel />;
       }
     })();
     return <ErrorBoundary key={activeTab}>{panel}</ErrorBoundary>;
@@ -259,6 +275,7 @@ const AzplenInner = () => {
               </div>
               <div className="flex items-center gap-2 sm:gap-3">
                 <SessionSelector />
+                <ClassificationBadge />
                 <LiveChip />
                 <EncryptionBadge />
                 <Tooltip>

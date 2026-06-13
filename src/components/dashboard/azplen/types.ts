@@ -1,10 +1,14 @@
 export type AzplenTab =
-  | "ingest" | "table" | "graph" | "pipelines" | "workflows"
+  | "dashboard" | "ingest" | "table" | "graph" | "pipelines" | "workflows"
   | "dashboards" | "insights" | "query" | "catalog" | "reports"
   | "webintel" | "entities" | "scenarios" | "lineage" | "threats" | "monitoring"
   | "docintel" | "files" | "predictions"
   | "pipeline-builder" | "ontology" | "workshop" | "quiver"
-  | "aip-logic" | "aip-bootcamps" | "action-engine";
+  | "aip-logic" | "aip-bootcamps" | "action-engine"
+  | "canvas" | "plan" | "hypothesis";
+
+export type AzplenClassification =
+  | "UNCLASS" | "CUI" | "CONFIDENTIAL" | "SECRET" | "TOP SECRET" | "TS/SCI";
 
 export interface AzplenFile {
   id: string;
