@@ -11,6 +11,8 @@ import EntityResolutionPanel from "./EntityResolutionPanel";
 import PredictionsPanel from "./PredictionsPanel";
 import InsightsPanel from "./InsightsPanel";
 import ReportsPanel from "./ReportsPanel";
+import GraphViewPanel from "./GraphViewPanel";
+import DocumentIntelligencePanel from "./DocumentIntelligencePanel";
 import EncryptionBadge from "../EncryptionBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AzplenSessionProvider, useAzplenSession } from "./AzplenSessionContext";
