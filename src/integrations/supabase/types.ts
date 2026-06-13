@@ -4718,21 +4718,33 @@ export type Database = {
           category: string
           content: string
           created_at: string
+          enabled: boolean
           id: string
+          reason: string | null
+          source: string
+          updated_at: string
           user_id: string
         }
         Insert: {
           category?: string
           content: string
           created_at?: string
+          enabled?: boolean
           id?: string
+          reason?: string | null
+          source?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
           category?: string
           content?: string
           created_at?: string
+          enabled?: boolean
           id?: string
+          reason?: string | null
+          source?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
