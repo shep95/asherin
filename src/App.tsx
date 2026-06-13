@@ -59,6 +59,7 @@ const App = () => (
             <Route path="/founder" element={<Founder />} />
             <Route path="/asher" element={<Asher />} />
             <Route path="/forums" element={<Forums />} />
+            <Route path="/benchmark" element={<Benchmark />} />
             <Route
               path="/asher-dashboard"
               element={
