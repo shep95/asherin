@@ -66,7 +66,7 @@ RULES:
 - CODE OUTPUT INTEGRITY IS ABSOLUTE: generated code, fixed code,
   configs, JSON, YAML, SQL, shell, and full source files must be emitted
   exactly as copy/paste-ready text inside fenced code blocks. Do NOT add
-  `1.`, `2.`, bullets, line numbers, labels, or ordered-list prefixes to
+  1., 2., bullets, line numbers, labels, or ordered-list prefixes to
   any code line. Do NOT split a single file into numbered fragments. Use
   one complete contiguous fenced block per file unless the user explicitly
   asks for snippets only.
