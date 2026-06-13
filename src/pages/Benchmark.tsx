@@ -436,6 +436,80 @@ const Benchmark = () => {
             </div>
           </div>
 
+          {/* Security + bug winners */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">Security winner</p>
+              <p className="text-2xl font-extralight text-foreground">Aureon</p>
+              <p className="text-[11px] font-light text-muted-foreground mt-1">by a hair · clears evicted data</p>
+            </div>
+            <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">Fewest bugs winner</p>
+              <p className="text-2xl font-extralight text-foreground">Opus 4.8</p>
+              <p className="text-[11px] font-light text-muted-foreground mt-1">0 verified bugs · no dead code</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5 space-y-6">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+              ◈ Security & bug cleanliness · higher is better
+            </p>
+            <div className="h-[260px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[
+                    { metric: "Security",       aureon: 5, opus: 4, gpt: 4 },
+                    { metric: "Bug cleanliness", aureon: 5, opus: 6, gpt: 3 },
+                  ]}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
+                  <XAxis dataKey="metric" tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis domain={[0, 6]} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
+                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#10b981" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#f97316" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground pt-2">
+              ◈ Raw bug & exposure counts · lower is better
+            </p>
+            <div className="h-[220px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[
+                    { metric: "Real correctness bugs",   aureon: 0, opus: 0, gpt: 1 },
+                    { metric: "Latent dead code",         aureon: 1, opus: 0, gpt: 0 },
+                    { metric: "Uncleared sensitive data", aureon: 0, opus: 1, gpt: 1 },
+                  ]}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
+                  <XAxis dataKey="metric" tick={{ fontSize: 10, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis domain={[0, 2]} allowDecimals={false} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
+                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#10b981" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#f97316" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
+              The two charts tell the split story: the top one is the scored verdict (higher = better),
+              the bottom one is the raw evidence (lower = better). Aureon edges Opus 4.8 on security
+              by explicitly wiping evicted entries from memory, while Opus 4.8 ships with zero
+              verified bugs and no dead code. GPT-5.5 leaks sensitive references and ships a real
+              correctness bug — the cost of running a raw base model with no grooming protocol.
+            </p>
+          </div>
+
+
           {/* Method explanation */}
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-4">
             <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
