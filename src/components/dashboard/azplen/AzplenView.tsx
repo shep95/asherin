@@ -199,7 +199,7 @@ const EmptyState = () => (
 );
 
 const AzplenInner = () => {
-  const [activeTab, setActiveTab] = useState<AzplenTab>("ingest");
+  const [activeTab, setActiveTab] = useState<AzplenTab>("dashboard");
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const { activeSession, loading } = useAzplenSession();
