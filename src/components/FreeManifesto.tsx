@@ -1,7 +1,7 @@
 import { Heart, Copy, Check, ExternalLink } from "lucide-react";
 import { useState } from "react";
 
-const STRIPE_DONATE = "https://donate.stripe.com/9B614p9h63YZara75Ffw408";
+const STRIPE_DONATE = "https://buy.stripe.com/bJe5kFcti8ff0QA61Bfw40a";
 
 const WALLETS = [
   { label: "Bitcoin", ticker: "BTC", address: "bc1qrft6m6pcq0czpn87xa8jg5y4l7x3scgrcd56ws" },
