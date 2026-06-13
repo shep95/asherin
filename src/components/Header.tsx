@@ -79,6 +79,9 @@ const Header = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Founder</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/benchmark" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Benchmark</Link>
+                </DropdownMenuItem>
                 {isAdminEmail(user?.email) && (
                   <>
                     <div className="my-2 border-t border-foreground/10" />
