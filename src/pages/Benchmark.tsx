@@ -583,6 +583,83 @@ const Benchmark = () => {
             </p>
           </div>
 
+          {/* INSIDER THREAT: How founders & devs can steal your ZCASH */}
+          <div className="rounded-2xl border-2 border-foreground/30 bg-foreground/5 backdrop-blur-sm p-6 space-y-5">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+              ◉ Insider threat · how ZCASH founders & core developers could quietly steal your ZEC
+            </p>
+            <h3 className="text-2xl font-extralight tracking-tight text-foreground">
+              Forget outside hackers. The people who write the code have an easier door.
+            </h3>
+            <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
+              Every flaw ZERLAL found above is also an internal abuse path. A core developer, founder,
+              or anyone with commit access to ZCASH doesn't need to "hack" anything — they already
+              hold the keys to the build pipeline, the release signing setup, and the binaries that
+              end up on your machine. Here is how a malicious insider would actually do it,
+              step-by-step, using only the holes that already exist in the project today.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-5">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+              ◈ 12 ways an insider can drain ZEC wallets without raising an alarm
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-extralight leading-relaxed">
+              {[
+                { t: "Malicious release build", b: "A core dev with release permissions ships one tainted binary. Because the security-check script is broken, nothing flags it. Every user who auto-updates is now running attacker code with full wallet access." },
+                { t: "Swap a crypto library mid-release", b: "Replace the vendored sha2 / ripemd / hashbrown copy with a near-identical version that leaks the spending key during signing. Hash outputs look normal. Only the attacker's node knows the secret." },
+                { t: "Backdoored zk-proof generator", b: "Modify the zero-knowledge proof code so a special 'magic' note is always accepted as valid. The insider can mint or spend ZEC from any address without a real private key. On-chain it looks like a normal shielded transaction." },
+                { t: "Weak randomness for new wallets", b: "Quietly reduce entropy in the keygen path (e.g., seed from predictable values). Every wallet created after that release has keys the insider can brute-force in minutes. Users notice nothing until funds vanish months later." },
+                { t: "Hidden RPC command", b: "Add an undocumented JSON-RPC method like debug_export that dumps the wallet seed to anyone who knows the call. Combined with the default 'notsecure' password and exposed Docker port, the insider drains nodes remotely." },
+                { t: "Log-leak the seed phrase", b: "Add one debug line that prints the wallet seed on startup. Logs ship to CloudWatch / Grafana / Sentry. The insider — or anyone who ever had log access — can replay every wallet ever opened." },
+                { t: "Trusted-setup sabotage", b: "Shielded ZEC depends on a trusted setup ceremony. An insider who participated and kept the toxic waste can forge unlimited counterfeit ZEC silently. The chain has no way to detect it from the outside." },
+                { t: "Compiler / linker swap", b: "Push a build-config change that calls the linker by name from PATH. On the release machine, swap the linker for a wrapper that injects a payload into the final binary. Source code on GitHub stays 100% clean." },
+                { t: "Dependency hijack via live GitHub pull", b: "The release pipeline fetches another repo at build time with no pinned commit. An insider who controls that second repo (or its maintainer account) ships malicious code into ZCASH without ever touching the ZCASH repo." },
+                { t: "Fee-redirect patch", b: "Change one line in the mempool / mining code so a small percentage of every transaction fee silently routes to an attacker address. At ZCASH's volume, this prints money for years before anyone notices." },
+                { t: "Selective censorship + front-running", b: "An insider running mining infrastructure can read pending shielded-to-transparent transactions, reorder them, and front-run exchanges. Users get worse prices, the insider pockets the difference — fully legal-looking on-chain." },
+                { t: "Kill-switch / remote brick", b: "Plant a dormant condition (date, block height, or remote flag) that disables signing in every wallet on a given release. Hold users' funds hostage, or short ZEC on exchanges right before flipping the switch." },
+              ].map((x) => (
+                <div key={x.t} className="rounded-xl border border-border/30 bg-background/30 p-4">
+                  <p className="text-foreground font-light mb-1">◉ {x.t}</p>
+                  <p className="text-xs text-muted-foreground/90">{x.b}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-4">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+              ◈ Why this is worse than a normal exploit
+            </p>
+            <ul className="space-y-2 text-sm font-extralight text-muted-foreground/90 leading-relaxed list-none">
+              <li>◉ <span className="text-foreground">They sign the release.</span> Your wallet trusts the signature by default — the malicious binary looks 100% official.</li>
+              <li>◉ <span className="text-foreground">They write the security check.</span> The same people who could attack you also control the script that's supposed to catch the attack. It's already broken.</li>
+              <li>◉ <span className="text-foreground">They control the update channel.</span> Auto-update means one bad release reaches every user within hours.</li>
+              <li>◉ <span className="text-foreground">Shielded by design.</span> ZCASH's privacy features that protect users also protect the attacker. Stolen funds can be laundered through the same shielded pool in a single transaction.</li>
+              <li>◉ <span className="text-foreground">Plausible deniability.</span> Every step above can be framed as "a bug" if discovered. No insider has ever been prosecuted for a "mistake" in open-source crypto code.</li>
+            </ul>
+          </div>
+
+          <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-4">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+              ◈ How to protect yourself (if you actually hold ZEC)
+            </p>
+            <ul className="space-y-2 text-sm font-extralight text-muted-foreground/90 leading-relaxed list-none">
+              <li>◉ Never run the default Docker image as-is. Change the RPC password, bind RPC to localhost only, and put the node behind a firewall.</li>
+              <li>◉ Don't auto-update. Pin a release, wait, and let other people get rugged first.</li>
+              <li>◉ Verify the binary against multiple independent reproducible builds — not just the official signature.</li>
+              <li>◉ Use a hardware wallet for any meaningful amount. The signing key never touches the compromised software.</li>
+              <li>◉ Keep cold storage off any machine that has ever run the official node, wallet, or build tools.</li>
+              <li>◉ Treat shielded balances as a target, not a hiding place. Privacy cuts both ways.</li>
+            </ul>
+            <p className="text-xs font-extralight text-muted-foreground/80 pt-2">
+              None of the above is theoretical. Every attack on this page maps to a real finding ZERLAL
+              pulled out of the public ZCASH codebase in under 10 minutes.
+            </p>
+          </div>
+
+
+
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 text-center space-y-3">
             <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◉ The takeaway
