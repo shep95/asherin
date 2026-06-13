@@ -5,7 +5,10 @@ export type AzplenTab =
   | "docintel" | "files" | "predictions"
   | "pipeline-builder" | "ontology" | "workshop" | "quiver"
   | "aip-logic" | "aip-bootcamps" | "action-engine"
-  | "canvas" | "plan" | "hypothesis";
+  | "canvas" | "plan" | "hypothesis"
+  | "memory" | "playbooks" | "cases" | "workload"
+  | "streams" | "evidence" | "contradictions" | "redteam"
+  | "library" | "review" | "fusion";
 
 export type AzplenClassification =
   | "UNCLASS" | "CUI" | "CONFIDENTIAL" | "SECRET" | "TOP SECRET" | "TS/SCI";

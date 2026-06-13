@@ -4,6 +4,7 @@ import {
   LayoutDashboard, PenLine, ClipboardList, Scale,
   Plus, Building2, ChevronDown, Trash2, Pencil, Check, X,
   Keyboard, ShieldCheck,
+  BookMarked, BookOpen, Folder, Users, Radio, FileLock, AlertTriangle, Swords, Library, Gavel, Sparkles,
 } from "lucide-react";
 import type { AzplenTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -18,6 +19,17 @@ import InvestigationDashboardPanel from "./InvestigationDashboardPanel";
 import CanvasPanel from "./CanvasPanel";
 import CollectionPlanPanel from "./CollectionPlanPanel";
 import HypothesisPanel from "./HypothesisPanel";
+import MemoryPanel from "./MemoryPanel";
+import PlaybooksPanel from "./PlaybooksPanel";
+import CasesPanel from "./CasesPanel";
+import WorkloadPanel from "./WorkloadPanel";
+import StreamsPanel from "./StreamsPanel";
+import EvidencePanel from "./EvidencePanel";
+import ContradictionsPanel from "./ContradictionsPanel";
+import RedTeamPanel from "./RedTeamPanel";
+import LibraryPanel from "./LibraryPanel";
+import ReviewBoardPanel from "./ReviewBoardPanel";
+import FusionPanel from "./FusionPanel";
 import ClassificationBadge from "./ClassificationBadge";
 import EncryptionBadge from "../EncryptionBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -33,16 +45,27 @@ export const useAzplenNav = () => useContext(AzplenNavContext);
 type TabPhase = "Command" | "Collection" | "Analysis" | "Intelligence" | "Reporting";
 const tabs: { id: AzplenTab; icon: React.ElementType; label: string; sub: string; phase: TabPhase }[] = [
   { id: "dashboard",   icon: LayoutDashboard, label: "Dashboard",      sub: "Investigation overview",   phase: "Command" },
+  { id: "cases",       icon: Folder,          label: "Cases",          sub: "Case file lifecycle",      phase: "Command" },
   { id: "plan",        icon: ClipboardList,   label: "Collection Plan",sub: "Intelligence questions",   phase: "Command" },
+  { id: "workload",    icon: Users,           label: "Workload",       sub: "Analyst capacity",         phase: "Command" },
+  { id: "memory",      icon: BookMarked,      label: "Memory",         sub: "Operator knowledge base",  phase: "Command" },
+  { id: "playbooks",   icon: BookOpen,        label: "Playbooks",      sub: "Reusable procedures",      phase: "Command" },
   { id: "ingest",      icon: Upload,          label: "Ingest",         sub: "Upload financial data",    phase: "Collection" },
+  { id: "streams",     icon: Radio,           label: "Streams",        sub: "Live data feeds",          phase: "Collection" },
   { id: "docintel",    icon: FileText,        label: "Documents",      sub: "Document intelligence",    phase: "Collection" },
   { id: "table",       icon: Table2,          label: "Ledger",         sub: "Tabular review",           phase: "Collection" },
   { id: "entities",    icon: Fingerprint,     label: "Counterparties", sub: "Entity resolution",        phase: "Analysis" },
   { id: "graph",       icon: Network,         label: "Graph",          sub: "Document & entity mapping",phase: "Analysis" },
   { id: "canvas",      icon: PenLine,         label: "Canvas",         sub: "Argument workspace",       phase: "Analysis" },
   { id: "hypothesis",  icon: Scale,           label: "Hypotheses",     sub: "ACH-style testing",        phase: "Intelligence" },
+  { id: "contradictions", icon: AlertTriangle,label: "Contradictions", sub: "Conflicting claims log",   phase: "Intelligence" },
+  { id: "redteam",     icon: Swords,          label: "Red Team",       sub: "Adversarial critique",     phase: "Intelligence" },
+  { id: "fusion",      icon: Sparkles,        label: "Fusion",         sub: "Cross-domain synthesis",   phase: "Intelligence" },
   { id: "predictions", icon: Brain,           label: "Forecasts",      sub: "Predictive signals",       phase: "Intelligence" },
   { id: "insights",    icon: Lightbulb,       label: "Anomalies",      sub: "AI surfaced findings",     phase: "Intelligence" },
+  { id: "evidence",    icon: FileLock,        label: "Evidence",       sub: "Chain of custody",         phase: "Reporting" },
+  { id: "review",      icon: Gavel,           label: "Review Board",   sub: "Multi-reviewer approval",  phase: "Reporting" },
+  { id: "library",     icon: Library,         label: "Library",        sub: "Published intel assets",   phase: "Reporting" },
   { id: "reports",     icon: FileOutput,      label: "Reports",        sub: "Export & briefings",       phase: "Reporting" },
 ];
 const TAB_PHASES: TabPhase[] = ["Command", "Collection", "Analysis", "Intelligence", "Reporting"];
@@ -226,19 +249,30 @@ const AzplenInner = () => {
     if (!activeSession) return <EmptyState />;
     const panel = (() => {
       switch (activeTab) {
-        case "dashboard":   return <InvestigationDashboardPanel />;
-        case "plan":        return <CollectionPlanPanel />;
-        case "ingest":      return <IngestPanel />;
-        case "table":       return <DataTablePanel initialDatasetId={selectedDatasetId} />;
-        case "entities":    return <EntityResolutionPanel />;
-        case "docintel":    return <DocumentIntelligencePanel />;
-        case "graph":       return <GraphViewPanel />;
-        case "canvas":      return <CanvasPanel />;
-        case "hypothesis":  return <HypothesisPanel />;
-        case "predictions": return <PredictionsPanel />;
-        case "insights":    return <InsightsPanel />;
-        case "reports":     return <ReportsPanel />;
-        default:            return <InvestigationDashboardPanel />;
+        case "dashboard":      return <InvestigationDashboardPanel />;
+        case "cases":          return <CasesPanel />;
+        case "plan":           return <CollectionPlanPanel />;
+        case "workload":       return <WorkloadPanel />;
+        case "memory":         return <MemoryPanel />;
+        case "playbooks":      return <PlaybooksPanel />;
+        case "ingest":         return <IngestPanel />;
+        case "streams":        return <StreamsPanel />;
+        case "table":          return <DataTablePanel initialDatasetId={selectedDatasetId} />;
+        case "entities":       return <EntityResolutionPanel />;
+        case "docintel":       return <DocumentIntelligencePanel />;
+        case "graph":          return <GraphViewPanel />;
+        case "canvas":         return <CanvasPanel />;
+        case "hypothesis":     return <HypothesisPanel />;
+        case "contradictions": return <ContradictionsPanel />;
+        case "redteam":        return <RedTeamPanel />;
+        case "fusion":         return <FusionPanel />;
+        case "predictions":    return <PredictionsPanel />;
+        case "insights":       return <InsightsPanel />;
+        case "evidence":       return <EvidencePanel />;
+        case "review":         return <ReviewBoardPanel />;
+        case "library":        return <LibraryPanel />;
+        case "reports":        return <ReportsPanel />;
+        default:               return <InvestigationDashboardPanel />;
       }
     })();
     return <ErrorBoundary key={activeTab}>{panel}</ErrorBoundary>;
