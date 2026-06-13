@@ -498,7 +498,7 @@ const Benchmark = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 text-center">
-              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-3">Opus 4.6</p>
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-3">Opus 4.8</p>
               <div className="text-5xl font-extralight text-foreground">11</div>
               <p className="text-xs font-extralight text-muted-foreground mt-2">security bugs found</p>
             </div>
