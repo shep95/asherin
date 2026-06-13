@@ -694,7 +694,8 @@ const Founder = () => {
       <div className="relative z-10 h-24" />
       </div>
 
-    </LandingBackground>
+      <SiteFooter />
+    </div>
   );
 };
 
