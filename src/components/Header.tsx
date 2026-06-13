@@ -85,6 +85,9 @@ const Header = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/software" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Software</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/whiteboard" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Whiteboard</Link>
+                </DropdownMenuItem>
                 {isAdminEmail(user?.email) && (
                   <>
                     <div className="my-2 border-t border-foreground/10" />

@@ -19,6 +19,7 @@ const AsherDashboard = lazy(() => import("./pages/AsherDashboard"));
 const Forums = lazy(() => import("./pages/Forums"));
 const Benchmark = lazy(() => import("./pages/Benchmark"));
 const Software = lazy(() => import("./pages/Software"));
+const WhiteboardPage = lazy(() => import("./pages/WhiteboardPage"));
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/forums" element={<Forums />} />
             <Route path="/benchmark" element={<Benchmark />} />
             <Route path="/software" element={<Software />} />
+            <Route path="/whiteboard" element={<WhiteboardPage />} />
             <Route
               path="/asher-dashboard"
               element={

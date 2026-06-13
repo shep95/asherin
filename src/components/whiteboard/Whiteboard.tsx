@@ -1526,7 +1526,7 @@ const Whiteboard = () => {
     }`;
 
   return (
-    <div className="relative flex h-screen w-screen overflow-hidden bg-background">
+    <div className="relative flex h-full w-full min-h-0 overflow-hidden bg-background">
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary/20" />
 
       <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 pointer-events-none">

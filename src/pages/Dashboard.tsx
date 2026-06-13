@@ -82,6 +82,7 @@ const PredictiveIntelligenceView = lazyWithRetry(() => import("@/components/dash
 
 const PersonaStoreView = lazyWithRetry(() => import("@/components/dashboard/PersonaStoreView"));
 const AureonIdeView = lazyWithRetry(() => import("@/components/dashboard/ide/AureonIdeView"));
+const WhiteboardView = lazyWithRetry(() => import("@/components/whiteboard/Whiteboard"));
 const PdfGeneratorView = lazyWithRetry(() => import("@/components/dashboard/PdfGeneratorView"));
 const DocumentExportLanding = lazyWithRetry(() => import("@/components/dashboard/DocumentExportLanding"));
 
@@ -1457,6 +1458,7 @@ const Dashboard = () => {
       case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;
       case "snippets": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense></ErrorBoundary>;
       case "media2code": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><MediaToCodeView /></Suspense></ErrorBoundary>;
+      case "whiteboard": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><div className="h-full w-full min-h-0"><WhiteboardView /></div></Suspense></ErrorBoundary>;
       case "projects": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><ProjectsView /></Suspense></ErrorBoundary>;
       case "memory": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><MemoryCenterView /></Suspense></ErrorBoundary>;
       case "stats": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><StatsView /></Suspense></ErrorBoundary>;
