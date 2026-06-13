@@ -66,7 +66,7 @@ import { NAV_INTENTS as ALL_INTENTS, INTENT_GROUPS, INTENT_GROUP_BLURB, type Nav
 const VIEW_ICON: Record<string, React.ElementType> = {
   "zali": Zap,
   "pdf-generator": FileText,
-  "/whiteboard": Layers,
+  "whiteboard": Layers,
   "azplen": Database,
   "zeeion": Database,
   "pattern-analysis": Activity,
