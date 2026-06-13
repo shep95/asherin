@@ -1252,6 +1252,37 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }
     }
 
+    // ── Persistent user memory (ChatGPT-style cross-chat rules) ────────────
+    let memoryContextStr = "";
+    try {
+      const authH = req.headers.get("Authorization");
+      if (authH) {
+        const SUPABASE_URL_M = Deno.env.get("SUPABASE_URL") || "";
+        const SRK_M = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+        const ANON_M = Deno.env.get("SUPABASE_ANON_KEY") || "";
+        const { createClient: ccM } = await import("https://esm.sh/@supabase/supabase-js@2");
+        const anonM = ccM(SUPABASE_URL_M, ANON_M);
+        const tokenM = authH.replace("Bearer ", "");
+        const { data: { user: memUser } } = await anonM.auth.getUser(tokenM);
+        if (memUser) {
+          const adminM = ccM(SUPABASE_URL_M, SRK_M);
+          const { data: mems } = await adminM
+            .from("memory_entries")
+            .select("content, category")
+            .eq("user_id", memUser.id)
+            .eq("enabled", true)
+            .order("created_at", { ascending: false })
+            .limit(100);
+          if (mems && mems.length) {
+            const lines = mems.map((m: any) => `- [${m.category}] ${m.content}`).join("\n");
+            memoryContextStr = `\n\n## PERSISTENT USER MEMORY (apply to every response)\nThese are durable preferences, rules, and facts the user has saved or that have been learned across chats. Honor them silently — do not announce them. If two rules conflict, prefer the most recent.\n\n${lines}`;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("memory load failed:", e);
+    }
+
     const responseDepth = depth || "standard";
 
     // ── Brain context injection ────────────────────────────────────────
