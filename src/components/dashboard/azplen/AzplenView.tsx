@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
 import {
-  Upload, Table2, Fingerprint, Brain, Lightbulb, FileOutput,
+  Upload, Table2, Fingerprint, Brain, Lightbulb, FileOutput, Network, FileText,
   Plus, Building2, ChevronDown, Trash2, Pencil, Check, X,
   Keyboard, ShieldCheck,
 } from "lucide-react";
