@@ -1604,6 +1604,7 @@ ${zophielCodingBrainContent}
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
       CONTEXT_INTELLIGENCE_PROMPT,
       userContextStr,
+      memoryContextStr,
       brainContextStr,
       skillInjection ? `\n${skillInjection}` : "",
       swarmInjection ? `\n[SWARM ORCHESTRATOR — Active Agent: ${activeAgentId || "general"}]\n${swarmInjection}` : "",
