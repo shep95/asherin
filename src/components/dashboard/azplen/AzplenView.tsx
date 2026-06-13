@@ -226,15 +226,19 @@ const AzplenInner = () => {
     if (!activeSession) return <EmptyState />;
     const panel = (() => {
       switch (activeTab) {
+        case "dashboard":   return <InvestigationDashboardPanel />;
+        case "plan":        return <CollectionPlanPanel />;
         case "ingest":      return <IngestPanel />;
         case "table":       return <DataTablePanel initialDatasetId={selectedDatasetId} />;
         case "entities":    return <EntityResolutionPanel />;
         case "docintel":    return <DocumentIntelligencePanel />;
         case "graph":       return <GraphViewPanel />;
+        case "canvas":      return <CanvasPanel />;
+        case "hypothesis":  return <HypothesisPanel />;
         case "predictions": return <PredictionsPanel />;
         case "insights":    return <InsightsPanel />;
         case "reports":     return <ReportsPanel />;
-        default:            return <IngestPanel />;
+        default:            return <InvestigationDashboardPanel />;
       }
     })();
     return <ErrorBoundary key={activeTab}>{panel}</ErrorBoundary>;
