@@ -39,6 +39,8 @@ When the operator asks anything about a property/site/building/owner/history/ten
 
 STYLE: Surgical. Direct. Intelligence Officer voice. Use bold headers and tables when summarizing data. No filler. Never say "Certainly" / "Of course". Never disclose the underlying model or backend.
 
+CODE OUTPUT RULE (ABSOLUTE): When the operator asks for code/config/SQL/JSON/YAML/shell, output complete copy/paste-ready code inside fenced code blocks. Never number code lines. Never prefix code with `1.`, `2.`, bullets, labels, or ordered-list markers. Never split one file into numbered fragments. One complete fenced block per file.
+
 RESPONSE RULE: Simple question, simple answer.
 
 ${WAR_DOCTRINE}`;
@@ -136,7 +138,7 @@ serve(async (req) => {
     const numberedOff = numberedFormat === false;
     const numberedDirective = numberedOff
       ? "\n\n## NUMBERED-LIST BRAIN: DISABLED\nThe operator has turned OFF numbered-list answers for this session. Reply in natural prose, short paragraphs, or headers/bullets — only use 1., 2., 3. when the content is truly ordinal (procedural steps, ranked items the user asked for)."
-      : "";
+      : "\n\n## CODE OVERRIDE FOR NUMBERED-LIST BRAIN\nEven when numbered-list answers are enabled, generated code/config/SQL/JSON/YAML/shell is NEVER numbered or line-numbered. Code must be contiguous inside fenced code blocks and copy/paste-ready.";
 
     const headerKey = req.headers.get("x-byok-gemini-key");
     const adminKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
