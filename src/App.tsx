@@ -63,6 +63,7 @@ const App = () => (
             <Route path="/forums" element={<Forums />} />
             <Route path="/benchmark" element={<Benchmark />} />
             <Route path="/software" element={<Software />} />
+            <Route path="/whiteboard" element={<WhiteboardPage />} />
             <Route
               path="/asher-dashboard"
               element={
