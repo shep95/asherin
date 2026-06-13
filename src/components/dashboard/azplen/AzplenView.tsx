@@ -217,6 +217,8 @@ const AzplenInner = () => {
         case "ingest":      return <IngestPanel />;
         case "table":       return <DataTablePanel initialDatasetId={selectedDatasetId} />;
         case "entities":    return <EntityResolutionPanel />;
+        case "docintel":    return <DocumentIntelligencePanel />;
+        case "graph":       return <GraphViewPanel />;
         case "predictions": return <PredictionsPanel />;
         case "insights":    return <InsightsPanel />;
         case "reports":     return <ReportsPanel />;
