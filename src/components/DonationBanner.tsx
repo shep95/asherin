@@ -14,7 +14,7 @@ const WALLETS: { label: string; address: string }[] = [
   { label: "ARB", address: "0xa7bDbAA58f908007F1bED6f8AE6c582557B00c2B" },
 ];
 
-const STRIPE_DONATE = "https://donate.stripe.com/9B614p9h63YZara75Ffw408";
+const STRIPE_DONATE = "https://buy.stripe.com/bJe5kFcti8ff0QA61Bfw40a";
 
 export default function DonationBanner() {
   const [dismissed, setDismissed] = useState(
