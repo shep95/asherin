@@ -70,16 +70,9 @@ const Founder = () => {
   }, []);
 
   return (
-    <LandingBackground>
+    <div className="min-h-screen bg-background text-foreground">
       <ScrollProgressBar />
       <FounderTOC />
-
-      {/* Faint warm amber tint — the page is a study, not a lab */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{ background: "radial-gradient(ellipse at 50% 30%, rgba(251,191,36,0.025), transparent 70%)" }}
-      />
 
       <Header />
 
