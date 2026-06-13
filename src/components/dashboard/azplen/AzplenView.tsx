@@ -1,6 +1,7 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
 import {
   Upload, Table2, Fingerprint, Brain, Lightbulb, FileOutput, Network, FileText,
+  LayoutDashboard, PenLine, ClipboardList, Scale,
   Plus, Building2, ChevronDown, Trash2, Pencil, Check, X,
   Keyboard, ShieldCheck,
 } from "lucide-react";
@@ -13,6 +14,11 @@ import InsightsPanel from "./InsightsPanel";
 import ReportsPanel from "./ReportsPanel";
 import GraphViewPanel from "./GraphViewPanel";
 import DocumentIntelligencePanel from "./DocumentIntelligencePanel";
+import InvestigationDashboardPanel from "./InvestigationDashboardPanel";
+import CanvasPanel from "./CanvasPanel";
+import CollectionPlanPanel from "./CollectionPlanPanel";
+import HypothesisPanel from "./HypothesisPanel";
+import ClassificationBadge from "./ClassificationBadge";
 import EncryptionBadge from "../EncryptionBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AzplenSessionProvider, useAzplenSession } from "./AzplenSessionContext";
