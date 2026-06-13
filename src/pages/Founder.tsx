@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import LandingBackground from "@/components/LandingBackground";
 import FounderPhotoCarousel from "@/components/founder/FounderPhotoCarousel";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
@@ -9,6 +8,7 @@ import FounderVideos from "@/components/founder/FounderVideos";
 import FounderTOC from "@/components/founder/FounderTOC";
 import { ReadingTime, SectionDivider } from "@/components/founder/FounderBits";
 import ScrollProgressBar from "@/components/landing/ScrollProgressBar";
+import SiteFooter from "@/components/SiteFooter";
 import imagineMaterialVsDivine from "@/assets/founder-imagine-material-vs-divine-love.png";
 import imagineMoneyWarControl from "@/assets/founder-imagine-money-war-control.png";
 import imagineReligionJesusCreated from "@/assets/founder-imagine-religion-jesus-created.png";
@@ -70,16 +70,9 @@ const Founder = () => {
   }, []);
 
   return (
-    <LandingBackground>
+    <div className="min-h-screen bg-background text-foreground">
       <ScrollProgressBar />
       <FounderTOC />
-
-      {/* Faint warm amber tint — the page is a study, not a lab */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{ background: "radial-gradient(ellipse at 50% 30%, rgba(251,191,36,0.025), transparent 70%)" }}
-      />
 
       <Header />
 
@@ -701,7 +694,8 @@ const Founder = () => {
       <div className="relative z-10 h-24" />
       </div>
 
-    </LandingBackground>
+      <SiteFooter />
+    </div>
   );
 };
 
