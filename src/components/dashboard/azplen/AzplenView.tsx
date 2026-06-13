@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
 import {
-  Upload, Table2, Fingerprint, Brain, Lightbulb, FileOutput,
+  Upload, Table2, Fingerprint, Brain, Lightbulb, FileOutput, Network, FileText,
   Plus, Building2, ChevronDown, Trash2, Pencil, Check, X,
   Keyboard, ShieldCheck,
 } from "lucide-react";
@@ -11,6 +11,8 @@ import EntityResolutionPanel from "./EntityResolutionPanel";
 import PredictionsPanel from "./PredictionsPanel";
 import InsightsPanel from "./InsightsPanel";
 import ReportsPanel from "./ReportsPanel";
+import GraphViewPanel from "./GraphViewPanel";
+import DocumentIntelligencePanel from "./DocumentIntelligencePanel";
 import EncryptionBadge from "../EncryptionBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AzplenSessionProvider, useAzplenSession } from "./AzplenSessionContext";
@@ -25,6 +27,8 @@ export const useAzplenNav = () => useContext(AzplenNavContext);
 const tabs: { id: AzplenTab; icon: React.ElementType; label: string; sub: string }[] = [
   { id: "ingest",      icon: Upload,      label: "Ingest",         sub: "Upload financial data" },
   { id: "table",       icon: Table2,      label: "Ledger",         sub: "Tabular review" },
+  { id: "docintel",    icon: FileText,    label: "Documents",      sub: "Document intelligence" },
+  { id: "graph",       icon: Network,     label: "Graph",          sub: "Document & entity mapping" },
   { id: "entities",    icon: Fingerprint, label: "Counterparties", sub: "Entity resolution" },
   { id: "predictions", icon: Brain,       label: "Forecasts",      sub: "Predictive signals" },
   { id: "insights",    icon: Lightbulb,   label: "Anomalies",      sub: "AI surfaced findings" },
@@ -213,6 +217,8 @@ const AzplenInner = () => {
         case "ingest":      return <IngestPanel />;
         case "table":       return <DataTablePanel initialDatasetId={selectedDatasetId} />;
         case "entities":    return <EntityResolutionPanel />;
+        case "docintel":    return <DocumentIntelligencePanel />;
+        case "graph":       return <GraphViewPanel />;
         case "predictions": return <PredictionsPanel />;
         case "insights":    return <InsightsPanel />;
         case "reports":     return <ReportsPanel />;
