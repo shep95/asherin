@@ -17,6 +17,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Asher = lazy(() => import("./pages/Asher"));
 const AsherDashboard = lazy(() => import("./pages/AsherDashboard"));
 const Forums = lazy(() => import("./pages/Forums"));
+const Benchmark = lazy(() => import("./pages/Benchmark"));
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
