@@ -374,6 +374,7 @@ serve(async (req) => {
     const html = await pageResp.text();
     const headers = pageResp.headers;
     const headerBag = Object.fromEntries([...headers.entries()].map(([k, v]) => [k.toLowerCase(), v]));
+    const metaBag = extractMetaHttpEquiv(html);
     const scriptSources = extractAttributeList(html, "script", "src");
     const linkSources = extractAttributeList(html, "link", "href");
 
