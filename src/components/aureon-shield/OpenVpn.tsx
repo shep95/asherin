@@ -769,7 +769,7 @@ const AureonShield = ({ embed = false }: { embed?: boolean } = {}) => {
                     <span className="flex items-center gap-2"><Activity className="h-3 w-3 animate-pulse" /> Tunnel active · relay routing</span>
                     <span className="font-mono text-muted-foreground normal-case">{proxyUrl}</span>
                   </div>
-                  <iframe src={proxyActive} title="Aureon Shield Tunnel" className="h-[600px] w-full bg-background" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
+                  <iframe src={proxyActive} title="Aureon Shield Tunnel" className="h-[600px] w-full bg-background" sandbox="allow-scripts allow-forms allow-popups" />
                 </div>
               )}
             </Glass>
