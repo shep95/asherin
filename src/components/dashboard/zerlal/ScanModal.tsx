@@ -41,10 +41,10 @@ const scanProfiles = [
 const isZipArchive = (name: string) => /\.zip$/i.test(name);
 const isOtherArchive = (name: string) => /\.(tar|tar\.gz|tgz)$/i.test(name);
 const skipArchivePath = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX|\.cache|target|out|bin|obj)\//i;
-const acceptedCodeFile = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile|lock|txt|xml|ini|cfg|properties|gradle|scala|dart|lua|zig|hcl|gitignore|sum|mod)$/i;
-const ZIP_FILE_LIMIT = 160;
-const ZIP_TEXT_LIMIT = 1_200_000;
-const ZIP_ENTRY_LIMIT = 120_000;
+const acceptedCodeFile = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|c|cc|cpp|cxx|h|hpp|hh|php|rb|swift|kt|kts|cs|sh|bash|zsh|ps1|bat|cmd|sql|ya?ml|json|jsonc|toml|tf|vue|svelte|html|css|scss|sass|less|md|mdx|env|example|sample|dockerfile|lock|txt|xml|ini|cfg|conf|properties|gradle|scala|dart|lua|zig|hcl|gitignore|sum|mod|prisma|graphql|gql|proto|makefile|cmake)$/i;
+const ZIP_FILE_LIMIT = 260;
+const ZIP_TEXT_LIMIT = 2_400_000;
+const ZIP_ENTRY_LIMIT = 180_000;
 
 const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalProps) => {
   const [step, setStep] = useState<Step>(1);
