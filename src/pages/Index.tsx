@@ -122,7 +122,7 @@ const Index = () => {
       { q: "What makes Aureon different?", a: "Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, intelligence tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },
       { q: "How good is the coding engine?", a: "Aureon holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." },
       { q: 'What does "never trains our models" mean?', a: "Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." },
-      { q: "Can I cancel anytime?", a: 'Yes. One click. No retention flow. No "are you sure?" loop. Your access ends at the billing cycle. Your data is deleted on request.' },
+      { q: "Can I cancel anytime?", a: "Yes. One click. No retention flow. No \"are you sure?\" loop. Aureon has no subscriptions to cancel — every feature is free during the Donation Era. Your data is deleted on request." },
       { q: "What is the live web search powered by?", a: "Privacy-first search infrastructure. Aureon pulls live data without tracking your search behavior or feeding it to ad networks." },
       { q: "Is Aureon available in multiple languages?", a: "Yes. Aureon processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language." },
     ];
