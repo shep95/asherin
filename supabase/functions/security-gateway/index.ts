@@ -177,9 +177,19 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { action, payload, user_agent, request_path, request_method, geo_country, user_id } = body;
-    // SECURITY: never trust source_ip from request body — derive from infra headers
+    const { action, payload, user_agent, request_path, request_method, geo_country } = body;
+    // SECURITY: never trust source_ip OR user_id from the request body.
+    // Anonymous callers could otherwise flag arbitrary user accounts as
+    // attackers. Derive caller identity from the bearer JWT only.
     const source_ip = getClientIp(req);
+    let user_id: string | null = null;
+    const _authH = req.headers.get("Authorization");
+    if (_authH) {
+      try {
+        const { data } = await supabaseAdmin.auth.getUser(_authH.replace("Bearer ", ""));
+        user_id = data?.user?.id ?? null;
+      } catch { /* ignore — unauthenticated callers stay null */ }
+    }
 
     // ACTION: scan — Full WAF + IDS scan
     if (action === "scan") {
