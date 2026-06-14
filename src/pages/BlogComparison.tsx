@@ -21,7 +21,7 @@ type Cell = "yes" | "no" | "partial" | string;
 type Row = { feature: string; aureon: Cell; chatgpt: Cell; claude: Cell; note?: string };
 
 const MATRIX: Row[] = [
-  { feature: "Monthly entry price",                aureon: "$47",      chatgpt: "$20",     claude: "$20",      note: "Aureon entry tier includes everything ChatGPT Plus & Claude Pro gate behind enterprise." },
+  { feature: "Entry price",                        aureon: "$47 one-time", chatgpt: "$20 / month", claude: "$20 / month",  note: "Aureon entry is a single payment. ChatGPT Plus and Claude Pro bill every month." },
   { feature: "Uncensored responses",               aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Aureon refuses nothing legal; the others refuse a substantial share of legitimate queries." },
   { feature: "Bring-your-own-key (9 providers)",   aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Use Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, or Venice on your own bill." },
   { feature: "Multi-model consensus",              aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Five-phase cross-validation across models, 45% confidence threshold." },
@@ -37,7 +37,8 @@ const MATRIX: Row[] = [
   { feature: "Voice chat",                         aureon: "yes",      chatgpt: "yes",     claude: "no",       note: "Aureon uses ElevenLabs WebRTC with live audio visualisers." },
   { feature: "Image generation",                   aureon: "yes",      chatgpt: "yes",     claude: "no",       note: "Aureon Imagine module ships with persistent gallery." },
   { feature: "Vision (image + video) input",       aureon: "yes",      chatgpt: "yes",     claude: "yes",      note: "Aureon adds FACS behavioural video tracking." },
-  { feature: "Lifetime license option",            aureon: "yes",      chatgpt: "no",      claude: "no",       note: "$470 one-time, no recurring billing." },
+  { feature: "Lifetime licence option",            aureon: "yes",      chatgpt: "no",      claude: "no",       note: "$470 one-time, no recurring billing ever." },
+  { feature: "No mandatory monthly subscription",  aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Aureon never bills monthly. Pay once or use free. Competitors require ongoing subscriptions." },
 ];
 
 const FAQ = [
