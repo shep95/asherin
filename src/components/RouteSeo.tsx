@@ -34,6 +34,21 @@ const SEO: Record<string, SeoEntry> = {
     title: "Terms of Service — Aureon",
     description: "Aureon's Terms of Service. Read the rules of engagement for using the platform.",
   },
+  "/software": {
+    title: "Software — Every Aureon Tool, Free | Aureon",
+    description:
+      "Every Aureon tool, free to use: OSINT search, predictive engines, IDE, whiteboard, e-book generator, file scrapper, and more.",
+  },
+  "/benchmark": {
+    title: "Aureon Benchmark — Cheap Models, Groomed to Outperform",
+    description:
+      "Aureon vs Opus 4.8 vs GPT-5.5 on a thread-safe LRU cache: prompts, code, and scored results in the open.",
+  },
+  "/asher": {
+    title: "Asher — Operator Workspace | Aureon",
+    description:
+      "Asher: the operator workspace inside Aureon. Encrypted channels, intelligence modules, and live collaboration.",
+  },
   "/privacy": {
     title: "Privacy Policy — Aureon",
     description: "How Aureon handles your data: storage, encryption, retention, and your rights.",
