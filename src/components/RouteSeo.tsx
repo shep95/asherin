@@ -92,6 +92,12 @@ const SEO: Record<string, SeoEntry> = {
       "Side-by-side: price, censorship, BYOK, OSINT, IDE, simulation, and privacy across Aureon, ChatGPT Plus, and Claude Pro.",
     ogType: "article",
   },
+  "/blog/venice-integration": {
+    title: "Venice AI Integration in Aureon — Unfiltered Intelligence, Zero Setup",
+    description:
+      "How Aureon routes free and BYOK traffic through Venice AI for uncensored, vision-capable answers with no key, no account, and no monthly subscription.",
+    ogType: "article",
+  },
 
 
 
