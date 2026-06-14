@@ -399,11 +399,11 @@ serve(async (req) => {
       .filter(Boolean));
     const hasSpf = txtRecords.some((record) => /v=spf1/i.test(record));
 
+    // No artificial cap on CT-discovered subdomains — operators asked for the full surface.
     const subdomains = uniq(ctEntries
       .flatMap((entry) => (entry.name_value || "").split("\n"))
       .map((name) => name.replace(/^\*\./, "").trim().toLowerCase())
-      .filter((name) => name && name.endsWith(normalized.hostname) && name !== normalized.hostname))
-      .slice(0, 15);
+      .filter((name) => name && name.endsWith(normalized.hostname) && name !== normalized.hostname));
 
     const ctDates = ctEntries
       .map((entry) => entry.not_before || entry.entry_timestamp || "")
