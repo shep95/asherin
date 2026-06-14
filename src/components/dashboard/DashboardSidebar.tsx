@@ -664,8 +664,6 @@ const DashboardSidebar = ({
               )}
             </div>
           </ScrollArea>
-            </div>
-          </ScrollArea>
         </div>
       </aside>
     </SidebarContext.Provider>
