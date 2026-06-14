@@ -212,7 +212,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          CHAT — $47/mo
+          CHAT — $47
         </button>
         <button
           onClick={() => setActiveTab("aureon")}
@@ -224,7 +224,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          AUREON — $199/mo
+          AUREON — $199
         </button>
         <button
           onClick={() => setActiveTab("pro")}
@@ -236,7 +236,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          PRO — $740/mo
+          PRO — $740
         </button>
       </div>
 
