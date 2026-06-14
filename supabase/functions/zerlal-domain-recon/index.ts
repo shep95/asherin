@@ -399,11 +399,11 @@ serve(async (req) => {
       .filter(Boolean));
     const hasSpf = txtRecords.some((record) => /v=spf1/i.test(record));
 
+    // No artificial cap on CT-discovered subdomains — operators asked for the full surface.
     const subdomains = uniq(ctEntries
       .flatMap((entry) => (entry.name_value || "").split("\n"))
       .map((name) => name.replace(/^\*\./, "").trim().toLowerCase())
-      .filter((name) => name && name.endsWith(normalized.hostname) && name !== normalized.hostname))
-      .slice(0, 15);
+      .filter((name) => name && name.endsWith(normalized.hostname) && name !== normalized.hostname));
 
     const ctDates = ctEntries
       .map((entry) => entry.not_before || entry.entry_timestamp || "")
@@ -649,14 +649,14 @@ serve(async (req) => {
     if (subdomains.length > 0) {
       pushFinding({
         severity: "low",
-        title: "Additional public subdomains exposed in certificate transparency logs",
+        title: `Additional public subdomains exposed in certificate transparency logs (${subdomains.length})`,
         file_path: "Subdomain Intelligence",
         line_number: 0,
         category: "infrastructure",
         confidence: 93,
         cwe_id: "CWE-200",
         cvss_score: 3.9,
-        description: "Certificate transparency entries expose additional hostnames associated with the domain, expanding the externally visible attack surface.",
+        description: `Certificate transparency entries expose ${subdomains.length} additional hostnames associated with the domain, expanding the externally visible attack surface. Every CT-disclosed hostname is enumerated below as an individual finding so nothing is truncated.`,
         impact: "Attackers can pivot into forgotten or softer targets such as billing, staging, or legacy subdomains discovered from passive CT intelligence.",
         exploitation_steps: [
           "Enumerate certificate transparency entries for the domain.",
@@ -669,6 +669,268 @@ serve(async (req) => {
         compliance_controls: ["NIST 800-53 CA-3", "SOC 2 CC7.1"],
         similar_cves: [],
         age_days_estimate: Math.max(7, Math.round(siteAgeDays / 2)),
+      });
+
+      // Emit one finding per subdomain so the operator sees every host
+      // individually — no aggregation cap, no slice.
+      for (const sub of subdomains) {
+        pushFinding({
+          severity: "info",
+          title: `CT-disclosed subdomain in scope: ${sub}`,
+          file_path: `Subdomain Intelligence / ${sub}`,
+          line_number: 0,
+          category: "infrastructure",
+          confidence: 92,
+          cwe_id: "CWE-200",
+          cvss_score: 2.0,
+          description: `Hostname ${sub} appears in public certificate transparency logs under ${normalized.hostname}. Treat it as in-scope until proven otherwise.`,
+          impact: "Forgotten, staging, or vendor subdomains often run with weaker controls than the apex and become the easiest pivot point.",
+          exploitation_steps: [
+            `Resolve ${sub} and check whether it is live, parked, or dangling.`,
+            "Probe for default credentials, outdated software, or subdomain takeover conditions.",
+            "Map any authenticated routes or admin interfaces exposed at this host.",
+          ],
+          code_snippet: sub,
+          suggested_fix: `Decide whether ${sub} should remain public; if not, retire the DNS record and revoke its certificate. If it must stay, apply the same hardening baseline as the apex.`,
+          dataflow_trace: [],
+          compliance_controls: ["NIST 800-53 CA-3"],
+          similar_cves: [],
+          age_days_estimate: Math.max(7, Math.round(siteAgeDays / 2)),
+        });
+      }
+    }
+
+    // ── HSTS ──────────────────────────────────────────────────────────────
+    const hstsHeader = headerBag["strict-transport-security"] || "";
+    if (!hstsHeader) {
+      pushFinding({
+        severity: "medium",
+        title: "Strict-Transport-Security header is missing",
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 95,
+        cwe_id: "CWE-319",
+        cvss_score: 5.4,
+        description: "The response does not advertise HSTS, so browsers will not automatically upgrade subsequent visits from HTTP to HTTPS or refuse to honor invalid certificates.",
+        impact: "Attackers on a hostile network can downgrade the first visit to HTTP and intercept credentials or session tokens.",
+        exploitation_steps: [
+          "Stand between the victim and the origin on an untrusted network.",
+          "Strip the first HTTPS redirect and serve a cloned HTTP version of the site.",
+          "Capture submitted credentials or session cookies in cleartext.",
+        ],
+        code_snippet: "strict-transport-security: <missing>",
+        suggested_fix: "Ship `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` at the edge and submit the domain to the HSTS preload list once stable.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-52", "PCI DSS 4.0 4.2.1"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
+    } else if (!/max-age=\s*[1-9]\d{6,}/i.test(hstsHeader)) {
+      pushFinding({
+        severity: "low",
+        title: "Strict-Transport-Security max-age is too short",
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 90,
+        cwe_id: "CWE-319",
+        cvss_score: 3.1,
+        description: "HSTS is published but with a max-age below the commonly recommended one-year minimum, weakening protection against downgrade attacks.",
+        impact: "Browsers forget the HTTPS-only directive quickly, widening the window where a downgrade attack can succeed.",
+        exploitation_steps: [
+          "Wait for the short max-age window to lapse on the victim's browser.",
+          "Execute an SSL strip attack on the next session.",
+        ],
+        code_snippet: `strict-transport-security: ${hstsHeader}`,
+        suggested_fix: "Set `max-age=63072000; includeSubDomains; preload` and pursue HSTS preload submission.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-52"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
+    }
+
+    // ── X-Content-Type-Options ────────────────────────────────────────────
+    const xctoHeader = headerBag["x-content-type-options"] || "";
+    if (!/nosniff/i.test(xctoHeader)) {
+      pushFinding({
+        severity: "low",
+        title: "X-Content-Type-Options: nosniff is missing",
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 94,
+        cwe_id: "CWE-430",
+        cvss_score: 3.4,
+        description: "Without `X-Content-Type-Options: nosniff`, browsers may MIME-sniff responses and execute attacker-supplied content with the wrong Content-Type.",
+        impact: "Increases the blast radius of any uploaded or reflected content by allowing browsers to reinterpret it as HTML/JS.",
+        exploitation_steps: [
+          "Upload or reflect a payload served with a benign Content-Type.",
+          "Let the browser sniff and execute it as HTML or JavaScript.",
+        ],
+        code_snippet: `x-content-type-options: ${xctoHeader || "<missing>"}`,
+        suggested_fix: "Send `X-Content-Type-Options: nosniff` on every response at the edge.",
+        dataflow_trace: [],
+        compliance_controls: ["OWASP ASVS 14.4.4"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
+    }
+
+    // ── Referrer-Policy ───────────────────────────────────────────────────
+    const refPolHeader = headerBag["referrer-policy"] || "";
+    if (!refPolHeader) {
+      pushFinding({
+        severity: "low",
+        title: "Referrer-Policy header is missing",
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 90,
+        cwe_id: "CWE-200",
+        cvss_score: 2.7,
+        description: "No Referrer-Policy is set, so browsers fall back to `strict-origin-when-cross-origin` only on HTTPS and may leak full URLs (including tokens) to third parties on HTTP downgrades.",
+        impact: "Authenticated URLs and query-string tokens can leak to embedded third-party assets or external links.",
+        exploitation_steps: [
+          "Host an external resource (image, script, link) reachable from the app.",
+          "Receive the victim's full referring URL — including any tokens — in your access logs.",
+        ],
+        code_snippet: "referrer-policy: <missing>",
+        suggested_fix: "Send `Referrer-Policy: strict-origin-when-cross-origin` or stricter on every response.",
+        dataflow_trace: [],
+        compliance_controls: ["OWASP ASVS 14.4.6"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
+    }
+
+    // ── Cross-Origin Isolation (COOP / COEP / CORP) ────────────────────────
+    const coopHeader = headerBag["cross-origin-opener-policy"] || "";
+    const coepHeader = headerBag["cross-origin-embedder-policy"] || "";
+    const corpHeader = headerBag["cross-origin-resource-policy"] || "";
+    if (!coopHeader) {
+      pushFinding({
+        severity: "low",
+        title: "Cross-Origin-Opener-Policy is not set",
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 88,
+        cwe_id: "CWE-1021",
+        cvss_score: 2.6,
+        description: "COOP is absent, so popups and cross-origin openers share a browsing context group with this page, enabling cross-window scripting in some attack chains (e.g. XS-Leaks).",
+        impact: "Attackers can leverage shared browsing contexts to read window references and execute side-channel leaks.",
+        exploitation_steps: [
+          "Open the target in a popup from an attacker-controlled origin.",
+          "Use the resulting window reference to probe state or leak cross-origin data.",
+        ],
+        code_snippet: "cross-origin-opener-policy: <missing>",
+        suggested_fix: "Send `Cross-Origin-Opener-Policy: same-origin` on document responses.",
+        dataflow_trace: [],
+        compliance_controls: ["OWASP ASVS 14.4.7"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
+    }
+    if (!coepHeader) {
+      pushFinding({
+        severity: "info",
+        title: "Cross-Origin-Embedder-Policy is not set",
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 86,
+        cwe_id: "CWE-693",
+        cvss_score: 1.9,
+        description: "COEP is absent, so the document is not cross-origin isolated and cannot safely use APIs like SharedArrayBuffer or high-resolution timers.",
+        impact: "No direct compromise, but the app cannot opt into hardened isolation primitives that protect against Spectre-class side channels.",
+        exploitation_steps: [
+          "Mount a timing-based side-channel that requires high-resolution timers.",
+          "Rely on the absence of cross-origin isolation to keep those APIs available in a downgraded form.",
+        ],
+        code_snippet: "cross-origin-embedder-policy: <missing>",
+        suggested_fix: "Ship `Cross-Origin-Embedder-Policy: require-corp` once every embedded asset declares CORP/CORS.",
+        dataflow_trace: [],
+        compliance_controls: ["OWASP ASVS 14.4.7"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
+    }
+    if (!corpHeader) {
+      pushFinding({
+        severity: "info",
+        title: "Cross-Origin-Resource-Policy is not set",
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 86,
+        cwe_id: "CWE-200",
+        cvss_score: 1.9,
+        description: "CORP is absent, so cross-origin documents can embed this resource without restriction.",
+        impact: "Sensitive responses may be embedded as images, scripts, or fetched from hostile origins for side-channel measurement.",
+        exploitation_steps: [
+          "Embed the resource from an attacker-controlled origin.",
+          "Measure load timing or response shape to infer authenticated state.",
+        ],
+        code_snippet: "cross-origin-resource-policy: <missing>",
+        suggested_fix: "Send `Cross-Origin-Resource-Policy: same-origin` (or `same-site`) on sensitive responses.",
+        dataflow_trace: [],
+        compliance_controls: ["OWASP ASVS 14.4.7"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
+    }
+
+    // ── Server / X-Powered-By fingerprint leakage ─────────────────────────
+    const serverBanner = headerBag["server"] || "";
+    const poweredBy    = headerBag["x-powered-by"] || "";
+    if (serverBanner && !/cloudflare|vercel|netlify/i.test(serverBanner)) {
+      pushFinding({
+        severity: "info",
+        title: `Server banner discloses backend identity: ${serverBanner}`,
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 90,
+        cwe_id: "CWE-200",
+        cvss_score: 2.1,
+        description: "The Server response header advertises the backend product and version, which accelerates attacker fingerprinting.",
+        impact: "Reduces attacker reconnaissance cost and steers exploits toward known CVEs for the disclosed version.",
+        exploitation_steps: [
+          "Read the Server header from any response.",
+          "Look up known CVEs for the named product and version.",
+        ],
+        code_snippet: `server: ${serverBanner}`,
+        suggested_fix: "Strip or generalize the Server header at the edge.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-53 CM-7"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
+    }
+    if (poweredBy) {
+      pushFinding({
+        severity: "info",
+        title: `X-Powered-By discloses runtime: ${poweredBy}`,
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 90,
+        cwe_id: "CWE-200",
+        cvss_score: 2.1,
+        description: "The X-Powered-By header reveals the framework or runtime stack.",
+        impact: "Helps attackers target framework-specific exploits and deserialization gadgets.",
+        exploitation_steps: [
+          "Read X-Powered-By from any response.",
+          "Pull known CVEs and gadget chains for the named runtime.",
+        ],
+        code_snippet: `x-powered-by: ${poweredBy}`,
+        suggested_fix: "Disable X-Powered-By in the framework or strip it at the edge.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-53 CM-7"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
       });
     }
 
