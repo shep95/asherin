@@ -449,7 +449,7 @@ const Founder = () => {
             ].map((b) => (
               <div key={b.title} className="rounded-2xl border border-border/30 bg-card/40 backdrop-blur-md p-6 sm:p-8 flex flex-col">
                 <div className="rounded-xl overflow-hidden border border-border/30 bg-background shadow-2xl shadow-black/40 mb-6 aspect-[3/4]">
-                  <img src={b.cover} alt={`${b.title} cover`} className="w-full h-full object-cover" loading="lazy" />
+                  <img src={b.cover} alt={`Cover of ${b.title} — an Aureon intelligence volume by Asher Newton`} className="w-full h-full object-cover" loading="lazy" />
                 </div>
                 <p className="text-[10px] font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-2">{b.volume}</p>
                 <h3 className="text-2xl font-light tracking-wide text-foreground leading-tight">{b.title}</h3>
