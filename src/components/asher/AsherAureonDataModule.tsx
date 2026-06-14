@@ -581,7 +581,7 @@ export default function AsherAureonDataModule() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
               <XAxis dataKey="product" stroke="hsl(var(--muted-foreground))" fontSize={10} />
               <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
-              <Tooltip formatter={(v: any) => `$${Number(v).toFixed(0)}/mo`} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 11 }} />
+              <Tooltip formatter={(v: any) => `$${Number(v).toFixed(0)}`} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 11 }} />
               <Bar dataKey="mrr" fill="#d4af37" radius={[4, 4, 0, 0]} />
             </RBarChart>
           </ResponsiveContainer>

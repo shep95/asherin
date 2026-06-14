@@ -84,7 +84,7 @@ const AUREON_FEATURE_GROUPS = [
     ],
   },
   {
-    category: "Inherited from Chat ($47/mo)",
+    category: "Inherited from Chat",
     features: [
       { name: "Uncensored AI Chat", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
       { name: "Unlimited Messages", desc: "Bring your own AI key — message as much as you want.", link: null },
@@ -148,7 +148,7 @@ const PRO_FEATURE_GROUPS = [
     ],
   },
   {
-    category: "Inherited from Aureon ($199/mo)",
+    category: "Inherited from Aureon",
     features: [
       { name: "Aureon IDE", desc: "Full cloud development environment with AI chat, terminals and ZIP export.", link: "/feature/ide" },
       { name: "Persistent Memory", desc: "Aureon remembers your context across every session.", link: null },
@@ -171,7 +171,7 @@ const PRO_FEATURE_GROUPS = [
     ],
   },
   {
-    category: "Inherited from Chat ($47/mo)",
+    category: "Inherited from Chat",
     features: [
       { name: "Uncensored AI Chat", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
       { name: "Unlimited Messages", desc: "Bring your own AI key — message as much as you want.", link: null },
@@ -212,7 +212,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          CHAT — $47/mo
+          CHAT — $47
         </button>
         <button
           onClick={() => setActiveTab("aureon")}
@@ -224,7 +224,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          AUREON — $199/mo
+          AUREON — $199
         </button>
         <button
           onClick={() => setActiveTab("pro")}
@@ -236,7 +236,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          PRO — $740/mo
+          PRO — $740
         </button>
       </div>
 

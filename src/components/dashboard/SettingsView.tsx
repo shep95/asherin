@@ -209,7 +209,7 @@ const SettingsView = () => {
   const uploadCustomWallpaper = async (file: File) => {
     if (!user) return;
     if (!hasWallpaperAddon) {
-      toast({ title: "Add-on required", description: "Subscribe to the Custom Wallpapers add-on ($3.99/mo) to upload your own wallpapers.", variant: "destructive" });
+      toast({ title: "Add-on required", description: "Unlock the Custom Wallpapers add-on ($3.99 one-time) to upload your own wallpapers.", variant: "destructive" });
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -519,7 +519,7 @@ const SettingsView = () => {
               <div className="flex items-center gap-2">
                 <Upload className="h-3.5 w-3.5 text-muted-foreground/60" />
                 <span className="text-xs font-light text-foreground">Custom Wallpapers</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent border border-accent/20">$3.99/mo</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent border border-accent/20">$3.99 one-time</span>
               </div>
               {!hasWallpaperAddon && (
                 <Link to="/dashboard" onClick={() => {/* navigate to subscription */}} className="text-[10px] text-muted-foreground/50 hover:text-foreground transition-colors flex items-center gap-1">

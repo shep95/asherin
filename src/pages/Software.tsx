@@ -34,7 +34,7 @@ const PRODUCTS: Product[] = [
   {
     name: "Aureon Chat",
     tagline: "Conversational intelligence",
-    description: "Multi-model consensus chat with reasoning visualization, vision, voice, and zero censorship. Replaces three subscriptions with one.",
+    description: "Multi-model consensus chat with reasoning visualization, vision, voice, and zero censorship. Replaces three paid tools with one free stack.",
     icon: MessageSquare,
     competitors: ["ChatGPT Plus", "Claude Pro", "Gemini Advanced"],
     route: "/dashboard/chat",
@@ -147,13 +147,13 @@ const RADAR_DATA = [
 ];
 
 const PRICE_DATA = [
-  { plan: "Aureon (All tools)", monthly: 0 },
-  { plan: "ChatGPT Plus", monthly: 20 },
-  { plan: "Claude Pro", monthly: 20 },
-  { plan: "Gemini Advanced", monthly: 20 },
-  { plan: "Perplexity Pro", monthly: 20 },
-  { plan: "Cursor Pro", monthly: 20 },
-  { plan: "Palantir Foundry", monthly: 500 },
+  { plan: "Aureon (All tools)", cost: 0 },
+  { plan: "ChatGPT Plus", cost: 20 },
+  { plan: "Claude Pro", cost: 20 },
+  { plan: "Gemini Advanced", cost: 20 },
+  { plan: "Perplexity Pro", cost: 20 },
+  { plan: "Cursor Pro", cost: 20 },
+  { plan: "Palantir Foundry", cost: 500 },
 ];
 
 const ProductCard = ({ p }: { p: Product }) => {
@@ -331,7 +331,7 @@ const Software = () => {
 
               <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
                 <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
-                  ◉ Monthly price · lower is better
+                  ◉ Competitor monthly cost vs Aureon (free)
                 </p>
                 <div className="h-[360px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -339,8 +339,8 @@ const Software = () => {
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
                       <XAxis type="number" tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                       <YAxis type="category" dataKey="plan" width={140} tick={{ fontSize: 10, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => `$${v}/mo`} />
-                      <Bar dataKey="monthly" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => v === 0 ? "Free" : `$${v}/mo`} />
+                      <Bar dataKey="cost" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

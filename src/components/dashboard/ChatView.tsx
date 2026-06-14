@@ -537,7 +537,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               <button
                 disabled
                 className="shrink-0 p-1.5 rounded-md text-muted-foreground/30 cursor-not-allowed"
-                title="Voice calls require Pro ($740/mo)"
+                title="Voice calls require Pro ($740 one-time)"
               >
                 <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>

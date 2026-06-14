@@ -371,7 +371,7 @@ const PluginMarketplaceView = () => {
                       <span className={`text-[9px] px-1.5 py-0.5 rounded capitalize ${categoryColors[plugin.category]}`}>{plugin.category}</span>
                     </div>
                     {plugin.is_premium && plugin.price_cents > 0 && (
-                      <span className="text-[10px] text-foreground">${(plugin.price_cents / 100).toFixed(0)}/mo</span>
+                      <span className="text-[10px] text-foreground">${(plugin.price_cents / 100).toFixed(0)}</span>
                     )}
                   </div>
 
@@ -383,7 +383,7 @@ const PluginMarketplaceView = () => {
                         pluginInstalled ? "bg-foreground/5 text-foreground hover:bg-destructive/10 hover:text-destructive" : "bg-accent/20 text-accent hover:bg-accent/30"
                       } disabled:opacity-50`}
                     >
-                      {checkoutLoading === plugin.id ? "Redirecting…" : pluginInstalled ? <><Check className="h-3 w-3" /> Installed</> : plugin.is_premium && plugin.price_cents > 0 ? <><CreditCard className="h-3 w-3" /> ${(plugin.price_cents / 100).toFixed(0)}/mo</> : <><Download className="h-3 w-3" /> Install</>}
+                      {checkoutLoading === plugin.id ? "Redirecting…" : pluginInstalled ? <><Check className="h-3 w-3" /> Installed</> : plugin.is_premium && plugin.price_cents > 0 ? <><CreditCard className="h-3 w-3" /> ${(plugin.price_cents / 100).toFixed(0)}</> : <><Download className="h-3 w-3" /> Install</>}
                     </button>
                     {pluginInstalled && (
                       <button

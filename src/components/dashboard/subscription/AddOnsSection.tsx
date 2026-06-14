@@ -107,7 +107,7 @@ const AddOnsSection = () => {
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-extralight text-accent/80">${addon.price}<span className="text-[10px] text-muted-foreground/40">/mo</span></span>
+                  <span className="text-sm font-extralight text-accent/80">${addon.price}<span className="text-[10px] text-muted-foreground/40"> one-time</span></span>
                   <button
                     onClick={() => handleAddOnCheckout(addon)}
                     disabled={loading === addon.id || !subscribed}

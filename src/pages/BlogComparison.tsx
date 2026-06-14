@@ -21,7 +21,7 @@ type Cell = "yes" | "no" | "partial" | string;
 type Row = { feature: string; aureon: Cell; chatgpt: Cell; claude: Cell; note?: string };
 
 const MATRIX: Row[] = [
-  { feature: "Monthly entry price",                aureon: "$47",      chatgpt: "$20",     claude: "$20",      note: "Aureon entry tier includes everything ChatGPT Plus & Claude Pro gate behind enterprise." },
+  { feature: "Entry price",                        aureon: "$47 one-time", chatgpt: "$20 / month", claude: "$20 / month",  note: "Aureon entry is a single payment. ChatGPT Plus and Claude Pro bill every month." },
   { feature: "Uncensored responses",               aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Aureon refuses nothing legal; the others refuse a substantial share of legitimate queries." },
   { feature: "Bring-your-own-key (9 providers)",   aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Use Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, or Venice on your own bill." },
   { feature: "Multi-model consensus",              aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Five-phase cross-validation across models, 45% confidence threshold." },
@@ -37,17 +37,18 @@ const MATRIX: Row[] = [
   { feature: "Voice chat",                         aureon: "yes",      chatgpt: "yes",     claude: "no",       note: "Aureon uses ElevenLabs WebRTC with live audio visualisers." },
   { feature: "Image generation",                   aureon: "yes",      chatgpt: "yes",     claude: "no",       note: "Aureon Imagine module ships with persistent gallery." },
   { feature: "Vision (image + video) input",       aureon: "yes",      chatgpt: "yes",     claude: "yes",      note: "Aureon adds FACS behavioural video tracking." },
-  { feature: "Lifetime license option",            aureon: "yes",      chatgpt: "no",      claude: "no",       note: "$470 one-time, no recurring billing." },
+  { feature: "Lifetime licence option",            aureon: "yes",      chatgpt: "no",      claude: "no",       note: "$470 one-time, no recurring billing ever." },
+  { feature: "No mandatory monthly subscription",  aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Aureon never bills monthly. Pay once or use free. Competitors require ongoing subscriptions." },
 ];
 
 const FAQ = [
   {
     q: "Is Aureon really uncensored?",
-    a: "Aureon refuses no lawful request. For users without their own API key, requests are routed through Venice (an uncensored Mistral-based model). Users who bring their own key keep their full provider behaviour.",
+    a: "Aureon refuses no lawful request. For users without their own API key, requests are routed through Venice (an uncensored Mistral-based model). Users who bring their own key keep their provider's native behaviour; Aureon itself adds no refusal layer.",
   },
   {
     q: "How does Aureon compare to ChatGPT Plus on price?",
-    a: "Aureon Chat is $47/month vs ChatGPT Plus at $20/month. The price gap reflects what Aureon includes for free that ChatGPT charges enterprise tiers for: multi-model consensus, predictive engines, OSINT search, IDE, FEA simulation, and an encrypted vault.",
+    a: "Aureon has no mandatory monthly subscription. ChatGPT Plus is $20/month recurring and Claude Pro is $20/month recurring. Aureon offers a one-time entry tier at $47 and a $470 lifetime option with zero recurring billing. Every core feature is also available free during the Donation Era.",
   },
   {
     q: "Can I keep using Claude or GPT inside Aureon?",
@@ -60,6 +61,10 @@ const FAQ = [
   {
     q: "What is the multi-model consensus engine?",
     a: "A five-phase cross-validation pipeline that runs the same prompt across several frontier models, scores agreement, and returns answers only when confidence clears a 45% threshold. It catches the hallucinations a single model misses.",
+  },
+  {
+    q: "Is Aureon actually free?",
+    a: "During the Donation Era, every feature is unlocked for every user at no charge. Optional one-time support tiers exist for those who want to back the project. There is no paywall, no trial countdown, and no monthly billing.",
   },
 ];
 
@@ -178,14 +183,15 @@ const BlogComparison = () => {
           <aside className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-3">
             <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">◉ TL;DR</p>
             <p className="text-sm font-extralight leading-relaxed text-foreground/90">
-              ChatGPT and Claude are excellent general-purpose chat products. Aureon
-              is a different category: an operator stack that bundles uncensored
-              chat, multi-model consensus, 30-source OSINT, predictive intelligence,
-              a Monaco IDE, FEA simulation, an encrypted vault, and an infinite
-              whiteboard — for a single subscription. If you only need conversation,
-              ChatGPT Plus at $20/month is the cheaper pick. If you need to forecast,
-              investigate, build, simulate, and ship — Aureon replaces three to five
-              tools at $47/month.
+              ChatGPT and Claude are excellent general-purpose chat products with
+              mandatory monthly subscriptions. Aureon is a different category: an
+              operator stack that bundles uncensored chat, multi-model consensus,
+              30-source OSINT, predictive intelligence, a Monaco IDE, FEA
+              simulation, an encrypted vault, and an infinite whiteboard — with
+              <strong> no mandatory monthly fee</strong>. If you only need
+              conversation, ChatGPT Plus at $20/month is a simpler pick. If you
+              need to forecast, investigate, build, simulate, and ship — Aureon
+              replaces three to five tools with zero recurring billing.
             </p>
           </aside>
 
@@ -244,15 +250,15 @@ const BlogComparison = () => {
           <section className="space-y-3">
             <h2 className="text-2xl font-light tracking-tight">Pricing, plainly</h2>
             <p className="text-sm font-extralight leading-relaxed text-foreground/85">
-              Aureon ships four tiers: Chat at $47/month, Aureon at $199/month, Pro
-              at $740/month, and a $470 one-time Lifetime licence. ChatGPT Plus is
-              $20/month and Claude Pro is $20/month. The honest read: Aureon is more
-              expensive per month, but it bundles capabilities that ChatGPT and
+              Aureon does not bill monthly. During the Donation Era every feature
+              is free for every user. Optional one-time support tiers are $47
+              (entry), $199 (full suite), $740 (pro), and $470 (lifetime). ChatGPT
+              Plus is $20/month recurring and Claude Pro is $20/month recurring.
+              The honest read: Aureon bundles capabilities that ChatGPT and
               Claude either do not ship or gate behind enterprise contracts —
               multi-model consensus, OSINT search, the predictive engine, the IDE,
-              FEA simulation, and the encrypted vault. If you currently pay for
-              ChatGPT Plus plus a research tool plus a writing tool plus a code
-              assistant, Aureon's entry tier usually comes out cheaper.
+              FEA simulation, and the encrypted vault — while never locking you
+              into a subscription.
             </p>
           </section>
 
@@ -293,8 +299,8 @@ const BlogComparison = () => {
               See the stack for yourself
             </h2>
             <p className="text-sm font-extralight text-muted-foreground max-w-xl mx-auto">
-              Every Aureon tool is free to try without a credit card. Bring your own
-              key or use the free Venice routing. Cancel any time.
+              Every Aureon tool is free to use without a credit card. Bring your own
+              key or use the free Venice routing. No trial countdown, no paywall.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link
