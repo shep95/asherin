@@ -287,11 +287,10 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     const safeCode = finalCode ? sanitize(finalCode) : null;
     let sourceStoragePath: string | null = null;
 
-    // Upload extracted text, not the raw ZIP. This avoids cloud memory crashes
-    // while still letting the background worker survive browser disconnects.
+    // Upload extracted text, not the raw ZIP. The stored object MUST be named
+    // as text; the worker uses file extension as a last-resort type signal.
     if (safeCode) {
-      const fileExt = files[0]?.name?.split(".").pop()?.toLowerCase() || "txt";
-      sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.${fileExt}`;
+      sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.source.txt`;
       const uploadPayload = new Blob([safeCode], { type: "text/plain;charset=utf-8" });
       const { error: uploadErr } = await supabase.storage
         .from("zerlal-scan-sources")
