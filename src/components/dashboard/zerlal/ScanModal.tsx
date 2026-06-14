@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import JSZip from "jszip";
 import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe, Binary, CloudOff } from "lucide-react";
 import { useCreateProject, useRunScan } from "./useZerlalData";
 import { useActiveScan } from "./scanContext";
@@ -36,6 +37,14 @@ const scanProfiles = [
   { id: "compliance", name: "Compliance Scan", desc: "Maps to CMMC, NIST, SOC2, PCI DSS, HIPAA, FedRAMP, GDPR, ISO27001, DORA, NIS2, EU CRA", time: "20-45 min", includes: ["Full SAST", "SCA", "Multi-Framework Mapping", "SBOM", "FCA Shield"] },
   { id: "deep-scan", name: "Full Deep Scan", desc: "AI-assisted novel pattern detection, chain analysis, quantum crypto audit, red team simulation", time: "45-120 min", includes: ["Full SAST", "SCA", "AI Analysis", "Chain Detection", "Dataflow Tracing", "Quantum Crypto Audit", "Supply Chain Intel", "Zero-Trust Validation", "PoC Generation"] },
 ];
+
+const isZipArchive = (name: string) => /\.zip$/i.test(name);
+const isOtherArchive = (name: string) => /\.(tar|tar\.gz|tgz)$/i.test(name);
+const skipArchivePath = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX|\.cache|target|out|bin|obj)\//i;
+const acceptedCodeFile = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile|lock|txt|xml|ini|cfg|properties|gradle|scala|dart|lua|zig|hcl|gitignore|sum|mod)$/i;
+const ZIP_FILE_LIMIT = 160;
+const ZIP_TEXT_LIMIT = 1_200_000;
+const ZIP_ENTRY_LIMIT = 120_000;
 
 const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalProps) => {
   const [step, setStep] = useState<Step>(1);
