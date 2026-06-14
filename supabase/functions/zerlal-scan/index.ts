@@ -423,7 +423,7 @@ Deno.serve(async (req) => {
       console.log(`[ZERLAL] Section ${normalizedIndex + 1}/${chunkCount} (${codeSlice.length} chars) using ${profile.provider_label} (${profile.section_timeout_ms}ms timeout)`);
 
       const analysis = await callScanAI(
-        buildAnalysisPrompt(scan_profile, file_name, codeSlice, brainsContext),
+        buildAnalysisPrompt(scan_profile, file_name, codeSlice, brainsContext, Boolean(include_workflow_function_flaws)),
         _resolved,
         LOVABLE_API_KEY,
         GEMINI_KEY,
@@ -450,10 +450,10 @@ Deno.serve(async (req) => {
         try {
           const pass2Prompt = `You are ZERLAL. Already found: ${existingTitles}
 
-Find ALL additional vulnerabilities NOT listed above. Focus areas: input validation, logic flaws, race conditions, dependency risks, CORS/headers, info disclosure, access control, crypto weaknesses, DoS vectors, missing security controls, hardcoded secrets, insecure deserialization, SSRF, prototype pollution.
+Find ALL additional ${include_workflow_function_flaws ? "security findings AND workflow/function flaws" : "security vulnerabilities"} NOT listed above. Focus areas: input validation, logic flaws, race conditions, dependency risks, CORS/headers, info disclosure, access control, crypto weaknesses, DoS vectors, missing security controls, hardcoded secrets, insecure deserialization, SSRF, prototype pollution${include_workflow_function_flaws ? ", broken user journeys, failed state transitions, dead functions, wrong data propagation, missing success/error feedback, partial-failure handling, retry gaps, navigation dead ends" : ""}.
 
 Return ONLY JSON: { "findings": [...] }
-Each finding needs: severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps (array of strings), code_snippet, suggested_fix, dataflow_trace (array of {file,line,label}), compliance_controls (array), similar_cves (array), age_estimate_days.
+Each finding needs: finding_type ("security"|"workflow-function"), severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps (array of strings), code_snippet, suggested_fix, dataflow_trace (array of {file,line,label}), compliance_controls (array), similar_cves (array), age_estimate_days.
 
 CODE:\n\`\`\`\n${pass2Slice}\n\`\`\``;
           const pass2 = await callScanAI(pass2Prompt, _resolved, LOVABLE_API_KEY, GEMINI_KEY, profile.section_timeout_ms);
