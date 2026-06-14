@@ -69,6 +69,7 @@ const App = () => (
             <Route path="/whiteboard" element={<WhiteboardPage />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/comparison" element={<BlogComparison />} />
+            <Route path="/blog/venice-integration" element={<BlogVeniceIntegration />} />
             <Route
               path="/asher-dashboard"
               element={
