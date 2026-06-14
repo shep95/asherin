@@ -150,7 +150,8 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     setScanError(null);
     if (!projectName.trim()) { setScanError("Project name is required"); return; }
     const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
-    if (!finalCode && !url) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
+    const archiveFile = files.find(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name));
+    if (!finalCode && !url && !archiveFile) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) { setScanError("Sign in required"); return; }
@@ -181,7 +182,6 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       }
     } catch { /* ignore */ }
 
-    // Strict BYOK: non-admin users must bring their own key
     const isAdmin = ADMIN_EMAILS.has((user.email || "").toLowerCase());
     if (!byok && !isAdmin) {
       triggerByokRequired({ source: "zerlal", reason: "Zerlal scans require your own AI key. Add one in Settings → AI Keys." });
@@ -189,8 +189,6 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     }
 
     const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
-    // Strip NUL bytes and lone surrogates — Postgres TEXT rejects \u0000 and
-    // these characters cause PostgREST to reject the request body as invalid JSON.
     const sanitize = (s: string) =>
       s.replace(/\u0000/g, "")
        .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
@@ -198,7 +196,25 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     const safeCode = finalCode ? sanitize(finalCode) : null;
     let sourceStoragePath: string | null = null;
 
-    if (safeCode) {
+    // ── PATH A: Raw archive upload (cloud-resilient) ─────────────────────
+    // Upload the .zip itself. Edge function extracts on the server, so a
+    // WiFi drop after the upload completes can't interrupt the scan.
+    if (archiveFile) {
+      const ext = archiveFile.name.toLowerCase().endsWith(".tar.gz")
+        ? "tar.gz"
+        : (archiveFile.name.split(".").pop()?.toLowerCase() || "zip");
+      sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("zerlal-scan-sources")
+        .upload(sourceStoragePath, archiveFile, {
+          upsert: false,
+          contentType: archiveFile.type || "application/zip",
+        });
+      if (uploadErr) {
+        setScanError("Failed to upload archive: " + (uploadErr.message || JSON.stringify(uploadErr)));
+        return;
+      }
+    } else if (safeCode) {
       const fileExt = files[0]?.name?.split(".").pop()?.toLowerCase() || "txt";
       sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.${fileExt}`;
       const uploadPayload = new Blob([safeCode], { type: "text/plain;charset=utf-8" });
@@ -208,7 +224,6 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
           upsert: false,
           contentType: "text/plain; charset=utf-8",
         });
-
       if (uploadErr) {
         setScanError("Failed to upload scan source: " + (uploadErr.message || JSON.stringify(uploadErr)));
         return;
