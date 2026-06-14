@@ -61,7 +61,10 @@ interface ScanContextValue {
     scanProfile: string;
     sourceType: string;
     fileCount: number;
+    message?: string;
+    percent?: number;
   }) => void;
+  failScan: (projectId: string, error: string) => void;
   cancelScan: () => void;
   clear: () => void;
 }
@@ -312,11 +315,34 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
         phase: "planning",
         section: 0,
         totalSections: 1,
-        percent: 2,
-        message: "Queued in cloud — preparing secure archive analysis…",
+        percent: args.percent ?? 2,
+        message: args.message ?? "Queued in cloud — preparing secure archive analysis…",
       },
       liveFindings: [],
       status: "running",
+    });
+  }, []);
+
+  const failScan: ScanContextValue["failScan"] = useCallback((projectId, error) => {
+    setActive(prev => {
+      if (!prev || prev.projectId !== projectId) return prev;
+      return {
+        ...prev,
+        status: "failed",
+        error,
+        progress: prev.progress
+          ? {
+              ...prev.progress,
+              message: `Scan failed: ${error}`,
+            }
+          : {
+              phase: "planning",
+              section: 0,
+              totalSections: 1,
+              percent: 0,
+              message: `Scan failed: ${error}`,
+            },
+      };
     });
   }, []);
 
@@ -462,7 +488,7 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
 
 
   return (
-      <ScanContext.Provider value={{ active, startScan, adoptQueuedScan, cancelScan, clear }}>
+      <ScanContext.Provider value={{ active, startScan, adoptQueuedScan, failScan, cancelScan, clear }}>
       {children}
     </ScanContext.Provider>
   );

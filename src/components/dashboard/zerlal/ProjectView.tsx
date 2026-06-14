@@ -141,6 +141,8 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
   }, [isLiveForThisProject, activeScan, refetch]);
 
   const project = projects.find(p => p.id === projectId);
+  const displayProjectName = project?.name || (isLiveForThisProject ? activeScan.projectName : "Project");
+  const displaySourceType = project?.source_type || (isLiveForThisProject ? activeScan.input.sourceType : "scan");
 
   const filtered = useMemo(() => {
     let f = [...findings];
@@ -201,17 +203,21 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
             </div>
           )}
 
-          {project && (
+          {(project || isLiveForThisProject) && (
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3">
-                {projects.length <= 1 && <h2 className="text-sm font-light tracking-wide text-foreground/80">{project.name}</h2>}
-                <span className={`text-lg font-extralight ${gradeColor}`}>{project.risk_grade}</span>
+                {projects.length <= 1 && <h2 className="text-sm font-light tracking-wide text-foreground/80">{displayProjectName}</h2>}
+                {project ? (
+                  <span className={`text-lg font-extralight ${gradeColor}`}>{project.risk_grade}</span>
+                ) : (
+                  <span className="text-[9px] px-2 py-0.5 rounded-md border border-border/[0.08] bg-foreground/[0.03] text-muted-foreground/50 uppercase tracking-[0.15em]">intake live</span>
+                )}
               </div>
               <div className="flex items-center gap-4 mt-0.5">
                 <span className="text-[9px] text-muted-foreground/30 flex items-center gap-1">
-                  <Clock className="h-2.5 w-2.5" /> Last scan: {project.last_scan_at ? new Date(project.last_scan_at).toLocaleDateString() : "Never"}
+                  <Clock className="h-2.5 w-2.5" /> Last scan: {project?.last_scan_at ? new Date(project.last_scan_at).toLocaleDateString() : "Starting now"}
                 </span>
-                <span className="text-[9px] text-muted-foreground/30">{project.language} • {project.source_type}</span>
+                <span className="text-[9px] text-muted-foreground/30">{project?.language || "Queued"} • {displaySourceType}</span>
               </div>
             </div>
           )}
