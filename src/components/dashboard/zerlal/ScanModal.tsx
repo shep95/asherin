@@ -351,11 +351,14 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
                         <div>
                           <p className="text-[10px] text-foreground/50">{files.length} file(s) selected</p>
                           <p className="text-[8px] text-muted-foreground/30 mt-1">{files.map(f => f.name).join(", ")}</p>
+                          {files.some(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name)) && (
+                            <p className="text-[8px] text-emerald-400/60 mt-2">☁ Archive will upload to cloud — scan continues even if you lose WiFi.</p>
+                          )}
                         </div>
                       ) : (
                         <div>
                           <p className="text-[10px] text-muted-foreground/30">Drop ZIP/TAR archives, code files, or dependency manifests</p>
-                          <p className="text-[8px] text-muted-foreground/20 mt-1">Up to 5GB • All languages supported</p>
+                          <p className="text-[8px] text-muted-foreground/20 mt-1">Up to 5GB • Archives extracted server-side • WiFi-drop resilient</p>
                         </div>
                       )}
                     </div>
