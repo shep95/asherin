@@ -5,6 +5,7 @@ import {
   Plus, Building2, ChevronDown, Trash2, Pencil, Check, X,
   Keyboard, ShieldCheck,
   BookMarked, BookOpen, Folder, Users, Radio, FileLock, AlertTriangle, Swords, Library, Gavel, Sparkles,
+  ShieldAlert, Wrench, FileStack, GitBranch, Target, Plug, Smartphone, GraduationCap,
 } from "lucide-react";
 import type { AzplenTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -30,6 +31,16 @@ import RedTeamPanel from "./RedTeamPanel";
 import LibraryPanel from "./LibraryPanel";
 import ReviewBoardPanel from "./ReviewBoardPanel";
 import FusionPanel from "./FusionPanel";
+import DataQualityPanel from "./DataQualityPanel";
+import TransformStudioPanel from "./TransformStudioPanel";
+import ClusterPanel from "./ClusterPanel";
+import BehaviorPanel from "./BehaviorPanel";
+import FlowsPanel from "./FlowsPanel";
+import ThreatsPanel from "./ThreatsPanel";
+import IntegrationsPanel from "./IntegrationsPanel";
+import FieldPanel from "./FieldPanel";
+import TrainingPanel from "./TrainingPanel";
+import AutoQuestionsPanel from "./AutoQuestionsPanel";
 import ClassificationBadge from "./ClassificationBadge";
 import EncryptionBadge from "../EncryptionBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -37,35 +48,43 @@ import { AzplenSessionProvider, useAzplenSession } from "./AzplenSessionContext"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// Context for navigating between tabs from child panels (kept for back-compat)
 const AzplenNavContext = createContext<{ navigateToTab: (tab: AzplenTab, datasetId?: string) => void }>({ navigateToTab: () => {} });
 export const useAzplenNav = () => useContext(AzplenNavContext);
 
-// Mission-phase grouped tab set — Palantir-style operator navigation.
 type TabPhase = "Command" | "Collection" | "Analysis" | "Intelligence" | "Reporting";
 const tabs: { id: AzplenTab; icon: React.ElementType; label: string; sub: string; phase: TabPhase }[] = [
   { id: "dashboard",   icon: LayoutDashboard, label: "Dashboard",      sub: "Investigation overview",   phase: "Command" },
   { id: "cases",       icon: Folder,          label: "Cases",          sub: "Case file lifecycle",      phase: "Command" },
   { id: "plan",        icon: ClipboardList,   label: "Collection Plan",sub: "Intelligence questions",   phase: "Command" },
+  { id: "auto-questions", icon: Sparkles,     label: "Auto-Questions", sub: "AI-derived gap questions", phase: "Command" },
   { id: "workload",    icon: Users,           label: "Workload",       sub: "Analyst capacity",         phase: "Command" },
   { id: "memory",      icon: BookMarked,      label: "Memory",         sub: "Operator knowledge base",  phase: "Command" },
   { id: "playbooks",   icon: BookOpen,        label: "Playbooks",      sub: "Reusable procedures",      phase: "Command" },
+  { id: "training",    icon: GraduationCap,   label: "Training",       sub: "Analyst scenarios",        phase: "Command" },
   { id: "ingest",      icon: Upload,          label: "Ingest",         sub: "Upload financial data",    phase: "Collection" },
   { id: "streams",     icon: Radio,           label: "Streams",        sub: "Live data feeds",          phase: "Collection" },
+  { id: "field",       icon: Smartphone,      label: "Field",          sub: "Mobile capture",           phase: "Collection" },
   { id: "docintel",    icon: FileText,        label: "Documents",      sub: "Document intelligence",    phase: "Collection" },
+  { id: "cluster",     icon: FileStack,       label: "Synthesis",      sub: "Multi-doc clustering",     phase: "Collection" },
   { id: "table",       icon: Table2,          label: "Ledger",         sub: "Tabular review",           phase: "Collection" },
+  { id: "dq",          icon: ShieldAlert,     label: "Data Quality",   sub: "Issue & fix engine",       phase: "Collection" },
+  { id: "transform",   icon: Wrench,          label: "Transform",      sub: "Pipeline studio",          phase: "Analysis" },
   { id: "entities",    icon: Fingerprint,     label: "Counterparties", sub: "Entity resolution",        phase: "Analysis" },
   { id: "graph",       icon: Network,         label: "Graph",          sub: "Document & entity mapping",phase: "Analysis" },
+  { id: "flows",       icon: GitBranch,       label: "Flows",          sub: "Financial + comms edges",  phase: "Analysis" },
+  { id: "behavior",    icon: Brain,           label: "Behavior",       sub: "Baseline vs observed",     phase: "Analysis" },
   { id: "canvas",      icon: PenLine,         label: "Canvas",         sub: "Argument workspace",       phase: "Analysis" },
   { id: "hypothesis",  icon: Scale,           label: "Hypotheses",     sub: "ACH-style testing",        phase: "Intelligence" },
   { id: "contradictions", icon: AlertTriangle,label: "Contradictions", sub: "Conflicting claims log",   phase: "Intelligence" },
   { id: "redteam",     icon: Swords,          label: "Red Team",       sub: "Adversarial critique",     phase: "Intelligence" },
   { id: "fusion",      icon: Sparkles,        label: "Fusion",         sub: "Cross-domain synthesis",   phase: "Intelligence" },
+  { id: "threats-forecast", icon: Target,     label: "Threats",        sub: "Likelihood × impact",      phase: "Intelligence" },
   { id: "predictions", icon: Brain,           label: "Forecasts",      sub: "Predictive signals",       phase: "Intelligence" },
   { id: "insights",    icon: Lightbulb,       label: "Anomalies",      sub: "AI surfaced findings",     phase: "Intelligence" },
   { id: "evidence",    icon: FileLock,        label: "Evidence",       sub: "Chain of custody",         phase: "Reporting" },
   { id: "review",      icon: Gavel,           label: "Review Board",   sub: "Multi-reviewer approval",  phase: "Reporting" },
   { id: "library",     icon: Library,         label: "Library",        sub: "Published intel assets",   phase: "Reporting" },
+  { id: "integrations",icon: Plug,            label: "Integrations",   sub: "External connectors",      phase: "Reporting" },
   { id: "reports",     icon: FileOutput,      label: "Reports",        sub: "Export & briefings",       phase: "Reporting" },
 ];
 const TAB_PHASES: TabPhase[] = ["Command", "Collection", "Analysis", "Intelligence", "Reporting"];

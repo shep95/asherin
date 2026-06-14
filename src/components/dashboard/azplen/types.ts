@@ -8,7 +8,9 @@ export type AzplenTab =
   | "canvas" | "plan" | "hypothesis"
   | "memory" | "playbooks" | "cases" | "workload"
   | "streams" | "evidence" | "contradictions" | "redteam"
-  | "library" | "review" | "fusion";
+  | "library" | "review" | "fusion"
+  | "dq" | "transform" | "cluster" | "behavior" | "flows"
+  | "threats-forecast" | "integrations" | "field" | "training" | "auto-questions";
 
 export type AzplenClassification =
   | "UNCLASS" | "CUI" | "CONFIDENTIAL" | "SECRET" | "TOP SECRET" | "TS/SCI";
