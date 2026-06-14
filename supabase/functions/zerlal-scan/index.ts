@@ -208,9 +208,22 @@ Deno.serve(async (req) => {
             throw new Error("Archive host does not support range reads and this ZIP is too large for safe fallback extraction.");
           }
           zipReader = new ZipReader(new BlobReader(archiveBlob));
-          zipEntries = await zipReader.getEntries();
+          try {
+            zipEntries = await zipReader.getEntries();
+          } catch (blobZipErr) {
+            const blobZipMessage = blobZipErr instanceof Error ? blobZipErr.message : String(blobZipErr);
+            if (/end of central directory|not a zip|invalid zip/i.test(blobZipMessage) && (archiveBlob.size || 0) <= 2_000_000) {
+              await zipReader.close().catch(() => undefined);
+              zipReader = null;
+              codeToAnalyze = await archiveBlob.text();
+              console.log("[ZERLAL] Stored object was prepared text mislabeled as ZIP; continuing as text source");
+            } else {
+              throw blobZipErr;
+            }
+          }
         }
 
+        if (!codeToAnalyze) {
         const skip = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX|\.cache|target|out|bin|obj)\//i;
         const codeExt = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile|lock)$/i;
         const securityHints = /auth|login|password|token|session|crypto|encrypt|middleware|api|route|handler|config|env|secret|key|permission|policy|payment|webhook|storage|upload/i;
