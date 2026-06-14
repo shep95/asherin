@@ -427,7 +427,11 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
     const shouldAdopt = (job: any): boolean => {
       const cur = activeRef.current;
       if (!cur) return true;
-      // Don't clobber a locally-running scan with an older cloud job
+      // Never let a cloud job for a DIFFERENT project clobber an actively running scan
+      if (cur.status === "running" && cur.projectId && job.project_id && cur.projectId !== job.project_id) {
+        return false;
+      }
+      // Don't clobber a locally-running scan with an older cloud job from before it started
       if (cur.status === "running" && new Date(job.created_at).getTime() < cur.startedAt - 1000) {
         return false;
       }

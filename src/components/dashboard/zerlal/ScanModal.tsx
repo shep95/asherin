@@ -239,31 +239,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) { setScanError("Sign in required"); return; }
 
-    const sourceType = selectedSource || "upload";
-    const project = await createProject(projectName, sourceType, url || undefined);
-    if (!project) return;
-
-    adoptQueuedScan({
-      projectId: project.id,
-      projectName,
-      fileName: files[0]?.name || projectName,
-      scanProfile: selectedProfile,
-      sourceType: zipFile ? "zip-upload" : sourceType,
-      fileCount: files.length || 1,
-      percent: 1,
-      message: zipFile
-        ? "Uploading extracted ZIP source — hold on…"
-        : "Packaging source for cloud scan — hold on…",
-    });
-
-    onScanComplete();
-    if (onScanStarted) {
-      onScanStarted(project.id);
-    } else {
-      onClose();
-    }
-
-    // Load BYOK preference so the worker uses the user's key
+    // ── BYOK GATE FIRST — before any project creation or navigation ──
     let byok: any = null;
     try {
       const { data: pref } = await supabase
@@ -287,9 +263,33 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
     const isAdmin = ADMIN_EMAILS.has((user.email || "").toLowerCase());
     if (!byok && !isAdmin) {
-      failScan(project.id, "Your AI key is required before this scan can run.");
       triggerByokRequired({ source: "zerlal", reason: "Zerlal scans require your own AI key. Add one in Settings → AI Keys." });
-      return;
+      setScanError("Add your AI key in Settings → AI Keys, then retry the scan.");
+      return;   // ← abort, no project row created, no navigation
+    }
+
+    const sourceType = selectedSource || "upload";
+    const project = await createProject(projectName, sourceType, url || undefined);
+    if (!project) return;
+
+    adoptQueuedScan({
+      projectId: project.id,
+      projectName,
+      fileName: files[0]?.name || projectName,
+      scanProfile: selectedProfile,
+      sourceType: zipFile ? "zip-upload" : sourceType,
+      fileCount: files.length || 1,
+      percent: 1,
+      message: zipFile
+        ? "Uploading extracted ZIP source — hold on…"
+        : "Packaging source for cloud scan — hold on…",
+    });
+
+    onScanComplete();
+    if (onScanStarted) {
+      onScanStarted(project.id);
+    } else {
+      onClose();
     }
 
     const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
