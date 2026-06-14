@@ -229,21 +229,21 @@ Deno.serve(async (req) => {
           const securityHints = /auth|login|password|token|session|crypto|encrypt|middleware|api|route|handler|config|env|secret|key|permission|policy|payment|webhook|storage|upload/i;
           const totalEntries = zipEntries.length;
           const candidates = zipEntries
-          .filter((entry: any) => {
-            const path = entry?.filename || "";
-            if (entry?.directory || path.endsWith("/")) return false;
-            if (skip.test("/" + path)) return false;
-            if ((entry?.uncompressedSize || entry?.size || 0) > 120_000) return false;
-            return codeExt.test(path) || /(^|\/)dockerfile$/i.test(path);
-          })
-          .sort((aEntry: any, bEntry: any) => {
-            const aPath = aEntry?.filename || "";
-            const bPath = bEntry?.filename || "";
-            const aScore = (securityHints.test(aPath) ? 100 : 0) - Math.floor((aEntry?.uncompressedSize || aEntry?.size || 0) / 25_000);
-            const bScore = (securityHints.test(bPath) ? 100 : 0) - Math.floor((bEntry?.uncompressedSize || bEntry?.size || 0) / 25_000);
-            return bScore - aScore;
-          })
-          .slice(0, 160);
+            .filter((entry: any) => {
+              const path = entry?.filename || "";
+              if (entry?.directory || path.endsWith("/")) return false;
+              if (skip.test("/" + path)) return false;
+              if ((entry?.uncompressedSize || entry?.size || 0) > 120_000) return false;
+              return codeExt.test(path) || /(^|\/)dockerfile$/i.test(path);
+            })
+            .sort((aEntry: any, bEntry: any) => {
+              const aPath = aEntry?.filename || "";
+              const bPath = bEntry?.filename || "";
+              const aScore = (securityHints.test(aPath) ? 100 : 0) - Math.floor((aEntry?.uncompressedSize || aEntry?.size || 0) / 25_000);
+              const bScore = (securityHints.test(bPath) ? 100 : 0) - Math.floor((bEntry?.uncompressedSize || bEntry?.size || 0) / 25_000);
+              return bScore - aScore;
+            })
+            .slice(0, 160);
 
           const ASSEMBLED_CAP = 1_200_000; // ~1.2MB of source text max
           const PER_FILE_CAP = 120_000;
@@ -251,17 +251,17 @@ Deno.serve(async (req) => {
           let extracted = 0;
           let skipped = Math.max(0, totalEntries - candidates.length);
           for (const entry of candidates as any[]) {
-          if (assembled.length >= ASSEMBLED_CAP) { skipped++; continue; }
-          try {
-            const path = entry?.filename || "unknown";
-            const text = await entry.getData(new TextWriter("utf-8"));
-            if (!text || text.length > PER_FILE_CAP) { skipped++; continue; }
-            assembled += `\n--- FILE: ${path} ---\n${text}\n`;
-            extracted++;
-          } catch {
-            skipped++;
+            if (assembled.length >= ASSEMBLED_CAP) { skipped++; continue; }
+            try {
+              const path = entry?.filename || "unknown";
+              const text = await entry.getData(new TextWriter("utf-8"));
+              if (!text || text.length > PER_FILE_CAP) { skipped++; continue; }
+              assembled += `\n--- FILE: ${path} ---\n${text}\n`;
+              extracted++;
+            } catch {
+              skipped++;
+            }
           }
-        }
           await zipReader.close().catch(() => undefined);
           codeToAnalyze = `ZIP SOURCE: ${source_storage_path}\nFILES_EXTRACTED_FOR_SECURITY_AUDIT: ${extracted}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\nTOTAL_ENTRIES: ${totalEntries}\n${assembled}`;
           console.log("[ZERLAL] ZIP extracted:", extracted, "files,", assembled.length, "chars, skipped:", skipped, "of total:", totalEntries);
