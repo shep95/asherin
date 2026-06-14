@@ -198,9 +198,8 @@ const ProductCard = ({ p }: { p: Product }) => {
 };
 
 const Software = () => {
-  useEffect(() => {
-    document.title = "Software · Aureon — Every tool, free for everyone";
-  }, []);
+  // Head is centrally managed in <RouteSeo /> (entry for /software).
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
