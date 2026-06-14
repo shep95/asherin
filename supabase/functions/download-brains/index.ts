@@ -12,7 +12,8 @@ import { SOCIAL_AWARENESS_BRAIN } from "../_shared/socialAwarenessBrain.ts";
 import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchitectureBrain.ts";
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
 
-const ADMIN_EMAILS = ["ashernewtonx@gmail.com"];
+import { ADMIN_EMAILS as SHARED_ADMIN_EMAILS } from "../_shared/constants.ts";
+const ADMIN_EMAILS = Array.from(SHARED_ADMIN_EMAILS);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
