@@ -340,7 +340,11 @@ const AsherMediaToCodeModule = () => {
               <Eye className="h-3 w-3" /> Live Preview
             </h2>
             <div className="flex-1 flex items-center justify-center rounded-xl border border-border/15 bg-foreground/[0.015] p-4 min-h-[280px] overflow-hidden">
-              <div dangerouslySetInnerHTML={{ __html: finalCode }} />
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(finalCode, {
+                ADD_ATTR: ["style"],
+                FORBID_TAGS: ["script", "iframe", "object", "embed", "link", "meta"],
+                FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur"],
+              }) }} />
             </div>
             {mediaType === "video" && (
               <div className="mt-3 rounded-lg border border-border/15 p-3 bg-foreground/[0.02]">
