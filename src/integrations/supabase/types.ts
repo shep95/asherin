@@ -8651,6 +8651,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      asher_is_channel_admin: {
+        Args: { _channel_id: string; _user_id: string }
+        Returns: boolean
+      }
+      asher_is_channel_member: {
+        Args: { _channel_id: string; _user_id: string }
+        Returns: boolean
+      }
       asher_is_dept_admin: {
         Args: { _dept: string; _uid: string }
         Returns: boolean
