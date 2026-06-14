@@ -125,7 +125,7 @@ const BlogVeniceIntegration = () => {
         </section>
       </article>
 
-      <Footer />
+      <SiteFooter />
     </div>
   );
 };
