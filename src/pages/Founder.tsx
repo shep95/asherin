@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import FounderPhotoCarousel from "@/components/founder/FounderPhotoCarousel";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
-import { applySeoHead } from "@/lib/seoHead";
 import { ArrowLeft, ArrowRight, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube, Sparkles, MessageCircle } from "lucide-react";
 import FounderVideos from "@/components/founder/FounderVideos";
 import FounderTOC from "@/components/founder/FounderTOC";
@@ -46,14 +45,9 @@ const DirectionalCTA = ({ to, label, sublabel }: { to: string; label: string; su
 );
 
 const Founder = () => {
+  // SEO head (title, description, canonical, og:*, WebPage JSON-LD) is owned by
+  // <RouteSeo />. We only add the Person schema specific to this page.
   useEffect(() => {
-    applySeoHead({
-      title: "Asher Newton — Founder of Aureon",
-      description: "Meet Asher Newton, founder of Aureon — the uncensored AI intelligence platform. Vision, mission, and videos from the founder.",
-      path: "/founder",
-    });
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Meet Asher Newton, the founder of Aureon — the uncensored AI intelligence platform built for researchers, developers, and truth-seekers.");
     const ld = document.createElement("script");
     ld.type = "application/ld+json";
     ld.id = "founder-jsonld";

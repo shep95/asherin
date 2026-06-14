@@ -332,13 +332,7 @@ const TOOLTIP_STYLE = {
 } as const;
 
 const Benchmark = () => {
-  useEffect(() => {
-    document.title = "Aureon Benchmark — Cheap models, groomed to outperform";
-    const meta = document.querySelector('meta[name="description"]') ||
-      document.head.appendChild(Object.assign(document.createElement("meta"), { name: "description" }));
-    meta.setAttribute("content",
-      "Aureon vs Opus 4.8 vs GPT-5.5 on a thread-safe LRU cache. See the prompt, the code, and the scored results.");
-  }, []);
+  // Head is centrally managed in <RouteSeo /> (entry for /benchmark).
 
   return (
     <div className="min-h-screen bg-background text-foreground">
