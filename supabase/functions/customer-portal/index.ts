@@ -2,8 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-import { getCorsHeaders } from "../_shared/cors.ts";
-// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -45,7 +44,8 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found customer", { customerId });
 
-    const origin = req.headers.get("origin") || "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app";
+    const rawOrigin = req.headers.get("origin") || "";
+    const origin = ALLOWED_ORIGINS.includes(rawOrigin) ? rawOrigin : ALLOWED_ORIGINS[0];
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,

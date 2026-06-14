@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
 
 const ALGORITHM_PRICE_ID = "price_1TfC3oRxgCpmPfiFniV2cXAu";
 
@@ -30,7 +30,8 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email!, limit: 1 });
     const customerId = customers.data[0]?.id;
 
-    const origin = req.headers.get("origin") || "https://aureonai.app";
+    const rawOrigin = req.headers.get("origin") || "";
+    const origin = ALLOWED_ORIGINS.includes(rawOrigin) ? rawOrigin : "https://aureonai.app";
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -40,6 +41,17 @@ serve(async (req) => {
       success_url: `${origin}/zophiel?upgraded=1`,
       cancel_url: `${origin}/zophiel?cancelled=1`,
       allow_promotion_codes: true,
+      // P0: embed user_id so webhook can grant the subscription. Without
+      // this metadata, paid subscriptions were dropped on the floor.
+      subscription_data: {
+        metadata: {
+          user_id: user.id,
+          user_email: user.email!,
+          is_gift: "false",
+          gift_recipient_email: "",
+          gift_duration_months: "0",
+        },
+      },
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

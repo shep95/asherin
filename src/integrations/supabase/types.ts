@@ -5621,6 +5621,21 @@ export type Database = {
           },
         ]
       }
+      pro_trial_usage: {
+        Row: {
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          used_at?: string
+          user_id: string
+        }
+        Update: {
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -7284,6 +7299,7 @@ export type Database = {
           starts_at: string
           status: string
           stripe_customer_id: string | null
+          stripe_session_id: string | null
           stripe_subscription_id: string | null
           subscription_type: string
           updated_at: string
@@ -7298,6 +7314,7 @@ export type Database = {
           starts_at?: string
           status?: string
           stripe_customer_id?: string | null
+          stripe_session_id?: string | null
           stripe_subscription_id?: string | null
           subscription_type: string
           updated_at?: string
@@ -7312,6 +7329,7 @@ export type Database = {
           starts_at?: string
           status?: string
           stripe_customer_id?: string | null
+          stripe_session_id?: string | null
           stripe_subscription_id?: string | null
           subscription_type?: string
           updated_at?: string

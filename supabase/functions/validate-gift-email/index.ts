@@ -11,8 +11,27 @@ serve(async (req) => {
   }
 
   try {
+    // P1: Require authentication. Without this, anyone could enumerate the
+    // entire user base by hammering this endpoint.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401,
+      });
+    }
+    const supabaseAnon = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    );
+    const { data: caller } = await supabaseAnon.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (!caller?.user) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401,
+      });
+    }
+
     const { email } = await req.json();
-    
+
     if (!email || typeof email !== "string") {
       return new Response(
         JSON.stringify({ error: "Valid email is required" }),

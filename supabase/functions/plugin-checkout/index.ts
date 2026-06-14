@@ -2,8 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-import { getCorsHeaders } from "../_shared/cors.ts";
-// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -28,9 +27,28 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("Not authenticated");
 
-    const { pluginId, pluginName, priceCents } = await req.json();
-    if (!pluginId || !pluginName || !priceCents) {
-      throw new Error("Missing plugin details");
+    const { pluginId } = await req.json();
+    if (!pluginId) throw new Error("Missing pluginId");
+
+    // P0: Server-authoritative price + plugin lookup. Reject the client's
+    // priceCents / pluginName entirely — they were trusted before, enabling
+    // a $0.01 plugin purchase by any authenticated user.
+    const { data: pluginRow, error: pluginErr } = await supabaseAdmin
+      .from("plugins")
+      .select("id, name, price_cents, is_premium")
+      .eq("id", pluginId)
+      .maybeSingle();
+    if (pluginErr || !pluginRow) {
+      return new Response(JSON.stringify({ error: "Plugin not found" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404,
+      });
+    }
+    const pluginName = pluginRow.name as string;
+    const priceCents = pluginRow.price_cents as number;
+    if (!pluginRow.is_premium || !priceCents || priceCents < 100) {
+      return new Response(JSON.stringify({ error: "Plugin not purchasable" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
     }
 
     // ── Idempotency: Check if user already owns this plugin ──
@@ -56,7 +74,8 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     const customerId = customers.data.length > 0 ? customers.data[0].id : undefined;
 
-    const origin = req.headers.get("origin") || "https://ziali-magic-pixels.lovable.app";
+    const rawOrigin = req.headers.get("origin") || "";
+    const origin = ALLOWED_ORIGINS.includes(rawOrigin) ? rawOrigin : ALLOWED_ORIGINS[0];
 
     // ── Idempotency: Check for existing pending Stripe session via client_reference_id ──
     const clientRefId = `${user.id}_plugin_${pluginId}`;

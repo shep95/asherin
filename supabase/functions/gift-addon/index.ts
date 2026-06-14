@@ -2,8 +2,13 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-import { getCorsHeaders } from "../_shared/cors.ts";
-// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
+
+// Server-authoritative allowlist of gift-able addon Stripe product IDs.
+// Empty by default = no gifts can be created until product IDs are added.
+const GIFTABLE_ADDON_PRODUCTS = new Set<string>([
+  // "prod_XXXX_darkweb",
+]);
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -42,14 +47,25 @@ serve(async (req) => {
 
     logStep("Addon gift requested", { addonProductId, recipientEmail });
 
-    // Validate recipient exists
+    // P0: reject unknown addon products. Without this, any Stripe product in
+    // the account (including $0.01 test products) could be gifted.
+    if (!GIFTABLE_ADDON_PRODUCTS.has(addonProductId)) {
+      return new Response(JSON.stringify({ error: "Invalid addon product" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
+    }
+
+    // Validate recipient via O(1) RPC (listUsers() silently truncates at 1000).
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
-    const { data: recipientUser } = await supabaseAdmin.auth.admin.listUsers();
-    const recipientExists = recipientUser?.users?.some((u) => u.email === recipientEmail);
-    
+    const { data: recipientId } = await (supabaseAdmin as any).rpc(
+      "get_user_id_by_email",
+      { _email: recipientEmail.toLowerCase() },
+    );
+    const recipientExists = typeof recipientId === "string" && recipientId.length > 0;
+
     if (!recipientExists) {
       logStep("Recipient email not found", { recipientEmail });
       throw new Error("Recipient email must be a registered account");
@@ -57,10 +73,10 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Get addon price from product
-    const prices = await stripe.prices.list({ product: addonProductId, limit: 1 });
+    // Get addon price from product (whitelisted above)
+    const prices = await stripe.prices.list({ product: addonProductId, limit: 1, active: true });
     if (prices.data.length === 0) {
-      throw new Error("No price found for addon product");
+      throw new Error("No active price found for addon product");
     }
 
     const priceId = prices.data[0].id;
@@ -73,7 +89,8 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
-    const origin = req.headers.get("origin") || "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app";
+    const rawOrigin = req.headers.get("origin") || "";
+    const origin = ALLOWED_ORIGINS.includes(rawOrigin) ? rawOrigin : ALLOWED_ORIGINS[0];
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

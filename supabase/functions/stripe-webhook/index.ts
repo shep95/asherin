@@ -63,6 +63,20 @@ serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       logStep("Processing checkout session", { sessionId: session.id });
 
+      // P0: Idempotency guard. Stripe retries on 5xx / timeout. Without this,
+      // a single payment could insert two active subscriptions.
+      const { data: existingRow } = await supabaseAdmin
+        .from("user_subscriptions")
+        .select("id")
+        .eq("stripe_session_id", session.id)
+        .maybeSingle();
+      if (existingRow) {
+        logStep("Duplicate webhook — session already processed", { sessionId: session.id });
+        return new Response(JSON.stringify({ received: true, duplicate: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+        });
+      }
+
       const metadata = session.metadata || {};
       const isGift = metadata.is_gift === "true";
       const giftRecipientEmail = metadata.gift_recipient_email;
@@ -151,7 +165,7 @@ serve(async (req) => {
 
       logStep("Subscription details", { subscriptionType, expiresAt });
 
-      // Insert into user_subscriptions
+      // Insert into user_subscriptions (with stripe_session_id for idempotency)
       const { error: insertError } = await supabaseAdmin
         .from("user_subscriptions")
         .insert({
@@ -160,6 +174,7 @@ serve(async (req) => {
           product_id: productId,
           stripe_subscription_id: session.subscription as string || null,
           stripe_customer_id: session.customer as string,
+          stripe_session_id: session.id,
           status: "active",
           starts_at: new Date().toISOString(),
           expires_at: expiresAt,
@@ -167,11 +182,31 @@ serve(async (req) => {
         });
 
       if (insertError) {
+        // 23505 = unique_violation on stripe_session_id — treat as duplicate, ok
+        if ((insertError as any).code === "23505") {
+          logStep("Idempotent: duplicate insert blocked by unique index");
+          return new Response(JSON.stringify({ received: true, duplicate: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+          });
+        }
         logStep("ERROR inserting subscription", { error: insertError });
         throw insertError;
       }
 
       logStep("Subscription granted successfully", { recipientUserId, productId });
+
+      // P0: Plugin fulfillment — if session metadata has plugin_id, install it.
+      const pluginIdMeta = (session.metadata as any)?.plugin_id;
+      if (pluginIdMeta && recipientUserId) {
+        const { error: pluginErr } = await supabaseAdmin
+          .from("installed_plugins")
+          .upsert(
+            { user_id: recipientUserId, plugin_id: pluginIdMeta, config: {} },
+            { onConflict: "user_id,plugin_id", ignoreDuplicates: true },
+          );
+        if (pluginErr) logStep("WARNING: plugin install failed", { error: pluginErr });
+        else logStep("Plugin installed via webhook", { pluginIdMeta });
+      }
 
       // If this was a gift, record it
       if (isGift && giftRecipientEmail) {
@@ -228,6 +263,28 @@ serve(async (req) => {
         } catch (mailErr) {
           logStep("WARNING: receipt email failed", { error: String(mailErr) });
         }
+      }
+    }
+
+    // Handle subscription cancellation — keep DB in sync with Stripe.
+    if (event.type === "customer.subscription.deleted") {
+      const sub = event.data.object as Stripe.Subscription;
+      const { error: cancelErr } = await supabaseAdmin
+        .from("user_subscriptions")
+        .update({ status: "cancelled" })
+        .eq("stripe_subscription_id", sub.id);
+      if (cancelErr) logStep("WARNING: could not mark subscription cancelled", { error: cancelErr });
+      else logStep("Subscription marked cancelled", { stripeSubId: sub.id });
+    }
+
+    if (event.type === "customer.subscription.updated") {
+      const sub = event.data.object as Stripe.Subscription;
+      if (sub.status === "canceled" || sub.status === "unpaid" || sub.status === "past_due") {
+        await supabaseAdmin
+          .from("user_subscriptions")
+          .update({ status: sub.status })
+          .eq("stripe_subscription_id", sub.id);
+        logStep("Subscription status synced", { stripeSubId: sub.id, status: sub.status });
       }
     }
 
