@@ -21,6 +21,7 @@ const Benchmark = lazy(() => import("./pages/Benchmark"));
 const Software = lazy(() => import("./pages/Software"));
 const WhiteboardPage = lazy(() => import("./pages/WhiteboardPage"));
 const BlogComparison = lazy(() => import("./pages/BlogComparison"));
+const BlogVeniceIntegration = lazy(() => import("./pages/BlogVeniceIntegration"));
 const Blog = lazy(() => import("./pages/Blog"));
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -68,6 +69,7 @@ const App = () => (
             <Route path="/whiteboard" element={<WhiteboardPage />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/comparison" element={<BlogComparison />} />
+            <Route path="/blog/venice-integration" element={<BlogVeniceIntegration />} />
             <Route
               path="/asher-dashboard"
               element={
