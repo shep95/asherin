@@ -101,6 +101,13 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       return;
     }
 
+    // Archive uploads ALWAYS go through the cloud-resilient background queue —
+    // never extract a zip in the browser (WiFi drops would kill it).
+    const archiveFile = files.find(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name));
+    if (archiveFile) {
+      return handleQueueBackground();
+    }
+
     const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
 
     if (!finalCode && !url && selectedSource !== "github" && selectedSource !== "docker") {
@@ -114,8 +121,6 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
     const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
 
-    // If we have a navigation handler, kick off the live narrative scan and jump
-    // to the project page immediately. Otherwise fall back to the in-modal flow.
     if (onScanStarted) {
       startLiveScan({
         projectId: project.id,
