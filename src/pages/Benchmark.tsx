@@ -333,6 +333,38 @@ const TOOLTIP_STYLE = {
 
 const Benchmark = () => {
   // Head is centrally managed in <RouteSeo /> (entry for /benchmark).
+  // Inject TechArticle JSON-LD so Google can surface this as a technical article.
+  useEffect(() => {
+    const id = "benchmark-techarticle-jsonld";
+    let el = document.getElementById(id) as HTMLScriptElement | null;
+    if (!el) {
+      el = document.createElement("script");
+      el.id = id;
+      el.type = "application/ld+json";
+      document.head.appendChild(el);
+    }
+    el.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      headline: "Aureon vs Opus 4.8 vs GPT-5.5 — Thread-Safe LRU Cache Benchmark",
+      description:
+        "Same prompt, three models, scored head-to-head on a thread-safe LRU cache with O(1) get and put.",
+      url: "https://aureonai.app/benchmark",
+      author: { "@type": "Organization", name: "Aureon" },
+      publisher: {
+        "@type": "Organization",
+        name: "Aureon",
+        logo: { "@type": "ImageObject", url: "https://aureonai.app/favicon.png" },
+      },
+      proficiencyLevel: "Expert",
+      about: "Concurrent data structure implementation benchmark across frontier LLMs",
+    });
+    return () => {
+      document.getElementById(id)?.remove();
+    };
+  }, []);
+
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">

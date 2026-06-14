@@ -7,6 +7,8 @@ import Whiteboard from "@/components/whiteboard/Whiteboard";
 const WhiteboardPage = () => {
   return (
     <div className="fixed inset-0 h-screen w-screen overflow-hidden bg-background">
+      {/* Visually hidden semantic H1 for SEO/a11y; HUD design is unaffected. */}
+      <h1 className="sr-only">Aureon Infinite Whiteboard</h1>
       <Whiteboard />
     </div>
   );
