@@ -438,10 +438,8 @@ Deno.serve(async (req) => {
     if (mode === "finalize") {
       let allFindings = dedupeFindings(Array.isArray(aggregated_findings) ? aggregated_findings : []);
       const existingTitles = allFindings.slice(0, 60).map((f: any) => f.title).join(", ");
-      const pass2Slice = codeToAnalyze.substring(
-        Math.floor(totalLen / 2),
-        Math.floor(totalLen / 2) + Math.min(60000, profile.chunk_size),
-      ) || codeToAnalyze.substring(Math.max(0, totalLen - profile.chunk_size));
+      const midIdx = Math.floor(chunkCount / 2);
+      const pass2Slice = buildSectionPayload(split.preamble, split.sections, midIdx, file_name);
 
       if (pass2Slice.trim()) {
         try {
