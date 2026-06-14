@@ -232,7 +232,20 @@ const DashboardSidebar = ({
         })) as IntentNavItem[],
       }]
     : [];
-  const allGroups = [...filteredGroups, ...dynamicGroups];
+  const allGroupsBase = [...filteredGroups, ...dynamicGroups];
+  const swq = softwareSearch.trim().toLowerCase();
+  const allGroups = swq
+    ? allGroupsBase
+        .map((g) => ({
+          ...g,
+          items: g.items.filter(
+            (i) =>
+              i.label.toLowerCase().includes(swq) ||
+              (i.codename ?? "").toLowerCase().includes(swq)
+          ),
+        }))
+        .filter((g) => g.items.length > 0)
+    : allGroupsBase;
 
 
   // Load archived conversations
