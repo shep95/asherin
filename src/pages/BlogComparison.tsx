@@ -3,6 +3,32 @@ import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
 import { Check, X, Minus, ArrowRight } from "lucide-react";
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
+
+const RADAR_DATA = [
+  { axis: "Reasoning",    Aureon: 96, "ChatGPT Plus": 88, "Claude Pro": 91, Gemini: 86 },
+  { axis: "Coding",       Aureon: 94, "ChatGPT Plus": 85, "Claude Pro": 92, Gemini: 82 },
+  { axis: "OSINT",        Aureon: 98, "ChatGPT Plus": 55, "Claude Pro": 30, Gemini: 60 },
+  { axis: "Vision",       Aureon: 93, "ChatGPT Plus": 84, "Claude Pro": 80, Gemini: 88 },
+  { axis: "Security",     Aureon: 97, "ChatGPT Plus": 60, "Claude Pro": 65, Gemini: 58 },
+  { axis: "Long context", Aureon: 95, "ChatGPT Plus": 78, "Claude Pro": 90, Gemini: 92 },
+];
+
+const SERIES = [
+  { key: "Aureon",        color: "hsl(217, 91%, 60%)" },
+  { key: "ChatGPT Plus",  color: "hsl(142, 71%, 45%)" },
+  { key: "Claude Pro",    color: "hsl(28, 95%, 55%)" },
+  { key: "Gemini",        color: "hsl(280, 75%, 65%)" },
+];
 
 /**
  * /blog/comparison — Aureon vs ChatGPT vs Claude
