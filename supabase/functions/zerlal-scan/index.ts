@@ -474,10 +474,15 @@ CODE:\n\`\`\`\n${pass2Slice}\n\`\`\``;
         else if (severity === "low") lowCount++;
         else infoCount++;
 
+        const rawType = (f.finding_type || "security").toString().toLowerCase();
+        const finding_type = rawType === "workflow-function" || rawType === "workflow_function" || rawType === "workflow"
+          ? "workflow-function"
+          : "security";
         const { error: insertErr } = await supabase.from("zerlal_findings").insert({
           user_id: user.id,
           project_id,
           scan_id,
+          finding_type,
           severity,
           title: f.title || "Unnamed finding",
           file_path: f.file_path || file_name || "unknown",
@@ -560,11 +565,16 @@ CODE:\n\`\`\`\n${pass2Slice}\n\`\`\``;
   } catch (e: any) {
     console.error("[ZERLAL] Scan error:", e);
     const body = await safeReadBody(req);
-    if (body?.scan_id && body?.project_id) {
+    if (body?.project_id) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-      await failScan(supabase, body.scan_id, body.project_id, e.message || "Unknown error");
+      if (body?.scan_id) {
+        await failScan(supabase, body.scan_id, body.project_id, e.message || "Unknown error");
+      } else {
+        // Plan-mode failure: no scan row yet, but still mark project failed so it doesn't hang in "scanning"
+        await supabase.from("zerlal_projects").update({ status: "failed" }).eq("id", body.project_id);
+      }
     }
     return new Response(JSON.stringify({ error: e.message || "Unknown error" }), {
       status: 500,
@@ -759,7 +769,13 @@ async function sendEmails({ supabase, user, project_id, scan_id, scan_profile, s
   }
 }
 
-function buildAnalysisPrompt(scanProfile: string, fileName: string, code: string, brainsContext: string): string {
+function buildAnalysisPrompt(scanProfile: string, fileName: string, code: string, brainsContext: string, includeWorkflowFunctionFlaws = false): string {
+  const workflowAddendum = includeWorkflowFunctionFlaws
+    ? `\n14. WORKFLOW/FUNCTION FLAWS (broken user journeys, dead/unreachable functions, failed state transitions, wrong data propagation between modules, missing success/error feedback, partial-failure handling, retry gaps, navigation dead ends, contract mismatches between caller and callee signatures, columns referenced that don't exist, payloads that don't round-trip end-to-end)\n`
+    : "";
+  const findingTypeLine = includeWorkflowFunctionFlaws
+    ? `- finding_type: "security" for vulnerabilities, "workflow-function" for workflow / function / UX / contract flaws`
+    : `- finding_type: always "security"`;
   return `You are ZERLAL, an elite vulnerability intelligence engine. Adopt the adversary's Zero-Point Perspective — every component is a potential exploit vector. Simulate both old-school and modern attack techniques.
 
 SCAN PROFILE: ${scanProfile || "security-audit"}
@@ -782,8 +798,9 @@ SCAN CATEGORIES:
 11. CROSS-DOMAIN (CORS bypass, SOP bypass, postMessage abuse, site spoofing, open redirect, reload/redirect leaks)
 12. CONCEALMENT (audit-disabling, steganography, obfuscation, anti-analysis)
 13. OTHER (catch-all — anything suspicious, sloppy, non-idiomatic, or "just not good" that doesn't cleanly fit above; NEVER drop a finding because it doesn't have a category)
-
+${workflowAddendum}
 FOR EACH VULNERABILITY RETURN:
+${findingTypeLine}
 - severity: "critical"|"high"|"medium"|"low"|"info"
 - title: Clear specific title
 - file_path: Exact file path
