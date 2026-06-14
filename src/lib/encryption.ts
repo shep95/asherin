@@ -78,59 +78,25 @@ function b64ToBytes(s: string): Uint8Array {
   return Uint8Array.from(atob(s), c => c.charCodeAt(0));
 }
 
-/**
- * Fetch key material from the server (RLS-locked to the owning user).
- * Returns null if no row exists OR if the request fails (e.g. offline).
- */
-async function fetchRemoteKeyMaterial(userId: string): Promise<DeviceKeyMaterial | null> {
-  try {
-    const { data, error } = await supabase
-      .from("user_key_material" as any)
-      .select("salt_b64, device_secret_b64")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (error || !data) return null;
-    return {
-      salt: b64ToBytes((data as any).salt_b64),
-      deviceSecret: b64ToBytes((data as any).device_secret_b64),
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function pushRemoteKeyMaterial(userId: string, m: DeviceKeyMaterial): Promise<void> {
-  try {
-    await supabase.from("user_key_material" as any).upsert({
-      user_id: userId,
-      salt_b64: bytesToB64(m.salt),
-      device_secret_b64: bytesToB64(m.deviceSecret),
-      updated_at: new Date().toISOString(),
-    });
-  } catch {
-    /* best-effort */
-  }
-}
+// P0: Key material is NEVER synced to the server. Previously the device
+// secret + salt were pushed to user_key_material, which meant anyone with
+// service-role / DB access could recompute every user's AES key and
+// decrypt all messages — fully defeating the stated E2E model.
+//
+// Trade-off: a user who logs in from a new device cannot decrypt old
+// messages until a future passphrase-derived recovery key feature is added.
+// This is the correct security posture for E2E.
 
 async function getOrCreateKeyMaterial(userId: string): Promise<DeviceKeyMaterial> {
-  // 1. Local IndexedDB first (fastest, works offline)
+  // Device-local only. No remote fetch, no remote push.
   const local = await readKeyMaterial(userId);
   if (local) return local;
 
-  // 2. Fall back to server-synced copy (restores after browser storage wipe / new browser)
-  const remote = await fetchRemoteKeyMaterial(userId);
-  if (remote) {
-    await writeKeyMaterial(userId, remote);
-    return remote;
-  }
-
-  // 3. First time on any device — generate fresh material and persist both places
   const material: DeviceKeyMaterial = {
     salt: crypto.getRandomValues(new Uint8Array(32)),
     deviceSecret: crypto.getRandomValues(new Uint8Array(32)),
   };
   await writeKeyMaterial(userId, material);
-  await pushRemoteKeyMaterial(userId, material);
   return material;
 }
 

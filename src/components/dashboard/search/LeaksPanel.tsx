@@ -198,16 +198,26 @@ const LeaksPanel = () => {
           // Upload original file (if any) into asher-brains bucket via proxy
           let filePath: string | null = null;
           let fileSize = content.length;
-          if (fileUrl) {
+          if (fileUrl && user?.id) {
             try {
               const fr = await fetch(viaProxy(fileUrl));
               if (fr.ok) {
                 const blob = await fr.blob();
-                const ext = (firstProp(r.properties, "fileName").match(/\.[a-z0-9]+$/i)?.[0]) || "";
+                const ext = (firstProp(r.properties, "fileName").match(/\.[a-z0-9]+$/i)?.[0]) || ".bin";
                 const safe = title.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) || r.id;
-                const path = `${user?.id ?? "admin"}/asher-eyes/${Date.now()}_${safe}${ext}`;
-                const up = await supabase.storage.from("asher-brains").upload(path, blob, { upsert: false });
-                if (!up.error) { filePath = path; fileSize = blob.size; }
+                // P0: validate remote blob magic bytes / MIME before storing.
+                // Otherwise an Aleph entry with mimeType: "text/html" could
+                // store renderable HTML in our trusted brains bucket.
+                const { validateFile } = await import("@/lib/file-security");
+                const fileObj = new File([blob], `${safe}${ext}`, { type: blob.type || "application/octet-stream" });
+                const v = await validateFile(fileObj);
+                if (!v.valid) {
+                  console.warn("[asher-eyes→brains] rejected remote blob:", v.error);
+                } else {
+                  const path = `${user.id}/asher-eyes/${Date.now()}_${safe}${ext}`;
+                  const up = await supabase.storage.from("asher-brains").upload(path, fileObj, { upsert: false });
+                  if (!up.error) { filePath = path; fileSize = blob.size; }
+                }
               }
             } catch (e) { console.warn("[asher-eyes→brains] file upload failed", e); }
           }

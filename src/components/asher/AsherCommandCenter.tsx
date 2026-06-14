@@ -162,14 +162,21 @@ const AsherCommandCenter = () => {
     setRenameId(null);
   };
 
-  const onPickFiles = (list: FileList | null) => {
+  const onPickFiles = async (list: FileList | null) => {
     if (!list) return;
-    const arr = Array.from(list).filter((f) => {
-      if (f.size > MAX_FILE_MB * 1024 * 1024) {
-        toast.error(`${f.name}: exceeds ${MAX_FILE_MB}MB`); return false;
-      }
-      return true;
-    });
+    // P0: full magic-byte/MIME/extension validation before any storage write.
+    const { validateFile } = await import("@/lib/file-security");
+    const checked = await Promise.all(
+      Array.from(list).map(async (f) => {
+        if (f.size > MAX_FILE_MB * 1024 * 1024) {
+          toast.error(`${f.name}: exceeds ${MAX_FILE_MB}MB`); return null;
+        }
+        const v = await validateFile(f);
+        if (!v.valid) { toast.error(`${f.name}: ${v.error}`); return null; }
+        return f;
+      }),
+    );
+    const arr = checked.filter(Boolean) as File[];
     setPending((p) => [...p, ...arr].slice(0, 5));
   };
 

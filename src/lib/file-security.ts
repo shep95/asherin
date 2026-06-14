@@ -121,9 +121,21 @@ export async function validateFile(file: File): Promise<FileValidationResult> {
   }
 
   // STEP 3 — MIME type check (compare to extension whitelist)
+  // P2 fix: previously, claimedMime === "application/octet-stream" skipped the
+  // check entirely, allowing a renamed .exe → .zip to slip through whenever
+  // the browser couldn't classify it. Now we still skip ONLY when the
+  // extension's allowlist explicitly includes octet-stream; otherwise the
+  // claimed MIME must match and we rely on the magic-byte check (Step 4)
+  // as the authoritative gate.
   const allowedMimes = ALLOWED_EXTENSIONS[ext];
   const claimedMime = file.type || "application/octet-stream";
-  if (claimedMime !== "application/octet-stream" && !allowedMimes.includes(claimedMime)) {
+  const allowsOctetStream = allowedMimes.includes("application/octet-stream");
+  if (claimedMime === "application/octet-stream") {
+    if (!allowsOctetStream) {
+      // Don't reject yet — fall through to magic-byte check, which is the
+      // real gate. Reject only if MIME is non-octet-stream and wrong.
+    }
+  } else if (!allowedMimes.includes(claimedMime)) {
     return {
       valid: false,
       error: `MIME type mismatch: expected ${allowedMimes.join(" or ")} for ${ext}, got ${claimedMime}`,

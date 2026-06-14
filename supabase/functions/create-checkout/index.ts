@@ -2,8 +2,23 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+
+// Server-authoritative price ID whitelist. Client cannot purchase any
+// price not on this list, blocking $0.01-test-price attacks.
+const ALLOWED_PRICE_IDS = new Set<string>([
+  "price_1TUtfDRxgCpmPfiFNYa092Zu", // lifetime
+  "price_1T6PPmRxgCpmPfiFoTiBXBzq", // chat
+  "price_1T3o9NRxgCpmPfiFaFDWC8u0", // aureon
+  "price_1T3N4iRxgCpmPfiFGbJkXY33", // pro
+  "price_1TfC3oRxgCpmPfiFniV2cXAu", // algorithm
+]);
+
+function safeOrigin(req: Request): string {
+  const raw = req.headers.get("origin") || "";
+  return ALLOWED_ORIGINS.includes(raw) ? raw : ALLOWED_ORIGINS[0];
+}
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -38,8 +53,19 @@ serve(async (req) => {
 
     const { priceId, mode, isGift, giftRecipientEmail, giftDurationMonths } = await req.json();
     if (!priceId) throw new Error("Missing priceId");
+    // P0: reject any price ID not on the server-side allowlist.
+    if (!ALLOWED_PRICE_IDS.has(priceId)) {
+      logStep("REJECTED unknown priceId", { priceId });
+      return new Response(JSON.stringify({ error: "Invalid price selection" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
+    }
     const checkoutMode = mode === "payment" ? "payment" : "subscription";
-    logStep("Price requested", { priceId, checkoutMode, isGift, giftRecipientEmail, giftDurationMonths });
+    // P2: clamp gift duration to [1, 12] months
+    const safeGiftMonths = isGift && giftDurationMonths
+      ? Math.min(Math.max(parseInt(String(giftDurationMonths), 10) || 1, 1), 12)
+      : 0;
+    logStep("Price requested", { priceId, checkoutMode, isGift, giftRecipientEmail, safeGiftMonths });
 
     // Validate gift recipient exists if this is a gift purchase
     if (isGift && giftRecipientEmail) {
@@ -86,7 +112,7 @@ serve(async (req) => {
       }
     }
 
-    const origin = req.headers.get("origin") || "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app";
+    const origin = safeOrigin(req);
 
     const sessionParams: any = {
       customer: customerId,
@@ -110,7 +136,7 @@ serve(async (req) => {
           user_email: user.email,
           is_gift: isGift ? "true" : "false",
           gift_recipient_email: giftRecipientEmail || "",
-          gift_duration_months: giftDurationMonths?.toString() || "",
+          gift_duration_months: safeGiftMonths ? String(safeGiftMonths) : "",
         },
       };
     } else {
@@ -120,7 +146,7 @@ serve(async (req) => {
           user_email: user.email,
           is_gift: isGift ? "true" : "false",
           gift_recipient_email: giftRecipientEmail || "",
-          gift_duration_months: giftDurationMonths?.toString() || "",
+          gift_duration_months: safeGiftMonths ? String(safeGiftMonths) : "",
         },
       };
     }
