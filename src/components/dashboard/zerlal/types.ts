@@ -1,7 +1,8 @@
 export type ZerlalScreen = "dashboard" | "project" | "finding" | "reports" | "integrations" | "settings" | "team" | "compliance" | "supply-chain" | "quantum" | "ai-security" | "zero-trust" | "incident" | "threat-intel" | "governance" | "ot-ics" | "deployment" | "workforce" | "dark-web" | "ueba" | "cvd-pipeline" | "exec-risk" | "red-team" | "device-security" | "pattern-engine" | "domain-recon" | "sigma-rules" | "stix-feed" | "log-correlation" | "cert-transparency" | "code-scanner" | "port-scanner" | "whois-timeline" | "tor-checker";
 
 export type FindingSeverity = "critical" | "high" | "medium" | "low" | "info";
-export type FindingCategory = "memory-safety" | "injection" | "secrets" | "dependencies" | "logic" | "crypto" | "auth" | "config" | "supply-chain" | "ai-security" | "zero-trust" | "ot-ics" | "infrastructure" | "cross-domain" | "concealment" | "other";
+export type FindingType = "security" | "workflow-function";
+export type FindingCategory = "memory-safety" | "injection" | "secrets" | "dependencies" | "logic" | "crypto" | "auth" | "config" | "supply-chain" | "ai-security" | "zero-trust" | "ot-ics" | "infrastructure" | "cross-domain" | "concealment" | "workflow" | "function" | "state" | "data-integrity" | "user-flow" | "other";
 export type FindingStatus = "open" | "in-progress" | "resolved" | "waived";
 export type ScanStatus = "idle" | "queued" | "scanning" | "complete" | "failed";
 export type RiskGrade = "A" | "B" | "C" | "D" | "F";
@@ -33,6 +34,7 @@ export interface ZerlalFinding {
   user_id: string;
   project_id: string;
   scan_id: string | null;
+  finding_type: FindingType;
   severity: FindingSeverity;
   title: string;
   file_path: string | null;
