@@ -4,7 +4,7 @@ import { useCreateProject, useRunScan } from "./useZerlalData";
 import { useActiveScan } from "./scanContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import JSZip from "jszip";
+
 import { triggerByokRequired } from "@/components/ByokRequiredDialog";
 
 const ADMIN_EMAILS = new Set(["ashernewtonx@gmail.com", "28numberofmoney@gmail.com"]);
@@ -59,34 +59,28 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     setFiles(fileArray);
     setIsProcessing(true);
 
+    // Archives: skip browser extraction entirely. Upload raw to cloud and let
+    // the edge function extract server-side — survives WiFi drops mid-scan.
+    const isArchive = (n: string) => /\.(zip|tar|tar\.gz|tgz)$/i.test(n);
+    const hasArchive = fileArray.some(f => isArchive(f.name));
+
     try {
-      let allContent = "";
-      for (const file of fileArray) {
-        if (file.name.endsWith(".zip")) {
-          const zip = new JSZip();
-          const contents = await zip.loadAsync(file);
-          for (const [path, entry] of Object.entries(contents.files)) {
-            if (!entry.dir && !path.includes("node_modules") && !path.includes(".git") && !path.startsWith("__MACOSX")) {
-              try {
-                const text = await entry.async("text");
-                if (text.length < 100000) {
-                  allContent += `\n--- FILE: ${path} ---\n${text}\n`;
-                }
-              } catch { /* binary file */ }
-            }
-          }
-        } else {
+      if (hasArchive) {
+        setCodeContent(""); // signals raw-upload path in handleQueueBackground
+      } else {
+        let allContent = "";
+        for (const file of fileArray) {
           const text = await file.text();
           allContent += `\n--- FILE: ${file.name} ---\n${text}\n`;
         }
+        setCodeContent(allContent);
       }
-      setCodeContent(allContent);
       if (!projectName && fileArray.length > 0) {
-        setProjectName(fileArray[0].name.replace(/\.(zip|tar|gz)$/, ""));
+        setProjectName(fileArray[0].name.replace(/\.(zip|tar|gz|tgz)$/i, ""));
       }
     } catch (e) {
       console.error("File processing error:", e);
-      setScanError("Failed to process files");
+      setScanError("Failed to read files");
     } finally {
       setIsProcessing(false);
     }
@@ -107,6 +101,13 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       return;
     }
 
+    // Archive uploads ALWAYS go through the cloud-resilient background queue —
+    // never extract a zip in the browser (WiFi drops would kill it).
+    const archiveFile = files.find(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name));
+    if (archiveFile) {
+      return handleQueueBackground();
+    }
+
     const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
 
     if (!finalCode && !url && selectedSource !== "github" && selectedSource !== "docker") {
@@ -120,8 +121,6 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
     const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
 
-    // If we have a navigation handler, kick off the live narrative scan and jump
-    // to the project page immediately. Otherwise fall back to the in-modal flow.
     if (onScanStarted) {
       startLiveScan({
         projectId: project.id,
@@ -151,7 +150,8 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     setScanError(null);
     if (!projectName.trim()) { setScanError("Project name is required"); return; }
     const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
-    if (!finalCode && !url) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
+    const archiveFile = files.find(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name));
+    if (!finalCode && !url && !archiveFile) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) { setScanError("Sign in required"); return; }
@@ -182,7 +182,6 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       }
     } catch { /* ignore */ }
 
-    // Strict BYOK: non-admin users must bring their own key
     const isAdmin = ADMIN_EMAILS.has((user.email || "").toLowerCase());
     if (!byok && !isAdmin) {
       triggerByokRequired({ source: "zerlal", reason: "Zerlal scans require your own AI key. Add one in Settings → AI Keys." });
@@ -190,8 +189,6 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     }
 
     const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
-    // Strip NUL bytes and lone surrogates — Postgres TEXT rejects \u0000 and
-    // these characters cause PostgREST to reject the request body as invalid JSON.
     const sanitize = (s: string) =>
       s.replace(/\u0000/g, "")
        .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
@@ -199,7 +196,25 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     const safeCode = finalCode ? sanitize(finalCode) : null;
     let sourceStoragePath: string | null = null;
 
-    if (safeCode) {
+    // ── PATH A: Raw archive upload (cloud-resilient) ─────────────────────
+    // Upload the .zip itself. Edge function extracts on the server, so a
+    // WiFi drop after the upload completes can't interrupt the scan.
+    if (archiveFile) {
+      const ext = archiveFile.name.toLowerCase().endsWith(".tar.gz")
+        ? "tar.gz"
+        : (archiveFile.name.split(".").pop()?.toLowerCase() || "zip");
+      sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("zerlal-scan-sources")
+        .upload(sourceStoragePath, archiveFile, {
+          upsert: false,
+          contentType: archiveFile.type || "application/zip",
+        });
+      if (uploadErr) {
+        setScanError("Failed to upload archive: " + (uploadErr.message || JSON.stringify(uploadErr)));
+        return;
+      }
+    } else if (safeCode) {
       const fileExt = files[0]?.name?.split(".").pop()?.toLowerCase() || "txt";
       sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.${fileExt}`;
       const uploadPayload = new Blob([safeCode], { type: "text/plain;charset=utf-8" });
@@ -209,7 +224,6 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
           upsert: false,
           contentType: "text/plain; charset=utf-8",
         });
-
       if (uploadErr) {
         setScanError("Failed to upload scan source: " + (uploadErr.message || JSON.stringify(uploadErr)));
         return;
@@ -337,11 +351,14 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
                         <div>
                           <p className="text-[10px] text-foreground/50">{files.length} file(s) selected</p>
                           <p className="text-[8px] text-muted-foreground/30 mt-1">{files.map(f => f.name).join(", ")}</p>
+                          {files.some(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name)) && (
+                            <p className="text-[8px] text-emerald-400/60 mt-2">☁ Archive will upload to cloud — scan continues even if you lose WiFi.</p>
+                          )}
                         </div>
                       ) : (
                         <div>
                           <p className="text-[10px] text-muted-foreground/30">Drop ZIP/TAR archives, code files, or dependency manifests</p>
-                          <p className="text-[8px] text-muted-foreground/20 mt-1">Up to 5GB • All languages supported</p>
+                          <p className="text-[8px] text-muted-foreground/20 mt-1">Up to 5GB • Archives extracted server-side • WiFi-drop resilient</p>
                         </div>
                       )}
                     </div>
