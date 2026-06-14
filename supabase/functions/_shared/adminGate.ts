@@ -91,12 +91,12 @@ export async function resolveKey(
     throw e;
   }
 
-  // Free-tier fallback: route non-admin callers without BYOK through the
-  // platform Venice key. They never see the key itself; their requests are
-  // billed to the platform. Users with their own BYOK never get here (handled
-  // above) — saves us money.
+  // Free-tier fallback: route NON-ADMIN, AUTHENTICATED callers without BYOK
+  // through the platform Venice key. Anonymous (no JWT) callers MUST NOT
+  // reach this path — otherwise any unauthenticated HTTP client can consume
+  // the platform Venice budget without limit (billing DoS).
   const veniceKey = Deno.env.get("VENICE_API_KEY") || "";
-  if (veniceKey) {
+  if (veniceKey && email) {
     return {
       mode: "byok",
       byok: {
