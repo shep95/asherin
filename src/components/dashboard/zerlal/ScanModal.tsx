@@ -155,8 +155,12 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         return;
       }
 
-      const archiveFile = files.find(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name));
-      if (archiveFile) {
+      const unsupportedArchive = files.find(f => isOtherArchive(f.name));
+      if (unsupportedArchive) {
+        setScanError("TAR uploads are not supported yet — upload a ZIP instead.");
+        return;
+      }
+      if (files.some(f => isZipArchive(f.name))) {
         return handleQueueBackground();
       }
 
@@ -214,8 +218,10 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     setScanError(null);
     if (!projectName.trim()) { setScanError("Project name is required"); return; }
     const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
-    const archiveFile = files.find(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name));
-    if (!finalCode && !url && !archiveFile) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
+    const archiveFile = files.find(f => isOtherArchive(f.name));
+    const zipFile = files.find(f => isZipArchive(f.name));
+    if (archiveFile) { setScanError("TAR uploads are not supported yet — upload a ZIP instead."); return; }
+    if (!finalCode && !url) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) { setScanError("Sign in required"); return; }
@@ -229,11 +235,11 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       projectName,
       fileName: files[0]?.name || projectName,
       scanProfile: selectedProfile,
-      sourceType: archiveFile ? "cloud-upload" : sourceType,
+      sourceType: zipFile ? "zip-upload" : sourceType,
       fileCount: files.length || 1,
       percent: 1,
-      message: archiveFile
-        ? "Uploading archive to cloud — hold on…"
+      message: zipFile
+        ? "Uploading extracted ZIP source — hold on…"
         : "Packaging source for cloud scan — hold on…",
     });
 
@@ -281,38 +287,9 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     const safeCode = finalCode ? sanitize(finalCode) : null;
     let sourceStoragePath: string | null = null;
 
-    // ── PATH A: Raw archive upload (cloud-resilient) ─────────────────────
-    // Upload the .zip itself. Edge function extracts on the server, so a
-    // WiFi drop after the upload completes can't interrupt the scan.
-    if (archiveFile) {
-      const ext = archiveFile.name.toLowerCase().endsWith(".tar.gz")
-        ? "tar.gz"
-        : (archiveFile.name.split(".").pop()?.toLowerCase() || "zip");
-      sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage
-        .from("zerlal-scan-sources")
-        .upload(sourceStoragePath, archiveFile, {
-          upsert: false,
-          contentType: archiveFile.type || "application/zip",
-        });
-      if (uploadErr) {
-        const message = "Failed to upload archive: " + (uploadErr.message || JSON.stringify(uploadErr));
-        setScanError(message);
-        failScan(project.id, message);
-        toast.error(message);
-        return;
-      }
-      adoptQueuedScan({
-        projectId: project.id,
-        projectName,
-        fileName: files[0]?.name || projectName,
-        scanProfile: selectedProfile,
-        sourceType: "cloud-upload",
-        fileCount: files.length || 1,
-        percent: 8,
-        message: "Archive uploaded — queueing cloud scan now…",
-      });
-    } else if (safeCode) {
+    // Upload extracted text, not the raw ZIP. This avoids cloud memory crashes
+    // while still letting the background worker survive browser disconnects.
+    if (safeCode) {
       const fileExt = files[0]?.name?.split(".").pop()?.toLowerCase() || "txt";
       sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.${fileExt}`;
       const uploadPayload = new Blob([safeCode], { type: "text/plain;charset=utf-8" });
@@ -334,10 +311,10 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         projectName,
         fileName: files[0]?.name || projectName,
         scanProfile: selectedProfile,
-        sourceType,
+        sourceType: zipFile ? "zip-upload" : sourceType,
         fileCount: files.length || 1,
         percent: 8,
-        message: "Source uploaded — queueing cloud scan now…",
+        message: zipFile ? "ZIP source uploaded — queueing cloud scan now…" : "Source uploaded — queueing cloud scan now…",
       });
     }
 
@@ -373,7 +350,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       projectName,
       fileName: files[0]?.name || projectName,
       scanProfile: selectedProfile,
-      sourceType: archiveFile ? "cloud-upload" : sourceType,
+      sourceType: zipFile ? "zip-upload" : sourceType,
       fileCount: files.length || 1,
       percent: 12,
       message: "Scan accepted — cloud worker is starting now…",
