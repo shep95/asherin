@@ -557,12 +557,14 @@ const DashboardSidebar = ({
                 </>
               )}
 
-              <div className="px-2 py-2 border-t border-border/20">
-                <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} onEditCustomPersona={onEditCustomPersona} onDeleteCustomPersona={onDeleteCustomPersona} />
-              </div>
+              {!collapsed && (
+                <div className="px-2 py-2 border-t border-border/20">
+                  <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} onEditCustomPersona={onEditCustomPersona} onDeleteCustomPersona={onDeleteCustomPersona} />
+                </div>
+              )}
 
-              <div data-dashboard-sidebar-nav className="px-2 py-2 border-t border-border/20 space-y-1">
-                {itemAllowed(subscriptionNavItem) && (
+              <div data-dashboard-sidebar-nav className={`py-2 border-t border-border/20 space-y-1 ${collapsed ? "px-1.5" : "px-2"}`}>
+                {!collapsed && itemAllowed(subscriptionNavItem) && (
                   <button
                     onClick={() => { onViewChange(subscriptionNavItem.id); onToggleSidebar(); }}
                     className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
@@ -575,7 +577,7 @@ const DashboardSidebar = ({
                 )}
 
                 {allGroups.map((group) => {
-                  const isOpen = expandedGroups[group.label] ?? false;
+                  const isOpen = swq ? true : (expandedGroups[group.label] ?? false);
                   const hasActive = group.items.some((item) => activeView === item.id);
                   const navigate = (item: IntentNavItem) => {
                     if (item.route) {
@@ -585,6 +587,25 @@ const DashboardSidebar = ({
                       onToggleSidebar();
                     }
                   };
+
+                  if (collapsed) {
+                    return (
+                      <div key={group.label} className="space-y-0.5">
+                        {group.items.map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => navigate(item)}
+                            title={item.label}
+                            className={`flex w-full items-center justify-center rounded-xl p-2 transition-colors ${
+                              activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                            }`}
+                          >
+                            <item.icon className="h-4 w-4" />
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  }
 
                   return (
                     <div key={group.label}>
@@ -630,12 +651,19 @@ const DashboardSidebar = ({
                   );
                 })}
 
+                {swq && allGroups.length === 0 && (
+                  <p className="px-3 py-4 text-[10px] text-muted-foreground/50 text-center">No software matches "{softwareSearch}".</p>
+                )}
               </div>
 
-              <div className="p-3 pb-5 border-t border-border/20 space-y-1">
-                <InstallBtn />
-                <LogoutBtn />
-              </div>
+              {!collapsed && (
+                <div className="p-3 pb-5 border-t border-border/20 space-y-1">
+                  <InstallBtn />
+                  <LogoutBtn />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
             </div>
           </ScrollArea>
         </div>
