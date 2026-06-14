@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.is_asher_brain_contributor(uuid) TO authenticated, anon, service_role;
