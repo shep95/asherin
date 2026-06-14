@@ -52,7 +52,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { createProject, creating } = useCreateProject();
   const { runScan, scanning, progress } = useRunScan();
-  const { startScan: startLiveScan, adoptQueuedScan } = useActiveScan();
+  const { startScan: startLiveScan, adoptQueuedScan, failScan } = useActiveScan();
 
   const handleFileSelect = useCallback(async (selectedFiles: FileList) => {
     const fileArray = Array.from(selectedFiles);
@@ -172,6 +172,26 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     const project = await createProject(projectName, sourceType, url || undefined);
     if (!project) return;
 
+    adoptQueuedScan({
+      projectId: project.id,
+      projectName,
+      fileName: files[0]?.name || projectName,
+      scanProfile: selectedProfile,
+      sourceType: archiveFile ? "cloud-upload" : sourceType,
+      fileCount: files.length || 1,
+      percent: 1,
+      message: archiveFile
+        ? "Uploading archive to cloud — hold on…"
+        : "Packaging source for cloud scan — hold on…",
+    });
+
+    onScanComplete();
+    if (onScanStarted) {
+      onScanStarted(project.id);
+    } else {
+      onClose();
+    }
+
     // Load BYOK preference so the worker uses the user's key
     let byok: any = null;
     try {
@@ -196,6 +216,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
     const isAdmin = ADMIN_EMAILS.has((user.email || "").toLowerCase());
     if (!byok && !isAdmin) {
+      failScan(project.id, "Your AI key is required before this scan can run.");
       triggerByokRequired({ source: "zerlal", reason: "Zerlal scans require your own AI key. Add one in Settings → AI Keys." });
       return;
     }
@@ -223,9 +244,22 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
           contentType: archiveFile.type || "application/zip",
         });
       if (uploadErr) {
-        setScanError("Failed to upload archive: " + (uploadErr.message || JSON.stringify(uploadErr)));
+        const message = "Failed to upload archive: " + (uploadErr.message || JSON.stringify(uploadErr));
+        setScanError(message);
+        failScan(project.id, message);
+        toast.error(message);
         return;
       }
+      adoptQueuedScan({
+        projectId: project.id,
+        projectName,
+        fileName: files[0]?.name || projectName,
+        scanProfile: selectedProfile,
+        sourceType: "cloud-upload",
+        fileCount: files.length || 1,
+        percent: 8,
+        message: "Archive uploaded — queueing cloud scan now…",
+      });
     } else if (safeCode) {
       const fileExt = files[0]?.name?.split(".").pop()?.toLowerCase() || "txt";
       sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.${fileExt}`;
@@ -237,9 +271,22 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
           contentType: "text/plain; charset=utf-8",
         });
       if (uploadErr) {
-        setScanError("Failed to upload scan source: " + (uploadErr.message || JSON.stringify(uploadErr)));
+        const message = "Failed to upload scan source: " + (uploadErr.message || JSON.stringify(uploadErr));
+        setScanError(message);
+        failScan(project.id, message);
+        toast.error(message);
         return;
       }
+      adoptQueuedScan({
+        projectId: project.id,
+        projectName,
+        fileName: files[0]?.name || projectName,
+        scanProfile: selectedProfile,
+        sourceType,
+        fileCount: files.length || 1,
+        percent: 8,
+        message: "Source uploaded — queueing cloud scan now…",
+      });
     }
 
     const payload: Record<string, unknown> = {
@@ -260,6 +307,8 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     if (insErr) {
       const msg = insErr.message || JSON.stringify(insErr);
       setScanError("Failed to queue background scan: " + msg + (safeCode ? ` (payload ~${Math.round(safeCode.length/1024)}KB)` : ""));
+      failScan(project.id, `Failed to queue background scan: ${msg}`);
+      toast.error("Failed to queue background scan: " + msg);
       return;
     }
 
@@ -274,14 +323,10 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       scanProfile: selectedProfile,
       sourceType: archiveFile ? "cloud-upload" : sourceType,
       fileCount: files.length || 1,
+      percent: 12,
+      message: "Scan accepted — cloud worker is starting now…",
     });
     toast.success("Scan queued in cloud — live progress streaming. You can close this tab; we'll email the report.");
-    onScanComplete();
-    if (onScanStarted) {
-      onScanStarted(project.id);
-    } else {
-      onClose();
-    }
     resetState();
   };
 
