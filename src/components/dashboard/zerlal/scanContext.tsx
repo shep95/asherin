@@ -358,12 +358,16 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
         job.status === "finalizing" ? 92 :
         job.status === "pending" ? 4 :
         Math.min(90, 10 + Math.floor((current / total) * 75));
+      const attempts = Number(job.attempts) || 0;
+      const retrySuffix = job.last_error && job.status !== "completed" && job.status !== "failed"
+        ? ` · ⚠ retrying after error (attempt ${attempts}/5): ${String(job.last_error).slice(0, 140)}`
+        : "";
       const msg =
         job.status === "completed" ? `Scan complete · ${findings.length} vulnerabilities` :
         job.status === "failed" ? `Scan failed: ${job.last_error || "Unknown error"}` :
-        job.status === "pending" ? "Queued in cloud — extracting source…" :
-        job.status === "finalizing" ? "Deduplicating, scoring, writing report…" :
-        `Reading section ${Math.min(current + 1, total)} of ${total} (cloud)`;
+        job.status === "pending" ? `Queued in cloud — extracting source…${retrySuffix}` :
+        job.status === "finalizing" ? `Deduplicating, scoring, writing report…${retrySuffix}` :
+        `Reading section ${Math.min(current + 1, total)} of ${total} (cloud)${retrySuffix}`;
       return {
         projectId: job.project_id,
         projectName: job.project_name || "Cloud scan",
@@ -430,7 +434,19 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
             const job = payload.new || payload.old;
             if (!job) return;
             if (!shouldAdopt(job)) return;
-            setActive(mapJobToActive(job));
+            const prev = activeRef.current;
+            const next = mapJobToActive(job);
+            setActive(next);
+            // Visible status transitions
+            if (prev?.projectId === next.projectId) {
+              if (prev.status !== "failed" && next.status === "failed") {
+                toast.error(`Cloud scan failed: ${next.error || "Unknown error"}`, { duration: 10000 });
+              } else if (prev.status !== "complete" && next.status === "complete") {
+                toast.success(`Cloud scan complete · ${next.finalCount ?? 0} findings`);
+              } else if (job.last_error && prev.progress?.message !== next.progress?.message) {
+                toast.warning(`Scanner hit an error, retrying: ${String(job.last_error).slice(0, 120)}`, { duration: 6000 });
+              }
+            }
           },
         )
         .subscribe();
