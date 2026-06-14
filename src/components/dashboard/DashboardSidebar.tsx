@@ -6,7 +6,7 @@ import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, Sparkles, Lock as LockIcon, Shield, Moon, Workflow, Wand2,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, Sparkles, Lock as LockIcon, Shield, Moon, Workflow, Wand2, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona, ChatMode, Message } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -172,6 +172,7 @@ const DashboardSidebar = ({
   const { toast } = useToast();
   const { tierKey } = useSubscription();
   const [search, setSearch] = useState("");
+  const [softwareSearch, setSoftwareSearch] = useState("");
   const [showConvos, setShowConvos] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [archivedConvos, setArchivedConvos] = useState<Conversation[]>([]);
@@ -180,7 +181,15 @@ const DashboardSidebar = ({
   const [editTitle, setEditTitle] = useState("");
   const personaId = externalPersonaId ?? null;
   const setPersonaId = onPersonaChange ?? (() => {});
-  
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("aureon_sidebar_collapsed") === "1"; } catch { return false; }
+  });
+  const toggleCollapsed = () => setCollapsed((c) => {
+    const next = !c;
+    try { localStorage.setItem("aureon_sidebar_collapsed", next ? "1" : "0"); } catch {}
+    return next;
+  });
+
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     navGroupsFlat.forEach((g, i) => { init[g.label] = i < 2; });
@@ -223,7 +232,20 @@ const DashboardSidebar = ({
         })) as IntentNavItem[],
       }]
     : [];
-  const allGroups = [...filteredGroups, ...dynamicGroups];
+  const allGroupsBase = [...filteredGroups, ...dynamicGroups];
+  const swq = softwareSearch.trim().toLowerCase();
+  const allGroups = swq
+    ? allGroupsBase
+        .map((g) => ({
+          ...g,
+          items: g.items.filter(
+            (i) =>
+              i.label.toLowerCase().includes(swq) ||
+              (i.codename ?? "").toLowerCase().includes(swq)
+          ),
+        }))
+        .filter((g) => g.items.length > 0)
+    : allGroupsBase;
 
 
   // Load archived conversations
@@ -360,23 +382,36 @@ const DashboardSidebar = ({
       )}
 
       <aside
-        style={{ width: `${sidebarWidth}px` }}
-        className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 lg:relative lg:translate-x-0 flex-shrink-0 ${
+        style={{ width: collapsed ? "68px" : `${sidebarWidth}px` }}
+        className={`fixed inset-y-0 left-0 z-40 transform transition-[transform,width] duration-300 lg:relative lg:translate-x-0 flex-shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl overflow-hidden">
-          <div onMouseDown={handleMouseDown} className="hidden lg:block absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize z-50 group">
-            <div className="absolute inset-y-0 right-0 w-0.5 bg-border/0 group-hover:bg-foreground/20 transition-colors rounded-full" />
-          </div>
-          
-          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-extralight tracking-[0.25em] text-foreground">AUREON</span>
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70" />
+          {!collapsed && (
+            <div onMouseDown={handleMouseDown} className="hidden lg:block absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize z-50 group">
+              <div className="absolute inset-y-0 right-0 w-0.5 bg-border/0 group-hover:bg-foreground/20 transition-colors rounded-full" />
             </div>
-            <div className="flex items-center gap-1">
-              <NotificationInbox onNavigate={(v) => { onViewChange(v as DashboardView); onToggleSidebar(); }} />
+          )}
+
+          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20 gap-2">
+            {!collapsed && (
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-extralight tracking-[0.25em] text-foreground truncate">AUREON</span>
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70 shrink-0" />
+              </div>
+            )}
+            <div className={`flex items-center gap-1 ${collapsed ? "mx-auto flex-col" : ""}`}>
+              <button
+                onClick={toggleCollapsed}
+                className="hidden lg:inline-flex rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              </button>
+              {!collapsed && (
+                <NotificationInbox onNavigate={(v) => { onViewChange(v as DashboardView); onToggleSidebar(); }} />
+              )}
               <button onClick={onNewConversation} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground" title="New conversation">
                 <Plus className="h-4 w-4" />
               </button>
@@ -385,22 +420,47 @@ const DashboardSidebar = ({
 
           <ScrollArea className="flex-1 min-h-0">
             <div className="flex flex-col">
-              <div className="flex-shrink-0 px-2 pt-3">
-                <button
-                  onClick={() => setShowConvos(!showConvos)}
-                  className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                    showConvos ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <MessageSquare className="h-4 w-4" />
-                    Past Convos
+              {!collapsed && (
+                <div className="flex-shrink-0 px-3 pt-3">
+                  <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
+                    <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
+                    <input
+                      value={softwareSearch}
+                      onChange={(e) => setSoftwareSearch(e.target.value)}
+                      placeholder="Search software…"
+                      className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                    />
+                    {softwareSearch && (
+                      <button
+                        onClick={() => setSoftwareSearch("")}
+                        className="text-muted-foreground/40 hover:text-foreground"
+                        title="Clear"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showConvos ? "rotate-180" : ""}`} />
-                </button>
-              </div>
+                </div>
+              )}
 
-              {showConvos && (
+              {!collapsed && (
+                <div className="flex-shrink-0 px-2 pt-3">
+                  <button
+                    onClick={() => setShowConvos(!showConvos)}
+                    className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
+                      showConvos ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <MessageSquare className="h-4 w-4" />
+                      Past Convos
+                    </div>
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showConvos ? "rotate-180" : ""}`} />
+                  </button>
+                </div>
+              )}
+
+              {!collapsed && showConvos && (
                 <>
                   <div className="flex-shrink-0 px-3 pt-2">
                     <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
@@ -497,12 +557,14 @@ const DashboardSidebar = ({
                 </>
               )}
 
-              <div className="px-2 py-2 border-t border-border/20">
-                <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} onEditCustomPersona={onEditCustomPersona} onDeleteCustomPersona={onDeleteCustomPersona} />
-              </div>
+              {!collapsed && (
+                <div className="px-2 py-2 border-t border-border/20">
+                  <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} onEditCustomPersona={onEditCustomPersona} onDeleteCustomPersona={onDeleteCustomPersona} />
+                </div>
+              )}
 
-              <div data-dashboard-sidebar-nav className="px-2 py-2 border-t border-border/20 space-y-1">
-                {itemAllowed(subscriptionNavItem) && (
+              <div data-dashboard-sidebar-nav className={`py-2 border-t border-border/20 space-y-1 ${collapsed ? "px-1.5" : "px-2"}`}>
+                {!collapsed && itemAllowed(subscriptionNavItem) && (
                   <button
                     onClick={() => { onViewChange(subscriptionNavItem.id); onToggleSidebar(); }}
                     className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
@@ -515,7 +577,7 @@ const DashboardSidebar = ({
                 )}
 
                 {allGroups.map((group) => {
-                  const isOpen = expandedGroups[group.label] ?? false;
+                  const isOpen = swq ? true : (expandedGroups[group.label] ?? false);
                   const hasActive = group.items.some((item) => activeView === item.id);
                   const navigate = (item: IntentNavItem) => {
                     if (item.route) {
@@ -525,6 +587,25 @@ const DashboardSidebar = ({
                       onToggleSidebar();
                     }
                   };
+
+                  if (collapsed) {
+                    return (
+                      <div key={group.label} className="space-y-0.5">
+                        {group.items.map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => navigate(item)}
+                            title={item.label}
+                            className={`flex w-full items-center justify-center rounded-xl p-2 transition-colors ${
+                              activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                            }`}
+                          >
+                            <item.icon className="h-4 w-4" />
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  }
 
                   return (
                     <div key={group.label}>
@@ -570,12 +651,17 @@ const DashboardSidebar = ({
                   );
                 })}
 
+                {swq && allGroups.length === 0 && (
+                  <p className="px-3 py-4 text-[10px] text-muted-foreground/50 text-center">No software matches "{softwareSearch}".</p>
+                )}
               </div>
 
-              <div className="p-3 pb-5 border-t border-border/20 space-y-1">
-                <InstallBtn />
-                <LogoutBtn />
-              </div>
+              {!collapsed && (
+                <div className="p-3 pb-5 border-t border-border/20 space-y-1">
+                  <InstallBtn />
+                  <LogoutBtn />
+                </div>
+              )}
             </div>
           </ScrollArea>
         </div>
