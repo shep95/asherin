@@ -420,22 +420,47 @@ const DashboardSidebar = ({
 
           <ScrollArea className="flex-1 min-h-0">
             <div className="flex flex-col">
-              <div className="flex-shrink-0 px-2 pt-3">
-                <button
-                  onClick={() => setShowConvos(!showConvos)}
-                  className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                    showConvos ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <MessageSquare className="h-4 w-4" />
-                    Past Convos
+              {!collapsed && (
+                <div className="flex-shrink-0 px-3 pt-3">
+                  <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
+                    <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
+                    <input
+                      value={softwareSearch}
+                      onChange={(e) => setSoftwareSearch(e.target.value)}
+                      placeholder="Search software…"
+                      className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                    />
+                    {softwareSearch && (
+                      <button
+                        onClick={() => setSoftwareSearch("")}
+                        className="text-muted-foreground/40 hover:text-foreground"
+                        title="Clear"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showConvos ? "rotate-180" : ""}`} />
-                </button>
-              </div>
+                </div>
+              )}
 
-              {showConvos && (
+              {!collapsed && (
+                <div className="flex-shrink-0 px-2 pt-3">
+                  <button
+                    onClick={() => setShowConvos(!showConvos)}
+                    className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
+                      showConvos ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <MessageSquare className="h-4 w-4" />
+                      Past Convos
+                    </div>
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showConvos ? "rotate-180" : ""}`} />
+                  </button>
+                </div>
+              )}
+
+              {!collapsed && showConvos && (
                 <>
                   <div className="flex-shrink-0 px-3 pt-2">
                     <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
