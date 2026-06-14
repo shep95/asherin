@@ -4,11 +4,11 @@ import { Link } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const tiers = [
-  { id: "algorithm", name: "Algorithm", price: "$10", period: "/month", highlight: false },
+  { id: "algorithm", name: "Algorithm", price: "$10", period: "one-time", highlight: false },
   { id: "lifetime", name: "Lifetime", price: "$470", period: "one-time", highlight: true },
-  { id: "chat", name: "Chat", price: "$47", period: "/month", highlight: false },
-  { id: "aureon", name: "Aureon", price: "$199", period: "/month", highlight: false },
-  { id: "pro", name: "Pro", price: "$740", period: "/month", highlight: false },
+  { id: "chat", name: "Chat", price: "$47", period: "one-time", highlight: false },
+  { id: "aureon", name: "Aureon", price: "$199", period: "one-time", highlight: false },
+  { id: "pro", name: "Pro", price: "$740", period: "one-time", highlight: false },
 ];
 
 type Cell = boolean | string;

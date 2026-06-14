@@ -128,7 +128,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     tagline: "One-Time Purchase",
     price: "$470",
     period: "one-time",
-    description: "Lifetime access to everything in the Aureon $199/mo tier and below — IDE, persistent memory, personas, NOMAD, Briefings, ZANOEM Design Lab, Vedic Strategy, Zophiel Search, Notebooks, generators, Zahten and Guardian Vault. Unlimited messages. Bring your own AI key — one payment, forever.",
+    description: "Lifetime access to everything in the Aureon $199 one-time tier and below — IDE, persistent memory, personas, NOMAD, Briefings, ZANOEM Design Lab, Vedic Strategy, Zophiel Search, Notebooks, generators, Zahten and Guardian Vault. Unlimited messages. Bring your own AI key — one payment, forever.",
     cta: "Get Lifetime Access",
     highlight: true,
     publicVisible: true,
@@ -137,7 +137,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     featureLabels: [
       "Lifetime access — one payment",
       "Unlimited messages (BYOK required)",
-      "Everything in the Aureon $199/mo tier and below",
+      "Everything in the Aureon $199 one-time tier and below",
       "Aureon IDE — full cloud development environment",
       "Persistent Memory & Custom Personas",
       "Zophiel Search, Notebooks, PDF / Slideshow / E-Book",
