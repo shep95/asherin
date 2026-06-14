@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import SiteFooter from "@/components/SiteFooter";
 
 /**
  * /blog/venice-integration — long-form post on how Aureon wires the
