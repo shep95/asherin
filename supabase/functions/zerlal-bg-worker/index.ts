@@ -126,6 +126,20 @@ async function advanceJob(job: any) {
     byok: job.byok || null,
   };
 
+  const { data: project } = await admin
+    .from("zerlal_projects")
+    .select("id")
+    .eq("id", job.project_id)
+    .maybeSingle();
+  if (!project) {
+    await admin.from("zerlal_background_jobs").update({
+      status: "failed",
+      last_error: "Project record no longer exists; start a fresh scan.",
+      completed_at: new Date().toISOString(),
+    }).eq("id", job.id);
+    return;
+  }
+
   await admin.from("zerlal_background_jobs")
     .update({ last_run_at: new Date().toISOString(), attempts: job.attempts + 1 })
     .eq("id", job.id);
