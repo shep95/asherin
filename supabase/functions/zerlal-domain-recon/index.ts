@@ -142,6 +142,26 @@ function extractAttributeList(html: string, tag: string, attr: string) {
   return uniq(values);
 }
 
+/**
+ * Parse every <meta http-equiv="X" content="Y"> from the rendered HTML
+ * and return a lowercase-keyed bag. Used so the scanner can tell the
+ * difference between "policy completely absent" and "policy shipped via
+ * meta tag" (which browsers honor partially, or not at all, depending
+ * on the directive — see callers for the exact carve-outs).
+ */
+function extractMetaHttpEquiv(html: string): Record<string, string> {
+  const bag: Record<string, string> = {};
+  const regex = /<meta\b[^>]*http-equiv=["']([^"']+)["'][^>]*content=["']([^"']*)["'][^>]*>/gi;
+  const altRegex = /<meta\b[^>]*content=["']([^"']*)["'][^>]*http-equiv=["']([^"']+)["'][^>]*>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(html))) bag[m[1].toLowerCase()] = m[2];
+  while ((m = altRegex.exec(html))) {
+    const key = m[2].toLowerCase();
+    if (!bag[key]) bag[key] = m[1];
+  }
+  return bag;
+}
+
 function computeRiskGrade(counts: Record<string, number>) {
   if ((counts.critical || 0) > 0 || (counts.high || 0) >= 2) return "F";
   if ((counts.high || 0) > 0 || (counts.medium || 0) >= 3) return "D";
@@ -354,6 +374,7 @@ serve(async (req) => {
     const html = await pageResp.text();
     const headers = pageResp.headers;
     const headerBag = Object.fromEntries([...headers.entries()].map(([k, v]) => [k.toLowerCase(), v]));
+    const metaBag = extractMetaHttpEquiv(html);
     const scriptSources = extractAttributeList(html, "script", "src");
     const linkSources = extractAttributeList(html, "link", "href");
 
@@ -409,7 +430,17 @@ serve(async (req) => {
     const findings: ReconFinding[] = [];
     const pushFinding = (finding: ReconFinding) => findings.push(finding);
 
-    if (!headerBag["content-security-policy"]) {
+    // ── CSP ───────────────────────────────────────────────────────────────
+    // Browsers honor CSP delivered via <meta http-equiv>, but per the CSP
+    // spec the following directives are IGNORED inside a meta CSP:
+    // frame-ancestors, report-uri/report-to, sandbox. So a meta CSP is
+    // partial protection — we downgrade severity rather than ignoring it.
+    const cspHeader = headerBag["content-security-policy"] || "";
+    const cspMeta   = metaBag["content-security-policy"]   || "";
+    const cspEffectiveHeader = cspHeader.length > 0;
+    const cspEffectiveMeta   = !cspEffectiveHeader && cspMeta.length > 0;
+
+    if (!cspEffectiveHeader && !cspEffectiveMeta) {
       pushFinding({
         severity: "medium",
         title: "Missing Content-Security-Policy on primary application response",
@@ -419,15 +450,38 @@ serve(async (req) => {
         confidence: 96,
         cwe_id: "CWE-693",
         cvss_score: 6.4,
-        description: "The primary HTML response does not ship a Content-Security-Policy header, so the browser has no strict script, frame, or resource execution policy to contain injected markup or hostile third-party content.",
+        description: "The primary HTML response does not ship a Content-Security-Policy header and no <meta http-equiv=\"Content-Security-Policy\"> tag is present in the rendered HTML, so the browser has no script, frame, or resource execution policy to contain injected markup or hostile third-party content.",
         impact: "Any successful XSS or script injection bug will have a much larger blast radius because the browser is not constrained by an explicit execution policy.",
         exploitation_steps: [
           "Find any reflected, stored, or DOM-based injection point in the application.",
           "Inject hostile JavaScript or hostile remote resources into the rendered page.",
           "Leverage the lack of CSP to execute code, exfiltrate tokens, or pivot across user sessions.",
         ],
-        code_snippet: "content-security-policy: <missing>",
-        suggested_fix: "Add a strict Content-Security-Policy with default-src 'self', explicit script-src/style-src directives, and frame-ancestors 'none' or a narrowly scoped allowlist.",
+        code_snippet: "content-security-policy: <missing in both HTTP headers and meta tags>",
+        suggested_fix: "Add a strict Content-Security-Policy at the CDN/edge layer (Cloudflare Transform Rule, Worker, or hosting headers config) with default-src 'self', explicit script-src/style-src directives, and frame-ancestors 'none' or a narrowly scoped allowlist.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-53 SI-10", "PCI DSS 6.4.3"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
+    } else if (cspEffectiveMeta) {
+      pushFinding({
+        severity: "low",
+        title: "Content-Security-Policy delivered via <meta> only — partial enforcement",
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 94,
+        cwe_id: "CWE-693",
+        cvss_score: 3.4,
+        description: "A CSP is present in the rendered HTML via <meta http-equiv=\"Content-Security-Policy\">, which browsers honor for script-src, style-src, default-src, connect-src, etc. However, the CSP specification explicitly ignores frame-ancestors, report-uri/report-to, and sandbox directives when delivered via meta tag. Promote the policy to an HTTP response header to enable full enforcement and reporting.",
+        impact: "Script/style/resource execution policy is enforced, but clickjacking protection (frame-ancestors) and CSP violation reporting cannot be activated from the meta layer.",
+        exploitation_steps: [
+          "Attempt to embed the page in an iframe to verify framing controls.",
+          "Confirm no CSP violation reports are being collected (no report-uri/report-to honored).",
+        ],
+        code_snippet: `content-security-policy (meta): ${cspMeta.slice(0, 300)}${cspMeta.length > 300 ? "…" : ""}`,
+        suggested_fix: "Move the existing CSP from <meta> to an HTTP response header at the CDN/edge (Cloudflare Transform Rule or Worker). Keep the meta tag as a fallback. Once the header ships, frame-ancestors and report-uri become enforceable.",
         dataflow_trace: [],
         compliance_controls: ["NIST 800-53 SI-10", "PCI DSS 6.4.3"],
         similar_cves: [],
@@ -435,25 +489,39 @@ serve(async (req) => {
       });
     }
 
-    if (!headerBag["x-frame-options"] && !String(headerBag["content-security-policy"] || "").includes("frame-ancestors")) {
+    // ── Clickjacking ──────────────────────────────────────────────────────
+    // X-Frame-Options is HTTP-only — browsers IGNORE it in meta tags.
+    // frame-ancestors is IGNORED when CSP is delivered via meta.
+    // So only an HTTP header (XFO or CSP with frame-ancestors) counts.
+    const xfoHeader = headerBag["x-frame-options"] || "";
+    const cspHeaderHasFrameAncestors = /frame-ancestors\s+/i.test(cspHeader);
+    const xfoMetaPresent = Boolean(metaBag["x-frame-options"]);
+    const cspMetaHasFrameAncestors = /frame-ancestors\s+/i.test(cspMeta);
+    const clickjackingProtected = Boolean(xfoHeader) || cspHeaderHasFrameAncestors;
+
+    if (!clickjackingProtected) {
+      const ineffectiveSignals: string[] = [];
+      if (xfoMetaPresent) ineffectiveSignals.push("<meta http-equiv=\"X-Frame-Options\"> is ignored by browsers (header-only directive)");
+      if (cspMetaHasFrameAncestors) ineffectiveSignals.push("frame-ancestors inside a meta CSP is ignored per CSP spec");
+
       pushFinding({
         severity: "medium",
-        title: "Clickjacking protection not explicitly enforced",
+        title: "Clickjacking protection not enforceable from current response",
         file_path: "HTTP Security Headers",
         line_number: 0,
         category: "config",
         confidence: 92,
         cwe_id: "CWE-1021",
         cvss_score: 5.8,
-        description: "The response lacks X-Frame-Options and does not expose a frame-ancestors CSP directive, leaving framing policy ambiguous.",
+        description: `The response lacks an X-Frame-Options HTTP header and the CSP HTTP header does not contain a frame-ancestors directive, so framing policy is unenforced.${ineffectiveSignals.length ? " Detected but ineffective: " + ineffectiveSignals.join("; ") + "." : ""}`,
         impact: "Attackers can attempt UI redressing or clickjacking flows against authenticated users if sensitive actions are reachable in-frame.",
         exploitation_steps: [
           "Host the target page inside an attacker-controlled iframe.",
           "Overlay decoy controls that trick the victim into clicking the framed application.",
           "Abuse authenticated clicks to trigger state-changing actions.",
         ],
-        code_snippet: `x-frame-options: ${headerBag["x-frame-options"] || "<missing>"}`,
-        suggested_fix: "Set X-Frame-Options: DENY or enforce frame-ancestors 'none' / approved origins in CSP.",
+        code_snippet: `x-frame-options (header): ${xfoHeader || "<missing>"}\nframe-ancestors (header CSP): ${cspHeaderHasFrameAncestors ? "present" : "<missing>"}\nmeta signals: ${ineffectiveSignals.join(", ") || "<none>"}`,
+        suggested_fix: "Set X-Frame-Options: DENY at the CDN/edge (Cloudflare Transform Rule or Worker) or — preferred — move the CSP to an HTTP header and include frame-ancestors 'none'. Meta-tag delivery does not satisfy this control.",
         dataflow_trace: [],
         compliance_controls: ["NIST 800-53 SC-18"],
         similar_cves: [],
@@ -461,31 +529,44 @@ serve(async (req) => {
       });
     }
 
-    if (!headerBag["permissions-policy"]) {
+    // ── Permissions-Policy ────────────────────────────────────────────────
+    // Permissions-Policy is HTTP-only. Browsers ignore <meta http-equiv>
+    // for this header. Detect meta to give the user a precise fix path.
+    const ppHeader = headerBag["permissions-policy"] || "";
+    const ppMeta   = metaBag["permissions-policy"]   || "";
+
+    if (!ppHeader) {
       pushFinding({
-        severity: "low",
-        title: "Permissions-Policy header is absent",
+        severity: ppMeta ? "low" : "low",
+        title: ppMeta
+          ? "Permissions-Policy shipped via <meta> only — not enforced by browsers"
+          : "Permissions-Policy header is absent",
         file_path: "HTTP Security Headers",
         line_number: 0,
         category: "config",
         confidence: 95,
         cwe_id: "CWE-693",
         cvss_score: 3.7,
-        description: "The application does not define a Permissions-Policy, so browser capabilities are governed only by defaults.",
+        description: ppMeta
+          ? "A Permissions-Policy is present in the HTML via <meta http-equiv=\"Permissions-Policy\">, but browsers only honor this header when delivered as an HTTP response header. The meta variant is silently ignored."
+          : "The application does not define a Permissions-Policy, so browser capabilities are governed only by defaults.",
         impact: "If future code paths or third-party widgets request powerful browser features, they may inherit broader access than intended.",
         exploitation_steps: [
           "Introduce or compromise a client-side component that requests browser capabilities.",
-          "Rely on browser defaults because no explicit feature deny-list is present.",
+          "Rely on browser defaults because no enforceable feature deny-list is present.",
           "Abuse granted capabilities for tracking, social engineering, or data capture.",
         ],
-        code_snippet: "permissions-policy: <missing>",
-        suggested_fix: "Ship a restrictive Permissions-Policy that disables unused capabilities such as camera, microphone, geolocation, and payment.",
+        code_snippet: ppMeta
+          ? `permissions-policy (meta, IGNORED by browsers): ${ppMeta}`
+          : "permissions-policy: <missing>",
+        suggested_fix: "Promote the Permissions-Policy to an HTTP response header at the CDN/edge layer (Cloudflare Transform Rule or Worker). Use a restrictive value disabling unused capabilities such as camera, microphone, geolocation, and payment.",
         dataflow_trace: [],
         compliance_controls: ["NIST 800-53 CM-7"],
         similar_cves: [],
         age_days_estimate: siteAgeDays,
       });
     }
+
 
     if (!securityTxtResp.ok) {
       pushFinding({
