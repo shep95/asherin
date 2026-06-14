@@ -8015,6 +8015,7 @@ export type Database = {
           first_pass_summary: string | null
           github_url: string | null
           id: string
+          include_workflow_function_flaws: boolean
           last_error: string | null
           last_run_at: string | null
           project_id: string
@@ -8047,6 +8048,7 @@ export type Database = {
           first_pass_summary?: string | null
           github_url?: string | null
           id?: string
+          include_workflow_function_flaws?: boolean
           last_error?: string | null
           last_run_at?: string | null
           project_id: string
@@ -8079,6 +8081,7 @@ export type Database = {
           first_pass_summary?: string | null
           github_url?: string | null
           id?: string
+          include_workflow_function_flaws?: boolean
           last_error?: string | null
           last_run_at?: string | null
           project_id?: string
@@ -8156,6 +8159,7 @@ export type Database = {
           description: string | null
           exploitation_steps: Json | null
           file_path: string | null
+          finding_type: string
           first_seen_at: string | null
           id: string
           impact: string | null
@@ -8190,6 +8194,7 @@ export type Database = {
           description?: string | null
           exploitation_steps?: Json | null
           file_path?: string | null
+          finding_type?: string
           first_seen_at?: string | null
           id?: string
           impact?: string | null
@@ -8224,6 +8229,7 @@ export type Database = {
           description?: string | null
           exploitation_steps?: Json | null
           file_path?: string | null
+          finding_type?: string
           first_seen_at?: string | null
           id?: string
           impact?: string | null
