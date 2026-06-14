@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Public, crawlable routes only. Authenticated /dashboard/* and /asher-dashboard
-  are intentionally excluded — they redirect to auth and would burn crawl budget.
+  are excluded — they redirect to auth and would burn crawl budget.
+  /asher is the public Asher marketing page (distinct from /asher-dashboard).
+  lastmod tells Google/Bing/DuckDuckGo/Brave when to re-crawl.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://aureonai.app/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://aureonai.app/founder</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://aureonai.app/software</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/benchmark</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/forums</loc><changefreq>daily</changefreq><priority>0.6</priority></url>
-  <url><loc>https://aureonai.app/whiteboard</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://aureonai.app/asher</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://aureonai.app/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://aureonai.app/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://aureonai.app/</loc><lastmod>2026-06-14</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://aureonai.app/founder</loc><lastmod>2026-06-14</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://aureonai.app/software</loc><lastmod>2026-06-14</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/benchmark</loc><lastmod>2026-06-14</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://aureonai.app/forums</loc><lastmod>2026-06-14</lastmod><changefreq>daily</changefreq><priority>0.6</priority></url>
+  <url><loc>https://aureonai.app/whiteboard</loc><lastmod>2026-06-14</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://aureonai.app/asher</loc><lastmod>2026-06-14</lastmod><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://aureonai.app/terms</loc><lastmod>2026-06-14</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://aureonai.app/privacy</loc><lastmod>2026-06-14</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

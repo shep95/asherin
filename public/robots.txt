@@ -1,12 +1,19 @@
 # ============================================================
 # Aureon — robots policy
-# Allow real search engines + social previews. Block AI training
-# scrapers, SEO spiders, and known datacenter crawlers that pollute
-# analytics without sending humans.
+# Strategy:
+#   ALLOW  — real search engines (Google, Bing, DuckDuckGo, Brave, Yandex)
+#   ALLOW  — AI SEARCH bots that drive referral traffic
+#            (Perplexity, SearchGPT, ChatGPT-browse, Claude-browse)
+#   ALLOW  — social preview crawlers (X, FB, LinkedIn, Slack, Discord)
+#   BLOCK  — pure AI TRAINING scrapers (no referral, only extraction)
+#   BLOCK  — backlink / SEO bandwidth spiders
 # ============================================================
 
-# --- Allow: legitimate search & social ---
+# --- Allow: legitimate search engines ---
 User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
 Allow: /
 
 User-agent: Bingbot
@@ -15,6 +22,39 @@ Allow: /
 User-agent: DuckDuckBot
 Allow: /
 
+User-agent: Slurp
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# Brave Search (own index)
+User-agent: Bravebot
+Allow: /
+
+# --- Allow: AI SEARCH (referral drivers, NOT training) ---
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# --- Allow: social previews ---
 User-agent: Twitterbot
 Allow: /
 
@@ -30,32 +70,14 @@ Allow: /
 User-agent: Discordbot
 Allow: /
 
-# --- Block: AI training / dataset scrapers ---
+# --- Block: pure AI TRAINING scrapers ---
 User-agent: GPTBot
-Disallow: /
-
-User-agent: ChatGPT-User
-Disallow: /
-
-User-agent: OAI-SearchBot
-Disallow: /
-
-User-agent: ClaudeBot
-Disallow: /
-
-User-agent: Claude-Web
-Disallow: /
-
-User-agent: anthropic-ai
 Disallow: /
 
 User-agent: Google-Extended
 Disallow: /
 
-User-agent: PerplexityBot
-Disallow: /
-
-User-agent: Perplexity-User
+User-agent: anthropic-ai
 Disallow: /
 
 User-agent: Bytespider
@@ -103,7 +125,7 @@ Disallow: /
 User-agent: img2dataset
 Disallow: /
 
-# --- Block: SEO / backlink spiders (heavy bandwidth, no human value) ---
+# --- Block: SEO / backlink bandwidth spiders ---
 User-agent: AhrefsBot
 Disallow: /
 
@@ -140,11 +162,12 @@ Disallow: /
 User-agent: BarkrowlerBot
 Disallow: /
 
-# --- Default: allow everyone else (real humans, unknown previews) ---
+# --- Default: allow everything (real humans + unknown crawlers) ---
+# Only protect authenticated app surfaces; do NOT block /asher (it is a public
+# marketing page indexed via sitemap).
 User-agent: *
 Allow: /
-Disallow: /docs/
-Disallow: /asher/
-Disallow: /api/
+Disallow: /dashboard/
+Disallow: /asher-dashboard/
 
 Sitemap: https://aureonai.app/sitemap.xml
