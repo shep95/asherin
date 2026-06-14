@@ -184,17 +184,25 @@ Deno.serve(async (req) => {
           throw new Error(`Failed to open stored archive: ${signedErr?.message || "no signed URL"}`);
         }
 
-        const { unzip, setOptions } = await import("https://esm.sh/unzipit@2.0.3?target=deno&bundle");
-        setOptions({ useWorkers: false });
-        const { entries } = await unzip(signed.signedUrl);
-        const skip = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX)\//i;
+        // Use HTTPRangeReader so unzipit only fetches the central directory
+        // (last few KB) plus the bytes for each entry it actually reads.
+        // This keeps memory bounded regardless of total archive size.
+        const { unzip, HTTPRangeReader, setOptions } = await import(
+          "https://esm.sh/unzipit@1.4.3?target=deno"
+        );
+        try { setOptions({ useWorkers: false }); } catch { /* older */ }
+        const reader = new HTTPRangeReader(signed.signedUrl);
+        const { entries } = await unzip(reader);
+
+        const skip = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX|\.cache|target|out|bin|obj)\//i;
         const codeExt = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile|lock)$/i;
         const securityHints = /auth|login|password|token|session|crypto|encrypt|middleware|api|route|handler|config|env|secret|key|permission|policy|payment|webhook|storage|upload/i;
+        const totalEntries = Object.keys(entries).length;
         const candidates = Object.entries(entries)
           .filter(([path, entry]: [string, any]) => {
             if (entry?.isDirectory || path.endsWith("/")) return false;
             if (skip.test("/" + path)) return false;
-            if ((entry?.size || 0) > 220_000) return false;
+            if ((entry?.size || 0) > 120_000) return false;
             return codeExt.test(path) || /(^|\/)dockerfile$/i.test(path);
           })
           .sort(([aPath, aEntry]: [string, any], [bPath, bEntry]: [string, any]) => {
@@ -202,24 +210,26 @@ Deno.serve(async (req) => {
             const bScore = (securityHints.test(bPath) ? 100 : 0) - Math.floor((bEntry?.size || 0) / 25_000);
             return bScore - aScore;
           })
-          .slice(0, 260);
+          .slice(0, 160);
 
+        const ASSEMBLED_CAP = 1_200_000; // ~1.2MB of source text max
+        const PER_FILE_CAP = 120_000;
         let assembled = "";
         let extracted = 0;
-        let skipped = Math.max(0, Object.keys(entries).length - candidates.length);
+        let skipped = Math.max(0, totalEntries - candidates.length);
         for (const [path, entry] of candidates as [string, any][]) {
+          if (assembled.length >= ASSEMBLED_CAP) { skipped++; continue; }
           try {
             const text = await entry.text();
-            if (text.length > 220_000) { skipped++; continue; }
+            if (!text || text.length > PER_FILE_CAP) { skipped++; continue; }
             assembled += `\n--- FILE: ${path} ---\n${text}\n`;
             extracted++;
-            if (assembled.length > 2_000_000) break;
           } catch {
             skipped++;
           }
         }
-        codeToAnalyze = `ZIP SOURCE: ${source_storage_path}\nFILES_EXTRACTED_FOR_SECURITY_AUDIT: ${extracted}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\n${assembled}`;
-        console.log("[ZERLAL] ZIP extracted:", extracted, "files,", assembled.length, "chars, skipped:", skipped);
+        codeToAnalyze = `ZIP SOURCE: ${source_storage_path}\nFILES_EXTRACTED_FOR_SECURITY_AUDIT: ${extracted}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\nTOTAL_ENTRIES: ${totalEntries}\n${assembled}`;
+        console.log("[ZERLAL] ZIP extracted:", extracted, "files,", assembled.length, "chars, skipped:", skipped, "of total:", totalEntries);
       } else {
         const { data: storedFile, error: storedFileErr } = await supabase.storage
           .from("zerlal-scan-sources")
