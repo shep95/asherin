@@ -224,11 +224,11 @@ Deno.serve(async (req) => {
         }
 
         if (!codeToAnalyze) {
-        const skip = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX|\.cache|target|out|bin|obj)\//i;
-        const codeExt = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile|lock)$/i;
-        const securityHints = /auth|login|password|token|session|crypto|encrypt|middleware|api|route|handler|config|env|secret|key|permission|policy|payment|webhook|storage|upload/i;
-        const totalEntries = zipEntries.length;
-        const candidates = zipEntries
+          const skip = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX|\.cache|target|out|bin|obj)\//i;
+          const codeExt = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile|lock)$/i;
+          const securityHints = /auth|login|password|token|session|crypto|encrypt|middleware|api|route|handler|config|env|secret|key|permission|policy|payment|webhook|storage|upload/i;
+          const totalEntries = zipEntries.length;
+          const candidates = zipEntries
           .filter((entry: any) => {
             const path = entry?.filename || "";
             if (entry?.directory || path.endsWith("/")) return false;
@@ -245,12 +245,12 @@ Deno.serve(async (req) => {
           })
           .slice(0, 160);
 
-        const ASSEMBLED_CAP = 1_200_000; // ~1.2MB of source text max
-        const PER_FILE_CAP = 120_000;
-        let assembled = "";
-        let extracted = 0;
-        let skipped = Math.max(0, totalEntries - candidates.length);
-        for (const entry of candidates as any[]) {
+          const ASSEMBLED_CAP = 1_200_000; // ~1.2MB of source text max
+          const PER_FILE_CAP = 120_000;
+          let assembled = "";
+          let extracted = 0;
+          let skipped = Math.max(0, totalEntries - candidates.length);
+          for (const entry of candidates as any[]) {
           if (assembled.length >= ASSEMBLED_CAP) { skipped++; continue; }
           try {
             const path = entry?.filename || "unknown";
@@ -262,9 +262,10 @@ Deno.serve(async (req) => {
             skipped++;
           }
         }
-        await zipReader.close().catch(() => undefined);
-        codeToAnalyze = `ZIP SOURCE: ${source_storage_path}\nFILES_EXTRACTED_FOR_SECURITY_AUDIT: ${extracted}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\nTOTAL_ENTRIES: ${totalEntries}\n${assembled}`;
-        console.log("[ZERLAL] ZIP extracted:", extracted, "files,", assembled.length, "chars, skipped:", skipped, "of total:", totalEntries);
+          await zipReader.close().catch(() => undefined);
+          codeToAnalyze = `ZIP SOURCE: ${source_storage_path}\nFILES_EXTRACTED_FOR_SECURITY_AUDIT: ${extracted}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\nTOTAL_ENTRIES: ${totalEntries}\n${assembled}`;
+          console.log("[ZERLAL] ZIP extracted:", extracted, "files,", assembled.length, "chars, skipped:", skipped, "of total:", totalEntries);
+        }
       } else {
         const { data: storedFile, error: storedFileErr } = await supabase.storage
           .from("zerlal-scan-sources")
