@@ -139,7 +139,12 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       }
     } catch (e: any) {
       console.error("File processing error:", e);
-      setScanError(e?.message || "Failed to read files");
+      if (fileArray.some(f => isZipArchive(f.name))) {
+        setCodeContent("");
+        setScanError("Local ZIP unpack failed; raw ZIP will upload for cloud extraction instead.");
+      } else {
+        setScanError(e?.message || "Failed to read files");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -209,7 +214,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         return;
       }
 
-      const result = await runScan(project.id, finalCode, files[0]?.name || projectName, selectedProfile, githubUrl);
+      const result = await runScan(project.id, finalCode, files[0]?.name || projectName, selectedProfile, githubUrl, includeWorkflowFunctionFlaws);
       if (result) {
         onScanComplete();
         onClose();
@@ -618,6 +623,10 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
                   <span className="text-muted-foreground/40">Profile</span>
                   <span className="text-foreground/60">{scanProfiles.find(p => p.id === selectedProfile)?.name}</span>
                 </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground/40">Scope</span>
+                  <span className="text-foreground/60">{includeWorkflowFunctionFlaws ? "Security + Workflow/Function" : "Security only"}</span>
+                </div>
                 {files.length > 0 && (
                   <div className="flex justify-between text-[10px]">
                     <span className="text-muted-foreground/40">Files</span>
@@ -665,6 +674,13 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
               )}
 
               <div className="space-y-2">
+                <label className="flex items-center justify-between p-2.5 rounded-xl border border-border/[0.06] hover:bg-foreground/[0.02] cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-3 w-3 text-muted-foreground/30" />
+                    <span className="text-[10px] text-foreground/50">Find workflow + function flaws</span>
+                  </div>
+                  <input type="checkbox" checked={includeWorkflowFunctionFlaws} onChange={(e) => setIncludeWorkflowFunctionFlaws(e.target.checked)} className="w-3 h-3 rounded accent-foreground/30" />
+                </label>
                 <label className="flex items-center justify-between p-2.5 rounded-xl border border-border/[0.06] hover:bg-foreground/[0.02] cursor-pointer">
                   <div className="flex items-center gap-2">
                     <Mail className="h-3 w-3 text-muted-foreground/30" />
