@@ -172,39 +172,61 @@ Deno.serve(async (req) => {
     let codeToAnalyze = code_content || "";
     if (!codeToAnalyze && source_storage_path) {
       console.log("[ZERLAL] Loading code from storage:", source_storage_path);
-      const { data: storedFile, error: storedFileErr } = await supabase.storage
-        .from("zerlal-scan-sources")
-        .download(source_storage_path);
-      if (storedFileErr) {
-        throw new Error(`Failed to load stored scan source: ${storedFileErr.message}`);
-      }
       const isZip = /\.zip$/i.test(source_storage_path);
       if (isZip) {
-        // Server-side ZIP extraction — survives client WiFi drops.
-        console.log("[ZERLAL] Extracting ZIP server-side");
-        const { default: JSZip } = await import("https://esm.sh/jszip@3.10.1");
-        const buf = new Uint8Array(await storedFile.arrayBuffer());
-        const zip = await JSZip.loadAsync(buf);
-        const skip = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|__MACOSX)\//i;
-        const codeExt = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile)$/i;
+        // Server-side ZIP extraction — range-read the archive instead of loading
+        // the whole ZIP into memory. This keeps large uploads under edge limits.
+        console.log("[ZERLAL] Extracting ZIP server-side via range reader");
+        const { data: signed, error: signedErr } = await supabase.storage
+          .from("zerlal-scan-sources")
+          .createSignedUrl(source_storage_path, 60 * 20);
+        if (signedErr || !signed?.signedUrl) {
+          throw new Error(`Failed to open stored archive: ${signedErr?.message || "no signed URL"}`);
+        }
+
+        const { unzip, setOptions } = await import("https://esm.sh/unzipit@2.0.3?target=deno&bundle");
+        setOptions({ useWorkers: false });
+        const { entries } = await unzip(signed.signedUrl);
+        const skip = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX)\//i;
+        const codeExt = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile|lock)$/i;
+        const securityHints = /auth|login|password|token|session|crypto|encrypt|middleware|api|route|handler|config|env|secret|key|permission|policy|payment|webhook|storage|upload/i;
+        const candidates = Object.entries(entries)
+          .filter(([path, entry]: [string, any]) => {
+            if (entry?.isDirectory || path.endsWith("/")) return false;
+            if (skip.test("/" + path)) return false;
+            if ((entry?.size || 0) > 220_000) return false;
+            return codeExt.test(path) || /(^|\/)dockerfile$/i.test(path);
+          })
+          .sort(([aPath, aEntry]: [string, any], [bPath, bEntry]: [string, any]) => {
+            const aScore = (securityHints.test(aPath) ? 100 : 0) - Math.floor((aEntry?.size || 0) / 25_000);
+            const bScore = (securityHints.test(bPath) ? 100 : 0) - Math.floor((bEntry?.size || 0) / 25_000);
+            return bScore - aScore;
+          })
+          .slice(0, 260);
+
         let assembled = "";
         let extracted = 0;
-        const entries = Object.entries(zip.files);
-        for (const [path, entry] of entries) {
-          if ((entry as any).dir) continue;
-          if (skip.test("/" + path)) continue;
-          if (!codeExt.test(path) && !/dockerfile$/i.test(path)) continue;
+        let skipped = Math.max(0, Object.keys(entries).length - candidates.length);
+        for (const [path, entry] of candidates as [string, any][]) {
           try {
-            const text = await (entry as any).async("text");
-            if (text.length > 200_000) continue;
+            const text = await entry.text();
+            if (text.length > 220_000) { skipped++; continue; }
             assembled += `\n--- FILE: ${path} ---\n${text}\n`;
             extracted++;
-            if (assembled.length > 8_000_000) break; // 8MB cap
-          } catch { /* binary */ }
+            if (assembled.length > 2_000_000) break;
+          } catch {
+            skipped++;
+          }
         }
-        console.log("[ZERLAL] ZIP extracted:", extracted, "files,", assembled.length, "chars");
-        codeToAnalyze = assembled;
+        codeToAnalyze = `ZIP SOURCE: ${source_storage_path}\nFILES_EXTRACTED_FOR_SECURITY_AUDIT: ${extracted}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\n${assembled}`;
+        console.log("[ZERLAL] ZIP extracted:", extracted, "files,", assembled.length, "chars, skipped:", skipped);
       } else {
+        const { data: storedFile, error: storedFileErr } = await supabase.storage
+          .from("zerlal-scan-sources")
+          .download(source_storage_path);
+        if (storedFileErr) {
+          throw new Error(`Failed to load stored scan source: ${storedFileErr.message}`);
+        }
         codeToAnalyze = await storedFile.text();
       }
     }
