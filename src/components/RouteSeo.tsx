@@ -28,7 +28,7 @@ const SEO: Record<string, SeoEntry> = {
   "/pricing": {
     title: "Pricing — Aureon Intelligence Plans & Lifetime Access",
     description:
-      "Chat ($47/mo), Aureon ($199/mo), Pro ($740/mo), and Lifetime ($470 one-time). Pick the predictive intelligence tier that fits your operation.",
+      "Aureon has no monthly subscriptions. Free during the Donation Era, with optional one-time tiers at $47, $199, $740, and $470 lifetime. Zero recurring billing.",
   },
   "/terms": {
     title: "Terms of Service — Aureon",
