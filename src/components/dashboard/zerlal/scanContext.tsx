@@ -434,7 +434,19 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
             const job = payload.new || payload.old;
             if (!job) return;
             if (!shouldAdopt(job)) return;
-            setActive(mapJobToActive(job));
+            const prev = activeRef.current;
+            const next = mapJobToActive(job);
+            setActive(next);
+            // Visible status transitions
+            if (prev?.projectId === next.projectId) {
+              if (prev.status !== "failed" && next.status === "failed") {
+                toast.error(`Cloud scan failed: ${next.error || "Unknown error"}`, { duration: 10000 });
+              } else if (prev.status !== "complete" && next.status === "complete") {
+                toast.success(`Cloud scan complete · ${next.finalCount ?? 0} findings`);
+              } else if (job.last_error && prev.progress?.message !== next.progress?.message) {
+                toast.warning(`Scanner hit an error, retrying: ${String(job.last_error).slice(0, 120)}`, { duration: 6000 });
+              }
+            }
           },
         )
         .subscribe();
