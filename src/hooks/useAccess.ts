@@ -1,4 +1,4 @@
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { ADMIN_EMAIL, isAdminEmail } from "@/lib/adminEmail";
 import { useSubscription, hasChatAccess, hasSearchAccess, hasProAccess, hasEnterpriseOnlyAccess, hasAureonAccess } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { DashboardView } from "@/components/dashboard/types";
