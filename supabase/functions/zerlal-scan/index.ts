@@ -178,7 +178,35 @@ Deno.serve(async (req) => {
       if (storedFileErr) {
         throw new Error(`Failed to load stored scan source: ${storedFileErr.message}`);
       }
-      codeToAnalyze = await storedFile.text();
+      const isZip = /\.zip$/i.test(source_storage_path);
+      if (isZip) {
+        // Server-side ZIP extraction — survives client WiFi drops.
+        console.log("[ZERLAL] Extracting ZIP server-side");
+        const { default: JSZip } = await import("https://esm.sh/jszip@3.10.1");
+        const buf = new Uint8Array(await storedFile.arrayBuffer());
+        const zip = await JSZip.loadAsync(buf);
+        const skip = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|__MACOSX)\//i;
+        const codeExt = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile)$/i;
+        let assembled = "";
+        let extracted = 0;
+        const entries = Object.entries(zip.files);
+        for (const [path, entry] of entries) {
+          if ((entry as any).dir) continue;
+          if (skip.test("/" + path)) continue;
+          if (!codeExt.test(path) && !/dockerfile$/i.test(path)) continue;
+          try {
+            const text = await (entry as any).async("text");
+            if (text.length > 200_000) continue;
+            assembled += `\n--- FILE: ${path} ---\n${text}\n`;
+            extracted++;
+            if (assembled.length > 8_000_000) break; // 8MB cap
+          } catch { /* binary */ }
+        }
+        console.log("[ZERLAL] ZIP extracted:", extracted, "files,", assembled.length, "chars");
+        codeToAnalyze = assembled;
+      } else {
+        codeToAnalyze = await storedFile.text();
+      }
     }
     if (!codeToAnalyze && github_url) {
       console.log("[ZERLAL] Fetching code from GitHub:", github_url);
