@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { ScanProgress } from "./useZerlalData";
@@ -294,6 +294,122 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
   }, [update]);
 
   const clear = useCallback(() => setActive(null), []);
+
+  // ===== Cross-tab / cross-device sync via realtime on zerlal_background_jobs =====
+  // When a scan is queued (from any tab/device), every open session for the same
+  // user mirrors the running scan page automatically.
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+
+    const mapJobToActive = (job: any): ActiveScanState => {
+      const total = Math.max(1, Number(job.total_sections) || 1);
+      const current = Math.max(0, Number(job.current_section) || 0);
+      const findings = Array.isArray(job.aggregated_findings) ? job.aggregated_findings : [];
+      const liveFindings: NarrativeEntry[] = findings.map((f: any, i: number) => ({
+        index: i + 1,
+        finding: f,
+        story: buildStory(f),
+        receivedAt: Date.now(),
+      }));
+      const status: ActiveScanState["status"] =
+        job.status === "completed" ? "complete" :
+        job.status === "failed" ? "failed" : "running";
+      const phase =
+        job.status === "completed" ? "complete" :
+        job.status === "finalizing" ? "finalizing" :
+        job.status === "pending" ? "planning" : "scanning";
+      const percent =
+        job.status === "completed" ? 100 :
+        job.status === "finalizing" ? 92 :
+        job.status === "pending" ? 4 :
+        Math.min(90, 10 + Math.floor((current / total) * 75));
+      const msg =
+        job.status === "completed" ? `Scan complete · ${findings.length} vulnerabilities` :
+        job.status === "failed" ? `Scan failed: ${job.last_error || "Unknown error"}` :
+        job.status === "pending" ? "Queued in cloud — extracting source…" :
+        job.status === "finalizing" ? "Deduplicating, scoring, writing report…" :
+        `Reading section ${Math.min(current + 1, total)} of ${total} (cloud)`;
+      return {
+        projectId: job.project_id,
+        projectName: job.project_name || "Cloud scan",
+        startedAt: new Date(job.created_at).getTime(),
+        input: {
+          fileName: job.file_name || "uploaded source",
+          fileCount: 0,
+          totalBytes: 0,
+          scanProfile: job.scan_profile || "security-audit",
+          sourceType: job.source_storage_path ? "cloud-upload" : (job.github_url ? "github" : "code"),
+        },
+        progress: {
+          phase: phase as any,
+          section: current,
+          totalSections: total,
+          percent,
+          message: msg,
+          findingsSoFar: findings.length,
+        },
+        liveFindings,
+        status,
+        error: job.status === "failed" ? (job.last_error || undefined) : undefined,
+        finalCount: job.status === "completed" ? (job.findings_count ?? findings.length) : undefined,
+      };
+    };
+
+    const shouldAdopt = (job: any): boolean => {
+      const cur = activeRef.current;
+      if (!cur) return true;
+      // Don't clobber a locally-running scan with an older cloud job
+      if (cur.status === "running" && new Date(job.created_at).getTime() < cur.startedAt - 1000) {
+        return false;
+      }
+      return true;
+    };
+
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+
+      // Seed with the most recent active or recently-finished cloud job
+      const { data: rows } = await supabase
+        .from("zerlal_background_jobs" as any)
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const seed: any = Array.isArray(rows) && rows.length ? rows[0] : null;
+      if (seed && shouldAdopt(seed)) {
+        const ageMs = Date.now() - new Date(seed.created_at).getTime();
+        // Only auto-show recent jobs (last 30 min) or anything still running
+        const live = ["pending", "scanning", "finalizing"].includes(seed.status);
+        if (live || ageMs < 30 * 60 * 1000) {
+          setActive(mapJobToActive(seed));
+        }
+      }
+
+      channel = supabase
+        .channel(`zerlal-jobs-${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "zerlal_background_jobs", filter: `user_id=eq.${user.id}` },
+          (payload: any) => {
+            const job = payload.new || payload.old;
+            if (!job) return;
+            if (!shouldAdopt(job)) return;
+            setActive(mapJobToActive(job));
+          },
+        )
+        .subscribe();
+    };
+
+    void init();
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, []);
+
+
 
   return (
     <ScanContext.Provider value={{ active, startScan, cancelScan, clear }}>
