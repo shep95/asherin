@@ -59,34 +59,28 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     setFiles(fileArray);
     setIsProcessing(true);
 
+    // Archives: skip browser extraction entirely. Upload raw to cloud and let
+    // the edge function extract server-side — survives WiFi drops mid-scan.
+    const isArchive = (n: string) => /\.(zip|tar|tar\.gz|tgz)$/i.test(n);
+    const hasArchive = fileArray.some(f => isArchive(f.name));
+
     try {
-      let allContent = "";
-      for (const file of fileArray) {
-        if (file.name.endsWith(".zip")) {
-          const zip = new JSZip();
-          const contents = await zip.loadAsync(file);
-          for (const [path, entry] of Object.entries(contents.files)) {
-            if (!entry.dir && !path.includes("node_modules") && !path.includes(".git") && !path.startsWith("__MACOSX")) {
-              try {
-                const text = await entry.async("text");
-                if (text.length < 100000) {
-                  allContent += `\n--- FILE: ${path} ---\n${text}\n`;
-                }
-              } catch { /* binary file */ }
-            }
-          }
-        } else {
+      if (hasArchive) {
+        setCodeContent(""); // signals raw-upload path in handleQueueBackground
+      } else {
+        let allContent = "";
+        for (const file of fileArray) {
           const text = await file.text();
           allContent += `\n--- FILE: ${file.name} ---\n${text}\n`;
         }
+        setCodeContent(allContent);
       }
-      setCodeContent(allContent);
       if (!projectName && fileArray.length > 0) {
-        setProjectName(fileArray[0].name.replace(/\.(zip|tar|gz)$/, ""));
+        setProjectName(fileArray[0].name.replace(/\.(zip|tar|gz|tgz)$/i, ""));
       }
     } catch (e) {
       console.error("File processing error:", e);
-      setScanError("Failed to process files");
+      setScanError("Failed to read files");
     } finally {
       setIsProcessing(false);
     }
