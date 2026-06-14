@@ -299,8 +299,8 @@ const BlogComparison = () => {
               See the stack for yourself
             </h2>
             <p className="text-sm font-extralight text-muted-foreground max-w-xl mx-auto">
-              Every Aureon tool is free to try without a credit card. Bring your own
-              key or use the free Venice routing. Cancel any time.
+              Every Aureon tool is free to use without a credit card. Bring your own
+              key or use the free Venice routing. No trial countdown, no paywall.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link
