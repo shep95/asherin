@@ -119,6 +119,7 @@ async function advanceJob(job: any) {
     user_id_override: job.user_id,
     project_id: job.project_id,
     scan_profile: job.scan_profile,
+    include_workflow_function_flaws: job.include_workflow_function_flaws || false,
     code_content: job.code_content,
     source_storage_path: job.source_storage_path,
     file_name: job.file_name,

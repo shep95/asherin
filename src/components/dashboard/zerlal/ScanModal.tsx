@@ -41,15 +41,16 @@ const scanProfiles = [
 const isZipArchive = (name: string) => /\.zip$/i.test(name);
 const isOtherArchive = (name: string) => /\.(tar|tar\.gz|tgz)$/i.test(name);
 const skipArchivePath = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX|\.cache|target|out|bin|obj)\//i;
-const acceptedCodeFile = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile|lock|txt|xml|ini|cfg|properties|gradle|scala|dart|lua|zig|hcl|gitignore|sum|mod)$/i;
-const ZIP_FILE_LIMIT = 160;
-const ZIP_TEXT_LIMIT = 1_200_000;
-const ZIP_ENTRY_LIMIT = 120_000;
+const acceptedCodeFile = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|c|cc|cpp|cxx|h|hpp|hh|php|rb|swift|kt|kts|cs|sh|bash|zsh|ps1|bat|cmd|sql|ya?ml|json|jsonc|toml|tf|vue|svelte|html|css|scss|sass|less|md|mdx|env|example|sample|dockerfile|lock|txt|xml|ini|cfg|conf|properties|gradle|scala|dart|lua|zig|hcl|gitignore|sum|mod|prisma|graphql|gql|proto|makefile|cmake)$/i;
+const ZIP_FILE_LIMIT = 260;
+const ZIP_TEXT_LIMIT = 2_400_000;
+const ZIP_ENTRY_LIMIT = 180_000;
 
 const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalProps) => {
   const [step, setStep] = useState<Step>(1);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState("security-audit");
+  const [includeWorkflowFunctionFlaws, setIncludeWorkflowFunctionFlaws] = useState(false);
   const [url, setUrl] = useState("");
   const [projectName, setProjectName] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -65,7 +66,8 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
   const extractZipForScan = useCallback(async (archiveFile: File) => {
     const zip = await JSZip.loadAsync(archiveFile);
-    const entries = Object.values(zip.files)
+    const allEntries = Object.values(zip.files);
+    const entries = allEntries
       .filter((entry) => {
         const path = entry.name || "";
         if (entry.dir || !path) return false;
@@ -77,24 +79,29 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
     let assembled = "";
     let extracted = 0;
-    let skipped = Math.max(0, Object.keys(zip.files).length - entries.length);
+    let truncated = 0;
+    let skipped = Math.max(0, allEntries.length - entries.length);
 
     for (const entry of entries) {
       if (assembled.length >= ZIP_TEXT_LIMIT) {
         skipped++;
         continue;
       }
-      const text = await entry.async("text");
-      if (!text || text.length > ZIP_ENTRY_LIMIT) {
+      let text = await entry.async("text");
+      if (!text) {
         skipped++;
         continue;
+      }
+      if (text.length > ZIP_ENTRY_LIMIT) {
+        text = text.slice(0, ZIP_ENTRY_LIMIT) + `\n/* ZERLAL_NOTE: file truncated at ${ZIP_ENTRY_LIMIT} characters for transport; analyze visible logic and report if full file is needed. */\n`;
+        truncated++;
       }
       assembled += `\n--- FILE: ${entry.name} ---\n${text}\n`;
       extracted++;
     }
 
     return {
-      text: `ZIP SOURCE: ${archiveFile.name}\nFILES_EXTRACTED_FOR_SECURITY_AUDIT: ${extracted}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\nTOTAL_ENTRIES: ${Object.keys(zip.files).length}\n${assembled}`,
+      text: `ZIP SOURCE: ${archiveFile.name}\nFILES_EXTRACTED_FOR_CODE_AUDIT: ${extracted}\nFILES_TRUNCATED_FOR_TRANSPORT: ${truncated}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\nTOTAL_ENTRIES: ${allEntries.length}\n${assembled}`,
       extracted,
     };
   }, []);
@@ -132,7 +139,12 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       }
     } catch (e: any) {
       console.error("File processing error:", e);
-      setScanError(e?.message || "Failed to read files");
+      if (fileArray.some(f => isZipArchive(f.name))) {
+        setCodeContent("");
+        setScanError("Local ZIP unpack failed; raw ZIP will upload for cloud extraction instead.");
+      } else {
+        setScanError(e?.message || "Failed to read files");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -186,6 +198,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
             codeContent: finalCode,
             fileName: files[0]?.name || projectName,
             scanProfile: selectedProfile,
+            includeWorkflowFunctionFlaws,
             sourceType,
             fileCount: files.length || (finalCode ? 1 : 0),
             githubUrl,
@@ -201,7 +214,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         return;
       }
 
-      const result = await runScan(project.id, finalCode, files[0]?.name || projectName, selectedProfile, githubUrl);
+      const result = await runScan(project.id, finalCode, files[0]?.name || projectName, selectedProfile, githubUrl, includeWorkflowFunctionFlaws);
       if (result) {
         onScanComplete();
         onClose();
@@ -221,7 +234,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     const archiveFile = files.find(f => isOtherArchive(f.name));
     const zipFile = files.find(f => isZipArchive(f.name));
     if (archiveFile) { setScanError("TAR uploads are not supported yet — upload a ZIP instead."); return; }
-    if (!finalCode && !url) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
+    if (!finalCode && !url && !zipFile) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) { setScanError("Sign in required"); return; }
@@ -315,6 +328,31 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         percent: 8,
         message: zipFile ? "ZIP source uploaded — queueing cloud scan now…" : "Source uploaded — queueing cloud scan now…",
       });
+    } else if (zipFile) {
+      sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.zip`;
+      const { error: uploadErr } = await supabase.storage
+        .from("zerlal-scan-sources")
+        .upload(sourceStoragePath, zipFile, {
+          upsert: false,
+          contentType: zipFile.type || "application/zip",
+        });
+      if (uploadErr) {
+        const message = "Failed to upload ZIP source: " + (uploadErr.message || JSON.stringify(uploadErr));
+        setScanError(message);
+        failScan(project.id, message);
+        toast.error(message);
+        return;
+      }
+      adoptQueuedScan({
+        projectId: project.id,
+        projectName,
+        fileName: zipFile.name,
+        scanProfile: selectedProfile,
+        sourceType: "zip-upload",
+        fileCount: files.length || 1,
+        percent: 8,
+        message: "Raw ZIP uploaded — cloud extractor will unpack it…",
+      });
     }
 
     const payload: Record<string, unknown> = {
@@ -326,6 +364,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       github_url: githubUrl || null,
       code_content: safeCode && safeCode.length <= 300_000 ? safeCode : null,
       source_storage_path: sourceStoragePath,
+      include_workflow_function_flaws: includeWorkflowFunctionFlaws,
       recipient_email: user.email,
       status: "pending",
     };
@@ -362,6 +401,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     setStep(1);
     setSelectedSource(null);
     setSelectedProfile("security-audit");
+    setIncludeWorkflowFunctionFlaws(false);
     setUrl("");
     setProjectName("");
     setFiles([]);
@@ -583,6 +623,10 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
                   <span className="text-muted-foreground/40">Profile</span>
                   <span className="text-foreground/60">{scanProfiles.find(p => p.id === selectedProfile)?.name}</span>
                 </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground/40">Scope</span>
+                  <span className="text-foreground/60">{includeWorkflowFunctionFlaws ? "Security + Workflow/Function" : "Security only"}</span>
+                </div>
                 {files.length > 0 && (
                   <div className="flex justify-between text-[10px]">
                     <span className="text-muted-foreground/40">Files</span>
@@ -630,6 +674,13 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
               )}
 
               <div className="space-y-2">
+                <label className="flex items-center justify-between p-2.5 rounded-xl border border-border/[0.06] hover:bg-foreground/[0.02] cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-3 w-3 text-muted-foreground/30" />
+                    <span className="text-[10px] text-foreground/50">Find workflow + function flaws</span>
+                  </div>
+                  <input type="checkbox" checked={includeWorkflowFunctionFlaws} onChange={(e) => setIncludeWorkflowFunctionFlaws(e.target.checked)} className="w-3 h-3 rounded accent-foreground/30" />
+                </label>
                 <label className="flex items-center justify-between p-2.5 rounded-xl border border-border/[0.06] hover:bg-foreground/[0.02] cursor-pointer">
                   <div className="flex items-center gap-2">
                     <Mail className="h-3 w-3 text-muted-foreground/30" />

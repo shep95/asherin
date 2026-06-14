@@ -50,6 +50,7 @@ interface ScanContextValue {
     codeContent: string;
     fileName: string;
     scanProfile: string;
+    includeWorkflowFunctionFlaws?: boolean;
     sourceType: string;
     fileCount: number;
     githubUrl?: string;
@@ -155,11 +156,13 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
     codeContent: string;
     fileName: string;
     scanProfile: string;
+    includeWorkflowFunctionFlaws?: boolean;
     githubUrl?: string;
   }) => {
     const baseBody = {
       project_id: args.projectId,
       scan_profile: args.scanProfile,
+      include_workflow_function_flaws: args.includeWorkflowFunctionFlaws ?? false,
       code_content: args.codeContent,
       file_name: args.fileName,
       github_url: args.githubUrl || undefined,
@@ -252,7 +255,7 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
         status: "complete",
         finalCount: final.findings_count,
       });
-      toast.success(`Scan complete: ${final.findings_count} vulnerabilities`);
+      toast.success(`Scan complete: ${final.findings_count} findings`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       if (canceledRef.current || (e instanceof DOMException && e.name === "AbortError")) {
@@ -292,6 +295,7 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
       codeContent: args.codeContent,
       fileName: args.fileName,
       scanProfile: args.scanProfile,
+      includeWorkflowFunctionFlaws: args.includeWorkflowFunctionFlaws,
       githubUrl: args.githubUrl,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
