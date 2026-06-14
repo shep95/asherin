@@ -391,7 +391,7 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
       const msg =
         job.status === "completed" ? `Scan complete · ${findings.length} vulnerabilities` :
         job.status === "failed" ? `Scan failed: ${job.last_error || "Unknown error"}` :
-        job.status === "pending" ? `Queued in cloud — extracting source…${retrySuffix}` :
+        job.status === "pending" ? `Queued in cloud — loading prepared source…${retrySuffix}` :
         job.status === "finalizing" ? `Deduplicating, scoring, writing report…${retrySuffix}` :
         `Reading section ${Math.min(current + 1, total)} of ${total} (cloud)${retrySuffix}`;
       return {
