@@ -585,6 +585,8 @@ const Index = () => {
                       </button>
                       <button
                         onClick={() => setShowDiagram(!showDiagram)}
+                        aria-label={showDiagram ? "Hide reasoning diagram" : "Show reasoning diagram"}
+                        aria-pressed={showDiagram}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-light transition-all ${
                           showDiagram
                             ? "bg-accent/15 text-accent border border-accent/20"
