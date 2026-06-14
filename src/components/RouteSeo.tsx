@@ -293,8 +293,11 @@ const SEO: Record<string, SeoEntry> = {
   },
 };
 
-// Paths that should be left untouched entirely.
-const SKIP_PREFIXES = ["/asher", "/dashboard", "/asher-dashboard", "/i"];
+// Paths that should be left untouched entirely (authenticated app shell).
+// NOTE: /asher is intentionally NOT skipped — it has a SEO entry and is in the sitemap;
+// skipping it caused the static index.html canonical (pointing to "/") to leak through,
+// making crawlers treat /asher as a duplicate of the homepage and drop it.
+const SKIP_PREFIXES = ["/dashboard", "/asher-dashboard"];
 
 function upsertMeta(selector: string, attr: string, value: string, build: () => HTMLElement) {
   let el = document.head.querySelector(selector) as HTMLElement | null;
