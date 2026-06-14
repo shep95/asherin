@@ -262,9 +262,13 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       setScanError("Failed to queue background scan: " + msg + (safeCode ? ` (payload ~${Math.round(safeCode.length/1024)}KB)` : ""));
       return;
     }
-    toast.success("Scan queued. We'll email you the report when it's done — you can close this tab.");
+    toast.success("Scan queued in cloud — live progress streaming. You can close this tab; we'll email the report.");
     onScanComplete();
-    onClose();
+    if (onScanStarted) {
+      onScanStarted(project.id);
+    } else {
+      onClose();
+    }
     resetState();
   };
 
