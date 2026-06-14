@@ -172,6 +172,7 @@ const DashboardSidebar = ({
   const { toast } = useToast();
   const { tierKey } = useSubscription();
   const [search, setSearch] = useState("");
+  const [softwareSearch, setSoftwareSearch] = useState("");
   const [showConvos, setShowConvos] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [archivedConvos, setArchivedConvos] = useState<Conversation[]>([]);
@@ -180,7 +181,15 @@ const DashboardSidebar = ({
   const [editTitle, setEditTitle] = useState("");
   const personaId = externalPersonaId ?? null;
   const setPersonaId = onPersonaChange ?? (() => {});
-  
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("aureon_sidebar_collapsed") === "1"; } catch { return false; }
+  });
+  const toggleCollapsed = () => setCollapsed((c) => {
+    const next = !c;
+    try { localStorage.setItem("aureon_sidebar_collapsed", next ? "1" : "0"); } catch {}
+    return next;
+  });
+
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     navGroupsFlat.forEach((g, i) => { init[g.label] = i < 2; });
