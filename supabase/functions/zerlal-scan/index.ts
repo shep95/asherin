@@ -76,6 +76,69 @@ interface ProviderProfile {
   probe_latency_ms: number;
 }
 
+/**
+ * File-aware deterministic chunker.
+ * The browser/server preamble concatenates extracted source as:
+ *   "ZIP SOURCE: ...\n--- FILE: path/a.tsx ---\n<code>\n--- FILE: path/b.tsx ---\n<code>"
+ * A naive substring() splitter would sever file boundaries and ship raw
+ * code fragments with no filename — the AI then reports "ZIP contents not provided".
+ * This splitter packs WHOLE files into ~chunk_size buckets and preserves headers.
+ */
+function splitIntoFileSections(code: string, chunkSize: number): { preamble: string; sections: string[] } {
+  const headerRe = /^--- FILE: .+? ---$/gm;
+  const firstMatch = headerRe.exec(code);
+  if (!firstMatch) {
+    const out: string[] = [];
+    for (let i = 0; i < code.length; i += chunkSize) out.push(code.slice(i, i + chunkSize));
+    return { preamble: "", sections: out.length ? out : [code] };
+  }
+  const preamble = code.slice(0, firstMatch.index).trim();
+  const body = code.slice(firstMatch.index);
+
+  // Collect block boundaries
+  const indices: number[] = [];
+  const re2 = /^--- FILE: .+? ---$/gm;
+  let m: RegExpExecArray | null;
+  while ((m = re2.exec(body)) !== null) indices.push(m.index);
+  indices.push(body.length);
+
+  const blocks: string[] = [];
+  for (let i = 0; i < indices.length - 1; i++) blocks.push(body.slice(indices[i], indices[i + 1]));
+
+  const sections: string[] = [];
+  let current = "";
+  for (const block of blocks) {
+    if (block.length > chunkSize) {
+      if (current) { sections.push(current); current = ""; }
+      const headerEnd = block.indexOf("\n");
+      const header = headerEnd > 0 ? block.slice(0, headerEnd + 1) : "--- FILE: (unknown) ---\n";
+      const rest = headerEnd > 0 ? block.slice(headerEnd + 1) : block;
+      const inner = Math.max(2000, chunkSize - header.length);
+      for (let i = 0; i < rest.length; i += inner) sections.push(header + rest.slice(i, i + inner));
+      continue;
+    }
+    if (current.length + block.length > chunkSize) {
+      sections.push(current);
+      current = block;
+    } else {
+      current += block;
+    }
+  }
+  if (current) sections.push(current);
+  if (sections.length === 0) sections.push(body);
+  return { preamble, sections };
+}
+
+function buildSectionPayload(preamble: string, sections: string[], index: number, fileName: string): string {
+  const safe = Math.max(0, Math.min(index, sections.length - 1));
+  const head = `PROJECT: ${fileName || "uploaded codebase"}
+SEGMENT ${safe + 1} OF ${sections.length}
+${preamble ? preamble + "\n" : ""}NOTE: This segment is part of a larger uploaded codebase. The full archive WAS provided — audit the files contained in this segment as-is. Do NOT respond with "contents not provided" — analyze every '--- FILE: ... ---' block below.
+
+`;
+  return head + sections[safe];
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
