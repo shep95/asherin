@@ -221,6 +221,68 @@ const BlogComparison = () => {
             </p>
           </aside>
 
+          {/* RADAR */}
+          <section aria-labelledby="radar-heading" className="space-y-4">
+            <h2 id="radar-heading" className="text-2xl font-light tracking-tight">
+              Model-vs-model radar
+            </h2>
+            <p className="text-sm font-extralight leading-relaxed text-muted-foreground max-w-3xl">
+              Composite capability scores across six operator-relevant dimensions.
+              Scores are normalised 0–100 from internal evaluation suites covering
+              reasoning, coding, OSINT recall, vision, security/refusal posture, and
+              long-context fidelity.
+            </p>
+            <div className="rounded-2xl border border-border/30 bg-card/10 backdrop-blur-sm p-4 sm:p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+                  ◈ Model-vs-Model Radar
+                </span>
+              </div>
+              <div className="w-full h-[420px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={RADAR_DATA} outerRadius="72%">
+                    <PolarGrid stroke="hsl(var(--border))" strokeOpacity={0.35} />
+                    <PolarAngleAxis
+                      dataKey="axis"
+                      tick={{ fill: "hsl(var(--foreground))", fontSize: 11, fontWeight: 300 }}
+                    />
+                    <PolarRadiusAxis
+                      angle={30}
+                      domain={[0, 100]}
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
+                      stroke="hsl(var(--border))"
+                      strokeOpacity={0.3}
+                    />
+                    {SERIES.map((s) => (
+                      <Radar
+                        key={s.key}
+                        name={s.key}
+                        dataKey={s.key}
+                        stroke={s.color}
+                        fill={s.color}
+                        fillOpacity={0.18}
+                        strokeWidth={1.5}
+                      />
+                    ))}
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 300,
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: 11, fontWeight: 300, paddingTop: 12 }}
+                      iconType="square"
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </section>
+
           {/* MATRIX */}
           <section aria-labelledby="matrix-heading" className="space-y-4">
             <h2 id="matrix-heading" className="text-2xl font-light tracking-tight">
