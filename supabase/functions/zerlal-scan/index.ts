@@ -186,12 +186,30 @@ Deno.serve(async (req) => {
 
         // zip.js is Deno-edge compatible through npm: imports. Keep HTTP range
         // reads so large archives do not get loaded into memory at once.
-        const { ZipReader, HttpRangeReader, TextWriter, configure } = await import(
+        const { ZipReader, HttpRangeReader, BlobReader, TextWriter, configure } = await import(
           "npm:@zip.js/zip.js@2.7.72"
         );
         try { configure({ useWebWorkers: false }); } catch { /* older */ }
-        const zipReader = new ZipReader(new HttpRangeReader(signed.signedUrl));
-        const zipEntries = await zipReader.getEntries();
+        let zipReader: any;
+        let zipEntries: any[] = [];
+        try {
+          zipReader = new ZipReader(new HttpRangeReader(signed.signedUrl));
+          zipEntries = await zipReader.getEntries();
+        } catch (rangeErr) {
+          const rangeMessage = rangeErr instanceof Error ? rangeErr.message : String(rangeErr);
+          console.log("[ZERLAL] Range reader unavailable, falling back to direct download:", rangeMessage);
+          const { data: archiveBlob, error: archiveErr } = await supabase.storage
+            .from("zerlal-scan-sources")
+            .download(source_storage_path);
+          if (archiveErr || !archiveBlob) {
+            throw new Error(`Failed to download stored archive: ${archiveErr?.message || rangeMessage}`);
+          }
+          if ((archiveBlob.size || 0) > 18_000_000) {
+            throw new Error("Archive host does not support range reads and this ZIP is too large for safe fallback extraction.");
+          }
+          zipReader = new ZipReader(new BlobReader(archiveBlob));
+          zipEntries = await zipReader.getEntries();
+        }
 
         const skip = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX|\.cache|target|out|bin|obj)\//i;
         const codeExt = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile|lock)$/i;
