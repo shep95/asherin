@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import JSZip from "jszip";
 import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe, Binary, CloudOff } from "lucide-react";
 import { useCreateProject, useRunScan } from "./useZerlalData";
 import { useActiveScan } from "./scanContext";
@@ -37,6 +38,14 @@ const scanProfiles = [
   { id: "deep-scan", name: "Full Deep Scan", desc: "AI-assisted novel pattern detection, chain analysis, quantum crypto audit, red team simulation", time: "45-120 min", includes: ["Full SAST", "SCA", "AI Analysis", "Chain Detection", "Dataflow Tracing", "Quantum Crypto Audit", "Supply Chain Intel", "Zero-Trust Validation", "PoC Generation"] },
 ];
 
+const isZipArchive = (name: string) => /\.zip$/i.test(name);
+const isOtherArchive = (name: string) => /\.(tar|tar\.gz|tgz)$/i.test(name);
+const skipArchivePath = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX|\.cache|target|out|bin|obj)\//i;
+const acceptedCodeFile = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile|lock|txt|xml|ini|cfg|properties|gradle|scala|dart|lua|zig|hcl|gitignore|sum|mod)$/i;
+const ZIP_FILE_LIMIT = 160;
+const ZIP_TEXT_LIMIT = 1_200_000;
+const ZIP_ENTRY_LIMIT = 120_000;
+
 const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalProps) => {
   const [step, setStep] = useState<Step>(1);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
@@ -54,6 +63,42 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
   const { runScan, scanning, progress } = useRunScan();
   const { startScan: startLiveScan, adoptQueuedScan, failScan } = useActiveScan();
 
+  const extractZipForScan = useCallback(async (archiveFile: File) => {
+    const zip = await JSZip.loadAsync(archiveFile);
+    const entries = Object.values(zip.files)
+      .filter((entry) => {
+        const path = entry.name || "";
+        if (entry.dir || !path) return false;
+        if (skipArchivePath.test(`/${path}`)) return false;
+        return acceptedCodeFile.test(path) || /(^|\/)dockerfile$/i.test(path);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, ZIP_FILE_LIMIT);
+
+    let assembled = "";
+    let extracted = 0;
+    let skipped = Math.max(0, Object.keys(zip.files).length - entries.length);
+
+    for (const entry of entries) {
+      if (assembled.length >= ZIP_TEXT_LIMIT) {
+        skipped++;
+        continue;
+      }
+      const text = await entry.async("text");
+      if (!text || text.length > ZIP_ENTRY_LIMIT) {
+        skipped++;
+        continue;
+      }
+      assembled += `\n--- FILE: ${entry.name} ---\n${text}\n`;
+      extracted++;
+    }
+
+    return {
+      text: `ZIP SOURCE: ${archiveFile.name}\nFILES_EXTRACTED_FOR_SECURITY_AUDIT: ${extracted}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\nTOTAL_ENTRIES: ${Object.keys(zip.files).length}\n${assembled}`,
+      extracted,
+    };
+  }, []);
+
   const handleFileSelect = useCallback(async (selectedFiles: FileList) => {
     const fileArray = Array.from(selectedFiles);
     setFiles(fileArray);
@@ -61,12 +106,19 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
     // Archives: skip browser extraction entirely. Upload raw to cloud and let
     // the edge function extract server-side — survives WiFi drops mid-scan.
-    const isArchive = (n: string) => /\.(zip|tar|tar\.gz|tgz)$/i.test(n);
-    const hasArchive = fileArray.some(f => isArchive(f.name));
+    const hasZipArchive = fileArray.some(f => isZipArchive(f.name));
+    const hasOtherArchive = fileArray.some(f => isOtherArchive(f.name));
 
     try {
-      if (hasArchive) {
-        setCodeContent(""); // signals raw-upload path in handleQueueBackground
+      if (hasOtherArchive) {
+        setCodeContent("");
+        setScanError("TAR uploads are not supported yet — upload a ZIP instead.");
+      } else if (hasZipArchive) {
+        const zipFile = fileArray.find(f => isZipArchive(f.name));
+        if (!zipFile) throw new Error("ZIP file missing");
+        const extracted = await extractZipForScan(zipFile);
+        setCodeContent(extracted.text);
+        toast.success(`ZIP unpacked locally — ${extracted.extracted} files ready for scan`);
       } else {
         let allContent = "";
         for (const file of fileArray) {
@@ -78,13 +130,13 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       if (!projectName && fileArray.length > 0) {
         setProjectName(fileArray[0].name.replace(/\.(zip|tar|gz|tgz)$/i, ""));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("File processing error:", e);
-      setScanError("Failed to read files");
+      setScanError(e?.message || "Failed to read files");
     } finally {
       setIsProcessing(false);
     }
-  }, [projectName]);
+  }, [extractZipForScan, projectName]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -103,8 +155,12 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         return;
       }
 
-      const archiveFile = files.find(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name));
-      if (archiveFile) {
+      const unsupportedArchive = files.find(f => isOtherArchive(f.name));
+      if (unsupportedArchive) {
+        setScanError("TAR uploads are not supported yet — upload a ZIP instead.");
+        return;
+      }
+      if (files.some(f => isZipArchive(f.name))) {
         return handleQueueBackground();
       }
 
@@ -162,8 +218,10 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     setScanError(null);
     if (!projectName.trim()) { setScanError("Project name is required"); return; }
     const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
-    const archiveFile = files.find(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name));
-    if (!finalCode && !url && !archiveFile) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
+    const archiveFile = files.find(f => isOtherArchive(f.name));
+    const zipFile = files.find(f => isZipArchive(f.name));
+    if (archiveFile) { setScanError("TAR uploads are not supported yet — upload a ZIP instead."); return; }
+    if (!finalCode && !url) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) { setScanError("Sign in required"); return; }
@@ -177,11 +235,11 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       projectName,
       fileName: files[0]?.name || projectName,
       scanProfile: selectedProfile,
-      sourceType: archiveFile ? "cloud-upload" : sourceType,
+      sourceType: zipFile ? "zip-upload" : sourceType,
       fileCount: files.length || 1,
       percent: 1,
-      message: archiveFile
-        ? "Uploading archive to cloud — hold on…"
+      message: zipFile
+        ? "Uploading extracted ZIP source — hold on…"
         : "Packaging source for cloud scan — hold on…",
     });
 
@@ -229,38 +287,9 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     const safeCode = finalCode ? sanitize(finalCode) : null;
     let sourceStoragePath: string | null = null;
 
-    // ── PATH A: Raw archive upload (cloud-resilient) ─────────────────────
-    // Upload the .zip itself. Edge function extracts on the server, so a
-    // WiFi drop after the upload completes can't interrupt the scan.
-    if (archiveFile) {
-      const ext = archiveFile.name.toLowerCase().endsWith(".tar.gz")
-        ? "tar.gz"
-        : (archiveFile.name.split(".").pop()?.toLowerCase() || "zip");
-      sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage
-        .from("zerlal-scan-sources")
-        .upload(sourceStoragePath, archiveFile, {
-          upsert: false,
-          contentType: archiveFile.type || "application/zip",
-        });
-      if (uploadErr) {
-        const message = "Failed to upload archive: " + (uploadErr.message || JSON.stringify(uploadErr));
-        setScanError(message);
-        failScan(project.id, message);
-        toast.error(message);
-        return;
-      }
-      adoptQueuedScan({
-        projectId: project.id,
-        projectName,
-        fileName: files[0]?.name || projectName,
-        scanProfile: selectedProfile,
-        sourceType: "cloud-upload",
-        fileCount: files.length || 1,
-        percent: 8,
-        message: "Archive uploaded — queueing cloud scan now…",
-      });
-    } else if (safeCode) {
+    // Upload extracted text, not the raw ZIP. This avoids cloud memory crashes
+    // while still letting the background worker survive browser disconnects.
+    if (safeCode) {
       const fileExt = files[0]?.name?.split(".").pop()?.toLowerCase() || "txt";
       sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.${fileExt}`;
       const uploadPayload = new Blob([safeCode], { type: "text/plain;charset=utf-8" });
@@ -282,10 +311,10 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         projectName,
         fileName: files[0]?.name || projectName,
         scanProfile: selectedProfile,
-        sourceType,
+        sourceType: zipFile ? "zip-upload" : sourceType,
         fileCount: files.length || 1,
         percent: 8,
-        message: "Source uploaded — queueing cloud scan now…",
+        message: zipFile ? "ZIP source uploaded — queueing cloud scan now…" : "Source uploaded — queueing cloud scan now…",
       });
     }
 
@@ -321,7 +350,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       projectName,
       fileName: files[0]?.name || projectName,
       scanProfile: selectedProfile,
-      sourceType: archiveFile ? "cloud-upload" : sourceType,
+      sourceType: zipFile ? "zip-upload" : sourceType,
       fileCount: files.length || 1,
       percent: 12,
       message: "Scan accepted — cloud worker is starting now…",

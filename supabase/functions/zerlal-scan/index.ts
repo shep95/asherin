@@ -184,30 +184,50 @@ Deno.serve(async (req) => {
           throw new Error(`Failed to open stored archive: ${signedErr?.message || "no signed URL"}`);
         }
 
-        // Use HTTPRangeReader so unzipit only fetches the central directory
-        // (last few KB) plus the bytes for each entry it actually reads.
-        // This keeps memory bounded regardless of total archive size.
-        const { unzip, HTTPRangeReader, setOptions } = await import(
-          "https://esm.sh/unzipit@1.4.3?target=deno"
+        // zip.js is Deno-edge compatible through npm: imports. Keep HTTP range
+        // reads so large archives do not get loaded into memory at once.
+        const { ZipReader, HttpRangeReader, BlobReader, TextWriter, configure } = await import(
+          "npm:@zip.js/zip.js@2.7.72"
         );
-        try { setOptions({ useWorkers: false }); } catch { /* older */ }
-        const reader = new HTTPRangeReader(signed.signedUrl);
-        const { entries } = await unzip(reader);
+        try { configure({ useWebWorkers: false }); } catch { /* older */ }
+        let zipReader: any;
+        let zipEntries: any[] = [];
+        try {
+          zipReader = new ZipReader(new HttpRangeReader(signed.signedUrl));
+          zipEntries = await zipReader.getEntries();
+        } catch (rangeErr) {
+          const rangeMessage = rangeErr instanceof Error ? rangeErr.message : String(rangeErr);
+          console.log("[ZERLAL] Range reader unavailable, falling back to direct download:", rangeMessage);
+          const { data: archiveBlob, error: archiveErr } = await supabase.storage
+            .from("zerlal-scan-sources")
+            .download(source_storage_path);
+          if (archiveErr || !archiveBlob) {
+            throw new Error(`Failed to download stored archive: ${archiveErr?.message || rangeMessage}`);
+          }
+          if ((archiveBlob.size || 0) > 18_000_000) {
+            throw new Error("Archive host does not support range reads and this ZIP is too large for safe fallback extraction.");
+          }
+          zipReader = new ZipReader(new BlobReader(archiveBlob));
+          zipEntries = await zipReader.getEntries();
+        }
 
         const skip = /(^|\/)(node_modules|\.git|dist|build|__pycache__|\.next|vendor|coverage|__MACOSX|\.cache|target|out|bin|obj)\//i;
         const codeExt = /\.(ts|tsx|js|jsx|py|go|rs|java|c|cpp|h|php|rb|swift|kt|cs|sh|sql|ya?ml|json|toml|tf|vue|svelte|html|css|md|env|dockerfile|lock)$/i;
         const securityHints = /auth|login|password|token|session|crypto|encrypt|middleware|api|route|handler|config|env|secret|key|permission|policy|payment|webhook|storage|upload/i;
-        const totalEntries = Object.keys(entries).length;
-        const candidates = Object.entries(entries)
-          .filter(([path, entry]: [string, any]) => {
-            if (entry?.isDirectory || path.endsWith("/")) return false;
+        const totalEntries = zipEntries.length;
+        const candidates = zipEntries
+          .filter((entry: any) => {
+            const path = entry?.filename || "";
+            if (entry?.directory || path.endsWith("/")) return false;
             if (skip.test("/" + path)) return false;
-            if ((entry?.size || 0) > 120_000) return false;
+            if ((entry?.uncompressedSize || entry?.size || 0) > 120_000) return false;
             return codeExt.test(path) || /(^|\/)dockerfile$/i.test(path);
           })
-          .sort(([aPath, aEntry]: [string, any], [bPath, bEntry]: [string, any]) => {
-            const aScore = (securityHints.test(aPath) ? 100 : 0) - Math.floor((aEntry?.size || 0) / 25_000);
-            const bScore = (securityHints.test(bPath) ? 100 : 0) - Math.floor((bEntry?.size || 0) / 25_000);
+          .sort((aEntry: any, bEntry: any) => {
+            const aPath = aEntry?.filename || "";
+            const bPath = bEntry?.filename || "";
+            const aScore = (securityHints.test(aPath) ? 100 : 0) - Math.floor((aEntry?.uncompressedSize || aEntry?.size || 0) / 25_000);
+            const bScore = (securityHints.test(bPath) ? 100 : 0) - Math.floor((bEntry?.uncompressedSize || bEntry?.size || 0) / 25_000);
             return bScore - aScore;
           })
           .slice(0, 160);
@@ -217,10 +237,11 @@ Deno.serve(async (req) => {
         let assembled = "";
         let extracted = 0;
         let skipped = Math.max(0, totalEntries - candidates.length);
-        for (const [path, entry] of candidates as [string, any][]) {
+        for (const entry of candidates as any[]) {
           if (assembled.length >= ASSEMBLED_CAP) { skipped++; continue; }
           try {
-            const text = await entry.text();
+            const path = entry?.filename || "unknown";
+            const text = await entry.getData(new TextWriter("utf-8"));
             if (!text || text.length > PER_FILE_CAP) { skipped++; continue; }
             assembled += `\n--- FILE: ${path} ---\n${text}\n`;
             extracted++;
@@ -228,6 +249,7 @@ Deno.serve(async (req) => {
             skipped++;
           }
         }
+        await zipReader.close().catch(() => undefined);
         codeToAnalyze = `ZIP SOURCE: ${source_storage_path}\nFILES_EXTRACTED_FOR_SECURITY_AUDIT: ${extracted}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\nTOTAL_ENTRIES: ${totalEntries}\n${assembled}`;
         console.log("[ZERLAL] ZIP extracted:", extracted, "files,", assembled.length, "chars, skipped:", skipped, "of total:", totalEntries);
       } else {
