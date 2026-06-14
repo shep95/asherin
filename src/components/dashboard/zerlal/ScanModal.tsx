@@ -193,6 +193,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
             codeContent: finalCode,
             fileName: files[0]?.name || projectName,
             scanProfile: selectedProfile,
+            includeWorkflowFunctionFlaws,
             sourceType,
             fileCount: files.length || (finalCode ? 1 : 0),
             githubUrl,
@@ -228,7 +229,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     const archiveFile = files.find(f => isOtherArchive(f.name));
     const zipFile = files.find(f => isZipArchive(f.name));
     if (archiveFile) { setScanError("TAR uploads are not supported yet — upload a ZIP instead."); return; }
-    if (!finalCode && !url) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
+    if (!finalCode && !url && !zipFile) { setScanError("Upload files, paste code, or provide a repo URL"); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) { setScanError("Sign in required"); return; }
@@ -322,6 +323,31 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         percent: 8,
         message: zipFile ? "ZIP source uploaded — queueing cloud scan now…" : "Source uploaded — queueing cloud scan now…",
       });
+    } else if (zipFile) {
+      sourceStoragePath = `${user.id}/${project.id}/${crypto.randomUUID()}.zip`;
+      const { error: uploadErr } = await supabase.storage
+        .from("zerlal-scan-sources")
+        .upload(sourceStoragePath, zipFile, {
+          upsert: false,
+          contentType: zipFile.type || "application/zip",
+        });
+      if (uploadErr) {
+        const message = "Failed to upload ZIP source: " + (uploadErr.message || JSON.stringify(uploadErr));
+        setScanError(message);
+        failScan(project.id, message);
+        toast.error(message);
+        return;
+      }
+      adoptQueuedScan({
+        projectId: project.id,
+        projectName,
+        fileName: zipFile.name,
+        scanProfile: selectedProfile,
+        sourceType: "zip-upload",
+        fileCount: files.length || 1,
+        percent: 8,
+        message: "Raw ZIP uploaded — cloud extractor will unpack it…",
+      });
     }
 
     const payload: Record<string, unknown> = {
@@ -333,6 +359,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       github_url: githubUrl || null,
       code_content: safeCode && safeCode.length <= 300_000 ? safeCode : null,
       source_storage_path: sourceStoragePath,
+      include_workflow_function_flaws: includeWorkflowFunctionFlaws,
       recipient_email: user.email,
       status: "pending",
     };
@@ -369,6 +396,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     setStep(1);
     setSelectedSource(null);
     setSelectedProfile("security-audit");
+    setIncludeWorkflowFunctionFlaws(false);
     setUrl("");
     setProjectName("");
     setFiles([]);
