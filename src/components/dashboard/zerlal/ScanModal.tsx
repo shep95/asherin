@@ -52,7 +52,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { createProject, creating } = useCreateProject();
   const { runScan, scanning, progress } = useRunScan();
-  const { startScan: startLiveScan } = useActiveScan();
+  const { startScan: startLiveScan, adoptQueuedScan } = useActiveScan();
 
   const handleFileSelect = useCallback(async (selectedFiles: FileList) => {
     const fileArray = Array.from(selectedFiles);
@@ -262,6 +262,14 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       setScanError("Failed to queue background scan: " + msg + (safeCode ? ` (payload ~${Math.round(safeCode.length/1024)}KB)` : ""));
       return;
     }
+    adoptQueuedScan({
+      projectId: project.id,
+      projectName,
+      fileName: files[0]?.name || projectName,
+      scanProfile: selectedProfile,
+      sourceType: archiveFile ? "cloud-upload" : sourceType,
+      fileCount: files.length || 1,
+    });
     toast.success("Scan queued in cloud — live progress streaming. You can close this tab; we'll email the report.");
     onScanComplete();
     if (onScanStarted) {
