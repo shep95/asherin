@@ -414,9 +414,8 @@ Deno.serve(async (req) => {
 
     if (mode === "section") {
       const normalizedIndex = Math.max(0, Math.min(section_index, chunkCount - 1));
-      const start = normalizedIndex * profile.chunk_size;
-      const codeSlice = codeToAnalyze.substring(start, start + profile.chunk_size);
-      console.log(`[ZERLAL] Section ${normalizedIndex + 1}/${chunkCount} using ${profile.provider_label} (${profile.section_timeout_ms}ms timeout)`);
+      const codeSlice = buildSectionPayload(split.preamble, split.sections, normalizedIndex, file_name);
+      console.log(`[ZERLAL] Section ${normalizedIndex + 1}/${chunkCount} (${codeSlice.length} chars) using ${profile.provider_label} (${profile.section_timeout_ms}ms timeout)`);
 
       const analysis = await callScanAI(
         buildAnalysisPrompt(scan_profile, file_name, codeSlice, brainsContext),
