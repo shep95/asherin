@@ -10,8 +10,23 @@ import { getCallerEmail, isAdminEmail } from "./adminGate.ts";
 
 export type Tier = "free" | "chat" | "aureon" | "pro" | "lifetime";
 
+// Explicit Stripe product ID → tier mapping. Substring matching does NOT
+// work because real Stripe product IDs are opaque (e.g. prod_U1PuUztkmieRrE)
+// and contain none of the tier keywords. Keep this in sync with
+// src/contexts/SubscriptionContext.tsx#TIERS.
+const PRODUCT_TIER_MAP: Record<string, Tier> = {
+  prod_UTrNsrxIQGTBQR: "lifetime",
+  prod_U4YWDDwSXK3SGO: "chat",
+  prod_U1rtJ8HXSCtvqO: "aureon",
+  prod_U1PuUztkmieRrE: "pro",
+  prod_aureon_algorithm: "lifetime",
+};
+
 function classifyProductId(pid: string | null | undefined): Tier {
-  const s = (pid || "").toLowerCase();
+  if (!pid) return "free";
+  if (PRODUCT_TIER_MAP[pid]) return PRODUCT_TIER_MAP[pid];
+  // Fallback: keyword match (legacy / future product IDs containing tier names)
+  const s = pid.toLowerCase();
   if (s.includes("lifetime")) return "lifetime";
   if (s.includes("pro")) return "pro";
   if (s.includes("aureon")) return "aureon";
