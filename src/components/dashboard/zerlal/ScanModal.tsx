@@ -50,6 +50,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
   const [step, setStep] = useState<Step>(1);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState("security-audit");
+  const [includeWorkflowFunctionFlaws, setIncludeWorkflowFunctionFlaws] = useState(false);
   const [url, setUrl] = useState("");
   const [projectName, setProjectName] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -65,7 +66,8 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
   const extractZipForScan = useCallback(async (archiveFile: File) => {
     const zip = await JSZip.loadAsync(archiveFile);
-    const entries = Object.values(zip.files)
+    const allEntries = Object.values(zip.files);
+    const entries = allEntries
       .filter((entry) => {
         const path = entry.name || "";
         if (entry.dir || !path) return false;
@@ -77,24 +79,29 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
     let assembled = "";
     let extracted = 0;
-    let skipped = Math.max(0, Object.keys(zip.files).length - entries.length);
+    let truncated = 0;
+    let skipped = Math.max(0, allEntries.length - entries.length);
 
     for (const entry of entries) {
       if (assembled.length >= ZIP_TEXT_LIMIT) {
         skipped++;
         continue;
       }
-      const text = await entry.async("text");
-      if (!text || text.length > ZIP_ENTRY_LIMIT) {
+      let text = await entry.async("text");
+      if (!text) {
         skipped++;
         continue;
+      }
+      if (text.length > ZIP_ENTRY_LIMIT) {
+        text = text.slice(0, ZIP_ENTRY_LIMIT) + `\n/* ZERLAL_NOTE: file truncated at ${ZIP_ENTRY_LIMIT} characters for transport; analyze visible logic and report if full file is needed. */\n`;
+        truncated++;
       }
       assembled += `\n--- FILE: ${entry.name} ---\n${text}\n`;
       extracted++;
     }
 
     return {
-      text: `ZIP SOURCE: ${archiveFile.name}\nFILES_EXTRACTED_FOR_SECURITY_AUDIT: ${extracted}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\nTOTAL_ENTRIES: ${Object.keys(zip.files).length}\n${assembled}`,
+      text: `ZIP SOURCE: ${archiveFile.name}\nFILES_EXTRACTED_FOR_CODE_AUDIT: ${extracted}\nFILES_TRUNCATED_FOR_TRANSPORT: ${truncated}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\nTOTAL_ENTRIES: ${allEntries.length}\n${assembled}`,
       extracted,
     };
   }, []);
