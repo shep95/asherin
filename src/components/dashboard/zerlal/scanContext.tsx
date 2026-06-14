@@ -358,12 +358,16 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
         job.status === "finalizing" ? 92 :
         job.status === "pending" ? 4 :
         Math.min(90, 10 + Math.floor((current / total) * 75));
+      const attempts = Number(job.attempts) || 0;
+      const retrySuffix = job.last_error && job.status !== "completed" && job.status !== "failed"
+        ? ` · ⚠ retrying after error (attempt ${attempts}/5): ${String(job.last_error).slice(0, 140)}`
+        : "";
       const msg =
         job.status === "completed" ? `Scan complete · ${findings.length} vulnerabilities` :
         job.status === "failed" ? `Scan failed: ${job.last_error || "Unknown error"}` :
-        job.status === "pending" ? "Queued in cloud — extracting source…" :
-        job.status === "finalizing" ? "Deduplicating, scoring, writing report…" :
-        `Reading section ${Math.min(current + 1, total)} of ${total} (cloud)`;
+        job.status === "pending" ? `Queued in cloud — extracting source…${retrySuffix}` :
+        job.status === "finalizing" ? `Deduplicating, scoring, writing report…${retrySuffix}` :
+        `Reading section ${Math.min(current + 1, total)} of ${total} (cloud)${retrySuffix}`;
       return {
         projectId: job.project_id,
         projectName: job.project_name || "Cloud scan",
