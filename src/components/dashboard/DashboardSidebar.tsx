@@ -382,23 +382,36 @@ const DashboardSidebar = ({
       )}
 
       <aside
-        style={{ width: `${sidebarWidth}px` }}
-        className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 lg:relative lg:translate-x-0 flex-shrink-0 ${
+        style={{ width: collapsed ? "68px" : `${sidebarWidth}px` }}
+        className={`fixed inset-y-0 left-0 z-40 transform transition-[transform,width] duration-300 lg:relative lg:translate-x-0 flex-shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl overflow-hidden">
-          <div onMouseDown={handleMouseDown} className="hidden lg:block absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize z-50 group">
-            <div className="absolute inset-y-0 right-0 w-0.5 bg-border/0 group-hover:bg-foreground/20 transition-colors rounded-full" />
-          </div>
-          
-          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-extralight tracking-[0.25em] text-foreground">AUREON</span>
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70" />
+          {!collapsed && (
+            <div onMouseDown={handleMouseDown} className="hidden lg:block absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize z-50 group">
+              <div className="absolute inset-y-0 right-0 w-0.5 bg-border/0 group-hover:bg-foreground/20 transition-colors rounded-full" />
             </div>
-            <div className="flex items-center gap-1">
-              <NotificationInbox onNavigate={(v) => { onViewChange(v as DashboardView); onToggleSidebar(); }} />
+          )}
+
+          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20 gap-2">
+            {!collapsed && (
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-extralight tracking-[0.25em] text-foreground truncate">AUREON</span>
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70 shrink-0" />
+              </div>
+            )}
+            <div className={`flex items-center gap-1 ${collapsed ? "mx-auto flex-col" : ""}`}>
+              <button
+                onClick={toggleCollapsed}
+                className="hidden lg:inline-flex rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              </button>
+              {!collapsed && (
+                <NotificationInbox onNavigate={(v) => { onViewChange(v as DashboardView); onToggleSidebar(); }} />
+              )}
               <button onClick={onNewConversation} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground" title="New conversation">
                 <Plus className="h-4 w-4" />
               </button>
