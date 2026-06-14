@@ -374,8 +374,10 @@ Deno.serve(async (req) => {
     }
 
     const profile = provider_profile || await detectProviderProfile(_resolved, LOVABLE_API_KEY, GEMINI_KEY);
+    const split = splitIntoFileSections(codeToAnalyze, profile.chunk_size);
     const totalLen = codeToAnalyze.length;
-    const chunkCount = Math.max(1, Math.ceil(totalLen / profile.chunk_size));
+    const chunkCount = Math.max(1, split.sections.length);
+    console.log(`[ZERLAL] File-aware split: ${chunkCount} segments (chunk_size=${profile.chunk_size}, preamble=${split.preamble.length}b, totalLen=${totalLen}b)`);
 
     if (mode === "plan") {
       const { data: scan, error: scanErr } = await supabase
