@@ -34,7 +34,7 @@ const PRODUCTS: Product[] = [
   {
     name: "Aureon Chat",
     tagline: "Conversational intelligence",
-    description: "Multi-model consensus chat with reasoning visualization, vision, voice, and zero censorship. Replaces three subscriptions with one.",
+    description: "Multi-model consensus chat with reasoning visualization, vision, voice, and zero censorship. Replaces three paid tools with one free stack.",
     icon: MessageSquare,
     competitors: ["ChatGPT Plus", "Claude Pro", "Gemini Advanced"],
     route: "/dashboard/chat",
