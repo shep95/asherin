@@ -30,6 +30,14 @@ export const BLOG_POSTS: Post[] = [
     readTime: "9 min",
     featured: true,
   },
+  {
+    slug: "/blog/venice-integration",
+    title: "Venice AI integration in Aureon — unfiltered intelligence, zero setup",
+    dek: "How Aureon ships Venice's uncensored stack to every operator by default — no key, no account, no monthly subscription.",
+    tag: "Integration",
+    published: "2026-06-14",
+    readTime: "6 min",
+  },
 ];
 
 const fmt = (iso: string) =>
