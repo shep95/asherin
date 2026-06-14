@@ -250,15 +250,15 @@ const BlogComparison = () => {
           <section className="space-y-3">
             <h2 className="text-2xl font-light tracking-tight">Pricing, plainly</h2>
             <p className="text-sm font-extralight leading-relaxed text-foreground/85">
-              Aureon ships four tiers: Chat at $47/month, Aureon at $199/month, Pro
-              at $740/month, and a $470 one-time Lifetime licence. ChatGPT Plus is
-              $20/month and Claude Pro is $20/month. The honest read: Aureon is more
-              expensive per month, but it bundles capabilities that ChatGPT and
+              Aureon does not bill monthly. During the Donation Era every feature
+              is free for every user. Optional one-time support tiers are $47
+              (entry), $199 (full suite), $740 (pro), and $470 (lifetime). ChatGPT
+              Plus is $20/month recurring and Claude Pro is $20/month recurring.
+              The honest read: Aureon bundles capabilities that ChatGPT and
               Claude either do not ship or gate behind enterprise contracts —
               multi-model consensus, OSINT search, the predictive engine, the IDE,
-              FEA simulation, and the encrypted vault. If you currently pay for
-              ChatGPT Plus plus a research tool plus a writing tool plus a code
-              assistant, Aureon's entry tier usually comes out cheaper.
+              FEA simulation, and the encrypted vault — while never locking you
+              into a subscription.
             </p>
           </section>
 
