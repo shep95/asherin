@@ -21,6 +21,7 @@ const Benchmark = lazy(() => import("./pages/Benchmark"));
 const Software = lazy(() => import("./pages/Software"));
 const WhiteboardPage = lazy(() => import("./pages/WhiteboardPage"));
 const BlogComparison = lazy(() => import("./pages/BlogComparison"));
+const Blog = lazy(() => import("./pages/Blog"));
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
