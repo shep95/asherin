@@ -183,14 +183,15 @@ const BlogComparison = () => {
           <aside className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-3">
             <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">◉ TL;DR</p>
             <p className="text-sm font-extralight leading-relaxed text-foreground/90">
-              ChatGPT and Claude are excellent general-purpose chat products. Aureon
-              is a different category: an operator stack that bundles uncensored
-              chat, multi-model consensus, 30-source OSINT, predictive intelligence,
-              a Monaco IDE, FEA simulation, an encrypted vault, and an infinite
-              whiteboard — for a single subscription. If you only need conversation,
-              ChatGPT Plus at $20/month is the cheaper pick. If you need to forecast,
-              investigate, build, simulate, and ship — Aureon replaces three to five
-              tools at $47/month.
+              ChatGPT and Claude are excellent general-purpose chat products with
+              mandatory monthly subscriptions. Aureon is a different category: an
+              operator stack that bundles uncensored chat, multi-model consensus,
+              30-source OSINT, predictive intelligence, a Monaco IDE, FEA
+              simulation, an encrypted vault, and an infinite whiteboard — with
+              <strong> no mandatory monthly fee</strong>. If you only need
+              conversation, ChatGPT Plus at $20/month is a simpler pick. If you
+              need to forecast, investigate, build, simulate, and ship — Aureon
+              replaces three to five tools with zero recurring billing.
             </p>
           </aside>
 
