@@ -203,6 +203,7 @@ export const useRunScan = () => {
     fileName: string,
     scanProfile?: string,
     githubUrl?: string,
+    includeWorkflowFunctionFlaws = false,
   ) => {
     setScanning(true);
     setProgress({ phase: "planning", section: 0, totalSections: 1, percent: 2, message: "Initializing scan…" });
@@ -210,6 +211,7 @@ export const useRunScan = () => {
       const baseBody = {
         project_id: projectId,
         scan_profile: scanProfile || "security-audit",
+        include_workflow_function_flaws: includeWorkflowFunctionFlaws,
         code_content: codeContent,
         file_name: fileName,
         github_url: githubUrl || undefined,
@@ -281,10 +283,10 @@ export const useRunScan = () => {
 
       setProgress({
         phase: "complete", section: totalSections, totalSections, percent: 100,
-        message: `Scan complete · ${final.findings_count} vulnerabilities`,
+        message: `Scan complete · ${final.findings_count} findings`,
         providerLabel, findingsSoFar: final.findings_count,
       });
-      toast.success(`Scan complete: ${final.findings_count} vulnerabilities found`);
+      toast.success(`Scan complete: ${final.findings_count} findings found`);
       return final;
     } catch (e) {
       console.error("Scan failed:", e);
