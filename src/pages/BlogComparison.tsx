@@ -44,11 +44,11 @@ const MATRIX: Row[] = [
 const FAQ = [
   {
     q: "Is Aureon really uncensored?",
-    a: "Aureon refuses no lawful request. For users without their own API key, requests are routed through Venice (an uncensored Mistral-based model). Users who bring their own key keep their full provider behaviour.",
+    a: "Aureon refuses no lawful request. For users without their own API key, requests are routed through Venice (an uncensored Mistral-based model). Users who bring their own key keep their provider's native behaviour; Aureon itself adds no refusal layer.",
   },
   {
     q: "How does Aureon compare to ChatGPT Plus on price?",
-    a: "Aureon Chat is $47/month vs ChatGPT Plus at $20/month. The price gap reflects what Aureon includes for free that ChatGPT charges enterprise tiers for: multi-model consensus, predictive engines, OSINT search, IDE, FEA simulation, and an encrypted vault.",
+    a: "Aureon has no mandatory monthly subscription. ChatGPT Plus is $20/month recurring and Claude Pro is $20/month recurring. Aureon offers a one-time entry tier at $47 and a $470 lifetime option with zero recurring billing. Every core feature is also available free during the Donation Era.",
   },
   {
     q: "Can I keep using Claude or GPT inside Aureon?",
@@ -61,6 +61,10 @@ const FAQ = [
   {
     q: "What is the multi-model consensus engine?",
     a: "A five-phase cross-validation pipeline that runs the same prompt across several frontier models, scores agreement, and returns answers only when confidence clears a 45% threshold. It catches the hallucinations a single model misses.",
+  },
+  {
+    q: "Is Aureon actually free?",
+    a: "During the Donation Era, every feature is unlocked for every user at no charge. Optional one-time support tiers exist for those who want to back the project. There is no paywall, no trial countdown, and no monthly billing.",
   },
 ];
 
