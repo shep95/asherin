@@ -810,7 +810,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                       </div>
                       <div className="relative w-full h-[300px]" style={{ background: "hsl(var(--card))", colorScheme: "dark" }}>
                         <iframe src={selected.url} title={`Preview · ${selected.label}`} loading="lazy" referrerPolicy="no-referrer"
-                          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                          sandbox="allow-scripts allow-popups allow-forms"
                           className="absolute inset-0 w-full h-full border-0"
                           style={{ colorScheme: "dark", background: "hsl(var(--card))" }} />
                       </div>
