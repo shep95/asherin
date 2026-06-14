@@ -26,7 +26,7 @@ interface Row {
   tiers: Record<string, true | false | string>;
 }
 
-// Lifetime = everything in the Aureon ($199/mo) tier and below, forever, for a single one-time payment.
+// Lifetime = everything in the Aureon ($199 one-time) tier and below, forever, for a single one-time payment.
 // Pro-only features stay Pro-only (predictive, trading, automated agents, ZERLAL, Azplen, Google Intelligence).
 const ROWS: Row[] = [
   { group: "Core", label: "Uncensored chat", tiers: { chat: true, aureon: true, pro: true, lifetime: true } },
