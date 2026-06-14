@@ -63,6 +63,42 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
   const { runScan, scanning, progress } = useRunScan();
   const { startScan: startLiveScan, adoptQueuedScan, failScan } = useActiveScan();
 
+  const extractZipForScan = useCallback(async (archiveFile: File) => {
+    const zip = await JSZip.loadAsync(archiveFile);
+    const entries = Object.values(zip.files)
+      .filter((entry) => {
+        const path = entry.name || "";
+        if (entry.dir || !path) return false;
+        if (skipArchivePath.test(`/${path}`)) return false;
+        return acceptedCodeFile.test(path) || /(^|\/)dockerfile$/i.test(path);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, ZIP_FILE_LIMIT);
+
+    let assembled = "";
+    let extracted = 0;
+    let skipped = Math.max(0, Object.keys(zip.files).length - entries.length);
+
+    for (const entry of entries) {
+      if (assembled.length >= ZIP_TEXT_LIMIT) {
+        skipped++;
+        continue;
+      }
+      const text = await entry.async("text");
+      if (!text || text.length > ZIP_ENTRY_LIMIT) {
+        skipped++;
+        continue;
+      }
+      assembled += `\n--- FILE: ${entry.name} ---\n${text}\n`;
+      extracted++;
+    }
+
+    return {
+      text: `ZIP SOURCE: ${archiveFile.name}\nFILES_EXTRACTED_FOR_SECURITY_AUDIT: ${extracted}\nFILES_SKIPPED_OR_DEPRIORITIZED: ${skipped}\nTOTAL_ENTRIES: ${Object.keys(zip.files).length}\n${assembled}`,
+      extracted,
+    };
+  }, []);
+
   const handleFileSelect = useCallback(async (selectedFiles: FileList) => {
     const fileArray = Array.from(selectedFiles);
     setFiles(fileArray);
@@ -70,12 +106,19 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
     // Archives: skip browser extraction entirely. Upload raw to cloud and let
     // the edge function extract server-side — survives WiFi drops mid-scan.
-    const isArchive = (n: string) => /\.(zip|tar|tar\.gz|tgz)$/i.test(n);
-    const hasArchive = fileArray.some(f => isArchive(f.name));
+    const hasZipArchive = fileArray.some(f => isZipArchive(f.name));
+    const hasOtherArchive = fileArray.some(f => isOtherArchive(f.name));
 
     try {
-      if (hasArchive) {
-        setCodeContent(""); // signals raw-upload path in handleQueueBackground
+      if (hasOtherArchive) {
+        setCodeContent("");
+        setScanError("TAR uploads are not supported yet — upload a ZIP instead.");
+      } else if (hasZipArchive) {
+        const zipFile = fileArray.find(f => isZipArchive(f.name));
+        if (!zipFile) throw new Error("ZIP file missing");
+        const extracted = await extractZipForScan(zipFile);
+        setCodeContent(extracted.text);
+        toast.success(`ZIP unpacked locally — ${extracted.extracted} files ready for scan`);
       } else {
         let allContent = "";
         for (const file of fileArray) {
@@ -87,13 +130,13 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       if (!projectName && fileArray.length > 0) {
         setProjectName(fileArray[0].name.replace(/\.(zip|tar|gz|tgz)$/i, ""));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("File processing error:", e);
-      setScanError("Failed to read files");
+      setScanError(e?.message || "Failed to read files");
     } finally {
       setIsProcessing(false);
     }
-  }, [projectName]);
+  }, [extractZipForScan, projectName]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
