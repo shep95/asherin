@@ -458,7 +458,7 @@ const PdfGeneratorView = () => {
                   <div
                     className="absolute z-10 overflow-hidden"
                     style={{ top: PAGE_PAD_Y, left: PAGE_PAD_X, width: PAGE_INNER_W, height: PAGE_INNER_H, wordWrap: "break-word", overflowWrap: "break-word" }}
-                    dangerouslySetInnerHTML={{ __html: pageHtml }}
+                    dangerouslySetInnerHTML={{ __html: sanitizePdfHtml(pageHtml) }}
                   />
                   <div className="absolute z-10 left-0 right-0 text-center" style={{ bottom: "3.2%", fontFamily: FONT_BODY, fontSize: 9, color: "#a89968", letterSpacing: "0.2em" }}>
                     — {idx + 1} —
