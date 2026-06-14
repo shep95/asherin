@@ -209,7 +209,7 @@ const SettingsView = () => {
   const uploadCustomWallpaper = async (file: File) => {
     if (!user) return;
     if (!hasWallpaperAddon) {
-      toast({ title: "Add-on required", description: "Subscribe to the Custom Wallpapers add-on ($3.99/mo) to upload your own wallpapers.", variant: "destructive" });
+      toast({ title: "Add-on required", description: "Unlock the Custom Wallpapers add-on ($3.99 one-time) to upload your own wallpapers.", variant: "destructive" });
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
