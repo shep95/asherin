@@ -142,6 +142,26 @@ function extractAttributeList(html: string, tag: string, attr: string) {
   return uniq(values);
 }
 
+/**
+ * Parse every <meta http-equiv="X" content="Y"> from the rendered HTML
+ * and return a lowercase-keyed bag. Used so the scanner can tell the
+ * difference between "policy completely absent" and "policy shipped via
+ * meta tag" (which browsers honor partially, or not at all, depending
+ * on the directive — see callers for the exact carve-outs).
+ */
+function extractMetaHttpEquiv(html: string): Record<string, string> {
+  const bag: Record<string, string> = {};
+  const regex = /<meta\b[^>]*http-equiv=["']([^"']+)["'][^>]*content=["']([^"']*)["'][^>]*>/gi;
+  const altRegex = /<meta\b[^>]*content=["']([^"']*)["'][^>]*http-equiv=["']([^"']+)["'][^>]*>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(html))) bag[m[1].toLowerCase()] = m[2];
+  while ((m = altRegex.exec(html))) {
+    const key = m[2].toLowerCase();
+    if (!bag[key]) bag[key] = m[1];
+  }
+  return bag;
+}
+
 function computeRiskGrade(counts: Record<string, number>) {
   if ((counts.critical || 0) > 0 || (counts.high || 0) >= 2) return "F";
   if ((counts.high || 0) > 0 || (counts.medium || 0) >= 3) return "D";
