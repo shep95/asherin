@@ -35,7 +35,7 @@ const PUBLIC_VIEWS: DashboardView[] = [
 export function useAccess() {
   const { tierKey, isPastDue } = useSubscription();
   const { user } = useAuth();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isAdminEmail(user?.email);
 
   // Donation Era: Aureon is fully free — every authenticated user gets every view.
   const canAccess = (_view: DashboardView): boolean => true;
