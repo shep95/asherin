@@ -58,6 +58,10 @@ Deno.serve(async (req) => {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
+                  // SECURITY: use dedicated cron header — NEVER smuggle the
+                  // service-role key through Authorization. generate-briefing
+                  // validates this header with a constant-time compare.
+                  "x-cron-secret": Deno.env.get("CRON_SECRET") ?? "",
                   Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
                 },
                 body: JSON.stringify({ userId: profile.user_id }),

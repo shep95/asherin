@@ -278,10 +278,27 @@ serve(async (req) => {
     try { bodyData = await req.clone().json(); } catch {}
 
     const authHeader = req.headers.get("Authorization");
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    
-    if (bodyData?.userId && authHeader?.includes(serviceKey)) {
-      userId = bodyData.userId;
+    const cronSecret = Deno.env.get("CRON_SECRET") || "";
+    const xCronSecret = req.headers.get("x-cron-secret") || "";
+
+    // Constant-time compare to protect the cron secret.
+    const tsEq = (a: string, b: string) => {
+      if (a.length !== b.length) return false;
+      let d = 0;
+      for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+      return d === 0;
+    };
+    const isCron = cronSecret.length > 0 && tsEq(xCronSecret, cronSecret);
+
+    if (isCron) {
+      // Cron path: userId must correspond to a real briefing profile —
+      // never trust the request body blindly.
+      const agentUserId = bodyData?.userId;
+      if (!agentUserId || typeof agentUserId !== "string") throw new Error("Missing userId for cron");
+      const { data: profile } = await supabaseClient
+        .from("briefing_profiles").select("user_id").eq("user_id", agentUserId).maybeSingle();
+      if (!profile) throw new Error("No briefing profile for cron userId");
+      userId = agentUserId;
       log("Cron-triggered generation", { userId });
     } else if (authHeader) {
       const token = authHeader.replace("Bearer ", "");

@@ -1,4 +1,4 @@
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { ADMIN_EMAIL, isAdminEmail } from "@/lib/adminEmail";
 import { useSubscription, hasChatAccess, hasSearchAccess, hasProAccess, hasEnterpriseOnlyAccess, hasAureonAccess } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { DashboardView } from "@/components/dashboard/types";
@@ -35,7 +35,7 @@ const PUBLIC_VIEWS: DashboardView[] = [
 export function useAccess() {
   const { tierKey, isPastDue } = useSubscription();
   const { user } = useAuth();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isAdminEmail(user?.email);
 
   // Donation Era: Aureon is fully free — every authenticated user gets every view.
   const canAccess = (_view: DashboardView): boolean => true;

@@ -23,26 +23,22 @@ const MAX_FAILURES = 3;
 const FAILURE_WINDOW_MS = 5 * 60 * 1000;   // 5 minutes
 const LOCKOUT_MS = 30 * 60 * 1000;         // 30 minutes
 
-// Legacy fallback — used ONLY when the secret is not configured. The user
-// should set `ASHER_ACCESS_CODES_JSON` in Supabase secrets to rotate.
-const FALLBACK_CODES: Record<string, string> = {
-  "Asher092625": "ashernewtonx@gmail.com",
-  "Elias011023": "ekk447@gmail.com",
-};
-
 function loadAccessCodes(): Record<string, string> {
   const raw = Deno.env.get("ASHER_ACCESS_CODES_JSON");
   if (!raw) {
-    console.warn("[verify-asher-passcode] ASHER_ACCESS_CODES_JSON secret is not set — using fallback codes. Set the secret to rotate.");
-    return FALLBACK_CODES;
+    // SECURITY: no hardcoded fallback. Misconfiguration must be loud, not
+    // silent. If the secret is missing the gate denies everyone — operator
+    // sets ASHER_ACCESS_CODES_JSON to enable it.
+    console.error("[verify-asher-passcode] ASHER_ACCESS_CODES_JSON is not set — gate is denying all attempts.");
+    return {};
   }
   try {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === "object") return parsed as Record<string, string>;
   } catch (e) {
-    console.error("[verify-asher-passcode] Invalid ASHER_ACCESS_CODES_JSON — falling back:", (e as Error).message);
+    console.error("[verify-asher-passcode] Invalid ASHER_ACCESS_CODES_JSON:", (e as Error).message);
   }
-  return FALLBACK_CODES;
+  return {};
 }
 
 async function fingerprintRequest(req: Request): Promise<string> {

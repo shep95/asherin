@@ -25,16 +25,19 @@ const AureonDomainGate = ({ children }: { children: ReactNode }) => {
 
   const isRestricted = RESTRICTED_HOSTS.has(host);
   if (!isRestricted) return <>{children}</>;
-  if (loading) return <>{children}</>;
+  // SECURITY: render nothing while auth resolves so child components do not
+  // fire data requests with whatever JWT happens to be in storage.
+  if (loading) return null;
 
   const email = (user?.email || "").toLowerCase();
   const allowed = ALLOWED_EMAILS.has(email);
   if (allowed) return <>{children}</>;
 
-  // Block everyone else on this domain
+  // Block everyone else on this domain. Redirect to a stable internal path
+  // (NOT an external Lovable preview URL — that project could be reclaimed).
   const handleSignOut = async () => {
     try { await supabase.auth.signOut(); } catch { /* ignore */ }
-    window.location.href = "https://ziali-magic-pixels.lovable.app";
+    window.location.href = "/";
   };
 
   return (

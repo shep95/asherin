@@ -100,11 +100,18 @@ const renderSectionToHtml = (s: { type: string; content: string }): string => {
   }
 };
 
+const escHtml = (s: string) => s
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;");
+
 const buildTitleBlockHtml = (title: string, author: string) => {
   if (!title && !author) return "";
   return `<div style="text-align:center;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid rgba(216,200,154,0.25);">
-    ${title ? `<div style="font-family:${FONT_HEAD};font-size:22px;font-weight:700;color:#f5f1e8;letter-spacing:0.02em;">${title}</div>` : ""}
-    ${author ? `<div style="font-family:${FONT_HEAD};font-style:italic;font-size:11px;color:#d8c89a;margin-top:6px;letter-spacing:0.15em;text-transform:uppercase;">${author}</div>` : ""}
+    ${title ? `<div style="font-family:${FONT_HEAD};font-size:22px;font-weight:700;color:#f5f1e8;letter-spacing:0.02em;">${escHtml(title)}</div>` : ""}
+    ${author ? `<div style="font-family:${FONT_HEAD};font-style:italic;font-size:11px;color:#d8c89a;margin-top:6px;letter-spacing:0.15em;text-transform:uppercase;">${escHtml(author)}</div>` : ""}
   </div>`;
 };
 
@@ -451,7 +458,7 @@ const PdfGeneratorView = () => {
                   <div
                     className="absolute z-10 overflow-hidden"
                     style={{ top: PAGE_PAD_Y, left: PAGE_PAD_X, width: PAGE_INNER_W, height: PAGE_INNER_H, wordWrap: "break-word", overflowWrap: "break-word" }}
-                    dangerouslySetInnerHTML={{ __html: pageHtml }}
+                    dangerouslySetInnerHTML={{ __html: sanitizePdfHtml(pageHtml) }}
                   />
                   <div className="absolute z-10 left-0 right-0 text-center" style={{ bottom: "3.2%", fontFamily: FONT_BODY, fontSize: 9, color: "#a89968", letterSpacing: "0.2em" }}>
                     — {idx + 1} —
