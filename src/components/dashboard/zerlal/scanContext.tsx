@@ -54,6 +54,14 @@ interface ScanContextValue {
     fileCount: number;
     githubUrl?: string;
   }) => void;
+  adoptQueuedScan: (args: {
+    projectId: string;
+    projectName: string;
+    fileName: string;
+    scanProfile: string;
+    sourceType: string;
+    fileCount: number;
+  }) => void;
   cancelScan: () => void;
   clear: () => void;
 }
@@ -286,6 +294,32 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const adoptQueuedScan: ScanContextValue["adoptQueuedScan"] = useCallback(args => {
+    canceledRef.current = false;
+    abortRef.current = null;
+    setActive({
+      projectId: args.projectId,
+      projectName: args.projectName,
+      startedAt: Date.now(),
+      input: {
+        fileName: args.fileName,
+        fileCount: args.fileCount,
+        totalBytes: 0,
+        scanProfile: args.scanProfile,
+        sourceType: args.sourceType,
+      },
+      progress: {
+        phase: "planning",
+        section: 0,
+        totalSections: 1,
+        percent: 2,
+        message: "Queued in cloud — preparing secure archive analysis…",
+      },
+      liveFindings: [],
+      status: "running",
+    });
+  }, []);
+
   const cancelScan = useCallback(() => {
     if (!activeRef.current || activeRef.current.status !== "running") return;
     canceledRef.current = true;
@@ -412,7 +446,7 @@ export const ScanProvider = ({ children }: { children: ReactNode }) => {
 
 
   return (
-    <ScanContext.Provider value={{ active, startScan, cancelScan, clear }}>
+      <ScanContext.Provider value={{ active, startScan, adoptQueuedScan, cancelScan, clear }}>
       {children}
     </ScanContext.Provider>
   );
