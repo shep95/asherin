@@ -262,6 +262,11 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
       setScanError("Failed to queue background scan: " + msg + (safeCode ? ` (payload ~${Math.round(safeCode.length/1024)}KB)` : ""));
       return;
     }
+
+    void supabase.functions.invoke("zerlal-bg-worker", { body: {} }).catch((err) => {
+      console.warn("[ScanModal] zerlal-bg-worker kick failed", err);
+    });
+
     adoptQueuedScan({
       projectId: project.id,
       projectName,
