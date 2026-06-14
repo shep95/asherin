@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import {
   Upload, Image as ImageIcon, Video, Sparkles, Send, Copy, Check, Undo2,
   RotateCcw, AlertTriangle, Loader2, Wand2, Link as LinkIcon, FileCode2,
