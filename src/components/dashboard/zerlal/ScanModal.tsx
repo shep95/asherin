@@ -95,54 +95,66 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
   const handleStartScan = async () => {
     setScanError(null);
+    try {
+      console.log("[ScanModal] handleStartScan", { projectName, selectedSource, fileCount: files.length, codeLen: codeContent.length, pastedLen: pastedCode.length });
 
-    if (!projectName.trim()) {
-      setScanError("Project name is required");
-      return;
-    }
+      if (!projectName.trim()) {
+        setScanError("Project name is required");
+        return;
+      }
 
-    // Archive uploads ALWAYS go through the cloud-resilient background queue —
-    // never extract a zip in the browser (WiFi drops would kill it).
-    const archiveFile = files.find(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name));
-    if (archiveFile) {
-      return handleQueueBackground();
-    }
+      const archiveFile = files.find(f => /\.(zip|tar|tar\.gz|tgz)$/i.test(f.name));
+      if (archiveFile) {
+        return handleQueueBackground();
+      }
 
-    const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
+      const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
 
-    if (!finalCode && !url && selectedSource !== "github" && selectedSource !== "docker") {
-      setScanError("Please upload files, paste code, or provide a repository URL");
-      return;
-    }
+      if (!finalCode && !url && selectedSource !== "github" && selectedSource !== "docker") {
+        setScanError("Please upload files, paste code, or provide a repository URL");
+        return;
+      }
 
-    const sourceType = selectedSource || "upload";
-    const project = await createProject(projectName, sourceType, url || undefined);
-    if (!project) return;
+      const sourceType = selectedSource || "upload";
+      const project = await createProject(projectName, sourceType, url || undefined);
+      if (!project) { setScanError("Failed to create project — check console"); return; }
 
-    const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
+      const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
 
-    if (onScanStarted) {
-      startLiveScan({
-        projectId: project.id,
-        projectName,
-        codeContent: finalCode,
-        fileName: files[0]?.name || projectName,
-        scanProfile: selectedProfile,
-        sourceType,
-        fileCount: files.length || (finalCode ? 1 : 0),
-        githubUrl,
-      });
-      onScanComplete();
-      onScanStarted(project.id);
-      resetState();
-      return;
-    }
+      if (onScanStarted) {
+        console.log("[ScanModal] starting live scan", { projectId: project.id });
+        try {
+          startLiveScan({
+            projectId: project.id,
+            projectName,
+            codeContent: finalCode,
+            fileName: files[0]?.name || projectName,
+            scanProfile: selectedProfile,
+            sourceType,
+            fileCount: files.length || (finalCode ? 1 : 0),
+            githubUrl,
+          });
+        } catch (innerErr: any) {
+          console.error("[ScanModal] startLiveScan threw", innerErr);
+          setScanError("Live scan init failed: " + (innerErr?.message || String(innerErr)));
+          return;
+        }
+        onScanComplete();
+        onScanStarted(project.id);
+        resetState();
+        return;
+      }
 
-    const result = await runScan(project.id, finalCode, files[0]?.name || projectName, selectedProfile, githubUrl);
-    if (result) {
-      onScanComplete();
-      onClose();
-      resetState();
+      const result = await runScan(project.id, finalCode, files[0]?.name || projectName, selectedProfile, githubUrl);
+      if (result) {
+        onScanComplete();
+        onClose();
+        resetState();
+      }
+    } catch (e: any) {
+      console.error("[ScanModal] handleStartScan failed", e);
+      setScanError(e?.message || String(e) || "Unknown error starting scan");
+      toast.error("Scan failed to start: " + (e?.message || String(e)));
     }
   };
 
