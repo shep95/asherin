@@ -199,6 +199,46 @@ const ProductCard = ({ p }: { p: Product }) => {
 
 const Software = () => {
   // Head is centrally managed in <RouteSeo /> (entry for /software).
+  // Inject page-specific CollectionPage + ItemList JSON-LD for richer SERP.
+  useEffect(() => {
+    const id = "software-collection-jsonld";
+    let el = document.getElementById(id) as HTMLScriptElement | null;
+    if (!el) {
+      el = document.createElement("script");
+      el.id = id;
+      el.type = "application/ld+json";
+      document.head.appendChild(el);
+    }
+    el.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      name: "Aureon Software Catalog",
+      description:
+        "Every Aureon tool, free to use: OSINT search, predictive engines, IDE, whiteboard, e-book generator, file scrapper, and more.",
+      url: "https://aureonai.app/software",
+      mainEntity: {
+        "@type": "ItemList",
+        numberOfItems: PRODUCTS.length,
+        itemListElement: PRODUCTS.map((p, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          item: {
+            "@type": "SoftwareApplication",
+            name: p.name,
+            description: p.description,
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "Web",
+            offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+          },
+        })),
+      },
+    });
+    return () => {
+      document.getElementById(id)?.remove();
+    };
+  }, []);
+
+
 
 
   return (
