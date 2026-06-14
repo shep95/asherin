@@ -81,6 +81,11 @@ const SEO: Record<string, SeoEntry> = {
     description:
       "Every model Aureon supports via BYOK: Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and more.",
   },
+  "/blog": {
+    title: "Aureon Blog — Field Reports from the Operator Stack",
+    description:
+      "Long-form comparisons, benchmarks, and intelligence write-ups from the Aureon team. No fluff, no affiliate links.",
+  },
   "/blog/comparison": {
     title: "Aureon vs ChatGPT vs Claude — Honest 2026 Comparison",
     description:
