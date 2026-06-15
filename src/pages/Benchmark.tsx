@@ -457,7 +457,7 @@ const Benchmark = () => {
 
           {/* Code outputs */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <CodeBlock title="Aureon" lang="Java"   code={AUREON_CODE} accent="#d4af37" />
+            <CodeBlock title="Aureon" lang="Java"   code={AUREON_CODE} accent="#d4af37" subtitle="Aureon workflow · running on GPT-5.2 base model" />
             <CodeBlock title="Opus 4.8" lang="Python" code={OPUS_CODE} accent="#facc15" />
             <CodeBlock title="GPT-5.5"  lang="Python" code={GPT_CODE}  accent="#ffffff" />
           </div>
