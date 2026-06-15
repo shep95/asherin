@@ -440,9 +440,9 @@ const Benchmark = () => {
                   <YAxis tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} domain={[0, 6]} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Java)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="opus"   name="Opus 4.8 (Python)" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="gpt"    name="GPT-5.5 (Python)" fill="#f97316" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)" fill="#d4af37" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="opus"   name="Opus 4.8 (Python)" fill="#facc15" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="gpt"    name="GPT-5.5 (Python)" fill="#ffffff" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -450,9 +450,9 @@ const Benchmark = () => {
 
           {/* Code outputs */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <CodeBlock title="Aureon" lang="Java"   code={AUREON_CODE} accent="#3b82f6" />
-            <CodeBlock title="Opus 4.8" lang="Python" code={OPUS_CODE} accent="#10b981" />
-            <CodeBlock title="GPT-5.5"  lang="Python" code={GPT_CODE}  accent="#f97316" />
+            <CodeBlock title="Aureon" lang="Java"   code={AUREON_CODE} accent="#d4af37" />
+            <CodeBlock title="Opus 4.8" lang="Python" code={OPUS_CODE} accent="#facc15" />
+            <CodeBlock title="GPT-5.5"  lang="Python" code={GPT_CODE}  accent="#ffffff" />
           </div>
 
           {/* Expanded rubric */}
@@ -474,9 +474,9 @@ const Benchmark = () => {
                   <YAxis type="category" dataKey="metric" width={170} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Java)" fill="#3b82f6" radius={[0, 3, 3, 0]} />
-                  <Bar dataKey="opus"   name="Opus 4.8 (Python)" fill="#10b981" radius={[0, 3, 3, 0]} />
-                  <Bar dataKey="gpt"    name="GPT-5.5 (Python)" fill="#f97316" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)" fill="#d4af37" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="opus"   name="Opus 4.8 (Python)" fill="#facc15" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="gpt"    name="GPT-5.5 (Python)" fill="#ffffff" radius={[0, 3, 3, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -514,9 +514,9 @@ const Benchmark = () => {
                   <YAxis domain={[0, 6]} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#3b82f6" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#10b981" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#f97316" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#d4af37" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#facc15" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#ffffff" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -539,9 +539,9 @@ const Benchmark = () => {
                   <YAxis domain={[0, 2]} allowDecimals={false} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#3b82f6" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#10b981" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#f97316" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#d4af37" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#facc15" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#ffffff" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -643,8 +643,8 @@ const Benchmark = () => {
                   <YAxis type="category" dataKey="metric" width={170} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"  fill="#10b981" radius={[0, 3, 3, 0]} />
-                  <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#8b5cf6" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"  fill="#d4af37" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#facc15" radius={[0, 3, 3, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -679,16 +679,16 @@ const Benchmark = () => {
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"   fill="#10b981" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#8b5cf6" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"   fill="#d4af37" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#facc15" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#10b981" />
-            <CodeBlock title="Opus 4.8" lang="React / JS" code={IMAGINE_OPUS_CODE} accent="#8b5cf6" />
+            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#d4af37" />
+            <CodeBlock title="Opus 4.8" lang="React / JS" code={IMAGINE_OPUS_CODE} accent="#facc15" />
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-3">
