@@ -326,17 +326,24 @@ const Podium = ({ rank, name, lang, score, total, highlight }: {
   </div>
 );
 
-const CodeBlock = ({ title, lang, code, accent }: {
-  title: string; lang: string; code: string; accent: string;
+const CodeBlock = ({ title, lang, code, accent, subtitle }: {
+  title: string; lang: string; code: string; accent: string; subtitle?: string;
 }) => (
   <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm overflow-hidden flex flex-col">
-    <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/40">
-      <div className="flex items-center gap-2">
-        <div className="h-2 w-2 rounded-full" style={{ background: accent }} />
-        <span className="text-sm font-light text-foreground">{title}</span>
+    <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/40 gap-3">
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="h-2 w-2 rounded-full shrink-0" style={{ background: accent }} />
+        <span className="text-sm font-light text-foreground truncate">{title}</span>
       </div>
-      <span className="text-[10px] font-extralight tracking-wider text-muted-foreground uppercase">{lang}</span>
+      <span className="text-[10px] font-extralight tracking-wider text-muted-foreground uppercase shrink-0">{lang}</span>
     </div>
+    {subtitle && (
+      <div className="px-4 py-2 border-b border-border/30 bg-background/20">
+        <span className="text-[10px] font-light tracking-[0.18em] uppercase" style={{ color: accent }}>
+          {subtitle}
+        </span>
+      </div>
+    )}
     <pre className="text-[11px] leading-relaxed font-mono text-foreground/85 p-4 overflow-auto max-h-[480px]">
       <code>{code}</code>
     </pre>
@@ -450,7 +457,7 @@ const Benchmark = () => {
 
           {/* Code outputs */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <CodeBlock title="Aureon" lang="Java"   code={AUREON_CODE} accent="#d4af37" />
+            <CodeBlock title="Aureon" lang="Java"   code={AUREON_CODE} accent="#d4af37" subtitle="Aureon workflow · running on GPT-5.2 base model" />
             <CodeBlock title="Opus 4.8" lang="Python" code={OPUS_CODE} accent="#facc15" />
             <CodeBlock title="GPT-5.5"  lang="Python" code={GPT_CODE}  accent="#ffffff" />
           </div>
@@ -695,9 +702,21 @@ const Benchmark = () => {
             </div>
           </div>
 
+          <div className="rounded-2xl border border-foreground/20 bg-foreground/5 backdrop-blur-sm p-5">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">
+              ◉ Same base model. Different operator.
+            </p>
+            <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
+              The Aureon output below was produced by running our <span className="text-foreground">narrative → code → bug-hunt → new-narrative → code</span> workflow
+              on top of a <span className="text-foreground">GPT-5.2</span> base model — the same family of cheap, off-the-shelf model
+              that scores in the mid-teens raw. The Opus 4.8 output is straight from Anthropic's flagship.
+              Compare what the model says when nobody grooms it vs. when Aureon does.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#d4af37" />
-            <CodeBlock title="Opus 4.8" lang="React / JS" code={IMAGINE_OPUS_CODE} accent="#facc15" />
+            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#d4af37" subtitle="Aureon workflow · running on GPT-5.2 base model" />
+            <CodeBlock title="Opus 4.8" lang="React / JS" code={IMAGINE_OPUS_CODE} accent="#facc15" subtitle="Anthropic flagship · raw output" />
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-3">
