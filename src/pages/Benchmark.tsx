@@ -702,9 +702,21 @@ const Benchmark = () => {
             </div>
           </div>
 
+          <div className="rounded-2xl border border-foreground/20 bg-foreground/5 backdrop-blur-sm p-5">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">
+              ◉ Same base model. Different operator.
+            </p>
+            <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
+              The Aureon output below was produced by running our <span className="text-foreground">narrative → code → bug-hunt → new-narrative → code</span> workflow
+              on top of a <span className="text-foreground">GPT-5.2</span> base model — the same family of cheap, off-the-shelf model
+              that scores in the mid-teens raw. The Opus 4.8 output is straight from Anthropic's flagship.
+              Compare what the model says when nobody grooms it vs. when Aureon does.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#d4af37" />
-            <CodeBlock title="Opus 4.8" lang="React / JS" code={IMAGINE_OPUS_CODE} accent="#facc15" />
+            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#d4af37" subtitle="Aureon workflow · running on GPT-5.2 base model" />
+            <CodeBlock title="Opus 4.8" lang="React / JS" code={IMAGINE_OPUS_CODE} accent="#facc15" subtitle="Anthropic flagship · raw output" />
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-3">
