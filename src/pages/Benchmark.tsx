@@ -457,7 +457,7 @@ const Benchmark = () => {
 
           {/* Code outputs */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <CodeBlock title="Aureon" lang="Java"   code={AUREON_CODE} accent="#b8860b" subtitle="Aureon workflow · running on GPT-5.2 base model" />
+            <CodeBlock title="Aureon" lang="Java"   code={AUREON_CODE} accent="#b8860b" subtitle="Aureon · refined output" />
             <CodeBlock title="Opus 4.8" lang="Python" code={OPUS_CODE} accent="#facc15" />
             <CodeBlock title="GPT-5.5"  lang="Python" code={GPT_CODE}  accent="#ffffff" />
           </div>
@@ -707,7 +707,7 @@ const Benchmark = () => {
               ◉ Same base model. Different operator.
             </p>
             <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
-              The Aureon output below was produced by running our <span className="text-foreground">narrative → code → bug-hunt → new-narrative → code</span> workflow
+              The Aureon output below was produced by our internal refinement pipeline running
               on top of a <span className="text-foreground">GPT-5.2</span> base model — the same family of cheap, off-the-shelf model
               that scores in the mid-teens raw. The Opus 4.8 output is straight from Anthropic's flagship.
               Compare what the model says when nobody grooms it vs. when Aureon does.
@@ -715,7 +715,7 @@ const Benchmark = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#b8860b" subtitle="Aureon workflow · running on GPT-5.2 base model" />
+            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#b8860b" subtitle="Aureon · refined output" />
             <CodeBlock title="Opus 4.8" lang="React / JS" code={IMAGINE_OPUS_CODE} accent="#facc15" subtitle="Anthropic flagship · raw output" />
           </div>
 
