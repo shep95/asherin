@@ -98,40 +98,58 @@ const FounderVideos = () => {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      const localEntries = LOCAL_VIDEOS.map(
-        (v) => [v.id, { title: v.title, publishedAt: v.publishedAt, local: v }] as const,
-      );
-      const ytEntries = await Promise.all(
-        VIDEO_IDS.map(async (id) => {
-          let title = "";
-          let publishedAt: string | undefined;
-          try {
-            const r = await fetch(
-              `https://www.youtube.com/oembed?url=https://youtu.be/${id}&format=json`
-            );
-            if (r.ok) {
-              const d = await r.json();
-              title = (d?.title as string) || "";
-            }
-          } catch {}
-          try {
-            const r = await fetch(
-              `https://yt.lemnoslife.com/noKey/videos?part=snippet&id=${id}`
-            );
-            if (r.ok) {
-              const d = await r.json();
-              const item = d?.items?.[0]?.snippet;
-              if (item?.publishedAt) publishedAt = item.publishedAt as string;
-              if (!title && item?.title) title = item.title as string;
-            }
-          } catch {}
-          return [id, { title, publishedAt }] as const;
-        })
-      );
-      if (cancelled) return;
-      setMeta(Object.fromEntries([...localEntries, ...ytEntries]));
-    })();
+
+    // Seed immediately so cards never get stuck on "Loading…" if oembed
+    // is slow/blocked. Each YouTube entry then enriches itself in parallel.
+    const seed: Record<string, VideoMeta> = {};
+    for (const v of LOCAL_VIDEOS) {
+      seed[v.id] = { title: v.title, publishedAt: v.publishedAt, local: v };
+    }
+    for (const id of VIDEO_IDS) {
+      seed[id] = { title: "Watch on YouTube" };
+    }
+    setMeta(seed);
+
+    const withTimeout = (url: string, ms = 6000) => {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), ms);
+      return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(t));
+    };
+
+    VIDEO_IDS.forEach(async (id) => {
+      let title = "";
+      let publishedAt: string | undefined;
+      try {
+        const r = await withTimeout(
+          `https://www.youtube.com/oembed?url=https://youtu.be/${id}&format=json`,
+        );
+        if (r.ok) {
+          const d = await r.json();
+          title = (d?.title as string) || "";
+        }
+      } catch {}
+      try {
+        const r = await withTimeout(
+          `https://yt.lemnoslife.com/noKey/videos?part=snippet&id=${id}`,
+        );
+        if (r.ok) {
+          const d = await r.json();
+          const item = d?.items?.[0]?.snippet;
+          if (item?.publishedAt) publishedAt = item.publishedAt as string;
+          if (!title && item?.title) title = item.title as string;
+        }
+      } catch {}
+
+      if (cancelled || (!title && !publishedAt)) return;
+      setMeta((prev) => ({
+        ...prev,
+        [id]: {
+          title: title || prev[id]?.title || "Watch on YouTube",
+          publishedAt: publishedAt ?? prev[id]?.publishedAt,
+        },
+      }));
+    });
+
     return () => {
       cancelled = true;
     };
