@@ -710,8 +710,6 @@ const Benchmark = () => {
             <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
               ◈ Security benchmark · ZERLAL agent
             </div>
-            <h2 className="text-3xl sm:text-4xl font-extralight tracking-tight">
-              Same project. Same time. One AI found 20× more bugs.
             <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
               ◈ Security benchmark · ZERLAL agent
             </div>
