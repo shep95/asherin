@@ -600,9 +600,118 @@ const Benchmark = () => {
           </div>
         </section>
 
+        {/* SECTION 1.5: IMAGINE — STRUCTURAL PATTERN SPOTTER */}
+        <section className="space-y-8">
+          <div className="text-center space-y-3">
+            <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
+              ◈ Imagine benchmark · structural pattern spotter
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extralight tracking-tight">
+              "Imagine" something harder than a textbook question.
+            </h2>
+            <p className="max-w-2xl mx-auto text-sm font-extralight text-muted-foreground leading-relaxed">
+              Open-ended product prompt — no spec, no test harness, just a verb. We asked both
+              models to <em>invent</em> the tool. What came back exposes how each one actually
+              thinks about a real codebase.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">
+              ◉ Prompt given to both
+            </p>
+            <p className="text-base sm:text-lg font-light text-foreground">"{IMAGINE_PROMPT}"</p>
+            <p className="text-xs font-extralight text-muted-foreground/80 mt-2">
+              No constraints. No language. No scale. Pure imagination test.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Podium rank="Winner" name="Aureon · Python AST CLI" lang="Strict-mode whole-project analyzer" score={57} total={80} highlight />
+            <Podium rank="2nd" name="Opus 4.8 · React heuristic tool" lang="Single-file in-browser linter" score={40} total={80} />
+          </div>
+
+          <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
+              ◈ 8-dimension scoring · higher is better
+            </p>
+            <div className="h-[420px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={IMAGINE_SCORES} layout="vertical" margin={{ left: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
+                  <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis type="category" dataKey="metric" width={170} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
+                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"  fill="#10b981" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#8b5cf6" radius={[0, 3, 3, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="rounded-2xl border-2 border-foreground/40 bg-foreground/5 backdrop-blur-sm p-5">
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">Fewest bugs winner</p>
+              <p className="text-2xl font-extralight text-foreground">Aureon</p>
+              <p className="text-[11px] font-light text-muted-foreground mt-1">
+                Strict AST mode, evidence anchors (≥2 files), no silent fallbacks — zero verified correctness bugs.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">Opus 4.8</p>
+              <p className="text-2xl font-extralight text-foreground">2 real bugs · 3 silent failures</p>
+              <p className="text-[11px] font-light text-muted-foreground mt-1">
+                Regex-based "tokenizer" miscounts braces in strings/comments; duplicate-block hash collides on identical short runs; no project-wide analysis.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
+              ◈ Raw bug counts · lower is better
+            </p>
+            <div className="h-[240px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={IMAGINE_BUGS} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
+                  <XAxis dataKey="metric" tick={{ fontSize: 10, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
+                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"   fill="#10b981" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#8b5cf6" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#10b981" />
+            <CodeBlock title="Opus 4.8" lang="React / JS" code={IMAGINE_OPUS_CODE} accent="#8b5cf6" />
+          </div>
+
+          <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-3">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+              ◉ Read between the lines
+            </p>
+            <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
+              Opus 4.8 built a slick in-browser linter — great for demos, useless on a real repo.
+              Aureon shipped a strict-mode AST analyzer that ingests a whole project as a ZIP,
+              refuses heuristic fallbacks when parsing fails, and demands ≥2 evidence anchors across
+              ≥2 files before claiming a pattern. One is a toy. The other is an audit tool.
+            </p>
+          </div>
+        </section>
+
         {/* SECTION 2: SECURITY BENCHMARK */}
         <section className="space-y-8">
           <div className="text-center space-y-3">
+            <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
+              ◈ Security benchmark · ZERLAL agent
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extralight tracking-tight">
+              Same project. Same time. One AI found 20× more bugs.
             <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
               ◈ Security benchmark · ZERLAL agent
             </div>
