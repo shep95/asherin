@@ -1066,7 +1066,7 @@ serve(async (req) => {
       const resolved = await resolveKey(req, null);
       if (resolved.mode === "admin" && resolved.geminiKey) {
         _parsedBody.byokProvider = "google";
-        _parsedBody.byokModel = "gemini-2.0-flash";
+        _parsedBody.byokModel = "gemini-2.0-flash-exp";
         _injectedKey = resolved.geminiKey;
       } else if (resolved.mode === "byok" && resolved.byok) {
         _parsedBody.byokProvider = resolved.byok.provider;
