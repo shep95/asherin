@@ -14,7 +14,7 @@ export interface CognitiveWorkflow {
   rationale: string;         // one-line internal note
 }
 
-const FAST_MODEL = "gemini-2.0-flash-exp";
+const FAST_MODEL = "gemini-2.0-flash";
 
 /**
  * Runs a sub-second classification on the latest user message and returns a
