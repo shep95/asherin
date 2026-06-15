@@ -447,7 +447,7 @@ const Benchmark = () => {
                   <YAxis tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} domain={[0, 6]} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Java)" fill="#d4af37" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)" fill="#b8860b" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)" fill="#facc15" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)" fill="#ffffff" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -457,7 +457,7 @@ const Benchmark = () => {
 
           {/* Code outputs */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <CodeBlock title="Aureon" lang="Java"   code={AUREON_CODE} accent="#d4af37" subtitle="Aureon workflow · running on GPT-5.2 base model" />
+            <CodeBlock title="Aureon" lang="Java"   code={AUREON_CODE} accent="#b8860b" subtitle="Aureon workflow · running on GPT-5.2 base model" />
             <CodeBlock title="Opus 4.8" lang="Python" code={OPUS_CODE} accent="#facc15" />
             <CodeBlock title="GPT-5.5"  lang="Python" code={GPT_CODE}  accent="#ffffff" />
           </div>
@@ -481,7 +481,7 @@ const Benchmark = () => {
                   <YAxis type="category" dataKey="metric" width={170} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Java)" fill="#d4af37" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)" fill="#b8860b" radius={[0, 3, 3, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)" fill="#facc15" radius={[0, 3, 3, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)" fill="#ffffff" radius={[0, 3, 3, 0]} />
                 </BarChart>
@@ -524,7 +524,7 @@ const Benchmark = () => {
                   <YAxis domain={[0, 6]} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#d4af37" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#b8860b" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#facc15" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#ffffff" radius={[3, 3, 0, 0]} />
                 </BarChart>
@@ -549,7 +549,7 @@ const Benchmark = () => {
                   <YAxis domain={[0, 2]} allowDecimals={false} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#d4af37" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#b8860b" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#facc15" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#ffffff" radius={[3, 3, 0, 0]} />
                 </BarChart>
@@ -653,7 +653,7 @@ const Benchmark = () => {
                   <YAxis type="category" dataKey="metric" width={170} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"  fill="#d4af37" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"  fill="#b8860b" radius={[0, 3, 3, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#facc15" radius={[0, 3, 3, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -695,7 +695,7 @@ const Benchmark = () => {
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"   fill="#d4af37" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"   fill="#b8860b" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#facc15" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -715,7 +715,7 @@ const Benchmark = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#d4af37" subtitle="Aureon workflow · running on GPT-5.2 base model" />
+            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#b8860b" subtitle="Aureon workflow · running on GPT-5.2 base model" />
             <CodeBlock title="Opus 4.8" lang="React / JS" code={IMAGINE_OPUS_CODE} accent="#facc15" subtitle="Anthropic flagship · raw output" />
           </div>
 
