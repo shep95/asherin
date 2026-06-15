@@ -326,17 +326,24 @@ const Podium = ({ rank, name, lang, score, total, highlight }: {
   </div>
 );
 
-const CodeBlock = ({ title, lang, code, accent }: {
-  title: string; lang: string; code: string; accent: string;
+const CodeBlock = ({ title, lang, code, accent, subtitle }: {
+  title: string; lang: string; code: string; accent: string; subtitle?: string;
 }) => (
   <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm overflow-hidden flex flex-col">
-    <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/40">
-      <div className="flex items-center gap-2">
-        <div className="h-2 w-2 rounded-full" style={{ background: accent }} />
-        <span className="text-sm font-light text-foreground">{title}</span>
+    <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/40 gap-3">
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="h-2 w-2 rounded-full shrink-0" style={{ background: accent }} />
+        <span className="text-sm font-light text-foreground truncate">{title}</span>
       </div>
-      <span className="text-[10px] font-extralight tracking-wider text-muted-foreground uppercase">{lang}</span>
+      <span className="text-[10px] font-extralight tracking-wider text-muted-foreground uppercase shrink-0">{lang}</span>
     </div>
+    {subtitle && (
+      <div className="px-4 py-2 border-b border-border/30 bg-background/20">
+        <span className="text-[10px] font-light tracking-[0.18em] uppercase" style={{ color: accent }}>
+          {subtitle}
+        </span>
+      </div>
+    )}
     <pre className="text-[11px] leading-relaxed font-mono text-foreground/85 p-4 overflow-auto max-h-[480px]">
       <code>{code}</code>
     </pre>
