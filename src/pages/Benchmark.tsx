@@ -5,8 +5,28 @@ import SiteFooter from "@/components/SiteFooter";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
+import { IMAGINE_AUREON_CODE, IMAGINE_OPUS_CODE } from "./benchmarkImagineCode";
 
 const PROMPT = "Implement a thread-safe LRU cache with O(1) get and put.";
+
+const IMAGINE_PROMPT = "Create me an algorithm for spotting structural patterns in code I upload to it.";
+
+const IMAGINE_SCORES = [
+  { metric: "Analysis correctness",  aureon: 9, opus: 4 },
+  { metric: "Structural depth",      aureon: 9, opus: 3 },
+  { metric: "Pattern variety",       aureon: 8, opus: 5 },
+  { metric: "Robustness & safety",   aureon: 8, opus: 3 },
+  { metric: "Scalability",           aureon: 7, opus: 4 },
+  { metric: "Output rigor",          aureon: 9, opus: 5 },
+  { metric: "Language coverage",     aureon: 3, opus: 7 },
+  { metric: "Accessibility & setup", aureon: 4, opus: 9 },
+];
+
+const IMAGINE_BUGS = [
+  { metric: "Real correctness bugs",     aureon: 0, opus: 2 },
+  { metric: "Silent-failure paths",      aureon: 0, opus: 3 },
+  { metric: "Missing edge-case handling", aureon: 1, opus: 4 },
+];
 
 const SCORES_SHORT = [
   { metric: "Correctness", aureon: 6, opus: 6, gpt: 4 },
