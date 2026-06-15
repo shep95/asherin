@@ -643,7 +643,7 @@ const Benchmark = () => {
                   <YAxis type="category" dataKey="metric" width={170} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"  fill="#facc15" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"  fill="#d4af37" radius={[0, 3, 3, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#facc15" radius={[0, 3, 3, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -679,7 +679,7 @@ const Benchmark = () => {
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"   fill="#facc15" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"   fill="#d4af37" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#facc15" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -687,7 +687,7 @@ const Benchmark = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#facc15" />
+            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#d4af37" />
             <CodeBlock title="Opus 4.8" lang="React / JS" code={IMAGINE_OPUS_CODE} accent="#facc15" />
           </div>
 
