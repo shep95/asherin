@@ -491,8 +491,11 @@ const Benchmark = () => {
             </div>
             <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
               <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">Fewest bugs winner</p>
-              <p className="text-2xl font-extralight text-foreground">Opus 4.8</p>
-              <p className="text-[11px] font-light text-muted-foreground mt-1">0 verified bugs · no dead code</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-5xl font-extralight text-foreground">0</p>
+                <p className="text-xs font-light text-muted-foreground">bugs</p>
+              </div>
+              <p className="text-[11px] font-light text-muted-foreground mt-1">Opus 4.8 · 0 real · 0 silent · 0 dead code</p>
             </div>
           </div>
 
@@ -653,16 +656,22 @@ const Benchmark = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="rounded-2xl border-2 border-foreground/40 bg-foreground/5 backdrop-blur-sm p-5">
               <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">Fewest bugs winner</p>
-              <p className="text-2xl font-extralight text-foreground">Aureon</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-5xl font-extralight text-foreground">1</p>
+                <p className="text-xs font-light text-muted-foreground">total bug</p>
+              </div>
               <p className="text-[11px] font-light text-muted-foreground mt-1">
-                Strict AST mode, evidence anchors (≥2 files), no silent fallbacks — zero verified correctness bugs.
+                Aureon · 0 real · 0 silent · 1 edge-case missing
               </p>
             </div>
             <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
               <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">Opus 4.8</p>
-              <p className="text-2xl font-extralight text-foreground">2 real bugs · 3 silent failures</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-5xl font-extralight text-foreground">9</p>
+                <p className="text-xs font-light text-muted-foreground">total bugs</p>
+              </div>
               <p className="text-[11px] font-light text-muted-foreground mt-1">
-                Regex-based "tokenizer" miscounts braces in strings/comments; duplicate-block hash collides on identical short runs; no project-wide analysis.
+                2 real bugs · 3 silent failures · 4 edge-cases missed
               </p>
             </div>
           </div>
