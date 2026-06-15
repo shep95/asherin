@@ -580,6 +580,87 @@ const Benchmark = () => {
           </div>
         </section>
 
+        {/* SECTION 1.5: WIFI MONITOR BENCHMARK — Opus 4.8 vs Aureon (GPT-5.2) */}
+        <section className="space-y-8">
+          <div className="text-center space-y-3">
+            <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
+              ◈ Round 2 · Real-world systems prompt
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extralight tracking-tight">
+              "Monitor my Wi-Fi. Stats for my devices. Watch the strangers."
+            </h2>
+            <p className="max-w-2xl mx-auto text-sm font-extralight text-muted-foreground leading-relaxed">
+              A single networking prompt. Opus 4.8 writes a toy. Aureon on GPT-5.2
+              writes the tool you'd actually deploy.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-3">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">◉ The prompt</p>
+            <p className="text-sm font-extralight italic text-foreground/90 leading-relaxed">
+              "Create an algorithm whose purpose is to list devices on my home Wi-Fi
+              and show bandwidth stats only for devices I own or my family owns, and
+              to monitor anyone else who connects to my Wi-Fi without permission."
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-3">
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">◈ Opus 4.8</p>
+              <h3 className="text-xl font-extralight text-foreground">Looks complete. Isn't.</h3>
+              <ul className="space-y-2 text-sm font-extralight text-muted-foreground/90 list-none">
+                <li>◉ Discovers devices, but bandwidth comes from <span className="text-foreground">/proc/net/dev</span> — that's only the local machine, not per-device.</li>
+                <li>◉ Hardcoded subnet (192.168.1.0/24). Wrong on most home networks.</li>
+                <li>◉ No allowlist tooling, no continuous alerting, no de-dupe — just prints to stdout.</li>
+                <li>◉ No router integration at all. The actual question — "stats for my devices only" — is silently unsolved.</li>
+                <li>◉ Single file, ~120 lines. Demo-grade.</li>
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border-2 border-foreground/40 bg-foreground/5 backdrop-blur-sm p-6 space-y-3">
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-foreground">◈ Aureon · GPT-5.2</p>
+              <h3 className="text-xl font-extralight text-foreground">Solves the actual problem.</h3>
+              <ul className="space-y-2 text-sm font-extralight text-muted-foreground/90 list-none">
+                <li>◉ Auto-detects LAN CIDR; prefers <span className="text-foreground">arp-scan</span>, falls back to nmap.</li>
+                <li>◉ Real per-device bandwidth via router <span className="text-foreground">SNMP</span> — BRIDGE-MIB FDB → ifIndex → ifHCInOctets/OutOctets, sampled over a window for bps.</li>
+                <li>◉ Allowlist file with MAC normalization + validation. Owned vs unknown is enforced, not assumed.</li>
+                <li>◉ <span className="text-foreground">--watch</span> mode with stateful alerting and 10-min stale eviction so the same stranger isn't paged twice.</li>
+                <li>◉ Typed dataclasses, argparse CLI, graceful degradation when SNMP isn't configured. Production-shaped.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5 text-center">
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">Per-device bandwidth</p>
+              <p className="text-sm font-extralight text-muted-foreground">Opus: <span className="text-foreground">no</span></p>
+              <p className="text-sm font-extralight text-muted-foreground">Aureon: <span className="text-foreground">SNMP via router</span></p>
+            </div>
+            <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5 text-center">
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">Unknown-device alerting</p>
+              <p className="text-sm font-extralight text-muted-foreground">Opus: <span className="text-foreground">print only</span></p>
+              <p className="text-sm font-extralight text-muted-foreground">Aureon: <span className="text-foreground">stateful watch loop</span></p>
+            </div>
+            <div className="rounded-2xl border-2 border-foreground/40 bg-foreground/5 backdrop-blur-sm p-5 text-center">
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-foreground mb-2">Verdict</p>
+              <p className="text-sm font-extralight text-foreground">Aureon ships. Opus demos.</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-3">
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">◉ Why this matters</p>
+            <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
+              Opus 4.8 wrote code that <span className="text-foreground">looks</span> like it
+              answers the prompt. Aureon — running on the cheaper GPT-5.2 — read the prompt
+              literally: "stats for my devices only" requires router-side data, so it built
+              the SNMP path. "Monitor anyone else" requires de-duped alerting, so it built
+              the watch loop. Same prompt, two different definitions of "done."
+            </p>
+          </div>
+        </section>
+
+
+
         {/* SECTION 2: SECURITY BENCHMARK */}
         <section className="space-y-8">
           <div className="text-center space-y-3">
