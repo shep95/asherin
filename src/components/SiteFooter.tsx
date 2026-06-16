@@ -39,6 +39,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
         { to: "/dashboard", label: "Dashboard" },
         { to: "/forums", label: "Forums" },
         { to: "/founder", label: "Founder" },
+        { to: "/updates", label: "Updates" },
       ],
     },
     {
