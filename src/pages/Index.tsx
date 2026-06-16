@@ -1032,10 +1032,15 @@ const Index = () => {
                 { name: "Google", models: "Gemini 3.1 Pro, 2.5 Pro" },
                 { name: "xAI", models: "Grok 4, Grok Code" },
                 { name: "Mistral", models: "Medium 3.1, Codestral" },
-                { name: "DeepSeek", models: "DeepSeek V3, R1" },
                 { name: "Meta", models: "Llama 4 Maverick & Scout" },
                 { name: "Venice AI", models: "Uncensored, zero logging" },
                 { name: "Perplexity", models: "Sonar Pro, Deep Research" },
+                { name: "DeepSeek 🇨🇳", models: "DeepSeek V3.2, R1" },
+                { name: "Alibaba Qwen 🇨🇳", models: "Qwen3 Max, Coder Plus" },
+                { name: "Zhipu GLM 🇨🇳", models: "GLM-4.6, GLM-4.5 Air" },
+                { name: "Moonshot Kimi 🇨🇳", models: "Kimi K2, K2 Turbo" },
+                { name: "Baidu ERNIE 🇨🇳", models: "ERNIE 5.0, X1" },
+                { name: "MiniMax 🇨🇳", models: "M2, Text-01 (4M ctx)" },
               ].map((p, i) => (
                 <div key={p.name} className="group relative rounded-xl border border-border/15 bg-card/20 backdrop-blur-md p-4 hover:border-foreground/30 hover:bg-card/40 transition-all">
                   <div className="flex items-center justify-between">
