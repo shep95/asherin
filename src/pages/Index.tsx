@@ -1045,7 +1045,7 @@ const Index = () => {
                 <div key={p.name} className="group relative rounded-xl border border-border/15 bg-card/20 backdrop-blur-md p-4 hover:border-foreground/30 hover:bg-card/40 transition-all">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="font-mono text-[9px] tracking-[0.25em] text-muted-foreground/40">0{i + 1}</span>
+                      <span className="font-mono text-[9px] tracking-[0.25em] text-muted-foreground/40">{String(i + 1).padStart(2, "0")}</span>
                       <p className="text-sm font-light tracking-tight text-foreground">{p.name}</p>
                     </div>
                     <span className="h-1.5 w-1.5 rounded-full bg-foreground/60 group-hover:bg-foreground transition-colors" />
