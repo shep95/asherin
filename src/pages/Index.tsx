@@ -1427,6 +1427,40 @@ const Index = () => {
         </div>
       </ScrollSection>
 
+      {/* Updates promo strip */}
+      <ScrollSection>
+        <div className="relative z-10 px-6 pb-16">
+          <div className="mx-auto max-w-5xl">
+            <div className="relative overflow-hidden rounded-3xl border border-border/20 bg-card/20 backdrop-blur-xl p-8 sm:p-10">
+              <div aria-hidden className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-foreground/[0.03] blur-3xl" />
+              <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/20 to-transparent" />
+
+              <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <div className="space-y-3">
+                  <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full border border-foreground/15 text-[10px] font-medium tracking-[0.2em] uppercase text-foreground/70">
+                    <Clock className="h-3 w-3" strokeWidth={1.5} />
+                    Latest Deployments
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-extralight tracking-tight text-foreground">
+                    Coding supremacy. Generational leaps. Chinese model integrations.
+                  </h3>
+                  <p className="text-sm font-extralight text-muted-foreground max-w-xl leading-relaxed">
+                    See every theory, breakthrough, and integration that has entered Aureon — logged without the marketing varnish.
+                  </p>
+                </div>
+                <Link
+                  to="/updates"
+                  className="group shrink-0 inline-flex items-center gap-2.5 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.22em] text-foreground uppercase transition-all hover:bg-foreground hover:text-background"
+                >
+                  View Updates
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ScrollSection>
+
       <ScrollSection>
         <SiteFooter />
         <CommandPaletteHint />
