@@ -23,6 +23,7 @@ const WhiteboardPage = lazy(() => import("./pages/WhiteboardPage"));
 const BlogComparison = lazy(() => import("./pages/BlogComparison"));
 const BlogVeniceIntegration = lazy(() => import("./pages/BlogVeniceIntegration"));
 const Blog = lazy(() => import("./pages/Blog"));
+const Updates = lazy(() => import("./pages/Updates"));
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
@@ -70,6 +71,7 @@ const App = () => (
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/comparison" element={<BlogComparison />} />
             <Route path="/blog/venice-integration" element={<BlogVeniceIntegration />} />
+            <Route path="/updates" element={<Updates />} />
             <Route
               path="/asher-dashboard"
               element={
