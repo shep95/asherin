@@ -30,10 +30,10 @@ const UPDATES: Update[] = [
     tag: "Engine",
   },
   {
-    date: "2026-06-06",
+    date: "2026-06-16",
     title: "Chinese Model Ecosystem Live",
     body:
-      "On 06/06/2026 we added Chinese models to Aureon AI that you can bring with Chinese AI API keys. We added DeepSeek, Alibaba Qwen, Zhipu GLM, Moonshot Kimi, Baidu ERNIE, and MiniMax — all connectable via their API keys in Settings.",
+      "On 06/16/2026 we added Chinese models to Aureon AI that you can bring with Chinese AI API keys. We added DeepSeek, Alibaba Qwen, Zhipu GLM, Moonshot Kimi, Baidu ERNIE, and MiniMax — all connectable via their API keys in Settings.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Integration",
   },

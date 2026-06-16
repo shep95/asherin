@@ -94,6 +94,9 @@ const Header = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/updates" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Updates</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/houseofasher/theories" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">House of Asher · Theories</Link>
+                </DropdownMenuItem>
                 {isAdminEmail(user?.email) && (
                   <>
                     <div className="my-2 border-t border-foreground/10" />
@@ -172,6 +175,7 @@ const Header = () => {
               <div className="flex flex-col gap-2">
                 <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Founder</Link>
                 <Link to="/updates" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Updates</Link>
+                <Link to="/houseofasher/theories" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">House of Asher · Theories</Link>
                 <div className="my-1 border-t border-border/20 mx-4" />
                 {!loading && user ? (
                   <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg bg-foreground px-4 py-3 min-h-[48px] flex items-center justify-center text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90">

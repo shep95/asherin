@@ -24,6 +24,7 @@ const BlogComparison = lazy(() => import("./pages/BlogComparison"));
 const BlogVeniceIntegration = lazy(() => import("./pages/BlogVeniceIntegration"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Updates = lazy(() => import("./pages/Updates"));
+const HouseOfAsherTheories = lazy(() => import("./pages/HouseOfAsherTheories"));
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/blog/comparison" element={<BlogComparison />} />
             <Route path="/blog/venice-integration" element={<BlogVeniceIntegration />} />
             <Route path="/updates" element={<Updates />} />
+            <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
             <Route
               path="/asher-dashboard"
               element={
