@@ -3,12 +3,15 @@ import {
   Shield, Bell, Activity, Search, Network, FolderArchive, Briefcase, Server,
   FileSearch, Cpu, Settings as SettingsIcon, Download, Database, Radar,
   ScrollText, Layers, Eye, Globe, AlertTriangle, CheckCircle2, Clock,
-  Lightbulb, ChevronDown, ChevronUp,
+  Lightbulb, ChevronDown, ChevronUp, Zap, Ban, Skull, UserX, FileX,
+  Terminal, FlaskConical, BookOpen, Workflow, BarChart3, Crosshair, Trash2,
 } from "lucide-react";
 
 type ZaxinScreen =
   | "overview" | "alerts" | "hunt" | "pcap" | "cases" | "grid" | "detections"
-  | "zeek" | "endpoint" | "dashboards" | "downloads" | "config";
+  | "zeek" | "endpoint" | "dashboards" | "downloads" | "config"
+  | "response" | "osquery" | "strelka" | "sigma" | "cortex" | "grafana"
+  | "attck" | "curator";
 
 // Plain-English guide for each screen — "what this is, how to use it, what the data means"
 const HELP: Record<ZaxinScreen, { what: string; how: string[]; legend: { term: string; means: string }[] }> = {
