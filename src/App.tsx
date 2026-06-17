@@ -22,6 +22,7 @@ const Software = lazy(() => import("./pages/Software"));
 const WhiteboardPage = lazy(() => import("./pages/WhiteboardPage"));
 const BlogComparison = lazy(() => import("./pages/BlogComparison"));
 const BlogVeniceIntegration = lazy(() => import("./pages/BlogVeniceIntegration"));
+const BlogUncensoredAi = lazy(() => import("./pages/BlogUncensoredAi"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Updates = lazy(() => import("./pages/Updates"));
 const HouseOfAsherTheories = lazy(() => import("./pages/HouseOfAsherTheories"));
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/comparison" element={<BlogComparison />} />
             <Route path="/blog/venice-integration" element={<BlogVeniceIntegration />} />
+            <Route path="/blog/uncensored-ai-text-generator-guide" element={<BlogUncensoredAi />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
             <Route
