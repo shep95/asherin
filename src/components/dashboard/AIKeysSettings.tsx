@@ -657,10 +657,42 @@ const AIKeysSettings = () => {
         </div>
       </div>
 
-      {/* Provider list */}
-      <div className="space-y-2">
-        <p className="text-[10px] font-light tracking-wider text-muted-foreground/40 uppercase">Available Providers</p>
-        {AI_PROVIDERS.map(provider => {
+      {/* Provider search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search providers by company or country (e.g. Sarvam, India, Brazil)…"
+          className="w-full bg-background/50 border border-border/20 rounded-lg pl-9 pr-3 py-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40 focus:border-foreground/30 transition-colors"
+        />
+      </div>
+
+      {/* Provider list grouped by country */}
+      <div className="space-y-4">
+        <p className="text-[10px] font-light tracking-wider text-muted-foreground/40 uppercase">Available Providers · {AI_PROVIDERS.length} companies across {new Set(AI_PROVIDERS.map(p => p.country)).size} countries</p>
+        {(() => {
+          const q = search.trim().toLowerCase();
+          const filtered = AI_PROVIDERS.filter(p =>
+            !q || p.name.toLowerCase().includes(q) || p.country.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)
+          );
+          if (filtered.length === 0) {
+            return <p className="text-[11px] text-muted-foreground/40 px-1 py-4">No providers match “{search}”.</p>;
+          }
+          const byCountry = new Map<string, typeof filtered>();
+          filtered.forEach(p => {
+            if (!byCountry.has(p.country)) byCountry.set(p.country, [] as any);
+            byCountry.get(p.country)!.push(p);
+          });
+          return Array.from(byCountry.entries()).map(([country, provs]) => (
+            <div key={country} className="space-y-2">
+              <div className="flex items-center gap-2 px-1">
+                <Globe className="h-3 w-3 text-muted-foreground/40" />
+                <p className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">{country}</p>
+                <span className="text-[9px] text-muted-foreground/30">· {provs.length}</span>
+              </div>
+              {provs.map(provider => {
           const stored = hasKey(provider.id);
           const isActive = preferences.active_provider === provider.id;
           const isExpanded = expandedProvider === provider.id;
