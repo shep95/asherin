@@ -834,37 +834,17 @@ ${sourceBlocks || 'No sources could be scraped. Provide the best answer from tra
 
 Construct the Immutable Truth Graph intelligence report now. Execute the Causal Chain of Knowledge protocol.`;
 
-    // ── Step 5: Stream Gemini response ──
-    const geminiUrl = `${ACTIVE_STREAM_URL}&key=${GEMINI_KEY}`;
-    const geminiResp = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          { role: 'user', parts: [{ text: systemPrompt + '\n\n' + userPrompt }] },
-        ],
-        generationConfig: {
-          temperature: 0.25,
-          maxOutputTokens: 8192,
-        },
-      }),
-    });
-
-    if (!geminiResp.ok) {
-      const errText = await geminiResp.text();
-      console.error('[ZOPHIEL] Gemini error:', geminiResp.status, errText);
-      return new Response(
-        JSON.stringify({ error: 'AI analysis failed' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Build SSE stream with Truth Graph metadata
+    // ── AI analysis removed: Deep Search returns raw validated sources only ──
     const sourceMeta = JSON.stringify({
       type: 'sources',
       sources: sources.map(s => ({
-        url: s.url, title: s.title, domain: s.domain,
-        tier: s.tier, provenanceScore: s.provenanceScore, hostile: s.hostile,
+        url: s.url,
+        title: s.title,
+        domain: s.domain,
+        tier: s.tier,
+        provenanceScore: s.provenanceScore,
+        hostile: s.hostile,
+        snippet: (s.content || '').replace(/\s+/g, ' ').trim().slice(0, 320),
       })),
       totalSearchResults: uniqueResults.length,
       validation,
@@ -873,46 +853,9 @@ Construct the Immutable Truth Graph intelligence report now. Execute the Causal 
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
-
-    writer.write(encoder.encode(`data: ${sourceMeta}\n\n`));
-
-    const geminiBody = geminiResp.body;
-    if (geminiBody) {
-      const reader = geminiBody.getReader();
-      const decoder = new TextDecoder();
-
-      (async () => {
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              const jsonStr = line.slice(6).trim();
-              if (!jsonStr || jsonStr === '[DONE]') continue;
-              try {
-                const parsed = JSON.parse(jsonStr);
-                const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) {
-                  const deltaEvent = JSON.stringify({ type: 'delta', text });
-                  await writer.write(encoder.encode(`data: ${deltaEvent}\n\n`));
-                }
-              } catch { /* partial JSON, skip */ }
-            }
-          }
-        } catch (e) {
-          console.error('[ZOPHIEL] Stream error:', e);
-        } finally {
-          await writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
-          await writer.close();
-        }
-      })();
-    } else {
-      await writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
-      await writer.close();
-    }
+    await writer.write(encoder.encode(`data: ${sourceMeta}\n\n`));
+    await writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
+    await writer.close();
 
     return new Response(readable, {
       headers: {
