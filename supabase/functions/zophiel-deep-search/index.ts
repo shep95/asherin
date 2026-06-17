@@ -1,5 +1,6 @@
 import { isValidByok } from '../_shared/zophielByokRouter.ts';
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { omnispiderCrawl, type OmniCrawledPage } from "../_shared/omnispider.ts";
 
 // Default platform models (used when no BYOK provided). When the user supplies
 // a Google BYOK key, we substitute their model id into these URLs.
