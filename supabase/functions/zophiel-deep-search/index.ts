@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { query, action, answers, byok } = body;
+    const { query, answers } = body;
 
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
       return new Response(
@@ -306,45 +306,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // STRICT BYOK GATE — non-admins MUST supply BYOK; admin may use platform key.
-    let _resolved;
-    try {
-      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, byok);
-    } catch (e: any) {
-      return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
-    }
-    const useGoogleByok = _resolved.mode === 'byok' && _resolved.byok?.provider === 'google';
-    const GEMINI_KEY = useGoogleByok ? _resolved.byok!.apiKey : (_resolved.geminiKey || '');
-    const ACTIVE_MODEL = useGoogleByok ? _resolved.byok!.model : GEMINI_DEFAULT_MODEL;
-    const ACTIVE_STREAM_URL = geminiStreamUrlFor(ACTIVE_MODEL);
-    const ACTIVE_NON_STREAM_URL = geminiNonStreamUrlFor(ACTIVE_MODEL);
-    if (!GEMINI_KEY) {
-      return new Response(
-        JSON.stringify({ error: 'BYOK_REQUIRED', message: 'Add your Gemini API key.' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    if (isValidByok(byok) && byok.provider !== 'google') {
-      console.warn('[ZOPHIEL] BYOK provider', byok.provider, 'not supported in deep-search streaming — using platform Gemini.');
-    }
-
     const trimmed = query.trim();
-
-    // ── Action: refine → return clarifying questions ──
-    if (action === 'refine') {
-      console.log('[ZOPHIEL] Generating semantic clarification for:', trimmed);
-      try {
-        const result = await generateClarifyingQuestions(trimmed, GEMINI_KEY, ACTIVE_NON_STREAM_URL);
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } catch (e) {
-        console.error('Refine error:', e);
-        return new Response(JSON.stringify({ questions: [] }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    }
+    // Deep Search is OPEN — no BYOK, no Gemini, no clarifying-question step.
 
     // ── Build enhanced query from answers ──
     let enhancedQuery = trimmed;
