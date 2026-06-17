@@ -1,5 +1,6 @@
 import { isValidByok } from '../_shared/zophielByokRouter.ts';
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { omnispiderCrawl, type OmniCrawledPage } from "../_shared/omnispider.ts";
 
 // Default platform models (used when no BYOK provided). When the user supplies
 // a Google BYOK key, we substitute their model id into these URLs.
@@ -678,19 +679,47 @@ Deno.serve(async (req) => {
       return { ...r, domain, tier, scrapeOrder: tier };
     }).sort((a, b) => a.scrapeOrder - b.scrapeOrder);
 
-    // Scrape top 8 results in parallel (prioritizing high-tier sources)
-    const toScrape = scoredResults.slice(0, 8);
-    const scrapeResults = await Promise.allSettled(
-      toScrape.map(async (r) => {
-        const content = await scrapePage(r.url);
-        if (!content) return null;
-        const domain = extractDomain(r.url);
-        const tier = getSourceTier(domain);
-        const hostile = HOSTILE_DOMAINS.has(domain);
-        const provenanceScore = tier === 1 ? 0.95 : tier === 2 ? 0.75 : tier === 3 ? 0.6 : 0.35;
-        return { url: r.url, title: r.title, domain, content, tier, provenanceScore, hostile } as ScrapedSource;
-      })
-    );
+    // Scrape via OMNISPIDER orchestrator (multi-engine: HTTP + Wayback fallback +
+    // sitemap discovery + Katana-style link extraction + robots.txt policy gate +
+    // BFS frontier). Replaces the previous flat top-N fetch.
+    const seedUrls = scoredResults.slice(0, 10).map((r) => r.url);
+    const allowedDomains = Array.from(new Set(scoredResults.slice(0, 14).map((r) => r.domain)));
+    const isTemporal = /archive|deleted|historical|wayback|since|before|after|2019|2020|2021|2022|2023|2024/i.test(qLower);
+    const omni = await omnispiderCrawl({
+      seeds: seedUrls,
+      allowedDomains,
+      maxPages: 12,
+      maxDepth: 1,
+      respectRobots: true,
+      useSitemaps: true,
+      useWayback: true,
+      useKatana: true,
+      perDomainDelayMs: 250,
+      timeoutMs: 8000,
+      totalBudgetMs: 22000,
+    });
+    void isTemporal;
+    console.log(`[ZOPHIEL] Omnispider crawled ${omni.pages.length} pages in ${omni.durationMs}ms — engines:`, omni.engineCounts);
+
+    const scrapeResults: PromiseSettledResult<ScrapedSource | null>[] = omni.pages.map((p: OmniCrawledPage) => {
+      const domain = extractDomain(p.finalUrl || p.url);
+      const tier = getSourceTier(domain);
+      const hostile = HOSTILE_DOMAINS.has(domain);
+      let provenanceScore = tier === 1 ? 0.95 : tier === 2 ? 0.75 : tier === 3 ? 0.6 : 0.35;
+      if (p.engine === 'archive') provenanceScore = Math.min(provenanceScore, 0.7);
+      return {
+        status: 'fulfilled',
+        value: {
+          url: p.finalUrl || p.url,
+          title: p.title || domain,
+          domain,
+          content: p.engine === 'archive' ? `[ARCHIVED SNAPSHOT] ${p.text}` : p.text,
+          tier,
+          provenanceScore,
+          hostile,
+        } as ScrapedSource,
+      };
+    });
 
     // Add OSINT results as virtual scraped sources
     for (const osint of osintResults) {
