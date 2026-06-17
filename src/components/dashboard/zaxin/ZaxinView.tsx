@@ -3,12 +3,15 @@ import {
   Shield, Bell, Activity, Search, Network, FolderArchive, Briefcase, Server,
   FileSearch, Cpu, Settings as SettingsIcon, Download, Database, Radar,
   ScrollText, Layers, Eye, Globe, AlertTriangle, CheckCircle2, Clock,
-  Lightbulb, ChevronDown, ChevronUp,
+  Lightbulb, ChevronDown, ChevronUp, Zap, Ban, Skull, UserX, FileX,
+  Terminal, FlaskConical, BookOpen, Workflow, BarChart3, Crosshair, Trash2,
 } from "lucide-react";
 
 type ZaxinScreen =
   | "overview" | "alerts" | "hunt" | "pcap" | "cases" | "grid" | "detections"
-  | "zeek" | "endpoint" | "dashboards" | "downloads" | "config";
+  | "zeek" | "endpoint" | "dashboards" | "downloads" | "config"
+  | "response" | "osquery" | "strelka" | "sigma" | "cortex" | "grafana"
+  | "attck" | "curator";
 
 // Plain-English guide for each screen — "what this is, how to use it, what the data means"
 const HELP: Record<ZaxinScreen, { what: string; how: string[]; legend: { term: string; means: string }[] }> = {
@@ -173,6 +176,115 @@ const HELP: Record<ZaxinScreen, { what: string; how: string[]; legend: { term: s
       { term: "MISP / TheHive / Cortex", means: "Other tools we plug into — threat sharing, case management, automated enrichment." },
     ],
   },
+  response: {
+    what: "The trigger pulled. One-click containment actions that reach into your environment and STOP things — isolate a hacked laptop, block a malicious IP at the firewall, kill a process, disable a compromised account.",
+    how: [
+      "Pick the action card matching what you need to stop.",
+      "Type the target (host name, IP, username, file hash, PID).",
+      "Click the red button. The action is sent to your grid and logged forever in the audit table below — you can prove who did what, when.",
+    ],
+    legend: [
+      { term: "Isolate Host", means: "Wazuh Active Response cuts the host off the network (only the manager can talk to it) so the attacker can't move laterally." },
+      { term: "Block IP", means: "Pushes a firewall rule (pfSense/OPNsense/iptables/Palo Alto) to drop all traffic to/from the IP." },
+      { term: "Kill Process", means: "Terminates a running PID on the endpoint via the Wazuh agent." },
+      { term: "Disable User", means: "Locks the account in AD / LDAP / local OS so the attacker can't reuse the credentials." },
+      { term: "Quarantine File", means: "Moves a file by SHA-256 to a sealed quarantine path on every endpoint that has it." },
+      { term: "Audit Log", means: "Every action is stored in your private database — date, target, status, response payload. Forensic-grade chain of custody." },
+    ],
+  },
+  osquery: {
+    what: "Ask every computer in your fleet a SQL question right now — 'show me every running process,' 'list every user,' 'find every file matching this hash.' osquery turns the OS into a database you can query.",
+    how: [
+      "Pick a saved query (process list, open ports, USB devices, persistence keys) or type your own SQL.",
+      "Pick which hosts to ask (all, a group, one).",
+      "Run — results come back in seconds, sortable like a spreadsheet.",
+    ],
+    legend: [
+      { term: "Pack", means: "A bundle of pre-written queries grouped by topic (e.g., 'incident-response', 'compliance', 'vuln-management')." },
+      { term: "Distributed query", means: "A one-shot ad-hoc question — runs once and returns. Different from a 'scheduled query' that runs forever." },
+      { term: "Fleet", means: "The osquery management server — the thing that pushes queries out and collects results." },
+    ],
+  },
+  strelka: {
+    what: "A file scanner on steroids. Every file Zeek extracts from network traffic (PDFs, Office docs, executables, scripts) gets ripped apart by Strelka — embedded objects, macros, exif, hashes, YARA matches.",
+    how: [
+      "Drop a file manually OR let Zeek auto-feed it from sensors.",
+      "Read the scan tree — Strelka shows nested objects (a Word doc containing a macro that downloaded an EXE).",
+      "Click any object to see YARA hits, hashes (MD5/SHA1/SHA256), and metadata.",
+    ],
+    legend: [
+      { term: "Scanner", means: "A module that handles one file type (e.g., ScanPe for Windows EXEs, ScanPdf for PDFs)." },
+      { term: "YARA hit", means: "A rule matched — the file contains a known-bad pattern." },
+      { term: "IOC enrichment", means: "Strelka calls Cortex/VirusTotal automatically to score each artifact." },
+    ],
+  },
+  sigma: {
+    what: "Detection rules written in a vendor-neutral YAML format. Write the logic ONCE in Sigma; it compiles down to Elastic, Splunk, Suricata, Wazuh queries — no rewrites.",
+    how: [
+      "Browse the live SigmaHQ rule repository (8000+ public rules) by category.",
+      "Enable a rule — Zaxin auto-converts it for every backend in your grid.",
+      "Write your own rule in the editor; the converter shows the Elastic and Wazuh equivalents in real time.",
+    ],
+    legend: [
+      { term: "Logsource", means: "The data source the rule expects (e.g., 'product: windows, service: security')." },
+      { term: "Detection", means: "The match logic — fields and values that must appear." },
+      { term: "Level", means: "Severity tag — informational, low, medium, high, critical." },
+      { term: "Backend", means: "The query language Sigma is compiled to (Splunk SPL, Elastic ES|QL, etc.)." },
+    ],
+  },
+  cortex: {
+    what: "Auto-enrichment. When an IOC (an IP, a hash, a domain) lands in your case, Cortex runs it through 100+ analyzers (VirusTotal, AbuseIPDB, Shodan, Greynoise, MalwareBazaar) and stamps the result.",
+    how: [
+      "Configure analyzer API keys once (per service).",
+      "Right-click any IOC in a Case to run an analyzer.",
+      "Or build a Responder — auto-run analyzers on every new alert and tag the case.",
+    ],
+    legend: [
+      { term: "Analyzer", means: "A read-only enrichment module (lookup-only, no changes)." },
+      { term: "Responder", means: "An action module (block, isolate, notify) — read-write." },
+      { term: "TAXII / MISP", means: "Threat-feed protocols Cortex can pull IOCs from for community sharing." },
+    ],
+  },
+  grafana: {
+    what: "Custom visual dashboards backed by your live telemetry. Build charts of anything Zeek/Suricata/Wazuh records — alerts per hour, top countries, JA3 fingerprints, DNS queries by domain.",
+    how: [
+      "Open a dashboard or import a community JSON.",
+      "Pick a time range (last hour, 24h, 7d).",
+      "Add a panel: pick the data source, write the query, choose the chart type.",
+    ],
+    legend: [
+      { term: "Datasource", means: "Where Grafana pulls from — Elasticsearch (logs), Prometheus (metrics), Loki (lightweight logs)." },
+      { term: "Panel", means: "One chart on a dashboard — line, bar, table, gauge, heatmap." },
+      { term: "Annotation", means: "Vertical line on a chart marking an event (e.g., 'deploy', 'incident')." },
+    ],
+  },
+  attck: {
+    what: "The MITRE ATT&CK Navigator. A heatmap of every known attacker technique color-coded by your coverage — green = you'd detect it, red = you're blind, yellow = partial.",
+    how: [
+      "Each cell is one technique (e.g., T1059.001 = PowerShell). Click it for the full Wikipedia of the technique.",
+      "Hover to see which of your Sigma/Suricata rules cover that technique.",
+      "Export your coverage map as a layer JSON — share with auditors or board.",
+    ],
+    legend: [
+      { term: "Tactic", means: "Why an attacker does something (Initial Access, Execution, Persistence, etc.)." },
+      { term: "Technique", means: "How they do it (Phishing, PowerShell, Scheduled Task)." },
+      { term: "Sub-technique", means: "A more specific variant (T1059.001 = PowerShell)." },
+      { term: "Coverage", means: "Whether you'd detect this technique today (green/yellow/red)." },
+    ],
+  },
+  curator: {
+    what: "The janitor for your log indices. Decides what gets kept, what gets compressed, what gets deleted. Without curator, your disk fills up and the platform dies.",
+    how: [
+      "Set retention per index (e.g., conn.log 90 days, dns.log 30 days, http.log 7 days).",
+      "Watch the disk meter — green = healthy, yellow = warm, red = full (oldest data starts auto-deleting).",
+      "Force a snapshot before deleting if you need to archive to cold storage.",
+    ],
+    legend: [
+      { term: "Hot / Warm / Cold", means: "Index temperature — hot = recent + searchable fast, warm = older + slower, cold = archived." },
+      { term: "ILM policy", means: "Index Lifecycle Management — the rules that move indices through hot→warm→cold→delete." },
+      { term: "Snapshot", means: "A point-in-time backup of an index — restorable later." },
+    ],
+  },
 };
 
 const HelpCard = ({ screen }: { screen: ZaxinScreen }) => {
@@ -225,19 +337,31 @@ const HelpCard = ({ screen }: { screen: ZaxinScreen }) => {
 };
 
 
-const NAV: { id: ZaxinScreen; label: string; icon: React.ElementType }[] = [
-  { id: "overview", label: "Overview", icon: Shield },
-  { id: "alerts", label: "Alerts", icon: Bell },
-  { id: "hunt", label: "Hunt", icon: Search },
-  { id: "pcap", label: "PCAP", icon: Network },
-  { id: "cases", label: "Cases", icon: Briefcase },
-  { id: "grid", label: "Grid Nodes", icon: Server },
-  { id: "detections", label: "Detection Rules", icon: Radar },
-  { id: "zeek", label: "Zeek Logs", icon: ScrollText },
-  { id: "endpoint", label: "Endpoint (Wazuh)", icon: Cpu },
-  { id: "dashboards", label: "Dashboards", icon: Activity },
-  { id: "downloads", label: "ISO & Keys", icon: Download },
-  { id: "config", label: "Configuration", icon: SettingsIcon },
+const NAV: { id: ZaxinScreen; label: string; icon: React.ElementType; group?: string }[] = [
+  { id: "overview", label: "Overview", icon: Shield, group: "Monitor" },
+  { id: "alerts", label: "Alerts", icon: Bell, group: "Monitor" },
+  { id: "dashboards", label: "Dashboards", icon: Activity, group: "Monitor" },
+  { id: "grafana", label: "Grafana", icon: BarChart3, group: "Monitor" },
+  { id: "attck", label: "ATT&CK Navigator", icon: Crosshair, group: "Monitor" },
+
+  { id: "hunt", label: "Hunt", icon: Search, group: "Investigate" },
+  { id: "pcap", label: "PCAP", icon: Network, group: "Investigate" },
+  { id: "zeek", label: "Zeek Logs", icon: ScrollText, group: "Investigate" },
+  { id: "osquery", label: "osquery / Fleet", icon: Terminal, group: "Investigate" },
+  { id: "strelka", label: "Strelka Files", icon: FlaskConical, group: "Investigate" },
+  { id: "cases", label: "Cases (TheHive)", icon: Briefcase, group: "Investigate" },
+
+  { id: "detections", label: "Detection Rules", icon: Radar, group: "Detect" },
+  { id: "sigma", label: "Sigma Rules", icon: BookOpen, group: "Detect" },
+  { id: "cortex", label: "Cortex Analyzers", icon: Workflow, group: "Detect" },
+  { id: "endpoint", label: "Endpoint (Wazuh)", icon: Cpu, group: "Detect" },
+
+  { id: "response", label: "Response & Containment", icon: Zap, group: "Respond" },
+
+  { id: "grid", label: "Grid Nodes", icon: Server, group: "Operate" },
+  { id: "curator", label: "Index Lifecycle", icon: Trash2, group: "Operate" },
+  { id: "downloads", label: "ISO & Keys", icon: Download, group: "Operate" },
+  { id: "config", label: "Configuration", icon: SettingsIcon, group: "Operate" },
 ];
 
 const Stat = ({ label, value, sub, icon: Icon, tone = "default" }: {
@@ -759,6 +883,217 @@ const ConfigScreen = () => {
   );
 };
 
+// ============================================================
+// RESPONSE & CONTAINMENT — one-click stop-it actions
+// ============================================================
+type ActionType = "isolate_host" | "block_ip" | "kill_process" | "disable_user" | "quarantine_file";
+
+const ACTION_DEFS: { type: ActionType; label: string; icon: React.ElementType; targetLabel: string; targetPlaceholder: string; backend: string; danger: string }[] = [
+  { type: "isolate_host",    label: "Isolate Host",     icon: Ban,    targetLabel: "Host / agent name", targetPlaceholder: "host-7821 or 10.0.4.22", backend: "Wazuh Active Response → firewall-drop on agent", danger: "Cuts the host off the network. Only the Wazuh manager can still talk to it." },
+  { type: "block_ip",        label: "Block IP",         icon: Network, targetLabel: "IP or CIDR",        targetPlaceholder: "185.220.101.5 or 10.0.0.0/24", backend: "pfSense / OPNsense / iptables / Palo Alto API", danger: "Drops all traffic to/from the IP on the perimeter firewall." },
+  { type: "kill_process",    label: "Kill Process",     icon: Skull,  targetLabel: "Host : PID",        targetPlaceholder: "host-7821:4488",        backend: "Wazuh AR → terminate-process on endpoint", danger: "Terminates the PID immediately. Unsaved work on that process is lost." },
+  { type: "disable_user",    label: "Disable User",     icon: UserX,  targetLabel: "Username / SID",    targetPlaceholder: "DOMAIN\\jsmith",        backend: "AD / LDAP / local OS account lock", danger: "User cannot log in anywhere until re-enabled." },
+  { type: "quarantine_file", label: "Quarantine File",  icon: FileX,  targetLabel: "SHA-256 hash",      targetPlaceholder: "a3f5e7…",               backend: "Wazuh AR → file-move to /quarantine on every endpoint", danger: "Moves the file by hash on every endpoint that has it." },
+];
+
+const ResponseScreen = () => {
+  const [actions, setActions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [targets, setTargets] = useState<Record<string, string>>({});
+  const [params, setParams] = useState<Record<string, string>>({});
+  const grid = loadGrid();
+  const gridConnected = Boolean(grid.url);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("zaxin_response_actions").select("*").order("created_at", { ascending: false }).limit(100);
+    setActions(data ?? []); setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const fire = async (def: typeof ACTION_DEFS[number]) => {
+    const target = (targets[def.type] || "").trim();
+    if (!target) { toast.error(`Enter a ${def.targetLabel.toLowerCase()} first`); return; }
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) { toast.error("Sign in to fire response actions"); return; }
+    if (!confirm(`Fire ${def.label} against ${target}?\n\n${def.danger}\n\nThis is logged in the audit trail.`)) return;
+    setBusy(def.type);
+    const reason = params[def.type] || "";
+    const { data: ins, error: insErr } = await supabase.from("zaxin_response_actions")
+      .insert({ user_id: u.user.id, action_type: def.type, target, params: { reason, backend: def.backend }, status: gridConnected ? "pending" : "queued_no_grid" })
+      .select().single();
+    if (insErr) { toast.error(insErr.message); setBusy(null); return; }
+
+    if (!gridConnected) {
+      toast.warning(`Action queued — connect your grid in Configuration to dispatch it.`);
+      setBusy(null); setTargets({ ...targets, [def.type]: "" }); load(); return;
+    }
+
+    // Dispatch to user's grid
+    try {
+      const r = await fetch(`${grid.url.replace(/\/$/, "")}/connect/response/${def.type}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": grid.apiKey },
+        body: JSON.stringify({ target, reason, action_id: ins.id }),
+      });
+      const body = await r.text();
+      const parsed = (() => { try { return JSON.parse(body); } catch { return { raw: body }; } })();
+      await supabase.from("zaxin_response_actions").update({
+        status: r.ok ? "executed" : "failed",
+        response: parsed, error: r.ok ? null : `HTTP ${r.status}`,
+        completed_at: new Date().toISOString(),
+      }).eq("id", ins.id);
+      r.ok ? toast.success(`${def.label} dispatched`) : toast.error(`Grid returned HTTP ${r.status}`);
+    } catch (e: any) {
+      await supabase.from("zaxin_response_actions").update({
+        status: "failed", error: e?.message ?? String(e), completed_at: new Date().toISOString(),
+      }).eq("id", ins.id);
+      toast.error(`Grid unreachable: ${e?.message ?? e}`);
+    }
+    setBusy(null); setTargets({ ...targets, [def.type]: "" }); load();
+  };
+
+  return (
+    <div className="space-y-3">
+      {!gridConnected && (
+        <div className="rounded-lg border border-yellow-500/[0.15] bg-yellow-500/[0.04] p-3 text-[10px] text-yellow-200/80 backdrop-blur-md">
+          <AlertTriangle className="h-3 w-3 inline mr-1.5" /> Grid not connected — actions will be <span className="text-yellow-100/90 font-medium">queued in your audit log</span> but not dispatched. Connect a grid in Configuration to actually execute.
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3">
+        {ACTION_DEFS.map(def => {
+          const Icon = def.icon;
+          return (
+            <div key={def.type} className="rounded-lg border border-border/[0.08] bg-foreground/[0.015] p-4 backdrop-blur-md">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-md bg-red-500/[0.08] border border-red-500/[0.15] flex items-center justify-center">
+                    <Icon className="h-3.5 w-3.5 text-red-400/80" />
+                  </div>
+                  <div className="text-[11px] tracking-[0.12em] uppercase text-foreground/90">{def.label}</div>
+                </div>
+              </div>
+              <div className="text-[9px] text-muted-foreground/50 leading-relaxed mb-3">{def.backend}</div>
+              <input
+                value={targets[def.type] || ""}
+                onChange={e => setTargets({ ...targets, [def.type]: e.target.value })}
+                placeholder={def.targetPlaceholder}
+                className="w-full bg-background/40 border border-border/[0.08] rounded p-2 text-[11px] font-mono text-foreground/85 mb-2 focus:outline-none focus:border-foreground/20"
+              />
+              <input
+                value={params[def.type] || ""}
+                onChange={e => setParams({ ...params, [def.type]: e.target.value })}
+                placeholder="Reason / case ref (optional)"
+                className="w-full bg-background/40 border border-border/[0.08] rounded p-2 text-[10px] text-foreground/75 mb-2 focus:outline-none focus:border-foreground/20"
+              />
+              <button
+                onClick={() => fire(def)}
+                disabled={busy === def.type}
+                className="w-full px-3 py-2 rounded-md bg-red-500/[0.1] border border-red-500/[0.25] text-red-200/90 hover:bg-red-500/[0.18] disabled:opacity-50 text-[10px] tracking-[0.12em] uppercase transition-colors"
+              >
+                {busy === def.type ? "Dispatching…" : `Fire ${def.label}`}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <Panel title="Containment Audit Log" desc="Every action you've fired — private to your account, forensic-grade chain of custody">
+        <div className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.08] text-[9px] uppercase tracking-wider text-muted-foreground/50">
+          <div className="col-span-1">St</div>
+          <div className="col-span-3">Action</div>
+          <div className="col-span-4">Target</div>
+          <div className="col-span-2">Status</div>
+          <div className="col-span-2">When</div>
+        </div>
+        {loading && <LoadingNote />}
+        {!loading && !actions.length && <EmptyNote msg="No actions fired yet" />}
+        {actions.map(a => {
+          const ok = a.status === "executed";
+          const fail = a.status === "failed";
+          const dot = ok ? "bg-emerald-400" : fail ? "bg-red-400" : "bg-yellow-400";
+          return (
+            <div key={a.id} className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.04] text-[10px] text-foreground/70 hover:bg-foreground/[0.02]">
+              <div className="col-span-1 flex items-center"><span className={`w-1.5 h-1.5 rounded-full ${dot}`} /></div>
+              <div className="col-span-3 truncate uppercase tracking-wide text-[9px]">{a.action_type.replace(/_/g, " ")}</div>
+              <div className="col-span-4 truncate font-mono text-foreground/85">{a.target}</div>
+              <div className="col-span-2 text-muted-foreground/60 text-[9px] uppercase">{a.status}</div>
+              <div className="col-span-2 text-muted-foreground/50">{timeAgo(a.created_at)}</div>
+            </div>
+          );
+        })}
+      </Panel>
+    </div>
+  );
+};
+
+// ============================================================
+// MISSING STACK SCREENS (grid-backed — show empty state until grid is connected)
+// ============================================================
+const OsqueryScreen = () => (
+  <GridNotConnected moduleName="osquery / Fleet" what="Distributed SQL queries across your endpoints (process lists, open ports, persistence keys) are issued by your Fleet server." />
+);
+const StrelkaScreen = () => (
+  <GridNotConnected moduleName="Strelka File Scanning" what="Deep file analysis (YARA, embedded objects, hashes, metadata) runs on the Strelka cluster in your grid." />
+);
+const SigmaScreen = () => (
+  <div className="space-y-3">
+    <Panel title="Sigma Rules — Live Index" desc="Open-source detection rule repository (SigmaHQ)">
+      <div className="text-[11px] text-foreground/75 leading-relaxed mb-3">
+        Sigma is the vendor-neutral detection format used across the Security Onion stack. Once your grid is connected, Zaxin will sync the full SigmaHQ ruleset and convert each rule into the right backend (Elastic, Suricata, Wazuh) automatically.
+      </div>
+      <a href="https://github.com/SigmaHQ/sigma" target="_blank" rel="noreferrer" className="inline-block px-3 py-1.5 rounded bg-foreground/[0.06] text-foreground/85 text-[10px] hover:bg-foreground/[0.1]">Open SigmaHQ on GitHub →</a>
+    </Panel>
+    <GridNotConnected moduleName="Live rule sync" what="The compiled, per-backend rule deployment requires your grid's rule manager." />
+  </div>
+);
+const CortexScreen = () => (
+  <GridNotConnected moduleName="Cortex Analyzers" what="IOC enrichment (VirusTotal, AbuseIPDB, Shodan, Greynoise, MalwareBazaar) runs on your Cortex server with your private analyzer API keys." />
+);
+const GrafanaScreen = () => {
+  const grid = loadGrid();
+  if (!grid.url) return <GridNotConnected moduleName="Grafana" what="Custom visual dashboards live on your Grafana instance and pull from your Elasticsearch / Prometheus." />;
+  const grafUrl = grid.url.replace(/\/$/, "") + "/grafana";
+  return (
+    <Panel title="Grafana — Embedded" desc={`Loaded from ${grafUrl}`}>
+      <iframe src={grafUrl} className="w-full h-[600px] rounded border border-border/[0.08] bg-foreground/[0.01]" title="Grafana" />
+      <div className="text-[9px] text-muted-foreground/40 mt-2">If the dashboard does not load, ensure your grid allows iframe embedding for this origin.</div>
+    </Panel>
+  );
+};
+const AttckScreen = ({ intel }: { intel: ReturnType<typeof useZaxinIntel> }) => {
+  const max = Math.max(...(intel.data?.mitre.map(m => m.techniques) ?? [1]), 1);
+  return (
+    <div className="space-y-3">
+      <Panel title="ATT&CK Navigator — Live MITRE Enterprise Matrix" desc="Live tactic → technique counts. Cell intensity = total techniques per tactic.">
+        {intel.loading && <LoadingNote />}
+        {intel.error && <ErrorNote msg={intel.error} onRetry={intel.refresh} />}
+        {intel.data?.mitre.length ? (
+          <div className="grid grid-cols-7 gap-1.5">
+            {intel.data.mitre.map(m => {
+              const intensity = m.techniques / max;
+              return (
+                <div key={m.tactic} className="rounded border border-border/[0.06] p-2" style={{ background: `rgba(239, 68, 68, ${0.05 + intensity * 0.25})` }}>
+                  <div className="text-[8px] uppercase tracking-wider text-foreground/85 truncate capitalize">{m.tactic.replace(/-/g, " ")}</div>
+                  <div className="text-[18px] font-extralight text-foreground/90 mt-1">{m.techniques}</div>
+                  <div className="text-[8px] text-muted-foreground/50">techniques</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+        <div className="text-[9px] text-muted-foreground/40 mt-3 pt-3 border-t border-border/[0.06]">
+          Source: MITRE CTI repository (live). Connect your grid to overlay YOUR detection coverage per technique.
+        </div>
+      </Panel>
+    </div>
+  );
+};
+const CuratorScreen = () => (
+  <GridNotConnected moduleName="Index Lifecycle (Curator)" what="Retention policies, snapshot schedules, and disk-watermark management run on your Elasticsearch cluster." />
+);
+
 const ZaxinView = () => {
   const [screen, setScreen] = useState<ZaxinScreen>("overview");
   const intel = useZaxinIntel();
@@ -778,6 +1113,14 @@ const ZaxinView = () => {
       case "dashboards": return <DashboardsScreen intel={intel} />;
       case "downloads":  return <DownloadsScreen intel={intel} />;
       case "config":     return <ConfigScreen />;
+      case "response":   return <ResponseScreen />;
+      case "osquery":    return <OsqueryScreen />;
+      case "strelka":    return <StrelkaScreen />;
+      case "sigma":      return <SigmaScreen />;
+      case "cortex":     return <CortexScreen />;
+      case "grafana":    return <GrafanaScreen />;
+      case "attck":      return <AttckScreen intel={intel} />;
+      case "curator":    return <CuratorScreen />;
     }
   };
 
@@ -816,19 +1159,24 @@ const ZaxinView = () => {
       <div className="flex-1 flex min-h-0">
         {/* Left nav */}
         <div className="w-52 shrink-0 border-r border-border/[0.06] bg-background/60 backdrop-blur-md py-3 px-2 overflow-y-auto">
-          {NAV.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setScreen(item.id)}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] tracking-wide transition-all mb-0.5 ${
-                screen === item.id
-                  ? "bg-foreground/[0.06] text-foreground/90"
-                  : "text-muted-foreground/50 hover:text-foreground/70 hover:bg-foreground/[0.02]"
-              }`}
-            >
-              <item.icon className="h-3 w-3" />
-              <span>{item.label}</span>
-            </button>
+          {(["Monitor","Investigate","Detect","Respond","Operate"] as const).map(group => (
+            <div key={group} className="mb-2">
+              <div className="px-2.5 py-1 text-[8px] tracking-[0.2em] uppercase text-muted-foreground/30">{group}</div>
+              {NAV.filter(n => n.group === group).map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setScreen(item.id)}
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] tracking-wide transition-all mb-0.5 ${
+                    screen === item.id
+                      ? "bg-foreground/[0.06] text-foreground/90"
+                      : "text-muted-foreground/50 hover:text-foreground/70 hover:bg-foreground/[0.02]"
+                  } ${item.id === "response" ? "border border-red-500/[0.15] bg-red-500/[0.04]" : ""}`}
+                >
+                  <item.icon className={`h-3 w-3 ${item.id === "response" ? "text-red-400/70" : ""}`} />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
           ))}
           <div className="px-3 py-2 mt-3 border-t border-border/[0.06]">
             <div className="text-[8px] text-muted-foreground/20 tracking-wider uppercase text-center">Powered by AUREON</div>
