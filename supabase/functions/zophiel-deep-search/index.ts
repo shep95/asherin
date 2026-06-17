@@ -631,47 +631,29 @@ Deno.serve(async (req) => {
       return { ...r, domain, tier, scrapeOrder: tier };
     }).sort((a, b) => a.scrapeOrder - b.scrapeOrder);
 
-    // Scrape via OMNISPIDER orchestrator (multi-engine: HTTP + Wayback fallback +
-    // sitemap discovery + Katana-style link extraction + robots.txt policy gate +
-    // BFS frontier). Replaces the previous flat top-N fetch.
-    const seedUrls = scoredResults.slice(0, 10).map((r) => r.url);
-    const allowedDomains = Array.from(new Set(scoredResults.slice(0, 14).map((r) => r.domain)));
-    const isTemporal = /archive|deleted|historical|wayback|since|before|after|2019|2020|2021|2022|2023|2024/i.test(qLower);
-    const omni = await omnispiderCrawl({
-      seeds: seedUrls,
-      allowedDomains,
-      maxPages: 12,
-      maxDepth: 1,
-      respectRobots: true,
-      useSitemaps: true,
-      useWayback: true,
-      useKatana: true,
-      perDomainDelayMs: 250,
-      timeoutMs: 8000,
-      totalBudgetMs: 22000,
-    });
-    void isTemporal;
-    console.log(`[ZOPHIEL] Omnispider crawled ${omni.pages.length} pages in ${omni.durationMs}ms — engines:`, omni.engineCounts);
+    // Direct parallel scrape of top-N seeds (omnispider moved to zophiel-search).
+    const seedResults = scoredResults.slice(0, 12);
+    const scrapeResults: PromiseSettledResult<ScrapedSource | null>[] = await Promise.all(
+      seedResults.map(async (r): Promise<PromiseSettledResult<ScrapedSource | null>> => {
+        const content = await scrapePage(r.url);
+        if (!content) return { status: 'fulfilled', value: null };
+        const hostile = HOSTILE_DOMAINS.has(r.domain);
+        const provenanceScore = r.tier === 1 ? 0.95 : r.tier === 2 ? 0.75 : r.tier === 3 ? 0.6 : 0.35;
+        return {
+          status: 'fulfilled',
+          value: {
+            url: r.url,
+            title: r.title || r.domain,
+            domain: r.domain,
+            content,
+            tier: r.tier,
+            provenanceScore,
+            hostile,
+          },
+        };
+      })
+    );
 
-    const scrapeResults: PromiseSettledResult<ScrapedSource | null>[] = omni.pages.map((p: OmniCrawledPage) => {
-      const domain = extractDomain(p.finalUrl || p.url);
-      const tier = getSourceTier(domain);
-      const hostile = HOSTILE_DOMAINS.has(domain);
-      let provenanceScore = tier === 1 ? 0.95 : tier === 2 ? 0.75 : tier === 3 ? 0.6 : 0.35;
-      if (p.engine === 'archive') provenanceScore = Math.min(provenanceScore, 0.7);
-      return {
-        status: 'fulfilled',
-        value: {
-          url: p.finalUrl || p.url,
-          title: p.title || domain,
-          domain,
-          content: p.engine === 'archive' ? `[ARCHIVED SNAPSHOT] ${p.text}` : p.text,
-          tier,
-          provenanceScore,
-          hostile,
-        } as ScrapedSource,
-      };
-    });
 
     // Add OSINT results as virtual scraped sources
     for (const osint of osintResults) {
