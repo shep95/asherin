@@ -1,17 +1,6 @@
-import { isValidByok } from '../_shared/zophielByokRouter.ts';
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { omnispiderCrawl, type OmniCrawledPage } from "../_shared/omnispider.ts";
-
-// Default platform models (used when no BYOK provided). When the user supplies
-// a Google BYOK key, we substitute their model id into these URLs.
-const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
-const geminiStreamUrlFor = (model: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
-const geminiNonStreamUrlFor = (model: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-
-const GEMINI_URL = geminiStreamUrlFor(GEMINI_DEFAULT_MODEL);
-const GEMINI_NON_STREAM = geminiNonStreamUrlFor(GEMINI_DEFAULT_MODEL);
+// NOTE: Omnispider crawler moved to zophiel-search (web search) per spec.
+// Deep Search is now AI-free AND key-free — pure source aggregation.
 
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Integrity Validation
@@ -226,38 +215,7 @@ async function scrapePage(url: string, timeoutMs = 8000): Promise<string | null>
   } catch { return null; }
 }
 
-// ── Clarifying Questions Generator ───────────────────────────────────────────
-async function generateClarifyingQuestions(query: string, apiKey: string, nonStreamUrl: string = GEMINI_NON_STREAM): Promise<{ questions: { id: string; question: string; options: string[] }[] }> {
-  const resp = await fetch(`${nonStreamUrl}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: `You are ZOPHIEL, a precision intelligence engine operating under the Immutable Truth Graph Protocol. The user wants a deep research report on: "${query}"
-
-Before searching, generate 2-3 short clarifying questions that would dramatically improve search precision. Focus on:
-- What specific OUTCOME or DECISION this intelligence will drive
-- What DOMAIN constraints matter (geographic, temporal, industry-specific)
-- What DEPTH of analysis is needed (surface overview vs forensic deep-dive)
-
-Each question should have 3-4 quick-select options.
-
-Return ONLY valid JSON (no markdown, no code fences):
-{
-  "questions": [
-    { "id": "q1", "question": "What specific aspect interests you most?", "options": ["Technical details", "Market analysis", "Historical context", "Future predictions"] },
-    { "id": "q2", "question": "What timeframe matters?", "options": ["Last 30 days", "Last 6 months", "Last year", "All time"] }
-  ]
-}` }] }],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
-    }),
-  });
-
-  if (!resp.ok) throw new Error('Failed to generate questions');
-  const data = await resp.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-  const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-  return JSON.parse(cleaned);
-}
+// (Clarifying-questions generator removed — Deep Search is now AI-free.)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CROSS-SOURCE VALIDATION ENGINE
@@ -308,7 +266,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { query, action, answers, byok } = body;
+    const { query, answers } = body;
 
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
       return new Response(
@@ -317,45 +275,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // STRICT BYOK GATE — non-admins MUST supply BYOK; admin may use platform key.
-    let _resolved;
-    try {
-      _resolved = await (await import('../_shared/adminGate.ts')).resolveKey(req, byok);
-    } catch (e: any) {
-      return (await import('../_shared/adminGate.ts')).byokErrorResponse(e, corsHeaders);
-    }
-    const useGoogleByok = _resolved.mode === 'byok' && _resolved.byok?.provider === 'google';
-    const GEMINI_KEY = useGoogleByok ? _resolved.byok!.apiKey : (_resolved.geminiKey || '');
-    const ACTIVE_MODEL = useGoogleByok ? _resolved.byok!.model : GEMINI_DEFAULT_MODEL;
-    const ACTIVE_STREAM_URL = geminiStreamUrlFor(ACTIVE_MODEL);
-    const ACTIVE_NON_STREAM_URL = geminiNonStreamUrlFor(ACTIVE_MODEL);
-    if (!GEMINI_KEY) {
-      return new Response(
-        JSON.stringify({ error: 'BYOK_REQUIRED', message: 'Add your Gemini API key.' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    if (isValidByok(byok) && byok.provider !== 'google') {
-      console.warn('[ZOPHIEL] BYOK provider', byok.provider, 'not supported in deep-search streaming — using platform Gemini.');
-    }
-
     const trimmed = query.trim();
-
-    // ── Action: refine → return clarifying questions ──
-    if (action === 'refine') {
-      console.log('[ZOPHIEL] Generating semantic clarification for:', trimmed);
-      try {
-        const result = await generateClarifyingQuestions(trimmed, GEMINI_KEY, ACTIVE_NON_STREAM_URL);
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } catch (e) {
-        console.error('Refine error:', e);
-        return new Response(JSON.stringify({ questions: [] }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    }
+    // Deep Search is OPEN — no BYOK, no Gemini, no clarifying-question step.
 
     // ── Build enhanced query from answers ──
     let enhancedQuery = trimmed;
@@ -679,47 +600,29 @@ Deno.serve(async (req) => {
       return { ...r, domain, tier, scrapeOrder: tier };
     }).sort((a, b) => a.scrapeOrder - b.scrapeOrder);
 
-    // Scrape via OMNISPIDER orchestrator (multi-engine: HTTP + Wayback fallback +
-    // sitemap discovery + Katana-style link extraction + robots.txt policy gate +
-    // BFS frontier). Replaces the previous flat top-N fetch.
-    const seedUrls = scoredResults.slice(0, 10).map((r) => r.url);
-    const allowedDomains = Array.from(new Set(scoredResults.slice(0, 14).map((r) => r.domain)));
-    const isTemporal = /archive|deleted|historical|wayback|since|before|after|2019|2020|2021|2022|2023|2024/i.test(qLower);
-    const omni = await omnispiderCrawl({
-      seeds: seedUrls,
-      allowedDomains,
-      maxPages: 12,
-      maxDepth: 1,
-      respectRobots: true,
-      useSitemaps: true,
-      useWayback: true,
-      useKatana: true,
-      perDomainDelayMs: 250,
-      timeoutMs: 8000,
-      totalBudgetMs: 22000,
-    });
-    void isTemporal;
-    console.log(`[ZOPHIEL] Omnispider crawled ${omni.pages.length} pages in ${omni.durationMs}ms — engines:`, omni.engineCounts);
+    // Direct parallel scrape of top-N seeds (omnispider moved to zophiel-search).
+    const seedResults = scoredResults.slice(0, 12);
+    const scrapeResults: PromiseSettledResult<ScrapedSource | null>[] = await Promise.all(
+      seedResults.map(async (r): Promise<PromiseSettledResult<ScrapedSource | null>> => {
+        const content = await scrapePage(r.url);
+        if (!content) return { status: 'fulfilled', value: null };
+        const hostile = HOSTILE_DOMAINS.has(r.domain);
+        const provenanceScore = r.tier === 1 ? 0.95 : r.tier === 2 ? 0.75 : r.tier === 3 ? 0.6 : 0.35;
+        return {
+          status: 'fulfilled',
+          value: {
+            url: r.url,
+            title: r.title || r.domain,
+            domain: r.domain,
+            content,
+            tier: r.tier,
+            provenanceScore,
+            hostile,
+          },
+        };
+      })
+    );
 
-    const scrapeResults: PromiseSettledResult<ScrapedSource | null>[] = omni.pages.map((p: OmniCrawledPage) => {
-      const domain = extractDomain(p.finalUrl || p.url);
-      const tier = getSourceTier(domain);
-      const hostile = HOSTILE_DOMAINS.has(domain);
-      let provenanceScore = tier === 1 ? 0.95 : tier === 2 ? 0.75 : tier === 3 ? 0.6 : 0.35;
-      if (p.engine === 'archive') provenanceScore = Math.min(provenanceScore, 0.7);
-      return {
-        status: 'fulfilled',
-        value: {
-          url: p.finalUrl || p.url,
-          title: p.title || domain,
-          domain,
-          content: p.engine === 'archive' ? `[ARCHIVED SNAPSHOT] ${p.text}` : p.text,
-          tier,
-          provenanceScore,
-          hostile,
-        } as ScrapedSource,
-      };
-    });
 
     // Add OSINT results as virtual scraped sources
     for (const osint of osintResults) {

@@ -1,4 +1,5 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { omnispiderCrawl, type OmniCrawledPage } from "../_shared/omnispider.ts";
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Credibility & Provenance System
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1399,7 +1400,58 @@ Deno.serve(async (req) => {
       return a.tier - b.tier;
     });
 
-
+    // ═══════════════════════════════════════════════════════════════════════
+    // OMNISPIDER ENRICHMENT — shep95/web-crawlers integration
+    // Multi-engine crawl (HTTP + Wayback fallback + sitemap discovery +
+    // Katana-style link extraction + robots.txt gate) on top results, used
+    // to enhance snippets, harvest titles, and surface archived snapshots.
+    // ═══════════════════════════════════════════════════════════════════════
+    let omniEngineCounts: Record<string, number> = {};
+    let omniCrawledCount = 0;
+    try {
+      const onionClearnet = filtered.filter(r => !r.onion).slice(0, 10);
+      if (onionClearnet.length > 0) {
+        const seeds = onionClearnet.map(r => r.url);
+        const allowedDomains = Array.from(new Set(onionClearnet.map(r => extractDomain(r.url))));
+        const omni = await omnispiderCrawl({
+          seeds,
+          allowedDomains,
+          maxPages: 10,
+          maxDepth: 1,
+          respectRobots: true,
+          useSitemaps: false,
+          useWayback: true,
+          useKatana: true,
+          perDomainDelayMs: 250,
+          timeoutMs: 6000,
+          totalBudgetMs: 15000,
+        });
+        omniEngineCounts = omni.engineCounts || {};
+        omniCrawledCount = omni.pages.length;
+        // Build a quick lookup by URL/domain to merge crawled text into snippets
+        const byUrl = new Map<string, OmniCrawledPage>();
+        for (const p of omni.pages) {
+          byUrl.set(p.url, p);
+          if (p.finalUrl && p.finalUrl !== p.url) byUrl.set(p.finalUrl, p);
+        }
+        for (const r of filtered) {
+          const hit = byUrl.get(r.url);
+          if (!hit || !hit.text) continue;
+          const extra = hit.text.replace(/\s+/g, ' ').trim().slice(0, 420);
+          if (extra && extra.length > (r.snippet?.length || 0)) {
+            r.snippet = extra;
+          }
+          if (!r.title || r.title === extractDomain(r.url)) {
+            if (hit.title) r.title = hit.title;
+          }
+          if (hit.engine === 'archive') {
+            (r as any).archivedSnapshot = true;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[ZOPHIEL] Omnispider enrichment failed (non-fatal):', e);
+    }
 
 
     // Boost mode-relevant domains (secondary sort)
@@ -1537,6 +1589,8 @@ Deno.serve(async (req) => {
         entityCounts,
         entityEdges: edges.slice(0, 100),
         pantheonVersion: 4,
+        // Omnispider (shep95/web-crawlers) enrichment telemetry
+        omnispider: { crawled: omniCrawledCount, engines: omniEngineCounts },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
