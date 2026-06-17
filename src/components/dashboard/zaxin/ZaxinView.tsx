@@ -761,21 +761,23 @@ const ConfigScreen = () => {
 
 const ZaxinView = () => {
   const [screen, setScreen] = useState<ZaxinScreen>("overview");
+  const intel = useZaxinIntel();
+  const gridConnected = Boolean(loadGrid().url);
 
   const render = () => {
     switch (screen) {
-      case "overview": return <OverviewScreen />;
-      case "alerts": return <AlertsScreen />;
-      case "hunt": return <HuntScreen />;
-      case "pcap": return <PcapScreen />;
-      case "cases": return <CasesScreen />;
-      case "grid": return <GridScreen />;
-      case "detections": return <DetectionsScreen />;
-      case "zeek": return <ZeekScreen />;
-      case "endpoint": return <EndpointScreen />;
-      case "dashboards": return <DashboardsScreen />;
-      case "downloads": return <DownloadsScreen />;
-      case "config": return <ConfigScreen />;
+      case "overview":   return <OverviewScreen intel={intel} />;
+      case "alerts":     return <AlertsScreen intel={intel} />;
+      case "hunt":       return <HuntScreen intel={intel} />;
+      case "pcap":       return <PcapScreen />;
+      case "cases":      return <CasesScreen />;
+      case "grid":       return <GridScreen />;
+      case "detections": return <DetectionsScreen intel={intel} />;
+      case "zeek":       return <ZeekScreen />;
+      case "endpoint":   return <EndpointScreen />;
+      case "dashboards": return <DashboardsScreen intel={intel} />;
+      case "downloads":  return <DownloadsScreen intel={intel} />;
+      case "config":     return <ConfigScreen />;
     }
   };
 
