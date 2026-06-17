@@ -215,38 +215,7 @@ async function scrapePage(url: string, timeoutMs = 8000): Promise<string | null>
   } catch { return null; }
 }
 
-// ── Clarifying Questions Generator ───────────────────────────────────────────
-async function generateClarifyingQuestions(query: string, apiKey: string, nonStreamUrl: string = GEMINI_NON_STREAM): Promise<{ questions: { id: string; question: string; options: string[] }[] }> {
-  const resp = await fetch(`${nonStreamUrl}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: `You are ZOPHIEL, a precision intelligence engine operating under the Immutable Truth Graph Protocol. The user wants a deep research report on: "${query}"
-
-Before searching, generate 2-3 short clarifying questions that would dramatically improve search precision. Focus on:
-- What specific OUTCOME or DECISION this intelligence will drive
-- What DOMAIN constraints matter (geographic, temporal, industry-specific)
-- What DEPTH of analysis is needed (surface overview vs forensic deep-dive)
-
-Each question should have 3-4 quick-select options.
-
-Return ONLY valid JSON (no markdown, no code fences):
-{
-  "questions": [
-    { "id": "q1", "question": "What specific aspect interests you most?", "options": ["Technical details", "Market analysis", "Historical context", "Future predictions"] },
-    { "id": "q2", "question": "What timeframe matters?", "options": ["Last 30 days", "Last 6 months", "Last year", "All time"] }
-  ]
-}` }] }],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
-    }),
-  });
-
-  if (!resp.ok) throw new Error('Failed to generate questions');
-  const data = await resp.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-  const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-  return JSON.parse(cleaned);
-}
+// (Clarifying-questions generator removed — Deep Search is now AI-free.)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CROSS-SOURCE VALIDATION ENGINE
