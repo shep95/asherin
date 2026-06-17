@@ -362,7 +362,7 @@ const Index = () => {
                 {[
                   { v: 30, suf: "+", l: "Intelligence tools your competitors don't have" },
                   { v: 14, suf: "", l: "Cross-validation passes per query" },
-                  { v: 9, suf: "", l: "AI providers, your key, your choice" },
+                  { v: 30, suf: "+", l: "AI providers, your key, your choice" },
                   { v: 0, suf: "", l: "Dollars. Free forever. No catch." },
                 ].map((s) => (
                   <div key={s.l} className="bg-background/40 px-5 py-5">
