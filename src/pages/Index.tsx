@@ -268,7 +268,7 @@ const Index = () => {
   return (
     <LandingBackground>
       <ScrollProgressBar />
-      <MobileStickyCTA />
+      <MobileStickyCTA isAuthenticated={!!user} onAuthClick={() => { setAuthIsLogin(false); setShowAuth(true); }} />
 
       {/* Header */}
       <Header />
