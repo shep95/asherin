@@ -1,4 +1,5 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { omnispiderCrawl, type OmniCrawledPage } from "../_shared/omnispider.ts";
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Credibility & Provenance System
 // ══════════════════════════════════════════════════════════════════════════════
