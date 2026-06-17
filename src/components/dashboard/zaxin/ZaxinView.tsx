@@ -337,19 +337,31 @@ const HelpCard = ({ screen }: { screen: ZaxinScreen }) => {
 };
 
 
-const NAV: { id: ZaxinScreen; label: string; icon: React.ElementType }[] = [
-  { id: "overview", label: "Overview", icon: Shield },
-  { id: "alerts", label: "Alerts", icon: Bell },
-  { id: "hunt", label: "Hunt", icon: Search },
-  { id: "pcap", label: "PCAP", icon: Network },
-  { id: "cases", label: "Cases", icon: Briefcase },
-  { id: "grid", label: "Grid Nodes", icon: Server },
-  { id: "detections", label: "Detection Rules", icon: Radar },
-  { id: "zeek", label: "Zeek Logs", icon: ScrollText },
-  { id: "endpoint", label: "Endpoint (Wazuh)", icon: Cpu },
-  { id: "dashboards", label: "Dashboards", icon: Activity },
-  { id: "downloads", label: "ISO & Keys", icon: Download },
-  { id: "config", label: "Configuration", icon: SettingsIcon },
+const NAV: { id: ZaxinScreen; label: string; icon: React.ElementType; group?: string }[] = [
+  { id: "overview", label: "Overview", icon: Shield, group: "Monitor" },
+  { id: "alerts", label: "Alerts", icon: Bell, group: "Monitor" },
+  { id: "dashboards", label: "Dashboards", icon: Activity, group: "Monitor" },
+  { id: "grafana", label: "Grafana", icon: BarChart3, group: "Monitor" },
+  { id: "attck", label: "ATT&CK Navigator", icon: Crosshair, group: "Monitor" },
+
+  { id: "hunt", label: "Hunt", icon: Search, group: "Investigate" },
+  { id: "pcap", label: "PCAP", icon: Network, group: "Investigate" },
+  { id: "zeek", label: "Zeek Logs", icon: ScrollText, group: "Investigate" },
+  { id: "osquery", label: "osquery / Fleet", icon: Terminal, group: "Investigate" },
+  { id: "strelka", label: "Strelka Files", icon: FlaskConical, group: "Investigate" },
+  { id: "cases", label: "Cases (TheHive)", icon: Briefcase, group: "Investigate" },
+
+  { id: "detections", label: "Detection Rules", icon: Radar, group: "Detect" },
+  { id: "sigma", label: "Sigma Rules", icon: BookOpen, group: "Detect" },
+  { id: "cortex", label: "Cortex Analyzers", icon: Workflow, group: "Detect" },
+  { id: "endpoint", label: "Endpoint (Wazuh)", icon: Cpu, group: "Detect" },
+
+  { id: "response", label: "Response & Containment", icon: Zap, group: "Respond" },
+
+  { id: "grid", label: "Grid Nodes", icon: Server, group: "Operate" },
+  { id: "curator", label: "Index Lifecycle", icon: Trash2, group: "Operate" },
+  { id: "downloads", label: "ISO & Keys", icon: Download, group: "Operate" },
+  { id: "config", label: "Configuration", icon: SettingsIcon, group: "Operate" },
 ];
 
 const Stat = ({ label, value, sub, icon: Icon, tone = "default" }: {
