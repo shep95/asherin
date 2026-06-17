@@ -77,6 +77,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   "nomad": Crosshair,
   "axrlen": Brain,
   "zerlal": Shield,
+  "zaxin": Layers,
   "reverse-engineer": Search,
   "file-scrapper": FileText,
   "cipher": Shield,
