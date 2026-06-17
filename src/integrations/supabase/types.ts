@@ -7961,6 +7961,48 @@ export type Database = {
         }
         Relationships: []
       }
+      zaxin_cases: {
+        Row: {
+          case_code: string
+          created_at: string
+          id: string
+          owner: string | null
+          severity: string
+          status: string
+          summary: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_code: string
+          created_at?: string
+          id?: string
+          owner?: string | null
+          severity?: string
+          status?: string
+          summary?: string | null
+          tags?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_code?: string
+          created_at?: string
+          id?: string
+          owner?: string | null
+          severity?: string
+          status?: string
+          summary?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       zeeion_sessions: {
         Row: {
           anomalies: Json | null
