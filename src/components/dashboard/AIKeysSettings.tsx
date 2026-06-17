@@ -11,6 +11,8 @@ export interface ProviderConfig {
   placeholder: string;
   helpUrl: string;
   helpText: string;
+  /** Country of origin — drives the country filter in Settings. */
+  country: string;
   models: { id: string; name: string; description: string }[];
   /** Platform-hosted provider — no user API key required. Aureon-managed. */
   isPlatform?: boolean;
