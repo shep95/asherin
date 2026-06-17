@@ -176,6 +176,115 @@ const HELP: Record<ZaxinScreen, { what: string; how: string[]; legend: { term: s
       { term: "MISP / TheHive / Cortex", means: "Other tools we plug into — threat sharing, case management, automated enrichment." },
     ],
   },
+  response: {
+    what: "The trigger pulled. One-click containment actions that reach into your environment and STOP things — isolate a hacked laptop, block a malicious IP at the firewall, kill a process, disable a compromised account.",
+    how: [
+      "Pick the action card matching what you need to stop.",
+      "Type the target (host name, IP, username, file hash, PID).",
+      "Click the red button. The action is sent to your grid and logged forever in the audit table below — you can prove who did what, when.",
+    ],
+    legend: [
+      { term: "Isolate Host", means: "Wazuh Active Response cuts the host off the network (only the manager can talk to it) so the attacker can't move laterally." },
+      { term: "Block IP", means: "Pushes a firewall rule (pfSense/OPNsense/iptables/Palo Alto) to drop all traffic to/from the IP." },
+      { term: "Kill Process", means: "Terminates a running PID on the endpoint via the Wazuh agent." },
+      { term: "Disable User", means: "Locks the account in AD / LDAP / local OS so the attacker can't reuse the credentials." },
+      { term: "Quarantine File", means: "Moves a file by SHA-256 to a sealed quarantine path on every endpoint that has it." },
+      { term: "Audit Log", means: "Every action is stored in your private database — date, target, status, response payload. Forensic-grade chain of custody." },
+    ],
+  },
+  osquery: {
+    what: "Ask every computer in your fleet a SQL question right now — 'show me every running process,' 'list every user,' 'find every file matching this hash.' osquery turns the OS into a database you can query.",
+    how: [
+      "Pick a saved query (process list, open ports, USB devices, persistence keys) or type your own SQL.",
+      "Pick which hosts to ask (all, a group, one).",
+      "Run — results come back in seconds, sortable like a spreadsheet.",
+    ],
+    legend: [
+      { term: "Pack", means: "A bundle of pre-written queries grouped by topic (e.g., 'incident-response', 'compliance', 'vuln-management')." },
+      { term: "Distributed query", means: "A one-shot ad-hoc question — runs once and returns. Different from a 'scheduled query' that runs forever." },
+      { term: "Fleet", means: "The osquery management server — the thing that pushes queries out and collects results." },
+    ],
+  },
+  strelka: {
+    what: "A file scanner on steroids. Every file Zeek extracts from network traffic (PDFs, Office docs, executables, scripts) gets ripped apart by Strelka — embedded objects, macros, exif, hashes, YARA matches.",
+    how: [
+      "Drop a file manually OR let Zeek auto-feed it from sensors.",
+      "Read the scan tree — Strelka shows nested objects (a Word doc containing a macro that downloaded an EXE).",
+      "Click any object to see YARA hits, hashes (MD5/SHA1/SHA256), and metadata.",
+    ],
+    legend: [
+      { term: "Scanner", means: "A module that handles one file type (e.g., ScanPe for Windows EXEs, ScanPdf for PDFs)." },
+      { term: "YARA hit", means: "A rule matched — the file contains a known-bad pattern." },
+      { term: "IOC enrichment", means: "Strelka calls Cortex/VirusTotal automatically to score each artifact." },
+    ],
+  },
+  sigma: {
+    what: "Detection rules written in a vendor-neutral YAML format. Write the logic ONCE in Sigma; it compiles down to Elastic, Splunk, Suricata, Wazuh queries — no rewrites.",
+    how: [
+      "Browse the live SigmaHQ rule repository (8000+ public rules) by category.",
+      "Enable a rule — Zaxin auto-converts it for every backend in your grid.",
+      "Write your own rule in the editor; the converter shows the Elastic and Wazuh equivalents in real time.",
+    ],
+    legend: [
+      { term: "Logsource", means: "The data source the rule expects (e.g., 'product: windows, service: security')." },
+      { term: "Detection", means: "The match logic — fields and values that must appear." },
+      { term: "Level", means: "Severity tag — informational, low, medium, high, critical." },
+      { term: "Backend", means: "The query language Sigma is compiled to (Splunk SPL, Elastic ES|QL, etc.)." },
+    ],
+  },
+  cortex: {
+    what: "Auto-enrichment. When an IOC (an IP, a hash, a domain) lands in your case, Cortex runs it through 100+ analyzers (VirusTotal, AbuseIPDB, Shodan, Greynoise, MalwareBazaar) and stamps the result.",
+    how: [
+      "Configure analyzer API keys once (per service).",
+      "Right-click any IOC in a Case to run an analyzer.",
+      "Or build a Responder — auto-run analyzers on every new alert and tag the case.",
+    ],
+    legend: [
+      { term: "Analyzer", means: "A read-only enrichment module (lookup-only, no changes)." },
+      { term: "Responder", means: "An action module (block, isolate, notify) — read-write." },
+      { term: "TAXII / MISP", means: "Threat-feed protocols Cortex can pull IOCs from for community sharing." },
+    ],
+  },
+  grafana: {
+    what: "Custom visual dashboards backed by your live telemetry. Build charts of anything Zeek/Suricata/Wazuh records — alerts per hour, top countries, JA3 fingerprints, DNS queries by domain.",
+    how: [
+      "Open a dashboard or import a community JSON.",
+      "Pick a time range (last hour, 24h, 7d).",
+      "Add a panel: pick the data source, write the query, choose the chart type.",
+    ],
+    legend: [
+      { term: "Datasource", means: "Where Grafana pulls from — Elasticsearch (logs), Prometheus (metrics), Loki (lightweight logs)." },
+      { term: "Panel", means: "One chart on a dashboard — line, bar, table, gauge, heatmap." },
+      { term: "Annotation", means: "Vertical line on a chart marking an event (e.g., 'deploy', 'incident')." },
+    ],
+  },
+  attck: {
+    what: "The MITRE ATT&CK Navigator. A heatmap of every known attacker technique color-coded by your coverage — green = you'd detect it, red = you're blind, yellow = partial.",
+    how: [
+      "Each cell is one technique (e.g., T1059.001 = PowerShell). Click it for the full Wikipedia of the technique.",
+      "Hover to see which of your Sigma/Suricata rules cover that technique.",
+      "Export your coverage map as a layer JSON — share with auditors or board.",
+    ],
+    legend: [
+      { term: "Tactic", means: "Why an attacker does something (Initial Access, Execution, Persistence, etc.)." },
+      { term: "Technique", means: "How they do it (Phishing, PowerShell, Scheduled Task)." },
+      { term: "Sub-technique", means: "A more specific variant (T1059.001 = PowerShell)." },
+      { term: "Coverage", means: "Whether you'd detect this technique today (green/yellow/red)." },
+    ],
+  },
+  curator: {
+    what: "The janitor for your log indices. Decides what gets kept, what gets compressed, what gets deleted. Without curator, your disk fills up and the platform dies.",
+    how: [
+      "Set retention per index (e.g., conn.log 90 days, dns.log 30 days, http.log 7 days).",
+      "Watch the disk meter — green = healthy, yellow = warm, red = full (oldest data starts auto-deleting).",
+      "Force a snapshot before deleting if you need to archive to cold storage.",
+    ],
+    legend: [
+      { term: "Hot / Warm / Cold", means: "Index temperature — hot = recent + searchable fast, warm = older + slower, cold = archived." },
+      { term: "ILM policy", means: "Index Lifecycle Management — the rules that move indices through hot→warm→cold→delete." },
+      { term: "Snapshot", means: "A point-in-time backup of an index — restorable later." },
+    ],
+  },
 };
 
 const HelpCard = ({ screen }: { screen: ZaxinScreen }) => {
