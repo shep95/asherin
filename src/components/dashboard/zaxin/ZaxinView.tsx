@@ -795,11 +795,19 @@ const ZaxinView = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/[0.06] border border-emerald-500/[0.12]">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[9px] text-emerald-400/80 uppercase tracking-wider">Grid Online</span>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border ${intel.error ? "bg-red-500/[0.06] border-red-500/[0.15]" : intel.loading ? "bg-yellow-500/[0.06] border-yellow-500/[0.15]" : "bg-emerald-500/[0.06] border-emerald-500/[0.12]"}`}>
+            <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${intel.error ? "bg-red-400" : intel.loading ? "bg-yellow-400" : "bg-emerald-400"}`} />
+            <span className={`text-[9px] uppercase tracking-wider ${intel.error ? "text-red-400/80" : intel.loading ? "text-yellow-400/80" : "text-emerald-400/80"}`}>
+              {intel.error ? "Feed Error" : intel.loading ? "Loading Feeds" : "Live Feeds Online"}
+            </span>
           </div>
-          <button className="p-2 rounded-lg hover:bg-foreground/[0.03] transition-colors">
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border ${gridConnected ? "bg-emerald-500/[0.06] border-emerald-500/[0.12]" : "bg-foreground/[0.03] border-border/[0.08]"}`}>
+            <Server className={`h-2.5 w-2.5 ${gridConnected ? "text-emerald-400/80" : "text-muted-foreground/40"}`} />
+            <span className={`text-[9px] uppercase tracking-wider ${gridConnected ? "text-emerald-400/80" : "text-muted-foreground/50"}`}>
+              {gridConnected ? "Grid Connected" : "Grid Not Connected"}
+            </span>
+          </div>
+          <button onClick={intel.refresh} className="p-2 rounded-lg hover:bg-foreground/[0.03] transition-colors" title="Refresh live feeds">
             <Bell className="h-3.5 w-3.5 text-muted-foreground/40" />
           </button>
         </div>
