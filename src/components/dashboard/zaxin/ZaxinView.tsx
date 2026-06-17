@@ -279,382 +279,505 @@ const Row = ({ cells, tone }: { cells: (string | React.ReactNode)[]; tone?: "cri
   );
 };
 
-const OverviewScreen = () => (
-  <div className="space-y-4">
-    <div className="grid grid-cols-4 gap-3">
-      <Stat label="Open Alerts" value="247" sub="+12 last hour" icon={Bell} tone="alert" />
-      <Stat label="PCAP Captured" value="14.2 TB" sub="rolling 7d" icon={Network} />
-      <Stat label="Grid Nodes" value="6 / 6" sub="all healthy" icon={Server} tone="ok" />
-      <Stat label="Active Cases" value="9" sub="3 escalated" icon={Briefcase} />
+// ============================================================
+// LIVE DATA LAYER
+// ============================================================
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+type IntelAlert = { sig: string; src: string; dst: string; eng: string; t: string; sev: "critical"|"high"|"med"|"low"; ref?: string };
+type IntelDet = { rule: string; type: string; sid: string; hits: string; sev: "crit"|"high"|"med"|"low"; threat?: string; first?: string };
+type IntelHost = { host: string; count: number; label: string };
+type IntelRelease = { tag: string; name: string; publishedAt: string; htmlUrl: string; assets: { name: string; size: number; downloadUrl: string; downloads: number }[] };
+type IntelMitre = { tactic: string; techniques: number };
+
+interface IntelBundle {
+  alerts: IntelAlert[];
+  detections: IntelDet[];
+  topHosts: IntelHost[];
+  releases: IntelRelease[];
+  mitre: IntelMitre[];
+}
+
+const FN_BASE = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/zaxin-intel`;
+const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+const useZaxinIntel = () => {
+  const [data, setData] = useState<IntelBundle | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [fetchedAt, setFetchedAt] = useState<number | null>(null);
+
+  const load = async () => {
+    setLoading(true); setError(null);
+    try {
+      const r = await fetch(`${FN_BASE}?action=all`, { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const json = await r.json();
+      setData(json);
+      setFetchedAt(Date.now());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); const i = setInterval(load, 5 * 60 * 1000); return () => clearInterval(i); }, []);
+  return { data, loading, error, fetchedAt, refresh: load };
+};
+
+const formatBytes = (n: number) => n < 1024 ? `${n} B` : n < 1024**2 ? `${(n/1024).toFixed(1)} KB` : n < 1024**3 ? `${(n/1024**2).toFixed(1)} MB` : `${(n/1024**3).toFixed(2)} GB`;
+const timeAgo = (iso: string) => {
+  if (!iso) return "";
+  const ms = Date.now() - new Date(iso).getTime();
+  if (isNaN(ms)) return iso;
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+};
+
+const LoadingNote = () => (
+  <div className="text-[10px] text-muted-foreground/40 uppercase tracking-widest py-4 text-center">Fetching live intelligence…</div>
+);
+const ErrorNote = ({ msg, onRetry }: { msg: string; onRetry: () => void }) => (
+  <div className="text-[10px] py-4 px-3 text-center">
+    <div className="text-red-400/80">Live feed unavailable: {msg}</div>
+    <button onClick={onRetry} className="mt-2 text-foreground/70 underline">Retry</button>
+  </div>
+);
+const EmptyNote = ({ msg }: { msg: string }) => (
+  <div className="text-[10px] text-muted-foreground/40 uppercase tracking-widest py-6 text-center">{msg}</div>
+);
+
+// ============================================================
+// SELF-HOSTED GRID CONFIG (localStorage) — no fake values
+// ============================================================
+interface GridCfg { url: string; apiKey: string; }
+const GRID_KEY = "zaxin.gridCfg";
+const loadGrid = (): GridCfg => {
+  try { return JSON.parse(localStorage.getItem(GRID_KEY) || '{"url":"","apiKey":""}'); }
+  catch { return { url: "", apiKey: "" }; }
+};
+const saveGrid = (c: GridCfg) => localStorage.setItem(GRID_KEY, JSON.stringify(c));
+
+const GridNotConnected = ({ moduleName, what }: { moduleName: string; what: string }) => (
+  <div className="rounded-lg border border-border/[0.08] bg-foreground/[0.015] p-8 text-center backdrop-blur-md">
+    <Server className="h-6 w-6 text-foreground/30 mx-auto mb-3" />
+    <div className="text-[11px] tracking-[0.15em] uppercase text-foreground/80 mb-1.5">{moduleName} requires a connected grid</div>
+    <div className="text-[10px] text-muted-foreground/50 max-w-md mx-auto leading-relaxed mb-4">
+      {what} The data here comes from your live, self-hosted Security Onion deployment. Connect your grid URL and API key in <span className="text-foreground/70">Configuration</span> to populate this view.
     </div>
-    <div className="grid grid-cols-3 gap-3">
-      <Panel title="Detection Engines">
-        {[
-          { name: "Suricata", v: "7.0.7", ok: true },
-          { name: "Zeek", v: "6.0.4", ok: true },
-          { name: "Stenographer", v: "1.0.1", ok: true },
-          { name: "Wazuh Manager", v: "4.7.2", ok: true },
-          { name: "Strelka", v: "0.24.04", ok: false },
-        ].map(e => (
-          <div key={e.name} className="flex items-center justify-between py-1.5 text-[10px]">
-            <span className="text-foreground/70">{e.name} <span className="text-muted-foreground/40">{e.v}</span></span>
-            {e.ok ? <CheckCircle2 className="h-3 w-3 text-emerald-400/70" /> : <AlertTriangle className="h-3 w-3 text-yellow-400/70" />}
-          </div>
-        ))}
-      </Panel>
-      <Panel title="Top Source IPs">
-        {[["185.220.101.47","TOR Exit","58"],["45.142.214.219","Scanner","41"],["103.97.177.21","C2 Suspected","27"],["94.156.71.205","Bruteforce","19"],["62.197.136.18","Recon","11"]].map(r => (
-          <div key={r[0]} className="grid grid-cols-3 py-1.5 text-[10px] gap-2">
-            <span className="text-foreground/80 font-mono">{r[0]}</span>
-            <span className="text-muted-foreground/50">{r[1]}</span>
-            <span className="text-right text-foreground/60">{r[2]}</span>
-          </div>
-        ))}
-      </Panel>
-      <Panel title="MITRE ATT&CK Coverage">
-        {[["Initial Access","82%"],["Execution","91%"],["Persistence","74%"],["C2","88%"],["Exfiltration","69%"]].map(r => (
-          <div key={r[0]} className="py-1.5">
-            <div className="flex justify-between text-[10px] text-foreground/70 mb-1">
-              <span>{r[0]}</span><span className="text-muted-foreground/50">{r[1]}</span>
-            </div>
-            <div className="h-1 rounded-full bg-foreground/[0.04] overflow-hidden">
-              <div className="h-full bg-foreground/40" style={{ width: r[1] }} />
-            </div>
-          </div>
-        ))}
-      </Panel>
-    </div>
+    <div className="text-[9px] text-muted-foreground/30 uppercase tracking-widest">No simulated data is shown</div>
   </div>
 );
 
-const AlertsScreen = () => (
-  <Panel title="NIDS Alerts" desc="Live Suricata + Zeek notice stream">
+// ============================================================
+// SCREENS
+// ============================================================
+const OverviewScreen = ({ intel }: { intel: ReturnType<typeof useZaxinIntel> }) => {
+  const [caseCount, setCaseCount] = useState<number | null>(null);
+  useEffect(() => {
+    (async () => {
+      const { count } = await supabase.from("zaxin_cases").select("id", { count: "exact", head: true }).neq("status", "closed");
+      setCaseCount(count ?? 0);
+    })();
+  }, []);
+
+  const grid = loadGrid();
+  const gridConnected = Boolean(grid.url);
+  const d = intel.data;
+  const critCount = d?.alerts.filter(a => a.sev === "critical").length ?? 0;
+  const totalAlerts = d?.alerts.length ?? 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-4 gap-3">
+        <Stat label="Live Threat Alerts" value={intel.loading ? "…" : String(totalAlerts)} sub={`${critCount} critical · URLhaus live`} icon={Bell} tone={critCount > 0 ? "alert" : "default"} />
+        <Stat label="Active IOCs (24h)" value={intel.loading ? "…" : String(d?.detections.length ?? 0)} sub="ThreatFox live feed" icon={Radar} />
+        <Stat label="Your Open Cases" value={caseCount === null ? "…" : String(caseCount)} sub="Live from your DB" icon={Briefcase} />
+        <Stat label="Grid Connection" value={gridConnected ? "ON" : "OFF"} sub={gridConnected ? grid.url.replace(/^https?:\/\//, "") : "configure to connect"} icon={Server} tone={gridConnected ? "ok" : "default"} />
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <Panel title="Live Threat Hosts" desc="ThreatFox — 3-day window">
+          {intel.loading && <LoadingNote />}
+          {intel.error && <ErrorNote msg={intel.error} onRetry={intel.refresh} />}
+          {!intel.loading && !intel.error && (d?.topHosts.length ? d.topHosts.slice(0, 6).map(h => (
+            <div key={h.host} className="grid grid-cols-3 py-1.5 text-[10px] gap-2">
+              <span className="text-foreground/80 font-mono truncate">{h.host}</span>
+              <span className="text-muted-foreground/50 truncate">{h.label}</span>
+              <span className="text-right text-foreground/60">{h.count}</span>
+            </div>
+          )) : <EmptyNote msg="No hosts in window" />)}
+        </Panel>
+        <Panel title="MITRE ATT&CK — Live" desc="Enterprise techniques per tactic">
+          {intel.loading && <LoadingNote />}
+          {intel.error && <ErrorNote msg={intel.error} onRetry={intel.refresh} />}
+          {d?.mitre.length ? (() => {
+            const max = Math.max(...d.mitre.map(m => m.techniques), 1);
+            return d.mitre.slice(0, 7).map(m => (
+              <div key={m.tactic} className="py-1.5">
+                <div className="flex justify-between text-[10px] text-foreground/70 mb-1">
+                  <span className="capitalize">{m.tactic.replace(/-/g, " ")}</span>
+                  <span className="text-muted-foreground/50">{m.techniques}</span>
+                </div>
+                <div className="h-1 rounded-full bg-foreground/[0.04] overflow-hidden">
+                  <div className="h-full bg-foreground/40" style={{ width: `${(m.techniques / max) * 100}%` }} />
+                </div>
+              </div>
+            ));
+          })() : null}
+        </Panel>
+        <Panel title="Latest Release" desc="GitHub: Security-Onion-Solutions">
+          {intel.loading && <LoadingNote />}
+          {d?.releases.length ? (
+            <div className="text-[10px] space-y-2">
+              <div className="text-foreground/85 font-mono">{d.releases[0].tag}</div>
+              <div className="text-muted-foreground/50">{d.releases[0].name}</div>
+              <div className="text-muted-foreground/40 text-[9px] uppercase tracking-widest">Published {timeAgo(d.releases[0].publishedAt)}</div>
+              <a href={d.releases[0].htmlUrl} target="_blank" rel="noreferrer" className="text-foreground/70 underline text-[10px]">Open on GitHub →</a>
+            </div>
+          ) : null}
+        </Panel>
+      </div>
+      {intel.fetchedAt && (
+        <div className="text-[8px] text-muted-foreground/30 uppercase tracking-widest text-right">
+          Live data · last refresh {timeAgo(new Date(intel.fetchedAt).toISOString())} · auto-refresh 5m
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AlertsScreen = ({ intel }: { intel: ReturnType<typeof useZaxinIntel> }) => (
+  <Panel title="Live Threat Alerts" desc="URLhaus recent malicious URL submissions — abuse.ch">
     <div className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.08] text-[9px] uppercase tracking-wider text-muted-foreground/50">
       <div className="col-span-1">Sev</div>
       <div className="col-span-4">Signature</div>
-      <div className="col-span-2">Source</div>
-      <div className="col-span-2">Dest</div>
-      <div className="col-span-2">Engine</div>
-      <div className="col-span-2">Time</div>
+      <div className="col-span-2">Host</div>
+      <div className="col-span-3">URL</div>
+      <div className="col-span-1">Eng</div>
+      <div className="col-span-1">Seen</div>
     </div>
-    {[
-      { sig: "ET MALWARE Cobalt Strike Beacon", src: "10.0.4.21", dst: "185.220.101.47:443", eng: "Suricata", t: "12s ago", tone: "critical" as const },
-      { sig: "ET POLICY DNS Query to .onion", src: "10.0.2.88", dst: "1.1.1.1", eng: "Suricata", t: "41s ago", tone: "high" as const },
-      { sig: "Zeek SSL::Invalid_Server_Cert", src: "10.0.7.10", dst: "94.156.71.205", eng: "Zeek", t: "1m ago", tone: "med" as const },
-      { sig: "ET SCAN Nmap -sS Window 1024", src: "45.142.214.219", dst: "10.0.0.0/24", eng: "Suricata", t: "2m ago", tone: "med" as const },
-      { sig: "Wazuh: SSH brute force attack", src: "62.197.136.18", dst: "10.0.1.5", eng: "Wazuh", t: "3m ago", tone: "high" as const },
-      { sig: "ET INFO Suspicious User-Agent (curl)", src: "10.0.4.99", dst: "203.0.113.5", eng: "Suricata", t: "5m ago", tone: "low" as const },
-    ].map((a, i) => (
-      <Row key={i} tone={a.tone} cells={[a.sig, a.src, a.dst, a.eng, a.t]} />
-    ))}
+    {intel.loading && <LoadingNote />}
+    {intel.error && <ErrorNote msg={intel.error} onRetry={intel.refresh} />}
+    {!intel.loading && !intel.error && (intel.data?.alerts.length ? intel.data.alerts.map((a, i) => {
+      const dot = a.sev === "critical" ? "bg-red-400" : a.sev === "high" ? "bg-orange-400" : a.sev === "med" ? "bg-yellow-400" : "bg-emerald-400";
+      return (
+        <div key={i} className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.04] text-[10px] text-foreground/70 hover:bg-foreground/[0.02]">
+          <div className="col-span-1 flex items-center"><span className={`w-1.5 h-1.5 rounded-full ${dot}`} /></div>
+          <div className="col-span-4 truncate">{a.sig}</div>
+          <div className="col-span-2 truncate font-mono text-foreground/80">{a.src}</div>
+          <div className="col-span-3 truncate text-muted-foreground/50 font-mono">{a.dst}</div>
+          <div className="col-span-1 text-muted-foreground/60">{a.eng}</div>
+          <div className="col-span-1 text-muted-foreground/50">{timeAgo(a.t)}</div>
+        </div>
+      );
+    }) : <EmptyNote msg="No alerts in feed" />)}
   </Panel>
 );
 
-const HuntScreen = () => {
-  const [q, setQ] = useState('event.dataset:"suricata.alert" AND destination.port:443');
+const HuntScreen = ({ intel }: { intel: ReturnType<typeof useZaxinIntel> }) => {
+  const [q, setQ] = useState("");
+  const filtered = intel.data?.detections.filter(d =>
+    !q || d.rule.toLowerCase().includes(q.toLowerCase()) || d.type.toLowerCase().includes(q.toLowerCase()) || (d.threat ?? "").toLowerCase().includes(q.toLowerCase())
+  ) ?? [];
   return (
     <div className="space-y-3">
-      <Panel title="Threat Hunt Query" desc="Lucene-style — runs across Suricata/Zeek/Wazuh indices">
-        <textarea
+      <Panel title="Threat Hunt" desc="Searches the live ThreatFox IOC feed (last 24h)">
+        <input
           value={q}
           onChange={e => setQ(e.target.value)}
-          className="w-full h-24 bg-background/40 border border-border/[0.08] rounded-md p-3 text-[11px] font-mono text-foreground/80 focus:outline-none focus:border-foreground/20 resize-none"
+          placeholder="Search IOC / malware / threat type (e.g., emotet, ip:port, sha256)"
+          className="w-full bg-background/40 border border-border/[0.08] rounded-md p-3 text-[11px] font-mono text-foreground/80 focus:outline-none focus:border-foreground/20"
         />
-        <div className="flex gap-2 mt-2">
-          <button className="px-3 py-1.5 text-[10px] rounded-md bg-foreground/[0.08] text-foreground/80 hover:bg-foreground/[0.12]">Run Hunt</button>
-          <button className="px-3 py-1.5 text-[10px] rounded-md bg-foreground/[0.04] text-foreground/60 hover:bg-foreground/[0.08]">Save Query</button>
-          <button className="px-3 py-1.5 text-[10px] rounded-md bg-foreground/[0.04] text-foreground/60 hover:bg-foreground/[0.08]">Pivot to PCAP</button>
+        <div className="flex gap-2 mt-2 text-[10px] text-muted-foreground/50">
+          <span>{filtered.length} of {intel.data?.detections.length ?? 0} live IOCs</span>
+          <button onClick={intel.refresh} className="ml-auto px-2 py-0.5 rounded bg-foreground/[0.06] text-foreground/70 hover:bg-foreground/[0.1]">Refresh feed</button>
         </div>
       </Panel>
-      <Panel title="Hunt Results" desc="Aggregated by destination.ip">
-        {[["185.220.101.47",1284,"TOR exit"],["94.156.71.205",841,"Suspected C2"],["45.142.214.219",612,"Scanner"],["203.0.113.5",344,"Unknown"]].map(r => (
-          <div key={r[0] as string} className="grid grid-cols-12 py-2 text-[10px] gap-2 border-b border-border/[0.04]">
-            <div className="col-span-4 font-mono text-foreground/80">{r[0]}</div>
-            <div className="col-span-2 text-right text-foreground/60">{r[1]}</div>
-            <div className="col-span-6 text-muted-foreground/50">{r[2]}</div>
+      <Panel title="Hunt Results">
+        {intel.loading && <LoadingNote />}
+        {intel.error && <ErrorNote msg={intel.error} onRetry={intel.refresh} />}
+        {!intel.loading && !intel.error && (filtered.length ? filtered.slice(0, 50).map((r, i) => (
+          <div key={i} className="grid grid-cols-12 py-2 text-[10px] gap-2 border-b border-border/[0.04]">
+            <div className="col-span-6 font-mono text-foreground/80 truncate">{r.rule}</div>
+            <div className="col-span-2 text-muted-foreground/50">{r.type}</div>
+            <div className="col-span-2 text-muted-foreground/50 truncate">{r.threat}</div>
+            <div className="col-span-2 text-right text-foreground/60">{timeAgo(r.first ?? "")}</div>
           </div>
-        ))}
+        )) : <EmptyNote msg="No matches" />)}
       </Panel>
     </div>
   );
 };
 
 const PcapScreen = () => (
-  <div className="grid grid-cols-3 gap-3">
-    <div className="col-span-2">
-      <Panel title="Full Packet Capture" desc="Stenographer indexed flows — pivot to download .pcap">
-        <div className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.08] text-[9px] uppercase tracking-wider text-muted-foreground/50">
-          <div className="col-span-3">Flow ID</div>
-          <div className="col-span-3">Source → Dest</div>
-          <div className="col-span-2">Proto</div>
-          <div className="col-span-2">Bytes</div>
-          <div className="col-span-2">Duration</div>
+  <GridNotConnected
+    moduleName="Full Packet Capture"
+    what="Stenographer indexes every packet that crosses your sensor — billions of bytes per day."
+  />
+);
+
+const CasesScreen = () => {
+  const [cases, setCases] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState({ title: "", severity: "med", summary: "" });
+  const [showForm, setShowForm] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from("zaxin_cases").select("*").order("created_at", { ascending: false }).limit(50);
+    if (error) toast.error("Failed to load cases: " + error.message);
+    setCases(data ?? []);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const create = async () => {
+    if (!draft.title.trim()) return;
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) { toast.error("Sign in to create cases"); return; }
+    const year = new Date().getFullYear();
+    const code = `C-${year}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+    const { error } = await supabase.from("zaxin_cases").insert({
+      user_id: user.user.id, case_code: code, title: draft.title, summary: draft.summary, severity: draft.severity,
+    });
+    if (error) { toast.error(error.message); return; }
+    setDraft({ title: "", severity: "med", summary: "" });
+    setShowForm(false);
+    toast.success(`Case ${code} created`);
+    load();
+  };
+
+  const updateStatus = async (id: string, status: string) => {
+    const { error } = await supabase.from("zaxin_cases").update({ status }).eq("id", id);
+    if (error) toast.error(error.message); else load();
+  };
+
+  const del = async (id: string) => {
+    const { error } = await supabase.from("zaxin_cases").delete().eq("id", id);
+    if (error) toast.error(error.message); else load();
+  };
+
+  return (
+    <div className="space-y-3">
+      <Panel title="Your Investigation Cases" desc="Persisted in your private database — only you can read these">
+        <div className="flex justify-between mb-3 text-[10px]">
+          <span className="text-muted-foreground/50">{cases.length} cases</span>
+          <button onClick={() => setShowForm(v => !v)} className="px-2.5 py-1 rounded bg-foreground/[0.08] text-foreground/80 hover:bg-foreground/[0.12]">
+            {showForm ? "Cancel" : "+ New case"}
+          </button>
         </div>
-        {[
-          ["F-8821a", "10.0.4.21 → 185.220.101.47:443", "TLS", "1.4 MB", "00:04:12"],
-          ["F-8821b", "10.0.2.88 → 1.1.1.1:53", "DNS", "2.1 KB", "00:00:01"],
-          ["F-8821c", "10.0.7.10 → 94.156.71.205:8443", "TLS", "847 KB", "00:02:30"],
-          ["F-8821d", "45.142.214.219 → 10.0.0.0/24", "TCP-SYN", "12 KB", "00:00:18"],
-        ].map(r => (
-          <Row key={r[0]} cells={r} />
-        ))}
+        {showForm && (
+          <div className="border border-border/[0.08] rounded-md p-3 mb-3 bg-background/40 space-y-2">
+            <input value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder="Case title" className="w-full bg-foreground/[0.04] rounded p-2 text-[11px] text-foreground/85 focus:outline-none" />
+            <textarea value={draft.summary} onChange={e => setDraft({ ...draft, summary: e.target.value })} placeholder="What happened? (optional)" className="w-full bg-foreground/[0.04] rounded p-2 text-[11px] text-foreground/80 h-16 resize-none focus:outline-none" />
+            <div className="flex gap-2 items-center">
+              <select value={draft.severity} onChange={e => setDraft({ ...draft, severity: e.target.value })} className="bg-foreground/[0.04] rounded p-1.5 text-[10px] text-foreground/80 focus:outline-none">
+                <option value="critical">Critical</option><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option>
+              </select>
+              <button onClick={create} className="ml-auto px-3 py-1.5 rounded bg-foreground/[0.1] text-foreground/85 hover:bg-foreground/[0.15] text-[10px]">Create case</button>
+            </div>
+          </div>
+        )}
+        {loading && <LoadingNote />}
+        {!loading && !cases.length && <EmptyNote msg="No cases yet — create your first investigation above" />}
+        {cases.map(c => {
+          const dot = c.severity === "critical" ? "bg-red-400" : c.severity === "high" ? "bg-orange-400" : c.severity === "med" ? "bg-yellow-400" : "bg-emerald-400";
+          return (
+            <div key={c.id} className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.04] text-[10px] text-foreground/70 hover:bg-foreground/[0.02]">
+              <div className="col-span-1 flex items-center"><span className={`w-1.5 h-1.5 rounded-full ${dot}`} /></div>
+              <div className="col-span-6 truncate"><span className="text-muted-foreground/50 font-mono">{c.case_code}</span> — {c.title}</div>
+              <div className="col-span-3">
+                <select value={c.status} onChange={e => updateStatus(c.id, e.target.value)} className="bg-foreground/[0.04] rounded px-1.5 py-0.5 text-[10px] text-foreground/80 focus:outline-none w-full">
+                  <option value="open">Open</option><option value="triage">Triage</option><option value="investigating">Investigating</option><option value="containment">Containment</option><option value="closed">Closed</option>
+                </select>
+              </div>
+              <div className="col-span-1 text-muted-foreground/50">{timeAgo(c.created_at)}</div>
+              <div className="col-span-1 text-right"><button onClick={() => del(c.id)} className="text-muted-foreground/40 hover:text-red-400/80">×</button></div>
+            </div>
+          );
+        })}
       </Panel>
     </div>
-    <Panel title="Storage">
-      <div className="space-y-3">
-        <div>
-          <div className="flex justify-between text-[10px] mb-1"><span className="text-foreground/70">PCAP Disk</span><span className="text-muted-foreground/50">14.2 / 32 TB</span></div>
-          <div className="h-1 rounded-full bg-foreground/[0.04]"><div className="h-full bg-foreground/40" style={{ width: "44%" }} /></div>
-        </div>
-        <div>
-          <div className="flex justify-between text-[10px] mb-1"><span className="text-foreground/70">Elastic Hot</span><span className="text-muted-foreground/50">3.1 / 5 TB</span></div>
-          <div className="h-1 rounded-full bg-foreground/[0.04]"><div className="h-full bg-foreground/40" style={{ width: "62%" }} /></div>
-        </div>
-        <div>
-          <div className="flex justify-between text-[10px] mb-1"><span className="text-foreground/70">Retention</span><span className="text-muted-foreground/50">28 days</span></div>
-          <div className="h-1 rounded-full bg-foreground/[0.04]"><div className="h-full bg-foreground/40" style={{ width: "75%" }} /></div>
-        </div>
-      </div>
-    </Panel>
-  </div>
-);
-
-const CasesScreen = () => (
-  <Panel title="Investigation Cases" desc="TheHive-compatible — multi-analyst collaboration">
-    {[
-      { id: "C-2026-018", title: "Possible Cobalt Strike beacon — workstation WS-21", own: "asher", st: "investigating", sev: "critical" as const },
-      { id: "C-2026-017", title: "DNS exfiltration suspected on subnet 10.0.2.0/24", own: "kira", st: "triage", sev: "high" as const },
-      { id: "C-2026-016", title: "Wazuh: privilege escalation on DB-PROD-03", own: "asher", st: "containment", sev: "critical" as const },
-      { id: "C-2026-015", title: "Repeated nmap scans from 45.142.214.219", own: "unassigned", st: "open", sev: "med" as const },
-      { id: "C-2026-014", title: "SSH brute force closed — 14 IPs blocked", own: "kira", st: "closed", sev: "low" as const },
-    ].map(c => (
-      <Row key={c.id} tone={c.sev} cells={[`${c.id} — ${c.title}`, c.own, c.st, "", ""]} />
-    ))}
-  </Panel>
-);
+  );
+};
 
 const GridScreen = () => (
-  <div className="grid grid-cols-3 gap-3">
-    {[
-      { name: "so-mgr-01", role: "Manager", cpu: 22, mem: 41, status: "healthy" },
-      { name: "so-search-01", role: "Search Node", cpu: 64, mem: 78, status: "healthy" },
-      { name: "so-search-02", role: "Search Node", cpu: 58, mem: 71, status: "healthy" },
-      { name: "so-sensor-01", role: "Forward Sensor", cpu: 81, mem: 62, status: "healthy" },
-      { name: "so-sensor-02", role: "Forward Sensor", cpu: 47, mem: 55, status: "healthy" },
-      { name: "so-heavy-01", role: "Heavy Node", cpu: 33, mem: 49, status: "healthy" },
-    ].map(n => (
-      <div key={n.name} className="rounded-lg border border-border/[0.06] bg-foreground/[0.015] p-4 backdrop-blur-md">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div className="text-[11px] text-foreground/90 font-mono">{n.name}</div>
-            <div className="text-[9px] text-muted-foreground/40 uppercase tracking-widest">{n.role}</div>
-          </div>
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/70" />
-        </div>
-        {[["CPU", n.cpu], ["MEM", n.mem]].map(([l, v]) => (
-          <div key={l} className="mb-2">
-            <div className="flex justify-between text-[9px] text-muted-foreground/50 mb-1"><span>{l}</span><span>{v}%</span></div>
-            <div className="h-1 bg-foreground/[0.04] rounded-full"><div className="h-full bg-foreground/40 rounded-full" style={{ width: `${v}%` }} /></div>
-          </div>
-        ))}
-      </div>
-    ))}
-  </div>
+  <GridNotConnected
+    moduleName="Grid Nodes"
+    what="Node health (CPU, memory, role, status) is reported by your live Salt-managed Security Onion grid."
+  />
 );
 
-const DetectionsScreen = () => (
-  <Panel title="Detection Rules" desc="Suricata + Sigma + YARA — push to grid">
+const DetectionsScreen = ({ intel }: { intel: ReturnType<typeof useZaxinIntel> }) => (
+  <Panel title="Live Detection IOCs" desc="ThreatFox IOC feed — abuse.ch (last 24h)">
     <div className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.08] text-[9px] uppercase tracking-wider text-muted-foreground/50">
       <div className="col-span-1">St</div>
-      <div className="col-span-4">Rule</div>
+      <div className="col-span-5">IOC / Malware</div>
       <div className="col-span-2">Type</div>
-      <div className="col-span-2">SID</div>
-      <div className="col-span-2">Hits 24h</div>
+      <div className="col-span-2">Threat</div>
+      <div className="col-span-1">Conf</div>
       <div className="col-span-1">Sev</div>
     </div>
-    {[
-      ["ET MALWARE Cobalt Strike Beacon", "Suricata", "2025643", "84", "crit"],
-      ["Sigma: Suspicious PowerShell EncodedCommand", "Sigma", "win-ps-001", "31", "high"],
-      ["YARA: Mimikatz string match", "YARA", "yr-mimi-2", "4", "crit"],
-      ["ET POLICY DNS Query to .onion", "Suricata", "2027865", "112", "med"],
-      ["Sigma: New service installed via sc.exe", "Sigma", "win-svc-014", "7", "high"],
-    ].map((r, i) => (
-      <div key={i} className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.04] text-[10px] text-foreground/70 hover:bg-foreground/[0.02]">
-        <div className="col-span-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" /></div>
-        <div className="col-span-4 truncate">{r[0]}</div>
-        <div className="col-span-2 text-muted-foreground/60">{r[1]}</div>
-        <div className="col-span-2 font-mono text-muted-foreground/50">{r[2]}</div>
-        <div className="col-span-2">{r[3]}</div>
-        <div className="col-span-1 text-foreground/60 uppercase text-[9px]">{r[4]}</div>
-      </div>
-    ))}
+    {intel.loading && <LoadingNote />}
+    {intel.error && <ErrorNote msg={intel.error} onRetry={intel.refresh} />}
+    {!intel.loading && !intel.error && (intel.data?.detections.length ? intel.data.detections.map((r, i) => {
+      const dot = r.sev === "crit" ? "bg-red-400" : r.sev === "high" ? "bg-orange-400" : r.sev === "med" ? "bg-yellow-400" : "bg-emerald-400";
+      return (
+        <div key={i} className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.04] text-[10px] text-foreground/70 hover:bg-foreground/[0.02]">
+          <div className="col-span-1"><span className={`w-1.5 h-1.5 rounded-full inline-block ${dot}`} /></div>
+          <div className="col-span-5 truncate font-mono">{r.rule}</div>
+          <div className="col-span-2 text-muted-foreground/60">{r.type}</div>
+          <div className="col-span-2 text-muted-foreground/50 truncate">{r.threat}</div>
+          <div className="col-span-1">{r.hits}</div>
+          <div className="col-span-1 uppercase text-[9px] text-foreground/60">{r.sev}</div>
+        </div>
+      );
+    }) : <EmptyNote msg="No IOCs in feed" />)}
   </Panel>
 );
 
 const ZeekScreen = () => (
-  <div className="grid grid-cols-2 gap-3">
-    {[
-      { log: "conn.log", rows: "2.1M", desc: "Connection summaries" },
-      { log: "dns.log", rows: "418k", desc: "DNS queries & answers" },
-      { log: "http.log", rows: "84k", desc: "HTTP transactions" },
-      { log: "ssl.log", rows: "612k", desc: "TLS handshakes" },
-      { log: "files.log", rows: "31k", desc: "Files seen on wire" },
-      { log: "notice.log", rows: "1.2k", desc: "Suspicious notices" },
-      { log: "x509.log", rows: "59k", desc: "Certificate metadata" },
-      { log: "weird.log", rows: "412", desc: "Protocol anomalies" },
-    ].map(l => (
-      <div key={l.log} className="rounded-lg border border-border/[0.06] bg-foreground/[0.015] p-4 backdrop-blur-md flex items-center justify-between">
-        <div>
-          <div className="text-[11px] font-mono text-foreground/85">{l.log}</div>
-          <div className="text-[9px] text-muted-foreground/40 uppercase tracking-wider mt-0.5">{l.desc}</div>
-        </div>
-        <div className="text-right">
-          <div className="text-lg font-extralight text-foreground/80">{l.rows}</div>
-          <div className="text-[8px] text-muted-foreground/40 uppercase tracking-widest">rows</div>
-        </div>
-      </div>
-    ))}
-  </div>
+  <GridNotConnected
+    moduleName="Zeek Logs"
+    what="Zeek (conn, dns, http, ssl, files, notice, x509, weird) writes structured logs on each sensor in your grid."
+  />
 );
 
 const EndpointScreen = () => (
-  <Panel title="Wazuh Endpoint Agents">
-    <div className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.08] text-[9px] uppercase tracking-wider text-muted-foreground/50">
-      <div className="col-span-1">St</div>
-      <div className="col-span-3">Host</div>
-      <div className="col-span-2">OS</div>
-      <div className="col-span-2">Version</div>
-      <div className="col-span-2">Last Seen</div>
-      <div className="col-span-2">FIM</div>
-    </div>
-    {[
-      ["WS-21-DESIGN", "Win 11 24H2", "4.7.2", "3s", "ok"],
-      ["WS-08-FIN", "Win 11 23H2", "4.7.2", "12s", "ok"],
-      ["DB-PROD-03", "Ubuntu 22.04", "4.7.2", "5s", "alerts"],
-      ["WEB-EDGE-01", "Debian 12", "4.7.2", "8s", "ok"],
-      ["MAC-LAPTOP-44", "macOS 15.2", "4.7.2", "2m", "ok"],
-    ].map((r, i) => (
-      <div key={i} className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.04] text-[10px] text-foreground/70 hover:bg-foreground/[0.02]">
-        <div className="col-span-1"><span className={`w-1.5 h-1.5 rounded-full inline-block ${r[4] === "alerts" ? "bg-orange-400" : "bg-emerald-400"}`} /></div>
-        <div className="col-span-3 font-mono">{r[0]}</div>
-        <div className="col-span-2 text-muted-foreground/60">{r[1]}</div>
-        <div className="col-span-2 text-muted-foreground/50 font-mono">{r[2]}</div>
-        <div className="col-span-2">{r[3]}</div>
-        <div className="col-span-2 uppercase text-[9px] text-foreground/60">{r[4]}</div>
-      </div>
-    ))}
-  </Panel>
+  <GridNotConnected
+    moduleName="Wazuh Endpoints"
+    what="Endpoint telemetry (Windows/Linux/macOS agents, FIM, vulnerability scans) is reported by Wazuh managers in your grid."
+  />
 );
 
-const DashboardsScreen = () => (
-  <div className="grid grid-cols-3 gap-3">
-    {[
-      ["Alerts Overview", "Real-time NIDS/HIDS summary"],
-      ["Network Traffic", "Bandwidth, protocols, top talkers"],
-      ["DNS Anomalies", "Tunnels, DGAs, unusual TLDs"],
-      ["TLS Inspector", "Self-signed, weak ciphers, JA3"],
-      ["File Forensics", "MIME, magic bytes, YARA hits"],
-      ["MITRE Coverage", "Technique mapping across logs"],
-    ].map(d => (
-      <div key={d[0]} className="rounded-lg border border-border/[0.06] bg-foreground/[0.015] p-4 backdrop-blur-md hover:bg-foreground/[0.03] transition-colors cursor-pointer">
-        <Activity className="h-4 w-4 text-foreground/50 mb-3" />
-        <div className="text-[11px] text-foreground/85">{d[0]}</div>
-        <div className="text-[9px] text-muted-foreground/40 mt-1 uppercase tracking-wider">{d[1]}</div>
-      </div>
-    ))}
-  </div>
-);
+const DashboardsScreen = ({ intel }: { intel: ReturnType<typeof useZaxinIntel> }) => {
+  const max = Math.max(...(intel.data?.mitre.map(m => m.techniques) ?? [1]), 1);
+  return (
+    <Panel title="MITRE ATT&CK Coverage (Live)" desc="Enterprise tactic → technique counts from MITRE CTI repository">
+      {intel.loading && <LoadingNote />}
+      {intel.error && <ErrorNote msg={intel.error} onRetry={intel.refresh} />}
+      {intel.data?.mitre.length ? (
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+          {intel.data.mitre.map(m => (
+            <div key={m.tactic}>
+              <div className="flex justify-between text-[10px] text-foreground/75 mb-1.5">
+                <span className="capitalize">{m.tactic.replace(/-/g, " ")}</span>
+                <span className="text-muted-foreground/50 font-mono">{m.techniques}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-foreground/[0.04] overflow-hidden">
+                <div className="h-full bg-foreground/45" style={{ width: `${(m.techniques / max) * 100}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </Panel>
+  );
+};
 
-const DownloadsScreen = () => (
+const DownloadsScreen = ({ intel }: { intel: ReturnType<typeof useZaxinIntel> }) => (
   <div className="space-y-3">
-    <Panel title="Security Onion ISO" desc="Official build — verified signatures">
-      <div className="space-y-2 text-[10px]">
-        {[
-          ["securityonion-2.4.140-20250307.iso", "12.4 GB", "SHA-256 verified"],
-          ["securityonion-2.4.130-20250115.iso", "12.1 GB", "SHA-256 verified"],
-          ["securityonion-2.4.120-20241201.iso", "11.9 GB", "SHA-256 verified"],
-        ].map(r => (
-          <div key={r[0]} className="flex items-center justify-between border-b border-border/[0.04] py-2">
-            <div>
-              <div className="text-foreground/85 font-mono">{r[0]}</div>
-              <div className="text-muted-foreground/40 text-[9px] mt-0.5">{r[2]}</div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-muted-foreground/50">{r[1]}</span>
-              <button className="px-2.5 py-1 rounded-md bg-foreground/[0.06] text-foreground/70 hover:bg-foreground/[0.1]">Download</button>
-            </div>
+    <Panel title="Security Onion — Live Releases" desc="GitHub API · Security-Onion-Solutions/securityonion">
+      {intel.loading && <LoadingNote />}
+      {intel.error && <ErrorNote msg={intel.error} onRetry={intel.refresh} />}
+      {intel.data?.releases.length ? intel.data.releases.map(r => (
+        <div key={r.tag} className="border-b border-border/[0.04] py-3">
+          <div className="flex items-baseline justify-between mb-1">
+            <a href={r.htmlUrl} target="_blank" rel="noreferrer" className="text-foreground/85 font-mono text-[11px] hover:underline">{r.tag}</a>
+            <span className="text-muted-foreground/50 text-[9px] uppercase tracking-widest">{timeAgo(r.publishedAt)}</span>
           </div>
-        ))}
-      </div>
-    </Panel>
-    <Panel title="GPG Signing Keys" desc="Verify ISO authenticity before flashing">
-      <pre className="text-[9px] font-mono text-foreground/60 overflow-x-auto whitespace-pre-wrap leading-relaxed">
-{`pub   rsa4096 2024-03-14 [SC]
-      A1B2 C3D4 E5F6 7890 1234  5678 9ABC DEF0 1234 5678
-uid   Security Onion Solutions <signing@securityonionsolutions.com>
-sub   rsa4096 2024-03-14 [E]`}
-      </pre>
+          <div className="text-muted-foreground/50 text-[10px] mb-2">{r.name}</div>
+          {r.assets.length > 0 && (
+            <div className="space-y-1 mt-2">
+              {r.assets.map(a => (
+                <div key={a.name} className="flex items-center justify-between text-[10px] py-1 pl-3 border-l border-border/[0.06]">
+                  <div className="truncate">
+                    <span className="text-foreground/75 font-mono">{a.name}</span>
+                    <span className="text-muted-foreground/40 ml-2">{formatBytes(a.size)} · {a.downloads.toLocaleString()} downloads</span>
+                  </div>
+                  <a href={a.downloadUrl} target="_blank" rel="noreferrer" className="px-2 py-0.5 rounded bg-foreground/[0.06] text-foreground/70 hover:bg-foreground/[0.1]">Download</a>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )) : <EmptyNote msg="No releases returned" />}
     </Panel>
   </div>
 );
 
-const ConfigScreen = () => (
-  <div className="grid grid-cols-2 gap-3">
-    <Panel title="Sensor Interfaces">
-      {[["eth0","mgmt","10.0.0.10/24"],["eth1","monitor","promisc"],["eth2","monitor","promisc"]].map(r => (
-        <div key={r[0]} className="grid grid-cols-3 py-2 text-[10px] border-b border-border/[0.04]">
-          <span className="font-mono text-foreground/80">{r[0]}</span>
-          <span className="text-muted-foreground/60 uppercase tracking-wider text-[9px]">{r[1]}</span>
-          <span className="font-mono text-muted-foreground/50 text-right">{r[2]}</span>
+const ConfigScreen = () => {
+  const [cfg, setCfg] = useState<GridCfg>(loadGrid());
+  const save = () => { saveGrid(cfg); toast.success("Grid configuration saved"); };
+  const clear = () => { setCfg({ url: "", apiKey: "" }); saveGrid({ url: "", apiKey: "" }); toast.success("Grid disconnected"); };
+  const test = async () => {
+    if (!cfg.url) { toast.error("Set a grid URL first"); return; }
+    try {
+      const r = await fetch(cfg.url, { method: "HEAD", mode: "no-cors" });
+      toast.success("Reachable (CORS may hide details)");
+    } catch (e) {
+      toast.error("Could not reach grid: " + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Panel title="Self-Hosted Grid Connection" desc="Points the PCAP / Zeek / Endpoint / Grid modules at your live deployment">
+        <div className="space-y-2 text-[10px]">
+          <div>
+            <label className="text-muted-foreground/50 uppercase tracking-widest text-[9px] block mb-1">Grid base URL</label>
+            <input value={cfg.url} onChange={e => setCfg({ ...cfg, url: e.target.value })} placeholder="https://so-manager.your-network.local" className="w-full bg-background/40 border border-border/[0.08] rounded p-2 text-[11px] font-mono text-foreground/85 focus:outline-none focus:border-foreground/20" />
+          </div>
+          <div>
+            <label className="text-muted-foreground/50 uppercase tracking-widest text-[9px] block mb-1">API key (stored locally)</label>
+            <input type="password" value={cfg.apiKey} onChange={e => setCfg({ ...cfg, apiKey: e.target.value })} placeholder="••••••••" className="w-full bg-background/40 border border-border/[0.08] rounded p-2 text-[11px] font-mono text-foreground/85 focus:outline-none focus:border-foreground/20" />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={save} className="px-3 py-1.5 rounded bg-foreground/[0.1] text-foreground/85 hover:bg-foreground/[0.15]">Save</button>
+            <button onClick={test} className="px-3 py-1.5 rounded bg-foreground/[0.05] text-foreground/70 hover:bg-foreground/[0.08]">Test reach</button>
+            <button onClick={clear} className="ml-auto px-3 py-1.5 rounded bg-foreground/[0.05] text-muted-foreground/60 hover:text-red-400/80">Disconnect</button>
+          </div>
+          <div className="text-[9px] text-muted-foreground/40 leading-relaxed pt-2">
+            Status: <span className={cfg.url ? "text-emerald-400/80" : "text-muted-foreground/50"}>{cfg.url ? "Configured" : "Not connected"}</span>. No simulated values are ever shown — modules requiring grid data display an empty state until you connect.
+          </div>
         </div>
-      ))}
-    </Panel>
-    <Panel title="Ruleset Sources">
-      {[["ET Open","enabled","daily"],["ET Pro","disabled","—"],["Snort Community","enabled","weekly"],["Custom Local","enabled","manual"]].map(r => (
-        <div key={r[0]} className="grid grid-cols-3 py-2 text-[10px] border-b border-border/[0.04]">
-          <span className="text-foreground/80">{r[0]}</span>
-          <span className={`uppercase tracking-wider text-[9px] ${r[1] === "enabled" ? "text-emerald-400/70" : "text-muted-foreground/40"}`}>{r[1]}</span>
-          <span className="text-muted-foreground/50 text-right uppercase text-[9px]">{r[2]}</span>
+      </Panel>
+      <Panel title="Live Public Feeds Used" desc="Read-only — no key required">
+        <div className="space-y-2 text-[10px] text-foreground/75">
+          <div className="flex justify-between border-b border-border/[0.04] py-1.5"><span>URLhaus (abuse.ch)</span><span className="text-emerald-400/70 uppercase text-[9px]">live</span></div>
+          <div className="flex justify-between border-b border-border/[0.04] py-1.5"><span>ThreatFox (abuse.ch)</span><span className="text-emerald-400/70 uppercase text-[9px]">live</span></div>
+          <div className="flex justify-between border-b border-border/[0.04] py-1.5"><span>MITRE ATT&CK CTI</span><span className="text-emerald-400/70 uppercase text-[9px]">live</span></div>
+          <div className="flex justify-between py-1.5"><span>Security Onion releases (GitHub)</span><span className="text-emerald-400/70 uppercase text-[9px]">live</span></div>
         </div>
-      ))}
-    </Panel>
-    <Panel title="Retention Policies">
-      <div className="text-[10px] text-foreground/70 space-y-2">
-        <div className="flex justify-between"><span>Suricata alerts</span><span className="text-muted-foreground/50">365 days</span></div>
-        <div className="flex justify-between"><span>Zeek logs</span><span className="text-muted-foreground/50">90 days</span></div>
-        <div className="flex justify-between"><span>Full PCAP</span><span className="text-muted-foreground/50">30 days</span></div>
-        <div className="flex justify-between"><span>Wazuh events</span><span className="text-muted-foreground/50">180 days</span></div>
-      </div>
-    </Panel>
-    <Panel title="Integrations">
-      {[["MISP","threat sharing","connected"],["TheHive","case mgmt","connected"],["Cortex","enrichment","disconnected"],["VirusTotal","intel API","connected"]].map(r => (
-        <div key={r[0]} className="grid grid-cols-3 py-2 text-[10px] border-b border-border/[0.04]">
-          <span className="text-foreground/80">{r[0]}</span>
-          <span className="text-muted-foreground/50 uppercase tracking-wider text-[9px]">{r[1]}</span>
-          <span className={`text-right uppercase text-[9px] ${r[2] === "connected" ? "text-emerald-400/70" : "text-muted-foreground/40"}`}>{r[2]}</span>
-        </div>
-      ))}
-    </Panel>
-  </div>
-);
+      </Panel>
+    </div>
+  );
+};
 
 const ZaxinView = () => {
   const [screen, setScreen] = useState<ZaxinScreen>("overview");
+  const intel = useZaxinIntel();
+  const gridConnected = Boolean(loadGrid().url);
 
   const render = () => {
     switch (screen) {
-      case "overview": return <OverviewScreen />;
-      case "alerts": return <AlertsScreen />;
-      case "hunt": return <HuntScreen />;
-      case "pcap": return <PcapScreen />;
-      case "cases": return <CasesScreen />;
-      case "grid": return <GridScreen />;
-      case "detections": return <DetectionsScreen />;
-      case "zeek": return <ZeekScreen />;
-      case "endpoint": return <EndpointScreen />;
-      case "dashboards": return <DashboardsScreen />;
-      case "downloads": return <DownloadsScreen />;
-      case "config": return <ConfigScreen />;
+      case "overview":   return <OverviewScreen intel={intel} />;
+      case "alerts":     return <AlertsScreen intel={intel} />;
+      case "hunt":       return <HuntScreen intel={intel} />;
+      case "pcap":       return <PcapScreen />;
+      case "cases":      return <CasesScreen />;
+      case "grid":       return <GridScreen />;
+      case "detections": return <DetectionsScreen intel={intel} />;
+      case "zeek":       return <ZeekScreen />;
+      case "endpoint":   return <EndpointScreen />;
+      case "dashboards": return <DashboardsScreen intel={intel} />;
+      case "downloads":  return <DownloadsScreen intel={intel} />;
+      case "config":     return <ConfigScreen />;
     }
   };
 
@@ -672,11 +795,19 @@ const ZaxinView = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/[0.06] border border-emerald-500/[0.12]">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[9px] text-emerald-400/80 uppercase tracking-wider">Grid Online</span>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border ${intel.error ? "bg-red-500/[0.06] border-red-500/[0.15]" : intel.loading ? "bg-yellow-500/[0.06] border-yellow-500/[0.15]" : "bg-emerald-500/[0.06] border-emerald-500/[0.12]"}`}>
+            <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${intel.error ? "bg-red-400" : intel.loading ? "bg-yellow-400" : "bg-emerald-400"}`} />
+            <span className={`text-[9px] uppercase tracking-wider ${intel.error ? "text-red-400/80" : intel.loading ? "text-yellow-400/80" : "text-emerald-400/80"}`}>
+              {intel.error ? "Feed Error" : intel.loading ? "Loading Feeds" : "Live Feeds Online"}
+            </span>
           </div>
-          <button className="p-2 rounded-lg hover:bg-foreground/[0.03] transition-colors">
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border ${gridConnected ? "bg-emerald-500/[0.06] border-emerald-500/[0.12]" : "bg-foreground/[0.03] border-border/[0.08]"}`}>
+            <Server className={`h-2.5 w-2.5 ${gridConnected ? "text-emerald-400/80" : "text-muted-foreground/40"}`} />
+            <span className={`text-[9px] uppercase tracking-wider ${gridConnected ? "text-emerald-400/80" : "text-muted-foreground/50"}`}>
+              {gridConnected ? "Grid Connected" : "Grid Not Connected"}
+            </span>
+          </div>
+          <button onClick={intel.refresh} className="p-2 rounded-lg hover:bg-foreground/[0.03] transition-colors" title="Refresh live feeds">
             <Bell className="h-3.5 w-3.5 text-muted-foreground/40" />
           </button>
         </div>
