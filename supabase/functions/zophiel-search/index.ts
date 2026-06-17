@@ -1589,6 +1589,8 @@ Deno.serve(async (req) => {
         entityCounts,
         entityEdges: edges.slice(0, 100),
         pantheonVersion: 4,
+        // Omnispider (shep95/web-crawlers) enrichment telemetry
+        omnispider: { crawled: omniCrawledCount, engines: omniEngineCounts },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
