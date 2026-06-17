@@ -44,7 +44,7 @@ async function getDetections() {
   const r = await fetch("https://threatfox-api.abuse.ch/api/v1/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query: "get_iocs", days: 1 }),
+    body: JSON.stringify({ query: "get_iocs", days: 3 }),
   });
   const data = await r.json();
   const iocs: any[] = data?.data || [];
