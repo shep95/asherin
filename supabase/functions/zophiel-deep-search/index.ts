@@ -1,17 +1,6 @@
-import { isValidByok } from '../_shared/zophielByokRouter.ts';
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { omnispiderCrawl, type OmniCrawledPage } from "../_shared/omnispider.ts";
-
-// Default platform models (used when no BYOK provided). When the user supplies
-// a Google BYOK key, we substitute their model id into these URLs.
-const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
-const geminiStreamUrlFor = (model: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
-const geminiNonStreamUrlFor = (model: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-
-const GEMINI_URL = geminiStreamUrlFor(GEMINI_DEFAULT_MODEL);
-const GEMINI_NON_STREAM = geminiNonStreamUrlFor(GEMINI_DEFAULT_MODEL);
+// NOTE: Omnispider crawler moved to zophiel-search (web search) per spec.
+// Deep Search is now AI-free AND key-free — pure source aggregation.
 
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Integrity Validation
