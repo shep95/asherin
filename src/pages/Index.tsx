@@ -362,7 +362,7 @@ const Index = () => {
                 {[
                   { v: 30, suf: "+", l: "Intelligence tools your competitors don't have" },
                   { v: 14, suf: "", l: "Cross-validation passes per query" },
-                  { v: 9, suf: "", l: "AI providers, your key, your choice" },
+                  { v: 30, suf: "+", l: "AI providers, your key, your choice" },
                   { v: 0, suf: "", l: "Dollars. Free forever. No catch." },
                 ].map((s) => (
                   <div key={s.l} className="bg-background/40 px-5 py-5">
@@ -1025,28 +1025,44 @@ const Index = () => {
               <p className="font-mono text-[10px] font-light tracking-[0.35em] text-foreground/70 uppercase">Supported AI Providers</p>
               <div className="h-px w-16 bg-gradient-to-l from-transparent to-foreground/40" />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {[
-                { name: "OpenAI", models: "GPT-5.4, GPT-5.3, o4-mini" },
-                { name: "Anthropic", models: "Opus 4.6, Sonnet 4.6" },
-                { name: "Google", models: "Gemini 3.1 Pro, 2.5 Pro" },
-                { name: "xAI", models: "Grok 4, Grok Code" },
-                { name: "Mistral", models: "Medium 3.1, Codestral" },
-                { name: "Meta", models: "Llama 4 Maverick & Scout" },
-                { name: "Venice AI", models: "Uncensored, zero logging" },
-                { name: "Perplexity", models: "Sonar Pro, Deep Research" },
-                { name: "DeepSeek 🇨🇳", models: "DeepSeek V3.2, R1" },
-                { name: "Alibaba Qwen 🇨🇳", models: "Qwen3 Max, Coder Plus" },
-                { name: "Zhipu GLM 🇨🇳", models: "GLM-4.6, GLM-4.5 Air" },
-                { name: "Moonshot Kimi 🇨🇳", models: "Kimi K2, K2 Turbo" },
-                { name: "Baidu ERNIE 🇨🇳", models: "ERNIE 5.0, X1" },
-                { name: "MiniMax 🇨🇳", models: "M2, Text-01 (4M ctx)" },
+                { name: "OpenAI", country: "US", models: "GPT-5.5, GPT-3.5" },
+                { name: "Anthropic", country: "US", models: "Opus 4.5, Claude 2.1" },
+                { name: "Google", country: "US", models: "Gemini 3 Pro, Gemini 1.0" },
+                { name: "xAI", country: "US", models: "Grok 5, Grok Beta" },
+                { name: "Meta", country: "US", models: "Llama 4 Behemoth, Llama 2 70B" },
+                { name: "Perplexity", country: "US", models: "Sonar Pro, PPLX 7B" },
+                { name: "Venice AI", country: "US", models: "Uncensored, Llama 3 8B" },
+                { name: "IBM", country: "US", models: "Granite 3.1, Granite 13B" },
+                { name: "Amazon", country: "US", models: "Nova Pro, Titan Text" },
+                { name: "NVIDIA", country: "US", models: "Nemotron 4, Nemotron 3" },
+                { name: "Mistral", country: "FR", models: "Medium 3.1, Codestral" },
+                { name: "AI21", country: "UK", models: "Jamba 1.6, Jurassic-2" },
+                { name: "Reka", country: "UK", models: "Reka Core, Reka Flash" },
+                { name: "Cohere", country: "CA", models: "Command R+, Embed English" },
+                { name: "Sarvam AI", country: "IN", models: "Sarvam 3, Sarvam 1" },
+                { name: "Krutrim", country: "IN", models: "Krutrim Pro, Krutrim Base" },
+                { name: "TWO AI", country: "IN", models: "TWO 1.0, TWO Base" },
+                { name: "DeepSeek", country: "CN", models: "DeepSeek V3.2, R1" },
+                { name: "Alibaba Qwen", country: "CN", models: "Qwen3 Max, Coder Plus" },
+                { name: "Zhipu GLM", country: "CN", models: "GLM-4.6, GLM-4.5 Air" },
+                { name: "Moonshot Kimi", country: "CN", models: "Kimi K2, K2 Turbo" },
+                { name: "Baidu ERNIE", country: "CN", models: "ERNIE 5.0, X1" },
+                { name: "MiniMax", country: "CN", models: "M2, Text-01 (4M ctx)" },
+                { name: "Maritaca", country: "BR", models: "Sabiá 3, Sabiá 2" },
+                { name: "Widelabs", country: "BR", models: "Widelabs 1.0, Base" },
+                { name: "Maincode", country: "AU", models: "Matrix-1, Matrix Mini" },
+                { name: "Leonardo", country: "AU", models: "Phoenix 1.0, Diffusion" },
+                { name: "Awarri", country: "NG", models: "LAM-1, LAM-1 Base" },
+                { name: "Lelapa AI", country: "NG", models: "Vulavula, InkubaLM" },
+                { name: "Latam-GPT", country: "PE", models: "Latam-GPT 1, Base" },
               ].map((p, i) => (
                 <div key={p.name} className="group relative rounded-xl border border-border/15 bg-card/20 backdrop-blur-md p-4 hover:border-foreground/30 hover:bg-card/40 transition-all">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="font-mono text-[9px] tracking-[0.25em] text-muted-foreground/40">{String(i + 1).padStart(2, "0")}</span>
-                      <p className="text-sm font-light tracking-tight text-foreground">{p.name}</p>
+                      <p className="text-sm font-light tracking-tight text-foreground">{p.name} <span className="text-[9px] font-mono tracking-wider text-muted-foreground/40 ml-1">{p.country}</span></p>
                     </div>
                     <span className="h-1.5 w-1.5 rounded-full bg-foreground/60 group-hover:bg-foreground transition-colors" />
                   </div>
