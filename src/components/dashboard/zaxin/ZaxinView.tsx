@@ -883,6 +883,217 @@ const ConfigScreen = () => {
   );
 };
 
+// ============================================================
+// RESPONSE & CONTAINMENT — one-click stop-it actions
+// ============================================================
+type ActionType = "isolate_host" | "block_ip" | "kill_process" | "disable_user" | "quarantine_file";
+
+const ACTION_DEFS: { type: ActionType; label: string; icon: React.ElementType; targetLabel: string; targetPlaceholder: string; backend: string; danger: string }[] = [
+  { type: "isolate_host",    label: "Isolate Host",     icon: Ban,    targetLabel: "Host / agent name", targetPlaceholder: "host-7821 or 10.0.4.22", backend: "Wazuh Active Response → firewall-drop on agent", danger: "Cuts the host off the network. Only the Wazuh manager can still talk to it." },
+  { type: "block_ip",        label: "Block IP",         icon: Network, targetLabel: "IP or CIDR",        targetPlaceholder: "185.220.101.5 or 10.0.0.0/24", backend: "pfSense / OPNsense / iptables / Palo Alto API", danger: "Drops all traffic to/from the IP on the perimeter firewall." },
+  { type: "kill_process",    label: "Kill Process",     icon: Skull,  targetLabel: "Host : PID",        targetPlaceholder: "host-7821:4488",        backend: "Wazuh AR → terminate-process on endpoint", danger: "Terminates the PID immediately. Unsaved work on that process is lost." },
+  { type: "disable_user",    label: "Disable User",     icon: UserX,  targetLabel: "Username / SID",    targetPlaceholder: "DOMAIN\\jsmith",        backend: "AD / LDAP / local OS account lock", danger: "User cannot log in anywhere until re-enabled." },
+  { type: "quarantine_file", label: "Quarantine File",  icon: FileX,  targetLabel: "SHA-256 hash",      targetPlaceholder: "a3f5e7…",               backend: "Wazuh AR → file-move to /quarantine on every endpoint", danger: "Moves the file by hash on every endpoint that has it." },
+];
+
+const ResponseScreen = () => {
+  const [actions, setActions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [targets, setTargets] = useState<Record<string, string>>({});
+  const [params, setParams] = useState<Record<string, string>>({});
+  const grid = loadGrid();
+  const gridConnected = Boolean(grid.url);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("zaxin_response_actions").select("*").order("created_at", { ascending: false }).limit(100);
+    setActions(data ?? []); setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const fire = async (def: typeof ACTION_DEFS[number]) => {
+    const target = (targets[def.type] || "").trim();
+    if (!target) { toast.error(`Enter a ${def.targetLabel.toLowerCase()} first`); return; }
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) { toast.error("Sign in to fire response actions"); return; }
+    if (!confirm(`Fire ${def.label} against ${target}?\n\n${def.danger}\n\nThis is logged in the audit trail.`)) return;
+    setBusy(def.type);
+    const reason = params[def.type] || "";
+    const { data: ins, error: insErr } = await supabase.from("zaxin_response_actions")
+      .insert({ user_id: u.user.id, action_type: def.type, target, params: { reason, backend: def.backend }, status: gridConnected ? "pending" : "queued_no_grid" })
+      .select().single();
+    if (insErr) { toast.error(insErr.message); setBusy(null); return; }
+
+    if (!gridConnected) {
+      toast.warning(`Action queued — connect your grid in Configuration to dispatch it.`);
+      setBusy(null); setTargets({ ...targets, [def.type]: "" }); load(); return;
+    }
+
+    // Dispatch to user's grid
+    try {
+      const r = await fetch(`${grid.url.replace(/\/$/, "")}/connect/response/${def.type}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": grid.apiKey },
+        body: JSON.stringify({ target, reason, action_id: ins.id }),
+      });
+      const body = await r.text();
+      const parsed = (() => { try { return JSON.parse(body); } catch { return { raw: body }; } })();
+      await supabase.from("zaxin_response_actions").update({
+        status: r.ok ? "executed" : "failed",
+        response: parsed, error: r.ok ? null : `HTTP ${r.status}`,
+        completed_at: new Date().toISOString(),
+      }).eq("id", ins.id);
+      r.ok ? toast.success(`${def.label} dispatched`) : toast.error(`Grid returned HTTP ${r.status}`);
+    } catch (e: any) {
+      await supabase.from("zaxin_response_actions").update({
+        status: "failed", error: e?.message ?? String(e), completed_at: new Date().toISOString(),
+      }).eq("id", ins.id);
+      toast.error(`Grid unreachable: ${e?.message ?? e}`);
+    }
+    setBusy(null); setTargets({ ...targets, [def.type]: "" }); load();
+  };
+
+  return (
+    <div className="space-y-3">
+      {!gridConnected && (
+        <div className="rounded-lg border border-yellow-500/[0.15] bg-yellow-500/[0.04] p-3 text-[10px] text-yellow-200/80 backdrop-blur-md">
+          <AlertTriangle className="h-3 w-3 inline mr-1.5" /> Grid not connected — actions will be <span className="text-yellow-100/90 font-medium">queued in your audit log</span> but not dispatched. Connect a grid in Configuration to actually execute.
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3">
+        {ACTION_DEFS.map(def => {
+          const Icon = def.icon;
+          return (
+            <div key={def.type} className="rounded-lg border border-border/[0.08] bg-foreground/[0.015] p-4 backdrop-blur-md">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-md bg-red-500/[0.08] border border-red-500/[0.15] flex items-center justify-center">
+                    <Icon className="h-3.5 w-3.5 text-red-400/80" />
+                  </div>
+                  <div className="text-[11px] tracking-[0.12em] uppercase text-foreground/90">{def.label}</div>
+                </div>
+              </div>
+              <div className="text-[9px] text-muted-foreground/50 leading-relaxed mb-3">{def.backend}</div>
+              <input
+                value={targets[def.type] || ""}
+                onChange={e => setTargets({ ...targets, [def.type]: e.target.value })}
+                placeholder={def.targetPlaceholder}
+                className="w-full bg-background/40 border border-border/[0.08] rounded p-2 text-[11px] font-mono text-foreground/85 mb-2 focus:outline-none focus:border-foreground/20"
+              />
+              <input
+                value={params[def.type] || ""}
+                onChange={e => setParams({ ...params, [def.type]: e.target.value })}
+                placeholder="Reason / case ref (optional)"
+                className="w-full bg-background/40 border border-border/[0.08] rounded p-2 text-[10px] text-foreground/75 mb-2 focus:outline-none focus:border-foreground/20"
+              />
+              <button
+                onClick={() => fire(def)}
+                disabled={busy === def.type}
+                className="w-full px-3 py-2 rounded-md bg-red-500/[0.1] border border-red-500/[0.25] text-red-200/90 hover:bg-red-500/[0.18] disabled:opacity-50 text-[10px] tracking-[0.12em] uppercase transition-colors"
+              >
+                {busy === def.type ? "Dispatching…" : `Fire ${def.label}`}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <Panel title="Containment Audit Log" desc="Every action you've fired — private to your account, forensic-grade chain of custody">
+        <div className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.08] text-[9px] uppercase tracking-wider text-muted-foreground/50">
+          <div className="col-span-1">St</div>
+          <div className="col-span-3">Action</div>
+          <div className="col-span-4">Target</div>
+          <div className="col-span-2">Status</div>
+          <div className="col-span-2">When</div>
+        </div>
+        {loading && <LoadingNote />}
+        {!loading && !actions.length && <EmptyNote msg="No actions fired yet" />}
+        {actions.map(a => {
+          const ok = a.status === "executed";
+          const fail = a.status === "failed";
+          const dot = ok ? "bg-emerald-400" : fail ? "bg-red-400" : "bg-yellow-400";
+          return (
+            <div key={a.id} className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/[0.04] text-[10px] text-foreground/70 hover:bg-foreground/[0.02]">
+              <div className="col-span-1 flex items-center"><span className={`w-1.5 h-1.5 rounded-full ${dot}`} /></div>
+              <div className="col-span-3 truncate uppercase tracking-wide text-[9px]">{a.action_type.replace(/_/g, " ")}</div>
+              <div className="col-span-4 truncate font-mono text-foreground/85">{a.target}</div>
+              <div className="col-span-2 text-muted-foreground/60 text-[9px] uppercase">{a.status}</div>
+              <div className="col-span-2 text-muted-foreground/50">{timeAgo(a.created_at)}</div>
+            </div>
+          );
+        })}
+      </Panel>
+    </div>
+  );
+};
+
+// ============================================================
+// MISSING STACK SCREENS (grid-backed — show empty state until grid is connected)
+// ============================================================
+const OsqueryScreen = () => (
+  <GridNotConnected moduleName="osquery / Fleet" what="Distributed SQL queries across your endpoints (process lists, open ports, persistence keys) are issued by your Fleet server." />
+);
+const StrelkaScreen = () => (
+  <GridNotConnected moduleName="Strelka File Scanning" what="Deep file analysis (YARA, embedded objects, hashes, metadata) runs on the Strelka cluster in your grid." />
+);
+const SigmaScreen = () => (
+  <div className="space-y-3">
+    <Panel title="Sigma Rules — Live Index" desc="Open-source detection rule repository (SigmaHQ)">
+      <div className="text-[11px] text-foreground/75 leading-relaxed mb-3">
+        Sigma is the vendor-neutral detection format used across the Security Onion stack. Once your grid is connected, Zaxin will sync the full SigmaHQ ruleset and convert each rule into the right backend (Elastic, Suricata, Wazuh) automatically.
+      </div>
+      <a href="https://github.com/SigmaHQ/sigma" target="_blank" rel="noreferrer" className="inline-block px-3 py-1.5 rounded bg-foreground/[0.06] text-foreground/85 text-[10px] hover:bg-foreground/[0.1]">Open SigmaHQ on GitHub →</a>
+    </Panel>
+    <GridNotConnected moduleName="Live rule sync" what="The compiled, per-backend rule deployment requires your grid's rule manager." />
+  </div>
+);
+const CortexScreen = () => (
+  <GridNotConnected moduleName="Cortex Analyzers" what="IOC enrichment (VirusTotal, AbuseIPDB, Shodan, Greynoise, MalwareBazaar) runs on your Cortex server with your private analyzer API keys." />
+);
+const GrafanaScreen = () => {
+  const grid = loadGrid();
+  if (!grid.url) return <GridNotConnected moduleName="Grafana" what="Custom visual dashboards live on your Grafana instance and pull from your Elasticsearch / Prometheus." />;
+  const grafUrl = grid.url.replace(/\/$/, "") + "/grafana";
+  return (
+    <Panel title="Grafana — Embedded" desc={`Loaded from ${grafUrl}`}>
+      <iframe src={grafUrl} className="w-full h-[600px] rounded border border-border/[0.08] bg-foreground/[0.01]" title="Grafana" />
+      <div className="text-[9px] text-muted-foreground/40 mt-2">If the dashboard does not load, ensure your grid allows iframe embedding for this origin.</div>
+    </Panel>
+  );
+};
+const AttckScreen = ({ intel }: { intel: ReturnType<typeof useZaxinIntel> }) => {
+  const max = Math.max(...(intel.data?.mitre.map(m => m.techniques) ?? [1]), 1);
+  return (
+    <div className="space-y-3">
+      <Panel title="ATT&CK Navigator — Live MITRE Enterprise Matrix" desc="Live tactic → technique counts. Cell intensity = total techniques per tactic.">
+        {intel.loading && <LoadingNote />}
+        {intel.error && <ErrorNote msg={intel.error} onRetry={intel.refresh} />}
+        {intel.data?.mitre.length ? (
+          <div className="grid grid-cols-7 gap-1.5">
+            {intel.data.mitre.map(m => {
+              const intensity = m.techniques / max;
+              return (
+                <div key={m.tactic} className="rounded border border-border/[0.06] p-2" style={{ background: `rgba(239, 68, 68, ${0.05 + intensity * 0.25})` }}>
+                  <div className="text-[8px] uppercase tracking-wider text-foreground/85 truncate capitalize">{m.tactic.replace(/-/g, " ")}</div>
+                  <div className="text-[18px] font-extralight text-foreground/90 mt-1">{m.techniques}</div>
+                  <div className="text-[8px] text-muted-foreground/50">techniques</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+        <div className="text-[9px] text-muted-foreground/40 mt-3 pt-3 border-t border-border/[0.06]">
+          Source: MITRE CTI repository (live). Connect your grid to overlay YOUR detection coverage per technique.
+        </div>
+      </Panel>
+    </div>
+  );
+};
+const CuratorScreen = () => (
+  <GridNotConnected moduleName="Index Lifecycle (Curator)" what="Retention policies, snapshot schedules, and disk-watermark management run on your Elasticsearch cluster." />
+);
+
 const ZaxinView = () => {
   const [screen, setScreen] = useState<ZaxinScreen>("overview");
   const intel = useZaxinIntel();
@@ -902,6 +1113,14 @@ const ZaxinView = () => {
       case "dashboards": return <DashboardsScreen intel={intel} />;
       case "downloads":  return <DownloadsScreen intel={intel} />;
       case "config":     return <ConfigScreen />;
+      case "response":   return <ResponseScreen />;
+      case "osquery":    return <OsqueryScreen />;
+      case "strelka":    return <StrelkaScreen />;
+      case "sigma":      return <SigmaScreen />;
+      case "cortex":     return <CortexScreen />;
+      case "grafana":    return <GrafanaScreen />;
+      case "attck":      return <AttckScreen intel={intel} />;
+      case "curator":    return <CuratorScreen />;
     }
   };
 
