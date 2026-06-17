@@ -513,6 +513,7 @@ const AIKeysSettings = () => {
   const [saving, setSaving] = useState(false);
   const [savingPref, setSavingPref] = useState(false);
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (!user) return;
