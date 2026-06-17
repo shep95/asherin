@@ -8003,6 +8003,45 @@ export type Database = {
         }
         Relationships: []
       }
+      zaxin_response_actions: {
+        Row: {
+          action_type: string
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          params: Json
+          response: Json | null
+          status: string
+          target: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          params?: Json
+          response?: Json | null
+          status?: string
+          target: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          params?: Json
+          response?: Json | null
+          status?: string
+          target?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       zeeion_sessions: {
         Row: {
           anomalies: Json | null
