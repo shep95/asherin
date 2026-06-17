@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
+interface Props {
+  isAuthenticated?: boolean;
+  onAuthClick?: () => void;
+}
+
 /**
  * Fixed bottom CTA bar — appears on mobile after the visitor scrolls past the hero.
  * Captures users who scroll without ever returning to the top CTA.
  */
-const MobileStickyCTA = () => {
+const MobileStickyCTA = ({ isAuthenticated, onAuthClick }: Props) => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -38,13 +43,23 @@ const MobileStickyCTA = () => {
             No card. No catch. Start now.
           </div>
         </div>
-        <Link
-          to="/dashboard"
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-amber-400 text-black px-4 py-2.5 text-xs font-semibold tracking-wide hover:bg-amber-300 transition-colors min-h-[44px]"
-        >
-          Start Free
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
+        {isAuthenticated ? (
+          <Link
+            to="/dashboard"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-amber-400 text-black px-4 py-2.5 text-xs font-semibold tracking-wide hover:bg-amber-300 transition-colors min-h-[44px]"
+          >
+            Dashboard
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        ) : (
+          <button
+            onClick={onAuthClick}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-amber-400 text-black px-4 py-2.5 text-xs font-semibold tracking-wide hover:bg-amber-300 transition-colors min-h-[44px]"
+          >
+            Start Free
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
     </div>
   );
