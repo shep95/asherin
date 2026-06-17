@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Key, Plus, Trash2, Check, Loader2, Eye, EyeOff, ChevronDown, Zap, AlertTriangle, Brain } from "lucide-react";
+import { Key, Plus, Trash2, Check, Loader2, Eye, EyeOff, ChevronDown, Zap, AlertTriangle, Brain, Search, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,8 @@ export interface ProviderConfig {
   placeholder: string;
   helpUrl: string;
   helpText: string;
+  /** Country of origin — drives the country filter in Settings. */
+  country: string;
   models: { id: string; name: string; description: string }[];
   /** Platform-hosted provider — no user API key required. Aureon-managed. */
   isPlatform?: boolean;
@@ -20,168 +22,310 @@ export interface ProviderConfig {
 
 export const AI_PROVIDERS: ProviderConfig[] = [
 
+  // ───────────────────────── UNITED STATES ─────────────────────────
   {
     id: "google",
     name: "Google AI (Gemini)",
     icon: "◈",
+    country: "United States",
     placeholder: "AIzaSy...",
     helpUrl: "https://aistudio.google.com/app/apikey",
     helpText: "Get your API key from Google AI Studio",
     models: [
-      { id: "gemini-3-pro-preview", name: "Gemini 3 Pro", description: "Frontier reasoning, deep think, 1M context" },
+      { id: "gemini-3-pro-preview", name: "Gemini 3 Pro", description: "Newest — frontier reasoning, 1M context" },
       { id: "gemini-3-flash-preview", name: "Gemini 3 Flash", description: "Next-gen flash, balanced speed + capability" },
-      { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro Preview", description: "Latest reasoning preview" },
-      { id: "gemini-3.1-flash-image-preview", name: "Gemini 3.1 Flash Image", description: "Pro-grade image generation/edit (Nano Banana 2)" },
       { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", description: "Strong reasoning + multimodal" },
       { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", description: "Fast, balanced performance" },
-      { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", description: "Cheapest, high-volume" },
+      { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "Legacy — 2M context" },
+      { id: "gemini-1.0-pro", name: "Gemini 1.0 Pro", description: "Oldest available — original Gemini API" },
     ],
   },
   {
     id: "openai",
     name: "OpenAI",
     icon: "◉",
+    country: "United States",
     placeholder: "sk-...",
     helpUrl: "https://platform.openai.com/api-keys",
     helpText: "Get your API key from OpenAI Platform",
     models: [
       { id: "gpt-5.5", name: "GPT-5.5", description: "Newest flagship, frontier reasoning" },
-      { id: "gpt-5.2", name: "GPT-5.2", description: "Enhanced reasoning, complex problem solving" },
-      { id: "gpt-5", name: "GPT-5", description: "All-rounder, multimodal, 400K context" },
+      { id: "gpt-5", name: "GPT-5", description: "All-rounder, multimodal" },
       { id: "gpt-5-mini", name: "GPT-5 Mini", description: "Cost-efficient strong performance" },
-      { id: "gpt-5-nano", name: "GPT-5 Nano", description: "Fastest, cheapest GPT-5 tier" },
-      { id: "gpt-5-codex", name: "GPT-5 Codex", description: "Agentic coding specialist" },
-      { id: "gpt-4.1", name: "GPT-4.1", description: "Best legacy coding model" },
-      { id: "o4-mini", name: "o4-mini", description: "Reasoning + tool use" },
-      { id: "o3-pro", name: "o3 Pro", description: "Deep reasoning, extended compute" },
+      { id: "gpt-4.1", name: "GPT-4.1", description: "Best 4.x coding model" },
+      { id: "gpt-4o", name: "GPT-4o", description: "Legacy omni multimodal" },
+      { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", description: "Oldest available — classic ChatGPT API" },
     ],
   },
   {
     id: "anthropic",
     name: "Anthropic (Claude)",
     icon: "◎",
+    country: "United States",
     placeholder: "sk-ant-...",
     helpUrl: "https://console.anthropic.com/settings/keys",
     helpText: "Get your API key from Anthropic Console",
     models: [
-      { id: "claude-opus-4-5", name: "Claude Opus 4.5", description: "Newest flagship, smartest Claude, 1M context" },
-      { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", description: "Best agentic + coding model, 1M context" },
-      { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", description: "Fastest 4.x, near-Sonnet quality" },
-      { id: "claude-opus-4-1", name: "Claude Opus 4.1", description: "Previous flagship, deep reasoning" },
-      { id: "claude-sonnet-4", name: "Claude Sonnet 4", description: "Strong all-rounder" },
-      { id: "claude-3-5-haiku-latest", name: "Claude 3.5 Haiku", description: "Legacy fast tier" },
+      { id: "claude-opus-4-5", name: "Claude Opus 4.5", description: "Newest flagship, smartest Claude" },
+      { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", description: "Best agentic + coding, 1M context" },
+      { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", description: "Fastest 4.x" },
+      { id: "claude-3-5-sonnet", name: "Claude 3.5 Sonnet", description: "Legacy" },
+      { id: "claude-2.1", name: "Claude 2.1", description: "Oldest available — 200K context legacy" },
     ],
   },
   {
     id: "xai",
     name: "xAI (Grok)",
     icon: "◌",
+    country: "United States",
     placeholder: "xai-...",
     helpUrl: "https://console.x.ai/",
     helpText: "Get your API key from xAI Console",
     models: [
-      { id: "grok-5", name: "Grok 5", description: "Newest flagship, frontier reasoning + real-time" },
-      { id: "grok-4-1", name: "Grok 4.1", description: "Refined reasoning, 256K context" },
-      { id: "grok-4-fast", name: "Grok 4 Fast", description: "2M context, sub-second latency" },
-      { id: "grok-4-heavy", name: "Grok 4 Heavy", description: "Multi-agent ensemble reasoning" },
-      { id: "grok-code-fast-1", name: "Grok Code Fast", description: "Agentic coding model" },
-      { id: "grok-3", name: "Grok 3", description: "Reliable legacy" },
+      { id: "grok-5", name: "Grok 5", description: "Newest frontier reasoning + real-time" },
+      { id: "grok-4-1", name: "Grok 4.1", description: "Refined reasoning" },
+      { id: "grok-3", name: "Grok 3", description: "Reliable mid-tier" },
+      { id: "grok-2", name: "Grok 2", description: "Legacy" },
+      { id: "grok-beta", name: "Grok Beta", description: "Oldest available — original Grok API" },
     ],
   },
   {
     id: "meta",
     name: "Meta AI (Llama)",
     icon: "◇",
+    country: "United States",
     placeholder: "Your Llama API key...",
     helpUrl: "https://llama.developer.meta.com/",
-    helpText: "Access via Llama API or compatible providers (Together, Groq)",
+    helpText: "Access via Llama API, Together, or Groq",
     models: [
-      { id: "llama-4-behemoth", name: "Llama 4 Behemoth", description: "2T param frontier teacher model" },
-      { id: "llama-4-maverick", name: "Llama 4 Maverick", description: "MoE flagship, multimodal, 1M context" },
-      { id: "llama-4-scout", name: "Llama 4 Scout", description: "10M context window" },
+      { id: "llama-4-behemoth", name: "Llama 4 Behemoth", description: "Newest 2T param frontier" },
+      { id: "llama-4-maverick", name: "Llama 4 Maverick", description: "MoE flagship multimodal" },
       { id: "llama-3.3-70b", name: "Llama 3.3 70B", description: "Strong open-weight" },
       { id: "llama-3.1-405b", name: "Llama 3.1 405B", description: "Largest classic Llama" },
-    ],
-  },
-  {
-    id: "mistral",
-    name: "Mistral AI",
-    icon: "◐",
-    placeholder: "Your Mistral API key...",
-    helpUrl: "https://console.mistral.ai/api-keys/",
-    helpText: "Get your API key from Mistral Console",
-    models: [
-      { id: "mistral-large-3", name: "Mistral Large 3", description: "Newest frontier flagship" },
-      { id: "magistral-medium", name: "Magistral Medium", description: "Reasoning specialist" },
-      { id: "mistral-medium-3-1", name: "Mistral Medium 3.1", description: "Frontier multimodal" },
-      { id: "codestral-25", name: "Codestral 25", description: "Latest dedicated code model" },
-      { id: "pixtral-large", name: "Pixtral Large", description: "Vision + multimodal" },
-      { id: "ministral-8b", name: "Ministral 8B", description: "Fast edge model" },
-    ],
-  },
-  {
-    id: "deepseek",
-    name: "DeepSeek",
-    icon: "◔",
-    placeholder: "sk-...",
-    helpUrl: "https://platform.deepseek.com/",
-    helpText: "Get your API key from DeepSeek Platform",
-    models: [
-      { id: "deepseek-v3.2", name: "DeepSeek V3.2", description: "Latest flagship chat model" },
-      { id: "deepseek-r1", name: "DeepSeek R1", description: "Frontier open reasoning" },
-      { id: "deepseek-chat", name: "DeepSeek V3", description: "Stable production chat" },
-      { id: "deepseek-coder-v2", name: "DeepSeek Coder V2", description: "Code-specialized MoE" },
+      { id: "llama-2-70b", name: "Llama 2 70B", description: "Oldest available — original open Llama API" },
     ],
   },
   {
     id: "perplexity",
     name: "Perplexity AI",
     icon: "◈",
+    country: "United States",
     placeholder: "pplx-...",
     helpUrl: "https://www.perplexity.ai/settings/api",
     helpText: "Get your API key from Perplexity Settings",
     models: [
-      { id: "sonar-pro", name: "Sonar Pro", description: "Multi-step search reasoning, 2x citations" },
-      { id: "sonar-reasoning-pro", name: "Sonar Reasoning Pro", description: "R1-based reasoning + live search" },
-      { id: "sonar-deep-research", name: "Sonar Deep Research", description: "Expert multi-query analysis" },
-      { id: "sonar-reasoning", name: "Sonar Reasoning", description: "CoT with real-time search" },
-      { id: "sonar", name: "Sonar", description: "Fast search-grounded answers" },
+      { id: "sonar-pro", name: "Sonar Pro", description: "Newest multi-step search reasoning" },
+      { id: "sonar-reasoning-pro", name: "Sonar Reasoning Pro", description: "R1-based reasoning + search" },
+      { id: "sonar", name: "Sonar", description: "Fast search-grounded" },
+      { id: "pplx-7b-online", name: "PPLX 7B Online", description: "Oldest available — legacy online model" },
     ],
   },
   {
     id: "venice",
     name: "Venice AI",
     icon: "◆",
+    country: "United States",
     placeholder: "Your Venice API key...",
     helpUrl: "https://venice.ai/",
-    helpText: "Get your API key from Venice AI — uncensored, no logging",
+    helpText: "Uncensored, no-logging API",
     models: [
-      { id: "venice-uncensored", name: "Venice Uncensored", description: "Default uncensored flagship" },
+      { id: "venice-uncensored", name: "Venice Uncensored", description: "Newest uncensored flagship" },
       { id: "llama-3.1-405b", name: "Llama 3.1 405B", description: "Largest open uncensored" },
-      { id: "qwen-3-235b", name: "Qwen 3 235B", description: "Top open Chinese MoE" },
       { id: "dolphin-72b", name: "Dolphin 72B", description: "Zero-filter assistant" },
-      { id: "deepseek-r1-671b", name: "DeepSeek R1 671B", description: "Uncensored reasoning monster" },
+      { id: "llama-3-8b", name: "Llama 3 8B", description: "Oldest available on Venice" },
+    ],
+  },
+  {
+    id: "ibm",
+    name: "IBM watsonx (Granite)",
+    icon: "◰",
+    country: "United States",
+    placeholder: "Your watsonx API key...",
+    helpUrl: "https://cloud.ibm.com/iam/apikeys",
+    helpText: "Get your API key from IBM Cloud",
+    models: [
+      { id: "granite-3.1-8b-instruct", name: "Granite 3.1 8B", description: "Newest enterprise instruct" },
+      { id: "granite-3.0-2b-instruct", name: "Granite 3.0 2B", description: "Compact enterprise" },
+      { id: "granite-13b-chat-v2", name: "Granite 13B v2", description: "Oldest available — original Granite chat" },
+    ],
+  },
+  {
+    id: "amazon",
+    name: "Amazon Bedrock (Nova)",
+    icon: "◱",
+    country: "United States",
+    placeholder: "AWS access key...",
+    helpUrl: "https://console.aws.amazon.com/bedrock/",
+    helpText: "Configure access in AWS Bedrock console",
+    models: [
+      { id: "amazon.nova-pro-v1", name: "Nova Pro", description: "Newest multimodal flagship" },
+      { id: "amazon.nova-lite-v1", name: "Nova Lite", description: "Fast cost-efficient multimodal" },
+      { id: "amazon.nova-micro-v1", name: "Nova Micro", description: "Cheapest text-only" },
+      { id: "amazon.titan-text-express-v1", name: "Titan Text Express", description: "Oldest available — original Titan API" },
+    ],
+  },
+  {
+    id: "nvidia",
+    name: "NVIDIA NIM (Nemotron)",
+    icon: "◲",
+    country: "United States",
+    placeholder: "nvapi-...",
+    helpUrl: "https://build.nvidia.com/",
+    helpText: "Get your API key from NVIDIA Build",
+    models: [
+      { id: "nemotron-4-340b-instruct", name: "Nemotron 4 340B", description: "Newest open frontier" },
+      { id: "llama-3.1-nemotron-70b", name: "Llama 3.1 Nemotron 70B", description: "Tuned reasoning" },
+      { id: "nemotron-3-8b-chat", name: "Nemotron 3 8B", description: "Oldest available — original Nemotron API" },
+    ],
+  },
+
+  // ───────────────────────── UNITED KINGDOM ─────────────────────────
+  {
+    id: "stability",
+    name: "Stability AI",
+    icon: "◳",
+    country: "United Kingdom",
+    placeholder: "sk-...",
+    helpUrl: "https://platform.stability.ai/account/keys",
+    helpText: "Get your API key from Stability Platform",
+    models: [
+      { id: "stable-diffusion-3.5-large", name: "Stable Diffusion 3.5 Large", description: "Newest image flagship" },
+      { id: "stable-image-ultra", name: "Stable Image Ultra", description: "Highest-fidelity render" },
+      { id: "stable-diffusion-xl-1024", name: "SDXL 1.0", description: "Oldest available — classic SDXL API" },
+    ],
+  },
+  {
+    id: "reka",
+    name: "Reka AI",
+    icon: "◴",
+    country: "United Kingdom",
+    placeholder: "Your Reka API key...",
+    helpUrl: "https://platform.reka.ai/",
+    helpText: "Get your API key from Reka Platform",
+    models: [
+      { id: "reka-core", name: "Reka Core", description: "Newest multimodal flagship" },
+      { id: "reka-flash", name: "Reka Flash", description: "Fast multimodal" },
+      { id: "reka-edge", name: "Reka Edge", description: "Oldest available — original Reka API" },
+    ],
+  },
+
+  // ───────────────────────── CANADA ─────────────────────────
+  {
+    id: "cohere",
+    name: "Cohere (Command)",
+    icon: "◵",
+    country: "Canada",
+    placeholder: "Your Cohere API key...",
+    helpUrl: "https://dashboard.cohere.com/api-keys",
+    helpText: "Get your API key from Cohere Dashboard",
+    models: [
+      { id: "command-a-03-2025", name: "Command A", description: "Newest agentic flagship, 256K context" },
+      { id: "command-r-plus", name: "Command R+", description: "RAG-tuned production model" },
+      { id: "command-r", name: "Command R", description: "Balanced RAG model" },
+      { id: "command", name: "Command", description: "Oldest available — original Command API" },
+    ],
+  },
+
+  // ───────────────────────── FRANCE ─────────────────────────
+  {
+    id: "mistral",
+    name: "Mistral AI",
+    icon: "◐",
+    country: "France",
+    placeholder: "Your Mistral API key...",
+    helpUrl: "https://console.mistral.ai/api-keys/",
+    helpText: "Get your API key from Mistral Console",
+    models: [
+      { id: "mistral-large-3", name: "Mistral Large 3", description: "Newest frontier flagship" },
+      { id: "magistral-medium", name: "Magistral Medium", description: "Reasoning specialist" },
+      { id: "codestral-25", name: "Codestral 25", description: "Latest dedicated code model" },
+      { id: "ministral-8b", name: "Ministral 8B", description: "Fast edge model" },
+      { id: "mistral-7b-instruct", name: "Mistral 7B Instruct", description: "Oldest available — original Mistral API" },
+    ],
+  },
+
+  // ───────────────────────── INDIA ─────────────────────────
+  {
+    id: "sarvam",
+    name: "Sarvam AI",
+    icon: "◶",
+    country: "India",
+    placeholder: "Your Sarvam API key...",
+    helpUrl: "https://dashboard.sarvam.ai/",
+    helpText: "Get your API key from Sarvam Dashboard — Indic-tuned",
+    models: [
+      { id: "sarvam-m", name: "Sarvam-M", description: "Newest 24B Indic reasoning flagship" },
+      { id: "sarvam-2b", name: "Sarvam-2B", description: "Compact bilingual Indic model" },
+      { id: "sarvam-1", name: "Sarvam-1", description: "Oldest available — original Sarvam API" },
+    ],
+  },
+  {
+    id: "krutrim",
+    name: "Krutrim (Ola)",
+    icon: "◷",
+    country: "India",
+    placeholder: "Your Krutrim API key...",
+    helpUrl: "https://cloud.olakrutrim.com/",
+    helpText: "Get your API key from Ola Krutrim Cloud",
+    models: [
+      { id: "krutrim-2-instruct", name: "Krutrim-2 Instruct", description: "Newest 12B Indic multilingual" },
+      { id: "krutrim-spectre-v2", name: "Krutrim Spectre v2", description: "Production chat" },
+      { id: "krutrim-1", name: "Krutrim-1", description: "Oldest available — original Krutrim API" },
+    ],
+  },
+  {
+    id: "twoai",
+    name: "TWO AI (SUTRA)",
+    icon: "◸",
+    country: "India",
+    placeholder: "Your TWO AI API key...",
+    helpUrl: "https://www.two.ai/sutra",
+    helpText: "Get your API key from TWO AI / SUTRA",
+    models: [
+      { id: "sutra-v2", name: "SUTRA-V2", description: "Newest multilingual flagship (50+ langs)" },
+      { id: "sutra-pro", name: "SUTRA Pro", description: "Strong multilingual chat" },
+      { id: "sutra-light", name: "SUTRA Light", description: "Oldest available — original SUTRA API" },
+    ],
+  },
+
+  // ───────────────────────── CHINA ─────────────────────────
+  {
+    id: "deepseek",
+    name: "DeepSeek",
+    icon: "◔",
+    country: "China",
+    placeholder: "sk-...",
+    helpUrl: "https://platform.deepseek.com/",
+    helpText: "Get your API key from DeepSeek Platform",
+    models: [
+      { id: "deepseek-v3.2", name: "DeepSeek V3.2", description: "Newest flagship chat" },
+      { id: "deepseek-r1", name: "DeepSeek R1", description: "Frontier open reasoning" },
+      { id: "deepseek-chat", name: "DeepSeek V3", description: "Stable production chat" },
+      { id: "deepseek-coder-v2", name: "DeepSeek Coder V2", description: "Code-specialized MoE" },
+      { id: "deepseek-llm-67b-chat", name: "DeepSeek LLM 67B", description: "Oldest available — original DeepSeek API" },
     ],
   },
   {
     id: "qwen",
     name: "Alibaba Qwen",
     icon: "◉",
+    country: "China",
     placeholder: "sk-...",
     helpUrl: "https://dashscope.console.aliyun.com/apiKey",
     helpText: "Get your API key from Alibaba Cloud DashScope",
     models: [
-      { id: "qwen3-max", name: "Qwen3 Max", description: "Frontier flagship, trillion-param MoE" },
+      { id: "qwen3-max", name: "Qwen3 Max", description: "Newest trillion-param MoE flagship" },
       { id: "qwen3-235b-a22b", name: "Qwen3 235B", description: "Top open MoE reasoning" },
       { id: "qwen3-coder-plus", name: "Qwen3 Coder Plus", description: "Agentic coding specialist" },
-      { id: "qwen3-vl-plus", name: "Qwen3 VL Plus", description: "Vision + multimodal" },
       { id: "qwen-turbo", name: "Qwen Turbo", description: "Fast, low-cost tier" },
+      { id: "qwen-7b-chat", name: "Qwen 7B Chat", description: "Oldest available — original Qwen API" },
     ],
   },
   {
     id: "zhipu",
     name: "Zhipu AI (GLM)",
     icon: "◍",
+    country: "China",
     placeholder: "Your Zhipu API key...",
     helpUrl: "https://open.bigmodel.cn/usercenter/apikeys",
     helpText: "Get your API key from Zhipu BigModel",
@@ -189,48 +333,153 @@ export const AI_PROVIDERS: ProviderConfig[] = [
       { id: "glm-4.6", name: "GLM-4.6", description: "Newest flagship reasoning + coding" },
       { id: "glm-4.5", name: "GLM-4.5", description: "Strong agentic + tool use" },
       { id: "glm-4.5-air", name: "GLM-4.5 Air", description: "Fast, cost-efficient" },
-      { id: "glm-4v-plus", name: "GLM-4V Plus", description: "Vision multimodal" },
+      { id: "chatglm-6b", name: "ChatGLM 6B", description: "Oldest available — original ChatGLM API" },
     ],
   },
   {
     id: "moonshot",
     name: "Moonshot (Kimi)",
     icon: "◗",
+    country: "China",
     placeholder: "sk-...",
     helpUrl: "https://platform.moonshot.cn/console/api-keys",
     helpText: "Get your API key from Moonshot Platform",
     models: [
-      { id: "kimi-k2", name: "Kimi K2", description: "Trillion-param MoE flagship" },
+      { id: "kimi-k2", name: "Kimi K2", description: "Newest trillion-param MoE flagship" },
       { id: "kimi-k2-turbo", name: "Kimi K2 Turbo", description: "High-speed K2 tier" },
       { id: "moonshot-v1-128k", name: "Moonshot v1 128K", description: "Long-context chat" },
-      { id: "moonshot-v1-vision", name: "Moonshot Vision", description: "Vision multimodal" },
+      { id: "moonshot-v1-8k", name: "Moonshot v1 8K", description: "Oldest available — original Moonshot API" },
     ],
   },
   {
     id: "baidu",
     name: "Baidu ERNIE",
     icon: "◖",
+    country: "China",
     placeholder: "Your Qianfan API key...",
     helpUrl: "https://qianfan.cloud.baidu.com/",
     helpText: "Get your API key from Baidu Qianfan",
     models: [
-      { id: "ernie-5.0", name: "ERNIE 5.0", description: "Latest flagship multimodal" },
+      { id: "ernie-5.0", name: "ERNIE 5.0", description: "Newest flagship multimodal" },
       { id: "ernie-4.5-turbo", name: "ERNIE 4.5 Turbo", description: "Fast reasoning tier" },
       { id: "ernie-x1", name: "ERNIE X1", description: "Deep reasoning specialist" },
-      { id: "ernie-speed", name: "ERNIE Speed", description: "Low-latency edge" },
+      { id: "ernie-bot", name: "ERNIE Bot 1.0", description: "Oldest available — original ERNIE API" },
     ],
   },
   {
     id: "minimax",
     name: "MiniMax",
     icon: "◙",
+    country: "China",
     placeholder: "Your MiniMax API key...",
     helpUrl: "https://www.minimaxi.com/user-center/basic-information/interface-key",
     helpText: "Get your API key from MiniMax",
     models: [
       { id: "minimax-m2", name: "MiniMax M2", description: "Newest agentic flagship" },
       { id: "abab7-chat-preview", name: "Abab 7 Chat", description: "Long-context chat" },
-      { id: "minimax-text-01", name: "MiniMax Text-01", description: "4M-token context" },
+      { id: "abab5-chat", name: "Abab 5 Chat", description: "Oldest available — original MiniMax API" },
+    ],
+  },
+
+  // ───────────────────────── BRAZIL ─────────────────────────
+  {
+    id: "maritaca",
+    name: "Maritaca AI (Sabiá)",
+    icon: "◹",
+    country: "Brazil",
+    placeholder: "Your Maritaca API key...",
+    helpUrl: "https://plataforma.maritaca.ai/",
+    helpText: "Get your API key from Maritaca Plataforma — Portuguese-tuned",
+    models: [
+      { id: "sabia-3", name: "Sabiá-3", description: "Newest Portuguese flagship" },
+      { id: "sabia-2-medium", name: "Sabiá-2 Medium", description: "Balanced PT chat" },
+      { id: "sabia-2-small", name: "Sabiá-2 Small", description: "Fast PT tier" },
+      { id: "sabia-7b", name: "Sabiá-7B", description: "Oldest available — original Sabiá API" },
+    ],
+  },
+  {
+    id: "widelabs",
+    name: "Widelabs (Amazônia)",
+    icon: "◺",
+    country: "Brazil",
+    placeholder: "Your Widelabs API key...",
+    helpUrl: "https://widelabs.com.br/",
+    helpText: "Get your API key from Widelabs",
+    models: [
+      { id: "amazonia-ia-2", name: "Amazônia IA 2", description: "Newest Brazilian sovereign LLM" },
+      { id: "amazonia-ia-1", name: "Amazônia IA 1", description: "Oldest available — original Amazônia API" },
+    ],
+  },
+
+  // ───────────────────────── AUSTRALIA ─────────────────────────
+  {
+    id: "maincode",
+    name: "Maincode (Matrix)",
+    icon: "◿",
+    country: "Australia",
+    placeholder: "Your Maincode API key...",
+    helpUrl: "https://maincode.com/",
+    helpText: "Get your API key from Maincode — Australian sovereign AI",
+    models: [
+      { id: "matrix-1", name: "Matrix-1", description: "Newest Australian-built foundation model" },
+      { id: "matrix-mini", name: "Matrix Mini", description: "Oldest available — original Matrix API" },
+    ],
+  },
+  {
+    id: "leonardo",
+    name: "Leonardo AI",
+    icon: "◊",
+    country: "Australia",
+    placeholder: "Your Leonardo API key...",
+    helpUrl: "https://app.leonardo.ai/api",
+    helpText: "Get your API key from Leonardo AI",
+    models: [
+      { id: "phoenix-1.0", name: "Phoenix 1.0", description: "Newest in-house image flagship" },
+      { id: "leonardo-anime-xl", name: "Leonardo Anime XL", description: "Stylized art generator" },
+      { id: "leonardo-diffusion", name: "Leonardo Diffusion", description: "Oldest available — original Leonardo API" },
+    ],
+  },
+
+  // ───────────────────────── NIGERIA ─────────────────────────
+  {
+    id: "awarri",
+    name: "Awarri (LAM-1)",
+    icon: "◊",
+    country: "Nigeria",
+    placeholder: "Your Awarri API key...",
+    helpUrl: "https://awarri.com/",
+    helpText: "Get your API key from Awarri — Nigerian LLM",
+    models: [
+      { id: "lam-1", name: "LAM-1", description: "Newest large African model (Yoruba, Igbo, Hausa, English)" },
+      { id: "lam-1-base", name: "LAM-1 Base", description: "Oldest available — base LAM API" },
+    ],
+  },
+  {
+    id: "lelapa",
+    name: "Lelapa AI (Vulavula)",
+    icon: "◊",
+    country: "Nigeria",
+    placeholder: "Your Lelapa API key...",
+    helpUrl: "https://lelapa.ai/",
+    helpText: "Get your API key from Lelapa AI — African languages",
+    models: [
+      { id: "vulavula", name: "Vulavula", description: "Newest African multilingual API" },
+      { id: "inkuba-0.4b", name: "InkubaLM 0.4B", description: "Oldest available — original African open model" },
+    ],
+  },
+
+  // ───────────────────────── PERU ─────────────────────────
+  {
+    id: "latamgpt",
+    name: "Latam-GPT",
+    icon: "◊",
+    country: "Peru",
+    placeholder: "Your Latam-GPT API key...",
+    helpUrl: "https://www.latamgpt.org/",
+    helpText: "Get your API key from the Latam-GPT consortium (Peru / LatAm)",
+    models: [
+      { id: "latam-gpt-1", name: "Latam-GPT 1", description: "Newest Spanish/Portuguese/Quechua flagship" },
+      { id: "latam-gpt-base", name: "Latam-GPT Base", description: "Oldest available — base Latam-GPT API" },
     ],
   },
 ];
@@ -264,6 +513,7 @@ const AIKeysSettings = () => {
   const [saving, setSaving] = useState(false);
   const [savingPref, setSavingPref] = useState(false);
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -407,10 +657,42 @@ const AIKeysSettings = () => {
         </div>
       </div>
 
-      {/* Provider list */}
-      <div className="space-y-2">
-        <p className="text-[10px] font-light tracking-wider text-muted-foreground/40 uppercase">Available Providers</p>
-        {AI_PROVIDERS.map(provider => {
+      {/* Provider search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search providers by company or country (e.g. Sarvam, India, Brazil)…"
+          className="w-full bg-background/50 border border-border/20 rounded-lg pl-9 pr-3 py-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40 focus:border-foreground/30 transition-colors"
+        />
+      </div>
+
+      {/* Provider list grouped by country */}
+      <div className="space-y-4">
+        <p className="text-[10px] font-light tracking-wider text-muted-foreground/40 uppercase">Available Providers · {AI_PROVIDERS.length} companies across {new Set(AI_PROVIDERS.map(p => p.country)).size} countries</p>
+        {(() => {
+          const q = search.trim().toLowerCase();
+          const filtered = AI_PROVIDERS.filter(p =>
+            !q || p.name.toLowerCase().includes(q) || p.country.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)
+          );
+          if (filtered.length === 0) {
+            return <p className="text-[11px] text-muted-foreground/40 px-1 py-4">No providers match “{search}”.</p>;
+          }
+          const byCountry = new Map<string, typeof filtered>();
+          filtered.forEach(p => {
+            if (!byCountry.has(p.country)) byCountry.set(p.country, [] as any);
+            byCountry.get(p.country)!.push(p);
+          });
+          return Array.from(byCountry.entries()).map(([country, provs]) => (
+            <div key={country} className="space-y-2">
+              <div className="flex items-center gap-2 px-1">
+                <Globe className="h-3 w-3 text-muted-foreground/40" />
+                <p className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">{country}</p>
+                <span className="text-[9px] text-muted-foreground/30">· {provs.length}</span>
+              </div>
+              {provs.map(provider => {
           const stored = hasKey(provider.id);
           const isActive = preferences.active_provider === provider.id;
           const isExpanded = expandedProvider === provider.id;
@@ -561,8 +843,12 @@ const AIKeysSettings = () => {
               )}
             </div>
           );
-        })}
+              })}
+            </div>
+          ));
+        })()}
       </div>
+
     </div>
   );
 };

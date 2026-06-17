@@ -30,6 +30,14 @@ const UPDATES: Update[] = [
     tag: "Engine",
   },
   {
+    date: "2026-06-17",
+    title: "Global AI Provider Roster Expanded",
+    body:
+      "On 06/17/2026 we expanded Aureon's bring-your-own-key ecosystem to cover AI companies from India, the United States, the United Kingdom, Canada, Brazil, Australia, Nigeria, and Peru. Indian additions include Sarvam AI, Ola Krutrim, and TWO AI (SUTRA). We also added Cohere (Canada), IBM watsonx, Amazon Nova, NVIDIA Nemotron (US), Stability AI and Reka (UK), Maritaca Sabiá and Widelabs Amazônia (Brazil), Maincode Matrix and Leonardo (Australia), Awarri LAM-1 and Lelapa Vulavula (Nigeria), and Latam-GPT (Peru). Every provider now exposes both its newest flagship and its oldest publicly available API model, and Settings has a new search box so you can find any company by name or country.",
+    icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Integration",
+  },
+  {
     date: "2026-06-16",
     title: "Chinese Model Ecosystem Live",
     body:
