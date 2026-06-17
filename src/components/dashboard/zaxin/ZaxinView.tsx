@@ -3,11 +3,227 @@ import {
   Shield, Bell, Activity, Search, Network, FolderArchive, Briefcase, Server,
   FileSearch, Cpu, Settings as SettingsIcon, Download, Database, Radar,
   ScrollText, Layers, Eye, Globe, AlertTriangle, CheckCircle2, Clock,
+  Lightbulb, ChevronDown, ChevronUp,
 } from "lucide-react";
 
 type ZaxinScreen =
   | "overview" | "alerts" | "hunt" | "pcap" | "cases" | "grid" | "detections"
   | "zeek" | "endpoint" | "dashboards" | "downloads" | "config";
+
+// Plain-English guide for each screen — "what this is, how to use it, what the data means"
+const HELP: Record<ZaxinScreen, { what: string; how: string[]; legend: { term: string; means: string }[] }> = {
+  overview: {
+    what: "Your security command center at a glance. Think of it as the dashboard of your car — speed, fuel, warning lights — but for your network's safety.",
+    how: [
+      "Glance at the four big numbers up top to see if anything needs urgent attention.",
+      "Red = stop and look. Green = healthy. Yellow = worth checking later.",
+      "Click any tab on the left to dig deeper into that area.",
+    ],
+    legend: [
+      { term: "Open Alerts", means: "Suspicious things the system flagged that nobody has investigated yet." },
+      { term: "PCAP Captured", means: "How much raw network traffic has been recorded so you can replay it later (like a security camera for the network)." },
+      { term: "Grid Nodes", means: "The servers that make up your defense system. All green = all healthy." },
+      { term: "MITRE ATT&CK Coverage", means: "How well you're protected against known hacker techniques. Higher % = more attack types you'll detect." },
+    ],
+  },
+  alerts: {
+    what: "A live feed of suspicious activity on your network — like a smoke alarm log. Each line is something that tripped a detection rule.",
+    how: [
+      "Read top-to-bottom — newest alerts are at the top.",
+      "Focus on red dots first (critical), then orange (high). Green/yellow can wait.",
+      "Click any alert to see the full story and pivot to packet capture.",
+    ],
+    legend: [
+      { term: "Signature", means: "The name of the rule that fired. Often starts with 'ET' (Emerging Threats) or 'Zeek'." },
+      { term: "Source / Dest", means: "Source = where the traffic came from. Dest = where it was going. IP:port format." },
+      { term: "Engine", means: "Which detector caught it — Suricata (network), Zeek (behavior), Wazuh (endpoint)." },
+      { term: "Severity dots", means: "Red = critical, orange = high, yellow = medium, green = low/info." },
+    ],
+  },
+  hunt: {
+    what: "Threat hunting is searching the haystack for hidden needles. Instead of waiting for alarms, you ask questions like 'has anyone on my network talked to TOR?'",
+    how: [
+      "Type a query in the box (use the example as a template).",
+      "Click 'Run Hunt' to search across all logs.",
+      "Click 'Pivot to PCAP' on any result to grab the actual packets for forensics.",
+    ],
+    legend: [
+      { term: "Lucene query", means: "A search language: field:value AND field2:value. Like Google search for security logs." },
+      { term: "Aggregated results", means: "Grouped counts — shows you the most-talked-to IPs so you spot patterns fast." },
+      { term: "Pivot", means: "Jump from a search result into the related raw data (packets, logs, files)." },
+    ],
+  },
+  pcap: {
+    what: "Full Packet Capture — every byte that crossed your network is saved like CCTV footage. You can rewind and watch any conversation.",
+    how: [
+      "Browse the flow list (each row is one conversation between two computers).",
+      "Click a flow to download the .pcap file, then open it in Wireshark for byte-level inspection.",
+      "Watch the storage bars on the right — when full, oldest flows get overwritten.",
+    ],
+    legend: [
+      { term: "Flow ID", means: "A unique label for one back-and-forth conversation between two machines." },
+      { term: "Proto", means: "The language the two machines were speaking (TLS = encrypted web, DNS = name lookups, TCP-SYN = scanning)." },
+      { term: "Retention", means: "How many days of packets we keep before recycling the disk." },
+    ],
+  },
+  cases: {
+    what: "Where investigations live. When an alert turns into something real, you open a case — like a detective's folder — and track it to resolution.",
+    how: [
+      "Click a case to see all evidence, comments, and assigned analysts.",
+      "Change status as you work: open → triage → investigating → containment → closed.",
+      "Assign cases to teammates so nothing gets dropped.",
+    ],
+    legend: [
+      { term: "Case ID", means: "Permanent reference number (year + sequence). Use it when emailing teammates." },
+      { term: "Status", means: "Where the investigation is right now. 'Containment' = actively stopping the attack." },
+      { term: "Owner", means: "The analyst responsible. 'Unassigned' means nobody's working it — claim it." },
+    ],
+  },
+  grid: {
+    what: "The health of every server in your defense grid. If a node goes down, you stop seeing traffic — so this page tells you the platform itself is alive.",
+    how: [
+      "All green checks = you're fully covered.",
+      "If CPU or MEM stays above 90% for hours, that node needs more resources or it'll drop packets.",
+      "Click a node name to SSH-style restart, drain, or update it.",
+    ],
+    legend: [
+      { term: "Manager", means: "The brain — runs the web UI and pushes config to everyone else." },
+      { term: "Search Node", means: "Stores and queries your logs (Elasticsearch). Heavy on disk and memory." },
+      { term: "Forward Sensor", means: "Lightweight node that watches a network segment and ships data to the manager." },
+      { term: "Heavy Node", means: "Sensor that also stores logs locally — used for remote sites." },
+    ],
+  },
+  detections: {
+    what: "The rulebook. Every rule here is a 'if you see X, raise an alert' instruction the engines follow 24/7.",
+    how: [
+      "Enable/disable rules to tune out noise from your environment.",
+      "Watch 'Hits 24h' — a rule with thousands of hits is probably a false positive; tune or disable it.",
+      "Add custom YARA or Sigma rules for threats specific to your business.",
+    ],
+    legend: [
+      { term: "Suricata", means: "Network rules — match patterns in packet content (e.g., known malware signatures)." },
+      { term: "Sigma", means: "Generic log rules — match suspicious sequences in Windows/Linux events." },
+      { term: "YARA", means: "File-content rules — match malicious strings or bytes inside files seen on the wire." },
+      { term: "SID", means: "Signature ID — the rule's unique number. Use it to look up details online." },
+    ],
+  },
+  zeek: {
+    what: "Zeek silently watches all traffic and writes a tidy diary of what happened — every connection, DNS lookup, file transfer, certificate. Pure context, no alerts.",
+    how: [
+      "Click any log to query it (e.g., 'show me every DNS lookup for *.ru today').",
+      "Use this when you're investigating — Zeek tells you the 'who/what/when' without judging.",
+      "Combine with Alerts: an alert says 'something bad happened'; Zeek shows you everything around it.",
+    ],
+    legend: [
+      { term: "conn.log", means: "Every network connection — like a phone bill for your network." },
+      { term: "dns.log", means: "Every name lookup (what domains were asked about)." },
+      { term: "ssl.log / x509.log", means: "Encrypted connections and the certificates used." },
+      { term: "notice.log", means: "Things Zeek thought were weird enough to highlight without firing a full alert." },
+    ],
+  },
+  endpoint: {
+    what: "Wazuh agents installed on your computers and servers — they report logins, file changes, malware, and odd behavior straight from the endpoint.",
+    how: [
+      "Green dot = agent is checking in. Orange = the host is generating alerts. Red = agent is silent (investigate).",
+      "Install the agent on every laptop, server, and VM you own — coverage = visibility.",
+      "Use FIM (File Integrity Monitoring) to detect unauthorized changes to critical files.",
+    ],
+    legend: [
+      { term: "Last Seen", means: "How long ago the agent checked in. Anything over a few minutes is suspicious." },
+      { term: "FIM", means: "File Integrity Monitoring — alerts when protected files are modified." },
+      { term: "Version", means: "Wazuh agent version on the host. Keep them all on the same recent build." },
+    ],
+  },
+  dashboards: {
+    what: "Pre-built visual reports. Each card opens charts and graphs answering one question (e.g., 'is my DNS being abused?').",
+    how: [
+      "Click a card to open the full dashboard with charts you can zoom and filter.",
+      "Bookmark the dashboards you check daily.",
+      "Build your own for unique business questions.",
+    ],
+    legend: [
+      { term: "MITRE Coverage", means: "Map of which hacker techniques your rules can detect — find the gaps." },
+      { term: "JA3", means: "A fingerprint of how a client speaks TLS — useful for spotting malware that mimics browsers." },
+      { term: "Top talkers", means: "Hosts pushing the most traffic — outliers may be data exfiltration." },
+    ],
+  },
+  downloads: {
+    what: "The official installer for the platform plus the cryptographic key to prove the file wasn't tampered with.",
+    how: [
+      "Download the latest ISO. This is what you flash to a USB to install on a new server.",
+      "Always verify the SHA-256 hash matches before flashing — protects against supply-chain attacks.",
+      "Import the GPG key once, then verify the .sig file shipped alongside each ISO.",
+    ],
+    legend: [
+      { term: "ISO", means: "A complete operating system image — boot from it to install Security Onion fresh." },
+      { term: "SHA-256", means: "A unique fingerprint of the file. If yours matches the official one, the file is intact." },
+      { term: "GPG key", means: "Cryptographic proof of who signed the release. Without verifying, you could install a malicious copy." },
+    ],
+  },
+  config: {
+    what: "Knobs and switches. Tune how the platform watches your network, what rules to load, how long to keep data, and what external tools to plug in.",
+    how: [
+      "Set monitor interfaces to 'promisc' (promiscuous) so they see all traffic, not just their own.",
+      "Enable rule sources cautiously — more rules = more noise. Start small, tune from alerts.",
+      "Adjust retention based on disk size and compliance needs (some industries require 1 year+).",
+    ],
+    legend: [
+      { term: "mgmt vs monitor", means: "Management = how you talk to the box. Monitor = the silent ear that sniffs traffic." },
+      { term: "ET Open / Pro", means: "Emerging Threats rulesets. Open is free; Pro is paid with earlier coverage of new threats." },
+      { term: "MISP / TheHive / Cortex", means: "Other tools we plug into — threat sharing, case management, automated enrichment." },
+    ],
+  },
+};
+
+const HelpCard = ({ screen }: { screen: ZaxinScreen }) => {
+  const [open, setOpen] = useState(true);
+  const h = HELP[screen];
+  return (
+    <div className="rounded-lg border border-foreground/[0.08] bg-gradient-to-br from-foreground/[0.025] to-foreground/[0.005] backdrop-blur-md mb-4 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-foreground/[0.02] transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Lightbulb className="h-3.5 w-3.5 text-foreground/60" />
+          <span className="text-[10px] tracking-[0.18em] uppercase text-foreground/85">How to read this page</span>
+        </div>
+        {open ? <ChevronUp className="h-3 w-3 text-muted-foreground/50" /> : <ChevronDown className="h-3 w-3 text-muted-foreground/50" />}
+      </button>
+      {open && (
+        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-border/[0.04]">
+          <div>
+            <div className="text-[9px] uppercase tracking-widest text-muted-foreground/50 mb-1">What this is</div>
+            <p className="text-[11px] leading-relaxed text-foreground/75">{h.what}</p>
+          </div>
+          <div>
+            <div className="text-[9px] uppercase tracking-widest text-muted-foreground/50 mb-1">How to use it</div>
+            <ul className="space-y-1">
+              {h.how.map((step, i) => (
+                <li key={i} className="text-[11px] leading-relaxed text-foreground/75 flex gap-2">
+                  <span className="text-foreground/40 shrink-0">{i + 1}.</span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <div className="text-[9px] uppercase tracking-widest text-muted-foreground/50 mb-1.5">What the data means</div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              {h.legend.map((l, i) => (
+                <div key={i} className="text-[10px] leading-relaxed">
+                  <span className="text-foreground/85 font-medium">{l.term}</span>
+                  <span className="text-muted-foreground/60"> — {l.means}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 const NAV: { id: ZaxinScreen; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Shield },
