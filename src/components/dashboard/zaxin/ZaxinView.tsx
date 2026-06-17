@@ -1159,19 +1159,24 @@ const ZaxinView = () => {
       <div className="flex-1 flex min-h-0">
         {/* Left nav */}
         <div className="w-52 shrink-0 border-r border-border/[0.06] bg-background/60 backdrop-blur-md py-3 px-2 overflow-y-auto">
-          {NAV.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setScreen(item.id)}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] tracking-wide transition-all mb-0.5 ${
-                screen === item.id
-                  ? "bg-foreground/[0.06] text-foreground/90"
-                  : "text-muted-foreground/50 hover:text-foreground/70 hover:bg-foreground/[0.02]"
-              }`}
-            >
-              <item.icon className="h-3 w-3" />
-              <span>{item.label}</span>
-            </button>
+          {(["Monitor","Investigate","Detect","Respond","Operate"] as const).map(group => (
+            <div key={group} className="mb-2">
+              <div className="px-2.5 py-1 text-[8px] tracking-[0.2em] uppercase text-muted-foreground/30">{group}</div>
+              {NAV.filter(n => n.group === group).map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setScreen(item.id)}
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] tracking-wide transition-all mb-0.5 ${
+                    screen === item.id
+                      ? "bg-foreground/[0.06] text-foreground/90"
+                      : "text-muted-foreground/50 hover:text-foreground/70 hover:bg-foreground/[0.02]"
+                  } ${item.id === "response" ? "border border-red-500/[0.15] bg-red-500/[0.04]" : ""}`}
+                >
+                  <item.icon className={`h-3 w-3 ${item.id === "response" ? "text-red-400/70" : ""}`} />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
           ))}
           <div className="px-3 py-2 mt-3 border-t border-border/[0.06]">
             <div className="text-[8px] text-muted-foreground/20 tracking-wider uppercase text-center">Powered by AUREON</div>
