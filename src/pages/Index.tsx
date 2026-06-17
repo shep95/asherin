@@ -6,6 +6,7 @@ import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
 import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { applySeoHead } from "@/lib/seoHead";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import ReactMarkdown from "react-markdown";
@@ -183,6 +184,7 @@ const Index = () => {
   const [arsenalExpanded, setArsenalExpanded] = useState(false);
   const maxDemos = 3;
   const location = useLocation();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     if (new URLSearchParams(location.search).get("next")) {
@@ -266,7 +268,7 @@ const Index = () => {
   return (
     <LandingBackground>
       <ScrollProgressBar />
-      <MobileStickyCTA />
+      <MobileStickyCTA isAuthenticated={!!user} onAuthClick={() => { setAuthIsLogin(false); setShowAuth(true); }} />
 
       {/* Header */}
       <Header />
@@ -334,22 +336,44 @@ const Index = () => {
               {/* CTA cluster — Fitts (large primary), Hick (one dominant choice), Von Restorff (primary pops),
                   Proximity (CTA + reassurance tightly grouped), Peak-End (first thing the user touches). */}
               <div className="mt-9 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
-                <MagneticSpotlightButton
-                  href="/zophiel"
-                  variant="primary"
-                  size="xl"
-                  ariaLabel="Start a free intelligence search — primary action"
-                  className="!bg-amber-400 !text-black !border-amber-300 hover:!bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)] hover:shadow-[0_14px_50px_-8px_rgba(251,191,36,0.7)]"
-                >
-                  Start Free — No Card <ArrowRight className="h-4 w-4" />
-                </MagneticSpotlightButton>
-                <a
-                  href="#demos"
-                  className="group inline-flex items-center gap-2 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 hover:text-foreground transition-colors min-h-[44px] px-1"
-                >
-                  See it live
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                </a>
+                {user ? (
+                  <MagneticSpotlightButton
+                    href="/dashboard"
+                    variant="primary"
+                    size="xl"
+                    ariaLabel="Go to your dashboard"
+                    className="!bg-amber-400 !text-black !border-amber-300 hover:!bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)] hover:shadow-[0_14px_50px_-8px_rgba(251,191,36,0.7)]"
+                  >
+                    Go to Dashboard <ArrowRight className="h-4 w-4" />
+                  </MagneticSpotlightButton>
+                ) : (
+                  <MagneticSpotlightButton
+                    onClick={() => { setAuthIsLogin(false); setShowAuth(true); }}
+                    variant="primary"
+                    size="xl"
+                    ariaLabel="Start a free intelligence search — primary action"
+                    className="!bg-amber-400 !text-black !border-amber-300 hover:!bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)] hover:shadow-[0_14px_50px_-8px_rgba(251,191,36,0.7)]"
+                  >
+                    Start Free — No Card <ArrowRight className="h-4 w-4" />
+                  </MagneticSpotlightButton>
+                )}
+                {user ? (
+                  <Link
+                    to="/dashboard"
+                    className="group inline-flex items-center gap-2 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 hover:text-foreground transition-colors min-h-[44px] px-1"
+                  >
+                    See it live
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => { setAuthIsLogin(false); setShowAuth(true); }}
+                    className="group inline-flex items-center gap-2 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 hover:text-foreground transition-colors min-h-[44px] px-1"
+                  >
+                    See it live
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                )}
               </div>
               {/* Parkinson's-Law-style reassurance: shortens the perceived commitment. */}
               <p className="mt-3 text-[11px] tracking-[0.18em] uppercase font-mono text-muted-foreground/55">
