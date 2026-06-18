@@ -260,7 +260,7 @@ function CodeNarrativeQuantumDiagram() {
             ◈ Loop 01 · Code → Narrative → Code
           </p>
           <p className="text-[10px] font-mono tracking-[0.22em] uppercase text-foreground/60">
-            Theorist: Jonas
+            Theorist: <NameLink name="Jonas" href="https://x.com/theSignofJonas" title="#houseofasher research and developer" />
           </p>
         </div>
         <div className="flex items-center gap-3 overflow-x-auto pb-2">
@@ -286,7 +286,7 @@ function CodeNarrativeQuantumDiagram() {
             ◈ Loop 02 · Quantum Candidate Collapse
           </p>
           <p className="text-[10px] font-mono tracking-[0.22em] uppercase text-foreground/60">
-            Theorist: Asher
+            Theorist: <NameLink name="Asher" href="https://x.com/shep_newton" title="#houseofasher emperor and lead researcher and developer" />
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
