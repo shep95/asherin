@@ -18,7 +18,9 @@ interface Theory {
   thesis: string;
   body: string;
   parallels: Parallel[];
+  diagram?: React.ReactNode;
 }
+
 
 const THEORIES: Theory[] = [
   {
