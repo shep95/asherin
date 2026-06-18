@@ -530,6 +530,37 @@ const Founder = () => {
 
           <FounderVideos />
 
+          <section className="mt-20">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="text-foreground/60 text-sm">𝕏</span>
+              <h3 className="text-xs font-light tracking-[0.3em] uppercase text-foreground/80">
+                From the Feed · Pinned Post
+              </h3>
+              <div className="flex-1 h-px bg-border/15" />
+            </div>
+            <div className="mx-auto max-w-2xl rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/30">
+              <iframe
+                src="https://platform.twitter.com/embed/Tweet.html?id=2067291085039185957&theme=dark&dnt=true"
+                title="Asher Newton on X"
+                className="w-full"
+                style={{ height: 720, border: 0 }}
+                loading="lazy"
+                allow="autoplay; encrypted-media; picture-in-picture; web-share"
+              />
+              <div className="p-4 border-t border-border/20 text-center">
+                <a
+                  href="https://x.com/shep_newton/status/2067291085039185957"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[11px] font-light tracking-[0.22em] uppercase text-foreground/80 hover:text-foreground"
+                >
+                  Open on 𝕏 →
+                </a>
+              </div>
+            </div>
+          </section>
+
+
           <DirectionalCTA to="imagines" label="Continue · Into the Teachings" />
         </div>
       </div>
