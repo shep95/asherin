@@ -398,8 +398,18 @@ const HouseOfAsherTheories = () => {
                 ))}
               </div>
             </div>
+
+            {t.diagram && (
+              <div className="space-y-4">
+                <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-muted-foreground">
+                  ◈ Workflow · How It Runs Inside Aureon
+                </p>
+                {t.diagram}
+              </div>
+            )}
           </section>
         ))}
+
 
         <section className="rounded-3xl border border-dashed border-border/30 bg-background/20 p-8 sm:p-10 text-center space-y-2">
           <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-muted-foreground">
