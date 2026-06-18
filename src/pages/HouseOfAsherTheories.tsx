@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
-import { ArrowLeft, Dna, Brain, Plane, Database, Network, Eye, Heart, Activity, Cpu, Waves } from "lucide-react";
+import { ArrowLeft, Dna, Brain, Plane, Database, Network, Eye, Heart, Activity, Cpu, Waves, FileCode2, BookOpen, ShieldAlert, Wrench, ArrowRight, Atom, Layers, Target, Sparkles, Trophy } from "lucide-react";
 
 interface Parallel {
   icon: React.ReactNode;
@@ -18,7 +18,9 @@ interface Theory {
   thesis: string;
   body: string;
   parallels: Parallel[];
+  diagram?: React.ReactNode;
 }
+
 
 const THEORIES: Theory[] = [
   {
@@ -104,7 +106,185 @@ const THEORIES: Theory[] = [
       },
     ],
   },
+  {
+    id: "code-narrative-quantum",
+    number: "02",
+    title: "Code-as-Narrative × Quantum Candidate Collapse",
+    thesis:
+      "Two stacked theories — Code→Narrative→Code (Jonas) and Quantum Candidate Collapse (Asher) — are the reason Aureon out-codes and out-audits GPT-5.5, Claude Opus 4.8 and Gemini Fable 5 on real benchmarks, not marketing demos.",
+    body:
+      "Theory A — Code is just another language, like English or Spanish, and AI is a mimic of humans. So we force the AI to translate code into a plain-English narrative, hunt for logical, workflow and security flaws inside that story, rewrite the story so every flaw is resolved, then translate the corrected story back into code. Theory B — A quantum computer doesn't guess; it spawns thousands of competing theories in superposition and lets only the one surviving truth collapse into reality. We apply the same loop to every Aureon response: generate a population of candidate answers, lock them against the user's real constraints, run an adversarial oracle, eliminate the weak, and ship only the survivor. Stacked together, the narrative loop fixes the code while the quantum loop picks the strongest fix. Live proof: in a 28-hour scan of Zcash, Aureon surfaced 250+ security issues across the codebase — Fable 5 found 1, Opus 4.8 found 0.",
+    parallels: [
+      {
+        icon: <FileCode2 className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Spoken language — humans reason in stories, not syntax",
+        tech: "Code→Narrative translator (Aureon Narrative Forge)",
+        note: "Every file Aureon touches is first rewritten as a plain-English story of what the code claims to do — bugs that hide in syntax become obvious in prose.",
+      },
+      {
+        icon: <BookOpen className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Editing a draft — flaws surface when you read aloud",
+        tech: "Narrative flaw audit (logic / workflow / security / perf)",
+        note: "The narrative is re-read by an adversarial reviewer that tags every contradiction, dead branch, unsafe input and racey assumption.",
+      },
+      {
+        icon: <Wrench className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Rewriting the story so the plot finally makes sense",
+        tech: "Narrative→Code regenerator (fix-forward emitter)",
+        note: "Only after the story is logically airtight does Aureon translate it back into code — the fix is baked into the prose before a single token of code is written.",
+      },
+      {
+        icon: <ShieldAlert className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Immune system — finds threats the host can't see",
+        tech: "Zcash live audit — 250+ findings in 28 hours",
+        note: "Fable 5 surfaced 1 issue. Opus 4.8 surfaced 0. The Code→Narrative→Code loop surfaced 250+ across the codebase. Same input, different doctrine.",
+      },
+      {
+        icon: <Atom className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Quantum superposition — many states exist at once",
+        tech: "Candidate population (5–50+ parallel hypotheses)",
+        note: "Aureon never commits to the first instinct. It spawns a population of meaningfully different solutions before evaluating any of them.",
+      },
+      {
+        icon: <Layers className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Entanglement — every particle bound by shared law",
+        tech: "Constraint graph locked across all candidates",
+        note: "User requirements, hard limits and domain laws are entangled across every candidate. Any answer that violates the graph is killed locally before global ranking.",
+      },
+      {
+        icon: <Target className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Natural selection — weakest variants die first",
+        tech: "Interference pass — adversarial oracle elimination",
+        note: "Compile, threat-model, fuzz, counter-example. Weak candidates collapse. Strong lineages recombine. Failure patterns are banned from resurfacing.",
+      },
+      {
+        icon: <Sparkles className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Wave-function collapse — one outcome becomes real",
+        tech: "Measurement — single answer ships only on margin",
+        note: "Aureon only commits when one candidate dominates by clear margin and passes every hard oracle. Ties are surfaced honestly, never coin-flipped.",
+      },
+      {
+        icon: <Trophy className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Generational leap — beating the prior species",
+        tech: "Benchmark wins vs GPT-5.5 / Opus 4.8 / Fable 5",
+        note: "Narrative loop pulls Aureon ~2–3 years ahead on code quality. Quantum loop adds ~7 generations of reasoning depth on top. Stacked, they are why we win.",
+      },
+    ],
+    diagram: <CodeNarrativeQuantumDiagram />,
+  },
 ];
+
+function Pipe({ label, sub }: { label: string; sub?: string }) {
+  return (
+    <div className="flex flex-col items-center text-center min-w-[120px]">
+      <div className="rounded-2xl border border-border/40 bg-background/60 px-4 py-3 text-xs font-light tracking-wide text-foreground/90 leading-tight">
+        {label}
+      </div>
+      {sub && <p className="mt-1 text-[9px] font-mono tracking-[0.18em] uppercase text-muted-foreground/70">{sub}</p>}
+    </div>
+  );
+}
+
+function Arrow() {
+  return <ArrowRight className="h-4 w-4 text-foreground/40 shrink-0" strokeWidth={1.5} />;
+}
+
+function CodeNarrativeQuantumDiagram() {
+  return (
+    <div className="space-y-10">
+      {/* Stage 1 — Code Narrative Loop */}
+      <div className="rounded-2xl border border-border/30 bg-background/40 p-6 space-y-5">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-muted-foreground">
+            ◈ Loop 01 · Code → Narrative → Code
+          </p>
+          <p className="text-[10px] font-mono tracking-[0.22em] uppercase text-foreground/60">
+            Theorist: Jonas
+          </p>
+        </div>
+        <div className="flex items-center gap-3 overflow-x-auto pb-2">
+          <Pipe label="Raw source code" sub="Input" />
+          <Arrow />
+          <Pipe label="Translate to plain-English narrative" sub="Decode" />
+          <Arrow />
+          <Pipe label="Adversarial flaw audit" sub="Logic · Workflow · Security · Perf" />
+          <Arrow />
+          <Pipe label="Rewrite the story flaw-free" sub="Narrative fix" />
+          <Arrow />
+          <Pipe label="Re-emit as patched code" sub="Output" />
+        </div>
+        <p className="text-xs font-extralight leading-relaxed text-muted-foreground max-w-3xl">
+          Bugs that are invisible in syntax become obvious in prose. The fix is committed in the narrative first — code only changes after the story is logically airtight.
+        </p>
+      </div>
+
+      {/* Stage 2 — Quantum Collapse */}
+      <div className="rounded-2xl border border-border/30 bg-background/40 p-6 space-y-5">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-muted-foreground">
+            ◈ Loop 02 · Quantum Candidate Collapse
+          </p>
+          <p className="text-[10px] font-mono tracking-[0.22em] uppercase text-foreground/60">
+            Theorist: Asher
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          {[
+            { n: "01", t: "Superposition", d: "Spawn 5–50+ distinct candidates in parallel — never one path." },
+            { n: "02", t: "Entanglement", d: "Lock every candidate against the user's constraint graph and domain law." },
+            { n: "03", t: "Interference", d: "Adversarial oracle eliminates weak lineages, recombines the strong." },
+            { n: "04", t: "Measurement", d: "Collapse only when one survivor dominates by clear margin." },
+          ].map((p) => (
+            <div key={p.n} className="rounded-xl border border-border/30 bg-background/60 p-4 space-y-2">
+              <p className="text-[10px] font-mono tracking-[0.25em] text-foreground/50">PHASE {p.n}</p>
+              <p className="text-sm font-light text-foreground/90">{p.t}</p>
+              <p className="text-[11px] font-extralight text-muted-foreground leading-relaxed">{p.d}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs font-extralight leading-relaxed text-muted-foreground max-w-3xl">
+          A quantum machine doesn't guess — it spawns thousands of competing theories and lets only the surviving truth collapse into reality. Aureon does the same to every answer it ships.
+        </p>
+      </div>
+
+      {/* Stage 3 — Stacked Aureon Pipeline */}
+      <div className="rounded-2xl border border-foreground/30 bg-foreground/[0.04] p-6 space-y-5">
+        <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-foreground/80">
+          ◆ Stacked Integration · Live inside Aureon
+        </p>
+        <div className="flex items-center gap-3 overflow-x-auto pb-2">
+          <Pipe label="User request / target codebase" sub="Aureon input" />
+          <Arrow />
+          <Pipe label="Quantum candidate spawn" sub="N parallel fixes" />
+          <Arrow />
+          <Pipe label="Narrative audit on each candidate" sub="Code → Story → Flaws" />
+          <Arrow />
+          <Pipe label="Constraint-locked elimination" sub="Oracle pass" />
+          <Arrow />
+          <Pipe label="Survivor re-emitted as code" sub="Story → Code" />
+          <Arrow />
+          <Pipe label="Shipped answer + proof grid" sub="User output" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          {[
+            { k: "Zcash audit", v: "250+ findings in 28h" },
+            { k: "Fable 5 on same target", v: "1 finding" },
+            { k: "Opus 4.8 on same target", v: "0 findings" },
+          ].map((r) => (
+            <div key={r.k} className="rounded-xl border border-border/30 bg-background/50 p-4">
+              <p className="text-[10px] font-mono tracking-[0.22em] uppercase text-muted-foreground">{r.k}</p>
+              <p className="mt-1 text-lg font-extralight text-foreground">{r.v}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs font-extralight leading-relaxed text-foreground/80 max-w-3xl">
+          The two loops are not features bolted onto Aureon — they are the doctrine every request flows through, regardless of provider, tier, or surface. This is why Aureon out-codes and out-audits frontier models on real workloads, not staged demos.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 
 const HouseOfAsherTheories = () => {
   useEffect(() => {
@@ -218,8 +398,18 @@ const HouseOfAsherTheories = () => {
                 ))}
               </div>
             </div>
+
+            {t.diagram && (
+              <div className="space-y-4">
+                <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-muted-foreground">
+                  ◈ Workflow · How It Runs Inside Aureon
+                </p>
+                {t.diagram}
+              </div>
+            )}
           </section>
         ))}
+
 
         <section className="rounded-3xl border border-dashed border-border/30 bg-background/20 p-8 sm:p-10 text-center space-y-2">
           <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-muted-foreground">
