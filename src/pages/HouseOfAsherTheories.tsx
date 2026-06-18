@@ -2,7 +2,14 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
-import { ArrowLeft, Dna, Brain, Plane, Database, Network, Eye, Heart, Activity, Cpu, Waves, FileCode2, BookOpen, ShieldAlert, Wrench, ArrowRight, Atom, Layers, Target, Sparkles, Trophy } from "lucide-react";
+import {
+  ArrowLeft, Dna, Brain, Plane, Database, Network, Eye, Heart, Activity, Cpu, Waves, FileCode2, BookOpen, ShieldAlert, Wrench, ArrowRight, Atom, Layers, Target, Sparkles, Trophy,
+} from "lucide-react";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 interface Parallel {
   icon: React.ReactNode;
@@ -15,10 +22,57 @@ interface Theory {
   id: string;
   number: string;
   title: string;
-  thesis: string;
-  body: string;
+  thesis: React.ReactNode;
+  body: React.ReactNode;
   parallels: Parallel[];
   diagram?: React.ReactNode;
+}
+
+function NameLink({ name, href, title }: { name: string; href: string; title: string }) {
+  return (
+    <HoverCard openDelay={80} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-4 decoration-foreground/40 hover:decoration-foreground transition-colors cursor-pointer"
+        >
+          {name}
+        </a>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-auto px-3 py-2 border-border/40 bg-card/90 backdrop-blur-md">
+        <p className="text-[10px] font-mono tracking-wide text-muted-foreground">{title}</p>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
+function renderWithLinks(text: string): React.ReactNode {
+  const parts = text.split(/(Jonas|Asher)/g);
+  return parts.map((part, i) => {
+    if (part === "Jonas") {
+      return (
+        <NameLink
+          key={i}
+          name="Jonas"
+          href="https://x.com/theSignofJonas"
+          title="#houseofasher research and developer"
+        />
+      );
+    }
+    if (part === "Asher") {
+      return (
+        <NameLink
+          key={i}
+          name="Asher"
+          href="https://x.com/shep_newton"
+          title="#houseofasher emperor and lead researcher and developer"
+        />
+      );
+    }
+    return part;
+  });
 }
 
 
@@ -110,8 +164,15 @@ const THEORIES: Theory[] = [
     id: "code-narrative-quantum",
     number: "02",
     title: "Code-as-Narrative × Quantum Candidate Collapse",
-    thesis:
-      "Two stacked theories — Code→Narrative→Code (Jonas) and Quantum Candidate Collapse (Asher) — are the reason Aureon out-codes and out-audits GPT-5.5, Claude Opus 4.8 and Gemini Fable 5 on real benchmarks, not marketing demos.",
+    thesis: (
+      <>
+        Two stacked theories — Code→Narrative→Code ({" "}
+        <NameLink name="Jonas" href="https://x.com/theSignofJonas" title="#houseofasher research and developer" />
+        ) and Quantum Candidate Collapse ({" "}
+        <NameLink name="Asher" href="https://x.com/shep_newton" title="#houseofasher emperor and lead researcher and developer" />
+        ) — are the reason Aureon out-codes and out-audits GPT-5.5, Claude Opus 4.8 and Gemini Fable 5 on real benchmarks, not marketing demos.
+      </>
+    ),
     body:
       "Theory A — Code is just another language, like English or Spanish, and AI is a mimic of humans. So we force the AI to translate code into a plain-English narrative, hunt for logical, workflow and security flaws inside that story, rewrite the story so every flaw is resolved, then translate the corrected story back into code. Theory B — A quantum computer doesn't guess; it spawns thousands of competing theories in superposition and lets only the one surviving truth collapse into reality. We apply the same loop to every Aureon response: generate a population of candidate answers, lock them against the user's real constraints, run an adversarial oracle, eliminate the weak, and ship only the survivor. Stacked together, the narrative loop fixes the code while the quantum loop picks the strongest fix. Live proof: in a 28-hour scan of Zcash, Aureon surfaced 250+ security issues across the codebase — Fable 5 found 1, Opus 4.8 found 0.",
     parallels: [
@@ -199,7 +260,7 @@ function CodeNarrativeQuantumDiagram() {
             ◈ Loop 01 · Code → Narrative → Code
           </p>
           <p className="text-[10px] font-mono tracking-[0.22em] uppercase text-foreground/60">
-            Theorist: Jonas
+            Theorist: <NameLink name="Jonas" href="https://x.com/theSignofJonas" title="#houseofasher research and developer" />
           </p>
         </div>
         <div className="flex items-center gap-3 overflow-x-auto pb-2">
@@ -225,7 +286,7 @@ function CodeNarrativeQuantumDiagram() {
             ◈ Loop 02 · Quantum Candidate Collapse
           </p>
           <p className="text-[10px] font-mono tracking-[0.22em] uppercase text-foreground/60">
-            Theorist: Asher
+            Theorist: <NameLink name="Asher" href="https://x.com/shep_newton" title="#houseofasher emperor and lead researcher and developer" />
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
