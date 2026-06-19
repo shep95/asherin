@@ -1124,11 +1124,12 @@ const Index = () => {
             <span className="h-px w-12 bg-gradient-to-l from-transparent to-foreground/30" />
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-tight leading-[1.05] text-foreground mb-16">
-            Aureon Doesn't Charge You.
+            Two Plans. Honest Pricing.
             <br />
-            <span className="text-muted-foreground">Not Now. Not Ever.</span>
+            <span className="text-muted-foreground">Cancel With One Click.</span>
           </h2>
-          <FreeManifesto compact />
+          <SubscriptionPlans compact />
+
         </div>
       </div>
       </ScrollSection>
