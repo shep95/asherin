@@ -12,6 +12,8 @@ const logStep = (step: string, details?: any) => {
 
 // Tier price IDs
 const TIER_PRICES: Record<string, string> = {
+  monthly_aureon: "price_1Tk7FyRxgCpmPfiF4vZebmnE",
+  monthly_pro: "price_1Tk7FzRxgCpmPfiFlkJig5Bf",
   starter: "price_1T9wBfRxgCpmPfiFgegrNIkk",
   chat: "price_1T6PPmRxgCpmPfiFoTiBXBzq",
   aureon: "price_1T3o9NRxgCpmPfiFaFDWC8u0",
