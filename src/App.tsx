@@ -27,6 +27,20 @@ const Blog = lazy(() => import("./pages/Blog"));
 const Updates = lazy(() => import("./pages/Updates"));
 const HouseOfAsherTheories = lazy(() => import("./pages/HouseOfAsherTheories"));
 
+// SEO content cluster (Theories 8-14): glossary, satellites, predictions, feature spines.
+const GlossaryIndex = lazy(() => import("./pages/glossary/GlossaryIndex"));
+const GlossarySovereignAi = lazy(() => import("./pages/glossary/SovereignAi"));
+const GlossaryUncensoredAi = lazy(() => import("./pages/glossary/UncensoredAi"));
+const GlossaryByokAi = lazy(() => import("./pages/glossary/ByokAi"));
+const GlossaryDigitalGnostic = lazy(() => import("./pages/glossary/DigitalGnostic"));
+const BlogWhatIsAiOsint = lazy(() => import("./pages/blog/WhatIsAiOsint"));
+const BlogSovereignAiPlatforms = lazy(() => import("./pages/blog/SovereignAiPlatforms"));
+const BlogAiWithoutRestrictions = lazy(() => import("./pages/blog/AiWithoutRestrictions"));
+const BlogPredictionAiRegulationQ42026 = lazy(
+  () => import("./pages/blog/PredictionAiRegulationQ42026"),
+);
+const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
+
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import RouteSessionTracker from "./components/RouteSessionTracker";
