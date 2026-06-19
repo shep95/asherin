@@ -1,11 +1,11 @@
 import { Heart } from "lucide-react";
-import FreeManifesto from "@/components/FreeManifesto";
+import SubscriptionPlans from "@/components/SubscriptionPlans";
 
 /**
  * Dashboard "Subscription" page.
  *
- * There are no subscriptions anymore. Aureon is fully free. This page now
- * serves as the in-app donation hub — Stripe + crypto — and explains why.
+ * Renders the active monthly subscription model ($18 Aureon / $399 Aureon Pro)
+ * plus the Enterprise contact card.
  */
 const SubscriptionView = () => {
   return (
@@ -14,18 +14,18 @@ const SubscriptionView = () => {
         <Heart className="h-5 w-5 text-foreground/80" />
         <div>
           <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">
-            ◈ Aureon Status
+            ◈ Aureon · Subscription
           </p>
           <h1 className="mt-1 text-2xl font-extralight tracking-wide text-foreground">
-            You don't owe Aureon a cent.
+            Aureon &amp; Aureon Pro.
           </h1>
           <p className="mt-1 text-sm font-extralight text-muted-foreground">
-            Every module is unlocked. There is nothing to upgrade to. Donations keep the lights on.
+            Two monthly plans. Enterprise priced on request.
           </p>
         </div>
       </div>
 
-      <FreeManifesto />
+      <SubscriptionPlans />
     </div>
   );
 };
