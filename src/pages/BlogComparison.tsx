@@ -74,7 +74,7 @@ const FAQ = [
   },
   {
     q: "How does Aureon compare to ChatGPT Plus on price?",
-    a: "Aureon has no mandatory monthly subscription. ChatGPT Plus is $20/month recurring and Claude Pro is $20/month recurring. Aureon offers a one-time entry tier at $47 and a $470 lifetime option with zero recurring billing. Every core feature is also available free during the Donation Era.",
+    a: "Aureon is $18/month for the core platform — cheaper than ChatGPT Plus ($20/mo) and Claude Pro ($20/mo) and bundles search, code, memory, workspace and E2E encryption in one tier. Aureon Pro ($399/mo) adds the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro and team collaboration). Enterprise is custom-priced.",
   },
   {
     q: "Can I keep using Claude or GPT inside Aureon?",
@@ -89,9 +89,10 @@ const FAQ = [
     a: "A five-phase cross-validation pipeline that runs the same prompt across several frontier models, scores agreement, and returns answers only when confidence clears a 45% threshold. It catches the hallucinations a single model misses.",
   },
   {
-    q: "Is Aureon actually free?",
-    a: "During the Donation Era, every feature is unlocked for every user at no charge. Optional one-time support tiers exist for those who want to back the project. There is no paywall, no trial countdown, and no monthly billing.",
+    q: "How are the Aureon plans structured?",
+    a: "Two plans. Aureon at $18/month: chat, code, base Zophiel Search, persistent memory, workspace, E2E encryption, 60 messages per 3-hour window. Aureon Pro at $399/month: everything in Aureon plus Azplen data intelligence, NOMAD OSINT, advanced Briefings, Zophiel Pro with higher query limits and priority latency, full team collaboration, and 200 messages per 3-hour window. Enterprise (SSO/SAML, audit, dedicated capacity) is custom-priced.",
   },
+
 ];
 
 const Cell = ({ v }: { v: Cell }) => {
