@@ -4,76 +4,74 @@ import { Link } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const tiers = [
-  { id: "algorithm", name: "Algorithm", price: "$10", period: "one-time", highlight: false },
-  { id: "lifetime", name: "Lifetime", price: "$470", period: "one-time", highlight: true },
-  { id: "chat", name: "Chat", price: "$47", period: "one-time", highlight: false },
-  { id: "aureon", name: "Aureon", price: "$199", period: "one-time", highlight: false },
-  { id: "pro", name: "Pro", price: "$740", period: "one-time", highlight: false },
+  { id: "aureon", name: "Aureon", price: "$18", period: "/month", highlight: false, tagline: "Core" },
+  { id: "pro", name: "Aureon Pro", price: "$399", period: "/month", highlight: true, tagline: "Full Suite" },
+  { id: "enterprise", name: "Enterprise", price: "Custom", period: "", highlight: false, tagline: "Org" },
 ];
 
 type Cell = boolean | string;
 type Feature = {
   name: string;
   desc: string;
-  algorithm: Cell;
-  chat: Cell;
   aureon: Cell;
   pro: Cell;
-  lifetime: Cell;
+  enterprise: Cell;
 };
 
 const features: Feature[] = [
-  { name: "Aureon Algorithm LLM (no API key needed)", desc: "Direct access to the hosted Aureon Algorithm model inside Aureon Free chat. No personal AI key required.", algorithm: true, chat: false, aureon: false, pro: false, lifetime: false },
-  { name: "Algorithm message limit", desc: "Subscribers get 20 Algorithm messages per rolling hour. Free users get 10 per 2 hours.", algorithm: "20 / hour", chat: "—", aureon: "—", pro: "—", lifetime: "—" },
-  { name: "Uncensored AI chat", desc: "Direct, unfiltered AI conversations. No corporate hedging — answers stay surgical and on-mission.", algorithm: false, chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Messages per 3-hour window (BYOK)", desc: "How many messages you can send in a rolling 3-hour window. Unlimited on every paid BYOK tier.", algorithm: "—", chat: "Unlimited", aureon: "Unlimited", pro: "Unlimited", lifetime: "Unlimited" },
-  { name: "Bring Your Own AI Key", desc: "Use your own AI provider keys (OpenAI, Anthropic, Google, etc.). You control cost, vendor, and model.", algorithm: "Optional", chat: "Required", aureon: "Required", pro: "Required", lifetime: "Required" },
-  { name: "End-to-end encryption", desc: "All conversation data is encrypted in transit and at rest. Only you can read it.", algorithm: true, chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Zophiel Search Engine", desc: "30-source OSINT search with veracity scoring and cross-validation. Goes far beyond Google.", algorithm: false, chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Intelligence Notebooks", desc: "Run live SQL, transform data, and build reusable analytical notebooks inside your workspace.", algorithm: false, chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "PDF Generator", desc: "Turn any conversation, briefing, or notebook into a polished, paginated PDF report.", algorithm: false, chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Slideshow Generator", desc: "Auto-build slide decks from prompts or research. Editable, exportable, presentation-ready.", algorithm: false, chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "E-Book Generator", desc: "Compile multi-chapter books from your text uploads — covers, chapters, and exports included.", algorithm: false, chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Zahten Agent Forge", desc: "Build autonomous agents with scheduled triggers, webhook delivery, and sandboxed execution.", algorithm: false, chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Guardian Vault", desc: "Centralized security command center: TOTP MFA, key rotation, audit log, and threat alerts.", algorithm: false, chat: true, aureon: true, pro: true, lifetime: true },
-  { name: "Aureon IDE", desc: "Full in-browser IDE with AI pair-programming, file management, and sandboxed execution.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Persistent memory", desc: "The AI remembers your context, preferences, and prior work across sessions.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Code Snippets Vault", desc: "Save, tag, and reuse code snippets across all your projects and conversations.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Custom Personas", desc: "Create AI assistants with custom system prompts, tone, and specialized expertise.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Vibe Imager", desc: "Generate images from natural language prompts with style and composition control.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Imagine To Code", desc: "Turn screenshots, mockups, or sketches directly into working frontend code.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Reverse Engineering", desc: "Deconstruct architectures from images, video, or binaries into structured specs.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "File Scrapper", desc: "Extract clean text from any unstructured file (PDF, DOCX, images, scans) into searchable TXT.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Cipher Toolkit", desc: "Encrypt, decrypt, hash, and analyze ciphers — classical to modern cryptographic tooling.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Whiteboard", desc: "Infinite canvas with Photoshop-style layers, snap grids, and AI-assisted diagramming.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "NOMAD Public Intelligence", desc: "30-source OSINT investigation suite with persistent dossier trees and 14-pass deep analysis.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Daily Intelligence Briefings", desc: "Automated morning briefings on the topics, entities, and markets you track.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "ZANOEM Design Lab", desc: "AI-powered design lab from concept to engineering spec — materials, cost, and feasibility.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Vedic Strategy", desc: "Vedic astrology engine with company, country, and leader charts plus Dasha analysis.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Memory Center", desc: "Manage long-term recall: edit, prune, and calibrate what the AI remembers about you.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Persona Store", desc: "Browse, install, and share AI personas built by you and the community.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Projects Workspace", desc: "Group conversations, files, and assets into focused project folders with shared context.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Library", desc: "Central knowledge repository — store and search every document the AI can read from.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "My Stats", desc: "Personal usage analytics: tokens, sessions, costs, and productivity over time.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Self-Access Learning", desc: "AI-guided learning paths that adapt to your skill level and stated goals.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Bug Reports", desc: "Private, RLS-protected support channel — reports go directly to the engineering team.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "Google Intelligence Suite", desc: "Live OAuth 2.0 modules for Gmail, Drive, Calendar, and Takeout uploads.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Azplen Data Intelligence", desc: "20-tab data intelligence suite for structured analysis, joins, and reporting.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Pattern Analysis Engine", desc: "Pro-tier forecasting that surfaces hidden patterns with Recharts visualizations.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Time-Series Intelligence", desc: "Detect trends, anomalies, and seasonality across any time-series data you upload.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Geospatial Analysis", desc: "Map, cluster, and analyze location-based data with overlays and heat maps.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Video Intelligence", desc: "Frame-by-frame video analysis: objects, faces, micro-expressions, and behavior.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Vibe Video", desc: "Generate short-form video from prompts with stylistic and motion control.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Cross — Live Screen Intelligence", desc: "Live screen recording (WebM) with 17 analytical modes for real-time analysis.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Lavba Strategy Engine", desc: "Canvas-based strategy engine with fractal pattern discovery for market and ops modeling.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Team Workspace (RBAC)", desc: "Role-based team workspaces with shared case files, permissions, and collaborative editing.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Plugin Marketplace", desc: "Install third-party plugins with a live execution engine. Extend Aureon however you need.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Security Dashboard", desc: "Real-time security posture: signins, key activity, anomaly alerts, and policy controls.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Audit Trail", desc: "Immutable log of every action across your workspace for compliance and forensics.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "Automated Agents", desc: "Scheduled autonomous tasks with multi-channel webhook delivery and retry logic.", algorithm: false, chat: false, aureon: false, pro: true, lifetime: false },
-  { name: "AXRLEN — Predictive Intelligence", desc: "Zophiel Engine module — included in Aureon, Lifetime, and Pro tiers. Predictive probabilistic scenarios with Monte Carlo modeling and multi-side research.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "ZEEION FI — Financial Intelligence", desc: "Zophiel Engine module — included in Aureon, Lifetime, and Pro tiers. Live-source financial tracking, dispute resolution, and workforce optimization analytics.", algorithm: false, chat: false, aureon: true, pro: true, lifetime: true },
-  { name: "ZERLAL — Cyber Security", desc: "Zophiel Engine module — included in every paid tier. Vulnerability scanning, infrastructure recon, exploit intelligence, and Cyber Kill Chain analysis.", algorithm: false, chat: true, aureon: true, pro: true, lifetime: true },
+  // Core Chat + Modes
+  { name: "Chat Mode", desc: "Conversational uncensored AI for general questions, research and synthesis.", aureon: true, pro: true, enterprise: true },
+  { name: "Code Mode", desc: "Elite coding engine — architecture-level reasoning, multi-file edits, no circular debug loops.", aureon: true, pro: true, enterprise: true },
+  { name: "Research Mode", desc: "Long-form research workflow with live citations and multi-source synthesis.", aureon: true, pro: true, enterprise: true },
+  { name: "Truth Mode", desc: "Adversarial truth-extraction with cross-validation across multiple frontier models.", aureon: true, pro: true, enterprise: true },
+
+  // Core Capabilities
+  { name: "Uncensored AI responses", desc: "Direct, unfiltered answers. No corporate hedging, no refusal layer.", aureon: true, pro: true, enterprise: true },
+  { name: "Elite coding engine", desc: "Production-grade code with full repository context, refactoring and verification.", aureon: true, pro: true, enterprise: true },
+  { name: "Multi-language output", desc: "Generate output in any major spoken or programming language at identical quality.", aureon: true, pro: true, enterprise: true },
+  { name: "Response depth control", desc: "Pick concise, standard or maximum-depth answers per turn.", aureon: true, pro: true, enterprise: true },
+
+  // Zophiel Search
+  { name: "Zophiel Search (Base)", desc: "Real-time web search with standard recency and basic query limits.", aureon: true, pro: false, enterprise: false },
+  { name: "Zophiel Search (Pro)", desc: "Higher query limits, deeper crawling, broader source coverage and priority latency.", aureon: false, pro: true, enterprise: true },
+
+  // Productivity
+  { name: "Code snippets library", desc: "Save, tag and reuse code snippets across projects and conversations.", aureon: true, pro: true, enterprise: true },
+  { name: "Keyboard shortcuts / command palette", desc: "⌘K command palette and full keyboard shortcut set.", aureon: true, pro: true, enterprise: true },
+
+  // Workspace + Collaboration
+  { name: "Team workspace", desc: "Aureon: limited workspace with basic sharing. Pro: full team workspace with shared threads, outputs, admin controls.", aureon: "Limited", pro: "Full", enterprise: "Full + SSO" },
+  { name: "Basic sharing / collaboration", desc: "Share threads and outputs with teammates.", aureon: true, pro: true, enterprise: true },
+  { name: "Admin controls", desc: "Workspace-level permissions, role-based access, member management.", aureon: false, pro: true, enterprise: true },
+
+  // Memory + Privacy
+  { name: "Persistent memory", desc: "Long-term recall across sessions. Standard limits on Aureon, expanded on Pro and Enterprise.", aureon: "Standard", pro: "Expanded", enterprise: "Unlimited" },
+  { name: "End-to-end encryption", desc: "AES-256-GCM in transit and at rest. Only you can read your conversations.", aureon: true, pro: true, enterprise: true },
+  { name: "Delete + export anytime", desc: "Export your entire workspace or wipe it permanently in one click.", aureon: true, pro: true, enterprise: true },
+
+  // Usage
+  { name: "Messages per 3-hour window", desc: "How many messages you can send in a rolling 3-hour window.", aureon: "60", pro: "200", enterprise: "Custom" },
+
+  // Pro modules
+  { name: "Azplen Data Intelligence Platform", desc: "Ingestion + analysis workflows, entity resolution, workflow automation, scenario simulation, threat modeling.", aureon: false, pro: true, enterprise: true },
+  { name: "NOMAD Public Intelligence Agent", desc: "OSINT investigation tooling, public web intelligence and entity matching.", aureon: false, pro: true, enterprise: true },
+  { name: "Intelligence Briefings (Advanced)", desc: "Daily briefings with industry customization.", aureon: false, pro: true, enterprise: true },
+  { name: "AXRLEN — Predictive Intelligence", desc: "Predictive probabilistic scenarios with Monte Carlo modeling and multi-side research.", aureon: false, pro: true, enterprise: true },
+  { name: "ZEEION FI — Financial Intelligence", desc: "Live-source financial tracking, dispute resolution and workforce optimization analytics.", aureon: false, pro: true, enterprise: true },
+  { name: "ZERLAL — Cyber Security", desc: "Vulnerability scanning, infrastructure recon, exploit intelligence and Cyber Kill Chain analysis.", aureon: false, pro: true, enterprise: true },
+  { name: "CROSS — Live Screen Intelligence", desc: "Live screen recording (WebM) with 17 analytical modes for real-time analysis.", aureon: false, pro: true, enterprise: true },
+  { name: "ZANOEM Design Lab", desc: "FEA + thermal simulation, generative material and assembly design.", aureon: false, pro: true, enterprise: true },
+  { name: "Video Intelligence", desc: "Frame-by-frame video analysis: objects, faces, micro-expressions, behavior.", aureon: false, pro: true, enterprise: true },
+  { name: "Plugin Marketplace", desc: "Install third-party plugins with a live execution engine.", aureon: false, pro: true, enterprise: true },
+  { name: "Automated Agents", desc: "Scheduled autonomous tasks with multi-channel webhook delivery and retry logic.", aureon: false, pro: true, enterprise: true },
+  { name: "Aureon IDE", desc: "Full in-browser Monaco IDE with AI pair-programming and sandboxed execution.", aureon: false, pro: true, enterprise: true },
+
+  // Enterprise-only
+  { name: "SSO / SAML", desc: "Single sign-on via your corporate identity provider.", aureon: false, pro: false, enterprise: true },
+  { name: "Org policy controls", desc: "Org-wide policy enforcement (model allowlists, redaction rules, retention).", aureon: false, pro: false, enterprise: true },
+  { name: "Audit logs + retention controls", desc: "Immutable audit trail with configurable retention for compliance and forensics.", aureon: false, pro: false, enterprise: true },
+  { name: "Dedicated capacity", desc: "Dedicated compute and rate limits, isolated from shared tiers.", aureon: false, pro: false, enterprise: true },
+  { name: "Custom SLAs", desc: "Negotiated uptime, response-time and support SLAs.", aureon: false, pro: false, enterprise: true },
 ];
 
 const FeatureLabel = ({ name, desc }: { name: string; desc: string }) => {
@@ -124,9 +122,9 @@ const renderCell = (val: Cell, accent = false) => {
 const PricingComparisonTable = () => {
   return (
     <div className="w-full overflow-x-auto">
-      <div className="min-w-[1080px]">
+      <div className="min-w-[760px]">
         {/* Header Row */}
-        <div className="grid grid-cols-6 gap-3 mb-4">
+        <div className="grid grid-cols-4 gap-3 mb-4">
           <div className="col-span-1" />
           {tiers.map((tier) => (
             <div
@@ -138,7 +136,7 @@ const PricingComparisonTable = () => {
               }`}
             >
               <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase mb-2">
-                {tier.id === "lifetime" ? "Best Value" : tier.id === "pro" ? "Full Suite" : tier.id === "algorithm" ? "Entry" : ""}
+                {tier.tagline}
               </p>
               <h3 className="text-lg font-light tracking-[0.15em] text-foreground mb-3">
                 {tier.name}
@@ -151,16 +149,25 @@ const PricingComparisonTable = () => {
                   {tier.period}
                 </span>
               </div>
-              <Link
-                to="/dashboard"
-                className={`block w-full rounded-lg py-2.5 text-xs font-light tracking-wide transition-all ${
-                  tier.highlight
-                    ? "bg-accent text-accent-foreground hover:bg-accent/90"
-                    : "bg-foreground text-background hover:bg-foreground/90"
-                }`}
-              >
-                Get Access
-              </Link>
+              {tier.id === "enterprise" ? (
+                <a
+                  href="mailto:asher@aureonai.app?subject=Aureon%20Enterprise%20Inquiry"
+                  className="block w-full rounded-lg py-2.5 text-xs font-light tracking-wide transition-all border border-foreground/30 text-foreground hover:bg-foreground/5"
+                >
+                  Contact sales
+                </a>
+              ) : (
+                <Link
+                  to="/dashboard"
+                  className={`block w-full rounded-lg py-2.5 text-xs font-light tracking-wide transition-all ${
+                    tier.highlight
+                      ? "bg-accent text-accent-foreground hover:bg-accent/90"
+                      : "bg-foreground text-background hover:bg-foreground/90"
+                  }`}
+                >
+                  Subscribe
+                </Link>
+              )}
             </div>
           ))}
         </div>
@@ -170,16 +177,14 @@ const PricingComparisonTable = () => {
           {features.map((feature, idx) => (
             <div
               key={idx}
-              className="grid grid-cols-6 gap-3 items-center rounded-lg border border-border/10 bg-card/10 backdrop-blur-sm p-4"
+              className="grid grid-cols-4 gap-3 items-center rounded-lg border border-border/10 bg-card/10 backdrop-blur-sm p-4"
             >
               <div className="col-span-1">
                 <FeatureLabel name={feature.name} desc={feature.desc} />
               </div>
-              <div className="flex justify-center">{renderCell(feature.algorithm)}</div>
-              <div className="flex justify-center">{renderCell(feature.lifetime, true)}</div>
-              <div className="flex justify-center">{renderCell(feature.chat)}</div>
               <div className="flex justify-center">{renderCell(feature.aureon)}</div>
-              <div className="flex justify-center">{renderCell(feature.pro)}</div>
+              <div className="flex justify-center">{renderCell(feature.pro, true)}</div>
+              <div className="flex justify-center">{renderCell(feature.enterprise)}</div>
             </div>
           ))}
         </div>
