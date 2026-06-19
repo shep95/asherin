@@ -147,7 +147,8 @@ const RADAR_DATA = [
 ];
 
 const PRICE_DATA = [
-  { plan: "Aureon (All tools)", cost: 0 },
+  { plan: "Aureon", cost: 18 },
+  { plan: "Aureon Pro (full suite)", cost: 399 },
   { plan: "ChatGPT Plus", cost: 20 },
   { plan: "Claude Pro", cost: 20 },
   { plan: "Gemini Advanced", cost: 20 },
@@ -155,6 +156,7 @@ const PRICE_DATA = [
   { plan: "Cursor Pro", cost: 20 },
   { plan: "Palantir Foundry", cost: 500 },
 ];
+
 
 const ProductCard = ({ p }: { p: Product }) => {
   const Icon = p.icon;
