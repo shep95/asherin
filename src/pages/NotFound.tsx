@@ -451,7 +451,15 @@ const NotFound = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050507] text-zinc-200">
+      {/* Aureon wallpaper */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${wallpaperAureon})`, zIndex: 0 }}
+      />
+      <div aria-hidden className="pointer-events-none fixed inset-0 bg-black/70" style={{ zIndex: 1 }} />
       {/* ambient grid + glow */}
+
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.06]"
