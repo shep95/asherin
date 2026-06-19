@@ -1,6 +1,8 @@
 import { useLocation } from "react-router-dom";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { applySeoHead } from "@/lib/seoHead";
+import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+
 
 /**
  * AUREON 404 — "Lost in Orbit"
@@ -47,7 +49,9 @@ const NotFound = () => {
     dead: false,
     saturnRot: 0,
     stars: [] as { x: number; y: number; r: number; tw: number }[],
+    soul: null as null | { x: number; y: number; vy: number; vx: number; life: number; particles: { x: number; y: number; vx: number; vy: number; r: number; life: number }[] },
   });
+
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
@@ -69,6 +73,8 @@ const NotFound = () => {
     s.score = 0;
     s.dead = false;
     s.running = true;
+    s.soul = null;
+
     setScore(0);
     setDead(false);
     setRunning(true);
@@ -320,6 +326,22 @@ const NotFound = () => {
           ) {
             s.dead = true;
             s.running = false;
+            // Spawn ascending soul from dino position
+            s.soul = {
+              x: 84,
+              y: s.dinoY - 4,
+              vy: -0.6,
+              vx: 0,
+              life: 0,
+              particles: Array.from({ length: 14 }, () => ({
+                x: 84 + (Math.random() - 0.5) * 16,
+                y: s.dinoY + (Math.random() - 0.5) * 16,
+                vx: (Math.random() - 0.5) * 0.6,
+                vy: -Math.random() * 1.2 - 0.3,
+                r: Math.random() * 1.6 + 0.4,
+                life: 0,
+              })),
+            };
             setDead(true);
             setRunning(false);
             setScore(s.score);
@@ -328,12 +350,70 @@ const NotFound = () => {
               localStorage.setItem("aureon_404_best", String(nb));
               return nb;
             });
+            break;
           }
+
         }
       }
 
       for (const o of stateRef.current.obstacles) drawObstacle(o);
-      drawDino(stateRef.current.dinoY, stateRef.current.frame);
+      // Hide dino once soul has risen far enough
+      const soul = stateRef.current.soul;
+      if (!soul || soul.life < 30) {
+        drawDino(stateRef.current.dinoY, stateRef.current.frame);
+      }
+
+      // Animate & draw ascending soul
+      if (soul) {
+        soul.life++;
+        soul.y += soul.vy;
+        soul.vy -= 0.008; // gentle acceleration upward
+        soul.x += Math.sin(soul.life * 0.08) * 0.4;
+
+        // particle trail
+        for (const p of soul.particles) {
+          p.life++;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy -= 0.01;
+          const a = Math.max(0, 1 - p.life / 120);
+          ctx.fillStyle = `rgba(200,230,255,${a * 0.8})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // ghost body — translucent dino silhouette rising
+        const alpha = Math.max(0, 1 - soul.life / 220);
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.85;
+        // glow halo
+        const halo = ctx.createRadialGradient(soul.x, soul.y, 2, soul.x, soul.y, 28);
+        halo.addColorStop(0, "rgba(220,240,255,0.9)");
+        halo.addColorStop(1, "rgba(220,240,255,0)");
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(soul.x, soul.y, 28, 0, Math.PI * 2);
+        ctx.fill();
+        // little ghost
+        ctx.fillStyle = "rgba(240,250,255,0.95)";
+        ctx.beginPath();
+        ctx.arc(soul.x, soul.y - 4, 9, Math.PI, 0);
+        ctx.lineTo(soul.x + 9, soul.y + 8);
+        const wob = Math.sin(soul.life * 0.4) * 2;
+        ctx.lineTo(soul.x + 5, soul.y + 6 + wob);
+        ctx.lineTo(soul.x, soul.y + 8 - wob);
+        ctx.lineTo(soul.x - 5, soul.y + 6 + wob);
+        ctx.lineTo(soul.x - 9, soul.y + 8);
+        ctx.closePath();
+        ctx.fill();
+        // eyes
+        ctx.fillStyle = "rgba(20,30,50,0.8)";
+        ctx.fillRect(soul.x - 4, soul.y - 4, 2, 3);
+        ctx.fillRect(soul.x + 2, soul.y - 4, 2, 3);
+        ctx.restore();
+      }
+
 
       // HUD
       ctx.fillStyle = "#e8e8e8";
@@ -371,7 +451,15 @@ const NotFound = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050507] text-zinc-200">
+      {/* Aureon wallpaper */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${wallpaperAureon})`, zIndex: 0 }}
+      />
+      <div aria-hidden className="pointer-events-none fixed inset-0 bg-black/70" style={{ zIndex: 1 }} />
       {/* ambient grid + glow */}
+
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.06]"
@@ -387,7 +475,7 @@ const NotFound = () => {
         style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.08), transparent)" }}
       />
 
-      <main className="relative mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 py-16">
+      <main className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 py-16">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs uppercase tracking-[0.2em] text-zinc-400 backdrop-blur">
           <span className="h-1.5 w-1.5 rounded-full bg-zinc-300" />
           aureon · signal lost
