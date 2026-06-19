@@ -1063,7 +1063,22 @@ serve(async (req) => {
           }
         : null;
 
+    // Detect uploaded media/files — Venice fallback does not reliably support
+    // vision/multimodal, so force BYOK when the user attached anything.
+    const _hasAttachments = Array.isArray(_parsedBody?.messages) &&
+      _parsedBody.messages.some((m: any) => Array.isArray(m?.attachments) && m.attachments.length > 0);
+
     if (!incomingByok) {
+      if (_hasAttachments) {
+        return new Response(
+          JSON.stringify({
+            error: "Image, file, and media uploads require your own AI API key (vision-capable). Add a Google/OpenAI/Anthropic key in Settings → AI Keys, then retry.",
+            code: "BYOK_REQUIRED",
+            reason: "vision_requires_byok",
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       const resolved = await resolveKey(req, null);
       if (resolved.mode === "admin" && resolved.geminiKey) {
         _parsedBody.byokProvider = "google";
@@ -1075,6 +1090,7 @@ serve(async (req) => {
         _injectedKey = resolved.byok.apiKey;
       }
     }
+
   } catch (e: any) {
     if (e?.code === "BYOK_REQUIRED") {
       return new Response(
