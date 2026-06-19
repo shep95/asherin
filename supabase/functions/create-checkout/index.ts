@@ -8,10 +8,12 @@ import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
 // Server-authoritative price ID whitelist. Client cannot purchase any
 // price not on this list, blocking $0.01-test-price attacks.
 const ALLOWED_PRICE_IDS = new Set<string>([
+  "price_1Tk7FyRxgCpmPfiF4vZebmnE", // monthly_aureon ($18/mo)
+  "price_1Tk7FzRxgCpmPfiFlkJig5Bf", // monthly_pro ($399/mo)
   "price_1TUtfDRxgCpmPfiFNYa092Zu", // lifetime
   "price_1T6PPmRxgCpmPfiFoTiBXBzq", // chat
-  "price_1T3o9NRxgCpmPfiFaFDWC8u0", // aureon
-  "price_1T3N4iRxgCpmPfiFGbJkXY33", // pro
+  "price_1T3o9NRxgCpmPfiFaFDWC8u0", // aureon (legacy)
+  "price_1T3N4iRxgCpmPfiFGbJkXY33", // pro (legacy)
   "price_1TfC3oRxgCpmPfiFniV2cXAu", // algorithm
 ]);
 
