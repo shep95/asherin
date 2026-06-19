@@ -326,6 +326,22 @@ const NotFound = () => {
           ) {
             s.dead = true;
             s.running = false;
+            // Spawn ascending soul from dino position
+            s.soul = {
+              x: 84,
+              y: s.dinoY - 4,
+              vy: -0.6,
+              vx: 0,
+              life: 0,
+              particles: Array.from({ length: 14 }, () => ({
+                x: 84 + (Math.random() - 0.5) * 16,
+                y: s.dinoY + (Math.random() - 0.5) * 16,
+                vx: (Math.random() - 0.5) * 0.6,
+                vy: -Math.random() * 1.2 - 0.3,
+                r: Math.random() * 1.6 + 0.4,
+                life: 0,
+              })),
+            };
             setDead(true);
             setRunning(false);
             setScore(s.score);
@@ -334,7 +350,9 @@ const NotFound = () => {
               localStorage.setItem("aureon_404_best", String(nb));
               return nb;
             });
+            break;
           }
+
         }
       }
 
