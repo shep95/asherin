@@ -356,11 +356,13 @@ const Software = () => {
 
           {/* Closing CTA */}
           <section className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 text-center space-y-4">
-            <h2 className="text-2xl font-extralight tracking-tight">No paywalls. No tiers. No limits.</h2>
+            <h2 className="text-2xl font-extralight tracking-tight">Two plans. Every tool above.</h2>
             <p className="max-w-xl mx-auto text-sm font-extralight text-muted-foreground">
-              Every product above is free for every authenticated user. We run on donations
-              and conviction — not subscription extraction.
+              Aureon is <strong className="text-foreground">$18/month</strong> for the core platform.
+              Aureon Pro is <strong className="text-foreground">$399/month</strong> for the full intelligence suite.
+              Enterprise (SSO, audit, dedicated capacity) is custom-priced.
             </p>
+
             <div className="flex items-center justify-center gap-3 pt-2">
               <Link
                 to="/dashboard"
