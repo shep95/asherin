@@ -45,7 +45,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import RouteSessionTracker from "./components/RouteSessionTracker";
 import RouteSeo from "./components/RouteSeo";
-import DonationBanner from "./components/DonationBanner";
+// DonationBanner removed — Aureon now runs on a monthly subscription model.
 
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
