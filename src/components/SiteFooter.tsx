@@ -44,6 +44,34 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
       ],
     },
     {
+      heading: "Glossary",
+      links: [
+        { to: "/glossary", label: "All terms" },
+        { to: "/glossary/sovereign-ai", label: "Sovereign AI" },
+        { to: "/glossary/uncensored-ai", label: "Uncensored AI" },
+        { to: "/glossary/byok-ai", label: "BYOK AI" },
+        { to: "/glossary/digital-gnostic", label: "Digital Gnostic" },
+      ],
+    },
+    {
+      heading: "Journal",
+      links: [
+        { to: "/blog", label: "All articles" },
+        { to: "/blog/what-is-ai-osint", label: "What is AI OSINT?" },
+        { to: "/blog/sovereign-ai-platforms", label: "Sovereign AI landscape" },
+        { to: "/blog/ai-without-restrictions", label: "AI without restrictions" },
+        { to: "/blog/predictions/ai-regulation-q4-2026", label: "Q4 2026 forecast" },
+      ],
+    },
+    {
+      heading: "Intelligence",
+      links: [
+        { to: "/feature/zophiel", label: "Zophiel OSINT" },
+        { to: "/benchmark", label: "Benchmarks" },
+        { to: "/houseofasher/theories", label: "House of Asher theories" },
+      ],
+    },
+    {
       heading: "Legal",
       links: [
         { to: "/terms", label: "Terms of Service" },

@@ -27,6 +27,20 @@ const Blog = lazy(() => import("./pages/Blog"));
 const Updates = lazy(() => import("./pages/Updates"));
 const HouseOfAsherTheories = lazy(() => import("./pages/HouseOfAsherTheories"));
 
+// SEO content cluster (Theories 8-14): glossary, satellites, predictions, feature spines.
+const GlossaryIndex = lazy(() => import("./pages/glossary/GlossaryIndex"));
+const GlossarySovereignAi = lazy(() => import("./pages/glossary/SovereignAi"));
+const GlossaryUncensoredAi = lazy(() => import("./pages/glossary/UncensoredAi"));
+const GlossaryByokAi = lazy(() => import("./pages/glossary/ByokAi"));
+const GlossaryDigitalGnostic = lazy(() => import("./pages/glossary/DigitalGnostic"));
+const BlogWhatIsAiOsint = lazy(() => import("./pages/blog/WhatIsAiOsint"));
+const BlogSovereignAiPlatforms = lazy(() => import("./pages/blog/SovereignAiPlatforms"));
+const BlogAiWithoutRestrictions = lazy(() => import("./pages/blog/AiWithoutRestrictions"));
+const BlogPredictionAiRegulationQ42026 = lazy(
+  () => import("./pages/blog/PredictionAiRegulationQ42026"),
+);
+const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
+
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import RouteSessionTracker from "./components/RouteSessionTracker";
@@ -74,8 +88,21 @@ const App = () => (
             <Route path="/blog/comparison" element={<BlogComparison />} />
             <Route path="/blog/venice-integration" element={<BlogVeniceIntegration />} />
             <Route path="/blog/uncensored-ai-text-generator-guide" element={<BlogUncensoredAi />} />
+            <Route path="/blog/what-is-ai-osint" element={<BlogWhatIsAiOsint />} />
+            <Route path="/blog/sovereign-ai-platforms" element={<BlogSovereignAiPlatforms />} />
+            <Route path="/blog/ai-without-restrictions" element={<BlogAiWithoutRestrictions />} />
+            <Route
+              path="/blog/predictions/ai-regulation-q4-2026"
+              element={<BlogPredictionAiRegulationQ42026 />}
+            />
             <Route path="/updates" element={<Updates />} />
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
+            <Route path="/glossary" element={<GlossaryIndex />} />
+            <Route path="/glossary/sovereign-ai" element={<GlossarySovereignAi />} />
+            <Route path="/glossary/uncensored-ai" element={<GlossaryUncensoredAi />} />
+            <Route path="/glossary/byok-ai" element={<GlossaryByokAi />} />
+            <Route path="/glossary/digital-gnostic" element={<GlossaryDigitalGnostic />} />
+            <Route path="/feature/zophiel" element={<FeatureZophiel />} />
             <Route
               path="/asher-dashboard"
               element={

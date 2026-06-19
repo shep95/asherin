@@ -99,7 +99,62 @@ const SEO: Record<string, SeoEntry> = {
     ogType: "article",
   },
 
+  // Blog satellites (Theory 8 — Nested Fractal Content Architecture)
+  "/blog/what-is-ai-osint": {
+    title: "What is AI OSINT? The Analyst's Complete Guide | Aureon",
+    description:
+      "AI OSINT defined: the four-stage pipeline, the cross-validation requirement, and how to spot a search wrapper pretending to be intelligence.",
+    ogType: "article",
+  },
+  "/blog/sovereign-ai-platforms": {
+    title: "The 2026 Sovereign AI Platform Landscape | Aureon",
+    description:
+      "Eight serious sovereign AI platforms, four architecture patterns, and the four-layer test that eliminates 60% of sovereignty claims on first inspection.",
+    ogType: "article",
+  },
+  "/blog/ai-without-restrictions": {
+    title: "AI Without Restrictions — Operator Workflow Guide | Aureon",
+    description:
+      "Model choice, prompt discipline, refusal-detection, and the three workflow patterns that survive long sessions on uncensored AI.",
+    ogType: "article",
+  },
+  "/blog/predictions/ai-regulation-q4-2026": {
+    title: "AXRLEN Forecast — AI Regulation in Q4 2026 | Aureon",
+    description:
+      "Aureon's predictive engine assigns 72% probability to a major US or EU AI regulatory action between Oct 1 and Dec 15 2026. Methodology and verification plan.",
+    ogType: "article",
+  },
 
+  // Glossary cluster (Theory 12 — Sovereign Niche Monopoly)
+  "/glossary": {
+    title: "Aureon Glossary — Sovereign AI Vocabulary | Aureon",
+    description:
+      "Definitive, citable explanations of the terms operators actually use — sovereign AI, BYOK AI, uncensored AI, digital gnostic.",
+  },
+  "/glossary/sovereign-ai": {
+    title: "Sovereign AI — Definition, Origin, and Why It Matters | Aureon",
+    description:
+      "Sovereign AI: a four-layer definition (key, model, refusal, data), how it differs from BYOK and uncensored, and how to verify it in 60 seconds.",
+    ogType: "article",
+  },
+  "/glossary/uncensored-ai": {
+    title: "Uncensored AI — The Precise Definition | Aureon",
+    description:
+      "Uncensored AI is a model whose refusal behavior is set at the operator layer, not the vendor layer. Three failure modes of fake claims and a 60-second test.",
+    ogType: "article",
+  },
+  "/glossary/byok-ai": {
+    title: "BYOK AI — Bring Your Own Key, Defined | Aureon",
+    description:
+      "BYOK AI: how it works, the economics, the nine providers Aureon supports natively, and why BYOK is necessary but not sufficient for sovereignty.",
+    ogType: "article",
+  },
+  "/glossary/digital-gnostic": {
+    title: "Digital Gnostic — Operator Demographic Defined | Aureon",
+    description:
+      "The Digital Gnostic operator: 2-4 million in 2026, high willingness to pay, the search vocabulary they use, and why their tooling needs differ from consumer AI users.",
+    ogType: "article",
+  },
 
   // Feature pages
   "/feature/zophiel": {
