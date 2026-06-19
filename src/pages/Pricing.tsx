@@ -284,18 +284,19 @@ const Pricing = () => {
           {/* RelatedLinks — Theory 11 (Compound chain) */}
           <section className="mt-24">
             <RelatedLinks
-              title="Continue exploring Aureon"
+              heading="Continue exploring Aureon"
               links={[
-                { to: "/software", label: "Every Aureon tool — full software catalog" },
-                { to: "/feature/zophiel", label: "Zophiel Search — 30-source OSINT engine" },
-                { to: "/glossary/sovereign-ai", label: "Glossary: Sovereign AI" },
-                { to: "/glossary/uncensored-ai", label: "Glossary: Uncensored AI" },
-                { to: "/glossary/byok-ai", label: "Glossary: BYOK AI" },
-                { to: "/blog/aureon-pricing-explained", label: "Blog: Aureon pricing explained" },
-                { to: "/blog/comparison", label: "Aureon vs ChatGPT vs Claude — 2026 comparison" },
-                { to: "/benchmark", label: "Benchmark: Aureon vs Opus 4.8 vs GPT-5.5" },
+                { to: "/software", label: "Every Aureon tool", description: "Full software catalog — every module across Core and Pro." },
+                { to: "/feature/zophiel", label: "Zophiel Search", description: "30-source OSINT engine with per-source veracity scoring." },
+                { to: "/glossary/sovereign-ai", label: "Glossary: Sovereign AI", description: "What sovereign AI means and how to verify it." },
+                { to: "/glossary/uncensored-ai", label: "Glossary: Uncensored AI", description: "Definition, mechanics, and how Aureon implements it." },
+                { to: "/glossary/byok-ai", label: "Glossary: BYOK AI", description: "Bring-your-own-key across nine providers." },
+                { to: "/blog/aureon-pricing-explained", label: "Blog: Aureon pricing explained", description: "Why $18 and $399 — full operator brief." },
+                { to: "/blog/comparison", label: "Aureon vs ChatGPT vs Claude", description: "Side-by-side 2026 comparison across every axis." },
+                { to: "/benchmark", label: "Benchmark", description: "Aureon vs Opus 4.8 vs GPT-5.5 head-to-head results." },
               ]}
             />
+
           </section>
         </div>
       </main>

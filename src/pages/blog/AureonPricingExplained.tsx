@@ -300,17 +300,18 @@ const AureonPricingExplained = () => (
     </ul>
 
     <RelatedLinks
-      title="Related reading"
+      heading="Related reading"
       links={[
-        { to: "/pricing", label: "Aureon pricing — official subscription page" },
-        { to: "/software", label: "Every Aureon tool — full software catalog" },
-        { to: "/feature/zophiel", label: "Zophiel Search — 30-source OSINT engine" },
-        { to: "/blog/comparison", label: "Aureon vs ChatGPT vs Claude — 2026 comparison" },
-        { to: "/blog/sovereign-ai-platforms", label: "The 2026 sovereign AI platform landscape" },
-        { to: "/glossary/sovereign-ai", label: "Glossary: Sovereign AI" },
-        { to: "/glossary/byok-ai", label: "Glossary: BYOK AI" },
+        { to: "/pricing", label: "Aureon pricing", description: "Official subscription page with live checkout for both tiers." },
+        { to: "/software", label: "Every Aureon tool", description: "Full catalog of modules included in Core and Pro." },
+        { to: "/feature/zophiel", label: "Zophiel Search", description: "The 30-source OSINT engine that powers Pro." },
+        { to: "/blog/comparison", label: "Aureon vs ChatGPT vs Claude", description: "Side-by-side 2026 platform comparison." },
+        { to: "/blog/sovereign-ai-platforms", label: "Sovereign AI platforms", description: "The 2026 landscape of sovereign AI alternatives." },
+        { to: "/glossary/sovereign-ai", label: "Glossary: Sovereign AI", description: "Definitional anchor for the sovereign AI category." },
+        { to: "/glossary/byok-ai", label: "Glossary: BYOK AI", description: "Bring-your-own-key model routing across providers." },
       ]}
     />
+
   </ArticleShell>
 );
 
