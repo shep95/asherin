@@ -26,19 +26,20 @@ const SEO: Record<string, SeoEntry> = {
       "Aureon is the predictive intelligence stack for analysts, traders, and operators. Forecast events, model timelines, and act before the wire.",
   },
   "/pricing": {
-    title: "Pricing — Aureon Intelligence Plans & Lifetime Access",
+    title: "Pricing — Aureon $18/mo · Aureon Pro $399/mo · Enterprise",
     description:
-      "Aureon has no monthly subscriptions. Free during the Donation Era, with optional one-time tiers at $47, $199, $740, and $470 lifetime. Zero recurring billing.",
+      "Aureon is $18/month for the core platform; Aureon Pro is $399/month for the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro, team collaboration). Enterprise priced on request.",
   },
   "/terms": {
     title: "Terms of Service — Aureon",
     description: "Aureon's Terms of Service. Read the rules of engagement for using the platform.",
   },
   "/software": {
-    title: "Software — Every Aureon Tool, Free | Aureon",
+    title: "Software — Every Aureon Tool | Aureon",
     description:
-      "Every Aureon tool, free to use: OSINT search, predictive engines, IDE, whiteboard, e-book generator, file scrapper, and more.",
+      "Every Aureon tool — OSINT search, predictive engines, IDE, whiteboard, e-book generator, file scrapper, and more — across the $18/month Aureon plan and $399/month Aureon Pro plan.",
   },
+
   "/benchmark": {
     title: "Aureon Benchmark — Cheap Models, Groomed to Outperform",
     description:

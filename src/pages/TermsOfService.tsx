@@ -30,7 +30,7 @@ const TermsOfService = () => {
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">2. Service Description</h2>
-                <p>Aureon is an AI-powered intelligence platform providing uncensored responses, an elite coding engine and in-dashboard IDE, live web search, persistent memory across sessions, team workspace functionality, multi-language output, voice chat, image and video generation, file scraping, and a full intelligence suite (Zophiel, Zerlal, Zeeion, NOMAD, Azplen, Aziion, AXRLEN, CROSS, ZANOEM Design Lab, Predictive Intelligence, Automated Agents, Plugin Marketplace, Guardian Vault, and more). A free Vedic Astrology module is available on the landing page without an account. The Service is offered with optional one-time support tiers starting at $47; all core features are free during the Donation Era.</p>
+                <p>Aureon is an AI-powered intelligence platform providing uncensored responses, an elite coding engine and in-dashboard IDE, live web search, persistent memory across sessions, team workspace functionality, multi-language output, voice chat, image and video generation, file scraping, and a full intelligence suite (Zophiel, Zerlal, Zeeion, NOMAD, Azplen, Aziion, AXRLEN, CROSS, ZANOEM Design Lab, Predictive Intelligence, Automated Agents, Plugin Marketplace, Guardian Vault, and more). A free Vedic Astrology module is available on the landing page without an account. The Service is offered on two monthly subscription tiers: Aureon ($18/month) and Aureon Pro ($399/month), with a custom-priced Enterprise tier.</p>
               </section>
 
               <section>
@@ -55,17 +55,15 @@ const TermsOfService = () => {
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">5. Subscription & Billing</h2>
-                <p className="mb-3">The Service operates on a donation-supported model with optional one-time tiers:</p>
+                <p className="mb-3">The Service is offered on two monthly subscription tiers plus a custom Enterprise tier:</p>
                 <ul className="space-y-2 ml-4">
-                  <li>→ Free — Every core feature unlocked during the Donation Era. No credit card required.</li>
-                  <li>→ Chat — $47 one-time (core uncensored AI, coding engine, search, persistent memory).</li>
-                  <li>→ Aureon — $199 one-time (full intelligence suite, NOMAD, Azplen, Imagine Intelligence, File Scrapper, voice chat).</li>
-                  <li>→ Pro — $740 one-time (Zerlal, Zeeion, AXRLEN, CROSS, Predictive Intelligence, Automated Agents, ZANOEM Design Lab, Plugin Marketplace, team workspace, all Pro modules).</li>
-                  <li>→ Lifetime — $470 one-time (permanent access to all current and future modules).</li>
-                  <li>→ No upsells. No hidden fees. No recurring billing.</li>
-                  <li>→ No subscriptions to cancel. Access never expires on one-time tiers.</li>
-
+                  <li>→ Aureon — <strong>$18/month</strong>. Core chat (Chat / Code / Research / Truth modes), uncensored AI, elite coding engine, multi-language output, response-depth control, base Zophiel Search, code snippets library, command palette, limited team workspace, persistent memory (standard limits), end-to-end encryption, delete + export anytime. 60 messages per 3-hour window.</li>
+                  <li>→ Aureon Pro — <strong>$399/month</strong>. Everything in Aureon plus Azplen Data Intelligence Platform (ingestion, entity resolution, workflow automation, scenario simulation, threat modeling), NOMAD Public Intelligence Agent, Advanced Intelligence Briefings (daily, industry-customised), Zophiel Search Pro (higher query limits, deeper crawling, priority latency), full team workspace with shared threads and admin controls, and the rest of the advanced suite (AXRLEN, ZEEION, ZERLAL, CROSS, ZANOEM, Plugin Marketplace, Automated Agents, Video Intelligence). 200 messages per 3-hour window.</li>
+                  <li>→ Enterprise — Custom pricing. SSO / SAML, org policy controls, audit logs with retention controls, dedicated capacity, and custom SLAs.</li>
+                  <li>→ Subscriptions renew monthly. Cancel anytime from the dashboard — access continues until the end of the current billing period.</li>
+                  <li>→ No hidden fees, no overage charges, no markup on BYOK provider tokens.</li>
                 </ul>
+
               </section>
 
               <section>

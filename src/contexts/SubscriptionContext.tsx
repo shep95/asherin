@@ -2,8 +2,23 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Stripe product/price mapping
+// Stripe product/price mapping.
+// NOTE: monthly_aureon ($18/mo) and monthly_pro ($399/mo) are the active subscription
+// products. The legacy one-time tiers (chat / aureon / pro / lifetime / algorithm) are
+// retained so existing subscribers and grant records continue to resolve, but they are
+// no longer offered for new purchase.
+//
+// TODO(stripe): replace the monthly_aureon / monthly_pro price_id placeholders below
+// with real Stripe Price IDs ($18/mo + $399/mo recurring) before launching checkout.
 export const TIERS = {
+  monthly_aureon: {
+    product_id: "prod_aureon_monthly_18",
+    price_id: "price_REPLACE_ME_AUREON_MONTHLY_18",
+  },
+  monthly_pro: {
+    product_id: "prod_aureon_pro_monthly_399",
+    price_id: "price_REPLACE_ME_AUREON_PRO_MONTHLY_399",
+  },
   lifetime: {
     product_id: "prod_UTrNsrxIQGTBQR",
     price_id: "price_1TUtfDRxgCpmPfiFNYa092Zu",
@@ -25,6 +40,7 @@ export const TIERS = {
     price_id: "price_1TfC3oRxgCpmPfiFniV2cXAu",
   },
 } as const;
+
 
 export type TierKey = keyof typeof TIERS;
 
@@ -81,16 +97,20 @@ function productToTier(productId: string | null): TierKey | null {
   return null;
 }
 
-// ── Donation Era: Aureon is fully free ───────────────────────────────────────
-// All gating helpers return true. Paywalls have been removed in favor of an
-// optional donation model (Stripe / crypto via DonationBanner).
+// ── Access helpers ───────────────────────────────────────────────────────────
+// NOTE: Aureon currently keeps gating permissive at the runtime level while the
+// new monthly subscription products are wired up in Stripe. Display, copy and
+// pricing now reflect the $18 / $399 model, but every authenticated user can
+// still reach every view. Flip these helpers to real checks once monthly
+// price IDs and webhook → tier mapping are in place.
 export function hasChatAccess(_tierKey: TierKey | null): boolean { return true; }
 export function hasSearchAccess(_tierKey: TierKey | null): boolean { return true; }
 export function hasAureonAccess(_tierKey: TierKey | null): boolean { return true; }
 export function hasProAccess(_tierKey: TierKey | null): boolean { return true; }
 export function hasEnterpriseOnlyAccess(_tierKey: TierKey | null): boolean { return true; }
-/** @deprecated Aureon is free — always returns true. */
+/** @deprecated Retained for legacy callers — always returns true. */
 export function hasEnterpriseAccess(_tierKey: TierKey | null): boolean { return true; }
+
 
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();

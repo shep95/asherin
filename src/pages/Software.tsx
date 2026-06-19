@@ -147,7 +147,8 @@ const RADAR_DATA = [
 ];
 
 const PRICE_DATA = [
-  { plan: "Aureon (All tools)", cost: 0 },
+  { plan: "Aureon", cost: 18 },
+  { plan: "Aureon Pro (full suite)", cost: 399 },
   { plan: "ChatGPT Plus", cost: 20 },
   { plan: "Claude Pro", cost: 20 },
   { plan: "Gemini Advanced", cost: 20 },
@@ -155,6 +156,7 @@ const PRICE_DATA = [
   { plan: "Cursor Pro", cost: 20 },
   { plan: "Palantir Foundry", cost: 500 },
 ];
+
 
 const ProductCard = ({ p }: { p: Product }) => {
   const Icon = p.icon;
@@ -214,7 +216,7 @@ const Software = () => {
       "@type": "CollectionPage",
       name: "Aureon Software Catalog",
       description:
-        "Every Aureon tool, free to use: OSINT search, predictive engines, IDE, whiteboard, e-book generator, file scrapper, and more.",
+        "Every Aureon tool: OSINT search, predictive engines, IDE, whiteboard, e-book generator, file scrapper, and more. Core modules on the $18/month plan; full intelligence suite on Aureon Pro ($399/month).",
       url: "https://aureonai.app/software",
       mainEntity: {
         "@type": "ItemList",
@@ -228,10 +230,11 @@ const Software = () => {
             description: p.description,
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
-            offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+            offers: { "@type": "Offer", price: "18", priceCurrency: "USD" },
           },
         })),
       },
+
     });
     return () => {
       document.getElementById(id)?.remove();
@@ -249,16 +252,18 @@ const Software = () => {
           {/* Hero */}
           <section className="text-center space-y-4">
             <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
-              ◈ Software · {PRODUCTS.length} products · all free
+              ◈ Software · {PRODUCTS.length} products · from $18/month
             </div>
             <h1 className="text-4xl sm:text-5xl font-extralight tracking-tight">
-              Every Aureon tool. Free for every user.
+              Every Aureon tool. One subscription.
             </h1>
             <p className="max-w-2xl mx-auto text-sm sm:text-base font-extralight text-muted-foreground leading-relaxed">
               We rebuilt the entire stack — chat, search, OSINT, cyber, CAD, data,
-              authoring, vision — and made it free. Below is the complete catalog and
-              how it stacks up against the paid competition.
+              authoring, vision. Core modules ship in Aureon at <strong className="text-foreground">$18/month</strong>;
+              the full intelligence suite ships in Aureon Pro at <strong className="text-foreground">$399/month</strong>.
+              Below is the catalog and how it stacks up against the paid competition.
             </p>
+
           </section>
 
           {/* Product grid */}
@@ -331,17 +336,18 @@ const Software = () => {
 
               <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
                 <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
-                  ◉ Competitor monthly cost vs Aureon (free)
+                  ◉ Monthly cost · Aureon vs competitors
                 </p>
                 <div className="h-[360px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={PRICE_DATA} layout="vertical" margin={{ left: 30 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
                       <XAxis type="number" tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis type="category" dataKey="plan" width={140} tick={{ fontSize: 10, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => v === 0 ? "Free" : `$${v}/mo`} />
+                      <YAxis type="category" dataKey="plan" width={170} tick={{ fontSize: 10, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => `$${v}/mo`} />
                       <Bar dataKey="cost" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                     </BarChart>
+
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -350,11 +356,13 @@ const Software = () => {
 
           {/* Closing CTA */}
           <section className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 text-center space-y-4">
-            <h2 className="text-2xl font-extralight tracking-tight">No paywalls. No tiers. No limits.</h2>
+            <h2 className="text-2xl font-extralight tracking-tight">Two plans. Every tool above.</h2>
             <p className="max-w-xl mx-auto text-sm font-extralight text-muted-foreground">
-              Every product above is free for every authenticated user. We run on donations
-              and conviction — not subscription extraction.
+              Aureon is <strong className="text-foreground">$18/month</strong> for the core platform.
+              Aureon Pro is <strong className="text-foreground">$399/month</strong> for the full intelligence suite.
+              Enterprise (SSO, audit, dedicated capacity) is custom-priced.
             </p>
+
             <div className="flex items-center justify-center gap-3 pt-2">
               <Link
                 to="/dashboard"
