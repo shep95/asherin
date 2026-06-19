@@ -216,7 +216,7 @@ const Software = () => {
       "@type": "CollectionPage",
       name: "Aureon Software Catalog",
       description:
-        "Every Aureon tool, free to use: OSINT search, predictive engines, IDE, whiteboard, e-book generator, file scrapper, and more.",
+        "Every Aureon tool: OSINT search, predictive engines, IDE, whiteboard, e-book generator, file scrapper, and more. Core modules on the $18/month plan; full intelligence suite on Aureon Pro ($399/month).",
       url: "https://aureonai.app/software",
       mainEntity: {
         "@type": "ItemList",
@@ -230,10 +230,11 @@ const Software = () => {
             description: p.description,
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
-            offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+            offers: { "@type": "Offer", price: "18", priceCurrency: "USD" },
           },
         })),
       },
+
     });
     return () => {
       document.getElementById(id)?.remove();
