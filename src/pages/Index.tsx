@@ -763,7 +763,7 @@ const Index = () => {
               <span className="italic text-muted-foreground/60">One Dashboard.</span>
             </h2>
             <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground/80">
-              All software modules available inside your Aureon workspace. No paywalls. No gated features. Every tool listed below is live and accessible.
+              All software modules available inside your Aureon workspace. Core modules ship in the $18/month Aureon plan; the advanced intelligence suite (Azplen, NOMAD, AXRLEN, ZEEION, CROSS and more) ships in Aureon Pro at $399/month.
             </p>
           </div>
 
