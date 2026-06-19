@@ -58,7 +58,7 @@ type NavItem = { id: DashboardView; icon: React.ElementType; label: string; acce
 interface SubGroup { label: string; items: NavItem[] }
 interface NavGroup { label: string; subgroups: SubGroup[] }
 
-const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, label: "Donate to keep things running" };
+const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, label: "Subscribe" };
 
 // Icon mapping by view/route — keeps a consistent monochrome icon per intent.
 import { NAV_INTENTS as ALL_INTENTS, INTENT_GROUPS, INTENT_GROUP_BLURB, type NavIntent } from "@/lib/navIntents";
@@ -171,7 +171,7 @@ const DashboardSidebar = ({
 }: DashboardSidebarProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { tierKey } = useSubscription();
+  const { tierKey, subscribed } = useSubscription();
   const [search, setSearch] = useState("");
   const [softwareSearch, setSoftwareSearch] = useState("");
   const [showConvos, setShowConvos] = useState(false);
@@ -573,7 +573,7 @@ const DashboardSidebar = ({
                     }`}
                   >
                     <subscriptionNavItem.icon className="h-4 w-4" />
-                    {subscriptionNavItem.label}
+                    {subscribed ? "Manage Subscription" : "Subscribe"}
                   </button>
                 )}
 
