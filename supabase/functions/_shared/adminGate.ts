@@ -63,27 +63,11 @@ export async function resolveKey(
 ): Promise<KeyResolution> {
   const validByok = isValidByok(byok) ? (byok as ZophielByokConfig) : null;
   const email = await getCallerEmail(req);
-  const admin = isAdminEmail(email);
 
-  // BYOK always wins — even for admin.
+  // BYOK always wins — admin and non-admin alike must bring their own key.
   if (validByok) return { mode: "byok", byok: validByok };
 
-  if (admin) {
-    const k =
-      Deno.env.get("GEMINI_API_KEY_APP") ||
-      Deno.env.get("GEMINI_API_KEY") ||
-      "";
-    if (!k) {
-      const e: any = new Error("ADMIN_KEY_MISSING");
-      e.status = 500;
-      e.code = "ADMIN_KEY_MISSING";
-      throw e;
-    }
-    return { mode: "admin", geminiKey: k };
-  }
-
   // Strict mode (Zerlal, Video Intelligence): no platform fallback.
-  // Non-admin callers MUST bring their own key.
   if (opts.strict) {
     const e: any = new Error("BYOK_REQUIRED");
     e.status = 403;
@@ -91,10 +75,10 @@ export async function resolveKey(
     throw e;
   }
 
-  // Free-tier fallback: route NON-ADMIN, AUTHENTICATED callers without BYOK
-  // through the platform Venice key. Anonymous (no JWT) callers MUST NOT
-  // reach this path — otherwise any unauthenticated HTTP client can consume
-  // the platform Venice budget without limit (billing DoS).
+  // Free-tier fallback: route AUTHENTICATED callers without BYOK through the
+  // platform Venice key. Anonymous (no JWT) callers MUST NOT reach this path —
+  // otherwise any unauthenticated HTTP client can consume the platform Venice
+  // budget without limit (billing DoS).
   const veniceKey = Deno.env.get("VENICE_API_KEY") || "";
   if (veniceKey && email) {
     return {
