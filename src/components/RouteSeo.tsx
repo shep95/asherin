@@ -125,6 +125,12 @@ const SEO: Record<string, SeoEntry> = {
       "Aureon's predictive engine assigns 72% probability to a major US or EU AI regulatory action between Oct 1 and Dec 15 2026. Methodology and verification plan.",
     ogType: "article",
   },
+  "/blog/aureon-pricing-explained": {
+    title: "Aureon Pricing Explained — Why $18/mo and $399/mo (2026)",
+    description:
+      "The full breakdown of Aureon's $18/mo and $399/mo subscription tiers, how they compare to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
+    ogType: "article",
+  },
 
   // Glossary cluster (Theory 12 — Sovereign Niche Monopoly)
   "/glossary": {
