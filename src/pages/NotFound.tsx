@@ -1,6 +1,8 @@
 import { useLocation } from "react-router-dom";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { applySeoHead } from "@/lib/seoHead";
+import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+
 
 /**
  * AUREON 404 — "Lost in Orbit"
