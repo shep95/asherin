@@ -2,8 +2,23 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Stripe product/price mapping
+// Stripe product/price mapping.
+// NOTE: monthly_aureon ($18/mo) and monthly_pro ($399/mo) are the active subscription
+// products. The legacy one-time tiers (chat / aureon / pro / lifetime / algorithm) are
+// retained so existing subscribers and grant records continue to resolve, but they are
+// no longer offered for new purchase.
+//
+// TODO(stripe): replace the monthly_aureon / monthly_pro price_id placeholders below
+// with real Stripe Price IDs ($18/mo + $399/mo recurring) before launching checkout.
 export const TIERS = {
+  monthly_aureon: {
+    product_id: "prod_aureon_monthly_18",
+    price_id: "price_REPLACE_ME_AUREON_MONTHLY_18",
+  },
+  monthly_pro: {
+    product_id: "prod_aureon_pro_monthly_399",
+    price_id: "price_REPLACE_ME_AUREON_PRO_MONTHLY_399",
+  },
   lifetime: {
     product_id: "prod_UTrNsrxIQGTBQR",
     price_id: "price_1TUtfDRxgCpmPfiFNYa092Zu",
@@ -25,6 +40,7 @@ export const TIERS = {
     price_id: "price_1TfC3oRxgCpmPfiFniV2cXAu",
   },
 } as const;
+
 
 export type TierKey = keyof typeof TIERS;
 
