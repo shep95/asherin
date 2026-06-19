@@ -9,6 +9,7 @@ export const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 /** All authorized admin emails. Add new admins here. */
 export const ADMIN_EMAILS: readonly string[] = [
   "ashernewtonx@gmail.com",
+  "shepherdnewtonx@gmail.com",
   "28numberofmoney@gmail.com",
 ];
 
