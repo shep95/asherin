@@ -40,11 +40,12 @@ Aureon ships the operator stack for analysts, journalists, traders, security res
 ## Predictive intelligence reports
 
 - [AXRLEN Forecast: AI regulation in Q4 2026](/blog/predictions/ai-regulation-q4-2026): 72% probability of major US/EU action between Oct 1 and Dec 15 2026. Verification plan included.
+- [Aureon pricing explained](/blog/aureon-pricing-explained): full breakdown of $18/mo and $399/mo, market comparison, predictive trajectory.
 
 ## Pages
 
 - [Home](/): Product overview and entry point.
-- [Pricing](/pricing): Chat ($47), Aureon ($199), Pro ($740), Lifetime ($470).
+- [Pricing](/pricing): Aureon $18/month (core), Aureon Pro $399/month (full intelligence suite), Enterprise custom. Monthly USD via Stripe, cancel anytime, no free trial.
 - [Features](/features): Full feature catalog.
 - [Benchmarks](/benchmarks): Performance comparisons.
 - [LLM Models](/llm-models): Supported models and BYOK providers.
