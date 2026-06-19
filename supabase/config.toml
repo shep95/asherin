@@ -1,5 +1,9 @@
 project_id = "xpgxgzqbtrrrbtjcemci"
 
+[functions.subscription-expiry-cron]
+verify_jwt = false
+
+
 [functions.verify-asher-passcode]
 verify_jwt = false
 
