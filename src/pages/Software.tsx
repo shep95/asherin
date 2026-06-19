@@ -252,16 +252,18 @@ const Software = () => {
           {/* Hero */}
           <section className="text-center space-y-4">
             <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
-              ◈ Software · {PRODUCTS.length} products · all free
+              ◈ Software · {PRODUCTS.length} products · from $18/month
             </div>
             <h1 className="text-4xl sm:text-5xl font-extralight tracking-tight">
-              Every Aureon tool. Free for every user.
+              Every Aureon tool. One subscription.
             </h1>
             <p className="max-w-2xl mx-auto text-sm sm:text-base font-extralight text-muted-foreground leading-relaxed">
               We rebuilt the entire stack — chat, search, OSINT, cyber, CAD, data,
-              authoring, vision — and made it free. Below is the complete catalog and
-              how it stacks up against the paid competition.
+              authoring, vision. Core modules ship in Aureon at <strong className="text-foreground">$18/month</strong>;
+              the full intelligence suite ships in Aureon Pro at <strong className="text-foreground">$399/month</strong>.
+              Below is the catalog and how it stacks up against the paid competition.
             </p>
+
           </section>
 
           {/* Product grid */}
