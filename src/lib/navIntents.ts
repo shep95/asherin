@@ -79,7 +79,7 @@ export const NAV_INTENTS: NavIntent[] = [
 
   // ACCOUNT
   { view: "settings", label: "Settings", codename: "Settings", keywords: ["settings", "preferences", "config", "options"], group: "Account" },
-  { view: "subscription", label: "Donate to keep things running", codename: "Donate", keywords: ["billing", "subscription", "plan", "upgrade", "pricing"], group: "Account" },
+  { view: "subscription", label: "Subscribe or manage your plan", codename: "Subscription", keywords: ["billing", "subscription", "plan", "upgrade", "pricing", "manage"], group: "Account" },
   { view: "stats", label: "My Usage Stats", codename: "Stats", keywords: ["stats", "usage", "analytics"], group: "Account" },
   { view: "audit", label: "Audit Trail", codename: "Audit", keywords: ["audit", "log", "history", "trail"], group: "Account", access: "pro" },
   { view: "bug-reports", label: "Bug Reports", codename: "Bugs", keywords: ["bug", "report", "issue", "feedback"], group: "Account" },
