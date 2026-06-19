@@ -1396,12 +1396,13 @@ const Index = () => {
           </div>
 
           <div className="space-y-3">
-            <FaqItem q="Why is Aureon free when other AI charges $200 per month?" a='Because Asher built this to break the gate, not man it. The big AI labs charge $200/month and still hand you a censored, sanitized model that refuses half the work you actually need done. Aureon runs on your own API key — we take zero margin on the model, zero subscription, zero "pro tier" hostage fee. The truth shouldn&apos;t come with a paywall.' />
-            <FaqItem q="Is there a catch?" a="No. No credit card. No usage trap. No data harvesting. No upsell wall after the first week. You bring your own API key, you own your data, and you can walk away with a single click. If that sounds too good — read the founder&apos;s letter. This was built as a mission, not a funnel." />
+            <FaqItem q="How much does Aureon cost?" a='Aureon is $18/month for the core platform — chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Aureon Pro is $399/month and adds the full intelligence suite: Azplen, NOMAD, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
+            <FaqItem q="Is there a catch?" a="No. No usage trap. No data harvesting. No upsell wall after the first week. Bring your own API key on either tier, own your data, and cancel from the dashboard with one click. Aureon was built as a mission, not a funnel." />
             <FaqItem q="What makes Aureon different?" a="Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." />
             <FaqItem q="How good is the coding engine?" a="Aureon holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />
             <FaqItem q='What does "never trains our models" mean?' a="Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." />
-            <FaqItem q="Can I cancel anytime?" a='Yes. One click. No retention flow. No "are you sure?" loop. Aureon has no subscriptions to cancel — every feature is free during the Donation Era. Your data is deleted on request.' />
+            <FaqItem q="Can I cancel anytime?" a='Yes. One click from the dashboard. No retention flow, no "are you sure?" loop. Cancel either tier whenever you want — your data is exported or deleted on request.' />
+
             <FaqItem q="What is the live web search powered by?" a="Privacy-first search infrastructure. Aureon pulls live data without tracking your search behavior or feeding it to ad networks." />
             <FaqItem q="Is Aureon available in multiple languages?" a="Yes. Aureon processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language." />
           </div>
