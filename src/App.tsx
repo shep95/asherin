@@ -69,7 +69,7 @@ const App = () => (
           <RouteSessionTracker />
           <RouteSeo />
           <ByokRequiredDialog />
-          <DonationBanner />
+          {/* Donation banner removed — subscription model is now displayed on /pricing and the dashboard. */}
           
           
           <Suspense fallback={<PageLoader />}>
