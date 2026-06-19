@@ -388,9 +388,10 @@ const BlogComparison = () => {
               See the stack for yourself
             </h2>
             <p className="text-sm font-extralight text-muted-foreground max-w-xl mx-auto">
-              Every Aureon tool is free to use without a credit card. Bring your own
-              key or use the free Venice routing. No trial countdown, no paywall.
+              Aureon is $18/month, Aureon Pro is $399/month. Bring your own key on
+              either tier or use the included Venice routing. Cancel from the dashboard with one click.
             </p>
+
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link
                 to="/software"
