@@ -195,6 +195,46 @@ serve(async (req) => {
 
       logStep("Subscription granted successfully", { recipientUserId, productId });
 
+      // ── Fire the subscription-welcome email (thank-you + socials) ────────
+      try {
+        const { data: userRec } = await supabaseAdmin.auth.admin.getUserById(recipientUserId);
+        const recipientEmail = userRec?.user?.email;
+        if (recipientEmail) {
+          const planName = subscriptionType
+            ? `Aureon ${subscriptionType.charAt(0).toUpperCase() + subscriptionType.slice(1)}`
+            : "Aureon";
+          let daysLeft: number | undefined;
+          let renewalDate: string | undefined;
+          if (expiresAt) {
+            const ms = new Date(expiresAt).getTime() - Date.now();
+            daysLeft = Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+            renewalDate = new Date(expiresAt).toLocaleDateString("en-US", {
+              year: "numeric", month: "long", day: "numeric",
+            });
+          }
+          const { error: mailErr } = await supabaseAdmin.functions.invoke(
+            "send-transactional-email",
+            {
+              body: {
+                templateName: "subscription-welcome",
+                recipientEmail,
+                idempotencyKey: `sub-welcome-${session.id}`,
+                templateData: {
+                  name: (userRec?.user?.user_metadata as any)?.full_name || null,
+                  planName,
+                  daysLeft,
+                  renewalDate,
+                },
+              },
+            },
+          );
+          if (mailErr) logStep("WARNING: subscription-welcome email failed", { error: mailErr });
+          else logStep("Subscription welcome email enqueued", { recipientEmail });
+        }
+      } catch (mailErr) {
+        logStep("WARNING: subscription-welcome email threw", { error: String(mailErr) });
+      }
+
       // P0: Plugin fulfillment — if session metadata has plugin_id, install it.
       const pluginIdMeta = (session.metadata as any)?.plugin_id;
       if (pluginIdMeta && recipientUserId) {
