@@ -357,7 +357,63 @@ const NotFound = () => {
       }
 
       for (const o of stateRef.current.obstacles) drawObstacle(o);
-      drawDino(stateRef.current.dinoY, stateRef.current.frame);
+      // Hide dino once soul has risen far enough
+      const soul = stateRef.current.soul;
+      if (!soul || soul.life < 30) {
+        drawDino(stateRef.current.dinoY, stateRef.current.frame);
+      }
+
+      // Animate & draw ascending soul
+      if (soul) {
+        soul.life++;
+        soul.y += soul.vy;
+        soul.vy -= 0.008; // gentle acceleration upward
+        soul.x += Math.sin(soul.life * 0.08) * 0.4;
+
+        // particle trail
+        for (const p of soul.particles) {
+          p.life++;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy -= 0.01;
+          const a = Math.max(0, 1 - p.life / 120);
+          ctx.fillStyle = `rgba(200,230,255,${a * 0.8})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // ghost body — translucent dino silhouette rising
+        const alpha = Math.max(0, 1 - soul.life / 220);
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.85;
+        // glow halo
+        const halo = ctx.createRadialGradient(soul.x, soul.y, 2, soul.x, soul.y, 28);
+        halo.addColorStop(0, "rgba(220,240,255,0.9)");
+        halo.addColorStop(1, "rgba(220,240,255,0)");
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(soul.x, soul.y, 28, 0, Math.PI * 2);
+        ctx.fill();
+        // little ghost
+        ctx.fillStyle = "rgba(240,250,255,0.95)";
+        ctx.beginPath();
+        ctx.arc(soul.x, soul.y - 4, 9, Math.PI, 0);
+        ctx.lineTo(soul.x + 9, soul.y + 8);
+        const wob = Math.sin(soul.life * 0.4) * 2;
+        ctx.lineTo(soul.x + 5, soul.y + 6 + wob);
+        ctx.lineTo(soul.x, soul.y + 8 - wob);
+        ctx.lineTo(soul.x - 5, soul.y + 6 + wob);
+        ctx.lineTo(soul.x - 9, soul.y + 8);
+        ctx.closePath();
+        ctx.fill();
+        // eyes
+        ctx.fillStyle = "rgba(20,30,50,0.8)";
+        ctx.fillRect(soul.x - 4, soul.y - 4, 2, 3);
+        ctx.fillRect(soul.x + 2, soul.y - 4, 2, 3);
+        ctx.restore();
+      }
+
 
       // HUD
       ctx.fillStyle = "#e8e8e8";
