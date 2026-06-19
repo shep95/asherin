@@ -80,6 +80,9 @@ const Header = () => {
                   <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Founder</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Pricing</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link to="/benchmark" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Benchmark</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -174,6 +177,7 @@ const Header = () => {
             <div className="absolute right-4 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] max-h-[80vh] overflow-y-auto rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl p-4 shadow-2xl lg:hidden animate-in slide-in-from-top-2 fade-in duration-200">
               <div className="flex flex-col gap-2">
                 <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Founder</Link>
+                <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Pricing</Link>
                 <Link to="/updates" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Updates</Link>
                 <Link to="/houseofasher/theories" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">House of Asher · Theories</Link>
                 <div className="my-1 border-t border-border/20 mx-4" />

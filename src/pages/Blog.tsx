@@ -22,6 +22,15 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/aureon-pricing-explained",
+    title: "Aureon pricing explained — why $18/mo and $399/mo",
+    dek: "A field-level breakdown of how Aureon's subscription is built, how it compares to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
+    tag: "Pricing",
+    published: "2026-06-19",
+    readTime: "11 min",
+    featured: true,
+  },
+  {
     slug: "/blog/predictions/ai-regulation-q4-2026",
     title: "AXRLEN Forecast — Why we predict a major AI regulatory decision in Q4 2026",
     dek: "Aureon's predictive engine assigns 72% probability to a major US or EU AI regulatory action between Oct 1 and Dec 15 2026. Methodology, five signals, verification plan.",

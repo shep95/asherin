@@ -40,6 +40,8 @@ const BlogPredictionAiRegulationQ42026 = lazy(
   () => import("./pages/blog/PredictionAiRegulationQ42026"),
 );
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const BlogAureonPricingExplained = lazy(() => import("./pages/blog/AureonPricingExplained"));
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
@@ -103,6 +105,8 @@ const App = () => (
             <Route path="/glossary/byok-ai" element={<GlossaryByokAi />} />
             <Route path="/glossary/digital-gnostic" element={<GlossaryDigitalGnostic />} />
             <Route path="/feature/zophiel" element={<FeatureZophiel />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/blog/aureon-pricing-explained" element={<BlogAureonPricingExplained />} />
             <Route
               path="/asher-dashboard"
               element={
