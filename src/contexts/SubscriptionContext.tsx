@@ -12,12 +12,12 @@ import { useAuth } from "@/contexts/AuthContext";
 // with real Stripe Price IDs ($18/mo + $399/mo recurring) before launching checkout.
 export const TIERS = {
   monthly_aureon: {
-    product_id: "prod_aureon_monthly_18",
-    price_id: "price_REPLACE_ME_AUREON_MONTHLY_18",
+    product_id: "prod_UjaQPixvFi3Qlr",
+    price_id: "price_1Tk7FyRxgCpmPfiF4vZebmnE",
   },
   monthly_pro: {
-    product_id: "prod_aureon_pro_monthly_399",
-    price_id: "price_REPLACE_ME_AUREON_PRO_MONTHLY_399",
+    product_id: "prod_UjaQFcAkQnTOm1",
+    price_id: "price_1Tk7FzRxgCpmPfiFlkJig5Bf",
   },
   lifetime: {
     product_id: "prod_UTrNsrxIQGTBQR",
