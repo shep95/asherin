@@ -25,6 +25,8 @@ import { template as vcApplicationDecision } from './vc-application-decision.tsx
 import { template as vcApplicationForward } from './vc-application-forward.tsx'
 import { template as zerlalScanReport } from './zerlal-scan-report.tsx'
 import { template as zerlalCriticalAlert } from './zerlal-critical-alert.tsx'
+import { template as subscriptionWelcome } from './subscription-welcome.tsx'
+import { template as subscriptionEnding } from './subscription-ending.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   welcome,
