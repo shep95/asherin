@@ -19,7 +19,7 @@ import SiteFooter from "@/components/SiteFooter";
 import LiveDemoStrip from "@/components/landing/LiveDemoStrip";
 import TrustBand from "@/components/landing/TrustBand";
 import ScrollProgressBar from "@/components/landing/ScrollProgressBar";
-import MobileStickyCTA from "@/components/landing/MobileStickyCTA";
+
 
 import CommandPaletteHint from "@/components/landing/CommandPaletteHint";
 import MagneticSpotlightButton from "@/components/landing/MagneticSpotlightButton";
