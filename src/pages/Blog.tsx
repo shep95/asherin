@@ -22,13 +22,45 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/predictions/ai-regulation-q4-2026",
+    title: "AXRLEN Forecast — Why we predict a major AI regulatory decision in Q4 2026",
+    dek: "Aureon's predictive engine assigns 72% probability to a major US or EU AI regulatory action between Oct 1 and Dec 15 2026. Methodology, five signals, verification plan.",
+    tag: "Prediction",
+    published: "2026-06-19",
+    readTime: "10 min",
+    featured: true,
+  },
+  {
+    slug: "/blog/sovereign-ai-platforms",
+    title: "The 2026 sovereign AI platform landscape",
+    dek: "Eight serious platforms, four architecture patterns, and the four-layer test that eliminates 60% of sovereignty claims on first inspection.",
+    tag: "Landscape",
+    published: "2026-06-19",
+    readTime: "11 min",
+  },
+  {
+    slug: "/blog/what-is-ai-osint",
+    title: "What is AI OSINT? The analyst's complete guide",
+    dek: "The four-stage pipeline, the cross-validation requirement, and how to spot a search wrapper pretending to be AI OSINT.",
+    tag: "Guide",
+    published: "2026-06-19",
+    readTime: "9 min",
+  },
+  {
+    slug: "/blog/ai-without-restrictions",
+    title: "AI without restrictions — the operator workflow",
+    dek: "Model choice, prompt discipline, refusal-detection, and the three workflow patterns that survive long sessions.",
+    tag: "Operator Guide",
+    published: "2026-06-19",
+    readTime: "8 min",
+  },
+  {
     slug: "/blog/comparison",
     title: "Aureon vs ChatGPT vs Claude — the honest 2026 comparison",
     dek: "Side-by-side across price, censorship, BYOK, OSINT, IDE, simulation, and privacy. Includes the model-vs-model radar.",
     tag: "Comparison",
     published: "2026-06-14",
     readTime: "9 min",
-    featured: true,
   },
   {
     slug: "/blog/venice-integration",
