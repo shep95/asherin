@@ -88,8 +88,21 @@ const App = () => (
             <Route path="/blog/comparison" element={<BlogComparison />} />
             <Route path="/blog/venice-integration" element={<BlogVeniceIntegration />} />
             <Route path="/blog/uncensored-ai-text-generator-guide" element={<BlogUncensoredAi />} />
+            <Route path="/blog/what-is-ai-osint" element={<BlogWhatIsAiOsint />} />
+            <Route path="/blog/sovereign-ai-platforms" element={<BlogSovereignAiPlatforms />} />
+            <Route path="/blog/ai-without-restrictions" element={<BlogAiWithoutRestrictions />} />
+            <Route
+              path="/blog/predictions/ai-regulation-q4-2026"
+              element={<BlogPredictionAiRegulationQ42026 />}
+            />
             <Route path="/updates" element={<Updates />} />
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
+            <Route path="/glossary" element={<GlossaryIndex />} />
+            <Route path="/glossary/sovereign-ai" element={<GlossarySovereignAi />} />
+            <Route path="/glossary/uncensored-ai" element={<GlossaryUncensoredAi />} />
+            <Route path="/glossary/byok-ai" element={<GlossaryByokAi />} />
+            <Route path="/glossary/digital-gnostic" element={<GlossaryDigitalGnostic />} />
+            <Route path="/feature/zophiel" element={<FeatureZophiel />} />
             <Route
               path="/asher-dashboard"
               element={
