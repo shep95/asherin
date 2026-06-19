@@ -49,7 +49,9 @@ const NotFound = () => {
     dead: false,
     saturnRot: 0,
     stars: [] as { x: number; y: number; r: number; tw: number }[],
+    soul: null as null | { x: number; y: number; vy: number; vx: number; life: number; particles: { x: number; y: number; vx: number; vy: number; r: number; life: number }[] },
   });
+
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
