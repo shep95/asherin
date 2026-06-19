@@ -40,8 +40,31 @@ const BlogPredictionAiRegulationQ42026 = lazy(
   () => import("./pages/blog/PredictionAiRegulationQ42026"),
 );
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
+const FeatureZerlal = lazy(() => import("./pages/feature/FeatureZerlal"));
+const FeatureAxrlen = lazy(() => import("./pages/feature/FeatureAxrlen"));
+const FeatureByok = lazy(() => import("./pages/feature/FeatureByok"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const BlogAureonPricingExplained = lazy(() => import("./pages/blog/AureonPricingExplained"));
+const BlogAiVulnerabilityScanningExplained = lazy(
+  () => import("./pages/blog/AiVulnerabilityScanningExplained"),
+);
+const BlogVulnerabilityChainingExplained = lazy(
+  () => import("./pages/blog/VulnerabilityChainingExplained"),
+);
+const BlogHowAiPredictiveForecastingWorks = lazy(
+  () => import("./pages/blog/HowAiPredictiveForecastingWorks"),
+);
+const BlogHowAureonUsesCseoResearch = lazy(
+  () => import("./pages/blog/HowAureonUsesCseoResearch"),
+);
+const GlossaryZeroDayConfidenceScoring = lazy(
+  () => import("./pages/glossary/ZeroDayConfidenceScoring"),
+);
+const GlossaryPredictiveIntelligenceAi = lazy(
+  () => import("./pages/glossary/PredictiveIntelligenceAi"),
+);
+const GlossaryOperatorStack = lazy(() => import("./pages/glossary/OperatorStack"));
+const GlossaryConversationalSeo = lazy(() => import("./pages/glossary/ConversationalSeo"));
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
@@ -105,8 +128,37 @@ const App = () => (
             <Route path="/glossary/byok-ai" element={<GlossaryByokAi />} />
             <Route path="/glossary/digital-gnostic" element={<GlossaryDigitalGnostic />} />
             <Route path="/feature/zophiel" element={<FeatureZophiel />} />
+            <Route path="/feature/zerlal" element={<FeatureZerlal />} />
+            <Route path="/feature/axrlen" element={<FeatureAxrlen />} />
+            <Route path="/feature/byok" element={<FeatureByok />} />
+            <Route
+              path="/glossary/zero-day-confidence-scoring"
+              element={<GlossaryZeroDayConfidenceScoring />}
+            />
+            <Route
+              path="/glossary/predictive-intelligence-ai"
+              element={<GlossaryPredictiveIntelligenceAi />}
+            />
+            <Route path="/glossary/operator-stack" element={<GlossaryOperatorStack />} />
+            <Route path="/glossary/conversational-seo" element={<GlossaryConversationalSeo />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/blog/aureon-pricing-explained" element={<BlogAureonPricingExplained />} />
+            <Route
+              path="/blog/ai-vulnerability-scanning-explained"
+              element={<BlogAiVulnerabilityScanningExplained />}
+            />
+            <Route
+              path="/blog/vulnerability-chaining-explained"
+              element={<BlogVulnerabilityChainingExplained />}
+            />
+            <Route
+              path="/blog/how-ai-predictive-forecasting-works"
+              element={<BlogHowAiPredictiveForecastingWorks />}
+            />
+            <Route
+              path="/blog/how-aureon-uses-c-seo-research"
+              element={<BlogHowAureonUsesCseoResearch />}
+            />
             <Route
               path="/asher-dashboard"
               element={
