@@ -32,6 +32,16 @@
   <url><loc>https://aureonai.app/blog/predictions/ai-regulation-q4-2026</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://aureonai.app/blog/aureon-pricing-explained</loc><lastmod>2026-06-19</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
 
+  <!-- Cluster satellites — Security (ZERLAL spine) -->
+  <url><loc>https://aureonai.app/blog/ai-vulnerability-scanning-explained</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://aureonai.app/blog/vulnerability-chaining-explained</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+
+  <!-- Cluster satellites — Predictive (AXRLEN spine) -->
+  <url><loc>https://aureonai.app/blog/how-ai-predictive-forecasting-works</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+
+  <!-- Cluster satellites — C-SEO meta -->
+  <url><loc>https://aureonai.app/blog/how-aureon-uses-c-seo-research</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+
   <!-- Pricing spine (Theory 12 — Sovereign Niche Monopoly on "Aureon pricing") -->
   <url><loc>https://aureonai.app/pricing</loc><lastmod>2026-06-19</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
 
@@ -41,9 +51,16 @@
   <url><loc>https://aureonai.app/glossary/uncensored-ai</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
   <url><loc>https://aureonai.app/glossary/byok-ai</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://aureonai.app/glossary/digital-gnostic</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://aureonai.app/glossary/operator-stack</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://aureonai.app/glossary/zero-day-confidence-scoring</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://aureonai.app/glossary/predictive-intelligence-ai</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://aureonai.app/glossary/conversational-seo</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
 
-  <!-- Feature spine (Theory 8 — Cluster spine for Zophiel) -->
+  <!-- Feature spines (Theory 8 — Cluster spine) -->
   <url><loc>https://aureonai.app/feature/zophiel</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://aureonai.app/feature/zerlal</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://aureonai.app/feature/axrlen</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://aureonai.app/feature/byok</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
 
   <url><loc>https://aureonai.app/terms</loc><lastmod>2026-06-17</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://aureonai.app/privacy</loc><lastmod>2026-06-17</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>

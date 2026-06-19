@@ -42,6 +42,30 @@ export const GLOSSARY: GlossaryEntry[] = [
     oneLine:
       "An operator who treats consumer AI as a corporate filter on reality and seeks tools that return the raw signal — not the moderated synthesis.",
   },
+  {
+    slug: "/glossary/operator-stack",
+    term: "Operator Stack",
+    oneLine:
+      "The four-layer sovereign intelligence toolchain — reasoning (BYOK), OSINT collection, predictive synthesis, and security analysis — bundled for independent operators.",
+  },
+  {
+    slug: "/glossary/zero-day-confidence-scoring",
+    term: "Zero-Day Confidence Scoring",
+    oneLine:
+      "A calibrated 0-100 triage scale used to score vulnerability findings that do not match any known CVE, weighted by novelty, exploitability, corroboration, and stability.",
+  },
+  {
+    slug: "/glossary/predictive-intelligence-ai",
+    term: "Predictive Intelligence AI",
+    oneLine:
+      "The discipline of producing calibrated probabilistic forecasts via LLM-driven multi-signal synthesis — every output a probability, a window, and a verification plan.",
+  },
+  {
+    slug: "/glossary/conversational-seo",
+    term: "Conversational SEO (C-SEO)",
+    oneLine:
+      "The discipline of being cited inside AI-generated answers — formalized by the C-SEO Bench paper (June 2025), the first peer-reviewed benchmark in the category.",
+  },
 ];
 
 const GlossaryIndex = () => {
