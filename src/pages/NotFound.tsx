@@ -73,6 +73,8 @@ const NotFound = () => {
     s.score = 0;
     s.dead = false;
     s.running = true;
+    s.soul = null;
+
     setScore(0);
     setDead(false);
     setRunning(true);
