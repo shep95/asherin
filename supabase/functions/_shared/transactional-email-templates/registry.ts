@@ -45,4 +45,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'vc-application-forward': vcApplicationForward,
   'zerlal-scan-report': zerlalScanReport,
   'zerlal-critical-alert': zerlalCriticalAlert,
+  'subscription-welcome': subscriptionWelcome,
+  'subscription-ending': subscriptionEnding,
 }
