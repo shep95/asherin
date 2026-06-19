@@ -97,16 +97,20 @@ function productToTier(productId: string | null): TierKey | null {
   return null;
 }
 
-// ── Donation Era: Aureon is fully free ───────────────────────────────────────
-// All gating helpers return true. Paywalls have been removed in favor of an
-// optional donation model (Stripe / crypto via DonationBanner).
+// ── Access helpers ───────────────────────────────────────────────────────────
+// NOTE: Aureon currently keeps gating permissive at the runtime level while the
+// new monthly subscription products are wired up in Stripe. Display, copy and
+// pricing now reflect the $18 / $399 model, but every authenticated user can
+// still reach every view. Flip these helpers to real checks once monthly
+// price IDs and webhook → tier mapping are in place.
 export function hasChatAccess(_tierKey: TierKey | null): boolean { return true; }
 export function hasSearchAccess(_tierKey: TierKey | null): boolean { return true; }
 export function hasAureonAccess(_tierKey: TierKey | null): boolean { return true; }
 export function hasProAccess(_tierKey: TierKey | null): boolean { return true; }
 export function hasEnterpriseOnlyAccess(_tierKey: TierKey | null): boolean { return true; }
-/** @deprecated Aureon is free — always returns true. */
+/** @deprecated Retained for legacy callers — always returns true. */
 export function hasEnterpriseAccess(_tierKey: TierKey | null): boolean { return true; }
+
 
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
