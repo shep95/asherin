@@ -40,7 +40,13 @@ serve(async (req) => {
       },
     });
     const userPayload = await userResp.json().catch(() => null);
-    if (!userResp.ok) throw new Error(`Authentication error: ${userPayload?.msg || userPayload?.message || userResp.statusText}`);
+    if (!userResp.ok) {
+      const authMessage = userPayload?.msg || userPayload?.message || userResp.statusText;
+      return new Response(JSON.stringify({ error: `Authentication error: ${authMessage}` }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
     const userData = { user: userPayload };
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
