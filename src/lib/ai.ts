@@ -103,6 +103,19 @@ export async function streamChat({
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.access_token) authToken = session.access_token;
     userEmail = session?.user?.email ?? null;
+    if (!byokProvider && session?.user?.id) {
+      const { data: pref } = await supabase
+        .from("user_model_preferences")
+        .select("active_provider, active_model")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      const provider = pref?.active_provider;
+      if (provider && provider !== "default" && provider !== "aureon") {
+        byokProvider = provider;
+        byokModel = pref?.active_model || undefined;
+        localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: byokProvider, model: byokModel }));
+      }
+    }
   } catch { /* fallback to anon key */ }
 
 
