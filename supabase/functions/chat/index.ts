@@ -1031,6 +1031,65 @@ function shouldSearch(messages: { role: string; content: string }[], mode: strin
   return searchTriggers.some((t) => content.includes(t));
 }
 
+function defaultModelForStoredProvider(provider: string): string | null {
+  const defaults: Record<string, string> = {
+    google: "gemini-2.5-flash",
+    openai: "gpt-4o",
+    anthropic: "claude-3-5-sonnet",
+    xai: "grok-2",
+    meta: "llama-4-maverick",
+    mistral: "pixtral-large-latest",
+    perplexity: "sonar-pro",
+  };
+  return defaults[provider] || null;
+}
+
+async function resolveStoredByok(req: Request): Promise<{ provider: string; model: string; apiKey: string } | null> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return null;
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const token = authHeader.replace("Bearer ", "").trim();
+    const anonSb = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
+    const { data: { user } } = await anonSb.auth.getUser(token);
+    if (!user) return null;
+    const adminSb = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+    const { data: pref } = await adminSb
+      .from("user_model_preferences")
+      .select("active_provider, active_model")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const preferredProvider = pref?.active_provider && !["default", "aureon"].includes(pref.active_provider)
+      ? String(pref.active_provider)
+      : null;
+    if (preferredProvider) {
+      const { data: keyRow } = await adminSb
+        .from("user_api_keys")
+        .select("api_key")
+        .eq("user_id", user.id)
+        .eq("provider", preferredProvider)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (keyRow?.api_key) return { provider: preferredProvider, model: String(pref?.active_model || defaultModelForStoredProvider(preferredProvider) || ""), apiKey: keyRow.api_key };
+    }
+    const { data: keyRows } = await adminSb
+      .from("user_api_keys")
+      .select("provider, api_key")
+      .eq("user_id", user.id)
+      .eq("is_active", true);
+    const priority = ["google", "openai", "anthropic", "xai", "meta", "mistral", "perplexity"];
+    const row = (keyRows || []).filter((r: any) => priority.includes(r.provider)).sort((a: any, b: any) => priority.indexOf(a.provider) - priority.indexOf(b.provider))[0];
+    const model = row?.provider ? defaultModelForStoredProvider(row.provider) : null;
+    return row?.api_key && model ? { provider: row.provider, model, apiKey: row.api_key } : null;
+  } catch (e) {
+    console.error("Stored BYOK lookup failed:", e);
+    return null;
+  }
+}
+
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 serve(async (req) => {
