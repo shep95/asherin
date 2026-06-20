@@ -648,6 +648,11 @@ const ImagineToCodeView = () => {
         aureon_messages: (row.aureon_messages as unknown as AureonMessage[]) || [],
       }));
       setSessions(parsed);
+      if (!activeSessionId && parsed.length > 0) {
+        const remembered = localStorage.getItem(IMAGINE_ACTIVE_SESSION_KEY);
+        const nextSession = parsed.find((s) => s.id === remembered) || parsed[0];
+        loadSessionIntoEditor(nextSession);
+      }
     }
     setSessionsLoading(false);
   };
