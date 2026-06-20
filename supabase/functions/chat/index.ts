@@ -1836,9 +1836,16 @@ ${zophielCodingBrainContent}
           model,
           max_tokens: 8192,
           system: systemParts,
-          messages: prunedMessages.map((m: { role: string; content: string }) => ({
-            role: m.role,
-            content: m.content,
+          messages: prunedMessages.map((m: { role: string; content: string; attachments?: { name: string; type: string; base64: string }[] }) => ({
+            role: m.role === "assistant" ? "assistant" : "user",
+            content: m.attachments?.length
+              ? [
+                  ...m.attachments
+                    .filter((att) => att.type.startsWith("image/"))
+                    .map((att) => ({ type: "image", source: { type: "base64", media_type: att.type, data: att.base64 } })),
+                  { type: "text", text: m.content || `(see attached files: ${m.attachments.map((a) => a.name).join(", ")})` },
+                ]
+              : m.content,
           })),
           stream: true,
         }),
