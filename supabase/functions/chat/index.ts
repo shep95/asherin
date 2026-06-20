@@ -1133,9 +1133,7 @@ serve(async (req) => {
         _parsedBody.byokProvider = storedByok.provider;
         _parsedBody.byokModel = storedByok.model;
         _injectedKey = storedByok.apiKey;
-        return;
-      }
-      if (_hasAttachments) {
+      } else if (_hasAttachments) {
         return new Response(
           JSON.stringify({
             error: "Image, file, and media uploads require your own AI API key (vision-capable). Add a Google/OpenAI/Anthropic key in Settings → AI Keys, then retry.",
@@ -1144,7 +1142,7 @@ serve(async (req) => {
           }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
-      }
+      } else {
       const resolved = await resolveKey(req, null);
       if (resolved.mode === "admin" && resolved.geminiKey) {
         _parsedBody.byokProvider = "google";
@@ -1154,6 +1152,7 @@ serve(async (req) => {
         _parsedBody.byokProvider = resolved.byok.provider;
         _parsedBody.byokModel = resolved.byok.model;
         _injectedKey = resolved.byok.apiKey;
+      }
       }
     }
 
