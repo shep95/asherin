@@ -118,7 +118,7 @@ const Asher = () => {
           Military Intelligence — In Development
         </p>
 
-        <h1 className="text-7xl sm:text-8xl md:text-[10rem] font-extralight tracking-[0.15em] leading-none text-foreground">
+        <h1 className="text-7xl sm:text-8xl md:text-[10rem] font-extralight tracking-tight leading-none text-foreground">
           ASHER
         </h1>
 

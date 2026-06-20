@@ -1,10 +1,19 @@
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { applySeoHead } from "@/lib/seoHead";
 
 const PrivacyPolicy = () => {
-
+  useEffect(() => {
+    applySeoHead({
+      title: "Privacy Policy — Aureon",
+      description:
+        "How Aureon collects, encrypts, and protects your data. End-to-end encryption, zero training on user content, and the operator-grade privacy stance.",
+      path: "/privacy",
+    });
+  }, []);
 
   return (
     <LandingBackground>

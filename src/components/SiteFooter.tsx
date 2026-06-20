@@ -247,7 +247,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
               </p>
 
               <p className="text-[10px] font-extralight tracking-[0.3em] uppercase text-muted-foreground/50">
-                Click anywhere to dismiss
+                Close manifesto
               </p>
             </div>
           </div>
