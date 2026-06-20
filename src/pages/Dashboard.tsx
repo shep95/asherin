@@ -397,9 +397,13 @@ const Dashboard = () => {
 
           // Actually persist the user message to DB
           const encryptedContent = await encryptText(msg.content, user.id);
+          const queuedAttachments = attachmentMapRef.current.get(msg.content);
+          const encryptedAttachments = queuedAttachments?.length
+            ? await encryptText(JSON.stringify(queuedAttachments), user.id)
+            : null;
           const { data: savedMsg } = await supabase
             .from("messages")
-            .insert({ conversation_id: msg.conversationId, user_id: user.id, role: "user", content: encryptedContent })
+            .insert({ conversation_id: msg.conversationId, user_id: user.id, role: "user", content: encryptedContent, attachments_enc: encryptedAttachments } as any)
             .select()
             .single();
 
@@ -976,9 +980,12 @@ const Dashboard = () => {
 
     try {
       const encryptedContent = await encryptText(content, user.id);
+      const encryptedAttachments = attachments?.length
+        ? await encryptText(JSON.stringify(attachments), user.id)
+        : null;
       const { data: userMsgRow } = await supabase
         .from("messages")
-        .insert({ conversation_id: convId, user_id: user.id, role: "user", content: encryptedContent })
+        .insert({ conversation_id: convId, user_id: user.id, role: "user", content: encryptedContent, attachments_enc: encryptedAttachments } as any)
         .select()
         .single();
 
