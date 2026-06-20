@@ -406,7 +406,7 @@ const Dashboard = () => {
           const encryptedContent = await encryptText(msg.content, user.id);
           const queuedAttachments = attachmentMapRef.current.get(msg.content);
           const encryptedAttachments = queuedAttachments?.length
-            ? await encryptText(JSON.stringify(queuedAttachments), user.id)
+            ? await encryptText(JSON.stringify(serializeAttachments(queuedAttachments)), user.id)
             : null;
           const { data: savedMsg } = await supabase
             .from("messages")
@@ -988,7 +988,7 @@ const Dashboard = () => {
     try {
       const encryptedContent = await encryptText(content, user.id);
       const encryptedAttachments = attachments?.length
-        ? await encryptText(JSON.stringify(attachments), user.id)
+        ? await encryptText(JSON.stringify(serializeAttachments(attachments)), user.id)
         : null;
       const { data: userMsgRow } = await supabase
         .from("messages")
