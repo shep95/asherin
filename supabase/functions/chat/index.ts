@@ -1128,6 +1128,13 @@ serve(async (req) => {
       _parsedBody.messages.some((m: any) => Array.isArray(m?.attachments) && m.attachments.length > 0);
 
     if (!incomingByok) {
+      const storedByok = await resolveStoredByok(req);
+      if (storedByok) {
+        _parsedBody.byokProvider = storedByok.provider;
+        _parsedBody.byokModel = storedByok.model;
+        _injectedKey = storedByok.apiKey;
+        return;
+      }
       if (_hasAttachments) {
         return new Response(
           JSON.stringify({
