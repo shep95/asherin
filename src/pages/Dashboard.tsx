@@ -153,6 +153,16 @@ const FeatureGate = ({ title, description, onUpgrade }: { title: string; descrip
   </div>
 );
 
+const decryptAttachments = async (ciphertext: unknown, userId: string): Promise<FileAttachment[] | undefined> => {
+  if (typeof ciphertext !== "string" || !ciphertext) return undefined;
+  try {
+    const parsed = JSON.parse(await decryptText(ciphertext, userId));
+    return Array.isArray(parsed) ? (parsed as FileAttachment[]) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const LazyFallback = () => (
   <div className="flex flex-1 items-center justify-center">
     <div className="text-xs font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">Loading…</div>
@@ -673,6 +683,7 @@ const Dashboard = () => {
           } catch {
             content = "_[Encrypted on another device — unable to decrypt here.]_";
           }
+          const attachments = await decryptAttachments((m as any).attachments_enc, user.id);
           return {
             id: m.id,
             role: m.role as "user" | "assistant",
@@ -680,6 +691,7 @@ const Dashboard = () => {
             timestamp: new Date(m.created_at),
             truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
             sources: (m.sources as { title: string; url: string }[]) ?? [],
+            attachments,
           } as Message;
         }));
         if (cancelled) return;
@@ -779,6 +791,7 @@ const Dashboard = () => {
                     } catch {
                       content = "_[Encrypted on another device — unable to decrypt here.]_";
                     }
+                    const attachments = await decryptAttachments((m as any).attachments_enc, user.id);
                     return {
                       id: m.id,
                       role: m.role as "user" | "assistant",
@@ -786,6 +799,7 @@ const Dashboard = () => {
                       timestamp: new Date(m.created_at),
                       truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
                       sources: (m.sources as { title: string; url: string }[]) ?? [],
+                      attachments,
                     };
                   })
                 );
