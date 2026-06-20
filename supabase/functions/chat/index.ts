@@ -1731,8 +1731,8 @@ ${zophielCodingBrainContent}
         const parts: any[] = [];
         if (m.attachments?.length) {
           for (const att of m.attachments) {
-            if (att.type.startsWith("image/") || att.type === "application/pdf") {
-              // Images and PDFs: send as inline_data — Gemini natively parses both
+            if (att.type.startsWith("image/") || att.type.startsWith("audio/") || att.type.startsWith("video/") || att.type === "application/pdf") {
+              // Media and PDFs: send as inline_data — Gemini natively parses them
               parts.push({ inline_data: { mime_type: att.type, data: att.base64 } });
               parts.push({ text: `[Attached file: ${att.name}]` });
             } else {
@@ -1777,6 +1777,14 @@ ${zophielCodingBrainContent}
                 type: "image_url",
                 image_url: { url: `data:${att.type};base64,${att.base64}` },
               });
+            } else if (att.type === "application/pdf") {
+              contentParts.push({
+                type: "file",
+                file: { filename: att.name, file_data: `data:${att.type};base64,${att.base64}` },
+              });
+            } else if (att.type.startsWith("audio/")) {
+              const format = att.type.includes("wav") ? "wav" : att.type.includes("mp3") || att.type.includes("mpeg") ? "mp3" : att.type.includes("mp4") ? "m4a" : att.type.includes("ogg") ? "ogg" : att.type.includes("aac") ? "aac" : att.type.includes("flac") ? "flac" : "webm";
+              contentParts.push({ type: "input_audio", input_audio: { data: att.base64, format } });
             }
           }
           contentParts.push({ type: "text", text: m.content || "(see attached files)" });
