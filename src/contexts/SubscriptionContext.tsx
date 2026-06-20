@@ -134,7 +134,14 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     }
     try {
       const { data, error } = await supabase.functions.invoke("check-subscription");
-      if (error) throw error;
+      if (error) {
+        const contextStatus = (error as { context?: { status?: number } })?.context?.status;
+        if (contextStatus === 401) {
+          setState({ subscribed: false, productId: null, tierKey: null, subscriptionEnd: null, status: null, cancelAtPeriodEnd: false, loading: false, isPastDue: false, isTrialing: false });
+          return;
+        }
+        throw error;
+      }
       const tierKey = productToTier(data?.product_id ?? null);
       const status = data?.status ?? null;
       setState({
