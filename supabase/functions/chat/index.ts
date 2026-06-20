@@ -1044,7 +1044,7 @@ function defaultModelForStoredProvider(provider: string): string | null {
   return defaults[provider] || null;
 }
 
-async function resolveStoredByok(req: Request): Promise<{ provider: string; model: string; apiKey: string } | null> {
+async function resolveStoredByok(req: Request, requireVision = false): Promise<{ provider: string; model: string; apiKey: string } | null> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return null;
   try {
@@ -1062,10 +1062,11 @@ async function resolveStoredByok(req: Request): Promise<{ provider: string; mode
       .select("active_provider, active_model")
       .eq("user_id", user.id)
       .maybeSingle();
+    const visionProviders = new Set(["google", "openai", "anthropic", "xai"]);
     const preferredProvider = pref?.active_provider && !["default", "aureon"].includes(pref.active_provider)
       ? String(pref.active_provider)
       : null;
-    if (preferredProvider) {
+    if (preferredProvider && (!requireVision || visionProviders.has(preferredProvider))) {
       const { data: keyRow } = await adminSb
         .from("user_api_keys")
         .select("api_key")
@@ -1080,7 +1081,7 @@ async function resolveStoredByok(req: Request): Promise<{ provider: string; mode
       .select("provider, api_key")
       .eq("user_id", user.id)
       .eq("is_active", true);
-    const priority = ["google", "openai", "anthropic", "xai", "meta", "mistral", "perplexity"];
+    const priority = requireVision ? ["google", "openai", "anthropic", "xai"] : ["google", "openai", "anthropic", "xai", "meta", "mistral", "perplexity"];
     const row = (keyRows || []).filter((r: any) => priority.includes(r.provider)).sort((a: any, b: any) => priority.indexOf(a.provider) - priority.indexOf(b.provider))[0];
     const model = row?.provider ? defaultModelForStoredProvider(row.provider) : null;
     return row?.api_key && model ? { provider: row.provider, model, apiKey: row.api_key } : null;
