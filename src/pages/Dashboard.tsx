@@ -153,11 +153,18 @@ const FeatureGate = ({ title, description, onUpgrade }: { title: string; descrip
   </div>
 );
 
+const serializeAttachments = (attachments?: FileAttachment[]): FileAttachment[] | undefined =>
+  attachments?.map(({ previewUrl: _previewUrl, ...attachment }) => attachment);
+
 const decryptAttachments = async (ciphertext: unknown, userId: string): Promise<FileAttachment[] | undefined> => {
   if (typeof ciphertext !== "string" || !ciphertext) return undefined;
   try {
     const parsed = JSON.parse(await decryptText(ciphertext, userId));
-    return Array.isArray(parsed) ? (parsed as FileAttachment[]) : undefined;
+    if (!Array.isArray(parsed)) return undefined;
+    return (parsed as FileAttachment[]).map((attachment) => ({
+      ...attachment,
+      previewUrl: attachment.previewUrl || (attachment.type.startsWith("image/") ? `data:${attachment.type};base64,${attachment.base64}` : undefined),
+    }));
   } catch {
     return undefined;
   }
