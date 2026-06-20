@@ -1127,6 +1127,25 @@ serve(async (req) => {
     // vision/multimodal, so force BYOK when the user attached anything.
     const _hasAttachments = Array.isArray(_parsedBody?.messages) &&
       _parsedBody.messages.some((m: any) => Array.isArray(m?.attachments) && m.attachments.length > 0);
+    const _visionProviders = new Set(["google", "openai", "anthropic", "xai"]);
+
+    if (incomingByok && _hasAttachments && !_visionProviders.has(incomingByok.provider)) {
+      const storedVisionByok = await resolveStoredByok(req, true);
+      if (storedVisionByok) {
+        _parsedBody.byokProvider = storedVisionByok.provider;
+        _parsedBody.byokModel = storedVisionByok.model;
+        _injectedKey = storedVisionByok.apiKey;
+      } else {
+        return new Response(
+          JSON.stringify({
+            error: "Image, file, and media uploads require a vision-capable key. Save or select Google, OpenAI, Anthropic, or xAI in Settings → AI Keys, then retry.",
+            code: "BYOK_REQUIRED",
+            reason: "vision_requires_byok",
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
 
     if (!incomingByok) {
       const storedByok = await resolveStoredByok(req, _hasAttachments);
