@@ -1129,7 +1129,7 @@ serve(async (req) => {
       _parsedBody.messages.some((m: any) => Array.isArray(m?.attachments) && m.attachments.length > 0);
 
     if (!incomingByok) {
-      const storedByok = await resolveStoredByok(req);
+      const storedByok = await resolveStoredByok(req, _hasAttachments);
       if (storedByok) {
         _parsedBody.byokProvider = storedByok.provider;
         _parsedBody.byokModel = storedByok.model;
