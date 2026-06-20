@@ -1104,13 +1104,35 @@ const ImagineToCodeView = () => {
     systemPrompt: string
   ): Promise<string> => {
     const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+    const { data: { session } } = await supabase.auth.getSession();
+    let byokProvider: string | undefined;
+    let byokModel: string | undefined;
+    try {
+      const cached = JSON.parse(localStorage.getItem("aureon_byok_active") || "null");
+      if (cached?.provider && cached.provider !== "default" && cached.provider !== "aureon") {
+        byokProvider = cached.provider;
+        byokModel = cached.model;
+      }
+    } catch { /* no cached key */ }
+    if (!byokProvider && session?.user?.id) {
+      const { data: pref } = await supabase
+        .from("user_model_preferences")
+        .select("active_provider, active_model")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (pref?.active_provider && pref.active_provider !== "default" && pref.active_provider !== "aureon") {
+        byokProvider = pref.active_provider;
+        byokModel = pref.active_model;
+        localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: byokProvider, model: byokModel }));
+      }
+    }
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages, mode: "standard", systemPrompt }),
+      body: JSON.stringify({ messages, mode: "code", personaSystemPrompt: systemPrompt, byokProvider, byokModel }),
     });
 
     if (!resp.ok) {
