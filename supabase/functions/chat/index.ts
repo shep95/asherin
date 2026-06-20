@@ -1031,6 +1031,66 @@ function shouldSearch(messages: { role: string; content: string }[], mode: strin
   return searchTriggers.some((t) => content.includes(t));
 }
 
+function defaultModelForStoredProvider(provider: string): string | null {
+  const defaults: Record<string, string> = {
+    google: "gemini-2.5-flash",
+    openai: "gpt-4o",
+    anthropic: "claude-3-5-sonnet",
+    xai: "grok-2",
+    meta: "llama-4-maverick",
+    mistral: "pixtral-large-latest",
+    perplexity: "sonar-pro",
+  };
+  return defaults[provider] || null;
+}
+
+async function resolveStoredByok(req: Request, requireVision = false): Promise<{ provider: string; model: string; apiKey: string } | null> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return null;
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const token = authHeader.replace("Bearer ", "").trim();
+    const anonSb = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
+    const { data: { user } } = await anonSb.auth.getUser(token);
+    if (!user) return null;
+    const adminSb = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+    const { data: pref } = await adminSb
+      .from("user_model_preferences")
+      .select("active_provider, active_model")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const visionProviders = new Set(["google", "openai", "anthropic", "xai"]);
+    const preferredProvider = pref?.active_provider && !["default", "aureon"].includes(pref.active_provider)
+      ? String(pref.active_provider)
+      : null;
+    if (preferredProvider && (!requireVision || visionProviders.has(preferredProvider))) {
+      const { data: keyRow } = await adminSb
+        .from("user_api_keys")
+        .select("api_key")
+        .eq("user_id", user.id)
+        .eq("provider", preferredProvider)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (keyRow?.api_key) return { provider: preferredProvider, model: String(pref?.active_model || defaultModelForStoredProvider(preferredProvider) || ""), apiKey: keyRow.api_key };
+    }
+    const { data: keyRows } = await adminSb
+      .from("user_api_keys")
+      .select("provider, api_key")
+      .eq("user_id", user.id)
+      .eq("is_active", true);
+    const priority = requireVision ? ["google", "openai", "anthropic", "xai"] : ["google", "openai", "anthropic", "xai", "meta", "mistral", "perplexity"];
+    const row = (keyRows || []).filter((r: any) => priority.includes(r.provider)).sort((a: any, b: any) => priority.indexOf(a.provider) - priority.indexOf(b.provider))[0];
+    const model = row?.provider ? defaultModelForStoredProvider(row.provider) : null;
+    return row?.api_key && model ? { provider: row.provider, model, apiKey: row.api_key } : null;
+  } catch (e) {
+    console.error("Stored BYOK lookup failed:", e);
+    return null;
+  }
+}
+
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -1067,18 +1127,42 @@ serve(async (req) => {
     // vision/multimodal, so force BYOK when the user attached anything.
     const _hasAttachments = Array.isArray(_parsedBody?.messages) &&
       _parsedBody.messages.some((m: any) => Array.isArray(m?.attachments) && m.attachments.length > 0);
+    const _visionProviders = new Set(["google", "openai", "anthropic", "xai"]);
 
-    if (!incomingByok) {
-      if (_hasAttachments) {
+    if (incomingByok && _hasAttachments && !_visionProviders.has(incomingByok.provider)) {
+      const storedVisionByok = await resolveStoredByok(req, true);
+      if (storedVisionByok) {
+        _parsedBody.byokProvider = storedVisionByok.provider;
+        _parsedBody.byokModel = storedVisionByok.model;
+        _injectedKey = storedVisionByok.apiKey;
+      } else {
         return new Response(
           JSON.stringify({
-            error: "Image, file, and media uploads require your own AI API key (vision-capable). Add a Google/OpenAI/Anthropic key in Settings → AI Keys, then retry.",
+            error: "Image, file, and media uploads require a vision-capable key. Save or select Google, OpenAI, Anthropic, or xAI in Settings → AI Keys, then retry.",
             code: "BYOK_REQUIRED",
             reason: "vision_requires_byok",
           }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
+    }
+
+    if (!incomingByok) {
+      const storedByok = await resolveStoredByok(req, _hasAttachments);
+      if (storedByok) {
+        _parsedBody.byokProvider = storedByok.provider;
+        _parsedBody.byokModel = storedByok.model;
+        _injectedKey = storedByok.apiKey;
+      } else if (_hasAttachments) {
+        return new Response(
+          JSON.stringify({
+            error: "Image, file, and media uploads require a vision-capable key. Save or select Google, OpenAI, Anthropic, or xAI in Settings → AI Keys, then retry.",
+            code: "BYOK_REQUIRED",
+            reason: "vision_requires_byok",
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      } else {
       const resolved = await resolveKey(req, null);
       if (resolved.mode === "admin" && resolved.geminiKey) {
         _parsedBody.byokProvider = "google";
@@ -1088,6 +1172,7 @@ serve(async (req) => {
         _parsedBody.byokProvider = resolved.byok.provider;
         _parsedBody.byokModel = resolved.byok.model;
         _injectedKey = resolved.byok.apiKey;
+      }
       }
     }
 
@@ -1646,8 +1731,8 @@ ${zophielCodingBrainContent}
         const parts: any[] = [];
         if (m.attachments?.length) {
           for (const att of m.attachments) {
-            if (att.type.startsWith("image/") || att.type === "application/pdf") {
-              // Images and PDFs: send as inline_data — Gemini natively parses both
+            if (att.type.startsWith("image/") || att.type.startsWith("audio/") || att.type.startsWith("video/") || att.type === "application/pdf") {
+              // Media and PDFs: send as inline_data — Gemini natively parses them
               parts.push({ inline_data: { mime_type: att.type, data: att.base64 } });
               parts.push({ text: `[Attached file: ${att.name}]` });
             } else {
@@ -1692,6 +1777,14 @@ ${zophielCodingBrainContent}
                 type: "image_url",
                 image_url: { url: `data:${att.type};base64,${att.base64}` },
               });
+            } else if (att.type === "application/pdf") {
+              contentParts.push({
+                type: "file",
+                file: { filename: att.name, file_data: `data:${att.type};base64,${att.base64}` },
+              });
+            } else if (att.type.startsWith("audio/")) {
+              const format = att.type.includes("wav") ? "wav" : att.type.includes("mp3") || att.type.includes("mpeg") ? "mp3" : att.type.includes("mp4") ? "m4a" : att.type.includes("ogg") ? "ogg" : att.type.includes("aac") ? "aac" : att.type.includes("flac") ? "flac" : "webm";
+              contentParts.push({ type: "input_audio", input_audio: { data: att.base64, format } });
             }
           }
           contentParts.push({ type: "text", text: m.content || "(see attached files)" });
@@ -1743,9 +1836,16 @@ ${zophielCodingBrainContent}
           model,
           max_tokens: 8192,
           system: systemParts,
-          messages: prunedMessages.map((m: { role: string; content: string }) => ({
-            role: m.role,
-            content: m.content,
+          messages: prunedMessages.map((m: { role: string; content: string; attachments?: { name: string; type: string; base64: string }[] }) => ({
+            role: m.role === "assistant" ? "assistant" : "user",
+            content: m.attachments?.length
+              ? [
+                  ...m.attachments
+                    .filter((att) => att.type.startsWith("image/"))
+                    .map((att) => ({ type: "image", source: { type: "base64", media_type: att.type, data: att.base64 } })),
+                  { type: "text", text: m.content || `(see attached files: ${m.attachments.map((a) => a.name).join(", ")})` },
+                ]
+              : m.content,
           })),
           stream: true,
         }),

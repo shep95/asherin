@@ -62,6 +62,7 @@ function exportCssGrid(rects: PixelRect[], w: number, h: number): string {
 // of cells that would freeze the canvas, balloon the React tree, and pin the CPU
 // at 100% (the reported overheating/lag root cause).
 const MAX_EMITTED_RECTS = 20_000;
+const IMAGINE_ACTIVE_SESSION_KEY = "aureon_imagine_active_session_id";
 
 function imageDataToRects(imageData: ImageData): PixelRect[] {
   const { width, height, data } = imageData;
@@ -532,6 +533,13 @@ const ImagineToCodeView = () => {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveSnapshotRef = useRef<{
+    id: string | null;
+    pixels: PixelRect[];
+    gridW: number;
+    gridH: number;
+    messages: AureonMessage[];
+  }>({ id: null, pixels: [], gridW: 512, gridH: 512, messages: [] });
 
   // Canvas state
   const historyStack = useRef<PixelRect[][]>([[]]);
@@ -593,6 +601,25 @@ const ImagineToCodeView = () => {
   const gridWRef = useRef(512);
   const gridHRef = useRef(512);
   useEffect(() => { gridWRef.current = gridW; gridHRef.current = gridH; }, [gridW, gridH]);
+  useEffect(() => {
+    saveSnapshotRef.current = { id: activeSessionId, pixels: rects, gridW, gridH, messages: aureonMessages };
+    if (activeSessionId) localStorage.setItem(IMAGINE_ACTIVE_SESSION_KEY, activeSessionId);
+  }, [activeSessionId, rects, gridW, gridH, aureonMessages]);
+
+  useEffect(() => () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    const snap = saveSnapshotRef.current;
+    if (!snap.id) return;
+    void supabase
+      .from("imagine_sessions")
+      .update({
+        pixels: (snap.pixels.length > 500_000 ? snap.pixels.slice(0, 500_000) : snap.pixels) as unknown as never,
+        grid_w: snap.gridW,
+        grid_h: snap.gridH,
+        aureon_messages: snap.messages as unknown as never,
+      })
+      .eq("id", snap.id);
+  }, []);
 
   // Auto-scroll AUREON chat
   useEffect(() => {
@@ -621,6 +648,11 @@ const ImagineToCodeView = () => {
         aureon_messages: (row.aureon_messages as unknown as AureonMessage[]) || [],
       }));
       setSessions(parsed);
+      if (!activeSessionId && parsed.length > 0) {
+        const remembered = localStorage.getItem(IMAGINE_ACTIVE_SESSION_KEY);
+        const nextSession = parsed.find((s) => s.id === remembered) || parsed[0];
+        loadSessionIntoEditor(nextSession);
+      }
     }
     setSessionsLoading(false);
   };
@@ -1072,13 +1104,35 @@ const ImagineToCodeView = () => {
     systemPrompt: string
   ): Promise<string> => {
     const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+    const { data: { session } } = await supabase.auth.getSession();
+    let byokProvider: string | undefined;
+    let byokModel: string | undefined;
+    try {
+      const cached = JSON.parse(localStorage.getItem("aureon_byok_active") || "null");
+      if (cached?.provider && cached.provider !== "default" && cached.provider !== "aureon") {
+        byokProvider = cached.provider;
+        byokModel = cached.model;
+      }
+    } catch { /* no cached key */ }
+    if (!byokProvider && session?.user?.id) {
+      const { data: pref } = await supabase
+        .from("user_model_preferences")
+        .select("active_provider, active_model")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (pref?.active_provider && pref.active_provider !== "default" && pref.active_provider !== "aureon") {
+        byokProvider = pref.active_provider;
+        byokModel = pref.active_model;
+        localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: byokProvider, model: byokModel }));
+      }
+    }
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages, mode: "standard", systemPrompt }),
+      body: JSON.stringify({ messages, mode: "code", personaSystemPrompt: systemPrompt, byokProvider, byokModel }),
     });
 
     if (!resp.ok) {

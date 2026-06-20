@@ -153,6 +153,23 @@ const FeatureGate = ({ title, description, onUpgrade }: { title: string; descrip
   </div>
 );
 
+const serializeAttachments = (attachments?: FileAttachment[]): FileAttachment[] | undefined =>
+  attachments?.map(({ previewUrl: _previewUrl, ...attachment }) => attachment);
+
+const decryptAttachments = async (ciphertext: unknown, userId: string): Promise<FileAttachment[] | undefined> => {
+  if (typeof ciphertext !== "string" || !ciphertext) return undefined;
+  try {
+    const parsed = JSON.parse(await decryptText(ciphertext, userId));
+    if (!Array.isArray(parsed)) return undefined;
+    return (parsed as FileAttachment[]).map((attachment) => ({
+      ...attachment,
+      previewUrl: attachment.previewUrl || (attachment.type.startsWith("image/") ? `data:${attachment.type};base64,${attachment.base64}` : undefined),
+    }));
+  } catch {
+    return undefined;
+  }
+};
+
 const LazyFallback = () => (
   <div className="flex flex-1 items-center justify-center">
     <div className="text-xs font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">Loading…</div>
@@ -387,9 +404,13 @@ const Dashboard = () => {
 
           // Actually persist the user message to DB
           const encryptedContent = await encryptText(msg.content, user.id);
+          const queuedAttachments = attachmentMapRef.current.get(msg.content);
+          const encryptedAttachments = queuedAttachments?.length
+            ? await encryptText(JSON.stringify(serializeAttachments(queuedAttachments)), user.id)
+            : null;
           const { data: savedMsg } = await supabase
             .from("messages")
-            .insert({ conversation_id: msg.conversationId, user_id: user.id, role: "user", content: encryptedContent })
+            .insert({ conversation_id: msg.conversationId, user_id: user.id, role: "user", content: encryptedContent, attachments_enc: encryptedAttachments } as any)
             .select()
             .single();
 
@@ -673,6 +694,7 @@ const Dashboard = () => {
           } catch {
             content = "_[Encrypted on another device — unable to decrypt here.]_";
           }
+          const attachments = await decryptAttachments((m as any).attachments_enc, user.id);
           return {
             id: m.id,
             role: m.role as "user" | "assistant",
@@ -680,6 +702,7 @@ const Dashboard = () => {
             timestamp: new Date(m.created_at),
             truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
             sources: (m.sources as { title: string; url: string }[]) ?? [],
+            attachments,
           } as Message;
         }));
         if (cancelled) return;
@@ -779,6 +802,7 @@ const Dashboard = () => {
                     } catch {
                       content = "_[Encrypted on another device — unable to decrypt here.]_";
                     }
+                    const attachments = await decryptAttachments((m as any).attachments_enc, user.id);
                     return {
                       id: m.id,
                       role: m.role as "user" | "assistant",
@@ -786,6 +810,7 @@ const Dashboard = () => {
                       timestamp: new Date(m.created_at),
                       truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
                       sources: (m.sources as { title: string; url: string }[]) ?? [],
+                      attachments,
                     };
                   })
                 );
@@ -962,9 +987,12 @@ const Dashboard = () => {
 
     try {
       const encryptedContent = await encryptText(content, user.id);
+      const encryptedAttachments = attachments?.length
+        ? await encryptText(JSON.stringify(serializeAttachments(attachments)), user.id)
+        : null;
       const { data: userMsgRow } = await supabase
         .from("messages")
-        .insert({ conversation_id: convId, user_id: user.id, role: "user", content: encryptedContent })
+        .insert({ conversation_id: convId, user_id: user.id, role: "user", content: encryptedContent, attachments_enc: encryptedAttachments } as any)
         .select()
         .single();
 

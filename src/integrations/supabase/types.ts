@@ -4751,6 +4751,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachments_enc: string | null
           branch_id: string | null
           content: string
           conversation_id: string
@@ -4762,6 +4763,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachments_enc?: string | null
           branch_id?: string | null
           content?: string
           conversation_id: string
@@ -4773,6 +4775,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachments_enc?: string | null
           branch_id?: string | null
           content?: string
           conversation_id?: string

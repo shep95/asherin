@@ -29,7 +29,12 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No authorization header provided" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
 
     const token = authHeader.replace("Bearer ", "").trim();
     const authUrl = `${Deno.env.get("SUPABASE_URL") ?? ""}/auth/v1/user`;
@@ -40,7 +45,13 @@ serve(async (req) => {
       },
     });
     const userPayload = await userResp.json().catch(() => null);
-    if (!userResp.ok) throw new Error(`Authentication error: ${userPayload?.msg || userPayload?.message || userResp.statusText}`);
+    if (!userResp.ok) {
+      const authMessage = userPayload?.msg || userPayload?.message || userResp.statusText;
+      return new Response(JSON.stringify({ error: `Authentication error: ${authMessage}` }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
     const userData = { user: userPayload };
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
