@@ -62,6 +62,7 @@ function exportCssGrid(rects: PixelRect[], w: number, h: number): string {
 // of cells that would freeze the canvas, balloon the React tree, and pin the CPU
 // at 100% (the reported overheating/lag root cause).
 const MAX_EMITTED_RECTS = 20_000;
+const IMAGINE_ACTIVE_SESSION_KEY = "aureon_imagine_active_session_id";
 
 function imageDataToRects(imageData: ImageData): PixelRect[] {
   const { width, height, data } = imageData;
@@ -532,6 +533,13 @@ const ImagineToCodeView = () => {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveSnapshotRef = useRef<{
+    id: string | null;
+    pixels: PixelRect[];
+    gridW: number;
+    gridH: number;
+    messages: AureonMessage[];
+  }>({ id: null, pixels: [], gridW: 512, gridH: 512, messages: [] });
 
   // Canvas state
   const historyStack = useRef<PixelRect[][]>([[]]);
@@ -593,6 +601,25 @@ const ImagineToCodeView = () => {
   const gridWRef = useRef(512);
   const gridHRef = useRef(512);
   useEffect(() => { gridWRef.current = gridW; gridHRef.current = gridH; }, [gridW, gridH]);
+  useEffect(() => {
+    saveSnapshotRef.current = { id: activeSessionId, pixels: rects, gridW, gridH, messages: aureonMessages };
+    if (activeSessionId) localStorage.setItem(IMAGINE_ACTIVE_SESSION_KEY, activeSessionId);
+  }, [activeSessionId, rects, gridW, gridH, aureonMessages]);
+
+  useEffect(() => () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    const snap = saveSnapshotRef.current;
+    if (!snap.id) return;
+    void supabase
+      .from("imagine_sessions")
+      .update({
+        pixels: (snap.pixels.length > 500_000 ? snap.pixels.slice(0, 500_000) : snap.pixels) as unknown as never,
+        grid_w: snap.gridW,
+        grid_h: snap.gridH,
+        aureon_messages: snap.messages as unknown as never,
+      })
+      .eq("id", snap.id);
+  }, []);
 
   // Auto-scroll AUREON chat
   useEffect(() => {
