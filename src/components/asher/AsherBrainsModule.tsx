@@ -735,7 +735,7 @@ const AsherBrainsModule = () => {
               No brains uploaded yet
             </p>
             <p className="text-[10px] font-light text-muted-foreground/50">
-              Click here or drag &amp; drop .txt / .md / .pdf / .json / .csv / .yaml files.
+              Upload brain files — or drag &amp; drop .txt / .md / .pdf / .json / .csv / .yaml files.
             </p>
             <p className="text-[9px] font-light tracking-[0.2em] text-muted-foreground/40 mt-3 uppercase">
               Active brains are injected into ASHER AI's system prompt

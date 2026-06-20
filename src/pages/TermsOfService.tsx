@@ -1,10 +1,21 @@
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { applySeoHead } from "@/lib/seoHead";
 
 const TermsOfService = () => {
   const lastUpdated = "May 23, 2026";
+
+  useEffect(() => {
+    applySeoHead({
+      title: "Terms of Service — Aureon",
+      description:
+        "Aureon Terms of Service: subscription tiers, acceptable use, data privacy commitments, and the contract between operators and the platform.",
+      path: "/terms",
+    });
+  }, []);
 
   return (
     <LandingBackground>
