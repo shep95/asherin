@@ -1137,7 +1137,7 @@ serve(async (req) => {
       } else if (_hasAttachments) {
         return new Response(
           JSON.stringify({
-            error: "Image, file, and media uploads require your own AI API key (vision-capable). Add a Google/OpenAI/Anthropic key in Settings → AI Keys, then retry.",
+            error: "Image, file, and media uploads require a vision-capable key. Save or select Google, OpenAI, Anthropic, or xAI in Settings → AI Keys, then retry.",
             code: "BYOK_REQUIRED",
             reason: "vision_requires_byok",
           }),
