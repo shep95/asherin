@@ -137,19 +137,25 @@ ${BUTTERFLY_PROTOCOL_BRAIN}`;
       });
     }
 
-    // ── Default: Lovable AI Gateway ────────────────────────────
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // ── Default: platform Gemini (admin GEMINI_API_KEY) ────────
+    // No Lovable AI Gateway fallback — IDE coding workloads must route
+    // through admin Gemini or user BYOK only.
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      return new Response(JSON.stringify({
+        error: "byok_required",
+        message: "Bring-Your-Own-Key required. Configure an AI key in Settings → AI Keys, or use the admin platform Gemini path.",
+      }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const model = body.overrideModel || pickModel(task);
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const model = normalizeGeminiModel(body.overrideModel || pickModel(task));
+    const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+    const r = await fetch(geminiUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${GEMINI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ model, messages, stream }),
@@ -161,15 +167,10 @@ ${BUTTERFLY_PROTOCOL_BRAIN}`;
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (r.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Add funds in Workspace > Usage." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const t = await r.text();
-      console.error("ide-code-router upstream:", r.status, t);
-      return new Response(JSON.stringify({ error: "Upstream AI error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      console.error("ide-code-router gemini upstream:", r.status, t);
+      return new Response(JSON.stringify({ error: "Upstream AI error", detail: t.slice(0, 200) }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 

@@ -444,7 +444,8 @@ const AureonIdeView = () => {
   useEffect(() => { loadSessions(); }, [loadSessions]);
 
   const loadSession = useCallback(async (id: string) => {
-    const { data } = await supabase.from("ide_sessions").select("*").eq("id", id).single();
+    if (!user?.id) return;
+    const { data } = await supabase.from("ide_sessions").select("*").eq("id", id).eq("user_id", user.id).single();
     if (data) {
       setFiles(data.files as unknown as IdeFile[]);
       setOpenFileIds(data.open_file_ids ?? []);
@@ -457,7 +458,7 @@ const AureonIdeView = () => {
       setLeftTab("files");
       if (isMobile) setMobilePanel("editor");
     }
-  }, [isMobile]);
+  }, [isMobile, user?.id]);
 
   const createSession = useCallback(async () => {
     if (!user) return;
