@@ -196,8 +196,7 @@ async function fetchNearbyFeatures(lat: number, lon: number) {
       way(around:${radius},${lat},${lon})[leisure];
       node(around:${radius},${lat},${lon})[man_made];
       way(around:${radius},${lat},${lon})[man_made];
-      node(around:${radius},${lat},${lon})[military];
-      way(around:${radius},${lat},${lon})[military];
+      node(around:${radius},${lat},${lon})[shop];
       way(around:${radius},${lat},${lon})[power];
       node(around:${radius},${lat},${lon})[power];
       way(around:${radius},${lat},${lon})[highway];
@@ -271,13 +270,12 @@ function toMGRS(lat: number, lon: number): string {
 }
 
 /* ─────────────── Land-use classifier (from Overpass tags) ─────────────── */
-type ClickClass = "building" | "residential" | "commercial" | "industrial" | "military" | "agricultural" | "vacant" | "infrastructure" | "transport" | "natural" | "water" | "unknown";
+type ClickClass = "building" | "residential" | "commercial" | "industrial" | "agricultural" | "vacant" | "infrastructure" | "transport" | "natural" | "water" | "unknown";
 function classifyClick(features: any[] | null): { primary: any | null; cls: ClickClass } {
   if (!features?.length) return { primary: null, cls: "unknown" };
   const ranked = [...features].sort((a, b) => {
     const score = (f: any) => {
       const t = f.tags || {};
-      if (t.military) return 100;
       if (t.building) return 80;
       if (t.amenity) return 70;
       if (t.man_made) return 60;
@@ -294,8 +292,7 @@ function classifyClick(features: any[] | null): { primary: any | null; cls: Clic
   const p = ranked[0];
   const t = p?.tags || {};
   let cls: ClickClass = "unknown";
-  if (t.military) cls = "military";
-  else if (t.building === "residential" || t.building === "house" || t.building === "apartments" || t.landuse === "residential") cls = "residential";
+  if (t.building === "residential" || t.building === "house" || t.building === "apartments" || t.landuse === "residential") cls = "residential";
   else if (t.building === "commercial" || t.building === "retail" || t.building === "office" || t.amenity || t.shop || t.landuse === "commercial" || t.landuse === "retail") cls = "commercial";
   else if (t.building === "industrial" || t.landuse === "industrial" || t.man_made) cls = "industrial";
   else if (t.landuse === "farmland" || t.landuse === "farm" || t.landuse === "orchard" || t.landuse === "vineyard" || t.landuse === "meadow") cls = "agricultural";
