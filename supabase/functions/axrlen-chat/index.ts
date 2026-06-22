@@ -366,10 +366,10 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
       method: "POST",
       headers: OPENAI_HEADERS,
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: openaiMessages,
         temperature: 0.85,
-        max_tokens: 4096,
+        max_tokens: 2048,
         stream: true,
       }),
     });
