@@ -650,7 +650,7 @@ const HouseOfAsherTheories = () => {
           </button>
         </div>
 
-        {visibleTheories.length === 0 && (
+        {visibleCount === 0 && (
           <div className="rounded-3xl border border-dashed border-border/30 bg-background/20 p-10 text-center">
             <p className="text-sm font-extralight text-muted-foreground">
               No theories in this category yet.
@@ -658,12 +658,16 @@ const HouseOfAsherTheories = () => {
           </div>
         )}
 
-        {visibleTheories.map((t) => (
+        {visibleTheories.map((t) => {
+          const isHidden = activeCategory !== "all" && t.category !== activeCategory;
+          return (
           <section
             key={t.id}
             id={t.id}
             aria-label={t.title}
-            className="relative rounded-3xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 sm:p-12 space-y-10"
+            hidden={isHidden}
+            className="relative rounded-3xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 sm:p-12 space-y-10 data-[hidden=true]:hidden"
+            data-category={t.category}
           >
             <div className="absolute -left-3 top-12 hidden lg:flex h-7 w-7 items-center justify-center rounded-full border border-border/40 bg-background text-[10px] font-mono tracking-wider text-muted-foreground">
               {t.number}
