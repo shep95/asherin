@@ -39,6 +39,11 @@ const BlogAiWithoutRestrictions = lazy(() => import("./pages/blog/AiWithoutRestr
 const BlogPredictionAiRegulationQ42026 = lazy(
   () => import("./pages/blog/PredictionAiRegulationQ42026"),
 );
+const BlogPredictionPeruPresident2026 = lazy(() => import("./pages/blog/PredictionPeruPresident2026"));
+const BlogPredictionWorldCup2026 = lazy(() => import("./pages/blog/PredictionWorldCup2026"));
+const BlogPredictionWW3 = lazy(() => import("./pages/blog/PredictionWW3"));
+const BlogPredictionIndia = lazy(() => import("./pages/blog/PredictionIndia"));
+const BlogPredictionGlobalWarWatch = lazy(() => import("./pages/blog/PredictionGlobalWarWatch"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
 const FeatureZerlal = lazy(() => import("./pages/feature/FeatureZerlal"));
 const FeatureAxrlen = lazy(() => import("./pages/feature/FeatureAxrlen"));
