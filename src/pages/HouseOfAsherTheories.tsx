@@ -613,7 +613,51 @@ const HouseOfAsherTheories = () => {
           </p>
         </header>
 
-        {THEORIES.map((t) => (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-y border-border/30 py-4">
+          <Tabs
+            value={activeCategory}
+            onValueChange={(v) => setActiveCategory(v as TheoryCategory | "all")}
+            className="w-full sm:w-auto"
+          >
+            <TabsList className="bg-background/40 border border-border/30 rounded-full p-1 h-auto flex-wrap">
+              <TabsTrigger
+                value="all"
+                className="rounded-full text-[10px] font-mono tracking-[0.2em] uppercase px-4 py-1.5 data-[state=active]:bg-foreground data-[state=active]:text-background"
+              >
+                All · {categoryCounts.all ?? 0}
+              </TabsTrigger>
+              {(Object.keys(CATEGORY_LABELS) as TheoryCategory[]).map((cat) => (
+                <TabsTrigger
+                  key={cat}
+                  value={cat}
+                  className="rounded-full text-[10px] font-mono tracking-[0.2em] uppercase px-4 py-1.5 data-[state=active]:bg-foreground data-[state=active]:text-background"
+                >
+                  {CATEGORY_LABELS[cat]} · {categoryCounts[cat] ?? 0}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          <button
+            type="button"
+            onClick={() => setSortOrder((s) => (s === "asc" ? "desc" : "asc"))}
+            className="inline-flex items-center gap-2 self-start sm:self-auto rounded-full border border-border/40 bg-background/40 px-4 py-2 text-[10px] font-mono tracking-[0.22em] uppercase text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+            aria-label={`Sort theories ${sortOrder === "asc" ? "newest first" : "oldest first"}`}
+          >
+            <ArrowUpDown className="h-3 w-3" strokeWidth={1.5} />
+            {sortOrder === "asc" ? "Oldest → Newest" : "Newest → Oldest"}
+          </button>
+        </div>
+
+        {visibleTheories.length === 0 && (
+          <div className="rounded-3xl border border-dashed border-border/30 bg-background/20 p-10 text-center">
+            <p className="text-sm font-extralight text-muted-foreground">
+              No theories in this category yet.
+            </p>
+          </div>
+        )}
+
+        {visibleTheories.map((t) => (
           <section
             key={t.id}
             id={t.id}
