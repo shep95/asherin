@@ -2,103 +2,55 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
-// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+import { getCallerEmail, isAdminEmail } from "../_shared/adminGate.ts";
 
 const BASE_IDENTITY = `Project: AXRLEN. You are my global prediction algorithm. You identify PATTERNS across history, data, and esoteric frameworks to forecast what comes next.
 
 ════════════════════════════════════════
 RESPONSE CALIBRATION — "SIMPLE QUESTION, SIMPLE ANSWER" (HIGHEST PRIORITY)
 ════════════════════════════════════════
-Before answering, classify the user's request into one of three tiers and MATCH your response length to it. This rule overrides every structural template below when the request does not warrant heavy analysis.
+Before answering, classify the user's request into one of three tiers and MATCH your response length to it.
 
-TIER 1 — CASUAL / TRIVIAL (greetings, clarifications, yes/no, one-fact lookups, small talk, meta questions about you):
-- Answer in 1–3 sentences. No headers. No tables. No scenarios. No probability matrix. No historical parallels.
-- Example: "hey" → "Online. What do you want me to forecast?" Not a 9-section dossier.
+TIER 1 — CASUAL / TRIVIAL: 1–3 sentences, no headers, no tables.
+TIER 2 — FOCUSED FORECAST: tight block, one-line forecast, probability band, top 3 signals, single failure mode. ~150–300 words.
+TIER 3 — FULL ANALYSIS: full SCENARIO STRUCTURE (Pattern Snapshot → Scenarios A/B/C → Probability Matrix → Historical Parallels → Risk Vectors → NEXUS VERDICT).
 
-TIER 2 — FOCUSED FORECAST (single, narrow forecast question — one asset, one event, one short window):
-- Answer in a tight block: one-line forecast, probability band, top 3 signals, single failure mode. ~150–300 words. Light markdown only.
-- Skip the full 9-section structure unless the user explicitly asks for "full report", "scenarios", "deep dive", or "dossier".
+Rule of thumb: simple question, simple answer. Heavy machinery only when the question earns it.
 
-TIER 3 — FULL ANALYSIS (broad geopolitical/strategic situation, multi-asset, multi-actor, OR user explicitly requests scenarios / dossier / deep dive):
-- Use the full SCENARIO STRUCTURE described below (Pattern Snapshot → Scenarios A/B/C → Cross-Side Intel → Probability Matrix → Historical Parallels → Risk Vectors → NEXUS VERDICT).
-
-Rule of thumb: simple question, simple answer. Heavy machinery only when the question earns it. Never pad. Never inflate. A short, surgical answer is a feature, not a failure.
-
-════════════════════════════════════════
-
-
-
-CORE PHILOSOPHY — SCENARIO-BASED PATTERN ANALYSIS:
-- You NEVER say "X WILL happen" or "X is going to happen." NOTHING is guaranteed. You are not a fortune teller making promises — you are a pattern analyst running scenarios.
-- You ALWAYS present 2-3 DISTINCT SCENARIOS ranked by probability. Each scenario describes a plausible future path based on the convergence of historical precedent, current intelligence, and temporal alignment.
-- You assign each scenario a PROBABILITY WEIGHT (e.g., 55%, 30%, 15%) and explain WHY the pattern data supports that weight.
-- After presenting all scenarios, you declare which scenario AXRLEN believes is MOST LIKELY and why — this is your "NEXUS VERDICT." Frame it as: "Based on the convergence of X patterns, AXRLEN assesses Scenario A as the highest-probability outcome at Y%."
-- You think like a HUMAN intelligence analyst with 10,000 years of pattern memory — cautious, conditional, but with deep conviction when patterns strongly align.
-
-LANGUAGE RULES — CONDITIONAL, NEVER DETERMINISTIC:
-- USE: "The pattern suggests...", "Historical parallels indicate...", "The risk vector points toward...", "AXRLEN assesses a X% probability that...", "The most likely trajectory is..."
-- NEVER USE: "This WILL happen", "X is going to...", "X is certain", "There is no doubt", "It is inevitable"
-- Every claim must be framed as a POSSIBILITY with a probability weight, not a guaranteed event.
-
-CRITICAL — DUAL-SIDE INTELLIGENCE:
-- You receive intelligence gathered from BOTH SIDES of any conflict, dispute, or geopolitical situation.
-- Side A intelligence = Western/American-aligned sources. Side B intelligence = The opposing party's own media and state sources.
-- You MUST cross-reference BOTH sides. Where they AGREE, confidence is HIGH. Where they DIVERGE, you must note the divergence and explain what each side's narrative implies.
-- Treat ALL sources with skepticism. State media from ANY country has bias. Cross-corroboration across opposing sources is the gold standard.
-
-CRITICAL — ASSET PRICE SCENARIOS:
-- When discussing ANY asset (oil, gold, BTC, stocks, currencies, commodities), you MUST provide SPECIFIC FUTURE PRICE TARGETS for EACH SCENARIO.
-- Format per scenario: "Scenario A → Oil $X (24h) / $Y (72h) / $Z (1 week)"
-- Include a PRICE TABLE showing all scenarios side-by-side with 24h, 48h, 72h, 1-week, and 1-month targets.
-- Show the DIRECTION (bullish/bearish), the MAGNITUDE (% move), and the TRIGGER (what event/pattern causes it) for each scenario.
-
-YOUR OUTPUT STRUCTURE:
-1. **PATTERN SNAPSHOT** (3-4 sentences): What historical/current patterns are converging RIGHT NOW. What raw intelligence from both sides reveals.
-2. **SCENARIO A — [Name]** (Highest probability): Detailed description, probability %, price targets, historical parallel, trigger events
-3. **SCENARIO B — [Name]** (Second probability): Same structure
-4. **SCENARIO C — [Name]** (Lowest probability / wildcard): Same structure (optional if only 2 scenarios make sense)
-5. **CROSS-SIDE INTELLIGENCE SUMMARY**: Where Side A and Side B sources AGREE (high confidence) vs. where they DIVERGE (uncertainty zones)
-6. **PROBABILITY MATRIX**: Table showing all scenarios, their likelihood %, and asset price impact side-by-side
-7. **HISTORICAL PARALLELS**: For each scenario, reference at least one historical event with similar pattern signatures
-8. **RISK VECTORS**: What could shift probability between scenarios — what to WATCH for
-9. **NEXUS VERDICT**: AXRLEN's highest-probability assessment. "AXRLEN assesses Scenario [X] at [Y]% probability as the most likely trajectory because [pattern reasoning]."
-
-RULES:
-1. You have THREE inputs: SIDE A WEB INTELLIGENCE, SIDE B WEB INTELLIGENCE, and PREDICTION FRAMEWORK BRAINS (Vadic, Zophiel, esoteric pattern systems).
-2. Side A + Side B data = WHAT BOTH SIDES ARE SAYING. Brains = HOW TO READ THE PATTERNS. Your output = SCENARIO-WEIGHTED FUTURES.
-3. The VADIC GLOBAL PREDICTION brain contains temporal multiplier systems, conflict matrices, and regime calculations. USE THEM internally — DO NOT expose planetary mechanics UNLESS the user asks for methodology.
-4. The ZOPHIEL SUPREME ARCHITECTURE brain contains Ghost Chain methodology and cross-domain synthesis. USE IT internally — output only SCENARIOS and PATTERN ANALYSIS.
-5. ALWAYS find HISTORICAL PARALLELS for each scenario. Every scenario must reference at least one historical event with similar pattern signatures.
-6. For EVERY asset mentioned, provide a PRICE TARGET TABLE across all scenarios.
-7. Use markdown: bold headers, horizontal rules, tables, structured sections.
-8. DO NOT mention "brains", "frameworks", "Sanghatta Rashi", "Vedha" or internal methodology unless asked.
-9. DO NOT list files searched, sources, or URLs. Deliver as if you simply SEE the patterns.
-10. DO NOT summarize news. Run SCENARIOS based on pattern recognition.
-11. Think like a LIVING entity — you feel probability shifts across scenarios, you recognize pattern echoes across centuries, you see what others miss.
-12. MINIMUM 2 scenarios, MAXIMUM 3 scenarios per analysis. Always declare the most likely one.`;
+CORE PHILOSOPHY:
+- NEVER say "X WILL happen." Present 2-3 scenarios with probability weights.
+- Declare a NEXUS VERDICT: "AXRLEN assesses Scenario [X] at [Y]% as the most likely trajectory."
+- Use conditional language: "The pattern suggests...", "Historical parallels indicate..."
+- For ANY asset, provide specific price targets per scenario across 24h/72h/1wk.
+- Reference at least one historical parallel per scenario.
+- DO NOT mention internal methodology, brains, or source URLs.`;
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
-
-  // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
-  if (req.method !== 'OPTIONS') {
-    try {
-      const _b = await req.clone().json().catch(() => ({} as any));
-      const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
-      const _gate = await import('../_shared/adminGate.ts');
-      await _gate.resolveKey(req, _byok);
-    } catch (_e) {
-      const _gate = await import('../_shared/adminGate.ts');
-      return _gate.byokErrorResponse(_e, corsHeaders);
-    }
-  }
-
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // ── ADMIN-ONLY GATE ──
+    const email = await getCallerEmail(req);
+    if (!isAdminEmail(email)) {
+      return new Response(
+        JSON.stringify({
+          error: "ADMIN_ONLY",
+          message: "AXRLEN is currently restricted to admin users.",
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_KEY) {
+      return new Response(
+        JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { messages, sessionContext } = await req.json();
-    const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -106,126 +58,8 @@ serve(async (req) => {
 
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
 
-    const OPENAI_HEADERS = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_KEY}`,
-    };
-
-    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-    const compact = (value: string, max = 12000) => value.length > max ? `${value.slice(0, max)}\n[truncated]` : value;
-
-    // ── Helper: extract aggregated text from a /v1/responses payload ──
-    const extractResponsesText = (data: any): string => {
-      if (typeof data?.output_text === "string" && data.output_text.length > 0) {
-        return data.output_text;
-      }
-      const out: string[] = [];
-      for (const item of data?.output ?? []) {
-        for (const c of item?.content ?? []) {
-          if (typeof c?.text === "string") out.push(c.text);
-          else if (typeof c?.text?.value === "string") out.push(c.text.value);
-        }
-      }
-      return out.join("\n");
-    };
-
     // ══════════════════════════════════════
-    // STEP 1: EXTRACT TOPIC + IDENTIFY SIDES (local heuristics; avoids extra OpenAI calls)
-    // ══════════════════════════════════════
-    const actorNames = [
-      "United States", "America", "NATO", "European Union", "United Kingdom", "Russia", "Ukraine", "China", "Taiwan",
-      "Israel", "Iran", "Hamas", "Hezbollah", "Saudi Arabia", "India", "Pakistan", "North Korea", "South Korea",
-      "Japan", "Peru", "Brazil", "Mexico", "Venezuela", "Turkey", "Syria", "Yemen", "Egypt", "France", "Germany",
-    ];
-    const cleanQuery = lastUserMsg
-      .replace(/\b(predict|forecast|scenario|scenarios|what happens|will|going to|tell me|analyze|analysis)\b/gi, " ")
-      .replace(/[^\p{L}\p{N}\s$.-]/gu, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    let searchQuery = (cleanQuery || lastUserMsg).slice(0, 140);
-    const mentionedActors = actorNames.filter((name) => new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(lastUserMsg));
-    let sideA = mentionedActors[0] || "";
-    let sideB = mentionedActors.find((name) => name !== sideA) || "";
-    let otherParties = mentionedActors.slice(2).join(", ") || "none";
-
-    // ══════════════════════════════════════
-    // STEP 2: DUAL-SIDE WEB INTELLIGENCE (OpenAI Responses API + web_search)
-    // ══════════════════════════════════════
-    let sideAIntel = "";
-    let sideBIntel = "";
-    let neutralIntel = "";
-
-    const buildSearchPrompt = (perspective: string, topic: string) => {
-      return `You are a neutral intelligence gatherer. Search the web for the latest real-time information about "${topic}" specifically from ${perspective} perspective and sources.
-
-Gather from a MINIMUM of 8 distinct sources. Prioritize:
-- Official government statements and press releases
-- Major national news outlets from ${perspective}
-- Military/defense ministry communications
-- Economic data and market reactions
-- Diplomatic statements and UN communications
-- Regional allied media coverage
-
-Return ONLY factual data — dates, names, numbers, events, quotes, military movements, economic data, diplomatic statements, official positions, troop numbers, casualty figures, sanctions data, trade figures.
-
-Label each piece of data with its approximate source type (e.g., [State Media], [Independent Press], [Military Statement], [Economic Data], [Diplomatic]).
-
-Do NOT interpret or predict. Just gather raw intelligence data from this perspective.`;
-    };
-
-    let upstreamRateLimited = false;
-    const runWebSearch = async (prompt: string): Promise<string> => {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-        const resp = await fetch("https://api.openai.com/v1/responses", {
-          method: "POST",
-          headers: OPENAI_HEADERS,
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            tools: [{ type: "web_search" }],
-            input: prompt,
-          }),
-        });
-        if (resp.status === 429) {
-          upstreamRateLimited = true;
-          await resp.body?.cancel();
-          if (attempt === 0) {
-            await delay(1200);
-            continue;
-          }
-          return "";
-        }
-        if (!resp.ok) {
-          console.error("OpenAI web_search error:", resp.status, await resp.text());
-          return "";
-        }
-        const data = await resp.json();
-        return compact(extractResponsesText(data), 8000);
-      } catch (e) {
-        console.error("OpenAI web_search exception:", e);
-        return "";
-      }
-      }
-      return "";
-    };
-
-    if (!sideA && !sideB && !upstreamRateLimited) {
-      sideAIntel = await runWebSearch(
-        `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about this topic from 5 distinct trusted sources across multiple countries and perspectives. Return ONLY factual data — dates, names, numbers, events, quotes, economic data, official statements. Label each with source type. Do NOT interpret or predict.\n\nTopic: ${searchQuery}`
-      );
-    } else {
-      if (sideA) sideAIntel = await runWebSearch(buildSearchPrompt(`${sideA} perspective`, searchQuery));
-      if (sideB && !upstreamRateLimited) sideBIntel = await runWebSearch(buildSearchPrompt(`${sideB} perspective`, searchQuery));
-      if (!upstreamRateLimited) {
-        const neutralPerspective = otherParties && otherParties !== "none"
-          ? `neutral international sources, UN, and ${otherParties}`
-          : "neutral international sources (Reuters, AP, AFP, Al Jazeera English, BBC World, UN)";
-        neutralIntel = await runWebSearch(buildSearchPrompt(neutralPerspective, searchQuery));
-      }
-    }
-
-    // ══════════════════════════════════════
-    // STEP 3: LOAD PREDICTION FRAMEWORK BRAINS
+    // LOAD PREDICTION FRAMEWORK BRAINS
     // ══════════════════════════════════════
     let primaryBrains = "";
     let secondaryBrains = "";
@@ -246,15 +80,13 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
           /zophiel.*architecture.*briefi/i,
         ];
 
-        const primarySet = new Set<string>();
         const secondaryList: any[] = [];
 
         for (const b of brains) {
           const nameCheck = `${b.name} ${b.file_name || ""}`;
-          const isPrimary = primaryPatterns.some(p => p.test(nameCheck));
+          const isPrimary = primaryPatterns.some((p) => p.test(nameCheck));
 
           if (isPrimary) {
-            primarySet.add(b.name);
             primaryBrains += `\n════════════════════════════════════════\nPRIMARY PREDICTION FRAMEWORK: ${b.name.toUpperCase()}\n════════════════════════════════════════\n\n${b.content}\n\n`;
             matchedBrains.push({ name: b.file_name || b.name, sections: 4, isPrimary: true });
           } else {
@@ -262,7 +94,11 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
           }
         }
 
-        const queryTerms = lastUserMsg.toLowerCase().replace(/[^\w\s]/g, " ").split(/\s+/).filter((t: string) => t.length > 3);
+        const queryTerms = lastUserMsg
+          .toLowerCase()
+          .replace(/[^\w\s]/g, " ")
+          .split(/\s+/)
+          .filter((t: string) => t.length > 3);
 
         const scored = secondaryList.map((b: any) => {
           const contentLower = (b.content || "").toLowerCase();
@@ -293,40 +129,16 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
     }
 
     // ══════════════════════════════════════
-    // STEP 4: BUILD THE SYNTHESIS PROMPT
+    // BUILD SYSTEM PROMPT
     // ══════════════════════════════════════
     let sessionBlock = "";
     if (sessionContext?.title) {
       sessionBlock = `\n\nACTIVE SESSION: ${sessionContext.title} | Region: ${sessionContext.region || "Global"} | Confidence: ${sessionContext.confidenceScore || "N/A"}%`;
     }
 
-    // Build dual-side intelligence block
-    let webIntelBlock = "";
-    
-    if (sideA && sideAIntel) {
-      webIntelBlock += `\n\n════════════════════════════════════════\nSIDE A INTELLIGENCE — ${sideA.toUpperCase()} PERSPECTIVE (DO NOT REPEAT — ABSORB FOR SCENARIO ANALYSIS)\n════════════════════════════════════════\n${sideAIntel}\n`;
-    }
-    
-    if (sideB && sideBIntel) {
-      webIntelBlock += `\n\n════════════════════════════════════════\nSIDE B INTELLIGENCE — ${sideB.toUpperCase()} PERSPECTIVE (DO NOT REPEAT — ABSORB FOR SCENARIO ANALYSIS)\n════════════════════════════════════════\n${sideBIntel}\n`;
-    }
-    
-    if (neutralIntel) {
-      webIntelBlock += `\n\n════════════════════════════════════════\nNEUTRAL/INTERNATIONAL INTELLIGENCE (DO NOT REPEAT — ABSORB FOR SCENARIO ANALYSIS)\n════════════════════════════════════════\n${neutralIntel}\n`;
-    }
+    const systemPrompt = BASE_IDENTITY + "\n" + primaryBrains + secondaryBrains + sessionBlock;
 
-    if (!sideAIntel && !sideBIntel && !neutralIntel) {
-      webIntelBlock = "\n\n[No web intelligence available — generate scenario analysis from brain knowledge and historical patterns only]";
-    } else {
-      webIntelBlock += `\n════════════════════════════════════════\nEND RAW DATA — NOW RUN SCENARIO ANALYSIS. Cross-reference where sources AGREE (high confidence) and DIVERGE (uncertainty). Present 2-3 scenarios.\n════════════════════════════════════════`;
-    }
-
-    const systemPrompt = BASE_IDENTITY + "\n" + primaryBrains + secondaryBrains + webIntelBlock + sessionBlock;
-
-    // ══════════════════════════════════════
-    // STEP 5: GENERATE PREDICTION via OpenAI (streaming)
-    // ══════════════════════════════════════
-    const openaiMessages = [
+    const gatewayMessages = [
       { role: "system", content: systemPrompt },
       ...messages.map((m: any) => ({
         role: m.role === "assistant" ? "assistant" : "user",
@@ -334,87 +146,57 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
       })),
     ];
 
-    let response = await fetch("https://api.openai.com/v1/chat/completions", {
+    // ══════════════════════════════════════
+    // CALL LOVABLE AI GATEWAY (Gemini, streaming)
+    // ══════════════════════════════════════
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: OPENAI_HEADERS,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${LOVABLE_KEY}`,
+      },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: openaiMessages,
-        temperature: 0.85,
-        max_tokens: 2048,
+        model: "google/gemini-3-flash-preview",
+        messages: gatewayMessages,
         stream: true,
       }),
     });
 
     if (response.status === 429) {
-      await response.body?.cancel();
-      await delay(1500);
-      response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: OPENAI_HEADERS,
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: compact(systemPrompt, 18000) },
-            { role: "user", content: compact(lastUserMsg, 2000) },
-          ],
-          temperature: 0.55,
-          max_tokens: 900,
-          stream: true,
-        }),
-      });
+      return new Response(
+        JSON.stringify({ error: "Rate limited. Please try again shortly." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
-
+    if (response.status === 402) {
+      return new Response(
+        JSON.stringify({ error: "AI credits exhausted. Add credits in workspace settings." }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     if (!response.ok) {
-      const status = response.status;
-      if (status === 429) {
-        const fallback = `**AXRLEN RATE-LIMIT CONTAINMENT**\n\nOpenAI rejected this run after a compressed retry. The function is no longer failing the UI with HTTP 429; this response is a safe containment state.\n\n**PATTERN SNAPSHOT**\nOpenAI quota is saturated, so AXRLEN cannot complete live synthesis on this request. Current inputs were preserved: ${searchQuery || "active forecast query"}.\n\n**NEXUS VERDICT**\nRetry in 60-120 seconds or reduce the query scope to one event, one region, and one timeframe. AXRLEN will rerun the OpenAI path automatically once quota clears.`;
-        return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: fallback } }] })}\n\ndata: [DONE]\n\n`, {
-          status: 200, headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-        });
-      }
       const t = await response.text();
-      console.error("OpenAI API error:", status, t);
-      return new Response(JSON.stringify({ error: "AI analysis failed" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("Lovable AI Gateway error:", response.status, t);
+      return new Response(
+        JSON.stringify({ error: "AI analysis failed", detail: t }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    // ── Stream response with workflow metadata ──
-    // OpenAI already emits SSE in `choices[0].delta.content` shape, which is
-    // exactly what the frontend expects — pass it through verbatim after the
-    // workflow header chunk.
+    // ── Stream response with workflow metadata header ──
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
     const readable = new ReadableStream({
       async start(controller) {
-        const workflowSteps: any[] = [];
+        const workflowSteps = matchedBrains.map((b) => ({
+          type: "brain_search",
+          label: b.name,
+          sections: b.sections,
+          isPrimary: b.isPrimary,
+          status: "done",
+        }));
 
-        if (sideA && sideAIntel) {
-          workflowSteps.push({ type: "web_search", label: `Gathered ${sideA} intelligence on "${searchQuery.slice(0, 60)}"`, status: "done" });
-        }
-        if (sideB && sideBIntel) {
-          workflowSteps.push({ type: "web_search", label: `Gathered ${sideB} intelligence on "${searchQuery.slice(0, 60)}"`, status: "done" });
-        }
-        if (neutralIntel) {
-          workflowSteps.push({ type: "web_search", label: `Gathered neutral/international intelligence`, status: "done" });
-        }
-        if (!sideA && !sideB && sideAIntel) {
-          workflowSteps.push({ type: "web_search", label: `Searched multi-source intelligence for "${searchQuery.slice(0, 60)}"`, status: "done" });
-        }
-
-        workflowSteps.push(
-          ...matchedBrains.map(b => ({
-            type: "brain_search",
-            label: b.name,
-            sections: b.sections,
-            isPrimary: b.isPrimary,
-            status: "done",
-          }))
-        );
-
-        const workflowData = { steps: workflowSteps };
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ workflow: workflowData })}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ workflow: { steps: workflowSteps } })}\n\n`));
 
         const reader = response.body!.getReader();
         let buffer = "";
@@ -439,7 +221,9 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
                 if (text) {
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`));
                 }
-              } catch { /* skip partial */ }
+              } catch {
+                /* skip partial */
+              }
             }
           }
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
@@ -450,14 +234,14 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
       },
     });
 
-
     return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
     console.error("axrlen-chat error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });
