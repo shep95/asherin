@@ -173,8 +173,10 @@ Label each piece of data with its approximate source type (e.g., [State Media], 
 Do NOT interpret or predict. Just gather raw intelligence data from this perspective.`;
     };
 
+    let upstreamRateLimited = false;
     const runWebSearch = async (prompt: string): Promise<string> => {
-      try {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
         const resp = await fetch("https://api.openai.com/v1/responses", {
           method: "POST",
           headers: OPENAI_HEADERS,
@@ -184,48 +186,42 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
             input: prompt,
           }),
         });
+        if (resp.status === 429) {
+          upstreamRateLimited = true;
+          await resp.body?.cancel();
+          if (attempt === 0) {
+            await delay(1200);
+            continue;
+          }
+          return "";
+        }
         if (!resp.ok) {
           console.error("OpenAI web_search error:", resp.status, await resp.text());
           return "";
         }
         const data = await resp.json();
-        return extractResponsesText(data);
+        return compact(extractResponsesText(data), 8000);
       } catch (e) {
         console.error("OpenAI web_search exception:", e);
         return "";
       }
+      }
+      return "";
     };
 
-    const searchPromises: Promise<void>[] = [];
-
-    if (sideA) {
-      searchPromises.push((async () => {
-        sideAIntel = await runWebSearch(buildSearchPrompt(`${sideA} (Western/allied)`, searchQuery));
-      })());
-    }
-
-    if (sideB) {
-      searchPromises.push((async () => {
-        sideBIntel = await runWebSearch(buildSearchPrompt(`${sideB} (opposing party/regional)`, searchQuery));
-      })());
-    }
-
-    searchPromises.push((async () => {
+    if (sideA) sideAIntel = await runWebSearch(buildSearchPrompt(`${sideA} perspective`, searchQuery));
+    if (sideB && !upstreamRateLimited) sideBIntel = await runWebSearch(buildSearchPrompt(`${sideB} perspective`, searchQuery));
+    if (!upstreamRateLimited) {
       const neutralPerspective = otherParties && otherParties !== "none"
         ? `neutral international sources, UN, and ${otherParties}`
         : "neutral international sources (Reuters, AP, AFP, Al Jazeera English, BBC World, UN)";
       neutralIntel = await runWebSearch(buildSearchPrompt(neutralPerspective, searchQuery));
-    })());
-
-    if (!sideA && !sideB) {
-      searchPromises.push((async () => {
-        sideAIntel = await runWebSearch(
-          `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about this topic from a minimum of 15 distinct trusted sources across multiple countries and perspectives. Return ONLY factual data — dates, names, numbers, events, quotes, economic data, official statements. Label each with source type. Do NOT interpret or predict.\n\nTopic: ${searchQuery}`
-        );
-      })());
     }
-
-    await Promise.all(searchPromises);
+    if (!sideA && !sideB && !upstreamRateLimited) {
+      sideAIntel = await runWebSearch(
+        `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about this topic from 5 distinct trusted sources across multiple countries and perspectives. Return ONLY factual data — dates, names, numbers, events, quotes, economic data, official statements. Label each with source type. Do NOT interpret or predict.\n\nTopic: ${searchQuery}`
+      );
+    }
 
     // ══════════════════════════════════════
     // STEP 3: LOAD PREDICTION FRAMEWORK BRAINS
