@@ -18,7 +18,7 @@ import { getActiveIntelMapByok } from "@/lib/intelMapByok";
    ASHER — Real-time Intelligence Map
    100% live data: OpenStreetMap base tiles, Nominatim search,
    REST Countries for sovereign profiles, Overpass for facility
-   detail, Open-Meteo for tactical weather. No mocked data.
+   detail, Open-Meteo for live weather. No mocked data.
    ───────────────────────────────────────────────────────────── */
 
 interface LayerLeaf { id: string; label: string; status: "live" | "soon"; sub?: string; }
@@ -29,7 +29,7 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "osm-standard",  label: "Street Map — OSM",        status: "live" },
     { id: "osm-topo",      label: "Topographic — OpenTopo",  status: "live" },
     { id: "esri-sat",      label: "Satellite Imagery — ESRI", status: "live" },
-    { id: "carto-dark",    label: "Dark Tactical",            status: "live" },
+    { id: "carto-dark",    label: "Dark Mode",                status: "live" },
     { id: "sat-multispec", label: "Multi-Spectral (IR/Thermal/UV)", status: "soon" },
     { id: "sar",           label: "Synthetic Aperture Radar (SAR)", status: "soon" },
     { id: "nautical",      label: "Nautical Chart",           status: "soon" },
@@ -41,34 +41,16 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "slope",   label: "Slope Analysis",   status: "soon" },
     { id: "viewshed", label: "Viewshed",        status: "soon" },
     { id: "los",     label: "Line of Sight",    status: "soon" },
-    { id: "traffic", label: "Trafficability",   status: "soon" },
   ]},
   { id: "boundaries", label: "Boundaries & Administrative", layers: [
     { id: "borders-intl",   label: "International Borders",     status: "live" },
     { id: "disputed",       label: "Disputed Territories",      status: "soon" },
     { id: "eez",            label: "Exclusive Economic Zones",  status: "soon" },
     { id: "states",         label: "State / Province Boundaries", status: "soon" },
-    { id: "ao",             label: "Area of Operations (AO)",   status: "soon" },
-    { id: "fscl",           label: "Fire Support Coordination Line", status: "soon" },
   ]},
-  { id: "friendly", label: "Friendly Forces (Blue)", layers: [
-    { id: "f-units",   label: "Unit Positions",     status: "soon" },
-    { id: "f-vectors", label: "Movement Vectors",   status: "soon" },
-    { id: "f-fire",    label: "Fire Support",       status: "soon" },
-    { id: "f-air",     label: "Air Assets",         status: "soon" },
-  ]},
-  { id: "enemy", label: "Enemy Forces (Red)", layers: [
-    { id: "e-conf",  label: "Confirmed Positions", status: "soon" },
-    { id: "e-prob",  label: "Probable Positions",  status: "soon" },
-    { id: "e-aoi",   label: "Area of Influence",   status: "soon" },
-    { id: "e-hist",  label: "Historical",          status: "soon" },
-  ]},
-  { id: "intel", label: "Intelligence (GEOINT)", layers: [
-    { id: "imint", label: "IMINT — Imagery Intel", status: "soon" },
-    { id: "sigint", label: "SIGINT — Signals",     status: "soon" },
-    { id: "humint", label: "HUMINT — Reports",     status: "soon" },
-    { id: "osint",  label: "OSINT — Open Source",  status: "soon" },
-    { id: "change", label: "Change Detection",     status: "soon" },
+  { id: "intel", label: "Open-Source Intelligence", layers: [
+    { id: "osint",  label: "OSINT — Open Source Reports", status: "soon" },
+    { id: "change", label: "Change Detection",            status: "soon" },
   ]},
   { id: "infra", label: "Critical Infrastructure", layers: [
     { id: "i-power",   label: "Power Plants & Grid",      status: "soon" },
@@ -79,11 +61,9 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "i-water",    label: "Water Treatment + Dams",  status: "soon" },
     { id: "i-data",     label: "Data Centers + IXP",      status: "soon" },
     { id: "i-gov",      label: "Government Buildings",    status: "soon" },
-    { id: "i-mil",      label: "Military Bases",          status: "soon" },
   ]},
   { id: "transport", label: "Transportation", layers: [
     { id: "t-road",    label: "Road Network",     status: "soon" },
-    { id: "t-msr",     label: "Main Supply Routes (MSR)", status: "soon" },
     { id: "t-rail",    label: "Railway Network",  status: "soon" },
     { id: "t-bridge",  label: "Bridges & Tunnels", status: "soon" },
     { id: "t-airport", label: "Airports / Airfields", status: "soon" },
@@ -93,7 +73,6 @@ const LAYER_TREE: LayerCategory[] = [
   { id: "weather", label: "Weather & Environment", layers: [
     { id: "w-current",  label: "Current Conditions (Open-Meteo)", status: "live" },
     { id: "w-forecast", label: "Weather Forecast",   status: "soon" },
-    { id: "w-tactical", label: "Tactical Weather (cross-winds, visibility)", status: "soon" },
     { id: "w-celestial", label: "Sun / Moon / Tide", status: "soon" },
   ]},
   { id: "demo", label: "Demographics & Population", layers: [
@@ -101,20 +80,12 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "d-eth",   label: "Ethnic Groups",       status: "soon" },
     { id: "d-rel",   label: "Religious Groups",    status: "soon" },
     { id: "d-lang",  label: "Language Distribution", status: "soon" },
-    { id: "d-idp",   label: "Internally Displaced Persons", status: "soon" },
   ]},
-  { id: "threats", label: "Threats & Hazards", layers: [
+  { id: "threats", label: "Natural Hazards", layers: [
     { id: "h-quake",  label: "Live Earthquakes (USGS)", status: "live" },
     { id: "h-fire",   label: "Active Wildfires (NASA FIRMS)", status: "live" },
     { id: "h-air",    label: "Aircraft Traffic (OpenSky)", status: "live" },
-    { id: "h-ied",    label: "IED Locations",       status: "soon" },
-    { id: "h-mine",   label: "Minefields",          status: "soon" },
     { id: "h-env",    label: "Environmental",       status: "soon" },
-  ]},
-  { id: "targeting", label: "Targeting", layers: [
-    { id: "tg-hvt",   label: "High Value Targets", status: "soon" },
-    { id: "tg-pkg",   label: "Target Packages",    status: "soon" },
-    { id: "tg-bda",   label: "Battle Damage Assessment", status: "soon" },
   ]},
 ];
 
@@ -225,8 +196,7 @@ async function fetchNearbyFeatures(lat: number, lon: number) {
       way(around:${radius},${lat},${lon})[leisure];
       node(around:${radius},${lat},${lon})[man_made];
       way(around:${radius},${lat},${lon})[man_made];
-      node(around:${radius},${lat},${lon})[military];
-      way(around:${radius},${lat},${lon})[military];
+      node(around:${radius},${lat},${lon})[shop];
       way(around:${radius},${lat},${lon})[power];
       node(around:${radius},${lat},${lon})[power];
       way(around:${radius},${lat},${lon})[highway];
@@ -300,13 +270,12 @@ function toMGRS(lat: number, lon: number): string {
 }
 
 /* ─────────────── Land-use classifier (from Overpass tags) ─────────────── */
-type ClickClass = "building" | "residential" | "commercial" | "industrial" | "military" | "agricultural" | "vacant" | "infrastructure" | "transport" | "natural" | "water" | "unknown";
+type ClickClass = "building" | "residential" | "commercial" | "industrial" | "agricultural" | "vacant" | "infrastructure" | "transport" | "natural" | "water" | "unknown";
 function classifyClick(features: any[] | null): { primary: any | null; cls: ClickClass } {
   if (!features?.length) return { primary: null, cls: "unknown" };
   const ranked = [...features].sort((a, b) => {
     const score = (f: any) => {
       const t = f.tags || {};
-      if (t.military) return 100;
       if (t.building) return 80;
       if (t.amenity) return 70;
       if (t.man_made) return 60;
@@ -323,8 +292,7 @@ function classifyClick(features: any[] | null): { primary: any | null; cls: Clic
   const p = ranked[0];
   const t = p?.tags || {};
   let cls: ClickClass = "unknown";
-  if (t.military) cls = "military";
-  else if (t.building === "residential" || t.building === "house" || t.building === "apartments" || t.landuse === "residential") cls = "residential";
+  if (t.building === "residential" || t.building === "house" || t.building === "apartments" || t.landuse === "residential") cls = "residential";
   else if (t.building === "commercial" || t.building === "retail" || t.building === "office" || t.amenity || t.shop || t.landuse === "commercial" || t.landuse === "retail") cls = "commercial";
   else if (t.building === "industrial" || t.landuse === "industrial" || t.man_made) cls = "industrial";
   else if (t.landuse === "farmland" || t.landuse === "farm" || t.landuse === "orchard" || t.landuse === "vineyard" || t.landuse === "meadow") cls = "agricultural";
@@ -705,7 +673,7 @@ const IntelligenceMapModule = () => {
       } else if (a.center) {
         flyTo(a.center.lat, a.center.lng, 15);
       }
-      return `Visual recon: ${a.detections?.length || 0} detections rendered.`;
+      return `Visual scan: ${a.detections?.length || 0} detections rendered.`;
     }
     if (a.type === "temporal_recon") {
       setTemporalLayer({
@@ -725,7 +693,7 @@ const IntelligenceMapModule = () => {
       } else if (a.center) {
         flyTo(a.center.lat, a.center.lng, 16);
       }
-      return `Temporal recon: ${a.tracks?.length || 0} tracks across ${a.years?.length || 0} year frames.`;
+      return `Temporal scan: ${a.tracks?.length || 0} tracks across ${a.years?.length || 0} year frames.`;
     }
   };
 
@@ -893,7 +861,7 @@ const IntelligenceMapModule = () => {
             </CircleMarker>
           ))}
 
-          {/* AI Visual Recon detections */}
+          {/* AI Visual Scan detections */}
           {reconLayer.detections.map((d, i) => {
             const c = (d.color || "").toLowerCase();
             const fill = c.includes("red") || c.includes("rust") || c.includes("orange") ? "#ef4444"
@@ -920,7 +888,7 @@ const IntelligenceMapModule = () => {
             );
           })}
 
-          {/* AI Temporal Recon — tracks visible at the scrubbed year */}
+          {/* AI Temporal Scan — tracks visible at the scrubbed year */}
           {temporalLayer.tracks
             .filter((t) => timelineYear == null || (t.first_seen <= timelineYear && t.last_seen >= timelineYear))
             .map((t, i) => {
@@ -957,12 +925,12 @@ const IntelligenceMapModule = () => {
         {reconLayer.detections.length > 0 && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-2 rounded-xl border border-foreground/20 bg-card/90 backdrop-blur-md px-3 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase text-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Visual Recon · {reconLayer.detections.length} match{reconLayer.detections.length === 1 ? "" : "es"}</span>
+            <span>Visual Scan · {reconLayer.detections.length} match{reconLayer.detections.length === 1 ? "" : "es"}</span>
             {reconLayer.label && <span className="opacity-60 normal-case tracking-normal">— {reconLayer.label}</span>}
             <button
               onClick={() => setReconLayer({ detections: [], bbox: null })}
               className="ml-2 text-muted-foreground hover:text-foreground"
-              title="Clear recon layer"
+              title="Clear scan layer"
             >×</button>
           </div>
         )}
@@ -972,7 +940,7 @@ const IntelligenceMapModule = () => {
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[1001] w-[min(720px,calc(100%-24px))] rounded-xl border border-foreground/20 bg-card/95 backdrop-blur-md px-4 py-3 shadow-2xl">
             <div className="flex items-center gap-3 mb-2">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-light tracking-[0.25em] uppercase text-foreground">Temporal Recon</span>
+              <span className="text-[10px] font-light tracking-[0.25em] uppercase text-foreground">Temporal Scan</span>
               <span className="text-[10px] tracking-wide text-muted-foreground">
                 {temporalLayer.tracks.length} track{temporalLayer.tracks.length === 1 ? "" : "s"} · {temporalLayer.years.length} frames
               </span>
@@ -1138,7 +1106,6 @@ const IntelligenceMapModule = () => {
                       residential: "Residential Property",
                       commercial: "Commercial Property",
                       industrial: "Industrial Site",
-                      military: "Military Facility",
                       agricultural: "Agricultural Land",
                       vacant: "Vacant / Undeveloped Land",
                       infrastructure: "Critical Infrastructure",
@@ -1193,8 +1160,6 @@ const IntelligenceMapModule = () => {
                       ["Power", t.power],
                       ["Voltage", t.voltage],
                       ["Capacity", t.capacity],
-                      ["Military Type", t.military],
-                      ["Branch", t["military:branch"]],
                       ["Wikipedia", t.wikipedia],
                       ["Wikidata", t.wikidata],
                       ["Phone", t.phone || t["contact:phone"]],
@@ -1454,7 +1419,7 @@ const IntelligenceMapModule = () => {
                   {/* Weather */}
                   {entity.weather?.current && (
                     <div>
-                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Tactical Weather (Live)</p>
+                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Live Weather</p>
                       <div className="grid grid-cols-2 gap-2 text-[11px] font-light">
                         <div className="rounded-lg border border-border/15 bg-background/40 p-2.5">
                           <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mb-1">Temp</p>
@@ -1514,8 +1479,7 @@ const IntelligenceMapModule = () => {
                     const cats: Record<string, OsmFeature[]> = {};
                     for (const f of entity.features) {
                       const t = f.tags || {};
-                      const cat = t.military ? "Military"
-                        : t.amenity ? "Amenities"
+                      const cat = t.amenity ? "Amenities"
                         : t.shop ? "Commerce"
                         : t.building ? "Buildings"
                         : t.power ? "Power Grid"
@@ -1541,8 +1505,8 @@ const IntelligenceMapModule = () => {
                               <div className="space-y-0.5 pl-2 border-l border-border/15">
                                 {items.slice(0, 12).map((f) => {
                                   const t = f.tags || {};
-                                  const name = t.name || t["name:en"] || t.amenity || t.building || t.man_made || t.military || t.landuse || t.shop || `${f.type} #${f.id}`;
-                                  const kind = t.amenity || t.building || t.man_made || t.military || t.shop || t.landuse || t.power || t.highway || t.railway || "feature";
+                                  const name = t.name || t["name:en"] || t.amenity || t.building || t.man_made || t.landuse || t.shop || `${f.type} #${f.id}`;
+                                  const kind = t.amenity || t.building || t.man_made || t.shop || t.landuse || t.power || t.highway || t.railway || "feature";
                                   return (
                                     <div key={`${f.type}-${f.id}`} className="text-[11px] font-light flex items-start gap-2">
                                       <div className="min-w-0">
@@ -1580,7 +1544,7 @@ const IntelligenceMapModule = () => {
                     </div>
                   )}
 
-                  {/* Live Threat Proximity */}
+                  {/* Live Hazard Proximity */}
                   {(threatData["h-quake"].length + threatData["h-fire"].length + threatData["h-air"].length) > 0 && (() => {
                     const within = (arr: ThreatPoint[], km: number) => arr.filter((p) => {
                       const dx = (p.lat - entity.lat) * 111;
@@ -1593,7 +1557,7 @@ const IntelligenceMapModule = () => {
                     if (eq.length + fi.length + ai.length === 0) return null;
                     return (
                       <div>
-                        <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Threat Proximity (Live Overlays)</p>
+                        <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Hazard Proximity (Live Overlays)</p>
                         <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-1 text-[11px] font-light">
                           {eq.length > 0 && <p>● {eq.length} earthquake(s) within 500 km</p>}
                           {fi.length > 0 && <p>● {fi.length} active wildfire(s) within 100 km</p>}
@@ -1603,25 +1567,23 @@ const IntelligenceMapModule = () => {
                     );
                   })()}
 
-                  {/* Intelligence Assessment (derived from real data only) */}
+                  {/* Property Assessment (derived from real data only) */}
                   <div>
-                    <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Intelligence Assessment</p>
+                    <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Property Assessment</p>
                     <div className="rounded-lg border border-border/15 bg-background/40 p-3 space-y-1 text-[11px] font-light">
                       {(() => {
                         const { cls } = classifyClick(entity.features);
-                        const milCount = entity.features?.filter((f) => f.tags?.military).length || 0;
                         const govCount = entity.features?.filter((f) => f.tags?.amenity === "embassy" || f.tags?.amenity === "townhall" || f.tags?.amenity === "courthouse" || f.tags?.amenity === "police").length || 0;
                         const infraCount = entity.features?.filter((f) => f.tags?.power || f.tags?.man_made === "tower" || f.tags?.man_made === "communications_tower").length || 0;
                         const popDensity = entity.features?.filter((f) => f.tags?.building === "residential" || f.tags?.building === "apartments" || f.tags?.building === "house").length || 0;
-                        let threat = "MINIMAL";
-                        if (milCount > 0) threat = "ELEVATED — military presence";
-                        else if (govCount > 0) threat = "MODERATE — government infrastructure";
-                        else if (infraCount > 2) threat = "MODERATE — critical infrastructure cluster";
+                        let activity = "LOW";
+                        if (govCount > 0) activity = "MODERATE — government infrastructure";
+                        else if (infraCount > 2) activity = "MODERATE — critical infrastructure cluster";
+                        else if (popDensity > 5) activity = "HIGH — dense residential area";
                         return (
                           <>
                             <p><span className="text-muted-foreground/60">Classification:</span> {cls.toUpperCase()}</p>
-                            <p><span className="text-muted-foreground/60">Threat Level:</span> {threat}</p>
-                            <p><span className="text-muted-foreground/60">Military Footprint:</span> {milCount} entities (250m)</p>
+                            <p><span className="text-muted-foreground/60">Activity Level:</span> {activity}</p>
                             <p><span className="text-muted-foreground/60">Government Footprint:</span> {govCount} entities</p>
                             <p><span className="text-muted-foreground/60">Critical Infrastructure:</span> {infraCount} entities</p>
                             <p><span className="text-muted-foreground/60">Residential Density:</span> {popDensity} structures</p>
