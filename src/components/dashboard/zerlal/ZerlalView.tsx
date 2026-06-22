@@ -89,6 +89,7 @@ const ZerlalView = () => {
       "port-scanner": PortScannerUI,
       "whois-timeline": WhoisTimeline,
       "tor-checker": TorExitNodeChecker,
+      "ghostchain": GhostChainScanner,
     };
 
     if (activeScreen in toolScreens) {
