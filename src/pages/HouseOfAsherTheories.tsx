@@ -1,15 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
 import {
-  ArrowLeft, Dna, Brain, Plane, Database, Network, Eye, Heart, Activity, Cpu, Waves, FileCode2, BookOpen, ShieldAlert, Wrench, ArrowRight, Atom, Layers, Target, Sparkles, Trophy, Droplet, Mountain, FlaskConical, Leaf, Pill, Recycle, Moon, Sun,
+  ArrowLeft, Dna, Brain, Plane, Database, Network, Eye, Heart, Activity, Cpu, Waves, FileCode2, BookOpen, ShieldAlert, Wrench, ArrowRight, Atom, Layers, Target, Sparkles, Trophy, Droplet, Mountain, FlaskConical, Leaf, Pill, Recycle, Moon, Sun, ArrowUpDown,
 } from "lucide-react";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Parallel {
   icon: React.ReactNode;
@@ -18,15 +19,24 @@ interface Parallel {
   note: string;
 }
 
+type TheoryCategory = "biology-tech" | "architecture" | "health";
+
 interface Theory {
   id: string;
   number: string;
   title: string;
+  category: TheoryCategory;
   thesis: React.ReactNode;
   body: React.ReactNode;
   parallels: Parallel[];
   diagram?: React.ReactNode;
 }
+
+const CATEGORY_LABELS: Record<TheoryCategory, string> = {
+  "biology-tech": "Biology × Tech",
+  "architecture": "Architecture",
+  "health": "Health",
+};
 
 function NameLink({ name, href, title }: { name: string; href: string; title: string }) {
   return (
