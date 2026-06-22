@@ -1,15 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
 import {
-  ArrowLeft, Dna, Brain, Plane, Database, Network, Eye, Heart, Activity, Cpu, Waves, FileCode2, BookOpen, ShieldAlert, Wrench, ArrowRight, Atom, Layers, Target, Sparkles, Trophy, Droplet, Mountain, FlaskConical, Leaf, Pill, Recycle, Moon, Sun,
+  ArrowLeft, Dna, Brain, Plane, Database, Network, Eye, Heart, Activity, Cpu, Waves, FileCode2, BookOpen, ShieldAlert, Wrench, ArrowRight, Atom, Layers, Target, Sparkles, Trophy, Droplet, Mountain, FlaskConical, Leaf, Pill, Recycle, Moon, Sun, ArrowUpDown,
 } from "lucide-react";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Parallel {
   icon: React.ReactNode;
@@ -18,15 +19,24 @@ interface Parallel {
   note: string;
 }
 
+type TheoryCategory = "biology-tech" | "architecture" | "health";
+
 interface Theory {
   id: string;
   number: string;
   title: string;
+  category: TheoryCategory;
   thesis: React.ReactNode;
   body: React.ReactNode;
   parallels: Parallel[];
   diagram?: React.ReactNode;
 }
+
+const CATEGORY_LABELS: Record<TheoryCategory, string> = {
+  "biology-tech": "Biology × Tech",
+  "architecture": "Architecture",
+  "health": "Health",
+};
 
 function NameLink({ name, href, title }: { name: string; href: string; title: string }) {
   return (
@@ -81,6 +91,7 @@ const THEORIES: Theory[] = [
     id: "biotech-soulmates",
     number: "01",
     title: "Human Biology & Technology Are Soulmates",
+    category: "biology-tech",
     thesis:
       "Combining technology with human biology creates next-generational technology. Every breakthrough in machines is, at its core, a quiet imitation of something the body has already perfected over millions of years.",
     body:
@@ -163,6 +174,7 @@ const THEORIES: Theory[] = [
   {
     id: "code-narrative-quantum",
     number: "02",
+    category: "architecture",
     title: "Code-as-Narrative × Quantum Candidate Collapse",
     thesis: (
       <>
@@ -236,6 +248,7 @@ const THEORIES: Theory[] = [
   {
     id: "cancer-water-metals",
     number: "03",
+    category: "health",
     title: "Cancer Theory — Water Body vs Earth Metals",
     thesis: (
       <>
@@ -534,6 +547,28 @@ function CancerTheoryDiagram() {
 
 
 const HouseOfAsherTheories = () => {
+  const [activeCategory, setActiveCategory] = useState<TheoryCategory | "all">("all");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: THEORIES.length };
+    for (const t of THEORIES) counts[t.category] = (counts[t.category] || 0) + 1;
+    return counts;
+  }, []);
+
+  const visibleTheories = useMemo(() => {
+    const sorted = [...THEORIES].sort((a, b) =>
+      sortOrder === "asc"
+        ? a.number.localeCompare(b.number)
+        : b.number.localeCompare(a.number)
+    );
+    return sorted;
+  }, [sortOrder]);
+
+  const visibleCount = activeCategory === "all"
+    ? THEORIES.length
+    : THEORIES.filter((t) => t.category === activeCategory).length;
+
   useEffect(() => {
     const id = "theories-page-jsonld";
     let el = document.getElementById(id) as HTMLScriptElement | null;
@@ -579,12 +614,60 @@ const HouseOfAsherTheories = () => {
           </p>
         </header>
 
-        {THEORIES.map((t) => (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-y border-border/30 py-4">
+          <Tabs
+            value={activeCategory}
+            onValueChange={(v) => setActiveCategory(v as TheoryCategory | "all")}
+            className="w-full sm:w-auto"
+          >
+            <TabsList className="bg-background/40 border border-border/30 rounded-full p-1 h-auto flex-wrap">
+              <TabsTrigger
+                value="all"
+                className="rounded-full text-[10px] font-mono tracking-[0.2em] uppercase px-4 py-1.5 data-[state=active]:bg-foreground data-[state=active]:text-background"
+              >
+                All · {categoryCounts.all ?? 0}
+              </TabsTrigger>
+              {(Object.keys(CATEGORY_LABELS) as TheoryCategory[]).map((cat) => (
+                <TabsTrigger
+                  key={cat}
+                  value={cat}
+                  className="rounded-full text-[10px] font-mono tracking-[0.2em] uppercase px-4 py-1.5 data-[state=active]:bg-foreground data-[state=active]:text-background"
+                >
+                  {CATEGORY_LABELS[cat]} · {categoryCounts[cat] ?? 0}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          <button
+            type="button"
+            onClick={() => setSortOrder((s) => (s === "asc" ? "desc" : "asc"))}
+            className="inline-flex items-center gap-2 self-start sm:self-auto rounded-full border border-border/40 bg-background/40 px-4 py-2 text-[10px] font-mono tracking-[0.22em] uppercase text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+            aria-label={`Sort theories ${sortOrder === "asc" ? "newest first" : "oldest first"}`}
+          >
+            <ArrowUpDown className="h-3 w-3" strokeWidth={1.5} />
+            {sortOrder === "asc" ? "Oldest → Newest" : "Newest → Oldest"}
+          </button>
+        </div>
+
+        {visibleCount === 0 && (
+          <div className="rounded-3xl border border-dashed border-border/30 bg-background/20 p-10 text-center">
+            <p className="text-sm font-extralight text-muted-foreground">
+              No theories in this category yet.
+            </p>
+          </div>
+        )}
+
+        {visibleTheories.map((t) => {
+          const isHidden = activeCategory !== "all" && t.category !== activeCategory;
+          return (
           <section
             key={t.id}
             id={t.id}
             aria-label={t.title}
-            className="relative rounded-3xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 sm:p-12 space-y-10"
+            hidden={isHidden}
+            className="relative rounded-3xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 sm:p-12 space-y-10 data-[hidden=true]:hidden"
+            data-category={t.category}
           >
             <div className="absolute -left-3 top-12 hidden lg:flex h-7 w-7 items-center justify-center rounded-full border border-border/40 bg-background text-[10px] font-mono tracking-wider text-muted-foreground">
               {t.number}
@@ -655,7 +738,8 @@ const HouseOfAsherTheories = () => {
               </div>
             )}
           </section>
-        ))}
+          );
+        })}
 
 
         <section className="rounded-3xl border border-dashed border-border/30 bg-background/20 p-8 sm:p-10 text-center space-y-2">
