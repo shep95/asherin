@@ -125,6 +125,12 @@ const SEO: Record<string, SeoEntry> = {
       "AXRLEN picks for the 22 June 2026 World Cup slate: Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan.",
     ogType: "article",
   },
+  "/blog/predictions/peru-2026-keiko-fujimori": {
+    title: "AXRLEN Prediction — Keiko Fujimori, Future President of Peru 2026 | Aureon",
+    description:
+      "AXRLEN predicts Keiko Fujimori (Fuerza Popular) wins the 2026 Peru presidential runoff under the Antivoto Paradox. Weighted matrix, three scenarios, 94% polarized runoff probability.",
+    ogType: "article",
+  },
   "/blog/aureon-pricing-explained": {
     title: "Aureon Pricing Explained — Why $18/mo and $399/mo (2026)",
     description:
