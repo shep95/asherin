@@ -432,6 +432,7 @@ const IntelligenceMapModule = () => {
   const [showTacticalBorders, setShowTacticalBorders] = useState(true);
   const mapRef = useRef<L.Map | null>(null);
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
+  const [show3D, setShow3D] = useState(false);
   const [propertyIntel, setPropertyIntel] = useState<{
     loading: boolean;
     intel: any | null;
