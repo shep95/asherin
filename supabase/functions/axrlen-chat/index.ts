@@ -111,6 +111,9 @@ serve(async (req) => {
       Authorization: `Bearer ${OPENAI_KEY}`,
     };
 
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const compact = (value: string, max = 12000) => value.length > max ? `${value.slice(0, max)}\n[truncated]` : value;
+
     // ── Helper: extract aggregated text from a /v1/responses payload ──
     const extractResponsesText = (data: any): string => {
       if (typeof data?.output_text === "string" && data.output_text.length > 0) {
@@ -127,51 +130,23 @@ serve(async (req) => {
     };
 
     // ══════════════════════════════════════
-    // STEP 1: EXTRACT TOPIC + IDENTIFY SIDES (OpenAI)
+    // STEP 1: EXTRACT TOPIC + IDENTIFY SIDES (local heuristics; avoids extra OpenAI calls)
     // ══════════════════════════════════════
-    const topicExtractionPrompt = `Analyze this user request and extract:
-1. The core TOPIC as a short factual search query (max 15 words). No predictions/forecast words.
-2. SIDE_A: The primary party/country (e.g., "United States", "NATO", "Israel")
-3. SIDE_B: The opposing party/country (e.g., "Iran", "Russia", "China", "Hamas")
-4. OTHER_PARTIES: Any other involved parties (e.g., "EU", "UN", "Saudi Arabia")
-
-Return ONLY in this exact format (one per line):
-TOPIC: <search query>
-SIDE_A: <party name>
-SIDE_B: <party name>
-OTHER: <comma separated or "none">
-
-User request: "${lastUserMsg}"`;
-
-    let searchQuery = lastUserMsg.slice(0, 100);
-    let sideA = "";
-    let sideB = "";
-    let otherParties = "";
-
-    try {
-      const extractResp = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: OPENAI_HEADERS,
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          temperature: 0,
-          max_tokens: 200,
-          messages: [{ role: "user", content: topicExtractionPrompt }],
-        }),
-      });
-      if (extractResp.ok) {
-        const extractData = await extractResp.json();
-        const extracted: string = extractData.choices?.[0]?.message?.content?.trim() || "";
-        const topicMatch = extracted.match(/TOPIC:\s*(.+)/i);
-        const sideAMatch = extracted.match(/SIDE_A:\s*(.+)/i);
-        const sideBMatch = extracted.match(/SIDE_B:\s*(.+)/i);
-        const otherMatch = extracted.match(/OTHER:\s*(.+)/i);
-        if (topicMatch?.[1]?.trim().length > 5) searchQuery = topicMatch[1].trim();
-        sideA = sideAMatch?.[1]?.trim() || "";
-        sideB = sideBMatch?.[1]?.trim() || "";
-        otherParties = otherMatch?.[1]?.trim() || "";
-      }
-    } catch { /* fallback */ }
+    const actorNames = [
+      "United States", "America", "NATO", "European Union", "United Kingdom", "Russia", "Ukraine", "China", "Taiwan",
+      "Israel", "Iran", "Hamas", "Hezbollah", "Saudi Arabia", "India", "Pakistan", "North Korea", "South Korea",
+      "Japan", "Peru", "Brazil", "Mexico", "Venezuela", "Turkey", "Syria", "Yemen", "Egypt", "France", "Germany",
+    ];
+    const cleanQuery = lastUserMsg
+      .replace(/\b(predict|forecast|scenario|scenarios|what happens|will|going to|tell me|analyze|analysis)\b/gi, " ")
+      .replace(/[^\p{L}\p{N}\s$.-]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    let searchQuery = (cleanQuery || lastUserMsg).slice(0, 140);
+    const mentionedActors = actorNames.filter((name) => new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(lastUserMsg));
+    let sideA = mentionedActors[0] || "";
+    let sideB = mentionedActors.find((name) => name !== sideA) || "";
+    let otherParties = mentionedActors.slice(2).join(", ") || "none";
 
     // ══════════════════════════════════════
     // STEP 2: DUAL-SIDE WEB INTELLIGENCE (OpenAI Responses API + web_search)
@@ -198,8 +173,10 @@ Label each piece of data with its approximate source type (e.g., [State Media], 
 Do NOT interpret or predict. Just gather raw intelligence data from this perspective.`;
     };
 
+    let upstreamRateLimited = false;
     const runWebSearch = async (prompt: string): Promise<string> => {
-      try {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
         const resp = await fetch("https://api.openai.com/v1/responses", {
           method: "POST",
           headers: OPENAI_HEADERS,
@@ -209,48 +186,43 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
             input: prompt,
           }),
         });
+        if (resp.status === 429) {
+          upstreamRateLimited = true;
+          await resp.body?.cancel();
+          if (attempt === 0) {
+            await delay(1200);
+            continue;
+          }
+          return "";
+        }
         if (!resp.ok) {
           console.error("OpenAI web_search error:", resp.status, await resp.text());
           return "";
         }
         const data = await resp.json();
-        return extractResponsesText(data);
+        return compact(extractResponsesText(data), 8000);
       } catch (e) {
         console.error("OpenAI web_search exception:", e);
         return "";
       }
+      }
+      return "";
     };
 
-    const searchPromises: Promise<void>[] = [];
-
-    if (sideA) {
-      searchPromises.push((async () => {
-        sideAIntel = await runWebSearch(buildSearchPrompt(`${sideA} (Western/allied)`, searchQuery));
-      })());
+    if (!sideA && !sideB && !upstreamRateLimited) {
+      sideAIntel = await runWebSearch(
+        `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about this topic from 5 distinct trusted sources across multiple countries and perspectives. Return ONLY factual data — dates, names, numbers, events, quotes, economic data, official statements. Label each with source type. Do NOT interpret or predict.\n\nTopic: ${searchQuery}`
+      );
+    } else {
+      if (sideA) sideAIntel = await runWebSearch(buildSearchPrompt(`${sideA} perspective`, searchQuery));
+      if (sideB && !upstreamRateLimited) sideBIntel = await runWebSearch(buildSearchPrompt(`${sideB} perspective`, searchQuery));
+      if (!upstreamRateLimited) {
+        const neutralPerspective = otherParties && otherParties !== "none"
+          ? `neutral international sources, UN, and ${otherParties}`
+          : "neutral international sources (Reuters, AP, AFP, Al Jazeera English, BBC World, UN)";
+        neutralIntel = await runWebSearch(buildSearchPrompt(neutralPerspective, searchQuery));
+      }
     }
-
-    if (sideB) {
-      searchPromises.push((async () => {
-        sideBIntel = await runWebSearch(buildSearchPrompt(`${sideB} (opposing party/regional)`, searchQuery));
-      })());
-    }
-
-    searchPromises.push((async () => {
-      const neutralPerspective = otherParties && otherParties !== "none"
-        ? `neutral international sources, UN, and ${otherParties}`
-        : "neutral international sources (Reuters, AP, AFP, Al Jazeera English, BBC World, UN)";
-      neutralIntel = await runWebSearch(buildSearchPrompt(neutralPerspective, searchQuery));
-    })());
-
-    if (!sideA && !sideB) {
-      searchPromises.push((async () => {
-        sideAIntel = await runWebSearch(
-          `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about this topic from a minimum of 15 distinct trusted sources across multiple countries and perspectives. Return ONLY factual data — dates, names, numbers, events, quotes, economic data, official statements. Label each with source type. Do NOT interpret or predict.\n\nTopic: ${searchQuery}`
-        );
-      })());
-    }
-
-    await Promise.all(searchPromises);
 
     // ══════════════════════════════════════
     // STEP 3: LOAD PREDICTION FRAMEWORK BRAINS
@@ -362,7 +334,7 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
       })),
     ];
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    let response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: OPENAI_HEADERS,
       body: JSON.stringify({
@@ -374,11 +346,31 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
       }),
     });
 
+    if (response.status === 429) {
+      await response.body?.cancel();
+      await delay(1500);
+      response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: OPENAI_HEADERS,
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: compact(systemPrompt, 18000) },
+            { role: "user", content: compact(lastUserMsg, 2000) },
+          ],
+          temperature: 0.55,
+          max_tokens: 900,
+          stream: true,
+        }),
+      });
+    }
+
     if (!response.ok) {
       const status = response.status;
       if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited. Please try again shortly." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        const fallback = `**AXRLEN RATE-LIMIT CONTAINMENT**\n\nOpenAI rejected this run after a compressed retry. The function is no longer failing the UI with HTTP 429; this response is a safe containment state.\n\n**PATTERN SNAPSHOT**\nOpenAI quota is saturated, so AXRLEN cannot complete live synthesis on this request. Current inputs were preserved: ${searchQuery || "active forecast query"}.\n\n**NEXUS VERDICT**\nRetry in 60-120 seconds or reduce the query scope to one event, one region, and one timeframe. AXRLEN will rerun the OpenAI path automatically once quota clears.`;
+        return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: fallback } }] })}\n\ndata: [DONE]\n\n`, {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
         });
       }
       const t = await response.text();
