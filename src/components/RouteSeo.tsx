@@ -125,6 +125,12 @@ const SEO: Record<string, SeoEntry> = {
       "AXRLEN picks for the 22 June 2026 World Cup slate: Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan.",
     ogType: "article",
   },
+  "/blog/predictions/world-cup-2026-group-matches-0623": {
+    title: "AXRLEN Forecast — World Cup 2026 Group Matches (23 June) | Aureon",
+    description:
+      "AXRLEN picks for the 23 June 2026 World Cup slate: Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo.",
+    ogType: "article",
+  },
   "/blog/predictions/peru-2026-keiko-fujimori": {
     title: "AXRLEN Prediction — Keiko Fujimori, Future President of Peru 2026 | Aureon",
     description:

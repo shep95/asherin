@@ -37,6 +37,7 @@ const BlogWhatIsAiOsint = lazy(() => import("./pages/blog/WhatIsAiOsint"));
 const BlogSovereignAiPlatforms = lazy(() => import("./pages/blog/SovereignAiPlatforms"));
 const BlogAiWithoutRestrictions = lazy(() => import("./pages/blog/AiWithoutRestrictions"));
 const BlogPredictionWorldCup2026GroupMatches0622 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0622"));
+const BlogPredictionWorldCup2026GroupMatches0623 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0623"));
 const BlogPredictionPeru2026KeikoFujimori = lazy(() => import("./pages/blog/PredictionPeru2026KeikoFujimori"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
 const FeatureZerlal = lazy(() => import("./pages/feature/FeatureZerlal"));
@@ -116,6 +117,7 @@ const App = () => (
             <Route path="/blog/sovereign-ai-platforms" element={<BlogSovereignAiPlatforms />} />
             <Route path="/blog/ai-without-restrictions" element={<BlogAiWithoutRestrictions />} />
             <Route path="/blog/predictions/world-cup-2026-group-matches-0622" element={<BlogPredictionWorldCup2026GroupMatches0622 />} />
+            <Route path="/blog/predictions/world-cup-2026-group-matches-0623" element={<BlogPredictionWorldCup2026GroupMatches0623 />} />
             <Route path="/blog/predictions/peru-2026-keiko-fujimori" element={<BlogPredictionPeru2026KeikoFujimori />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />

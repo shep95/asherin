@@ -44,6 +44,15 @@ export const BLOG_POSTS: Post[] = [
     featured: true,
   },
   {
+    slug: "/blog/predictions/world-cup-2026-group-matches-0623",
+    title: "AXRLEN Forecast — World Cup 2026 picks for the 23 June slate",
+    dek: "Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo. Four AXRLEN picks generated 22 June 2026 for the next day's slate.",
+    tag: "Prediction",
+    published: "2026-06-22T21:00:00.000Z",
+    readTime: "7 min",
+    featured: true,
+  },
+  {
     slug: "/blog/predictions/world-cup-2026-group-matches-0622",
     title: "AXRLEN Forecast — World Cup 2026 picks for the 22 June slate",
     dek: "Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan. Four live AXRLEN picks generated at 12:25 PM EST on 22 June 2026.",

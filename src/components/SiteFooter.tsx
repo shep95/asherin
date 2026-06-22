@@ -60,6 +60,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
         { to: "/blog/what-is-ai-osint", label: "What is AI OSINT?" },
         { to: "/blog/sovereign-ai-platforms", label: "Sovereign AI landscape" },
         { to: "/blog/ai-without-restrictions", label: "AI without restrictions" },
+        { to: "/blog/predictions/world-cup-2026-group-matches-0623", label: "World Cup 23 Jun picks" },
         { to: "/blog/predictions/world-cup-2026-group-matches-0622", label: "World Cup 22 Jun picks" },
         { to: "/blog/predictions/peru-2026-keiko-fujimori", label: "Peru 2026 — Keiko Fujimori" },
       ],
