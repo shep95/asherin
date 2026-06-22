@@ -577,8 +577,14 @@ Deno.serve(async (req) => {
     console.log(`[ghostchain] ${auth.email} → ${host} mode=${mode}`);
 
     // Resolve AI key (Aureon Team / BYOK / Venice fallback handled in adminGate)
-    const keyResolution = await resolveKey({ email: auth.email, userId: auth.userId, strict: false });
-    const aiKey = keyResolution.mode === "admin" || keyResolution.mode === "user" ? keyResolution.geminiKey : "";
+    let aiKey = "";
+    try {
+      const keyResolution = await resolveKey(req, body.byok ?? null, { strict: false });
+      if (keyResolution.mode === "admin") aiKey = keyResolution.geminiKey || "";
+      else if (keyResolution.mode === "byok" && keyResolution.byok?.provider === "gemini") {
+        aiKey = keyResolution.byok.apiKey || "";
+      }
+    } catch { /* narrative will degrade gracefully */ }
 
     // Surface
     const dns = (mode === "surface" || mode === "full") ? await dnsLookup(host) : {};
