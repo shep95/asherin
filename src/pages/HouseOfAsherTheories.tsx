@@ -557,16 +557,17 @@ const HouseOfAsherTheories = () => {
   }, []);
 
   const visibleTheories = useMemo(() => {
-    const filtered = activeCategory === "all"
-      ? [...THEORIES]
-      : THEORIES.filter((t) => t.category === activeCategory);
-    filtered.sort((a, b) =>
+    const sorted = [...THEORIES].sort((a, b) =>
       sortOrder === "asc"
         ? a.number.localeCompare(b.number)
         : b.number.localeCompare(a.number)
     );
-    return filtered;
-  }, [activeCategory, sortOrder]);
+    return sorted;
+  }, [sortOrder]);
+
+  const visibleCount = activeCategory === "all"
+    ? THEORIES.length
+    : THEORIES.filter((t) => t.category === activeCategory).length;
 
   useEffect(() => {
     const id = "theories-page-jsonld";
