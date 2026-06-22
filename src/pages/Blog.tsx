@@ -44,6 +44,15 @@ export const BLOG_POSTS: Post[] = [
     featured: true,
   },
   {
+    slug: "/blog/predictions/world-cup-2026-group-matches-0624",
+    title: "AXRLEN Deep Dive — World Cup 2026 structural & historical analysis (23 June slate)",
+    dek: "Extended breakdown of the four 23 June matches: squad-structure edges and historical-pattern validation behind the Portugal, England, Croatia, and Colombia picks.",
+    tag: "Prediction",
+    published: "2026-06-23T22:00:00.000Z",
+    readTime: "8 min",
+    featured: true,
+  },
+  {
     slug: "/blog/predictions/world-cup-2026-group-matches-0623",
     title: "AXRLEN Forecast — World Cup 2026 picks for the 23 June slate",
     dek: "Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo. Four AXRLEN picks generated 22 June 2026 for the next day's slate.",
