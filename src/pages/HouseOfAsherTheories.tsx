@@ -738,7 +738,8 @@ const HouseOfAsherTheories = () => {
               </div>
             )}
           </section>
-        ))}
+          );
+        })}
 
 
         <section className="rounded-3xl border border-dashed border-border/30 bg-background/20 p-8 sm:p-10 text-center space-y-2">
