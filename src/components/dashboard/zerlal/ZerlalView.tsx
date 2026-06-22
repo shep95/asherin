@@ -24,6 +24,7 @@ const WhoisTimeline = lazy(() => import("./WhoisTimeline"));
 const TorExitNodeChecker = lazy(() => import("./TorExitNodeChecker"));
 const TeamScreen = lazy(() => import("./TeamScreen"));
 const SettingsScreen = lazy(() => import("./SettingsScreen"));
+const GhostChainScanner = lazy(() => import("./GhostChainScanner"));
 
 const intelligenceScreens: ZerlalScreen[] = [
   "compliance", "supply-chain", "quantum", "ai-security", "zero-trust",
