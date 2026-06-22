@@ -547,6 +547,27 @@ function CancerTheoryDiagram() {
 
 
 const HouseOfAsherTheories = () => {
+  const [activeCategory, setActiveCategory] = useState<TheoryCategory | "all">("all");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: THEORIES.length };
+    for (const t of THEORIES) counts[t.category] = (counts[t.category] || 0) + 1;
+    return counts;
+  }, []);
+
+  const visibleTheories = useMemo(() => {
+    const filtered = activeCategory === "all"
+      ? [...THEORIES]
+      : THEORIES.filter((t) => t.category === activeCategory);
+    filtered.sort((a, b) =>
+      sortOrder === "asc"
+        ? a.number.localeCompare(b.number)
+        : b.number.localeCompare(a.number)
+    );
+    return filtered;
+  }, [activeCategory, sortOrder]);
+
   useEffect(() => {
     const id = "theories-page-jsonld";
     let el = document.getElementById(id) as HTMLScriptElement | null;
