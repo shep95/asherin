@@ -1,4 +1,4 @@
-import { Shield, FolderSearch, FileWarning, FileText, Plug, Settings, Users, Landmark, Package, Atom, Brain, Lock, Siren, Crosshair, Scale, Server, GraduationCap, Cpu, Globe, UserSearch, FileCheck, BarChart3, Sword, Smartphone, Radar, ScanSearch, BookOpen, Rss, ScrollText, Award, Code2, Wifi, Clock, Eye } from "lucide-react";
+import { Shield, FolderSearch, FileWarning, FileText, Plug, Settings, Users, Landmark, Package, Atom, Brain, Lock, Siren, Crosshair, Scale, Server, GraduationCap, Cpu, Globe, UserSearch, FileCheck, BarChart3, Sword, Smartphone, Radar, ScanSearch, BookOpen, Rss, ScrollText, Award, Code2, Wifi, Clock, Eye, Ghost } from "lucide-react";
 import type { ZerlalScreen } from "./types";
 
 interface ZerlalNavProps {
