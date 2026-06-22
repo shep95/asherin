@@ -44,7 +44,7 @@ export const NAV_INTENTS: NavIntent[] = [
   { view: "zeeion", label: "Financial Intelligence", codename: "Zeeion", blurb: "Cost savings, efficiency scoring, budget optimization", keywords: ["money", "finance", "financial", "budget", "cost", "expense", "revenue", "savings"], group: "Analyze", access: "pro" },
   { view: "pattern-analysis", label: "Pattern Analysis", codename: "Pattern Engine", blurb: "Visual pattern recognition and forecasting", keywords: ["pattern", "forecast", "predict pattern", "trend", "anomaly"], group: "Analyze", access: "pro" },
   { view: "timeseries", label: "Time-Series Forecasting", codename: "Time-Series", blurb: "Temporal analysis with anomaly detection", keywords: ["time series", "timeseries", "forecast", "anomaly", "temporal"], group: "Analyze", access: "pro" },
-  { view: "geospatial", label: "Geospatial Intelligence", codename: "Geospatial", blurb: "Spatial-temporal analysis and route optimization", keywords: ["map", "geo", "location", "spatial", "geography", "route"], group: "Analyze", access: "pro" },
+  { view: "geospatial", label: "Intelligence Property Map", codename: "PropertyMap", blurb: "Click any property — Zophiel scrapes live ownership, valuation & risk intel", keywords: ["map", "geo", "location", "property", "land", "parcel", "real estate", "zophiel"], group: "Analyze", access: "pro" },
   { view: "video-intelligence", label: "Video Behavior Analysis", codename: "Video Intelligence", blurb: "Deception detection, personality profiling", keywords: ["video analyze", "behavior", "deception", "face", "facs", "micro expression"], group: "Analyze", access: "pro" },
 
   // INVESTIGATE
