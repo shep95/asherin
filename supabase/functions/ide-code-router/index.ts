@@ -140,7 +140,7 @@ ${BUTTERFLY_PROTOCOL_BRAIN}`;
     // ── Default: platform Gemini (admin GEMINI_API_KEY) ────────
     // No Lovable AI Gateway fallback — IDE coding workloads must route
     // through admin Gemini or user BYOK only.
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
     if (!GEMINI_API_KEY) {
       return new Response(JSON.stringify({
         error: "byok_required",
