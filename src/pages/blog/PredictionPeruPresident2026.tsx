@@ -7,14 +7,14 @@ import prediction from "@/data/predictions/peru-president-2026.json";
 
 const URL = "https://aureonai.app/blog/predictions/peru-president-2026";
 const TITLE = "AXRLEN Forecast: Who Will Be the Next President of Peru (2026)";
-const PUBLISHED = "2026-06-22";
+const PUBLISHED = "2026-06-22T15:57:19.493Z";
 
 const PredictionPeruPresident2026 = () => (
   <ArticleShell
     eyebrow="AXRLEN Predictive Engine · Live Output"
     title="Who will be the next president of Peru — AXRLEN 2026 forecast"
     dek="Aureon's AXRLEN engine (NEXUS PRIME) ran this forecast against the 2026 Peruvian general election (12 April) and runoff (7 June). The body below is the raw engine output — scenario probabilities, historical parallels, and a verification plan."
-    publishedLabel="Generated Jun 22 2026 by AXRLEN"
+    publishedLabel="Generated Jun 22 2026 · 15:57:19 UTC by AXRLEN"
     readTime="9 min"
   >
     <ArticleJsonLd
