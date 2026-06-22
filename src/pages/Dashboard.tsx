@@ -75,7 +75,7 @@ const NomadView = lazyWithRetry(() => import("@/components/dashboard/NomadView")
 const BriefingView = lazyWithRetry(() => import("@/components/dashboard/BriefingView"));
 const TeamsView = lazyWithRetry(() => import("@/components/dashboard/TeamsView"));
 const NotebooksView = lazyWithRetry(() => import("@/components/dashboard/NotebooksView"));
-const GeospatialView = lazyWithRetry(() => import("@/components/dashboard/GeospatialView"));
+const GeospatialView = lazyWithRetry(() => import("@/components/dashboard/IntelligencePropertyMapView"));
 const PluginMarketplaceView = lazyWithRetry(() => import("@/components/dashboard/PluginMarketplaceView"));
 const TimeSeriesView = lazyWithRetry(() => import("@/components/dashboard/TimeSeriesView"));
 const AuditLogView = lazyWithRetry(() => import("@/components/dashboard/AuditLogView"));
