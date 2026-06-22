@@ -575,6 +575,26 @@ export default function AsherCodeModule() {
     setPreviewKey(k => k + 1);
   }
 
+  // ── Auto-save dirty edits every 30s so manual Monaco edits aren't lost on tab close
+  useEffect(() => {
+    const t = setInterval(() => {
+      const snapshot = dirty;
+      const ids = Object.keys(snapshot);
+      if (!ids.length) return;
+      ids.forEach((id) => {
+        const content = snapshot[id];
+        void supabase.from("asher_code_files").update({ content }).eq("id", id).then(() => {
+          setDirty((d) => {
+            if (d[id] !== content) return d; // user edited again — keep dirty
+            const { [id]: _drop, ...rest } = d;
+            return rest;
+          });
+        });
+      });
+    }, 30_000);
+    return () => clearInterval(t);
+  }, [dirty]);
+
   async function applyDebuggerFix(file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) {
     // ── PER-FILE ISOLATION ──
     // The dispatcher already spawns one agent per target file per pass. Do not
@@ -1392,7 +1412,7 @@ try {
       const decoder = new TextDecoder();
       let buf = "";
       // Push placeholder so UI updates as we stream
-      setChat([...next, { role: "assistant", content: "▍" }]);
+      setChat((prev) => [...prev, { role: "assistant", content: "▍" }]);
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -1409,13 +1429,21 @@ try {
             const delta = parsed.choices?.[0]?.delta?.content;
             if (delta) {
               assistantText += delta;
-              setChat([...next, { role: "assistant", content: assistantText + "▍" }]);
+              setChat((prev) => {
+                if (!prev.length) return prev;
+                const head = prev.slice(0, -1);
+                return [...head, { role: "assistant", content: assistantText + "▍" }];
+              });
             }
           } catch { /* skip */ }
         }
       }
       const finalMsg: ChatMsg = { role: "assistant", content: assistantText || "(empty response)" };
-      setChat([...next, finalMsg]);
+      setChat((prev) => {
+        if (!prev.length) return [finalMsg];
+        const head = prev.slice(0, -1);
+        return [...head, finalMsg];
+      });
       void persistChatMessages([userMsg, finalMsg]);
       // Auto-write any code blocks tagged with file paths into the project
       const created = await materializeZanoemCodeBlocks(assistantText);
@@ -2174,7 +2202,7 @@ try {
                   <span>Preview</span>
                   <span className="text-muted-foreground/50 normal-case tracking-normal text-[9px]">Live · Sandboxed</span>
                 </div>
-                <iframe key={previewKey} ref={previewRef} srcDoc={previewSrcDoc} sandbox="allow-scripts" className="flex-1 bg-white" title="preview" />
+                <iframe key={previewKey} ref={previewRef} srcDoc={previewSrcDoc} sandbox="allow-scripts allow-same-origin allow-forms allow-popups" className="flex-1 bg-white" title="preview" />
               </div>
             )}
           </div>

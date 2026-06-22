@@ -244,14 +244,19 @@ const IdePreviewPanel = ({ files }: Props) => {
     } catch (e: any) {
       setError(e.message);
       setLoading(false);
+      return undefined;
     }
   }, [memoizedHtml]);
 
   useEffect(() => {
+    let cleanup: (() => void) | undefined;
     const timer = setTimeout(() => {
-      refreshPreview();
+      cleanup = refreshPreview();
     }, 800);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      cleanup?.();
+    };
   }, [refreshPreview]);
 
   const handleIframeLoad = () => setLoading(false);
@@ -321,7 +326,7 @@ const IdePreviewPanel = ({ files }: Props) => {
             src={url}
             onLoad={handleIframeLoad}
             className="w-full h-full border-0"
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
             title="Live Preview"
           />
         </div>
