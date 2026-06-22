@@ -259,7 +259,8 @@ Return STRICT JSON only:
   "citations": [{"label":"...","url":"..."}]
 }`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // gemini-2.0-flash is significantly faster than 2.5-flash for this JSON workload
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     let resp: Response | null = null;
     let lastErr = "";
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -268,7 +269,7 @@ Return STRICT JSON only:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 2048, responseMimeType: "application/json" },
+          generationConfig: { temperature: 0.2, maxOutputTokens: 1024, responseMimeType: "application/json" },
         }),
       });
       if (resp.ok) break;
