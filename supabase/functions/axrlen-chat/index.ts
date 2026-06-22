@@ -97,8 +97,8 @@ serve(async (req) => {
 
   try {
     const { messages, sessionContext } = await req.json();
-    const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_KEY) throw new Error("GEMINI_API_KEY not configured");
+    const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -106,8 +106,28 @@ serve(async (req) => {
 
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
 
+    const OPENAI_HEADERS = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_KEY}`,
+    };
+
+    // ── Helper: extract aggregated text from a /v1/responses payload ──
+    const extractResponsesText = (data: any): string => {
+      if (typeof data?.output_text === "string" && data.output_text.length > 0) {
+        return data.output_text;
+      }
+      const out: string[] = [];
+      for (const item of data?.output ?? []) {
+        for (const c of item?.content ?? []) {
+          if (typeof c?.text === "string") out.push(c.text);
+          else if (typeof c?.text?.value === "string") out.push(c.text.value);
+        }
+      }
+      return out.join("\n");
+    };
+
     // ══════════════════════════════════════
-    // STEP 1: EXTRACT TOPIC + IDENTIFY SIDES
+    // STEP 1: EXTRACT TOPIC + IDENTIFY SIDES (OpenAI)
     // ══════════════════════════════════════
     const topicExtractionPrompt = `Analyze this user request and extract:
 1. The core TOPIC as a short factual search query (max 15 words). No predictions/forecast words.
@@ -129,20 +149,19 @@ User request: "${lastUserMsg}"`;
     let otherParties = "";
 
     try {
-      const extractResp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: topicExtractionPrompt }] }],
-            generationConfig: { temperature: 0.0, maxOutputTokens: 150 },
-          }),
-        }
-      );
+      const extractResp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: OPENAI_HEADERS,
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          temperature: 0,
+          max_tokens: 200,
+          messages: [{ role: "user", content: topicExtractionPrompt }],
+        }),
+      });
       if (extractResp.ok) {
         const extractData = await extractResp.json();
-        const extracted = extractData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        const extracted: string = extractData.choices?.[0]?.message?.content?.trim() || "";
         const topicMatch = extracted.match(/TOPIC:\s*(.+)/i);
         const sideAMatch = extracted.match(/SIDE_A:\s*(.+)/i);
         const sideBMatch = extracted.match(/SIDE_B:\s*(.+)/i);
@@ -155,15 +174,14 @@ User request: "${lastUserMsg}"`;
     } catch { /* fallback */ }
 
     // ══════════════════════════════════════
-    // STEP 2: DUAL-SIDE WEB INTELLIGENCE
+    // STEP 2: DUAL-SIDE WEB INTELLIGENCE (OpenAI Responses API + web_search)
     // ══════════════════════════════════════
-    // Run parallel searches: Side A sources, Side B sources, and neutral/international sources
     let sideAIntel = "";
     let sideBIntel = "";
     let neutralIntel = "";
 
     const buildSearchPrompt = (perspective: string, topic: string) => {
-      return `You are a neutral intelligence gatherer. Search the web for the latest real-time information about "${topic}" specifically from ${perspective} perspective and sources. 
+      return `You are a neutral intelligence gatherer. Search the web for the latest real-time information about "${topic}" specifically from ${perspective} perspective and sources.
 
 Gather from a MINIMUM of 8 distinct sources. Prioritize:
 - Official government statements and press releases
@@ -173,109 +191,62 @@ Gather from a MINIMUM of 8 distinct sources. Prioritize:
 - Diplomatic statements and UN communications
 - Regional allied media coverage
 
-Return ONLY factual data — dates, names, numbers, events, quotes, military movements, economic data, diplomatic statements, official positions, troop numbers, casualty figures, sanctions data, trade figures. 
+Return ONLY factual data — dates, names, numbers, events, quotes, military movements, economic data, diplomatic statements, official positions, troop numbers, casualty figures, sanctions data, trade figures.
 
 Label each piece of data with its approximate source type (e.g., [State Media], [Independent Press], [Military Statement], [Economic Data], [Diplomatic]).
 
 Do NOT interpret or predict. Just gather raw intelligence data from this perspective.`;
     };
 
+    const runWebSearch = async (prompt: string): Promise<string> => {
+      try {
+        const resp = await fetch("https://api.openai.com/v1/responses", {
+          method: "POST",
+          headers: OPENAI_HEADERS,
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            tools: [{ type: "web_search" }],
+            input: prompt,
+          }),
+        });
+        if (!resp.ok) {
+          console.error("OpenAI web_search error:", resp.status, await resp.text());
+          return "";
+        }
+        const data = await resp.json();
+        return extractResponsesText(data);
+      } catch (e) {
+        console.error("OpenAI web_search exception:", e);
+        return "";
+      }
+    };
+
     const searchPromises: Promise<void>[] = [];
 
-    // Side A search
     if (sideA) {
       searchPromises.push((async () => {
-        try {
-          const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [{ role: "user", parts: [{ text: buildSearchPrompt(`${sideA} (Western/allied)`, searchQuery) }] }],
-                tools: [{ googleSearch: {} }],
-                generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
-              }),
-            }
-          );
-          if (resp.ok) {
-            const data = await resp.json();
-            sideAIntel = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          }
-        } catch (e) { console.error("Side A search error:", e); }
+        sideAIntel = await runWebSearch(buildSearchPrompt(`${sideA} (Western/allied)`, searchQuery));
       })());
     }
 
-    // Side B search
     if (sideB) {
       searchPromises.push((async () => {
-        try {
-          const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [{ role: "user", parts: [{ text: buildSearchPrompt(`${sideB} (opposing party/regional)`, searchQuery) }] }],
-                tools: [{ googleSearch: {} }],
-                generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
-              }),
-            }
-          );
-          if (resp.ok) {
-            const data = await resp.json();
-            sideBIntel = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          }
-        } catch (e) { console.error("Side B search error:", e); }
+        sideBIntel = await runWebSearch(buildSearchPrompt(`${sideB} (opposing party/regional)`, searchQuery));
       })());
     }
 
-    // Neutral/international search
     searchPromises.push((async () => {
-      try {
-        const neutralPerspective = otherParties && otherParties !== "none" 
-          ? `neutral international sources, UN, and ${otherParties}` 
-          : "neutral international sources (Reuters, AP, AFP, Al Jazeera English, BBC World, UN)";
-        const resp = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ role: "user", parts: [{ text: buildSearchPrompt(neutralPerspective, searchQuery) }] }],
-              tools: [{ googleSearch: {} }],
-              generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
-            }),
-          }
-        );
-        if (resp.ok) {
-          const data = await resp.json();
-          neutralIntel = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        }
-      } catch (e) { console.error("Neutral search error:", e); }
+      const neutralPerspective = otherParties && otherParties !== "none"
+        ? `neutral international sources, UN, and ${otherParties}`
+        : "neutral international sources (Reuters, AP, AFP, Al Jazeera English, BBC World, UN)";
+      neutralIntel = await runWebSearch(buildSearchPrompt(neutralPerspective, searchQuery));
     })());
 
-    // If no sides identified, do a single broad search
     if (!sideA && !sideB) {
       searchPromises.push((async () => {
-        try {
-          const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [{ role: "user", parts: [{ text: `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about this topic from a minimum of 15 distinct trusted sources across multiple countries and perspectives. Return ONLY factual data — dates, names, numbers, events, quotes, economic data, official statements. Label each with source type. Do NOT interpret or predict.\n\nTopic: ${searchQuery}` }] }],
-                tools: [{ googleSearch: {} }],
-                generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
-              }),
-            }
-          );
-          if (resp.ok) {
-            const data = await resp.json();
-            sideAIntel = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          }
-        } catch (e) { console.error("Broad search error:", e); }
+        sideAIntel = await runWebSearch(
+          `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about this topic from a minimum of 15 distinct trusted sources across multiple countries and perspectives. Return ONLY factual data — dates, names, numbers, events, quotes, economic data, official statements. Label each with source type. Do NOT interpret or predict.\n\nTopic: ${searchQuery}`
+        );
       })());
     }
 
