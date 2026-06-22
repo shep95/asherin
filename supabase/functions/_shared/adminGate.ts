@@ -63,8 +63,19 @@ export async function resolveKey(
 ): Promise<KeyResolution> {
   const validByok = isValidByok(byok) ? (byok as ZophielByokConfig) : null;
   const email = await getCallerEmail(req);
+  const isAureonTeam = isAdminEmail(email);
 
-  // BYOK always wins — admin and non-admin alike must bring their own key.
+  // AUREON TEAM (ashernewtonx@gmail.com, shepherdnewtonx@gmail.com, etc.):
+  // never prompted for BYOK — always routed through the platform Gemini key.
+  // Applies in BOTH normal and strict modes. No software they touch should
+  // ever ask them to supply a Gemini key.
+  if (isAureonTeam) {
+    const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
+    if (geminiKey) return { mode: "admin", geminiKey };
+    // If platform key is missing, fall through so a team member's own BYOK still works.
+  }
+
+  // BYOK always wins for everyone else.
   if (validByok) return { mode: "byok", byok: validByok };
 
   // Strict mode (Zerlal, Video Intelligence): no platform fallback.
