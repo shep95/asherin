@@ -1,6 +1,6 @@
 // Resolves a live YouTube video ID for a given location/query using Gemini + Google Search grounding.
 // Returns: { videoId, title, channel, url, source, candidates }
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 interface Body {
   location?: string;
