@@ -111,6 +111,9 @@ serve(async (req) => {
       Authorization: `Bearer ${OPENAI_KEY}`,
     };
 
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const compact = (value: string, max = 12000) => value.length > max ? `${value.slice(0, max)}\n[truncated]` : value;
+
     // ── Helper: extract aggregated text from a /v1/responses payload ──
     const extractResponsesText = (data: any): string => {
       if (typeof data?.output_text === "string" && data.output_text.length > 0) {
@@ -127,51 +130,23 @@ serve(async (req) => {
     };
 
     // ══════════════════════════════════════
-    // STEP 1: EXTRACT TOPIC + IDENTIFY SIDES (OpenAI)
+    // STEP 1: EXTRACT TOPIC + IDENTIFY SIDES (local heuristics; avoids extra OpenAI calls)
     // ══════════════════════════════════════
-    const topicExtractionPrompt = `Analyze this user request and extract:
-1. The core TOPIC as a short factual search query (max 15 words). No predictions/forecast words.
-2. SIDE_A: The primary party/country (e.g., "United States", "NATO", "Israel")
-3. SIDE_B: The opposing party/country (e.g., "Iran", "Russia", "China", "Hamas")
-4. OTHER_PARTIES: Any other involved parties (e.g., "EU", "UN", "Saudi Arabia")
-
-Return ONLY in this exact format (one per line):
-TOPIC: <search query>
-SIDE_A: <party name>
-SIDE_B: <party name>
-OTHER: <comma separated or "none">
-
-User request: "${lastUserMsg}"`;
-
-    let searchQuery = lastUserMsg.slice(0, 100);
-    let sideA = "";
-    let sideB = "";
-    let otherParties = "";
-
-    try {
-      const extractResp = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: OPENAI_HEADERS,
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          temperature: 0,
-          max_tokens: 200,
-          messages: [{ role: "user", content: topicExtractionPrompt }],
-        }),
-      });
-      if (extractResp.ok) {
-        const extractData = await extractResp.json();
-        const extracted: string = extractData.choices?.[0]?.message?.content?.trim() || "";
-        const topicMatch = extracted.match(/TOPIC:\s*(.+)/i);
-        const sideAMatch = extracted.match(/SIDE_A:\s*(.+)/i);
-        const sideBMatch = extracted.match(/SIDE_B:\s*(.+)/i);
-        const otherMatch = extracted.match(/OTHER:\s*(.+)/i);
-        if (topicMatch?.[1]?.trim().length > 5) searchQuery = topicMatch[1].trim();
-        sideA = sideAMatch?.[1]?.trim() || "";
-        sideB = sideBMatch?.[1]?.trim() || "";
-        otherParties = otherMatch?.[1]?.trim() || "";
-      }
-    } catch { /* fallback */ }
+    const actorNames = [
+      "United States", "America", "NATO", "European Union", "United Kingdom", "Russia", "Ukraine", "China", "Taiwan",
+      "Israel", "Iran", "Hamas", "Hezbollah", "Saudi Arabia", "India", "Pakistan", "North Korea", "South Korea",
+      "Japan", "Peru", "Brazil", "Mexico", "Venezuela", "Turkey", "Syria", "Yemen", "Egypt", "France", "Germany",
+    ];
+    const cleanQuery = lastUserMsg
+      .replace(/\b(predict|forecast|scenario|scenarios|what happens|will|going to|tell me|analyze|analysis)\b/gi, " ")
+      .replace(/[^\p{L}\p{N}\s$.-]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    let searchQuery = (cleanQuery || lastUserMsg).slice(0, 140);
+    const mentionedActors = actorNames.filter((name) => new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(lastUserMsg));
+    let sideA = mentionedActors[0] || "";
+    let sideB = mentionedActors.find((name) => name !== sideA) || "";
+    let otherParties = mentionedActors.slice(2).join(", ") || "none";
 
     // ══════════════════════════════════════
     // STEP 2: DUAL-SIDE WEB INTELLIGENCE (OpenAI Responses API + web_search)
