@@ -40,6 +40,7 @@ const BlogPredictionAiRegulationQ42026 = lazy(
   () => import("./pages/blog/PredictionAiRegulationQ42026"),
 );
 const BlogPredictionPeruPresident2026 = lazy(() => import("./pages/blog/PredictionPeruPresident2026"));
+const BlogPredictionWorldCup2026GroupMatches0622 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0622"));
 
 const BlogPredictionWW3 = lazy(() => import("./pages/blog/PredictionWW3"));
 const BlogPredictionIndia = lazy(() => import("./pages/blog/PredictionIndia"));
@@ -130,6 +131,7 @@ const App = () => (
             <Route path="/blog/predictions/ww3-2026-2030" element={<BlogPredictionWW3 />} />
             <Route path="/blog/predictions/india-2026-2030" element={<BlogPredictionIndia />} />
             <Route path="/blog/predictions/global-war-watch-2026" element={<BlogPredictionGlobalWarWatch />} />
+            <Route path="/blog/predictions/world-cup-2026-group-matches-0622" element={<BlogPredictionWorldCup2026GroupMatches0622 />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
