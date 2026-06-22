@@ -298,6 +298,8 @@ const AsherDashboard = () => {
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(ASHER_GATE_KEY) === "1"; } catch { return false; }
   });
+  const navigate = useNavigate();
+  const { user } = useAuth();
   // Admin hard-coded bypass — admin should never see the clearance gate.
   useEffect(() => {
     const email = (user?.email || "").toLowerCase();
@@ -309,8 +311,6 @@ const AsherDashboard = () => {
       setUnlocked(true);
     }
   }, [user?.email, unlocked]);
-  const navigate = useNavigate();
-  const { user } = useAuth();
 
   useEffect(() => { isSuperOwner().then(setSuperOwner); }, [user?.id]);
   useEffect(() => {
