@@ -50,12 +50,7 @@ Aureon ships the operator stack for analysts, journalists, traders, security res
 
 ## Predictive intelligence reports
 
-- [AXRLEN Forecast: AI regulation in Q4 2026](/blog/predictions/ai-regulation-q4-2026): 72% probability of major US/EU action between Oct 1 and Dec 15 2026. Verification plan included.
-- [AXRLEN Forecast: Next president of Peru 2026](/blog/predictions/peru-president-2026): 64% probability of outside-coalition winner; archetype distribution and signal stack.
-- [AXRLEN Forecast: 2026 FIFA World Cup winner](/blog/predictions/world-cup-2026-winner): France 18%, Argentina 16%, Brazil 15%; host advantage modelled; verified July 20 2026.
-- [AXRLEN Forecast: WW3 probability 2026-2030](/blog/predictions/ww3-2026-2030): 8% WW3-tier; 47% regional with proxy involvement; three pathways and named off-ramps.
-- [AXRLEN Forecast: India 2026-2030](/blog/predictions/india-2026-2030): 71% prob India is the world's 3rd-largest economy before end-2028; growth, inflation, 2029 election.
-- [AXRLEN Global War Watch 2026](/blog/predictions/global-war-watch-2026): seven theatres tracked across status quo / major event / kinetic-beyond tiers.
+- [AXRLEN Forecast: World Cup 2026 — 22 June slate](/blog/predictions/world-cup-2026-group-matches-0622): Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan. Generated 22 Jun 2026, 12:25 PM EST.
 - [Aureon pricing explained](/blog/aureon-pricing-explained): full breakdown of $18/mo and $399/mo, market comparison, predictive trajectory.
 
 ## Pages
