@@ -125,6 +125,11 @@ const App = () => (
               path="/blog/predictions/ai-regulation-q4-2026"
               element={<BlogPredictionAiRegulationQ42026 />}
             />
+            <Route path="/blog/predictions/peru-president-2026" element={<BlogPredictionPeruPresident2026 />} />
+            <Route path="/blog/predictions/world-cup-2026-winner" element={<BlogPredictionWorldCup2026 />} />
+            <Route path="/blog/predictions/ww3-2026-2030" element={<BlogPredictionWW3 />} />
+            <Route path="/blog/predictions/india-2026-2030" element={<BlogPredictionIndia />} />
+            <Route path="/blog/predictions/global-war-watch-2026" element={<BlogPredictionGlobalWarWatch />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
