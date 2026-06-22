@@ -11,6 +11,7 @@ import { logAsherEvent } from "@/lib/asherAudit";
 import { toast } from "sonner";
 import AsherAIPanel, { type MapAction } from "@/components/asher/AsherAIPanel";
 import LiveFeedsPanel from "@/components/asher/LiveFeedsPanel";
+import Property3DPanel from "@/components/asher/Property3DPanel";
 import { Video, Globe2, ExternalLink, RefreshCw, Building2, User, Hash, CalendarDays, Ruler, DollarSign, Users as UsersIcon, History, AlertTriangle, Activity, Radio } from "lucide-react";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 
@@ -432,6 +433,7 @@ const IntelligenceMapModule = () => {
   const [showTacticalBorders, setShowTacticalBorders] = useState(true);
   const mapRef = useRef<L.Map | null>(null);
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
+  const [show3D, setShow3D] = useState(false);
   const [propertyIntel, setPropertyIntel] = useState<{
     loading: boolean;
     intel: any | null;
@@ -1004,6 +1006,22 @@ const IntelligenceMapModule = () => {
           </button>
         )}
 
+        {/* 3D VIEW TOGGLE */}
+        {entity && (
+          <button
+            onClick={() => setShow3D((v) => !v)}
+            className={`absolute bottom-3 left-[140px] z-[1001] flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-light tracking-[0.2em] uppercase backdrop-blur-md transition-colors ${
+              show3D
+                ? "border-foreground/40 bg-foreground/10 text-foreground"
+                : "border-border/30 bg-card/85 text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+            }`}
+            title="View this property in 3D"
+          >
+            <span className="font-mono">◧</span>
+            3D View
+          </button>
+        )}
+
         {/* LIVE FEEDS PANEL */}
         {entity && showLiveFeeds && (
           <LiveFeedsPanel
@@ -1019,6 +1037,22 @@ const IntelligenceMapModule = () => {
             lat={entity.lat}
             lng={entity.lng}
             onClose={() => setShowLiveFeeds(false)}
+          />
+        )}
+
+        {/* 3D PROPERTY PANEL */}
+        {entity && show3D && (
+          <Property3DPanel
+            label={
+              entity.hit?.address?.city ||
+              entity.hit?.address?.town ||
+              entity.hit?.address?.village ||
+              entity.hit?.display_name?.split(",")[0] ||
+              null
+            }
+            lat={entity.lat}
+            lng={entity.lng}
+            onClose={() => setShow3D(false)}
           />
         )}
 
