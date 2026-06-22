@@ -1479,8 +1479,7 @@ const IntelligenceMapModule = () => {
                     const cats: Record<string, OsmFeature[]> = {};
                     for (const f of entity.features) {
                       const t = f.tags || {};
-                      const cat = t.military ? "Military"
-                        : t.amenity ? "Amenities"
+                      const cat = t.amenity ? "Amenities"
                         : t.shop ? "Commerce"
                         : t.building ? "Buildings"
                         : t.power ? "Power Grid"
@@ -1506,8 +1505,8 @@ const IntelligenceMapModule = () => {
                               <div className="space-y-0.5 pl-2 border-l border-border/15">
                                 {items.slice(0, 12).map((f) => {
                                   const t = f.tags || {};
-                                  const name = t.name || t["name:en"] || t.amenity || t.building || t.man_made || t.military || t.landuse || t.shop || `${f.type} #${f.id}`;
-                                  const kind = t.amenity || t.building || t.man_made || t.military || t.shop || t.landuse || t.power || t.highway || t.railway || "feature";
+                                  const name = t.name || t["name:en"] || t.amenity || t.building || t.man_made || t.landuse || t.shop || `${f.type} #${f.id}`;
+                                  const kind = t.amenity || t.building || t.man_made || t.shop || t.landuse || t.power || t.highway || t.railway || "feature";
                                   return (
                                     <div key={`${f.type}-${f.id}`} className="text-[11px] font-light flex items-start gap-2">
                                       <div className="min-w-0">
@@ -1545,7 +1544,7 @@ const IntelligenceMapModule = () => {
                     </div>
                   )}
 
-                  {/* Live Threat Proximity */}
+                  {/* Live Hazard Proximity */}
                   {(threatData["h-quake"].length + threatData["h-fire"].length + threatData["h-air"].length) > 0 && (() => {
                     const within = (arr: ThreatPoint[], km: number) => arr.filter((p) => {
                       const dx = (p.lat - entity.lat) * 111;
@@ -1558,7 +1557,7 @@ const IntelligenceMapModule = () => {
                     if (eq.length + fi.length + ai.length === 0) return null;
                     return (
                       <div>
-                        <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Threat Proximity (Live Overlays)</p>
+                        <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Hazard Proximity (Live Overlays)</p>
                         <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-1 text-[11px] font-light">
                           {eq.length > 0 && <p>● {eq.length} earthquake(s) within 500 km</p>}
                           {fi.length > 0 && <p>● {fi.length} active wildfire(s) within 100 km</p>}
@@ -1568,25 +1567,23 @@ const IntelligenceMapModule = () => {
                     );
                   })()}
 
-                  {/* Intelligence Assessment (derived from real data only) */}
+                  {/* Property Assessment (derived from real data only) */}
                   <div>
-                    <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Intelligence Assessment</p>
+                    <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Property Assessment</p>
                     <div className="rounded-lg border border-border/15 bg-background/40 p-3 space-y-1 text-[11px] font-light">
                       {(() => {
                         const { cls } = classifyClick(entity.features);
-                        const milCount = entity.features?.filter((f) => f.tags?.military).length || 0;
                         const govCount = entity.features?.filter((f) => f.tags?.amenity === "embassy" || f.tags?.amenity === "townhall" || f.tags?.amenity === "courthouse" || f.tags?.amenity === "police").length || 0;
                         const infraCount = entity.features?.filter((f) => f.tags?.power || f.tags?.man_made === "tower" || f.tags?.man_made === "communications_tower").length || 0;
                         const popDensity = entity.features?.filter((f) => f.tags?.building === "residential" || f.tags?.building === "apartments" || f.tags?.building === "house").length || 0;
-                        let threat = "MINIMAL";
-                        if (milCount > 0) threat = "ELEVATED — military presence";
-                        else if (govCount > 0) threat = "MODERATE — government infrastructure";
-                        else if (infraCount > 2) threat = "MODERATE — critical infrastructure cluster";
+                        let activity = "LOW";
+                        if (govCount > 0) activity = "MODERATE — government infrastructure";
+                        else if (infraCount > 2) activity = "MODERATE — critical infrastructure cluster";
+                        else if (popDensity > 5) activity = "HIGH — dense residential area";
                         return (
                           <>
                             <p><span className="text-muted-foreground/60">Classification:</span> {cls.toUpperCase()}</p>
-                            <p><span className="text-muted-foreground/60">Threat Level:</span> {threat}</p>
-                            <p><span className="text-muted-foreground/60">Military Footprint:</span> {milCount} entities (250m)</p>
+                            <p><span className="text-muted-foreground/60">Activity Level:</span> {activity}</p>
                             <p><span className="text-muted-foreground/60">Government Footprint:</span> {govCount} entities</p>
                             <p><span className="text-muted-foreground/60">Critical Infrastructure:</span> {infraCount} entities</p>
                             <p><span className="text-muted-foreground/60">Residential Density:</span> {popDensity} structures</p>
