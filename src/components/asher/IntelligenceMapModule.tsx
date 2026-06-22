@@ -1419,7 +1419,7 @@ const IntelligenceMapModule = () => {
                   {/* Weather */}
                   {entity.weather?.current && (
                     <div>
-                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Tactical Weather (Live)</p>
+                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Live Weather</p>
                       <div className="grid grid-cols-2 gap-2 text-[11px] font-light">
                         <div className="rounded-lg border border-border/15 bg-background/40 p-2.5">
                           <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mb-1">Temp</p>
