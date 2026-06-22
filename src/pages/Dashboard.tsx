@@ -1465,7 +1465,7 @@ const Dashboard = () => {
       case "briefing": return gatedView("briefing", BriefingView, "Intelligence Briefings", "Personalized daily intelligence briefings — competitor tracking, regulatory monitoring, and market signals. Available on Pro plans.");
       case "teams": return gatedView("teams", TeamsView, "Team Workspace", "Collaborative intelligence with role-based access, team invites, and shared analysis. Available on Pro plans.");
       case "notebooks": return gatedView("notebooks", NotebooksView, "Intelligence Notebooks", "Shared analysis sessions with versioning, scheduling, and collaborative editing. Available on Pro plans.");
-      case "geospatial": return gatedView("geospatial", GeospatialView, "Geospatial Intelligence", "Spatial-temporal analysis with location mapping, heatmaps, and route optimization. Available on Pro plans.");
+      case "geospatial": return gatedView("geospatial", GeospatialView, "Intelligence Property Map", "Real-time tactical map — click any land parcel or property and the Zophiel engine scrapes live ownership, valuation, history, and risk intelligence from the open web. Available on the Maximum Intelligence (Pro) plan.");
       case "plugins": return gatedView("plugins", PluginMarketplaceView, "Plugin Marketplace", "Extend Azplen with data connectors, analysis modules, and visualization plugins. Available on Pro plans.");
       case "timeseries": return gatedView("timeseries", TimeSeriesView, "Time-Series Intelligence", "Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro plans.");
       case "audit": return gatedView("audit", AuditLogView, "Audit Trail", "Complete access and activity logging for compliance and security. Available on Pro plans.");
