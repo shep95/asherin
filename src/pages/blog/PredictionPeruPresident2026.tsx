@@ -64,7 +64,7 @@ const PredictionPeruPresident2026 = () => (
       links={[
         { to: "/feature/axrlen", label: "AXRLEN — the predictive engine", description: "The probabilistic scenario engine that generated this post." },
         { to: "/blog/how-ai-predictive-forecasting-works", label: "How AI predictive forecasting works", description: "The four ingredients real forecasts need." },
-        { to: "/blog/predictions/world-cup-2026-winner", label: "AXRLEN — 2026 World Cup winner", description: "Another live AXRLEN forecast." },
+        
       ]}
     />
   </ArticleShell>

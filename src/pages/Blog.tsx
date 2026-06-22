@@ -60,14 +60,6 @@ export const BLOG_POSTS: Post[] = [
     readTime: "10 min",
   },
   {
-    slug: "/blog/predictions/world-cup-2026-winner",
-    title: "AXRLEN Forecast — Who will win the 2026 FIFA World Cup",
-    dek: "France 18%, Argentina 16%, Brazil 15%, England 12%, Spain 11%. Host advantage modelled, signal stack disclosed, verification on July 20 2026.",
-    tag: "Prediction",
-    published: "2026-06-22T15:57:35.069Z",
-    readTime: "8 min",
-  },
-  {
     slug: "/blog/predictions/peru-president-2026",
     title: "AXRLEN Forecast — Who will be the next president of Peru",
     dek: "64% probability the next president comes from outside the current ruling coalition. Archetype distribution, five signals, named conditions that would collapse the forecast.",
