@@ -676,6 +676,11 @@ const AxrlenView = () => {
               <p className="text-sm sm:text-[15px] font-extralight text-muted-foreground/90 max-w-lg mx-auto leading-relaxed">
                 Name a region. Pick a domain. Aureon forecasts what's next — every scan branched, scored, and timestamped.
               </p>
+              <div className="px-4 py-2 rounded-xl border border-amber-400/15 bg-amber-400/[0.04]">
+                <p className="text-[10px] text-amber-300/70 tracking-wide">
+                  AXRLEN works best with a Gemini API key.
+                </p>
+              </div>
             </div>
 
             {/* Quick-scan grid */}
@@ -806,6 +811,11 @@ const AxrlenView = () => {
                   <p className="text-[10px] text-muted-foreground/40 text-center leading-relaxed">
                     Type <span className="text-foreground/60 font-medium">"Scan [region]"</span> to populate the command center, or ask any question about the active session.
                   </p>
+                  <div className="w-full px-3 py-2 rounded-lg border border-amber-400/15 bg-amber-400/[0.04]">
+                    <p className="text-[9px] text-amber-300/70 text-center leading-relaxed">
+                      AXRLEN works best with a Gemini API key.
+                    </p>
+                  </div>
                   <div className="grid grid-cols-1 gap-1.5 w-full">
                     {suggestions.map((s, i) => (
                       <button key={i} onClick={() => setInput(s)}
