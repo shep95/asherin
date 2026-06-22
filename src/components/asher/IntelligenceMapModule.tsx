@@ -673,7 +673,7 @@ const IntelligenceMapModule = () => {
       } else if (a.center) {
         flyTo(a.center.lat, a.center.lng, 15);
       }
-      return `Visual recon: ${a.detections?.length || 0} detections rendered.`;
+      return `Visual scan: ${a.detections?.length || 0} detections rendered.`;
     }
     if (a.type === "temporal_recon") {
       setTemporalLayer({
@@ -693,7 +693,7 @@ const IntelligenceMapModule = () => {
       } else if (a.center) {
         flyTo(a.center.lat, a.center.lng, 16);
       }
-      return `Temporal recon: ${a.tracks?.length || 0} tracks across ${a.years?.length || 0} year frames.`;
+      return `Temporal scan: ${a.tracks?.length || 0} tracks across ${a.years?.length || 0} year frames.`;
     }
   };
 
@@ -861,7 +861,7 @@ const IntelligenceMapModule = () => {
             </CircleMarker>
           ))}
 
-          {/* AI Visual Recon detections */}
+          {/* AI Visual Scan detections */}
           {reconLayer.detections.map((d, i) => {
             const c = (d.color || "").toLowerCase();
             const fill = c.includes("red") || c.includes("rust") || c.includes("orange") ? "#ef4444"
@@ -888,7 +888,7 @@ const IntelligenceMapModule = () => {
             );
           })}
 
-          {/* AI Temporal Recon — tracks visible at the scrubbed year */}
+          {/* AI Temporal Scan — tracks visible at the scrubbed year */}
           {temporalLayer.tracks
             .filter((t) => timelineYear == null || (t.first_seen <= timelineYear && t.last_seen >= timelineYear))
             .map((t, i) => {
@@ -925,12 +925,12 @@ const IntelligenceMapModule = () => {
         {reconLayer.detections.length > 0 && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-2 rounded-xl border border-foreground/20 bg-card/90 backdrop-blur-md px-3 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase text-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Visual Recon · {reconLayer.detections.length} match{reconLayer.detections.length === 1 ? "" : "es"}</span>
+            <span>Visual Scan · {reconLayer.detections.length} match{reconLayer.detections.length === 1 ? "" : "es"}</span>
             {reconLayer.label && <span className="opacity-60 normal-case tracking-normal">— {reconLayer.label}</span>}
             <button
               onClick={() => setReconLayer({ detections: [], bbox: null })}
               className="ml-2 text-muted-foreground hover:text-foreground"
-              title="Clear recon layer"
+              title="Clear scan layer"
             >×</button>
           </div>
         )}
@@ -940,7 +940,7 @@ const IntelligenceMapModule = () => {
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[1001] w-[min(720px,calc(100%-24px))] rounded-xl border border-foreground/20 bg-card/95 backdrop-blur-md px-4 py-3 shadow-2xl">
             <div className="flex items-center gap-3 mb-2">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-light tracking-[0.25em] uppercase text-foreground">Temporal Recon</span>
+              <span className="text-[10px] font-light tracking-[0.25em] uppercase text-foreground">Temporal Scan</span>
               <span className="text-[10px] tracking-wide text-muted-foreground">
                 {temporalLayer.tracks.length} track{temporalLayer.tracks.length === 1 ? "" : "s"} · {temporalLayer.years.length} frames
               </span>
