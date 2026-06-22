@@ -7,14 +7,14 @@ import prediction from "@/data/predictions/global-war-watch.json";
 
 const URL = "https://aureonai.app/blog/predictions/global-war-watch";
 const TITLE = "AXRLEN Global War Watch: 12-Month Conflict Forecast";
-const PUBLISHED = "2026-06-22";
+const PUBLISHED = "2026-06-22T15:58:25.892Z";
 
 const PredictionGlobalWarWatch = () => (
   <ArticleShell
     eyebrow="AXRLEN Predictive Engine · Live Output"
     title="Global war watch — AXRLEN 12-month forecast"
     dek="Aureon's AXRLEN engine (NEXUS PRIME) ran a 12-month scenario forecast on the highest-probability new or escalating armed conflicts. The body below is the raw engine output — flashpoints, probability matrix, and named off-ramps."
-    publishedLabel="Generated Jun 22 2026 by AXRLEN"
+    publishedLabel="Generated Jun 22 2026 · 15:58:25 UTC by AXRLEN"
     readTime="10 min"
   >
     <ArticleJsonLd

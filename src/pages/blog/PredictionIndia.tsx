@@ -7,14 +7,14 @@ import prediction from "@/data/predictions/india.json";
 
 const URL = "https://aureonai.app/blog/predictions/india-2026-2030";
 const TITLE = "AXRLEN Forecast: India 2026-2030 — Economy, Geopolitics, Modi Trajectory";
-const PUBLISHED = "2026-06-22";
+const PUBLISHED = "2026-06-22T15:58:09.469Z";
 
 const PredictionIndia = () => (
   <ArticleShell
     eyebrow="AXRLEN Predictive Engine · Live Output"
     title="India 2026-2030 — AXRLEN strategic forecast"
     dek="Aureon's AXRLEN engine (NEXUS PRIME) ran a scenario forecast on India's strategic and economic trajectory through 2030. The body below is the raw engine output — growth bands, geopolitical posture, and named off-ramps."
-    publishedLabel="Generated Jun 22 2026 by AXRLEN"
+    publishedLabel="Generated Jun 22 2026 · 15:58:09 UTC by AXRLEN"
     readTime="10 min"
   >
     <ArticleJsonLd

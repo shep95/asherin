@@ -7,14 +7,14 @@ import prediction from "@/data/predictions/world-cup-2026-winner.json";
 
 const URL = "https://aureonai.app/blog/predictions/world-cup-2026-winner";
 const TITLE = "AXRLEN Forecast: Who Will Win the 2026 FIFA World Cup";
-const PUBLISHED = "2026-06-22";
+const PUBLISHED = "2026-06-22T15:57:35.069Z";
 
 const PredictionWorldCup2026 = () => (
   <ArticleShell
     eyebrow="AXRLEN Predictive Engine · Live Output"
     title="Who will win the 2026 World Cup — AXRLEN forecast"
     dek="Aureon's AXRLEN engine (NEXUS PRIME) ran a scenario forecast on the 2026 FIFA World Cup. The body below is the raw engine output — contender probability matrix, host advantage modelling, and verification on the 19 July 2026 final."
-    publishedLabel="Generated Jun 22 2026 by AXRLEN"
+    publishedLabel="Generated Jun 22 2026 · 15:57:35 UTC by AXRLEN"
     readTime="8 min"
   >
     <ArticleJsonLd

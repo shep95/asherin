@@ -7,14 +7,14 @@ import prediction from "@/data/predictions/ww3.json";
 
 const URL = "https://aureonai.app/blog/predictions/ww3-2026-2030";
 const TITLE = "AXRLEN Forecast: Will WW3 Happen? Probabilities for 2026-2030";
-const PUBLISHED = "2026-06-22";
+const PUBLISHED = "2026-06-22T15:57:54.889Z";
 
 const PredictionWW3 = () => (
   <ArticleShell
     eyebrow="AXRLEN Predictive Engine · Live Output"
     title="Will World War 3 happen — AXRLEN 2026-2030 forecast"
     dek="Aureon's AXRLEN engine (NEXUS PRIME) ran a scenario forecast on great-power conflict probability through 2030. The body below is the raw engine output — pathways, signal stack, and the off-ramps that would collapse the probability."
-    publishedLabel="Generated Jun 22 2026 by AXRLEN"
+    publishedLabel="Generated Jun 22 2026 · 15:57:54 UTC by AXRLEN"
     readTime="11 min"
   >
     <ArticleJsonLd
