@@ -10,6 +10,7 @@ interface ZerlalNavProps {
 const mainNav: { id: ZerlalScreen; label: string; icon: React.ElementType }[] = [
   { id: "dashboard", label: "Dashboard", icon: Shield },
   { id: "domain-recon", label: "Domain Recon", icon: ScanSearch },
+  { id: "ghostchain", label: "GhostChain", icon: Ghost },
   { id: "project", label: "Projects", icon: FolderSearch },
   { id: "finding", label: "Findings", icon: FileWarning },
   { id: "reports", label: "Reports", icon: FileText },
