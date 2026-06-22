@@ -1495,6 +1495,7 @@ const Dashboard = () => {
       case "stats": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><StatsView /></Suspense></ErrorBoundary>;
       case "vedic-astrology": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><VedicAstrologyView /></Suspense></ErrorBoundary>;
       case "settings": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SettingsView /></Suspense></ErrorBoundary>;
+      case "api-keys": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><div className="h-full overflow-y-auto"><div className="max-w-5xl mx-auto px-6 py-8"><div className="mb-6"><h1 className="text-2xl font-light text-foreground tracking-tight">API Keys</h1><p className="mt-1 text-sm text-muted-foreground">Add and manage your AI provider API keys. Your keys are encrypted and used for BYOK (Bring Your Own Key) requests.</p></div><AIKeysSettings /></div></div></Suspense></ErrorBoundary>;
       case "subscription": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SubscriptionView /></Suspense></ErrorBoundary>;
       case "persona-store": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><PersonaStoreView /></Suspense></ErrorBoundary>;
       case "ide": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense></ErrorBoundary>;
