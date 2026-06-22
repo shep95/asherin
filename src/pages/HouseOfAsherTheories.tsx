@@ -91,6 +91,7 @@ const THEORIES: Theory[] = [
     id: "biotech-soulmates",
     number: "01",
     title: "Human Biology & Technology Are Soulmates",
+    category: "biology-tech",
     thesis:
       "Combining technology with human biology creates next-generational technology. Every breakthrough in machines is, at its core, a quiet imitation of something the body has already perfected over millions of years.",
     body:
