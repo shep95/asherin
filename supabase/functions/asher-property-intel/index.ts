@@ -207,12 +207,13 @@ serve(async (req) => {
     if (address) queries.push(`${address} site:wikipedia.org OR site:loopnet.com OR site:zillow.com OR site:realtor.com`);
     if (!queries.length && entityName) queries.push(entityName);
 
+    // Run ALL queries in parallel (was sequential — 4x slower)
+    const queryResults = await Promise.all(queries.map((q) => multiSearch(q, 6)));
     const seen = new Set<string>();
     const merged: Hit[] = [];
-    for (const q of queries) {
-      const r = await multiSearch(q, 6);
-      for (const hit of r) {
-        if (seen.has(hit.url)) continue;
+    for (const arr of queryResults) {
+      for (const hit of arr) {
+        if (!hit.url || seen.has(hit.url)) continue;
         seen.add(hit.url);
         merged.push(hit);
         if (merged.length >= 8) break;
@@ -221,10 +222,10 @@ serve(async (req) => {
     }
     console.log(`[asher-property-intel] queries=${queries.length} hits=${merged.length} for "${address ?? entityName}"`);
 
-    // Scrape top 4 in parallel
-    const top = merged.slice(0, 4);
+    // Scrape top 3 in parallel (was 4) — trims corpus + latency
+    const top = merged.slice(0, 3);
     const pages = await Promise.all(top.map(async (h) => ({
-      url: h.url, title: h.title, snippet: h.snippet, body: await fetchPage(h.url),
+      url: h.url, title: h.title, snippet: h.snippet, body: (await fetchPage(h.url, 4000)).slice(0, 2500),
     })));
 
     const corpus = pages
@@ -258,7 +259,8 @@ Return STRICT JSON only:
   "citations": [{"label":"...","url":"..."}]
 }`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // gemini-2.0-flash is significantly faster than 2.5-flash for this JSON workload
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     let resp: Response | null = null;
     let lastErr = "";
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -267,7 +269,7 @@ Return STRICT JSON only:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 2048, responseMimeType: "application/json" },
+          generationConfig: { temperature: 0.2, maxOutputTokens: 1024, responseMimeType: "application/json" },
         }),
       });
       if (resp.ok) break;
