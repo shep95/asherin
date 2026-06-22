@@ -36,15 +36,7 @@ const GlossaryDigitalGnostic = lazy(() => import("./pages/glossary/DigitalGnosti
 const BlogWhatIsAiOsint = lazy(() => import("./pages/blog/WhatIsAiOsint"));
 const BlogSovereignAiPlatforms = lazy(() => import("./pages/blog/SovereignAiPlatforms"));
 const BlogAiWithoutRestrictions = lazy(() => import("./pages/blog/AiWithoutRestrictions"));
-const BlogPredictionAiRegulationQ42026 = lazy(
-  () => import("./pages/blog/PredictionAiRegulationQ42026"),
-);
-const BlogPredictionPeruPresident2026 = lazy(() => import("./pages/blog/PredictionPeruPresident2026"));
 const BlogPredictionWorldCup2026GroupMatches0622 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0622"));
-
-const BlogPredictionWW3 = lazy(() => import("./pages/blog/PredictionWW3"));
-const BlogPredictionIndia = lazy(() => import("./pages/blog/PredictionIndia"));
-const BlogPredictionGlobalWarWatch = lazy(() => import("./pages/blog/PredictionGlobalWarWatch"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
 const FeatureZerlal = lazy(() => import("./pages/feature/FeatureZerlal"));
 const FeatureAxrlen = lazy(() => import("./pages/feature/FeatureAxrlen"));
@@ -122,15 +114,6 @@ const App = () => (
             <Route path="/blog/what-is-ai-osint" element={<BlogWhatIsAiOsint />} />
             <Route path="/blog/sovereign-ai-platforms" element={<BlogSovereignAiPlatforms />} />
             <Route path="/blog/ai-without-restrictions" element={<BlogAiWithoutRestrictions />} />
-            <Route
-              path="/blog/predictions/ai-regulation-q4-2026"
-              element={<BlogPredictionAiRegulationQ42026 />}
-            />
-            <Route path="/blog/predictions/peru-president-2026" element={<BlogPredictionPeruPresident2026 />} />
-            
-            <Route path="/blog/predictions/ww3-2026-2030" element={<BlogPredictionWW3 />} />
-            <Route path="/blog/predictions/india-2026-2030" element={<BlogPredictionIndia />} />
-            <Route path="/blog/predictions/global-war-watch-2026" element={<BlogPredictionGlobalWarWatch />} />
             <Route path="/blog/predictions/world-cup-2026-group-matches-0622" element={<BlogPredictionWorldCup2026GroupMatches0622 />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
