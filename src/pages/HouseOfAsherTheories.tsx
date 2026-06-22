@@ -174,6 +174,7 @@ const THEORIES: Theory[] = [
   {
     id: "code-narrative-quantum",
     number: "02",
+    category: "architecture",
     title: "Code-as-Narrative × Quantum Candidate Collapse",
     thesis: (
       <>
