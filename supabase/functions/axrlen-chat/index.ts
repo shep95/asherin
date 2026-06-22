@@ -352,28 +352,27 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
     const systemPrompt = BASE_IDENTITY + "\n" + primaryBrains + secondaryBrains + webIntelBlock + sessionBlock;
 
     // ══════════════════════════════════════
-    // STEP 5: GENERATE PREDICTION via Gemini (streaming)
+    // STEP 5: GENERATE PREDICTION via OpenAI (streaming)
     // ══════════════════════════════════════
-    const geminiContents = messages.map((m: any) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
+    const openaiMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m: any) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content,
+      })),
+    ];
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: geminiContents,
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: {
-            temperature: 0.85,
-            maxOutputTokens: 65536,
-          },
-        }),
-      }
-    );
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: OPENAI_HEADERS,
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: openaiMessages,
+        temperature: 0.85,
+        max_tokens: 4096,
+        stream: true,
+      }),
+    });
 
     if (!response.ok) {
       const status = response.status;
@@ -383,19 +382,22 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
         });
       }
       const t = await response.text();
-      console.error("Gemini API error:", status, t);
+      console.error("OpenAI API error:", status, t);
       return new Response(JSON.stringify({ error: "AI analysis failed" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // ── Stream response with workflow metadata ──
+    // OpenAI already emits SSE in `choices[0].delta.content` shape, which is
+    // exactly what the frontend expects — pass it through verbatim after the
+    // workflow header chunk.
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
     const readable = new ReadableStream({
       async start(controller) {
         const workflowSteps: any[] = [];
-        
+
         if (sideA && sideAIntel) {
           workflowSteps.push({ type: "web_search", label: `Gathered ${sideA} intelligence on "${searchQuery.slice(0, 60)}"`, status: "done" });
         }
@@ -441,7 +443,7 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
 
               try {
                 const parsed = JSON.parse(jsonStr);
-                const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                const text = parsed.choices?.[0]?.delta?.content;
                 if (text) {
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`));
                 }
@@ -455,6 +457,7 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
         }
       },
     });
+
 
     return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
