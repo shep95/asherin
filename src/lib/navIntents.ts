@@ -79,6 +79,7 @@ export const NAV_INTENTS: NavIntent[] = [
 
   // ACCOUNT
   { view: "settings", label: "Settings", codename: "Settings", keywords: ["settings", "preferences", "config", "options"], group: "Account" },
+  { view: "api-keys", label: "API Keys", codename: "API", blurb: "Add and manage your AI provider API keys (BYOK)", keywords: ["api", "api key", "byok", "keys", "provider", "openai", "anthropic", "gemini", "groq"], group: "Account" },
   { view: "subscription", label: "Subscribe or manage your plan", codename: "Subscription", keywords: ["billing", "subscription", "plan", "upgrade", "pricing", "manage"], group: "Account" },
   { view: "stats", label: "My Usage Stats", codename: "Stats", keywords: ["stats", "usage", "analytics"], group: "Account" },
   { view: "audit", label: "Audit Trail", codename: "Audit", keywords: ["audit", "log", "history", "trail"], group: "Account", access: "pro" },

@@ -65,6 +65,7 @@ const MemoryCenterView = lazyWithRetry(() => import("@/components/dashboard/Memo
 const StatsView = lazyWithRetry(() => import("@/components/dashboard/StatsView"));
 const VedicAstrologyView = lazyWithRetry(() => import("@/components/dashboard/VedicAstrologyView"));
 const SettingsView = lazyWithRetry(() => import("@/components/dashboard/SettingsView"));
+const AIKeysSettings = lazyWithRetry(() => import("@/components/dashboard/AIKeysSettings"));
 const SubscriptionView = lazyWithRetry(() => import("@/components/dashboard/SubscriptionView"));
 const ZophielEngineView = lazyWithRetry(() => import("@/components/dashboard/ZophielEngineView"));
 const AzplenView = lazyWithRetry(() => import("@/components/dashboard/azplen/AzplenView"));
@@ -187,7 +188,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","zaxin","file-scrapper","cipher","vedic-astrology","zahten","media2code"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","api-keys","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","zaxin","file-scrapper","cipher","vedic-astrology","zahten","media2code"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -1494,6 +1495,7 @@ const Dashboard = () => {
       case "stats": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><StatsView /></Suspense></ErrorBoundary>;
       case "vedic-astrology": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><VedicAstrologyView /></Suspense></ErrorBoundary>;
       case "settings": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SettingsView /></Suspense></ErrorBoundary>;
+      case "api-keys": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><div className="h-full overflow-y-auto"><div className="max-w-5xl mx-auto px-6 py-8"><div className="mb-6"><h1 className="text-2xl font-light text-foreground tracking-tight">API Keys</h1><p className="mt-1 text-sm text-muted-foreground">Add and manage your AI provider API keys. Your keys are encrypted and used for BYOK (Bring Your Own Key) requests.</p></div><AIKeysSettings /></div></div></Suspense></ErrorBoundary>;
       case "subscription": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SubscriptionView /></Suspense></ErrorBoundary>;
       case "persona-store": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><PersonaStoreView /></Suspense></ErrorBoundary>;
       case "ide": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense></ErrorBoundary>;
