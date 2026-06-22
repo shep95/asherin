@@ -29,7 +29,7 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "osm-standard",  label: "Street Map — OSM",        status: "live" },
     { id: "osm-topo",      label: "Topographic — OpenTopo",  status: "live" },
     { id: "esri-sat",      label: "Satellite Imagery — ESRI", status: "live" },
-    { id: "carto-dark",    label: "Dark Tactical",            status: "live" },
+    { id: "carto-dark",    label: "Dark Mode",                status: "live" },
     { id: "sat-multispec", label: "Multi-Spectral (IR/Thermal/UV)", status: "soon" },
     { id: "sar",           label: "Synthetic Aperture Radar (SAR)", status: "soon" },
     { id: "nautical",      label: "Nautical Chart",           status: "soon" },
@@ -41,34 +41,16 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "slope",   label: "Slope Analysis",   status: "soon" },
     { id: "viewshed", label: "Viewshed",        status: "soon" },
     { id: "los",     label: "Line of Sight",    status: "soon" },
-    { id: "traffic", label: "Trafficability",   status: "soon" },
   ]},
   { id: "boundaries", label: "Boundaries & Administrative", layers: [
     { id: "borders-intl",   label: "International Borders",     status: "live" },
     { id: "disputed",       label: "Disputed Territories",      status: "soon" },
     { id: "eez",            label: "Exclusive Economic Zones",  status: "soon" },
     { id: "states",         label: "State / Province Boundaries", status: "soon" },
-    { id: "ao",             label: "Area of Operations (AO)",   status: "soon" },
-    { id: "fscl",           label: "Fire Support Coordination Line", status: "soon" },
   ]},
-  { id: "friendly", label: "Friendly Forces (Blue)", layers: [
-    { id: "f-units",   label: "Unit Positions",     status: "soon" },
-    { id: "f-vectors", label: "Movement Vectors",   status: "soon" },
-    { id: "f-fire",    label: "Fire Support",       status: "soon" },
-    { id: "f-air",     label: "Air Assets",         status: "soon" },
-  ]},
-  { id: "enemy", label: "Enemy Forces (Red)", layers: [
-    { id: "e-conf",  label: "Confirmed Positions", status: "soon" },
-    { id: "e-prob",  label: "Probable Positions",  status: "soon" },
-    { id: "e-aoi",   label: "Area of Influence",   status: "soon" },
-    { id: "e-hist",  label: "Historical",          status: "soon" },
-  ]},
-  { id: "intel", label: "Intelligence (GEOINT)", layers: [
-    { id: "imint", label: "IMINT — Imagery Intel", status: "soon" },
-    { id: "sigint", label: "SIGINT — Signals",     status: "soon" },
-    { id: "humint", label: "HUMINT — Reports",     status: "soon" },
-    { id: "osint",  label: "OSINT — Open Source",  status: "soon" },
-    { id: "change", label: "Change Detection",     status: "soon" },
+  { id: "intel", label: "Open-Source Intelligence", layers: [
+    { id: "osint",  label: "OSINT — Open Source Reports", status: "soon" },
+    { id: "change", label: "Change Detection",            status: "soon" },
   ]},
   { id: "infra", label: "Critical Infrastructure", layers: [
     { id: "i-power",   label: "Power Plants & Grid",      status: "soon" },
@@ -79,11 +61,9 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "i-water",    label: "Water Treatment + Dams",  status: "soon" },
     { id: "i-data",     label: "Data Centers + IXP",      status: "soon" },
     { id: "i-gov",      label: "Government Buildings",    status: "soon" },
-    { id: "i-mil",      label: "Military Bases",          status: "soon" },
   ]},
   { id: "transport", label: "Transportation", layers: [
     { id: "t-road",    label: "Road Network",     status: "soon" },
-    { id: "t-msr",     label: "Main Supply Routes (MSR)", status: "soon" },
     { id: "t-rail",    label: "Railway Network",  status: "soon" },
     { id: "t-bridge",  label: "Bridges & Tunnels", status: "soon" },
     { id: "t-airport", label: "Airports / Airfields", status: "soon" },
@@ -93,7 +73,6 @@ const LAYER_TREE: LayerCategory[] = [
   { id: "weather", label: "Weather & Environment", layers: [
     { id: "w-current",  label: "Current Conditions (Open-Meteo)", status: "live" },
     { id: "w-forecast", label: "Weather Forecast",   status: "soon" },
-    { id: "w-tactical", label: "Tactical Weather (cross-winds, visibility)", status: "soon" },
     { id: "w-celestial", label: "Sun / Moon / Tide", status: "soon" },
   ]},
   { id: "demo", label: "Demographics & Population", layers: [
@@ -101,20 +80,12 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "d-eth",   label: "Ethnic Groups",       status: "soon" },
     { id: "d-rel",   label: "Religious Groups",    status: "soon" },
     { id: "d-lang",  label: "Language Distribution", status: "soon" },
-    { id: "d-idp",   label: "Internally Displaced Persons", status: "soon" },
   ]},
-  { id: "threats", label: "Threats & Hazards", layers: [
+  { id: "threats", label: "Natural Hazards", layers: [
     { id: "h-quake",  label: "Live Earthquakes (USGS)", status: "live" },
     { id: "h-fire",   label: "Active Wildfires (NASA FIRMS)", status: "live" },
     { id: "h-air",    label: "Aircraft Traffic (OpenSky)", status: "live" },
-    { id: "h-ied",    label: "IED Locations",       status: "soon" },
-    { id: "h-mine",   label: "Minefields",          status: "soon" },
     { id: "h-env",    label: "Environmental",       status: "soon" },
-  ]},
-  { id: "targeting", label: "Targeting", layers: [
-    { id: "tg-hvt",   label: "High Value Targets", status: "soon" },
-    { id: "tg-pkg",   label: "Target Packages",    status: "soon" },
-    { id: "tg-bda",   label: "Battle Damage Assessment", status: "soon" },
   ]},
 ];
 
