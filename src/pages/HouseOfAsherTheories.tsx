@@ -248,6 +248,7 @@ const THEORIES: Theory[] = [
   {
     id: "cancer-water-metals",
     number: "03",
+    category: "health",
     title: "Cancer Theory — Water Body vs Earth Metals",
     thesis: (
       <>
