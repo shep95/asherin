@@ -131,6 +131,12 @@ const SEO: Record<string, SeoEntry> = {
       "AXRLEN picks for the 23 June 2026 World Cup slate: Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo.",
     ogType: "article",
   },
+  "/blog/predictions/world-cup-2026-group-matches-0624": {
+    title: "AXRLEN Deep Dive — World Cup 2026 Structural & Historical Analysis (23 June) | Aureon",
+    description:
+      "Extended AXRLEN analysis for the 23 June 2026 World Cup slate: squad-structure edges and historical-pattern validation behind the Portugal, England, Croatia, and Colombia picks.",
+    ogType: "article",
+  },
   "/blog/predictions/peru-2026-keiko-fujimori": {
     title: "AXRLEN Prediction — Keiko Fujimori, Future President of Peru 2026 | Aureon",
     description:
