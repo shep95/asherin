@@ -1006,6 +1006,22 @@ const IntelligenceMapModule = () => {
           </button>
         )}
 
+        {/* 3D VIEW TOGGLE */}
+        {entity && (
+          <button
+            onClick={() => setShow3D((v) => !v)}
+            className={`absolute bottom-3 left-[140px] z-[1001] flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-light tracking-[0.2em] uppercase backdrop-blur-md transition-colors ${
+              show3D
+                ? "border-foreground/40 bg-foreground/10 text-foreground"
+                : "border-border/30 bg-card/85 text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+            }`}
+            title="View this property in 3D"
+          >
+            <span className="font-mono">◧</span>
+            3D View
+          </button>
+        )}
+
         {/* LIVE FEEDS PANEL */}
         {entity && showLiveFeeds && (
           <LiveFeedsPanel
@@ -1021,6 +1037,22 @@ const IntelligenceMapModule = () => {
             lat={entity.lat}
             lng={entity.lng}
             onClose={() => setShowLiveFeeds(false)}
+          />
+        )}
+
+        {/* 3D PROPERTY PANEL */}
+        {entity && show3D && (
+          <Property3DPanel
+            label={
+              entity.hit?.address?.city ||
+              entity.hit?.address?.town ||
+              entity.hit?.address?.village ||
+              entity.hit?.display_name?.split(",")[0] ||
+              null
+            }
+            lat={entity.lat}
+            lng={entity.lng}
+            onClose={() => setShow3D(false)}
           />
         )}
 
