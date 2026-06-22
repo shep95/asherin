@@ -209,18 +209,19 @@ Do NOT interpret or predict. Just gather raw intelligence data from this perspec
       return "";
     };
 
-    if (sideA) sideAIntel = await runWebSearch(buildSearchPrompt(`${sideA} perspective`, searchQuery));
-    if (sideB && !upstreamRateLimited) sideBIntel = await runWebSearch(buildSearchPrompt(`${sideB} perspective`, searchQuery));
-    if (!upstreamRateLimited) {
-      const neutralPerspective = otherParties && otherParties !== "none"
-        ? `neutral international sources, UN, and ${otherParties}`
-        : "neutral international sources (Reuters, AP, AFP, Al Jazeera English, BBC World, UN)";
-      neutralIntel = await runWebSearch(buildSearchPrompt(neutralPerspective, searchQuery));
-    }
     if (!sideA && !sideB && !upstreamRateLimited) {
       sideAIntel = await runWebSearch(
         `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about this topic from 5 distinct trusted sources across multiple countries and perspectives. Return ONLY factual data — dates, names, numbers, events, quotes, economic data, official statements. Label each with source type. Do NOT interpret or predict.\n\nTopic: ${searchQuery}`
       );
+    } else {
+      if (sideA) sideAIntel = await runWebSearch(buildSearchPrompt(`${sideA} perspective`, searchQuery));
+      if (sideB && !upstreamRateLimited) sideBIntel = await runWebSearch(buildSearchPrompt(`${sideB} perspective`, searchQuery));
+      if (!upstreamRateLimited) {
+        const neutralPerspective = otherParties && otherParties !== "none"
+          ? `neutral international sources, UN, and ${otherParties}`
+          : "neutral international sources (Reuters, AP, AFP, Al Jazeera English, BBC World, UN)";
+        neutralIntel = await runWebSearch(buildSearchPrompt(neutralPerspective, searchQuery));
+      }
     }
 
     // ══════════════════════════════════════
