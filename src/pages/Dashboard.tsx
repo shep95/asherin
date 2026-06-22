@@ -65,6 +65,7 @@ const MemoryCenterView = lazyWithRetry(() => import("@/components/dashboard/Memo
 const StatsView = lazyWithRetry(() => import("@/components/dashboard/StatsView"));
 const VedicAstrologyView = lazyWithRetry(() => import("@/components/dashboard/VedicAstrologyView"));
 const SettingsView = lazyWithRetry(() => import("@/components/dashboard/SettingsView"));
+const AIKeysSettings = lazyWithRetry(() => import("@/components/dashboard/AIKeysSettings"));
 const SubscriptionView = lazyWithRetry(() => import("@/components/dashboard/SubscriptionView"));
 const ZophielEngineView = lazyWithRetry(() => import("@/components/dashboard/ZophielEngineView"));
 const AzplenView = lazyWithRetry(() => import("@/components/dashboard/azplen/AzplenView"));
