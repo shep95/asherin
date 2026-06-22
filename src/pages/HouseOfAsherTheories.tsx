@@ -423,6 +423,115 @@ function CodeNarrativeQuantumDiagram() {
   );
 }
 
+function CancerTheoryDiagram() {
+  return (
+    <div className="space-y-10">
+      <div className="rounded-2xl border border-border/30 bg-background/40 p-6 space-y-5">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-muted-foreground">
+            ◈ Frame 01 · Water Vessel vs Earth Metal
+          </p>
+          <p className="text-[10px] font-mono tracking-[0.22em] uppercase text-foreground/60">
+            Theorist: <NameLink name="Asher" href="https://x.com/shep_newton" title="#houseofasher emperor and lead researcher and developer" />
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-stretch">
+          <div className="rounded-xl border border-border/40 bg-background/60 p-5 space-y-2">
+            <div className="flex items-center gap-2">
+              <Droplet className="h-4 w-4" strokeWidth={1.5} />
+              <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-muted-foreground">Cancer · Water · Human Vessel</p>
+            </div>
+            <p className="text-sm font-light text-foreground/90">The body is ~60% water. The zodiac sign Cancer is a water sign and represents humanity. The vessel under attack.</p>
+          </div>
+          <div className="rounded-xl border border-foreground/30 bg-foreground/[0.04] p-5 space-y-2 flex flex-col justify-center items-center text-center">
+            <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-foreground/70">Opposition</p>
+            <p className="text-3xl font-extralight text-foreground/80">⇋</p>
+            <p className="text-[11px] font-extralight text-muted-foreground leading-relaxed">Earth corrupts water. Metal (earth) embedded in tissue (water) oxidizes over time — rust the body cannot clear.</p>
+          </div>
+          <div className="rounded-xl border border-border/40 bg-background/60 p-5 space-y-2">
+            <div className="flex items-center gap-2">
+              <Mountain className="h-4 w-4" strokeWidth={1.5} />
+              <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-muted-foreground">Capricorn · Earth · Metals</p>
+            </div>
+            <p className="text-sm font-light text-foreground/90">Capricorn is Cancer's opposite — an earth sign. Metals are a sub-domain of earth. The natural adversary of the water vessel.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border/30 bg-background/40 p-6 space-y-5">
+        <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-muted-foreground">
+          ◈ Frame 02 · How The Disease Forms
+        </p>
+        <div className="flex items-center gap-3 overflow-x-auto pb-2">
+          <Pipe label="Consume · Inject · Absorb · Breathe" sub="Metal entry" />
+          <Arrow />
+          <Pipe label="Metals settle in localized tissue" sub="Accumulation" />
+          <Arrow />
+          <Pipe label="Metal + water + time = oxidation" sub="Biological rust" />
+          <Arrow />
+          <Pipe label="Local irritation + cellular reaction" sub="Tumor formation" />
+          <Arrow />
+          <Pipe label="Diagnosis: cancer" sub="Symptom, not root" />
+        </div>
+        <p className="text-xs font-extralight leading-relaxed text-muted-foreground max-w-3xl">
+          The visible disease is the downstream symptom. The upstream cause is a foreign earth element corroding a water environment that was never designed to host it.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-foreground/30 bg-foreground/[0.04] p-6 space-y-5">
+        <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-foreground/80">
+          ◆ Frame 03 · Asher's Counter-Protocol
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border border-border/30 bg-background/60 p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="h-4 w-4" strokeWidth={1.5} />
+              <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-muted-foreground">Step 01 · Chelate</p>
+            </div>
+            <p className="text-sm font-light text-foreground/90">1× BORON capsule</p>
+            <p className="text-[11px] font-extralight text-muted-foreground leading-relaxed">Displaces and mobilizes heavy metals (notably aluminum + fluoride compounds) so the body can route them to excretion pathways.</p>
+          </div>
+          <div className="rounded-xl border border-border/30 bg-background/60 p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Leaf className="h-4 w-4" strokeWidth={1.5} />
+              <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-muted-foreground">Step 02 · Purge Parasites</p>
+            </div>
+            <p className="text-sm font-light text-foreground/90">2× ORGANIC INDIA Neem Leaf</p>
+            <p className="text-[11px] font-extralight text-muted-foreground leading-relaxed">Parasites concentrate metals and continuously re-poison the host. Clearing them prevents the water vessel from being re-contaminated.</p>
+          </div>
+          <div className="rounded-xl border border-border/30 bg-background/60 p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Recycle className="h-4 w-4" strokeWidth={1.5} />
+              <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-muted-foreground">Step 03 · Clean The Water</p>
+            </div>
+            <p className="text-sm font-light text-foreground/90">Support liver · kidney · lymph · bowel · sweat</p>
+            <p className="text-[11px] font-extralight text-muted-foreground leading-relaxed">Hydration, movement and sweat keep the water terrain flowing so mobilized toxins exit rather than re-deposit.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 overflow-x-auto pb-2 pt-2">
+          <Pipe label="Daily intake" sub="1 BORON + 2 NEEM" />
+          <Arrow />
+          <Pipe label="Metals mobilized" sub="Chelation" />
+          <Arrow />
+          <Pipe label="Parasites cleared" sub="Host reset" />
+          <Arrow />
+          <Pipe label="Water vessel flushed" sub="Detox pathways" />
+          <Arrow />
+          <Pipe label="Substrate of disease removed" sub="Outcome" />
+        </div>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-4 space-y-1">
+          <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-amber-500/90">⚠ Disclaimer</p>
+          <p className="text-xs font-extralight leading-relaxed text-foreground/80">
+            Asher Newton is not a doctor. This is a public theory shared in the spirit of cross-domain research — not medical advice, diagnosis, or treatment. Consult a qualified healthcare professional before changing any health regimen, especially in connection with a cancer diagnosis.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
 
 const HouseOfAsherTheories = () => {
   useEffect(() => {
