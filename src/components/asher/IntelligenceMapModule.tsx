@@ -18,7 +18,7 @@ import { getActiveIntelMapByok } from "@/lib/intelMapByok";
    ASHER — Real-time Intelligence Map
    100% live data: OpenStreetMap base tiles, Nominatim search,
    REST Countries for sovereign profiles, Overpass for facility
-   detail, Open-Meteo for tactical weather. No mocked data.
+   detail, Open-Meteo for live weather. No mocked data.
    ───────────────────────────────────────────────────────────── */
 
 interface LayerLeaf { id: string; label: string; status: "live" | "soon"; sub?: string; }
