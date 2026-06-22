@@ -129,13 +129,12 @@ const FeatureAxrlen = () => (
             probability, a resolution window, and a named outcome that can
             be checked against reality. The first publicly tracked AXRLEN
             forecast is{" "}
-            <a href="/blog/predictions/ai-regulation-q4-2026" className="text-accent hover:underline">
-              the Q4 2026 AI-regulation prediction
+            <a href="/blog/predictions/world-cup-2026-group-matches-0622" className="text-accent hover:underline">
+              the World Cup 2026 — 22 June slate
             </a>{" "}
-            — 72% probability of a major US or EU AI regulatory action
-            between October 1 and December 15, 2026, with the trigger
-            conditions, signal sources, and verification rules documented
-            in full.
+            — four group-stage picks (Argentina, France, Norway, Algeria)
+            with confidence weights, generated live on 22 June 2026 at
+            12:25 PM EST.
           </p>
 
           <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">
@@ -230,7 +229,7 @@ const FeatureAxrlen = () => (
               },
               {
                 q: "Where can I read a live AXRLEN forecast?",
-                a: "The Q4 2026 AI regulation forecast at /blog/predictions/ai-regulation-q4-2026 is the worked example with full methodology, signal breakdown, and verification plan.",
+                a: "The World Cup 2026 — 22 June slate at /blog/predictions/world-cup-2026-group-matches-0622 is the worked example with four picks, confidence weights, and verification plan.",
               },
             ]}
           />
@@ -239,9 +238,9 @@ const FeatureAxrlen = () => (
             heading="Continue down the AXRLEN cluster"
             links={[
               {
-                to: "/blog/predictions/ai-regulation-q4-2026",
-                label: "AXRLEN forecast — AI regulation in Q4 2026",
-                description: "The live 72% probability forecast, methodology, and verification plan.",
+                to: "/blog/predictions/world-cup-2026-group-matches-0622",
+                label: "AXRLEN forecast — World Cup 22 June slate",
+                description: "Four live group-stage picks with confidence weights and verification plan.",
               },
               {
                 to: "/blog/how-ai-predictive-forecasting-works",

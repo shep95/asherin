@@ -184,13 +184,12 @@ const HowAiPredictiveForecastingWorks = () => (
       — the Nexus Prime engine — is Aureon's implementation. It binds
       probability to language with the calibration bands above, fuses
       five required signal classes per forecast, and ships verification
-      plans with every published prediction. The Q4 2026 AI regulation
-      forecast — 72% probability between Oct 1 and Dec 15, 2026 — is
-      the live worked example. Read it at{" "}
-      <a href="/blog/predictions/ai-regulation-q4-2026" className="text-accent hover:underline">
+      plans with every published prediction. The World Cup 2026 — 22
+      June slate is the live worked example. Read it at{" "}
+      <a href="/blog/predictions/world-cup-2026-group-matches-0622" className="text-accent hover:underline">
         the published forecast
-      </a>{" "}
-      and watch the resolution land in January.
+      </a>
+      .
     </p>
 
     <FaqJsonLd
@@ -219,9 +218,9 @@ const HowAiPredictiveForecastingWorks = () => (
           description: "Aureon's implementation of the four-ingredient forecasting method.",
         },
         {
-          to: "/blog/predictions/ai-regulation-q4-2026",
-          label: "AXRLEN forecast — Q4 2026 AI regulation",
-          description: "The live worked example: 72% probability, Oct 1 - Dec 15 window, full methodology.",
+          to: "/blog/predictions/world-cup-2026-group-matches-0622",
+          label: "AXRLEN forecast — World Cup 22 June slate",
+          description: "The live worked example: four picks with confidence weights and verification plan.",
         },
         {
           to: "/glossary/predictive-intelligence-ai",

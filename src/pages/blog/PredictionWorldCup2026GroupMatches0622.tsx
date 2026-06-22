@@ -72,7 +72,7 @@ const PredictionWorldCup2026GroupMatches0622 = () => (
       links={[
         { to: "/feature/axrlen", label: "AXRLEN — the predictive engine", description: "The probabilistic scenario engine that generated these picks." },
         { to: "/blog/how-ai-predictive-forecasting-works", label: "How AI predictive forecasting works", description: "Probability, window, signal fusion, verification — the four ingredients." },
-        { to: "/blog/predictions/peru-president-2026", label: "Who will be the next president of Peru?", description: "Another live AXRLEN forecast." },
+        { to: "/blog/how-ai-predictive-forecasting-works", label: "How AI predictive forecasting works", description: "The four ingredients real forecasts need." },
       ]}
     />
   </ArticleShell>

@@ -119,10 +119,10 @@ const SEO: Record<string, SeoEntry> = {
       "Model choice, prompt discipline, refusal-detection, and the three workflow patterns that survive long sessions on uncensored AI.",
     ogType: "article",
   },
-  "/blog/predictions/ai-regulation-q4-2026": {
-    title: "AXRLEN Forecast — AI Regulation in Q4 2026 | Aureon",
+  "/blog/predictions/world-cup-2026-group-matches-0622": {
+    title: "AXRLEN Forecast — World Cup 2026 Group Matches (22 June) | Aureon",
     description:
-      "Aureon's predictive engine assigns 72% probability to a major US or EU AI regulatory action between Oct 1 and Dec 15 2026. Methodology and verification plan.",
+      "AXRLEN picks for the 22 June 2026 World Cup slate: Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan.",
     ogType: "article",
   },
   "/blog/aureon-pricing-explained": {

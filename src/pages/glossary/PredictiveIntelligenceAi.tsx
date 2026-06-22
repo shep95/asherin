@@ -164,8 +164,8 @@ const PredictiveIntelligenceAi = () => (
           description: "The four ingredients in depth.",
         },
         {
-          to: "/blog/predictions/ai-regulation-q4-2026",
-          label: "AXRLEN forecast — Q4 2026 AI regulation",
+          to: "/blog/predictions/world-cup-2026-group-matches-0622",
+          label: "AXRLEN forecast — World Cup 22 June slate",
           description: "The live worked example.",
         },
       ]}

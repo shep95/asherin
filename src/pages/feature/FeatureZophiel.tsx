@@ -227,8 +227,8 @@ const FeatureZophiel = () => {
                   description: "The practical workflow Zophiel is designed to slot into.",
                 },
                 {
-                  to: "/blog/predictions/ai-regulation-q4-2026",
-                  label: "AXRLEN Forecast: AI regulation in Q4 2026",
+                  to: "/blog/predictions/world-cup-2026-group-matches-0622",
+                  label: "AXRLEN Forecast: World Cup 22 June slate",
                   description: "An AXRLEN forecast built on top of Zophiel's signal collection.",
                 },
               ]}
