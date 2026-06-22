@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
@@ -8,14 +8,18 @@ import { ArrowUpRight } from "lucide-react";
  * /blog — Blog index. Lists every long-form article under /blog/*.
  * As new /blog/<slug> pages are added, register them here so this page,
  * the header dropdown, and the sitemap stay in sync.
+ *
+ * `published` is a full ISO-8601 datetime (UTC) for AXRLEN-engine posts so
+ * the exact generation hour/min/sec is visible. Date-only strings are
+ * still supported for legacy posts.
  */
 
 type Post = {
-  slug: string;          // path under /blog
+  slug: string;
   title: string;
-  dek: string;           // sub-headline
+  dek: string;
   tag: string;
-  published: string;     // YYYY-MM-DD
+  published: string; // ISO-8601: YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ
   readTime: string;
   featured?: boolean;
 };
@@ -35,7 +39,7 @@ export const BLOG_POSTS: Post[] = [
     title: "AXRLEN Forecast — Will WW3 happen? Probabilities for 2026-2030",
     dek: "AXRLEN assigns an 8% probability to a WW3-tier event and 47% to a regional conflict with great-power proxy involvement across 2026-2030. Three pathways, seven signals, named off-ramps.",
     tag: "Prediction",
-    published: "2026-06-22",
+    published: "2026-06-22T15:57:54.889Z",
     readTime: "11 min",
     featured: true,
   },
@@ -44,7 +48,7 @@ export const BLOG_POSTS: Post[] = [
     title: "AXRLEN Global War Watch 2026 — active and emergent conflicts",
     dek: "Seven theatres on a rolling 12-month watch: Ukraine, Middle East, Taiwan Strait, Sahel, Korean peninsula, Kashmir, and the South China Sea. Tier probabilities and off-ramps per theatre.",
     tag: "Prediction",
-    published: "2026-06-22",
+    published: "2026-06-22T15:58:25.892Z",
     readTime: "12 min",
   },
   {
@@ -52,7 +56,7 @@ export const BLOG_POSTS: Post[] = [
     title: "AXRLEN Forecast — India 2026-2030 economic, political, geopolitical",
     dek: "71% probability India becomes the world's 3rd-largest economy before end-2028. 6.0-7.4% growth band. 58% BJP continuity through 2029. Named risks and verification plan.",
     tag: "Prediction",
-    published: "2026-06-22",
+    published: "2026-06-22T15:58:09.469Z",
     readTime: "10 min",
   },
   {
@@ -60,7 +64,7 @@ export const BLOG_POSTS: Post[] = [
     title: "AXRLEN Forecast — Who will win the 2026 FIFA World Cup",
     dek: "France 18%, Argentina 16%, Brazil 15%, England 12%, Spain 11%. Host advantage modelled, signal stack disclosed, verification on July 20 2026.",
     tag: "Prediction",
-    published: "2026-06-22",
+    published: "2026-06-22T15:57:35.069Z",
     readTime: "8 min",
   },
   {
@@ -68,7 +72,7 @@ export const BLOG_POSTS: Post[] = [
     title: "AXRLEN Forecast — Who will be the next president of Peru",
     dek: "64% probability the next president comes from outside the current ruling coalition. Archetype distribution, five signals, named conditions that would collapse the forecast.",
     tag: "Prediction",
-    published: "2026-06-22",
+    published: "2026-06-22T15:57:19.493Z",
     readTime: "9 min",
   },
   {
@@ -153,15 +157,38 @@ export const BLOG_POSTS: Post[] = [
   },
 ];
 
-const fmt = (iso: string) =>
-  new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", {
+// Normalize any published string to a full ISO timestamp.
+const toIso = (s: string) => (s.includes("T") ? s : `${s}T00:00:00Z`);
+
+const hasTime = (s: string) => s.includes("T");
+
+const fmtDate = (iso: string) =>
+  new Date(toIso(iso)).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
     timeZone: "UTC",
   });
 
+// Precise hh:mm:ss UTC stamp (e.g. "15:57:54 UTC"). Returns null for date-only posts.
+const fmtTime = (iso: string) => {
+  if (!hasTime(iso)) return null;
+  const d = new Date(iso);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  const ss = String(d.getUTCSeconds()).padStart(2, "0");
+  return `${hh}:${mm}:${ss} UTC`;
+};
+
+const ALL_TAGS = (posts: Post[]) =>
+  Array.from(new Set(posts.map((p) => p.tag))).sort();
+
 const Blog = () => {
+  const [tagFilter, setTagFilter] = useState<string>("All");
+  const [sort, setSort] = useState<"newest" | "oldest">("newest");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+
   useEffect(() => {
     const id = "blog-index-jsonld";
     let el = document.getElementById(id) as HTMLScriptElement | null;
@@ -181,7 +208,7 @@ const Blog = () => {
         headline: p.title,
         description: p.dek,
         url: `https://aureonai.app${p.slug}`,
-        datePublished: p.published,
+        datePublished: toIso(p.published),
       })),
     });
     return () => {
@@ -189,8 +216,28 @@ const Blog = () => {
     };
   }, []);
 
+  const tags = useMemo(() => ["All", ...ALL_TAGS(BLOG_POSTS)], []);
+
+  const filtered = useMemo(() => {
+    const fromMs = dateFrom ? Date.parse(`${dateFrom}T00:00:00Z`) : -Infinity;
+    const toMs = dateTo ? Date.parse(`${dateTo}T23:59:59Z`) : Infinity;
+    return BLOG_POSTS
+      .filter((p) => (tagFilter === "All" ? true : p.tag === tagFilter))
+      .filter((p) => {
+        const t = Date.parse(toIso(p.published));
+        return t >= fromMs && t <= toMs;
+      })
+      .sort((a, b) => {
+        const ta = Date.parse(toIso(a.published));
+        const tb = Date.parse(toIso(b.published));
+        return sort === "newest" ? tb - ta : ta - tb;
+      });
+  }, [tagFilter, sort, dateFrom, dateTo]);
+
   const featured = BLOG_POSTS.find((p) => p.featured) ?? BLOG_POSTS[0];
-  const rest = BLOG_POSTS.filter((p) => p.slug !== featured?.slug);
+  const isFiltering =
+    tagFilter !== "All" || sort !== "newest" || dateFrom || dateTo;
+  const listed = isFiltering ? filtered : filtered.filter((p) => p.slug !== featured?.slug);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -212,8 +259,8 @@ const Blog = () => {
           </p>
         </header>
 
-        {/* FEATURED */}
-        {featured && (
+        {/* FEATURED (hidden while user is actively filtering) */}
+        {featured && !isFiltering && (
           <section aria-label="Featured article">
             <Link
               to={featured.slug}
@@ -221,13 +268,16 @@ const Blog = () => {
             >
               <div className="grid sm:grid-cols-[1fr_auto] gap-8 items-end">
                 <div className="space-y-5">
-                  <div className="flex items-center gap-3 text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
                     <span className="px-2 py-0.5 rounded-full border border-foreground/20 text-foreground/80">
                       ◉ Featured
                     </span>
                     <span>{featured.tag}</span>
                     <span aria-hidden>·</span>
-                    <time dateTime={featured.published}>{fmt(featured.published)}</time>
+                    <time dateTime={toIso(featured.published)}>
+                      {fmtDate(featured.published)}
+                      {fmtTime(featured.published) ? ` · ${fmtTime(featured.published)}` : ""}
+                    </time>
                     <span aria-hidden>·</span>
                     <span>{featured.readTime}</span>
                   </div>
@@ -248,50 +298,132 @@ const Blog = () => {
           </section>
         )}
 
+        {/* FILTERS */}
+        <section aria-label="Filter articles" className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {tags.map((t) => {
+              const active = tagFilter === t;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTagFilter(t)}
+                  aria-pressed={active}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-[0.25em] uppercase border transition-all ${
+                    active
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-border/40 text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+                  }`}
+                >
+                  {t}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium tracking-[0.2em] uppercase text-muted-foreground">
+            <label className="flex items-center gap-2">
+              <span>From</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="bg-card/40 border border-border/40 rounded-md px-2 py-1 text-foreground"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <span>To</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="bg-card/40 border border-border/40 rounded-md px-2 py-1 text-foreground"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <span>Sort</span>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as "newest" | "oldest")}
+                className="bg-card/40 border border-border/40 rounded-md px-2 py-1 text-foreground"
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+              </select>
+            </label>
+            {isFiltering ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setTagFilter("All");
+                  setSort("newest");
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                className="ml-1 underline-offset-4 hover:underline text-foreground"
+              >
+                Reset
+              </button>
+            ) : null}
+            <span className="ml-auto">{filtered.length} matching</span>
+          </div>
+        </section>
+
         {/* GRID */}
-        {rest.length > 0 ? (
+        {listed.length > 0 ? (
           <section aria-label="All articles" className="space-y-6">
             <div className="flex items-baseline justify-between">
-              <h2 className="text-2xl font-light tracking-tight">All articles</h2>
+              <h2 className="text-2xl font-light tracking-tight">
+                {isFiltering ? "Filtered results" : "All articles"}
+              </h2>
               <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                ◈ {BLOG_POSTS.length} total
+                ◈ {listed.length} shown
               </span>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {rest.map((p) => (
-                <Link
-                  key={p.slug}
-                  to={p.slug}
-                  className="group flex flex-col gap-4 rounded-2xl border border-border/30 bg-card/10 backdrop-blur-sm p-6 transition-all hover:border-foreground/30 hover:bg-card/30"
-                >
-                  <div className="flex items-center gap-2 text-[9px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                    <span>{p.tag}</span>
-                    <span aria-hidden>·</span>
-                    <time dateTime={p.published}>{fmt(p.published)}</time>
-                  </div>
-                  <h3 className="text-lg font-light tracking-tight text-foreground leading-snug flex-1">
-                    {p.title}
-                  </h3>
-                  <p className="text-sm font-extralight text-muted-foreground leading-relaxed line-clamp-3">
-                    {p.dek}
-                  </p>
-                  <div className="flex items-center justify-between pt-2 border-t border-border/20">
-                    <span className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">
-                      {p.readTime}
-                    </span>
-                    <ArrowUpRight
-                      className="h-4 w-4 text-muted-foreground transition-all group-hover:text-foreground group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                      strokeWidth={1.5}
-                    />
-                  </div>
-                </Link>
-              ))}
+              {listed.map((p) => {
+                const time = fmtTime(p.published);
+                return (
+                  <Link
+                    key={p.slug}
+                    to={p.slug}
+                    className="group flex flex-col gap-4 rounded-2xl border border-border/30 bg-card/10 backdrop-blur-sm p-6 transition-all hover:border-foreground/30 hover:bg-card/30"
+                  >
+                    <div className="flex flex-wrap items-center gap-2 text-[9px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+                      <span>{p.tag}</span>
+                      <span aria-hidden>·</span>
+                      <time dateTime={toIso(p.published)}>{fmtDate(p.published)}</time>
+                      {time ? (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span className="tabular-nums">{time}</span>
+                        </>
+                      ) : null}
+                    </div>
+                    <h3 className="text-lg font-light tracking-tight text-foreground leading-snug flex-1">
+                      {p.title}
+                    </h3>
+                    <p className="text-sm font-extralight text-muted-foreground leading-relaxed line-clamp-3">
+                      {p.dek}
+                    </p>
+                    <div className="flex items-center justify-between pt-2 border-t border-border/20">
+                      <span className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">
+                        {p.readTime}
+                      </span>
+                      <ArrowUpRight
+                        className="h-4 w-4 text-muted-foreground transition-all group-hover:text-foreground group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                        strokeWidth={1.5}
+                      />
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </section>
         ) : (
           <section className="rounded-2xl border border-dashed border-border/40 p-12 text-center">
             <p className="text-sm font-extralight text-muted-foreground">
-              More field reports landing soon.
+              No articles match these filters.
             </p>
           </section>
         )}
