@@ -181,7 +181,7 @@ const AsherImagineAIPanel = () => {
             </div>
             {m.image && (
               <div className="mt-2 space-y-1">
-                <img src={m.image} alt="Generated" className="rounded-lg border border-border/20 w-full" />
+                <img src={m.image} alt="AI generated intelligence visualization" className="rounded-lg border border-border/20 w-full" />
                 <div className="flex gap-1">
                   <a
                     href={m.image}

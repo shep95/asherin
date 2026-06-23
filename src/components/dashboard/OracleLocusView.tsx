@@ -426,7 +426,7 @@ const OracleLocusView = () => {
               >
                 {imagePreview ? (
                   <div className="relative">
-                    <img src={imagePreview} alt="Target" className="w-full max-h-[400px] object-contain bg-black/20" />
+                    <img src={imagePreview} alt="Target subject uploaded for locus analysis" className="w-full max-h-[400px] object-contain bg-black/20" />
                     <button onClick={clearImage} className="absolute top-3 right-3 rounded-lg bg-card/80 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors">
                       <X className="h-4 w-4" />
                     </button>
@@ -695,7 +695,7 @@ const OracleLocusView = () => {
                     {history.map((h, i) => (
                       <button key={i} onClick={() => { setImagePreview(h.image); setImageBase64(h.image.split(",")[1]); setResult(h.result); }}
                         className="rounded-xl border border-border/10 bg-card/10 overflow-hidden hover:border-accent/20 transition-colors text-left">
-                        <img src={h.image} alt="Previous" className="w-full h-24 object-cover" />
+                        <img src={h.image} alt="Previous locus analysis target" className="w-full h-24 object-cover" />
                         <div className="p-2.5">
                           <p className="text-[10px] text-foreground truncate">{h.result.most_probable_macro_region}</p>
                           <p className="text-[9px] text-muted-foreground">{h.result.confidence_score}% · {h.result.status}</p>
