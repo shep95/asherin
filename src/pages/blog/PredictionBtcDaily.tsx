@@ -58,28 +58,54 @@ const PredictionBtcDaily = () => {
   }, []);
 
   const [priceSource, setPriceSource] = useState<string>("");
+  const [priceUpdatedAt, setPriceUpdatedAt] = useState<number | null>(null);
+  const [now, setNow] = useState<number>(Date.now());
+
   useEffect(() => {
-    const sources: { name: string; url: string; pick: (j: any) => number | null }[] = [
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/btc-spot`;
+    const clientSources: { name: string; url: string; pick: (j: any) => number | null }[] = [
       { name: "Coinbase", url: "https://api.coinbase.com/v2/prices/BTC-USD/spot", pick: (j) => Number(j?.data?.amount) || null },
+      { name: "Bitstamp", url: "https://www.bitstamp.net/api/v2/ticker/btcusd/", pick: (j) => Number(j?.last) || null },
       { name: "Kraken", url: "https://api.kraken.com/0/public/Ticker?pair=XBTUSD", pick: (j) => Number(j?.result?.XXBTZUSD?.c?.[0]) || null },
-      { name: "Binance", url: "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", pick: (j) => Number(j?.price) || null },
-      { name: "CoinGecko", url: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", pick: (j) => j?.bitcoin?.usd ?? null },
     ];
     const fetchPrice = async () => {
-      for (const s of sources) {
+      // Server-side proxy first (no CORS / geo issues)
+      try {
+        const r = await fetch(proxyUrl, { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } });
+        if (r.ok) {
+          const j = await r.json();
+          if (j?.price > 0) { setLivePrice(j.price); setPriceSource(j.source); setPriceUpdatedAt(Date.now()); return; }
+        }
+      } catch { /* fall through */ }
+      // Client-side fallback
+      for (const s of clientSources) {
         try {
           const r = await fetch(s.url);
           if (!r.ok) continue;
           const j = await r.json();
           const p = s.pick(j);
-          if (p && p > 0) { setLivePrice(p); setPriceSource(s.name); return; }
-        } catch { /* try next */ }
+          if (p && p > 0) { setLivePrice(p); setPriceSource(s.name); setPriceUpdatedAt(Date.now()); return; }
+        } catch { /* next */ }
       }
     };
     fetchPrice();
-    const i = setInterval(fetchPrice, 30_000);
+    const i = setInterval(fetchPrice, 15_000);
     return () => clearInterval(i);
   }, []);
+
+  const fmtAgo = (ms: number) => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    if (s < 60) return `${s}s ago`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}m ${s % 60}s ago`;
+    const h = Math.floor(m / 60);
+    return `${h}h ${m % 60}m ago`;
+  };
 
   const latest = data?.latest;
   const stats = data?.stats;
@@ -139,17 +165,37 @@ const PredictionBtcDaily = () => {
             No prediction yet — the next AXRLEN call generates at 07:00 EST.
           </div>
         )}
-        {latest && (
+        {latest && (() => {
+          const generatedMs = new Date(latest.generated_at).getTime();
+          const ageMs = now - generatedMs;
+          const within30 = ageMs <= 30 * 60_000;
+          const entryHit = livePrice != null && (
+            latest.direction === "LONG" ? livePrice <= latest.entry_price : livePrice >= latest.entry_price
+          );
+          const cancelled = latest.status === "OPEN" && !within30 && !entryHit;
+          const displayStatus = cancelled ? "CANCELLED" : latest.status;
+          return (
           <section className="mb-12 rounded-2xl border border-border/40 bg-card/30 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[10px] tracking-[0.4em] uppercase text-accent/80">
-                ◈ AXRLEN Call · {new Date(latest.generated_at).toUTCString()}
-              </p>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <p className="text-[10px] tracking-[0.4em] uppercase text-accent/80">
+                  ◈ AXRLEN Call · {new Date(latest.generated_at).toUTCString()}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">
+                  Prediction made <span className="text-foreground">{fmtAgo(ageMs)}</span>
+                  {latest.status === "OPEN" && (
+                    within30
+                      ? <span className="ml-2 text-accent/80">· {fmtAgo(30 * 60_000 - ageMs).replace(" ago", "")} until entry-fill window closes</span>
+                      : !entryHit && <span className="ml-2 text-red-400/80">· entry never filled within 30m window</span>
+                  )}
+                </p>
+              </div>
               <span className={`text-[10px] tracking-[0.3em] uppercase px-2 py-1 rounded-full border ${
-                latest.status === "WIN" ? "border-emerald-400/40 text-emerald-400" :
-                latest.status === "LOSS" ? "border-red-400/40 text-red-400" :
+                displayStatus === "WIN" ? "border-emerald-400/40 text-emerald-400" :
+                displayStatus === "LOSS" ? "border-red-400/40 text-red-400" :
+                displayStatus === "CANCELLED" ? "border-muted-foreground/40 text-muted-foreground" :
                 "border-accent/40 text-accent"
-              }`}>{latest.status}</span>
+              }`}>{displayStatus}</span>
             </div>
 
             <div className="flex items-center gap-3 mb-4">
@@ -192,7 +238,8 @@ const PredictionBtcDaily = () => {
               </div>
             )}
           </section>
-        )}
+          );
+        })()}
 
         {/* History / Logs */}
         {data?.history && data.history.length > 0 && (
