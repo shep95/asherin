@@ -46,6 +46,7 @@ const BlogPredictionChinaTaiwan2026Flashpoint = lazy(() => import("./pages/blog/
 const BlogPredictionIsraelIran2026ShadowWar = lazy(() => import("./pages/blog/PredictionIsraelIran2026ShadowWar"));
 const BlogTheCryptoDumpOctober2026 = lazy(() => import("./pages/blog/TheCryptoDumpOctober2026"));
 const BlogPredictionBtcDaily = lazy(() => import("./pages/blog/PredictionBtcDaily"));
+const BlogTheTruthAndRealityOfWars = lazy(() => import("./pages/blog/TheTruthAndRealityOfWars"));
 const BlogEliteCorporationsAlgorithmsVsAxrlen = lazy(() => import("./pages/blog/EliteCorporationsAlgorithmsVsAxrlen"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
 const FeatureZerlal = lazy(() => import("./pages/feature/FeatureZerlal"));
@@ -135,6 +136,7 @@ const App = () => (
             <Route path="/blog/the-crypto-dump-october-2026" element={<BlogTheCryptoDumpOctober2026 />} />
             <Route path="/blog/elite-corporations-algorithms-vs-axrlen" element={<BlogEliteCorporationsAlgorithmsVsAxrlen />} />
             <Route path="/blog/btc-daily-predictions" element={<BlogPredictionBtcDaily />} />
+            <Route path="/blog/the-truth-and-reality-of-wars" element={<BlogTheTruthAndRealityOfWars />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
