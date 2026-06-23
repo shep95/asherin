@@ -22,6 +22,7 @@ type Post = {
   published: string; // ISO-8601: YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ
   readTime: string;
   featured?: boolean;
+  pinned?: boolean;
 };
 
 export const BLOG_POSTS: Post[] = [
@@ -33,6 +34,7 @@ export const BLOG_POSTS: Post[] = [
     published: new Date().toISOString(),
     readTime: "Live",
     featured: true,
+    pinned: true,
   },
   {
     slug: "/blog/elite-corporations-algorithms-vs-axrlen",
@@ -283,10 +285,11 @@ const Blog = () => {
       });
   }, [tagFilter, sort, dateFrom, dateTo]);
 
-  const featured = BLOG_POSTS.find((p) => p.featured) ?? BLOG_POSTS[0];
+  const pinned = BLOG_POSTS.find((p) => p.pinned);
+  const featured = pinned ?? BLOG_POSTS.find((p) => p.featured) ?? BLOG_POSTS[0];
   const isFiltering =
     tagFilter !== "All" || sort !== "newest" || dateFrom || dateTo;
-  const listed = isFiltering ? filtered : filtered.filter((p) => p.slug !== featured?.slug);
+  const listed = filtered.filter((p) => p.slug !== featured?.slug);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -308,18 +311,18 @@ const Blog = () => {
           </p>
         </header>
 
-        {/* FEATURED (hidden while user is actively filtering) */}
-        {featured && !isFiltering && (
-          <section aria-label="Featured article">
+        {/* FEATURED / PINNED — always visible so the live BTC call stays on top */}
+        {featured && (
+          <section aria-label={featured.pinned ? "Pinned article" : "Featured article"}>
             <Link
               to={featured.slug}
-              className="group block rounded-3xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 sm:p-12 transition-all hover:border-foreground/30 hover:bg-card/40"
+              className="group block rounded-3xl border border-foreground/30 bg-card/30 backdrop-blur-sm p-8 sm:p-12 transition-all hover:border-foreground/50 hover:bg-card/50"
             >
               <div className="grid sm:grid-cols-[1fr_auto] gap-8 items-end">
                 <div className="space-y-5">
                   <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                    <span className="px-2 py-0.5 rounded-full border border-foreground/20 text-foreground/80">
-                      ◉ Featured
+                    <span className="px-2 py-0.5 rounded-full border border-foreground/40 bg-foreground/10 text-foreground">
+                      {featured.pinned ? "◈ Pinned" : "◉ Featured"}
                     </span>
                     <span>{featured.tag}</span>
                     <span aria-hidden>·</span>
