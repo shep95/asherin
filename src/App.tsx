@@ -140,6 +140,8 @@ const App = () => (
             <Route path="/blog/btc-daily-predictions" element={<BlogPredictionBtcDaily />} />
             <Route path="/blog/the-truth-and-reality-of-wars" element={<BlogTheTruthAndRealityOfWars />} />
             <Route path="/updates" element={<Updates />} />
+            <Route path="/investors" element={<Investors />} />
+
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
             <Route path="/glossary/sovereign-ai" element={<GlossarySovereignAi />} />
