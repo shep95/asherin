@@ -41,6 +41,9 @@ const BlogPredictionWorldCup2026GroupMatches0623 = lazy(() => import("./pages/bl
 const BlogPredictionWorldCup2026GroupMatches0624 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0624"));
 const BlogPredictionWorldCup2026GroupMatches0625 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0625"));
 const BlogPredictionPeru2026KeikoFujimori = lazy(() => import("./pages/blog/PredictionPeru2026KeikoFujimori"));
+const BlogPredictionRussiaUkraineWar2026Endgame = lazy(() => import("./pages/blog/PredictionRussiaUkraineWar2026Endgame"));
+const BlogPredictionChinaTaiwan2026Flashpoint = lazy(() => import("./pages/blog/PredictionChinaTaiwan2026Flashpoint"));
+const BlogPredictionIsraelIran2026ShadowWar = lazy(() => import("./pages/blog/PredictionIsraelIran2026ShadowWar"));
 const BlogTheCryptoDumpOctober2026 = lazy(() => import("./pages/blog/TheCryptoDumpOctober2026"));
 const BlogEliteCorporationsAlgorithmsVsAxrlen = lazy(() => import("./pages/blog/EliteCorporationsAlgorithmsVsAxrlen"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
