@@ -22,6 +22,7 @@ type Post = {
   published: string; // ISO-8601: YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ
   readTime: string;
   featured?: boolean;
+  pinned?: boolean;
 };
 
 export const BLOG_POSTS: Post[] = [
@@ -33,6 +34,7 @@ export const BLOG_POSTS: Post[] = [
     published: new Date().toISOString(),
     readTime: "Live",
     featured: true,
+    pinned: true,
   },
   {
     slug: "/blog/elite-corporations-algorithms-vs-axrlen",
