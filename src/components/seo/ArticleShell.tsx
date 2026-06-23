@@ -18,6 +18,7 @@ interface Props {
   publishedLabel?: string;
   readTime?: string;
   backTo?: { to: string; label: string };
+  image?: ReactNode;
   children: ReactNode;
 }
 
