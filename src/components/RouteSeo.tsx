@@ -137,6 +137,12 @@ const SEO: Record<string, SeoEntry> = {
       "Structural and historical AXRLEN analysis behind the 23 June 2026 picks: Portugal, England, Croatia, and Colombia.",
     ogType: "article",
   },
+  "/blog/predictions/world-cup-2026-group-matches-0625": {
+    title: "AXRLEN Forecast — World Cup 2026 Group Matches (24 June) | Aureon",
+    description:
+      "AXRLEN picks for the 24 June 2026 World Cup slate: Switzerland, Bosnia, Morocco, Brazil, South Korea, Mexico — with modal scorelines and confidence weights.",
+    ogType: "article",
+  },
   "/blog/predictions/peru-2026-keiko-fujimori": {
     title: "AXRLEN — Keiko Fujimori, Peru 2026 President",
     description:

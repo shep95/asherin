@@ -61,6 +61,15 @@ export const BLOG_POSTS: Post[] = [
     featured: true,
   },
   {
+    slug: "/blog/predictions/world-cup-2026-group-matches-0625",
+    title: "AXRLEN Forecast — World Cup 2026 picks for the 24 June slate",
+    dek: "Six 24 June matches: Switzerland 2–1 Canada, Bosnia 3–1 Qatar, Morocco 3–0 Haiti, Brazil 3–1 Scotland, South Korea 2–1 South Africa, Mexico 2–1 Czechia.",
+    tag: "Prediction",
+    published: "2026-06-23T23:00:00.000Z",
+    readTime: "8 min",
+    featured: true,
+  },
+  {
     slug: "/blog/predictions/world-cup-2026-group-matches-0624",
     title: "AXRLEN Deep Dive — World Cup 2026 structural & historical analysis (23 June slate)",
     dek: "Extended breakdown of the four 23 June matches: squad-structure edges and historical-pattern validation behind the Portugal, England, Croatia, and Colombia picks.",
