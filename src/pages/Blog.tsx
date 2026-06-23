@@ -27,6 +27,16 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/the-truth-and-reality-of-wars",
+    title: "The Truth and Reality of Wars — Occult Scripture, Fiat Slavery, and the Elite Civil War",
+    dek: "Wars are scripted. The Bible calls it scripture for a reason. The field manual on how the elite use occultism to direct conflict, why fiat currency is the slave-collar you're conscripted to defend, and why every world war is an elite civil war dressed in flags.",
+    tag: "Geopolitics",
+    published: "2026-06-24T00:00:00.000Z",
+    readTime: "14 min",
+    featured: true,
+    pinned: true,
+  },
+  {
     slug: "/blog/btc-daily-predictions",
     title: "AXRLEN BTC Daily — Live Long/Short Forecast (auto-updated 07:00 EST)",
     dek: "Every morning at 07:00 EST the AXRLEN engine publishes a 24-hour Bitcoin long/short call with entry, stop loss, take profit, and a running win/loss tally. Live BTC price on page.",
@@ -34,7 +44,6 @@ export const BLOG_POSTS: Post[] = [
     published: new Date().toISOString(),
     readTime: "Live",
     featured: true,
-    pinned: true,
   },
   {
     slug: "/blog/elite-corporations-algorithms-vs-axrlen",
