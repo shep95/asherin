@@ -39,6 +39,7 @@ const BlogAiWithoutRestrictions = lazy(() => import("./pages/blog/AiWithoutRestr
 const BlogPredictionWorldCup2026GroupMatches0622 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0622"));
 const BlogPredictionWorldCup2026GroupMatches0623 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0623"));
 const BlogPredictionWorldCup2026GroupMatches0624 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0624"));
+const BlogPredictionWorldCup2026GroupMatches0625 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0625"));
 const BlogPredictionPeru2026KeikoFujimori = lazy(() => import("./pages/blog/PredictionPeru2026KeikoFujimori"));
 const BlogTheCryptoDumpOctober2026 = lazy(() => import("./pages/blog/TheCryptoDumpOctober2026"));
 const BlogEliteCorporationsAlgorithmsVsAxrlen = lazy(() => import("./pages/blog/EliteCorporationsAlgorithmsVsAxrlen"));
@@ -122,6 +123,7 @@ const App = () => (
             <Route path="/blog/predictions/world-cup-2026-group-matches-0622" element={<BlogPredictionWorldCup2026GroupMatches0622 />} />
             <Route path="/blog/predictions/world-cup-2026-group-matches-0623" element={<BlogPredictionWorldCup2026GroupMatches0623 />} />
             <Route path="/blog/predictions/world-cup-2026-group-matches-0624" element={<BlogPredictionWorldCup2026GroupMatches0624 />} />
+            <Route path="/blog/predictions/world-cup-2026-group-matches-0625" element={<BlogPredictionWorldCup2026GroupMatches0625 />} />
             <Route path="/blog/predictions/peru-2026-keiko-fujimori" element={<BlogPredictionPeru2026KeikoFujimori />} />
             <Route path="/blog/the-crypto-dump-october-2026" element={<BlogTheCryptoDumpOctober2026 />} />
             <Route path="/blog/elite-corporations-algorithms-vs-axrlen" element={<BlogEliteCorporationsAlgorithmsVsAxrlen />} />
