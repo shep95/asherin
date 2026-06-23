@@ -149,6 +149,12 @@ const SEO: Record<string, SeoEntry> = {
       "AXRLEN predicts a Bitcoin liquidity event between Oct 12–19, 2026 with a $44,500 floor at 88% confidence. SBC Vedha collision, Mars–Rahu trigger, BlackRock/Vanguard trap-door mechanism.",
     ogType: "article",
   },
+  "/blog/elite-corporations-algorithms-vs-axrlen": {
+    title: "Elite Corporations' Algorithms vs #HouseOfAsher — AXRLEN | Aureon",
+    description:
+      "Aladdin controls the present. AXRLEN sees the future. A direct comparison between BlackRock's market-dominance engine and #HouseOfAsher's predictive intelligence algorithm.",
+    ogType: "article",
+  },
   "/blog/aureon-pricing-explained": {
     title: "Aureon Pricing Explained — Why $18/mo and $399/mo (2026)",
     description:
