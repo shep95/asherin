@@ -296,11 +296,19 @@ const Blog = () => {
       });
   }, [tagFilter, sort, dateFrom, dateTo]);
 
-  const pinned = BLOG_POSTS.find((p) => p.pinned);
-  const featured = pinned ?? BLOG_POSTS.find((p) => p.featured) ?? BLOG_POSTS[0];
+  const pinnedPosts = BLOG_POSTS.filter((p) => p.pinned);
+  const featured = pinnedPosts[0] ?? BLOG_POSTS.find((p) => p.featured) ?? BLOG_POSTS[0];
   const isFiltering =
     tagFilter !== "All" || sort !== "newest" || dateFrom || dateTo;
-  const listed = filtered.filter((p) => p.slug !== featured?.slug);
+  const pinnedSlugs = new Set(pinnedPosts.map((p) => p.slug));
+  const listed = filtered.filter((p) => !pinnedSlugs.has(p.slug));
+
+  // AXRLEN engine track record — manually tallied tape across verticals.
+  const axrlenStats = [
+    { vertical: "Sports Betting", wins: 6, losses: 1 },
+    { vertical: "Global Events", wins: 17, losses: 1 },
+    { vertical: "Markets", wins: 7, losses: 1 },
+  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -322,55 +330,97 @@ const Blog = () => {
           </p>
         </header>
 
-        {/* FEATURED / PINNED — always visible so the live BTC call stays on top */}
-        {featured && (
-          <section aria-label={featured.pinned ? "Pinned article" : "Featured article"}>
-            <Link
-              to={featured.slug}
-              className={`group block rounded-3xl border p-8 sm:p-12 transition-all backdrop-blur-sm ${
-                featured.pinned
-                  ? "border-amber-400/50 bg-gradient-to-br from-amber-500/[0.06] via-card/30 to-card/20 hover:border-amber-400/80 shadow-[0_0_40px_-12px_rgba(251,191,36,0.25)]"
-                  : "border-border/30 bg-card/20 hover:border-foreground/30 hover:bg-card/40"
-              }`}
-            >
-              <div className="grid sm:grid-cols-[1fr_auto] gap-8 items-end">
-                <div className="space-y-5">
-                  <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                    {featured.pinned ? (
+        {/* AXRLEN TRACK RECORD */}
+        <section
+          aria-label="AXRLEN engine track record"
+          className="rounded-3xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 sm:p-8"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+                ◈ AXRLEN Engine · Live Track Record
+              </p>
+              <h2 className="mt-2 text-2xl font-light tracking-tight">
+                Win rate across verticals
+              </h2>
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {axrlenStats.map((s) => {
+              const total = s.wins + s.losses;
+              const rate = total ? (s.wins / total) * 100 : 0;
+              return (
+                <div
+                  key={s.vertical}
+                  className="rounded-2xl border border-border/30 bg-background/40 p-5"
+                >
+                  <div className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+                    {s.vertical}
+                  </div>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <span className="text-4xl font-extralight tabular-nums">
+                      {rate.toFixed(1)}%
+                    </span>
+                    <span className="text-xs font-light text-muted-foreground">win rate</span>
+                  </div>
+                  <div className="mt-2 text-xs font-light text-muted-foreground tabular-nums">
+                    {s.wins}W · {s.losses}L · {total} total
+                  </div>
+                  <div className="mt-3 h-1.5 w-full rounded-full bg-foreground/10 overflow-hidden">
+                    <div
+                      className="h-full bg-foreground/70"
+                      style={{ width: `${rate}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* PINNED POSTS — always visible at the top */}
+        {pinnedPosts.length > 0 && (
+          <section aria-label="Pinned articles" className="space-y-5">
+            {pinnedPosts.map((featured) => (
+              <Link
+                key={featured.slug}
+                to={featured.slug}
+                className="group block rounded-3xl border border-amber-400/50 bg-gradient-to-br from-amber-500/[0.06] via-card/30 to-card/20 hover:border-amber-400/80 shadow-[0_0_40px_-12px_rgba(251,191,36,0.25)] p-8 sm:p-12 transition-all backdrop-blur-sm"
+              >
+                <div className="grid sm:grid-cols-[1fr_auto] gap-8 items-end">
+                  <div className="space-y-5">
+                    <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-400/60 bg-amber-400/10 text-amber-300">
                         <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>
-                        Pinned · Live
+                        Pinned
                       </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full border border-foreground/40 bg-foreground/10 text-foreground">
-                        ◉ Featured
-                      </span>
-                    )}
-                    <span>{featured.tag}</span>
-                    <span aria-hidden>·</span>
-                    <time dateTime={toIso(featured.published)}>
-                      {fmtDate(featured.published)}
-                      {fmtTime(featured.published) ? ` · ${fmtTime(featured.published)}` : ""}
-                    </time>
-                    <span aria-hidden>·</span>
-                    <span>{featured.readTime}</span>
+                      <span>{featured.tag}</span>
+                      <span aria-hidden>·</span>
+                      <time dateTime={toIso(featured.published)}>
+                        {fmtDate(featured.published)}
+                        {fmtTime(featured.published) ? ` · ${fmtTime(featured.published)}` : ""}
+                      </time>
+                      <span aria-hidden>·</span>
+                      <span>{featured.readTime}</span>
+                    </div>
+                    <h2 className="text-3xl sm:text-4xl font-extralight tracking-tight leading-[1.15] text-foreground group-hover:text-foreground transition-colors">
+                      {featured.title}
+                    </h2>
+                    <p className="text-base font-extralight text-muted-foreground leading-relaxed max-w-2xl">
+                      {featured.dek}
+                    </p>
                   </div>
-                  <h2 className="text-3xl sm:text-4xl font-extralight tracking-tight leading-[1.15] text-foreground group-hover:text-foreground transition-colors">
-                    {featured.title}
-                  </h2>
-                  <p className="text-base font-extralight text-muted-foreground leading-relaxed max-w-2xl">
-                    {featured.dek}
-                  </p>
+                  <div className="flex items-center justify-end">
+                    <span className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-foreground/25 text-foreground transition-all group-hover:bg-foreground group-hover:text-background">
+                      <ArrowUpRight className="h-5 w-5" strokeWidth={1.5} />
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-end">
-                  <span className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-foreground/25 text-foreground transition-all group-hover:bg-foreground group-hover:text-background">
-                    <ArrowUpRight className="h-5 w-5" strokeWidth={1.5} />
-                  </span>
-                </div>
-              </div>
-            </Link>
+              </Link>
+            ))}
           </section>
         )}
+
 
         {/* FILTERS */}
         <section aria-label="Filter articles" className="space-y-4">
