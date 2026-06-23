@@ -435,6 +435,7 @@ const IntelligenceMapModule = () => {
   const mapRef = useRef<L.Map | null>(null);
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
   const [show3D, setShow3D] = useState(false);
+  const [showInside, setShowInside] = useState(false);
   const [propertyIntel, setPropertyIntel] = useState<{
     loading: boolean;
     intel: any | null;
