@@ -26,6 +26,15 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/elite-corporations-algorithms-vs-axrlen",
+    title: "Elite Corporations' Algorithms vs #HouseOfAsher Algorithm — AXRLEN",
+    dek: "Aladdin controls the present through markets and satellites. AXRLEN sees the future before it happens. A symbolic comparison of 45/9 versus 74/11.",
+    tag: "Analysis",
+    published: "2026-06-24T14:00:00.000Z",
+    readTime: "5 min",
+    featured: true,
+  },
+  {
     slug: "/blog/the-crypto-dump-october-2026",
     title: "The Crypto Dump — AXRLEN predicts Bitcoin to $44,500 (Oct 12–19, 2026)",
     dek: "AXRLEN's 88%-confidence call on the October 2026 Bitcoin liquidity event: SBC Vedha collision, Mars–Rahu Mahadasha trigger, 92:8 loser-to-winner ratio, and the BlackRock/Vanguard trap-door mechanism. Live BTC at generation: $62,540.",

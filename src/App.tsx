@@ -41,6 +41,7 @@ const BlogPredictionWorldCup2026GroupMatches0623 = lazy(() => import("./pages/bl
 const BlogPredictionWorldCup2026GroupMatches0624 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0624"));
 const BlogPredictionPeru2026KeikoFujimori = lazy(() => import("./pages/blog/PredictionPeru2026KeikoFujimori"));
 const BlogTheCryptoDumpOctober2026 = lazy(() => import("./pages/blog/TheCryptoDumpOctober2026"));
+const BlogEliteCorporationsAlgorithmsVsAxrlen = lazy(() => import("./pages/blog/EliteCorporationsAlgorithmsVsAxrlen"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
 const FeatureZerlal = lazy(() => import("./pages/feature/FeatureZerlal"));
 const FeatureAxrlen = lazy(() => import("./pages/feature/FeatureAxrlen"));
@@ -123,6 +124,7 @@ const App = () => (
             <Route path="/blog/predictions/world-cup-2026-group-matches-0624" element={<BlogPredictionWorldCup2026GroupMatches0624 />} />
             <Route path="/blog/predictions/peru-2026-keiko-fujimori" element={<BlogPredictionPeru2026KeikoFujimori />} />
             <Route path="/blog/the-crypto-dump-october-2026" element={<BlogTheCryptoDumpOctober2026 />} />
+            <Route path="/blog/elite-corporations-algorithms-vs-axrlen" element={<BlogEliteCorporationsAlgorithmsVsAxrlen />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
