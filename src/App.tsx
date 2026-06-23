@@ -134,6 +134,7 @@ const App = () => (
             <Route path="/blog/predictions/israel-iran-2026-shadow-war" element={<BlogPredictionIsraelIran2026ShadowWar />} />
             <Route path="/blog/the-crypto-dump-october-2026" element={<BlogTheCryptoDumpOctober2026 />} />
             <Route path="/blog/elite-corporations-algorithms-vs-axrlen" element={<BlogEliteCorporationsAlgorithmsVsAxrlen />} />
+            <Route path="/blog/btc-daily-predictions" element={<BlogPredictionBtcDaily />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
