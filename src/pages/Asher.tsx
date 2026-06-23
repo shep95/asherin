@@ -119,7 +119,7 @@ const Asher = () => {
         </p>
 
         <h1 className="text-7xl sm:text-8xl md:text-[10rem] font-extralight tracking-tight leading-none text-foreground">
-          ASHER
+          ASHER <span className="block text-2xl sm:text-3xl md:text-4xl mt-4 tracking-[0.2em] text-muted-foreground/80 uppercase">Military Intelligence Model</span>
         </h1>
 
         <p className="mt-10 max-w-[600px] text-base sm:text-lg font-extralight leading-relaxed text-muted-foreground/80">
