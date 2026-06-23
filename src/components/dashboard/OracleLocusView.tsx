@@ -426,7 +426,7 @@ const OracleLocusView = () => {
               >
                 {imagePreview ? (
                   <div className="relative">
-                    <img src={imagePreview} alt="Target" className="w-full max-h-[400px] object-contain bg-black/20" />
+                    <img src={imagePreview} alt="Target subject uploaded for locus analysis" className="w-full max-h-[400px] object-contain bg-black/20" />
                     <button onClick={clearImage} className="absolute top-3 right-3 rounded-lg bg-card/80 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors">
                       <X className="h-4 w-4" />
                     </button>
