@@ -15,6 +15,7 @@ import Property3DPanel from "@/components/asher/Property3DPanel";
 import PropertyInteriorPanel from "@/components/asher/PropertyInteriorPanel";
 import { Video, Globe2, ExternalLink, RefreshCw, Building2, User, Hash, CalendarDays, Ruler, DollarSign, Users as UsersIcon, History, AlertTriangle, Activity, Radio } from "lucide-react";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import { triggerByokRequired } from "@/components/ByokRequiredDialog";
 
 /* ─────────────────────────────────────────────────────────────
    ASHER — Real-time Intelligence Map
