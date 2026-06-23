@@ -234,12 +234,14 @@ const PredictionBtcDaily = () => {
       </ArticleShell>
 
       <ArticleJsonLd
+        id="btc-daily-predictions"
         url="https://aureonai.app/blog/btc-daily-predictions"
-        title="AXRLEN BTC Daily — Live Long/Short Forecast"
+        headline="AXRLEN BTC Daily — Live Long/Short Forecast"
         description="Automated 24-hour Bitcoin long/short prediction generated every day at 07:00 EST by the AXRLEN engine. Live BTC price, entry/SL/TP, and a running win/loss tally."
         datePublished="2026-06-23"
       />
       <BreadcrumbJsonLd
+        id="btc-daily-predictions"
         items={[
           { name: "Aureon", url: "https://aureonai.app" },
           { name: "Blog", url: "https://aureonai.app/blog" },
@@ -247,12 +249,14 @@ const PredictionBtcDaily = () => {
         ]}
       />
       <FaqJsonLd
+        id="btc-daily-predictions"
         items={[
-          { question: "When is the next BTC prediction posted?", answer: "Every day at 07:00 EST (12:00 UTC). A scheduled job calls the AXRLEN engine with a live BTC snapshot and publishes the long/short call to this page." },
-          { question: "How are wins and losses tallied?", answer: "Each prediction has a stop loss and take profit. After 24 hours the engine compares the new BTC spot price to those bands and writes WIN or LOSS plus realized PnL into the track record." },
-          { question: "Is this trading advice?", answer: "No. The AXRLEN BTC Daily call is a published predictive intelligence forecast for transparency and back-testing. It is not financial advice." },
+          { q: "When is the next BTC prediction posted?", a: "Every day at 07:00 EST (12:00 UTC). A scheduled job calls the AXRLEN engine with a live BTC snapshot and publishes the long/short call to this page." },
+          { q: "How are wins and losses tallied?", a: "Each prediction has a stop loss and take profit. After 24 hours the engine compares the new BTC spot price to those bands and writes WIN or LOSS plus realized PnL into the track record." },
+          { q: "Is this trading advice?", a: "No. The AXRLEN BTC Daily call is a published predictive intelligence forecast for transparency and back-testing. It is not financial advice." },
         ]}
       />
+
     </>
   );
 };
