@@ -26,6 +26,15 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/btc-daily-predictions",
+    title: "AXRLEN BTC Daily — Live Long/Short Forecast (auto-updated 07:00 EST)",
+    dek: "Every morning at 07:00 EST the AXRLEN engine publishes a 24-hour Bitcoin long/short call with entry, stop loss, take profit, and a running win/loss tally. Live BTC price on page.",
+    tag: "Live Prediction",
+    published: new Date().toISOString(),
+    readTime: "Live",
+    featured: true,
+  },
+  {
     slug: "/blog/elite-corporations-algorithms-vs-axrlen",
     title: "Elite Corporations' Algorithms vs #HouseOfAsher Algorithm — AXRLEN",
     dek: "Aladdin controls the present through markets and satellites. AXRLEN sees the future before it happens. A symbolic comparison of 45/9 versus 74/11.",

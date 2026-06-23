@@ -217,4 +217,11 @@ verify_jwt = false
 [functions.zerlal-bg-worker]
 verify_jwt = false
 
+[functions.btc-predict-daily]
+verify_jwt = false
+
+[functions.btc-prediction-public]
+verify_jwt = false
+
+
 
