@@ -569,13 +569,32 @@ const IntelligenceMapModule = () => {
       primary?.tags?.operator ||
       undefined;
     if (!address && !entityName) return;
+
+    // BYOK GATE — property intel requires the user's own AI key.
+    // Eliminates platform-key rate limits and the 4–15s queue wait.
+    const byok = getActiveIntelMapByok();
+    if (!byok) {
+      setPropertyIntel({
+        loading: false,
+        intel: null,
+        sources: [],
+        error: "BYOK_REQUIRED",
+      });
+      triggerByokRequired({
+        source: "intelligence-property-map",
+        reason: "Property intel requires your own AI key (Settings → AI Keys).",
+      });
+      return;
+    }
+
     setPropertyIntel({ loading: true, intel: null, sources: [], error: null });
     try {
-      const byok = getActiveIntelMapByok();
       const { data, error } = await supabase.functions.invoke("asher-property-intel", {
         body: {
           lat, lng, address, entityName,
-          ...(byok ? { byok: byok.apiKey } : {}),
+          byok: byok.apiKey,
+          byokProvider: byok.provider,
+          byokModel: byok.model,
         },
       });
       if (error) throw error;
