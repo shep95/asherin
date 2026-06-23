@@ -57,13 +57,24 @@ const PredictionBtcDaily = () => {
     return () => clearInterval(i);
   }, []);
 
+  const [priceSource, setPriceSource] = useState<string>("");
   useEffect(() => {
+    const sources: { name: string; url: string; pick: (j: any) => number | null }[] = [
+      { name: "Coinbase", url: "https://api.coinbase.com/v2/prices/BTC-USD/spot", pick: (j) => Number(j?.data?.amount) || null },
+      { name: "Kraken", url: "https://api.kraken.com/0/public/Ticker?pair=XBTUSD", pick: (j) => Number(j?.result?.XXBTZUSD?.c?.[0]) || null },
+      { name: "Binance", url: "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", pick: (j) => Number(j?.price) || null },
+      { name: "CoinGecko", url: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", pick: (j) => j?.bitcoin?.usd ?? null },
+    ];
     const fetchPrice = async () => {
-      try {
-        const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
-        const j = await r.json();
-        setLivePrice(j.bitcoin?.usd ?? null);
-      } catch { /* ignore */ }
+      for (const s of sources) {
+        try {
+          const r = await fetch(s.url);
+          if (!r.ok) continue;
+          const j = await r.json();
+          const p = s.pick(j);
+          if (p && p > 0) { setLivePrice(p); setPriceSource(s.name); return; }
+        } catch { /* try next */ }
+      }
     };
     fetchPrice();
     const i = setInterval(fetchPrice, 30_000);
@@ -90,7 +101,10 @@ const PredictionBtcDaily = () => {
               <p className="text-4xl font-light tabular-nums">
                 {livePrice ? `$${livePrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
               </p>
-              <p className="text-xs text-muted-foreground/60 mt-1">CoinGecko · refreshes every 30s</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                {priceSource ? `Live spot · ${priceSource} public API · refreshes every 30s` : "Connecting to public exchange feed…"}
+              </p>
+              <p className="text-[10px] tracking-[0.3em] uppercase text-accent/70 mt-2">◈ Venue · Hyperliquid Perpetuals (BTC-PERP)</p>
             </div>
             {stats && (
               <div className="grid grid-cols-3 gap-6 text-center">
