@@ -29,6 +29,7 @@ const ArticleShell = ({
   publishedLabel,
   readTime,
   backTo = { to: "/blog", label: "← Aureon Journal" },
+  image,
   children,
 }: Props) => {
   return (
