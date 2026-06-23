@@ -101,7 +101,10 @@ const PredictionBtcDaily = () => {
               <p className="text-4xl font-light tabular-nums">
                 {livePrice ? `$${livePrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
               </p>
-              <p className="text-xs text-muted-foreground/60 mt-1">CoinGecko · refreshes every 30s</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                {priceSource ? `Live spot · ${priceSource} public API · refreshes every 30s` : "Connecting to public exchange feed…"}
+              </p>
+              <p className="text-[10px] tracking-[0.3em] uppercase text-accent/70 mt-2">◈ Venue · Hyperliquid Perpetuals (BTC-PERP)</p>
             </div>
             {stats && (
               <div className="grid grid-cols-3 gap-6 text-center">
