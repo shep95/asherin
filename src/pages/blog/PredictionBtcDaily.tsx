@@ -58,28 +58,54 @@ const PredictionBtcDaily = () => {
   }, []);
 
   const [priceSource, setPriceSource] = useState<string>("");
+  const [priceUpdatedAt, setPriceUpdatedAt] = useState<number | null>(null);
+  const [now, setNow] = useState<number>(Date.now());
+
   useEffect(() => {
-    const sources: { name: string; url: string; pick: (j: any) => number | null }[] = [
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/btc-spot`;
+    const clientSources: { name: string; url: string; pick: (j: any) => number | null }[] = [
       { name: "Coinbase", url: "https://api.coinbase.com/v2/prices/BTC-USD/spot", pick: (j) => Number(j?.data?.amount) || null },
+      { name: "Bitstamp", url: "https://www.bitstamp.net/api/v2/ticker/btcusd/", pick: (j) => Number(j?.last) || null },
       { name: "Kraken", url: "https://api.kraken.com/0/public/Ticker?pair=XBTUSD", pick: (j) => Number(j?.result?.XXBTZUSD?.c?.[0]) || null },
-      { name: "Binance", url: "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", pick: (j) => Number(j?.price) || null },
-      { name: "CoinGecko", url: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", pick: (j) => j?.bitcoin?.usd ?? null },
     ];
     const fetchPrice = async () => {
-      for (const s of sources) {
+      // Server-side proxy first (no CORS / geo issues)
+      try {
+        const r = await fetch(proxyUrl, { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } });
+        if (r.ok) {
+          const j = await r.json();
+          if (j?.price > 0) { setLivePrice(j.price); setPriceSource(j.source); setPriceUpdatedAt(Date.now()); return; }
+        }
+      } catch { /* fall through */ }
+      // Client-side fallback
+      for (const s of clientSources) {
         try {
           const r = await fetch(s.url);
           if (!r.ok) continue;
           const j = await r.json();
           const p = s.pick(j);
-          if (p && p > 0) { setLivePrice(p); setPriceSource(s.name); return; }
-        } catch { /* try next */ }
+          if (p && p > 0) { setLivePrice(p); setPriceSource(s.name); setPriceUpdatedAt(Date.now()); return; }
+        } catch { /* next */ }
       }
     };
     fetchPrice();
-    const i = setInterval(fetchPrice, 30_000);
+    const i = setInterval(fetchPrice, 15_000);
     return () => clearInterval(i);
   }, []);
+
+  const fmtAgo = (ms: number) => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    if (s < 60) return `${s}s ago`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}m ${s % 60}s ago`;
+    const h = Math.floor(m / 60);
+    return `${h}h ${m % 60}m ago`;
+  };
 
   const latest = data?.latest;
   const stats = data?.stats;
