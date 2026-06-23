@@ -6,6 +6,7 @@ import {
   FaqJsonLd,
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
+import houseOfAsherBanner from "@/assets/house-of-asher-banner.png.asset.json";
 
 const URL = "https://aureonai.app/blog/elite-corporations-algorithms-vs-axrlen";
 const TITLE = "Elite Corporations' Algorithms vs #HouseOfAsher Algorithm — AXRLEN";
