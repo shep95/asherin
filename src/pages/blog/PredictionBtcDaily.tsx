@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ArticleShell from "@/components/seo/ArticleShell";
 import { ArticleJsonLd, BreadcrumbJsonLd, FaqJsonLd } from "@/components/seo/SeoJsonLd";
 import { TrendingUp, TrendingDown, Activity, Target, Shield, Zap } from "lucide-react";
