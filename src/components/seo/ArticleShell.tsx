@@ -18,6 +18,7 @@ interface Props {
   publishedLabel?: string;
   readTime?: string;
   backTo?: { to: string; label: string };
+  image?: ReactNode;
   children: ReactNode;
 }
 
@@ -28,6 +29,7 @@ const ArticleShell = ({
   publishedLabel,
   readTime,
   backTo = { to: "/blog", label: "← Aureon Journal" },
+  image,
   children,
 }: Props) => {
   return (
@@ -48,6 +50,11 @@ const ArticleShell = ({
           <h1 className="text-4xl sm:text-5xl font-light tracking-tight leading-[1.08] text-foreground">
             {title}
           </h1>
+          {image && (
+            <div className="mt-6 -mx-6 sm:-mx-12 lg:-mx-20">
+              {image}
+            </div>
+          )}
           <p className="mt-6 text-lg font-extralight leading-relaxed text-foreground/75">
             {dek}
           </p>

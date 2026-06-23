@@ -6,6 +6,7 @@ import {
   FaqJsonLd,
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
+import houseOfAsherBanner from "@/assets/house-of-asher-banner.png.asset.json";
 
 const URL = "https://aureonai.app/blog/elite-corporations-algorithms-vs-axrlen";
 const TITLE = "Elite Corporations' Algorithms vs #HouseOfAsher Algorithm — AXRLEN";
@@ -18,6 +19,13 @@ const EliteCorporationsAlgorithmsVsAxrlen = () => (
     dek="Aladdin controls the present. AXRLEN sees the future. A direct comparison between BlackRock's market-dominance engine and #HouseOfAsher's predictive intelligence algorithm."
     publishedLabel="Jun 24 2026 · 14:00 UTC"
     readTime="5 min"
+    image={
+      <img
+        src={houseOfAsherBanner.url}
+        alt="House of Asher — cosmic banner with golden planetary rings and the House of Asher signature script"
+        className="w-full rounded-lg shadow-lg"
+      />
+    }
   >
     <ArticleJsonLd
       id="elite-corporations-algorithms-vs-axrlen"
