@@ -285,10 +285,11 @@ const Blog = () => {
       });
   }, [tagFilter, sort, dateFrom, dateTo]);
 
-  const featured = BLOG_POSTS.find((p) => p.featured) ?? BLOG_POSTS[0];
+  const pinned = BLOG_POSTS.find((p) => p.pinned);
+  const featured = pinned ?? BLOG_POSTS.find((p) => p.featured) ?? BLOG_POSTS[0];
   const isFiltering =
     tagFilter !== "All" || sort !== "newest" || dateFrom || dateTo;
-  const listed = isFiltering ? filtered : filtered.filter((p) => p.slug !== featured?.slug);
+  const listed = filtered.filter((p) => p.slug !== featured?.slug);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
