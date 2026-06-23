@@ -26,7 +26,7 @@ interface Prediction {
   horizon_hours: number;
   thesis: string;
   reasoning: string | null;
-  status: "OPEN" | "WIN" | "LOSS" | "EXPIRED";
+  status: "OPEN" | "WIN" | "LOSS" | "EXPIRED" | "CANCELLED";
   settled_at: string | null;
   settle_price: number | null;
   pnl_pct: number | null;
