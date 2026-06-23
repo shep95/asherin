@@ -53,8 +53,8 @@ async function callAxrlen(live: BtcLive): Promise<{
   thesis: string;
   reasoning: string;
 }> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY missing");
 
   const now = new Date().toISOString();
   const system = `You are AXRLEN, the Nexus Prime predictive intelligence engine inside Aureon.
@@ -89,25 +89,26 @@ Rules:
 
 Produce the next-24h AXRLEN directional call NOW.`;
 
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
       ],
       response_format: { type: "json_object" },
+      temperature: 0.7,
     }),
   });
 
   if (!r.ok) {
     const t = await r.text();
-    throw new Error(`AI Gateway ${r.status}: ${t.slice(0, 300)}`);
+    throw new Error(`OpenAI ${r.status}: ${t.slice(0, 300)}`);
   }
   const data = await r.json();
   const txt: string = data?.choices?.[0]?.message?.content ?? "";
