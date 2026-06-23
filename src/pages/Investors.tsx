@@ -52,6 +52,37 @@ const Investors = () => {
           </p>
         </header>
 
+        {/* WHITELIST RATIONALE */}
+        <section className="rounded-3xl border border-red-400/30 bg-red-500/[0.04] backdrop-blur-sm p-8 sm:p-10 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
+            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-red-300">
+              ◈ Whitelist Policy
+            </p>
+          </div>
+          <h2 className="text-3xl font-extralight tracking-tight">
+            We whitelist investors first.
+          </h2>
+          <div className="space-y-3 text-base font-extralight leading-relaxed text-muted-foreground">
+            <p>
+              No venture capitalist will fund Aureon. Their portfolios are
+              governed by <span className="text-foreground">woke agendas</span>,
+              DEI mandates, and propaganda pipelines that we directly oppose.
+              They do not invest in truth — they invest in narrative control.
+            </p>
+            <p>
+              We refuse to let our infrastructure be governed by the same
+              ideological filters that have captured every other tech platform.
+              That is why every investor is vetted before a single term sheet
+              is discussed.
+            </p>
+            <p className="text-foreground font-light">
+              If you are aligned with the mainstream, you are not aligned with
+              us.
+            </p>
+          </div>
+        </section>
+
         {/* REQUIREMENTS */}
         <section className="rounded-3xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 sm:p-10 space-y-6">
           <div>
