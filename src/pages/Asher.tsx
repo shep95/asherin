@@ -152,7 +152,7 @@ const Asher = () => {
           {capabilities.map((c) => (
             <div key={c.name} className="rounded-2xl border border-border/15 bg-card/30 backdrop-blur-md p-6 hover:border-border/30 transition-colors">
               <c.icon className="h-5 w-5 text-foreground/70 mb-4" strokeWidth={1.25} />
-              <h3 className="text-sm font-light tracking-wide text-foreground mb-2">{c.name}</h3>
+              <h2 className="text-sm font-light tracking-wide text-foreground mb-2">{c.name}</h2>
               <p className="text-xs font-extralight leading-relaxed text-muted-foreground/80">{c.desc}</p>
               <div className="mt-4 inline-flex items-center gap-1.5 text-[9px] font-light tracking-[0.25em] text-red-400/70 uppercase">
                 <span className="h-1 w-1 rounded-full bg-red-500" /> In Development
@@ -169,9 +169,9 @@ const Asher = () => {
         </p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="rounded-2xl border border-border/15 bg-card/30 backdrop-blur-md p-8">
-            <h3 className="text-base font-light tracking-wide text-foreground mb-6 flex items-center gap-2">
+            <h2 className="text-base font-light tracking-wide text-foreground mb-6 flex items-center gap-2">
               <Shield className="h-4 w-4 text-foreground/60" strokeWidth={1.25} /> Security Posture
-            </h3>
+            </h2>
             <ul className="space-y-3 text-sm font-extralight text-muted-foreground/85">
               {[
                 "Air-gapped deployment — no public network egress",
@@ -188,9 +188,9 @@ const Asher = () => {
             </ul>
           </div>
           <div className="rounded-2xl border border-border/15 bg-card/30 backdrop-blur-md p-8">
-            <h3 className="text-base font-light tracking-wide text-foreground mb-6 flex items-center gap-2">
+            <h2 className="text-base font-light tracking-wide text-foreground mb-6 flex items-center gap-2">
               <BookLock className="h-4 w-4 text-foreground/60" strokeWidth={1.25} /> Compliance Targets
-            </h3>
+            </h2>
             <div className="grid grid-cols-2 gap-3">
               {["FedRAMP High", "DoD IL5", "ITAR Compliant", "NIST 800-171", "CMMC Level 3", "SOC 2 Type II"].map((b) => (
                 <div key={b} className="rounded-lg border border-border/20 bg-background/40 px-3 py-3 text-center">
