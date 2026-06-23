@@ -11,10 +11,10 @@ const PUBLISHED = "2026-06-23T22:00:00.000Z";
 
 const PredictionWorldCup2026GroupMatches0624 = () => (
   <ArticleShell
-    eyebrow="AXRLEN Predictive Engine · Extended Analysis"
-    title="World Cup 2026 — Structural and historical breakdown of the 23 June slate"
-    dek="Portugal vs. Uzbekistan, England vs. Ghana, Panama vs. Croatia, Colombia vs. DR Congo. AXRLEN second-pass analysis: squad-structure edges and historical-pattern validation for every pick."
-    publishedLabel="Generated Jun 23 2026 · 6:00 PM EST by AXRLEN"
+    eyebrow="AXRLEN Predictive Engine · Extended Analysis · Results Updating"
+    title="World Cup 2026 — Structural and historical breakdown of the 23 June slate (live results)"
+    dek="Portugal vs. Uzbekistan, England vs. Ghana, Panama vs. Croatia, Colombia vs. DR Congo. UPDATE (23 Jun evening ET): Portugal 5–0 hit (modal margin exceeded), England 0–0 Ghana missed (risk vector triggered), Croatia and Colombia matches pending. Pre-match structural and historical analysis preserved verbatim below."
+    publishedLabel="Generated Jun 23 2026 · 6:00 PM EST · Results updated Jun 23 2026"
     readTime="8 min"
   >
     <ArticleJsonLd
