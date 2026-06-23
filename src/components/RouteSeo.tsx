@@ -26,9 +26,9 @@ const SEO: Record<string, SeoEntry> = {
       "Aureon is the predictive intelligence stack for analysts, traders, and operators. Forecast events, model timelines, and act before the wire.",
   },
   "/pricing": {
-    title: "Pricing — Aureon $18/mo · Aureon Pro $399/mo · Enterprise",
+    title: "Pricing — Aureon, Pro & Enterprise Plans",
     description:
-      "Aureon is $18/month for the core platform; Aureon Pro is $399/month for the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro, team collaboration). Enterprise priced on request.",
+      "Aureon is $18/mo for the core platform and $399/mo for Aureon Pro (Azplen, NOMAD, Briefings, Zophiel Pro). Enterprise on request.",
   },
   "/terms": {
     title: "Terms of Service — Aureon",
@@ -37,7 +37,7 @@ const SEO: Record<string, SeoEntry> = {
   "/software": {
     title: "Software — Every Aureon Tool | Aureon",
     description:
-      "Every Aureon tool — OSINT search, predictive engines, IDE, whiteboard, e-book generator, file scrapper, and more — across the $18/month Aureon plan and $399/month Aureon Pro plan.",
+      "Every Aureon tool — OSINT search, predictive engines, IDE, whiteboard, e-book, file scrapper — on the $18/mo and $399/mo plans.",
   },
 
   "/benchmark": {
@@ -94,9 +94,9 @@ const SEO: Record<string, SeoEntry> = {
     ogType: "article",
   },
   "/blog/venice-integration": {
-    title: "Venice AI Integration in Aureon — Unfiltered Intelligence, Zero Setup",
+    title: "Venice AI in Aureon — Unfiltered, Zero Setup",
     description:
-      "How Aureon routes free and BYOK traffic through Venice AI for uncensored, vision-capable answers with no key, no account, and no monthly subscription.",
+      "How Aureon routes free and BYOK traffic through Venice AI for uncensored, vision-capable answers with no key, no account, no subscription.",
     ogType: "article",
   },
 
@@ -132,27 +132,27 @@ const SEO: Record<string, SeoEntry> = {
     ogType: "article",
   },
   "/blog/predictions/world-cup-2026-group-matches-0624": {
-    title: "AXRLEN Deep Dive — World Cup 2026 Structural & Historical Analysis (23 June) | Aureon",
+    title: "AXRLEN Deep Dive — World Cup 2026 (23 June)",
     description:
-      "Extended AXRLEN analysis for the 23 June 2026 World Cup slate: squad-structure edges and historical-pattern validation behind the Portugal, England, Croatia, and Colombia picks.",
+      "Structural and historical AXRLEN analysis behind the 23 June 2026 picks: Portugal, England, Croatia, and Colombia.",
     ogType: "article",
   },
   "/blog/predictions/peru-2026-keiko-fujimori": {
-    title: "AXRLEN Prediction — Keiko Fujimori, Future President of Peru 2026 | Aureon",
+    title: "AXRLEN — Keiko Fujimori, Peru 2026 President",
     description:
-      "AXRLEN predicts Keiko Fujimori (Fuerza Popular) wins the 2026 Peru presidential runoff under the Antivoto Paradox. Weighted matrix, three scenarios, 94% polarized runoff probability.",
+      "AXRLEN predicts Keiko Fujimori wins the 2026 Peru runoff under the Antivoto Paradox. Three scenarios, 94% polarized runoff probability.",
     ogType: "article",
   },
   "/blog/the-crypto-dump-october-2026": {
-    title: "The Crypto Dump — Bitcoin to $44,500 (Oct 12–19, 2026) | Aureon",
+    title: "The Crypto Dump — BTC to $44,500 (Oct 2026)",
     description:
-      "AXRLEN predicts a Bitcoin liquidity event between Oct 12–19, 2026 with a $44,500 floor at 88% confidence. SBC Vedha collision, Mars–Rahu trigger, BlackRock/Vanguard trap-door mechanism.",
+      "AXRLEN predicts a Bitcoin liquidity event Oct 12–19, 2026 with a $44,500 floor at 88% confidence. SBC Vedha collision and Mars–Rahu trigger.",
     ogType: "article",
   },
   "/blog/elite-corporations-algorithms-vs-axrlen": {
-    title: "Elite Corporations' Algorithms vs #HouseOfAsher — AXRLEN | Aureon",
+    title: "Elite Algorithms vs #HouseOfAsher — AXRLEN",
     description:
-      "Aladdin controls the present. AXRLEN sees the future. A direct comparison between BlackRock's market-dominance engine and #HouseOfAsher's predictive intelligence algorithm.",
+      "Aladdin controls the present. AXRLEN sees the future. A direct comparison between BlackRock's engine and #HouseOfAsher's predictive algorithm.",
     ogType: "article",
   },
   "/blog/aureon-pricing-explained": {
@@ -189,7 +189,7 @@ const SEO: Record<string, SeoEntry> = {
   "/glossary/digital-gnostic": {
     title: "Digital Gnostic — Operator Demographic Defined | Aureon",
     description:
-      "The Digital Gnostic operator: 2-4 million in 2026, high willingness to pay, the search vocabulary they use, and why their tooling needs differ from consumer AI users.",
+      "The Digital Gnostic operator: 2-4M in 2026, high willingness to pay, search vocabulary, and why their tooling differs from consumer AI users.",
     ogType: "article",
   },
 
