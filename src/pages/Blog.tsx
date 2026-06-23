@@ -303,8 +303,25 @@ const Blog = () => {
   const pinnedSlugs = new Set(pinnedPosts.map((p) => p.slug));
   const listed = filtered.filter((p) => !pinnedSlugs.has(p.slug));
 
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
 
-
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-24 space-y-16">
+        {/* HERO */}
+        <header className="space-y-6">
+          <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
+            ◈ Aureon Journal
+          </div>
+          <h1 className="text-5xl sm:text-6xl font-extralight tracking-tight leading-[1.05] max-w-3xl">
+            Field reports from the
+            <span className="block text-muted-foreground/70">operator stack.</span>
+          </h1>
+          <p className="max-w-2xl text-base sm:text-lg font-extralight text-muted-foreground leading-relaxed">
+            Long-form comparisons, benchmarks, and intelligence write-ups from
+            the Aureon team. No fluff, no affiliate links.
+          </p>
+        </header>
 
         {/* PINNED POSTS — always visible at the top */}
         {pinnedPosts.length > 0 && (
