@@ -316,14 +316,25 @@ const Blog = () => {
           <section aria-label={featured.pinned ? "Pinned article" : "Featured article"}>
             <Link
               to={featured.slug}
-              className="group block rounded-3xl border border-foreground/30 bg-card/30 backdrop-blur-sm p-8 sm:p-12 transition-all hover:border-foreground/50 hover:bg-card/50"
+              className={`group block rounded-3xl border p-8 sm:p-12 transition-all backdrop-blur-sm ${
+                featured.pinned
+                  ? "border-amber-400/50 bg-gradient-to-br from-amber-500/[0.06] via-card/30 to-card/20 hover:border-amber-400/80 shadow-[0_0_40px_-12px_rgba(251,191,36,0.25)]"
+                  : "border-border/30 bg-card/20 hover:border-foreground/30 hover:bg-card/40"
+              }`}
             >
               <div className="grid sm:grid-cols-[1fr_auto] gap-8 items-end">
                 <div className="space-y-5">
                   <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                    <span className="px-2 py-0.5 rounded-full border border-foreground/40 bg-foreground/10 text-foreground">
-                      {featured.pinned ? "◈ Pinned" : "◉ Featured"}
-                    </span>
+                    {featured.pinned ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-400/60 bg-amber-400/10 text-amber-300">
+                        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>
+                        Pinned · Live
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full border border-foreground/40 bg-foreground/10 text-foreground">
+                        ◉ Featured
+                      </span>
+                    )}
                     <span>{featured.tag}</span>
                     <span aria-hidden>·</span>
                     <time dateTime={toIso(featured.published)}>
