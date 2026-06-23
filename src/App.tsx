@@ -45,6 +45,7 @@ const BlogPredictionRussiaUkraineWar2026Endgame = lazy(() => import("./pages/blo
 const BlogPredictionChinaTaiwan2026Flashpoint = lazy(() => import("./pages/blog/PredictionChinaTaiwan2026Flashpoint"));
 const BlogPredictionIsraelIran2026ShadowWar = lazy(() => import("./pages/blog/PredictionIsraelIran2026ShadowWar"));
 const BlogTheCryptoDumpOctober2026 = lazy(() => import("./pages/blog/TheCryptoDumpOctober2026"));
+const BlogPredictionBtcDaily = lazy(() => import("./pages/blog/PredictionBtcDaily"));
 const BlogEliteCorporationsAlgorithmsVsAxrlen = lazy(() => import("./pages/blog/EliteCorporationsAlgorithmsVsAxrlen"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
 const FeatureZerlal = lazy(() => import("./pages/feature/FeatureZerlal"));
