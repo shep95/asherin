@@ -44,7 +44,9 @@ export const BLOG_POSTS: Post[] = [
     published: new Date().toISOString(),
     readTime: "Live",
     featured: true,
+    pinned: true,
   },
+
   {
     slug: "/blog/elite-corporations-algorithms-vs-axrlen",
     title: "Elite Corporations' Algorithms vs #HouseOfAsher Algorithm — AXRLEN",
