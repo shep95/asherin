@@ -238,7 +238,8 @@ const PredictionBtcDaily = () => {
               </div>
             )}
           </section>
-        )}
+          );
+        })()}
 
         {/* History / Logs */}
         {data?.history && data.history.length > 0 && (
