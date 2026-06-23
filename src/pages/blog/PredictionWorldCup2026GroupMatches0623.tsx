@@ -11,10 +11,10 @@ const PUBLISHED = "2026-06-22T21:00:00.000Z";
 
 const PredictionWorldCup2026GroupMatches0623 = () => (
   <ArticleShell
-    eyebrow="AXRLEN Predictive Engine · Live Output"
-    title="World Cup 2026 — AXRLEN picks for the 23 June slate"
-    dek="Portugal vs. Uzbekistan, England vs. Ghana, Panama vs. Croatia, Colombia vs. DR Congo. AXRLEN was queried on 22 June 2026 and returned a winner for each of the four 23 June group-stage matches. Raw engine output below."
-    publishedLabel="Generated Jun 22 2026 · 5:00 PM EST by AXRLEN"
+    eyebrow="AXRLEN Predictive Engine · Live Output · Results Updating"
+    title="World Cup 2026 — AXRLEN picks for the 23 June slate (live results)"
+    dek="Portugal vs. Uzbekistan, England vs. Ghana, Panama vs. Croatia, Colombia vs. DR Congo. UPDATE (23 Jun evening ET): Portugal hit 5–0 (pick correct, modal margin exceeded), England 0–0 Ghana (pick missed). Croatia and Colombia matches pending. Live tracker inside."
+    publishedLabel="Generated Jun 22 2026 · 5:00 PM EST · Results updated Jun 23 2026"
     readTime="7 min"
   >
     <ArticleJsonLd
@@ -62,10 +62,11 @@ const PredictionWorldCup2026GroupMatches0623 = () => (
     <FaqJsonLd
       id="prediction-wc-2026-0623"
       items={[
-        { q: "Who generated these picks?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the picks on 22 June 2026 for the four group-stage matches scheduled on 23 June 2026. The post renders the engine output verbatim." },
-        { q: "What are the four picks?", a: "Portugal beats Uzbekistan, England beats Ghana, Croatia beats Panama, and Colombia beats DR Congo." },
-        { q: "Which pick has the lowest confidence?", a: "Colombia vs. DR Congo at 68%. AXRLEN reads DR Congo's transition threat as more credible than most consensus models." },
-        { q: "Which pick has the highest confidence?", a: "Portugal over Uzbekistan at 84%, driven by the European-club-spine and squad-depth differential." },
+        { q: "How did the picks score?", a: "As of the evening of 23 June 2026, two of four matches have resolved. Portugal 5–0 Uzbekistan (AXRLEN pick correct, modal margin exceeded). England 0–0 Ghana (AXRLEN pick missed; the result fell into the engine's flagged 'England opens-group under-performs xG' risk vector). Panama vs. Croatia and Colombia vs. DR Congo are pending late kickoffs." },
+        { q: "Who generated these picks?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the picks on 22 June 2026 for the four group-stage matches scheduled on 23 June 2026. The post renders the engine output verbatim and is updated as matches resolve." },
+        { q: "What were the four picks?", a: "Portugal beats Uzbekistan, England beats Ghana, Croatia beats Panama, and Colombia beats DR Congo." },
+        { q: "Which pick had the lowest pre-match confidence?", a: "Colombia vs. DR Congo at 68%. AXRLEN reads DR Congo's transition threat as more credible than most consensus models." },
+        { q: "Which pick had the highest pre-match confidence?", a: "Portugal over Uzbekistan at 84%, driven by the European-club-spine and squad-depth differential. This pick resolved correctly with a 5–0 result." },
       ]}
     />
 
