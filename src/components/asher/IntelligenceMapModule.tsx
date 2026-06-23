@@ -514,23 +514,45 @@ const IntelligenceMapModule = () => {
   };
 
   const loadEntity = async (lat: number, lng: number) => {
+    // Paint the drawer immediately with whatever we have; stream the rest in.
     setEntity({ lat, lng, hit: null, country: null, weather: null, elevation: null, celestial: null, features: null, wiki: null, loading: true });
     logAsherEvent("map_query", { lat: +lat.toFixed(4), lng: +lng.toFixed(4) });
-    const [hit, weather, elevation, celestial, features, wiki] = await Promise.all([
-      reverseGeocode(lat, lng),
-      fetchWeather(lat, lng),
-      fetchElevation(lat, lng),
-      fetchCelestial(lat, lng),
-      fetchNearbyFeatures(lat, lng),
-      fetchWikipediaNearby(lat, lng),
-    ]);
-    let country: CountryData | null = null;
-    const cc = hit?.address?.country_code?.toUpperCase();
-    if (cc) country = await fetchCountryByCode(cc);
-    setEntity({ lat, lng, hit, country, weather, elevation, celestial, features, wiki, loading: false });
-    // Reset & trigger Zophiel property intel pull (fire-and-forget)
-    setPropertyIntel({ loading: false, intel: null, sources: [], error: null });
-    fetchPropertyIntel(lat, lng, hit, features);
+
+    // Helper: merge a partial slice into the current entity without blocking.
+    const patch = (slice: Partial<NonNullable<typeof entity>>) =>
+      setEntity((prev) => (prev ? { ...prev, ...slice } : prev));
+
+    // Fire all sources in parallel. As soon as ONE resolves, it paints.
+    // No more "slowest-of-6" gating. Country fetch is chained off the
+    // reverse-geocode promise so it doesn't add a serial round-trip.
+    const pReverse = reverseGeocode(lat, lng).then(async (hit) => {
+      patch({ hit });
+      // Kick off property intel the moment we have an address — don't wait for Overpass.
+      const cc = hit?.address?.country_code?.toUpperCase();
+      if (cc) {
+        fetchCountryByCode(cc).then((country) => patch({ country })).catch(() => {});
+      }
+      return hit;
+    });
+    const pFeatures = fetchNearbyFeatures(lat, lng).then((features) => { patch({ features }); return features; });
+    fetchWeather(lat, lng).then((weather) => patch({ weather })).catch(() => {});
+    fetchElevation(lat, lng).then((elevation) => patch({ elevation })).catch(() => {});
+    fetchCelestial(lat, lng).then((celestial) => patch({ celestial })).catch(() => {});
+    fetchWikipediaNearby(lat, lng).then((wiki) => patch({ wiki })).catch(() => {});
+
+    // Flip the global loading flag as soon as the two anchor sources land.
+    // The remaining feeds keep streaming in via patch().
+    Promise.allSettled([pReverse, pFeatures]).then(() => {
+      patch({ loading: false });
+    });
+
+    // Property intel: don't block — start it as soon as address is known.
+    pReverse.then((hit) => {
+      pFeatures.then((features) => {
+        setPropertyIntel({ loading: false, intel: null, sources: [], error: null });
+        fetchPropertyIntel(lat, lng, hit, features);
+      });
+    });
   };
 
   const fetchPropertyIntel = async (
