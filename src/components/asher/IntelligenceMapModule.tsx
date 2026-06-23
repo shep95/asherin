@@ -1024,6 +1024,22 @@ const IntelligenceMapModule = () => {
           </button>
         )}
 
+        {/* INSIDE PROPERTY TOGGLE */}
+        {entity && (
+          <button
+            onClick={() => setShowInside((v) => !v)}
+            className={`absolute bottom-3 left-[240px] z-[1001] flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-light tracking-[0.2em] uppercase backdrop-blur-md transition-colors ${
+              showInside
+                ? "border-foreground/40 bg-foreground/10 text-foreground"
+                : "border-border/30 bg-card/85 text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+            }`}
+            title="See inside the property + property history (open-source imagery)"
+          >
+            <span className="font-mono">⌂</span>
+            Inside / History
+          </button>
+        )}
+
         {/* LIVE FEEDS PANEL */}
         {entity && showLiveFeeds && (
           <LiveFeedsPanel
