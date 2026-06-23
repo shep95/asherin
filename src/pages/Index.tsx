@@ -316,9 +316,10 @@ const Index = () => {
               </div>
 
               <h1 className="font-display mt-6 text-6xl sm:text-7xl md:text-8xl lg:text-[7rem] xl:text-[8rem] font-light tracking-[-0.025em] leading-[0.92] text-foreground">
-                See what
+                <span className="sr-only">Aureon — Uncensored AI Intelligence Platform: </span>
+                <span aria-hidden="true">See what</span>
                 <br />
-                <span className="zophiel-shimmer-text italic font-light">others miss.</span>
+                <span className="zophiel-shimmer-text italic font-light" aria-hidden="true">others miss.</span>
               </h1>
 
               <p className="mt-7 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
