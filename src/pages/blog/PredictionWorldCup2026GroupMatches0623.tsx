@@ -62,10 +62,11 @@ const PredictionWorldCup2026GroupMatches0623 = () => (
     <FaqJsonLd
       id="prediction-wc-2026-0623"
       items={[
-        { q: "Who generated these picks?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the picks on 22 June 2026 for the four group-stage matches scheduled on 23 June 2026. The post renders the engine output verbatim." },
-        { q: "What are the four picks?", a: "Portugal beats Uzbekistan, England beats Ghana, Croatia beats Panama, and Colombia beats DR Congo." },
-        { q: "Which pick has the lowest confidence?", a: "Colombia vs. DR Congo at 68%. AXRLEN reads DR Congo's transition threat as more credible than most consensus models." },
-        { q: "Which pick has the highest confidence?", a: "Portugal over Uzbekistan at 84%, driven by the European-club-spine and squad-depth differential." },
+        { q: "How did the picks score?", a: "As of the evening of 23 June 2026, two of four matches have resolved. Portugal 5–0 Uzbekistan (AXRLEN pick correct, modal margin exceeded). England 0–0 Ghana (AXRLEN pick missed; the result fell into the engine's flagged 'England opens-group under-performs xG' risk vector). Panama vs. Croatia and Colombia vs. DR Congo are pending late kickoffs." },
+        { q: "Who generated these picks?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the picks on 22 June 2026 for the four group-stage matches scheduled on 23 June 2026. The post renders the engine output verbatim and is updated as matches resolve." },
+        { q: "What were the four picks?", a: "Portugal beats Uzbekistan, England beats Ghana, Croatia beats Panama, and Colombia beats DR Congo." },
+        { q: "Which pick had the lowest pre-match confidence?", a: "Colombia vs. DR Congo at 68%. AXRLEN reads DR Congo's transition threat as more credible than most consensus models." },
+        { q: "Which pick had the highest pre-match confidence?", a: "Portugal over Uzbekistan at 84%, driven by the European-club-spine and squad-depth differential. This pick resolved correctly with a 5–0 result." },
       ]}
     />
 
