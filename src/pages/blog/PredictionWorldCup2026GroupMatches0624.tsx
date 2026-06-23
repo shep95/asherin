@@ -62,11 +62,12 @@ const PredictionWorldCup2026GroupMatches0624 = () => (
     <FaqJsonLd
       id="prediction-wc-2026-0624"
       items={[
-        { q: "Who generated this analysis?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the extended structural and historical analysis on 23 June 2026. The post renders the engine output verbatim." },
+        { q: "How did the picks score?", a: "As of the evening of 23 June 2026, two of four matches have resolved. Portugal 5–0 Uzbekistan (AXRLEN pick correct, modal margin exceeded — structural read fully validated). England 0–0 Ghana (AXRLEN pick missed; the result fell into the engine's pre-flagged 'England opens-group under-performs xG' risk vector). Panama vs. Croatia and Colombia vs. DR Congo pending late kickoffs." },
+        { q: "Who generated this analysis?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the extended structural and historical analysis on 23 June 2026. The post renders the engine output verbatim and is updated as matches resolve." },
         { q: "What is the difference between this post and the 23 June slate post?", a: "The original 23 June slate post delivers the winner and confidence for each match. This post explains why — through squad-structure signals and historical-pattern validation." },
-        { q: "What are the four picks?", a: "Portugal beats Uzbekistan, England beats Ghana, Croatia beats Panama, and Colombia beats DR Congo." },
-        { q: "Which pick has the lowest confidence?", a: "Colombia vs. DR Congo at 68%. AXRLEN reads DR Congo's transition threat as more credible than most consensus models." },
-        { q: "Which pick has the highest confidence?", a: "Portugal over Uzbekistan at 84%, driven by squad-depth, tournament experience, and the European-club-spine differential." },
+        { q: "What were the four picks?", a: "Portugal beats Uzbekistan, England beats Ghana, Croatia beats Panama, and Colombia beats DR Congo." },
+        { q: "Which pick had the lowest pre-match confidence?", a: "Colombia vs. DR Congo at 68%. AXRLEN reads DR Congo's transition threat as more credible than most consensus models." },
+        { q: "Which pick had the highest pre-match confidence?", a: "Portugal over Uzbekistan at 84%, driven by squad-depth, tournament experience, and the European-club-spine differential. This pick resolved correctly with a 5–0 result." },
       ]}
     />
 
