@@ -110,6 +110,39 @@ const PredictionBtcDaily = () => {
   const latest = data?.latest;
   const stats = data?.stats;
 
+  // Auto-settle the open call from live price (no AI). Fires once per state change.
+  const settledRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!latest || latest.status !== "OPEN" || livePrice == null) return;
+    const ageMs = Date.now() - new Date(latest.generated_at).getTime();
+    const entry = Number(latest.entry_price);
+    const tp = Number(latest.take_profit);
+    const sl = Number(latest.stop_loss);
+    const long = latest.direction === "LONG";
+    const entryHit = long ? livePrice <= entry : livePrice >= entry;
+    const tpHit = long ? livePrice >= tp : livePrice <= tp;
+    const slHit = long ? livePrice <= sl : livePrice >= sl;
+    const cancelExpired = !entryHit && ageMs > 30 * 60_000;
+
+    if (!tpHit && !slHit && !cancelExpired) return;
+    const key = `${latest.id}:${tpHit ? "WIN" : slHit ? "LOSS" : "CANCELLED"}`;
+    if (settledRef.current.has(key)) return;
+    settledRef.current.add(key);
+
+    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/btc-settle`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: ANON, Authorization: `Bearer ${ANON}` },
+      body: JSON.stringify({ id: latest.id, price: livePrice }),
+    })
+      .then((r) => r.json())
+      .then((j) => { if (j?.settled) {
+        // Trigger refresh of the prediction payload
+        fetch(FN_URL, { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } })
+          .then((r) => r.json()).then(setData).catch(() => {});
+      }})
+      .catch(() => settledRef.current.delete(key));
+  }, [latest, livePrice]);
+
   return (
     <>
       <ArticleShell
