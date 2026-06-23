@@ -179,6 +179,12 @@ const SEO: Record<string, SeoEntry> = {
       "Aladdin controls the present. AXRLEN sees the future. A direct comparison between BlackRock's engine and #HouseOfAsher's predictive algorithm.",
     ogType: "article",
   },
+  "/blog/btc-daily-predictions": {
+    title: "AXRLEN BTC Daily — Live Long/Short Forecast | Aureon",
+    description:
+      "Daily 07:00 EST AXRLEN Bitcoin forecast. Live BTC price, long/short call with entry, stop loss, take profit, and a running win/loss tally.",
+    ogType: "article",
+  },
   "/blog/aureon-pricing-explained": {
     title: "Aureon Pricing Explained — Why $18/mo and $399/mo (2026)",
     description:
