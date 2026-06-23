@@ -78,6 +78,7 @@ export const BLOG_POSTS: Post[] = [
     readTime: "8 min",
     featured: true,
   },
+  {
     slug: "/blog/predictions/peru-2026-keiko-fujimori",
     title: "AXRLEN Prediction — Keiko Fujimori, future president of Peru (2026)",
     dek: "AXRLEN's Zero-Point Field call on the 2026 Peruvian election: Keiko Fujimori (Fuerza Popular) wins the runoff by exhaustion under the Antivoto Paradox. Weighted matrix, three scenarios, 94% polarized-runoff probability.",
