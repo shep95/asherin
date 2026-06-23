@@ -57,6 +57,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
       heading: "Journal",
       links: [
         { to: "/blog", label: "All articles" },
+        { to: "/blog/the-crypto-dump-october-2026", label: "The Crypto Dump (Oct 2026)" },
         { to: "/blog/what-is-ai-osint", label: "What is AI OSINT?" },
         { to: "/blog/sovereign-ai-platforms", label: "Sovereign AI landscape" },
         { to: "/blog/ai-without-restrictions", label: "AI without restrictions" },
