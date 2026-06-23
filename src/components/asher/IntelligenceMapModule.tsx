@@ -1078,7 +1078,6 @@ const IntelligenceMapModule = () => {
         {entity && showInside && (
           <PropertyInteriorPanel
             label={
-              entity.hit?.address?.road ||
               entity.hit?.address?.city ||
               entity.hit?.address?.town ||
               entity.hit?.address?.village ||
