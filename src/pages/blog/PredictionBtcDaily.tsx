@@ -165,17 +165,37 @@ const PredictionBtcDaily = () => {
             No prediction yet — the next AXRLEN call generates at 07:00 EST.
           </div>
         )}
-        {latest && (
+        {latest && (() => {
+          const generatedMs = new Date(latest.generated_at).getTime();
+          const ageMs = now - generatedMs;
+          const within30 = ageMs <= 30 * 60_000;
+          const entryHit = livePrice != null && (
+            latest.direction === "LONG" ? livePrice <= latest.entry_price : livePrice >= latest.entry_price
+          );
+          const cancelled = latest.status === "OPEN" && !within30 && !entryHit;
+          const displayStatus = cancelled ? "CANCELLED" : latest.status;
+          return (
           <section className="mb-12 rounded-2xl border border-border/40 bg-card/30 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[10px] tracking-[0.4em] uppercase text-accent/80">
-                ◈ AXRLEN Call · {new Date(latest.generated_at).toUTCString()}
-              </p>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <p className="text-[10px] tracking-[0.4em] uppercase text-accent/80">
+                  ◈ AXRLEN Call · {new Date(latest.generated_at).toUTCString()}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">
+                  Prediction made <span className="text-foreground">{fmtAgo(ageMs)}</span>
+                  {latest.status === "OPEN" && (
+                    within30
+                      ? <span className="ml-2 text-accent/80">· {fmtAgo(30 * 60_000 - ageMs).replace(" ago", "")} until entry-fill window closes</span>
+                      : !entryHit && <span className="ml-2 text-red-400/80">· entry never filled within 30m window</span>
+                  )}
+                </p>
+              </div>
               <span className={`text-[10px] tracking-[0.3em] uppercase px-2 py-1 rounded-full border ${
-                latest.status === "WIN" ? "border-emerald-400/40 text-emerald-400" :
-                latest.status === "LOSS" ? "border-red-400/40 text-red-400" :
+                displayStatus === "WIN" ? "border-emerald-400/40 text-emerald-400" :
+                displayStatus === "LOSS" ? "border-red-400/40 text-red-400" :
+                displayStatus === "CANCELLED" ? "border-muted-foreground/40 text-muted-foreground" :
                 "border-accent/40 text-accent"
-              }`}>{latest.status}</span>
+              }`}>{displayStatus}</span>
             </div>
 
             <div className="flex items-center gap-3 mb-4">
