@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { KeyRound } from "lucide-react";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 export const BYOK_REQUIRED_EVENT = "aureon:byok-required";
 
@@ -16,16 +17,29 @@ export default function ByokRequiredDialog() {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<string>("");
   const navigate = useNavigate();
+  const { subscribed } = useSubscription();
 
   useEffect(() => {
     const handler = (e: Event) => {
       const ce = e as CustomEvent<{ reason?: string }>;
+      // Paid subscribers: skip the dialog and route straight to the AI Keys tab
+      // so they can hook up a key without an extra click.
+      if (subscribed) {
+        try {
+          const url = "/dashboard?tab=settings&panel=ai-keys";
+          if (!window.location.pathname.startsWith("/dashboard") ||
+              !window.location.search.includes("panel=ai-keys")) {
+            navigate(url);
+          }
+        } catch { /* noop */ }
+        return;
+      }
       setReason(ce.detail?.reason || "");
       setOpen(true);
     };
     window.addEventListener(BYOK_REQUIRED_EVENT, handler);
     return () => window.removeEventListener(BYOK_REQUIRED_EVENT, handler);
-  }, []);
+  }, [subscribed, navigate]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
