@@ -467,7 +467,10 @@ const Index = () => {
 
 
       <div id="demos" />
-      <ScrollSection><LiveDemoStrip /></ScrollSection>
+      <ScrollSection>
+        <h2 className="sr-only">Live Aureon Intelligence Demos</h2>
+        <LiveDemoStrip />
+      </ScrollSection>
       <ScrollSection><TrustBand /></ScrollSection>
 
       <ScrollSection>
