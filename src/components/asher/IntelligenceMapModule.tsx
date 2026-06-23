@@ -1074,6 +1074,23 @@ const IntelligenceMapModule = () => {
           />
         )}
 
+        {/* INSIDE PROPERTY + HISTORY PANEL */}
+        {entity && showInside && (
+          <PropertyInteriorPanel
+            label={
+              entity.hit?.address?.road ||
+              entity.hit?.address?.city ||
+              entity.hit?.address?.town ||
+              entity.hit?.address?.village ||
+              entity.hit?.display_name?.split(",")[0] ||
+              null
+            }
+            lat={entity.lat}
+            lng={entity.lng}
+            onClose={() => setShowInside(false)}
+          />
+        )}
+
         {/* COORD WIDGET */}
         <div className="absolute bottom-3 right-3 z-[1000] rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-wide text-muted-foreground space-y-0.5">
           <p><span className="text-muted-foreground/50">LAT/LNG:</span> {fmtCoord(coord.lat, coord.lng)}</p>
