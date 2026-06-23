@@ -180,39 +180,60 @@ const PredictionBtcDaily = () => {
           </section>
         )}
 
-        {/* History */}
+        {/* History / Logs */}
         {data?.history && data.history.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-2xl font-light mb-4">Track Record</h2>
+            <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
+              <h2 className="text-2xl font-light">Prediction Logs</h2>
+              <p className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">
+                Auto-settled hourly · TP/SL hit detection
+              </p>
+            </div>
             <div className="overflow-x-auto rounded-xl border border-border/30">
               <table className="w-full text-xs">
                 <thead className="bg-muted/10 text-muted-foreground">
                   <tr className="text-left">
                     <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">Date</th>
+                    <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">Time (UTC)</th>
                     <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">Dir</th>
                     <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">Conf</th>
                     <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">Entry</th>
-                    <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">SL</th>
-                    <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">TP</th>
+                    <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">Stop Loss</th>
+                    <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">Take Profit</th>
+                    <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">Target</th>
+                    <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">Settle</th>
                     <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">Result</th>
                     <th className="p-3 font-normal tracking-[0.2em] uppercase text-[10px]">PnL</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.history.map((r) => (
-                    <tr key={r.id} className="border-t border-border/20 hover:bg-muted/5">
-                      <td className="p-3 tabular-nums">{r.prediction_date}</td>
-                      <td className={`p-3 font-medium ${r.direction === "LONG" ? "text-emerald-400" : "text-red-400"}`}>{r.direction}</td>
-                      <td className="p-3 tabular-nums text-muted-foreground">{r.confidence}%</td>
-                      <td className="p-3 tabular-nums">${Number(r.entry_price).toLocaleString()}</td>
-                      <td className="p-3 tabular-nums text-red-400/70">${Number(r.stop_loss).toLocaleString()}</td>
-                      <td className="p-3 tabular-nums text-emerald-400/70">${Number(r.take_profit).toLocaleString()}</td>
-                      <td className={`p-3 ${r.status === "WIN" ? "text-emerald-400" : r.status === "LOSS" ? "text-red-400" : "text-muted-foreground"}`}>{r.status}</td>
-                      <td className={`p-3 tabular-nums ${r.pnl_pct == null ? "text-muted-foreground" : Number(r.pnl_pct) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                        {r.pnl_pct == null ? "—" : `${Number(r.pnl_pct) >= 0 ? "+" : ""}${Number(r.pnl_pct).toFixed(2)}%`}
-                      </td>
-                    </tr>
-                  ))}
+                  {data.history.map((r) => {
+                    const ts = new Date(r.generated_at);
+                    const target = r.direction === "LONG" ? Number(r.take_profit) : Number(r.take_profit);
+                    return (
+                      <tr key={r.id} className="border-t border-border/20 hover:bg-muted/5">
+                        <td className="p-3 tabular-nums">{r.prediction_date}</td>
+                        <td className="p-3 tabular-nums text-muted-foreground">
+                          {ts.toISOString().slice(11, 16)}
+                        </td>
+                        <td className={`p-3 font-medium ${r.direction === "LONG" ? "text-emerald-400" : "text-red-400"}`}>{r.direction}</td>
+                        <td className="p-3 tabular-nums text-muted-foreground">{r.confidence}%</td>
+                        <td className="p-3 tabular-nums">${Number(r.entry_price).toLocaleString()}</td>
+                        <td className="p-3 tabular-nums text-red-400/70">${Number(r.stop_loss).toLocaleString()}</td>
+                        <td className="p-3 tabular-nums text-emerald-400/70">${Number(r.take_profit).toLocaleString()}</td>
+                        <td className="p-3 tabular-nums text-foreground/80">
+                          {r.direction === "LONG" ? "▲" : "▼"} ${target.toLocaleString()}
+                        </td>
+                        <td className="p-3 tabular-nums text-muted-foreground">
+                          {r.settle_price ? `$${Number(r.settle_price).toLocaleString()}` : "—"}
+                        </td>
+                        <td className={`p-3 ${r.status === "WIN" ? "text-emerald-400" : r.status === "LOSS" ? "text-red-400" : "text-muted-foreground"}`}>{r.status}</td>
+                        <td className={`p-3 tabular-nums ${r.pnl_pct == null ? "text-muted-foreground" : Number(r.pnl_pct) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {r.pnl_pct == null ? "—" : `${Number(r.pnl_pct) >= 0 ? "+" : ""}${Number(r.pnl_pct).toFixed(2)}%`}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
