@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import AsherAIPanel, { type MapAction } from "@/components/asher/AsherAIPanel";
 import LiveFeedsPanel from "@/components/asher/LiveFeedsPanel";
 import Property3DPanel from "@/components/asher/Property3DPanel";
+import PropertyInteriorPanel from "@/components/asher/PropertyInteriorPanel";
 import { Video, Globe2, ExternalLink, RefreshCw, Building2, User, Hash, CalendarDays, Ruler, DollarSign, Users as UsersIcon, History, AlertTriangle, Activity, Radio } from "lucide-react";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 
@@ -434,6 +435,7 @@ const IntelligenceMapModule = () => {
   const mapRef = useRef<L.Map | null>(null);
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
   const [show3D, setShow3D] = useState(false);
+  const [showInside, setShowInside] = useState(false);
   const [propertyIntel, setPropertyIntel] = useState<{
     loading: boolean;
     intel: any | null;
@@ -1022,6 +1024,22 @@ const IntelligenceMapModule = () => {
           </button>
         )}
 
+        {/* INSIDE PROPERTY TOGGLE */}
+        {entity && (
+          <button
+            onClick={() => setShowInside((v) => !v)}
+            className={`absolute bottom-3 left-[240px] z-[1001] flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-light tracking-[0.2em] uppercase backdrop-blur-md transition-colors ${
+              showInside
+                ? "border-foreground/40 bg-foreground/10 text-foreground"
+                : "border-border/30 bg-card/85 text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+            }`}
+            title="See inside the property + property history (open-source imagery)"
+          >
+            <span className="font-mono">⌂</span>
+            Inside / History
+          </button>
+        )}
+
         {/* LIVE FEEDS PANEL */}
         {entity && showLiveFeeds && (
           <LiveFeedsPanel
@@ -1053,6 +1071,22 @@ const IntelligenceMapModule = () => {
             lat={entity.lat}
             lng={entity.lng}
             onClose={() => setShow3D(false)}
+          />
+        )}
+
+        {/* INSIDE PROPERTY + HISTORY PANEL */}
+        {entity && showInside && (
+          <PropertyInteriorPanel
+            label={
+              entity.hit?.address?.city ||
+              entity.hit?.address?.town ||
+              entity.hit?.address?.village ||
+              entity.hit?.display_name?.split(",")[0] ||
+              null
+            }
+            lat={entity.lat}
+            lng={entity.lng}
+            onClose={() => setShowInside(false)}
           />
         )}
 
