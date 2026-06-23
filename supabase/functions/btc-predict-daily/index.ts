@@ -163,18 +163,10 @@ serve(async (req) => {
   const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
-  // Auth: accept either cron secret OR Supabase anon apikey header (from pg_cron).
-  // The per-day UNIQUE constraint + skip-if-exists logic prevents abuse via
-  // repeat anon calls (max one AI call per day).
-  const cronSecret = Deno.env.get("CRON_SECRET");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  const hasCron = cronSecret && req.headers.get("x-cron-secret") === cronSecret;
-  const hasApiKey = anonKey && req.headers.get("apikey") === anonKey;
-  if (!hasCron && !hasApiKey) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...cors, "Content-Type": "application/json" },
-    });
-  }
+  // Public endpoint — protected by the per-day UNIQUE constraint on
+  // prediction_date and the early "skip if exists" check below, so at most
+  // ONE AI call happens per UTC day regardless of how many times this is hit.
+
 
 
   try {
