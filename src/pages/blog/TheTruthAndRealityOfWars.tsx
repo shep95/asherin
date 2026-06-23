@@ -54,19 +54,16 @@ const TheTruthAndRealityOfWars = () => (
       id="the-truth-and-reality-of-wars-faq"
       items={[
         {
-          question: "Why is the Bible called scripture?",
-          answer:
-            "Scripture and script share the same Latin root — scriptum, 'that which is written.' A script is a pre-written sequence of events performed by actors. The elite occult tradition treats history the same way: written in advance, performed in public, and most of the audience never realizes they are inside the play.",
+          q: "Why is the Bible called scripture?",
+          a: "Scripture and script share the same Latin root — scriptum, 'that which is written.' A script is a pre-written sequence of events performed by actors. The elite occult tradition treats history the same way: written in advance, performed in public, and most of the audience never realizes they are inside the play.",
         },
         {
-          question: "What are soldiers actually fighting for?",
-          answer:
-            "Not the country, not the flag, not honor. They are fighting for the survival of the mechanism the country uses to keep them enslaved. In the West, that mechanism is the fiat currency and the central-banking system that issues it. Defend the dollar, defend the euro, defend the pound — defend the chain.",
+          q: "What are soldiers actually fighting for?",
+          a: "Not the country, not the flag, not honor. They are fighting for the survival of the mechanism the country uses to keep them enslaved. In the West, that mechanism is the fiat currency and the central-banking system that issues it. Defend the dollar, defend the euro, defend the pound — defend the chain.",
         },
         {
-          question: "Are world wars actually civil wars?",
-          answer:
-            "Yes — civil wars inside the elite class. Two factions of the global ruling caste cannot agree on the rules of the pyramid, so they conscript nations to do the fighting. The flags are jerseys. The teams are bankers, dynasties, and intelligence networks. The dead are billed to the public.",
+          q: "Are world wars actually civil wars?",
+          a: "Yes — civil wars inside the elite class. Two factions of the global ruling caste cannot agree on the rules of the pyramid, so they conscript nations to do the fighting. The flags are jerseys. The teams are bankers, dynasties, and intelligence networks. The dead are billed to the public.",
         },
       ]}
     />
@@ -271,10 +268,10 @@ const TheTruthAndRealityOfWars = () => (
     <RelatedLinks
       heading="Related intelligence"
       links={[
-        { title: "AXRLEN Prediction — Russia–Ukraine 2026 endgame", href: "/blog/predictions/russia-ukraine-war-2026-endgame" },
-        { title: "AXRLEN Prediction — China–Taiwan 2026 flashpoint", href: "/blog/predictions/china-taiwan-2026-flashpoint" },
-        { title: "AXRLEN Prediction — Israel–Iran 2026 shadow war", href: "/blog/predictions/israel-iran-2026-shadow-war" },
-        { title: "The Crypto Dump — Oct 2026 liquidity event", href: "/blog/the-crypto-dump-october-2026" },
+        { to: "/blog/predictions/russia-ukraine-war-2026-endgame", label: "AXRLEN Prediction — Russia–Ukraine 2026 endgame", description: "Frozen front, Korean-style armistice, and the financial settlement behind the front line." },
+        { to: "/blog/predictions/china-taiwan-2026-flashpoint", label: "AXRLEN Prediction — China–Taiwan 2026 flashpoint", description: "Blockade-first escalation path and the Thucydides–Mahan Convergence behind the strait." },
+        { to: "/blog/predictions/israel-iran-2026-shadow-war", label: "AXRLEN Prediction — Israel–Iran 2026 shadow war", description: "Proxy spike, Hezbollah-first sequencing, and the singular nuclear 'Hard Test'." },
+        { to: "/blog/the-crypto-dump-october-2026", label: "The Crypto Dump — Oct 2026 liquidity event", description: "The BlackRock/Vanguard trap-door mechanism and the 92:8 loser-to-winner ratio." },
       ]}
     />
   </ArticleShell>
