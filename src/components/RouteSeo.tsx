@@ -149,6 +149,24 @@ const SEO: Record<string, SeoEntry> = {
       "AXRLEN predicts Keiko Fujimori wins the 2026 Peru runoff under the Antivoto Paradox. Three scenarios, 94% polarized runoff probability.",
     ogType: "article",
   },
+  "/blog/predictions/russia-ukraine-war-2026-endgame": {
+    title: "AXRLEN — Russia–Ukraine 2026 Endgame Forecast",
+    description:
+      "AXRLEN forecasts a Korean-style armistice along the current line of contact within 24 months. Symmetric Exhaustion Cycle, 55% armistice probability, de facto Donbas/Crimea partition.",
+    ogType: "article",
+  },
+  "/blog/predictions/china-taiwan-2026-flashpoint": {
+    title: "AXRLEN — China–Taiwan 2026 Flashpoint Forecast",
+    description:
+      "AXRLEN forecasts a 72% Taiwan Strait kinetic-crisis probability in 2026 with a PLA blockade-first escalation path. Thucydides–Mahan Convergence and US deterrence dissonance.",
+    ogType: "article",
+  },
+  "/blog/predictions/israel-iran-2026-shadow-war": {
+    title: "AXRLEN — Israel–Iran 2026 Shadow War Forecast",
+    description:
+      "AXRLEN forecasts High-Intensity Intermittency and a singular Israeli 'Hard Test' strike on Iranian nuclear infrastructure. Hezbollah-first sequencing, three-month proxy spike, forced mediation.",
+    ogType: "article",
+  },
   "/blog/the-crypto-dump-october-2026": {
     title: "The Crypto Dump — BTC to $44,500 (Oct 2026)",
     description:

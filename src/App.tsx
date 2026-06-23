@@ -41,6 +41,9 @@ const BlogPredictionWorldCup2026GroupMatches0623 = lazy(() => import("./pages/bl
 const BlogPredictionWorldCup2026GroupMatches0624 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0624"));
 const BlogPredictionWorldCup2026GroupMatches0625 = lazy(() => import("./pages/blog/PredictionWorldCup2026GroupMatches0625"));
 const BlogPredictionPeru2026KeikoFujimori = lazy(() => import("./pages/blog/PredictionPeru2026KeikoFujimori"));
+const BlogPredictionRussiaUkraineWar2026Endgame = lazy(() => import("./pages/blog/PredictionRussiaUkraineWar2026Endgame"));
+const BlogPredictionChinaTaiwan2026Flashpoint = lazy(() => import("./pages/blog/PredictionChinaTaiwan2026Flashpoint"));
+const BlogPredictionIsraelIran2026ShadowWar = lazy(() => import("./pages/blog/PredictionIsraelIran2026ShadowWar"));
 const BlogTheCryptoDumpOctober2026 = lazy(() => import("./pages/blog/TheCryptoDumpOctober2026"));
 const BlogEliteCorporationsAlgorithmsVsAxrlen = lazy(() => import("./pages/blog/EliteCorporationsAlgorithmsVsAxrlen"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
@@ -125,6 +128,9 @@ const App = () => (
             <Route path="/blog/predictions/world-cup-2026-group-matches-0624" element={<BlogPredictionWorldCup2026GroupMatches0624 />} />
             <Route path="/blog/predictions/world-cup-2026-group-matches-0625" element={<BlogPredictionWorldCup2026GroupMatches0625 />} />
             <Route path="/blog/predictions/peru-2026-keiko-fujimori" element={<BlogPredictionPeru2026KeikoFujimori />} />
+            <Route path="/blog/predictions/russia-ukraine-war-2026-endgame" element={<BlogPredictionRussiaUkraineWar2026Endgame />} />
+            <Route path="/blog/predictions/china-taiwan-2026-flashpoint" element={<BlogPredictionChinaTaiwan2026Flashpoint />} />
+            <Route path="/blog/predictions/israel-iran-2026-shadow-war" element={<BlogPredictionIsraelIran2026ShadowWar />} />
             <Route path="/blog/the-crypto-dump-october-2026" element={<BlogTheCryptoDumpOctober2026 />} />
             <Route path="/blog/elite-corporations-algorithms-vs-axrlen" element={<BlogEliteCorporationsAlgorithmsVsAxrlen />} />
             <Route path="/updates" element={<Updates />} />
