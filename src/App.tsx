@@ -128,6 +128,9 @@ const App = () => (
             <Route path="/blog/predictions/world-cup-2026-group-matches-0624" element={<BlogPredictionWorldCup2026GroupMatches0624 />} />
             <Route path="/blog/predictions/world-cup-2026-group-matches-0625" element={<BlogPredictionWorldCup2026GroupMatches0625 />} />
             <Route path="/blog/predictions/peru-2026-keiko-fujimori" element={<BlogPredictionPeru2026KeikoFujimori />} />
+            <Route path="/blog/predictions/russia-ukraine-war-2026-endgame" element={<BlogPredictionRussiaUkraineWar2026Endgame />} />
+            <Route path="/blog/predictions/china-taiwan-2026-flashpoint" element={<BlogPredictionChinaTaiwan2026Flashpoint />} />
+            <Route path="/blog/predictions/israel-iran-2026-shadow-war" element={<BlogPredictionIsraelIran2026ShadowWar />} />
             <Route path="/blog/the-crypto-dump-october-2026" element={<BlogTheCryptoDumpOctober2026 />} />
             <Route path="/blog/elite-corporations-algorithms-vs-axrlen" element={<BlogEliteCorporationsAlgorithmsVsAxrlen />} />
             <Route path="/updates" element={<Updates />} />
