@@ -303,13 +303,6 @@ const Blog = () => {
   const pinnedSlugs = new Set(pinnedPosts.map((p) => p.slug));
   const listed = filtered.filter((p) => !pinnedSlugs.has(p.slug));
 
-  // AXRLEN engine track record — manually tallied tape across verticals.
-  const axrlenStats = [
-    { vertical: "Sports Betting", wins: 6, losses: 1 },
-    { vertical: "Global Events", wins: 17, losses: 1 },
-    { vertical: "Markets", wins: 7, losses: 1 },
-  ];
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
@@ -329,54 +322,6 @@ const Blog = () => {
             the Aureon team. No fluff, no affiliate links.
           </p>
         </header>
-
-        {/* AXRLEN TRACK RECORD */}
-        <section
-          aria-label="AXRLEN engine track record"
-          className="rounded-3xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 sm:p-8"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                ◈ AXRLEN Engine · Live Track Record
-              </p>
-              <h2 className="mt-2 text-2xl font-light tracking-tight">
-                Win rate across verticals
-              </h2>
-            </div>
-          </div>
-          <div className="grid sm:grid-cols-3 gap-4">
-            {axrlenStats.map((s) => {
-              const total = s.wins + s.losses;
-              const rate = total ? (s.wins / total) * 100 : 0;
-              return (
-                <div
-                  key={s.vertical}
-                  className="rounded-2xl border border-border/30 bg-background/40 p-5"
-                >
-                  <div className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                    {s.vertical}
-                  </div>
-                  <div className="mt-3 flex items-baseline gap-2">
-                    <span className="text-4xl font-extralight tabular-nums">
-                      {rate.toFixed(1)}%
-                    </span>
-                    <span className="text-xs font-light text-muted-foreground">win rate</span>
-                  </div>
-                  <div className="mt-2 text-xs font-light text-muted-foreground tabular-nums">
-                    {s.wins}W · {s.losses}L · {total} total
-                  </div>
-                  <div className="mt-3 h-1.5 w-full rounded-full bg-foreground/10 overflow-hidden">
-                    <div
-                      className="h-full bg-foreground/70"
-                      style={{ width: `${rate}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
 
         {/* PINNED POSTS — always visible at the top */}
         {pinnedPosts.length > 0 && (
