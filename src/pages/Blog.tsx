@@ -26,13 +26,21 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/the-crypto-dump-october-2026",
+    title: "The Crypto Dump — AXRLEN predicts Bitcoin to $44,500 (Oct 12–19, 2026)",
+    dek: "AXRLEN's 88%-confidence call on the October 2026 Bitcoin liquidity event: SBC Vedha collision, Mars–Rahu Mahadasha trigger, 92:8 loser-to-winner ratio, and the BlackRock/Vanguard trap-door mechanism. Live BTC at generation: $62,540.",
+    tag: "Prediction",
+    published: "2026-06-23T16:38:26.000Z",
+    readTime: "9 min",
+    featured: true,
+  },
+  {
     slug: "/blog/aureon-pricing-explained",
     title: "Aureon pricing explained — why $18/mo and $399/mo",
     dek: "A field-level breakdown of how Aureon's subscription is built, how it compares to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
     tag: "Pricing",
     published: "2026-06-19",
     readTime: "11 min",
-    featured: true,
   },
   {
     slug: "/blog/predictions/peru-2026-keiko-fujimori",

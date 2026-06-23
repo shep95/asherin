@@ -143,6 +143,12 @@ const SEO: Record<string, SeoEntry> = {
       "AXRLEN predicts Keiko Fujimori (Fuerza Popular) wins the 2026 Peru presidential runoff under the Antivoto Paradox. Weighted matrix, three scenarios, 94% polarized runoff probability.",
     ogType: "article",
   },
+  "/blog/the-crypto-dump-october-2026": {
+    title: "The Crypto Dump — Bitcoin to $44,500 (Oct 12–19, 2026) | Aureon",
+    description:
+      "AXRLEN predicts a Bitcoin liquidity event between Oct 12–19, 2026 with a $44,500 floor at 88% confidence. SBC Vedha collision, Mars–Rahu trigger, BlackRock/Vanguard trap-door mechanism.",
+    ogType: "article",
+  },
   "/blog/aureon-pricing-explained": {
     title: "Aureon Pricing Explained — Why $18/mo and $399/mo (2026)",
     description:
