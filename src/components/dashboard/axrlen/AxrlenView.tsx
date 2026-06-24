@@ -789,9 +789,13 @@ const AxrlenView = () => {
         {!chatCollapsed && (
           <div
             className="flex flex-col border-l border-border/[0.06] bg-background/30 backdrop-blur-md w-full md:w-auto"
-            style={{ width: undefined }}
+            style={
+              typeof window !== "undefined" && window.innerWidth >= 768
+                ? { width: `${chatWidth}%`, minWidth: 320 }
+                : undefined
+            }
           >
-            <div className="hidden md:flex flex-col h-full" style={{ width: `${chatWidth}vw`, minWidth: 320, maxWidth: "60vw" }} />
+
 
             {/* Rail header */}
             <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border/[0.06]">
