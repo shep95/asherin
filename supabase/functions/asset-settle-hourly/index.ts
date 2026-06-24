@@ -5,6 +5,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isMarketOpen } from "../_shared/marketHours.ts";
 
 const log = (s: string, d?: unknown) =>
   console.log(`[asset-settle-hourly] ${s}${d ? " — " + JSON.stringify(d) : ""}`);
