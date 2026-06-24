@@ -88,8 +88,11 @@ serve(async (req) => {
     const settled: unknown[] = [];
     const now = Date.now();
 
+    const skipped: unknown[] = [];
     for (const row of (openRows ?? []) as any[]) {
       const asset = row.asset as AssetKey;
+      // Skip closed markets — stale spot prices would falsely trip SL/TP and waste API calls.
+      if (!isMarketOpen(asset)) { skipped.push({ id: row.id, asset, reason: "market_closed" }); continue; }
       let p = priceCache.get(asset);
       if (p == null) {
         try { p = await spot(asset); priceCache.set(asset, p); }
