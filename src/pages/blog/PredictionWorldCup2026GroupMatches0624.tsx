@@ -62,7 +62,7 @@ const PredictionWorldCup2026GroupMatches0624 = () => (
     <FaqJsonLd
       id="prediction-wc-2026-0624"
       items={[
-        { q: "How did the picks score?", a: "As of the evening of 23 June 2026, two of four matches have resolved. Portugal 5–0 Uzbekistan (AXRLEN pick correct, modal margin exceeded — structural read fully validated). England 0–0 Ghana (AXRLEN pick missed; the result fell into the engine's pre-flagged 'England opens-group under-performs xG' risk vector). Panama vs. Croatia and Colombia vs. DR Congo pending late kickoffs." },
+        { q: "How did the picks score?", a: "The slate is fully resolved. AXRLEN finished 3/4 on winners — inside the stated calibration band. Portugal 5–0 Uzbekistan (pick correct, modal margin exceeded — structural read fully validated). Croatia 1–0 Panama via Ante Budimir (54') (pick correct, one goal short of the 2–0 modal). Colombia 1–0 DR Congo (pick correct, one goal short of the 2–1 modal). England 0–0 Ghana (pick missed; result fell into the engine's pre-flagged 'England opens-group under-performs xG' risk vector)." },
         { q: "Who generated this analysis?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the extended structural and historical analysis on 23 June 2026. The post renders the engine output verbatim and is updated as matches resolve." },
         { q: "What is the difference between this post and the 23 June slate post?", a: "The original 23 June slate post delivers the winner and confidence for each match. This post explains why — through squad-structure signals and historical-pattern validation." },
         { q: "What were the four picks?", a: "Portugal beats Uzbekistan, England beats Ghana, Croatia beats Panama, and Colombia beats DR Congo." },
