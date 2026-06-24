@@ -81,7 +81,7 @@ serve(async (req) => {
     const { data: openRows } = await supabase
       .from("asset_predictions")
       .select("*")
-      .eq("status", "OPEN");
+      .in("status", ["OPEN", "CANCELLED"]);
 
     const priceCache = new Map<AssetKey, number>();
     const settled: unknown[] = [];
