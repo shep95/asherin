@@ -534,6 +534,7 @@ LAYER 3 (Probability Weighting): Apply domain weight × signal strength × tempo
 CRITICAL: Name specific news outlets, cite specific headlines, reference specific dates from the provided data. Include a narrativeAnalysis section detecting media bias, propaganda, and information gaps.`;
 
     let rawText = "{}";
+    let geminiFailed = false;
     if (GEMINI_KEY) {
       const geminiResp = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
@@ -555,12 +556,18 @@ CRITICAL: Name specific news outlets, cite specific headlines, reference specifi
       if (!geminiResp.ok) {
         const errText = await geminiResp.text();
         console.error("Gemini error:", geminiResp.status, errText);
-        throw new Error(`AI analysis failed: ${geminiResp.status}`);
+        if (LOVABLE_KEY) {
+          geminiFailed = true; // fall through to Lovable AI Gateway
+        } else {
+          throw new Error(`AI analysis failed: ${geminiResp.status}`);
+        }
+      } else {
+        const geminiData = await geminiResp.json();
+        rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
       }
-      const geminiData = await geminiResp.json();
-      rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    } else {
-      // Lovable AI Gateway fallback (admin / no platform Gemini key on env)
+    }
+    if ((!GEMINI_KEY || geminiFailed) && LOVABLE_KEY) {
+      // Lovable AI Gateway fallback
       const lovResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -587,6 +594,7 @@ CRITICAL: Name specific news outlets, cite specific headlines, reference specifi
       const lovData = await lovResp.json();
       rawText = lovData.choices?.[0]?.message?.content || "{}";
     }
+
 
     
     let analysis: any;
