@@ -337,6 +337,8 @@ const Blog = () => {
   }, [tagFilter, sort, dateFrom, dateTo]);
 
   const pinnedPosts = BLOG_POSTS.filter((p) => p.pinned);
+  const livePinned = pinnedPosts.filter((p) => p.tag === "Live Prediction");
+  const heroPinned = pinnedPosts.filter((p) => p.tag !== "Live Prediction");
   const featured = pinnedPosts[0] ?? BLOG_POSTS.find((p) => p.featured) ?? BLOG_POSTS[0];
   const isFiltering =
     tagFilter !== "All" || sort !== "newest" || dateFrom || dateTo;
@@ -363,10 +365,49 @@ const Blog = () => {
           </p>
         </header>
 
-        {/* PINNED POSTS — always visible at the top */}
-        {pinnedPosts.length > 0 && (
+        {/* AUTOMATED LIVE PREDICTIONS — collapsed compact group */}
+        {livePinned.length > 0 && (
+          <section aria-label="Automated daily predictions" className="space-y-4">
+            <div className="flex items-baseline justify-between flex-wrap gap-2">
+              <div>
+                <p className="text-[10px] tracking-[0.4em] uppercase text-accent/80 mb-1">
+                  ◈ Auto-Updated · 07:00 EST Daily
+                </p>
+                <h2 className="text-2xl font-light tracking-tight">Automated daily predictions</h2>
+              </div>
+              <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+                {livePinned.length} live feeds
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {livePinned.map((p) => {
+                const short = p.title.replace(/^AXRLEN\s+/, "").split(" Daily")[0];
+                return (
+                  <Link
+                    key={p.slug}
+                    to={p.slug}
+                    className="group flex flex-col gap-2 rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-500/[0.06] via-card/30 to-card/20 hover:border-amber-400/70 hover:shadow-[0_0_24px_-8px_rgba(251,191,36,0.35)] p-4 transition-all"
+                  >
+                    <span className="inline-flex items-center gap-1.5 text-[9px] tracking-[0.2em] uppercase text-amber-300">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      Live
+                    </span>
+                    <h3 className="text-sm font-light leading-snug text-foreground">{short}</h3>
+                    <div className="mt-auto flex items-center justify-between pt-2 border-t border-amber-400/15">
+                      <span className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground">24h call</span>
+                      <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-all group-hover:text-amber-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" strokeWidth={1.5} />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* PINNED POSTS — full hero cards for non-live pinned articles */}
+        {heroPinned.length > 0 && (
           <section aria-label="Pinned articles" className="space-y-5">
-            {pinnedPosts.map((featured) => (
+            {heroPinned.map((featured) => (
               <Link
                 key={featured.slug}
                 to={featured.slug}
