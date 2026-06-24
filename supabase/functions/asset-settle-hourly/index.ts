@@ -109,8 +109,8 @@ serve(async (req) => {
       settled.push({ id: row.id, asset, status: v.status, pnl_pct: v.pnl_pct });
     }
 
-    log("Done", { settled: settled.length });
-    return new Response(JSON.stringify({ ok: true, settled }), {
+    log("Done", { settled: settled.length, skipped: skipped.length });
+    return new Response(JSON.stringify({ ok: true, settled, skipped }), {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (err) {
