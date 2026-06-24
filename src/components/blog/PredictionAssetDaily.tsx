@@ -198,12 +198,20 @@ const PredictionAssetDaily = ({ cfg }: { cfg: AxrlenAssetConfig }) => {
       {latest && (() => {
         const generatedMs = new Date(latest.generated_at).getTime();
         const ageMs = now - generatedMs;
-        const within30 = ageMs <= 30 * 60_000;
-        const entryHit = livePrice != null && (
-          latest.direction === "LONG" ? livePrice <= latest.entry_price : livePrice >= latest.entry_price
-        );
-        const cancelled = latest.status === "OPEN" && !within30 && !entryHit;
-        const displayStatus = cancelled ? "CANCELLED" : latest.status;
+        const displayStatus = latest.status;
+        const isSettled = displayStatus !== "OPEN";
+
+        // Next AXRLEN call: 07:00 America/New_York (12:00 UTC standard, 11:00 UTC during DST).
+        // Simple, drift-free: take today's 12:00 UTC; if past, roll to tomorrow.
+        const nextCallMs = (() => {
+          const d = new Date(now);
+          const t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0);
+          return t > now ? t : t + 86_400_000;
+        })();
+        const untilNext = Math.max(0, nextCallMs - now);
+        const nextH = Math.floor(untilNext / 3_600_000);
+        const nextM = Math.floor((untilNext % 3_600_000) / 60_000);
+
         return (
           <section className="mb-12 rounded-2xl border border-border/40 bg-card/30 p-6">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -213,10 +221,10 @@ const PredictionAssetDaily = ({ cfg }: { cfg: AxrlenAssetConfig }) => {
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">
                   Prediction made <span className="text-foreground">{fmtAgo(ageMs)}</span>
-                  {latest.status === "OPEN" && (
-                    within30
-                      ? <span className="ml-2 text-accent/80">· {fmtAgo(30 * 60_000 - ageMs).replace(" ago", "")} until entry-fill window closes</span>
-                      : !entryHit && <span className="ml-2 text-red-400/80">· entry never filled within 30m window</span>
+                  {isSettled && (
+                    <span className="ml-2 text-accent/80">
+                      · Next AXRLEN call in <span className="text-foreground">{nextH}h {nextM}m</span>
+                    </span>
                   )}
                 </p>
               </div>
