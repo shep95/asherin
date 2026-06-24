@@ -9,6 +9,7 @@ import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
 import { VISUAL_INTELLIGENCE_BRAIN } from "../_shared/visualIntelligenceBrain.ts";
 import { SOCIAL_AWARENESS_BRAIN } from "../_shared/socialAwarenessBrain.ts";
+
 import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchitectureBrain.ts";
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
 
