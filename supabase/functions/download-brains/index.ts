@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       "NarrativeForgeBrain.md": NARRATIVE_FORGE_BRAIN,
       "SynthesisEngineBrain.md": SYNTHESIS_ENGINE_BRAIN,
       "VisualIntelligenceBrain.md": VISUAL_INTELLIGENCE_BRAIN,
-      
+      "SocialAwarenessBrain.md": SOCIAL_AWARENESS_BRAIN,
       "DeepTrainingArchitectureBrain.md": DEEP_TRAINING_ARCHITECTURE_BRAIN,
       "GeolocationBrain.md": GEOLOCATION_BRAIN,
     };
