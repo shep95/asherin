@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         pnl_pct: pnl == null ? null : Number(pnl.toFixed(4)),
       })
       .eq("id", id)
-      .eq("status", "OPEN")
+      .in("status", ["OPEN", "CANCELLED"])
       .select()
       .maybeSingle();
     if (uErr) throw uErr;
