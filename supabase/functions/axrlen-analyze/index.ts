@@ -533,32 +533,61 @@ LAYER 3 (Probability Weighting): Apply domain weight × signal strength × tempo
 
 CRITICAL: Name specific news outlets, cite specific headlines, reference specific dates from the provided data. Include a narrativeAnalysis section detecting media bias, propaganda, and information gaps.`;
 
-    const geminiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            { role: "user", parts: [{ text: systemPrompt + "\n\n" + userPrompt }] },
-          ],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 65536,
-            responseMimeType: "application/json",
-          },
-        }),
+    let rawText = "{}";
+    if (GEMINI_KEY) {
+      const geminiResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              { role: "user", parts: [{ text: systemPrompt + "\n\n" + userPrompt }] },
+            ],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 65536,
+              responseMimeType: "application/json",
+            },
+          }),
+        }
+      );
+      if (!geminiResp.ok) {
+        const errText = await geminiResp.text();
+        console.error("Gemini error:", geminiResp.status, errText);
+        throw new Error(`AI analysis failed: ${geminiResp.status}`);
       }
-    );
-
-    if (!geminiResp.ok) {
-      const errText = await geminiResp.text();
-      console.error("Gemini error:", geminiResp.status, errText);
-      throw new Error(`AI analysis failed: ${geminiResp.status}`);
+      const geminiData = await geminiResp.json();
+      rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    } else {
+      // Lovable AI Gateway fallback (admin / no platform Gemini key on env)
+      const lovResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${LOVABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.3,
+        }),
+      });
+      if (!lovResp.ok) {
+        const errText = await lovResp.text();
+        console.error("Lovable AI error:", lovResp.status, errText);
+        if (lovResp.status === 429) throw new Error("AI rate limit — try again shortly.");
+        if (lovResp.status === 402) throw new Error("AI credits exhausted. Add credits in Workspace settings.");
+        throw new Error(`AI analysis failed: ${lovResp.status}`);
+      }
+      const lovData = await lovResp.json();
+      rawText = lovData.choices?.[0]?.message?.content || "{}";
     }
 
-    const geminiData = await geminiResp.json();
-    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     
     let analysis: any;
     try {
