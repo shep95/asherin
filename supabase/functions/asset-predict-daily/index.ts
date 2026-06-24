@@ -11,6 +11,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isMarketOpen } from "../_shared/marketHours.ts";
 
 const log = (s: string, d?: unknown) =>
   console.log(`[asset-predict-daily] ${s}${d ? " — " + JSON.stringify(d) : ""}`);
@@ -201,6 +202,11 @@ function evaluateSettlement(row: { direction: string; entry_price: number; stop_
 
 async function runForAsset(supabase: ReturnType<typeof createClient>, a: AssetMeta) {
   log("Begin", { asset: a.key });
+  const marketOpen = isMarketOpen(a.key);
+  if (!marketOpen) {
+    log("Market closed — skipping live fetch + AI call", { asset: a.key });
+    return { asset: a.key, skipped: true, reason: "market_closed" };
+  }
   const live = await fetchLive(a);
 
   // Settle expired OPEN rows for this asset.

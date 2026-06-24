@@ -5,6 +5,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isMarketOpen } from "../_shared/marketHours.ts";
 
 const log = (s: string, d?: unknown) =>
   console.log(`[asset-settle-hourly] ${s}${d ? " — " + JSON.stringify(d) : ""}`);
@@ -87,8 +88,11 @@ serve(async (req) => {
     const settled: unknown[] = [];
     const now = Date.now();
 
+    const skipped: unknown[] = [];
     for (const row of (openRows ?? []) as any[]) {
       const asset = row.asset as AssetKey;
+      // Skip closed markets — stale spot prices would falsely trip SL/TP and waste API calls.
+      if (!isMarketOpen(asset)) { skipped.push({ id: row.id, asset, reason: "market_closed" }); continue; }
       let p = priceCache.get(asset);
       if (p == null) {
         try { p = await spot(asset); priceCache.set(asset, p); }
@@ -105,8 +109,8 @@ serve(async (req) => {
       settled.push({ id: row.id, asset, status: v.status, pnl_pct: v.pnl_pct });
     }
 
-    log("Done", { settled: settled.length });
-    return new Response(JSON.stringify({ ok: true, settled }), {
+    log("Done", { settled: settled.length, skipped: skipped.length });
+    return new Response(JSON.stringify({ ok: true, settled, skipped }), {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (err) {
