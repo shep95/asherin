@@ -337,6 +337,8 @@ const Blog = () => {
   }, [tagFilter, sort, dateFrom, dateTo]);
 
   const pinnedPosts = BLOG_POSTS.filter((p) => p.pinned);
+  const livePinned = pinnedPosts.filter((p) => p.tag === "Live Prediction");
+  const heroPinned = pinnedPosts.filter((p) => p.tag !== "Live Prediction");
   const featured = pinnedPosts[0] ?? BLOG_POSTS.find((p) => p.featured) ?? BLOG_POSTS[0];
   const isFiltering =
     tagFilter !== "All" || sort !== "newest" || dateFrom || dateTo;
