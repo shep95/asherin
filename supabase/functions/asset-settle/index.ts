@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (row.status !== "OPEN") {
+    if (row.status !== "OPEN" && row.status !== "CANCELLED") {
       return new Response(JSON.stringify({ ok: true, unchanged: true, row }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
