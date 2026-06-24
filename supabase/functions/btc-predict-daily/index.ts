@@ -150,13 +150,11 @@ function evaluateSettlement(row: {
   if (isLong) {
     if (price >= tp) return { status: "WIN", pnl_pct: ((tp - entry) / entry) * 100 };
     if (price <= sl) return { status: "LOSS", pnl_pct: ((sl - entry) / entry) * 100 };
-    const pnl = ((price - entry) / entry) * 100;
-    return { status: pnl >= 0 ? "WIN" : "LOSS", pnl_pct: pnl };
+    return { status: "EXPIRED", pnl_pct: ((price - entry) / entry) * 100 };
   } else {
     if (price <= tp) return { status: "WIN", pnl_pct: ((entry - tp) / entry) * 100 };
     if (price >= sl) return { status: "LOSS", pnl_pct: ((entry - sl) / entry) * 100 };
-    const pnl = ((entry - price) / entry) * 100;
-    return { status: pnl >= 0 ? "WIN" : "LOSS", pnl_pct: pnl };
+    return { status: "EXPIRED", pnl_pct: ((entry - price) / entry) * 100 };
   }
 }
 
