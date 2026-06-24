@@ -102,9 +102,8 @@ async function callAxrlen(a: AssetMeta, live: Live): Promise<{
   thesis: string;
   reasoning: string;
 }> {
-  const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
   const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
-  if (!LOVABLE_KEY && !OPENAI_KEY) throw new Error("No AI key configured (LOVABLE_API_KEY or OPENAI_API_KEY)");
+  if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY not configured");
 
   const now = new Date().toISOString();
   const system = `You are AXRLEN, the Nexus Prime predictive intelligence engine inside Aureon.
@@ -139,19 +138,11 @@ Rules:
 
 Produce the next-24h AXRLEN directional call NOW for ${a.display}.`;
 
-  // Prefer Lovable AI Gateway when available (cheaper, no per-key billing).
-  const useLovable = !!LOVABLE_KEY;
-  const endpoint = useLovable
-    ? "https://ai.gateway.lovable.dev/v1/chat/completions"
-    : "https://api.openai.com/v1/chat/completions";
-  const model = useLovable ? "google/gemini-2.5-flash" : "gpt-4o-mini";
-  const key = (useLovable ? LOVABLE_KEY : OPENAI_KEY) as string;
-
-  const r = await fetch(endpoint, {
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OPENAI_KEY}` },
     body: JSON.stringify({
-      model,
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -162,7 +153,7 @@ Produce the next-24h AXRLEN directional call NOW for ${a.display}.`;
   });
   if (!r.ok) {
     const t = await r.text();
-    throw new Error(`AI (${useLovable ? "Lovable" : "OpenAI"}) ${r.status}: ${t.slice(0, 300)}`);
+    throw new Error(`OpenAI ${r.status}: ${t.slice(0, 300)}`);
   }
   const data = await r.json();
   const txt: string = data?.choices?.[0]?.message?.content ?? "";
