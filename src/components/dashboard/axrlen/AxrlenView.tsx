@@ -639,13 +639,13 @@ const AxrlenView = () => {
 
       {/* Main content: Dashboard primary | Chat rail right (collapsible) */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* ── Dashboard (primary, left) ── */}
+        {/* ── Dashboard (primary, left) — hidden on mobile when chat is open ── */}
         {activeSession ? (
-          <div className="flex-1 min-w-0 overflow-hidden">
+          <div className={`flex-1 min-w-0 overflow-hidden ${!chatCollapsed ? "hidden md:block" : ""}`}>
             <AxrlenDashboard session={activeSession} />
           </div>
         ) : (
-          <div className="relative flex flex-1 min-w-0 flex-col items-center justify-start px-4 py-10 sm:py-16 gap-10 overflow-y-auto">
+          <div className={`relative flex flex-1 min-w-0 flex-col items-center justify-start px-4 py-10 sm:py-16 gap-10 overflow-y-auto ${!chatCollapsed ? "hidden md:flex" : ""}`}>
             {/* Ambient backdrop */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
               <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[420px] w-[720px] rounded-full bg-foreground/[0.04] blur-3xl" />
@@ -763,10 +763,10 @@ const AxrlenView = () => {
           </div>
         )}
 
-        {/* ── Resize handle ── */}
+        {/* ── Resize handle (desktop only) ── */}
         {!chatCollapsed && (
           <div onMouseDown={onMouseDown}
-            className="w-[3px] shrink-0 cursor-col-resize bg-border/[0.08] hover:bg-foreground/[0.18] transition-colors relative">
+            className="hidden md:block w-[3px] shrink-0 cursor-col-resize bg-border/[0.08] hover:bg-foreground/[0.18] transition-colors relative">
             <div className="absolute inset-y-0 -left-1 -right-1" />
           </div>
         )}
@@ -785,12 +785,14 @@ const AxrlenView = () => {
           </div>
         )}
 
-        {/* ── AUREON Chat rail (right) ── */}
+        {/* ── AUREON Chat rail (right) — full-width on mobile ── */}
         {!chatCollapsed && (
           <div
-            className="flex flex-col border-l border-border/[0.06] bg-background/30 backdrop-blur-md"
-            style={{ width: `${chatWidth}%`, minWidth: 320 }}
+            className="flex flex-col border-l border-border/[0.06] bg-background/30 backdrop-blur-md w-full md:w-auto"
+            style={{ width: undefined }}
           >
+            <div className="hidden md:flex flex-col h-full" style={{ width: `${chatWidth}vw`, minWidth: 320, maxWidth: "60vw" }} />
+
             {/* Rail header */}
             <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border/[0.06]">
               <div className="flex items-center gap-2">
