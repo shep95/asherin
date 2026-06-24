@@ -51,10 +51,9 @@ function evaluate(row: any, price: number, now = Date.now()) {
   const horizonMs = Number(row.horizon_hours || 24) * 3600_000;
   const long = row.direction === "LONG";
 
-  const entryHit = long ? price <= entry : price >= entry;
-  if (!entryHit && ageMs > 30 * 60_000) {
-    return { status: "CANCELLED" as const, settle_price: null as number | null, pnl_pct: 0 };
-  }
+  // TP / SL are evaluated directly off live spot for the whole horizon.
+  // No entry-fill gate: a 24h directional call is judged by whether TP or SL
+  // prints within the horizon, not by a 30-minute fill window.
   if (long) {
     if (price >= tp) return { status: "WIN" as const,  settle_price: tp, pnl_pct: ((tp - entry) / entry) * 100 };
     if (price <= sl) return { status: "LOSS" as const, settle_price: sl, pnl_pct: ((sl - entry) / entry) * 100 };
@@ -82,7 +81,7 @@ serve(async (req) => {
     const { data: openRows } = await supabase
       .from("asset_predictions")
       .select("*")
-      .eq("status", "OPEN");
+      .in("status", ["OPEN", "CANCELLED"]);
 
     const priceCache = new Map<AssetKey, number>();
     const settled: unknown[] = [];

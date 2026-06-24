@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (row.status !== "OPEN") {
+    if (row.status !== "OPEN" && row.status !== "CANCELLED") {
       return new Response(JSON.stringify({ ok: true, unchanged: true, row }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -39,17 +39,14 @@ Deno.serve(async (req) => {
     const entry = Number(row.entry_price);
     const tp = Number(row.take_profit);
     const sl = Number(row.stop_loss);
-    const ageMs = Date.now() - new Date(row.generated_at).getTime();
     const long = row.direction === "LONG";
 
-    let newStatus: "WIN" | "LOSS" | "CANCELLED" | null = null;
+    let newStatus: "WIN" | "LOSS" | null = null;
     let pnl: number | null = null;
 
-    const entryHit = long ? price <= entry : price >= entry;
-    if (!entryHit && ageMs > 30 * 60_000) {
-      newStatus = "CANCELLED";
-      pnl = 0;
-    } else if (long) {
+    // Pure TP/SL evaluation off live price. No entry-fill gate — daily
+    // directional calls are judged across the full horizon, not a 30-min window.
+    if (long) {
       if (price >= tp) { newStatus = "WIN"; pnl = ((tp - entry) / entry) * 100; }
       else if (price <= sl) { newStatus = "LOSS"; pnl = ((sl - entry) / entry) * 100; }
     } else {
@@ -72,7 +69,7 @@ Deno.serve(async (req) => {
         pnl_pct: pnl == null ? null : Number(pnl.toFixed(4)),
       })
       .eq("id", id)
-      .eq("status", "OPEN")
+      .in("status", ["OPEN", "CANCELLED"])
       .select()
       .maybeSingle();
     if (uErr) throw uErr;
