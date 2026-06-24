@@ -3,7 +3,6 @@
 // from live spot after the prediction was created. It deliberately does NOT use
 // CoinGecko 24h high/low because those values include price action from before
 // the AXRLEN call and can falsely mark a fresh trade as stopped out.
-// Entry rule: if entry is not touched within 30 minutes, cancel the trade.
 // Horizon rule: if TP/SL never hits by the prediction horizon, expire it.
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
@@ -29,7 +28,7 @@ async function fetchLive(): Promise<Live> {
 
 function evaluate(row: {
   direction: string; entry_price: number; stop_loss: number; take_profit: number; generated_at: string; horizon_hours?: number;
-}, live: Live, now = Date.now()): { hit: boolean; status: "WIN" | "LOSS" | "CANCELLED" | "EXPIRED"; settle_price: number | null; pnl_pct: number | null } | null {
+}, live: Live, now = Date.now()): { hit: boolean; status: "WIN" | "LOSS" | "EXPIRED"; settle_price: number | null; pnl_pct: number | null } | null {
   const entry = Number(row.entry_price);
   const sl = Number(row.stop_loss);
   const tp = Number(row.take_profit);
@@ -39,11 +38,8 @@ function evaluate(row: {
   const horizonMs = Number(row.horizon_hours || 24) * 3600_000;
   const long = row.direction === "LONG";
 
-  const entryHit = long ? price <= entry : price >= entry;
-  if (!entryHit && ageMs > 30 * 60_000) {
-    return { hit: true, status: "CANCELLED", settle_price: null, pnl_pct: 0 };
-  }
-
+  // Target/stop must be evaluated directly from live price. If price is already
+  // beyond TP or SL, the trade crossed the entry band and must settle.
   if (long) {
     if (price >= tp) return { hit: true, status: "WIN", settle_price: tp, pnl_pct: ((tp - entry) / entry) * 100 };
     if (price <= sl) return { hit: true, status: "LOSS", settle_price: sl, pnl_pct: ((sl - entry) / entry) * 100 };

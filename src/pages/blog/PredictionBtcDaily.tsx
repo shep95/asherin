@@ -119,13 +119,11 @@ const PredictionBtcDaily = () => {
     const tp = Number(latest.take_profit);
     const sl = Number(latest.stop_loss);
     const long = latest.direction === "LONG";
-    const entryHit = long ? livePrice <= entry : livePrice >= entry;
     const tpHit = long ? livePrice >= tp : livePrice <= tp;
     const slHit = long ? livePrice <= sl : livePrice >= sl;
-    const cancelExpired = !entryHit && ageMs > 30 * 60_000;
 
-    if (!tpHit && !slHit && !cancelExpired) return;
-    const key = `${latest.id}:${tpHit ? "WIN" : slHit ? "LOSS" : "CANCELLED"}`;
+    if (!tpHit && !slHit) return;
+    const key = `${latest.id}:${tpHit ? "WIN" : "LOSS"}`;
     if (settledRef.current.has(key)) return;
     settledRef.current.add(key);
 
@@ -202,11 +200,7 @@ const PredictionBtcDaily = () => {
           const generatedMs = new Date(latest.generated_at).getTime();
           const ageMs = now - generatedMs;
           const within30 = ageMs <= 30 * 60_000;
-          const entryHit = livePrice != null && (
-            latest.direction === "LONG" ? livePrice <= latest.entry_price : livePrice >= latest.entry_price
-          );
-          const cancelled = latest.status === "OPEN" && !within30 && !entryHit;
-          const displayStatus = cancelled ? "CANCELLED" : latest.status;
+          const displayStatus = latest.status;
           return (
           <section className="mb-12 rounded-2xl border border-border/40 bg-card/30 p-6">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -219,7 +213,7 @@ const PredictionBtcDaily = () => {
                   {latest.status === "OPEN" && (
                     within30
                       ? <span className="ml-2 text-accent/80">· {fmtAgo(30 * 60_000 - ageMs).replace(" ago", "")} until entry-fill window closes</span>
-                      : !entryHit && <span className="ml-2 text-red-400/80">· entry never filled within 30m window</span>
+                      : <span className="ml-2 text-accent/80">· monitoring live TP/SL hit</span>
                   )}
                 </p>
               </div>
