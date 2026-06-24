@@ -41,15 +41,13 @@ Deno.serve(async (req) => {
     const ageMs = Date.now() - new Date(row.generated_at).getTime();
     const long = row.direction === "LONG";
 
-    let newStatus: "WIN" | "LOSS" | "CANCELLED" | null = null;
+    let newStatus: "WIN" | "LOSS" | null = null;
     let pnl: number | null = null;
 
-    // Entry-fill check: if 30+ min elapsed and price never reached entry, cancel.
-    const entryHit = long ? price <= entry : price >= entry;
-    if (!entryHit && ageMs > 30 * 60_000) {
-      newStatus = "CANCELLED";
-      pnl = 0;
-    } else if (long) {
+    // Target/stop must be evaluated before any entry-window logic.
+    // A price at TP/SL necessarily crossed the entry band for the trade direction;
+    // checking "entryHit" first falsely ignored valid wins once price moved past TP.
+    if (long) {
       if (price >= tp) { newStatus = "WIN"; pnl = ((tp - entry) / entry) * 100; }
       else if (price <= sl) { newStatus = "LOSS"; pnl = ((sl - entry) / entry) * 100; }
     } else {
