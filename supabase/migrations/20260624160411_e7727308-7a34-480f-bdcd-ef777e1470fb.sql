@@ -1,0 +1,1 @@
+ALTER TABLE public.btc_predictions DROP CONSTRAINT btc_predictions_status_check; ALTER TABLE public.btc_predictions ADD CONSTRAINT btc_predictions_status_check CHECK (status = ANY (ARRAY['OPEN'::text,'WIN'::text,'LOSS'::text,'EXPIRED'::text,'CANCELLED'::text]));
