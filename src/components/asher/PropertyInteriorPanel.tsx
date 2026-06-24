@@ -112,7 +112,7 @@ const PropertyInteriorPanel = ({ label, lat, lng, onClose }: Props) => {
             (label ? `${label} interior` : "building interior") +
             ` ${lat.toFixed(2)} ${lng.toFixed(2)}`
           );
-          const openverseUrl = `https://api.openverse.engineering/v1/images/?q=${ovQuery}&page_size=20&license_type=all-cc`;
+          const openverseUrl = `https://api.openverse.org/v1/images/?q=${ovQuery}&page_size=20&license_type=all-cc`;
 
           const [cRes, oRes] = await Promise.allSettled([
             fetch(commonsUrl).then((x) => x.json()),
