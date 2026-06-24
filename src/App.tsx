@@ -48,6 +48,10 @@ const BlogPredictionChinaTaiwan2026Flashpoint = lazy(() => import("./pages/blog/
 const BlogPredictionIsraelIran2026ShadowWar = lazy(() => import("./pages/blog/PredictionIsraelIran2026ShadowWar"));
 const BlogTheCryptoDumpOctober2026 = lazy(() => import("./pages/blog/TheCryptoDumpOctober2026"));
 const BlogPredictionBtcDaily = lazy(() => import("./pages/blog/PredictionBtcDaily"));
+const BlogPredictionEthDaily = lazy(() => import("./pages/blog/PredictionEthDaily"));
+const BlogPredictionCrudeDaily = lazy(() => import("./pages/blog/PredictionCrudeDaily"));
+const BlogPredictionSpxDaily = lazy(() => import("./pages/blog/PredictionSpxDaily"));
+const BlogPredictionNdxDaily = lazy(() => import("./pages/blog/PredictionNdxDaily"));
 const BlogTheTruthAndRealityOfWars = lazy(() => import("./pages/blog/TheTruthAndRealityOfWars"));
 const BlogEliteCorporationsAlgorithmsVsAxrlen = lazy(() => import("./pages/blog/EliteCorporationsAlgorithmsVsAxrlen"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
@@ -138,6 +142,10 @@ const App = () => (
             <Route path="/blog/the-crypto-dump-october-2026" element={<BlogTheCryptoDumpOctober2026 />} />
             <Route path="/blog/elite-corporations-algorithms-vs-axrlen" element={<BlogEliteCorporationsAlgorithmsVsAxrlen />} />
             <Route path="/blog/btc-daily-predictions" element={<BlogPredictionBtcDaily />} />
+            <Route path="/blog/eth-daily-predictions" element={<BlogPredictionEthDaily />} />
+            <Route path="/blog/crude-oil-daily-predictions" element={<BlogPredictionCrudeDaily />} />
+            <Route path="/blog/sp500-daily-predictions" element={<BlogPredictionSpxDaily />} />
+            <Route path="/blog/nasdaq-daily-predictions" element={<BlogPredictionNdxDaily />} />
             <Route path="/blog/the-truth-and-reality-of-wars" element={<BlogTheTruthAndRealityOfWars />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/investors" element={<Investors />} />
