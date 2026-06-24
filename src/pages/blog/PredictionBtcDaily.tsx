@@ -201,6 +201,15 @@ const PredictionBtcDaily = () => {
           const ageMs = now - generatedMs;
           const within30 = ageMs <= 30 * 60_000;
           const displayStatus = latest.status;
+          const isSettled = displayStatus !== "OPEN";
+          const nextCallMs = (() => {
+            const d = new Date(now);
+            const t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0);
+            return t > now ? t : t + 86_400_000;
+          })();
+          const untilNext = Math.max(0, nextCallMs - now);
+          const nextH = Math.floor(untilNext / 3_600_000);
+          const nextM = Math.floor((untilNext % 3_600_000) / 60_000);
           return (
           <section className="mb-12 rounded-2xl border border-border/40 bg-card/30 p-6">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -214,6 +223,11 @@ const PredictionBtcDaily = () => {
                     within30
                       ? <span className="ml-2 text-accent/80">· {fmtAgo(30 * 60_000 - ageMs).replace(" ago", "")} until entry-fill window closes</span>
                       : <span className="ml-2 text-accent/80">· monitoring live TP/SL hit</span>
+                  )}
+                  {isSettled && (
+                    <span className="ml-2 text-accent/80">
+                      · Next AXRLEN call in <span className="text-foreground">{nextH}h {nextM}m</span>
+                    </span>
                   )}
                 </p>
               </div>
