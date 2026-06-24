@@ -252,7 +252,7 @@ serve(async (req) => {
       wikiEvents !== null,
     ].filter(Boolean).length;
 
-    const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY");
+    const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
     if (!GEMINI_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const systemPrompt = `You are AXRLEN — NEXUS-PRIME, the supreme cross-domain predictive intelligence engine. You operate within the AUREON platform and FUSE 30+ domains into a single unified prediction algorithm called the "Ghost Chain." Every domain cross-pollinates every other domain. No prediction uses fewer than 5 domains simultaneously.
