@@ -11,7 +11,7 @@ import { PROMPT_INTELLIGENCE_PROTOCOL } from "../_shared/promptIntelligenceProto
 import { EMOTIONAL_PERSONA_BRAIN } from "../_shared/emotionalPersonaBrain.ts";
 import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
 import { VISUAL_INTELLIGENCE_BRAIN } from "../_shared/visualIntelligenceBrain.ts";
-import { SOCIAL_AWARENESS_BRAIN } from "../_shared/socialAwarenessBrain.ts";
+
 import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchitectureBrain.ts";
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
 import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
@@ -1694,7 +1694,7 @@ ${zophielCodingBrainContent}
       EMOTIONAL_PERSONA_BRAIN,
       SYNTHESIS_ENGINE_BRAIN,
       VISUAL_INTELLIGENCE_BRAIN,
-      SOCIAL_AWARENESS_BRAIN,
+      
       DEEP_TRAINING_ARCHITECTURE_BRAIN,
       GEOLOCATION_BRAIN,
       AUREON_PSYCHOLOGY_ENGINE,
