@@ -11,10 +11,10 @@ const PUBLISHED = "2026-06-22T21:00:00.000Z";
 
 const PredictionWorldCup2026GroupMatches0623 = () => (
   <ArticleShell
-    eyebrow="AXRLEN Predictive Engine · Live Output · Results Updating"
-    title="World Cup 2026 — AXRLEN picks for the 23 June slate (live results)"
-    dek="Portugal vs. Uzbekistan, England vs. Ghana, Panama vs. Croatia, Colombia vs. DR Congo. UPDATE (23 Jun late evening ET): Portugal hit 5–0 (modal margin exceeded), Croatia hit 1–0 (Budimir 54'), England 0–0 Ghana (pick missed). Colombia vs. DR Congo pending late kickoff. Live tracker inside."
-    publishedLabel="Generated Jun 22 2026 · 5:00 PM EST · Results updated Jun 23 2026"
+    eyebrow="AXRLEN Predictive Engine · Slate Resolved · 3/4 Hit"
+    title="World Cup 2026 — AXRLEN picks for the 23 June slate (final results)"
+    dek="Final: AXRLEN went 3/4 on winners. Portugal 5–0 Uzbekistan (hit, exceeded modal), Croatia 1–0 Panama (hit, Budimir 54'), Colombia 1–0 DR Congo (hit, one short of 2–1 modal), England 0–0 Ghana (miss — pre-flagged risk vector). Inside calibration band."
+    publishedLabel="Generated Jun 22 2026 · 5:00 PM EST · Final results Jun 24 2026"
     readTime="7 min"
   >
     <ArticleJsonLd
@@ -62,7 +62,7 @@ const PredictionWorldCup2026GroupMatches0623 = () => (
     <FaqJsonLd
       id="prediction-wc-2026-0623"
       items={[
-        { q: "How did the picks score?", a: "As of the late evening of 23 June 2026, three of four matches have resolved and AXRLEN is 2/3 on winners. Portugal 5–0 Uzbekistan (pick correct, modal margin exceeded). Croatia 1–0 Panama via Ante Budimir (54') (pick correct, one goal short of the 2–0 modal). England 0–0 Ghana (pick missed; the result fell into the engine's flagged 'England opens-group under-performs xG' risk vector). Colombia vs. DR Congo is the late kickoff and is pending." },
+        { q: "How did the picks score?", a: "The slate is fully resolved. AXRLEN finished 3/4 on winners. Portugal 5–0 Uzbekistan (pick correct, modal margin exceeded). Croatia 1–0 Panama via Ante Budimir (54') (pick correct, one goal short of the 2–0 modal). Colombia 1–0 DR Congo (pick correct, one goal short of the 2–1 modal). England 0–0 Ghana (pick missed; the result fell into the engine's flagged 'England opens-group under-performs xG' risk vector). The slate landed inside AXRLEN's stated 3/4 calibration band." },
         { q: "Who generated these picks?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the picks on 22 June 2026 for the four group-stage matches scheduled on 23 June 2026. The post renders the engine output verbatim and is updated as matches resolve." },
         { q: "What were the four picks?", a: "Portugal beats Uzbekistan, England beats Ghana, Croatia beats Panama, and Colombia beats DR Congo." },
         { q: "Which pick had the lowest pre-match confidence?", a: "Colombia vs. DR Congo at 68%. AXRLEN reads DR Congo's transition threat as more credible than most consensus models." },
