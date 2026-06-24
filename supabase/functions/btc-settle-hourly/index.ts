@@ -1,8 +1,10 @@
-// btc-settle-hourly — Scheduled hourly by pg_cron.
-// Fetches BTC live price + 24h high/low from CoinGecko and settles any OPEN
-// btc_predictions whose TP or SL band has been touched. Uses 24h high/low so
-// intra-bar wicks count, falling back to spot for tight bands.
-// Also EXPIRES predictions older than horizon_hours + 2h that never hit.
+// btc-settle-hourly — Scheduled by pg_cron.
+// Fetches current BTC spot from CoinGecko and settles OPEN btc_predictions only
+// from live spot after the prediction was created. It deliberately does NOT use
+// CoinGecko 24h high/low because those values include price action from before
+// the AXRLEN call and can falsely mark a fresh trade as stopped out.
+// Entry rule: if entry is not touched within 30 minutes, cancel the trade.
+// Horizon rule: if TP/SL never hits by the prediction horizon, expire it.
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -11,7 +13,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 const log = (s: string, d?: unknown) =>
   console.log(`[btc-settle-hourly] ${s}${d ? " — " + JSON.stringify(d) : ""}`);
 
-interface Live { price: number; high24h: number; low24h: number; }
+interface Live { price: number; }
 
 async function fetchLive(): Promise<Live> {
   const r = await fetch(
@@ -22,27 +24,38 @@ async function fetchLive(): Promise<Live> {
   const j = await r.json();
   return {
     price: j.market_data.current_price.usd,
-    high24h: j.market_data.high_24h.usd,
-    low24h: j.market_data.low_24h.usd,
   };
 }
 
 function evaluate(row: {
-  direction: string; entry_price: number; stop_loss: number; take_profit: number;
-}, live: Live): { hit: boolean; status: "WIN" | "LOSS"; settle_price: number; pnl_pct: number } | null {
+  direction: string; entry_price: number; stop_loss: number; take_profit: number; generated_at: string; horizon_hours?: number;
+}, live: Live, now = Date.now()): { hit: boolean; status: "WIN" | "LOSS" | "CANCELLED" | "EXPIRED"; settle_price: number | null; pnl_pct: number | null } | null {
   const entry = Number(row.entry_price);
   const sl = Number(row.stop_loss);
   const tp = Number(row.take_profit);
-  const hi = live.high24h;
-  const lo = live.low24h;
+  const price = Number(live.price);
+  const generated = Date.parse(row.generated_at);
+  const ageMs = now - generated;
+  const horizonMs = Number(row.horizon_hours || 24) * 3600_000;
+  const long = row.direction === "LONG";
 
-  if (row.direction === "LONG") {
-    if (hi >= tp)  return { hit: true, status: "WIN",  settle_price: tp, pnl_pct: ((tp - entry) / entry) * 100 };
-    if (lo <= sl)  return { hit: true, status: "LOSS", settle_price: sl, pnl_pct: ((sl - entry) / entry) * 100 };
-  } else {
-    if (lo <= tp)  return { hit: true, status: "WIN",  settle_price: tp, pnl_pct: ((entry - tp) / entry) * 100 };
-    if (hi >= sl)  return { hit: true, status: "LOSS", settle_price: sl, pnl_pct: ((entry - sl) / entry) * 100 };
+  const entryHit = long ? price <= entry : price >= entry;
+  if (!entryHit && ageMs > 30 * 60_000) {
+    return { hit: true, status: "CANCELLED", settle_price: null, pnl_pct: 0 };
   }
+
+  if (long) {
+    if (price >= tp) return { hit: true, status: "WIN", settle_price: tp, pnl_pct: ((tp - entry) / entry) * 100 };
+    if (price <= sl) return { hit: true, status: "LOSS", settle_price: sl, pnl_pct: ((sl - entry) / entry) * 100 };
+  } else {
+    if (price <= tp) return { hit: true, status: "WIN", settle_price: tp, pnl_pct: ((entry - tp) / entry) * 100 };
+    if (price >= sl) return { hit: true, status: "LOSS", settle_price: sl, pnl_pct: ((entry - sl) / entry) * 100 };
+  }
+
+  if (ageMs > horizonMs) {
+    return { hit: true, status: "EXPIRED", settle_price: price, pnl_pct: null };
+  }
+
   return null;
 }
 
@@ -76,26 +89,11 @@ serve(async (req) => {
         await supabase.from("btc_predictions").update({
           status: v.status,
           settled_at: new Date().toISOString(),
-          settle_price: Number(v.settle_price.toFixed(2)),
-          pnl_pct: Number(v.pnl_pct.toFixed(3)),
+          settle_price: v.settle_price == null ? null : Number(v.settle_price.toFixed(2)),
+          pnl_pct: v.pnl_pct == null ? null : Number(v.pnl_pct.toFixed(3)),
         }).eq("id", r.id);
         settled.push({ id: r.id, status: v.status, pnl_pct: v.pnl_pct });
         continue;
-      }
-      // Expire if past horizon + 2h grace
-      const generated = Date.parse(r.generated_at);
-      const expiresAt = generated + (Number(r.horizon_hours || 24) + 2) * 3600_000;
-      if (now > expiresAt) {
-        const pnl = r.direction === "LONG"
-          ? ((live.price - r.entry_price) / r.entry_price) * 100
-          : ((r.entry_price - live.price) / r.entry_price) * 100;
-        await supabase.from("btc_predictions").update({
-          status: pnl >= 0 ? "WIN" : "LOSS",
-          settled_at: new Date().toISOString(),
-          settle_price: Number(live.price.toFixed(2)),
-          pnl_pct: Number(pnl.toFixed(3)),
-        }).eq("id", r.id);
-        expired.push({ id: r.id, pnl_pct: pnl });
       }
     }
 
