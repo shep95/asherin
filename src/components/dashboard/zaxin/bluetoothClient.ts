@@ -95,11 +95,11 @@ export interface WebBleDevice {
 }
 
 export function webBleSupported(): boolean {
-  return typeof navigator !== "undefined" && "bluetooth" in navigator;
+  return typeof navigator !== "undefined" && "bluetooth" in (navigator as any);
 }
 
 export function webBleScanSupported(): boolean {
-  return webBleSupported() && typeof (navigator.bluetooth as any)?.requestLEScan === "function";
+  return webBleSupported() && typeof ((navigator as any).bluetooth)?.requestLEScan === "function";
 }
 
 function rssiToZone(rssi: number | null): ProximityZone {
@@ -124,7 +124,7 @@ export async function startWebBleScan(
       "Live BLE scan needs Chrome on Android with the 'Experimental Web Platform features' flag enabled (chrome://flags). iOS Safari does not support Web Bluetooth — use the Local Bridge mode for full scanning.",
     );
   }
-  const bt = navigator.bluetooth as any;
+  const bt = (navigator as any).bluetooth as any;
   const handler = (event: any) => {
     const d: WebBleDevice = {
       id: event.device?.id ?? event.device?.name ?? "unknown",
@@ -150,7 +150,7 @@ export async function startWebBleScan(
 /** One-shot device picker fallback for browsers without requestLEScan (most). */
 export async function pickWebBleDevice(): Promise<WebBleDevice> {
   if (!webBleSupported()) throw new Error("Web Bluetooth not available in this browser.");
-  const device = await (navigator.bluetooth as any).requestDevice({ acceptAllDevices: true });
+  const device = await ((navigator as any).bluetooth as any).requestDevice({ acceptAllDevices: true });
   return {
     id: device.id,
     name: device.name ?? "(unnamed)",
