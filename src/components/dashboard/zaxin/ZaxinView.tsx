@@ -1092,6 +1092,14 @@ function ArTab(props: {
           </div>
         )}
       </div>
+
+      {/* AI Vision Identify — BYOK Gemini/OpenAI vision over current frame + RSSI ranging */}
+      <AiVisionIdentifyPanel
+        videoRef={props.videoRef}
+        optical={optical}
+        contacts={smoothedContacts}
+        arOn={props.arOn}
+      />
     </div>
   );
 }
