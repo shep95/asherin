@@ -376,35 +376,145 @@ function ArTab(props: {
   contacts: Contact[];
   onStart: () => void; onStop: () => void;
 }) {
+  const FOV = 60;
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const bvHandleRef = useRef<{ stop: () => void; setModes: (m: Set<BodyMode>) => void } | null>(null);
+  const frameRef = useRef<BodyFrame>({ hits: [], ts: 0 });
+  const [bvErr, setBvErr] = useState<string | null>(null);
+  const [bvReady, setBvReady] = useState(false);
+  const [modes, setModes] = useState<Set<BodyMode>>(() => new Set<BodyMode>(["full", "face", "fingers"]));
+  const [bindings, setBindings] = useState<Record<string, string>>({});
+
+  const toggleMode = (m: BodyMode) => {
+    setModes((prev) => {
+      const next = new Set(prev);
+      next.has(m) ? next.delete(m) : next.add(m);
+      bvHandleRef.current?.setModes(next);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!props.arOn || !props.videoRef.current) return;
+      setBvErr(null); setBvReady(false);
+      try {
+        const h = await startBodyVision(props.videoRef.current, (f) => { frameRef.current = f; }, modes);
+        if (cancelled) { h.stop(); return; }
+        bvHandleRef.current = h;
+        setBvReady(true);
+      } catch (e) {
+        setBvErr(e instanceof Error ? e.message : String(e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+      bvHandleRef.current?.stop();
+      bvHandleRef.current = null;
+      setBvReady(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.arOn]);
+
+  useEffect(() => {
+    if (!props.arOn) return;
+    let raf = 0;
+    const draw = () => {
+      const cvs = canvasRef.current;
+      const vid = props.videoRef.current;
+      if (cvs && vid && vid.videoWidth) {
+        const rect = wrapRef.current?.getBoundingClientRect();
+        const W = Math.floor(rect?.width ?? cvs.clientWidth);
+        const H = Math.floor(rect?.height ?? cvs.clientHeight);
+        if (cvs.width !== W) cvs.width = W;
+        if (cvs.height !== H) cvs.height = H;
+        const ctx = cvs.getContext("2d")!;
+        ctx.clearRect(0, 0, W, H);
+        drawFrame(ctx, frameRef.current, W, H, bindings, props.contacts);
+      }
+      raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf);
+  }, [props.arOn, bindings, props.contacts]);
+
+  const onTap = (e: React.MouseEvent | React.TouchEvent) => {
+    const cvs = canvasRef.current; if (!cvs) return;
+    const rect = cvs.getBoundingClientRect();
+    const pt = "touches" in e
+      ? { x: (e.touches[0]?.clientX ?? 0) - rect.left, y: (e.touches[0]?.clientY ?? 0) - rect.top }
+      : { x: (e as React.MouseEvent).clientX - rect.left, y: (e as React.MouseEvent).clientY - rect.top };
+    const nx = pt.x / rect.width, ny = pt.y / rect.height;
+    const hits = frameRef.current.hits;
+    let chosen: PoseHit | null = null;
+    for (const h of hits) {
+      const b = h.bbox;
+      if (nx >= b.x && nx <= b.x + b.w && ny >= b.y && ny <= b.y + b.h) {
+        if (!chosen || (h.bbox.w * h.bbox.h) < (chosen.bbox.w * chosen.bbox.h)) chosen = h;
+      }
+    }
+    if (!chosen) return;
+    const linked = new Set(Object.values(bindings));
+    const candidate = [...props.contacts]
+      .filter((c) => !linked.has(c.id))
+      .sort((a, b) => (b.rssi ?? -999) - (a.rssi ?? -999))[0];
+    if (!candidate) {
+      setBvErr("No unlinked Bluetooth contacts to bind. Start a sweep first.");
+      return;
+    }
+    setBvErr(null);
+    setBindings((prev) => ({ ...prev, [chosen!.kind]: candidate.id }));
+  };
+
+  const clearBindings = () => setBindings({});
   const hasBearings = props.contacts.filter((c) => c.bearing != null);
-  const FOV = 60; // degrees of horizontal field of view we render
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      <Panel icon={Camera} title="AR Bluetooth Vision" subtitle="Walk a few steps with the camera up — bearings refine as RSSI gradient + heading samples fuse.">
+      <Panel icon={Camera} title="AR Bluetooth Vision" subtitle="On-device pose + face + hand tracking. Tap a presence on camera to bind it to the strongest Bluetooth signal.">
         {props.arErr && <Note tone="error" icon={AlertTriangle}>{props.arErr}</Note>}
+        {bvErr && <Note tone="warn" icon={AlertTriangle}>{bvErr}</Note>}
         <div className="flex flex-wrap gap-2 mt-3">
           {!props.arOn
             ? <ActionButton icon={Play} onClick={props.onStart}>Start AR</ActionButton>
             : <ActionButton icon={Square} tone="danger" onClick={props.onStop}>Stop AR</ActionButton>}
+          {props.arOn && Object.keys(bindings).length > 0 && (
+            <ActionButton icon={Trash2} onClick={clearBindings}>Unlink All</ActionButton>
+          )}
           <div className="ml-auto flex items-center gap-2 text-[9px] tracking-[0.18em] uppercase text-muted-foreground/50">
             <Compass className="h-3 w-3" /> {props.heading != null ? `${props.heading.toFixed(0)}°` : "no heading"}
           </div>
         </div>
+        {props.arOn && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {(["full","face","fingers"] as BodyMode[]).map((m) => (
+              <button key={m} onClick={() => toggleMode(m)}
+                className={`px-2.5 py-1 rounded-md text-[9px] tracking-[0.14em] uppercase border transition-all ${
+                  modes.has(m)
+                    ? "bg-emerald-300/[0.08] border-emerald-300/30 text-emerald-200/90"
+                    : "border-border/[0.08] text-muted-foreground/55 hover:text-foreground/80"
+                }`}>
+                {m === "full" ? "Full Body" : m === "face" ? "Face" : "Fingers"}
+              </button>
+            ))}
+            <span className="ml-auto text-[9px] tracking-[0.18em] uppercase text-muted-foreground/45 font-mono">
+              {bvReady ? "vision · live" : "vision · loading models…"}
+            </span>
+          </div>
+        )}
       </Panel>
 
-      <div className="relative rounded-2xl overflow-hidden border border-border/[0.1] bg-black aspect-[3/4] sm:aspect-video">
-        <video
-          ref={props.videoRef}
-          playsInline muted autoPlay
-          className="absolute inset-0 w-full h-full object-cover opacity-90"
-        />
-        {/* HUD grid */}
+      <div ref={wrapRef}
+        className="relative rounded-2xl overflow-hidden border border-border/[0.1] bg-black aspect-[3/4] sm:aspect-video select-none">
+        <video ref={props.videoRef} playsInline muted autoPlay
+          className="absolute inset-0 w-full h-full object-cover opacity-95" />
+        <canvas ref={canvasRef} onClick={onTap} onTouchStart={onTap}
+          className="absolute inset-0 w-full h-full cursor-crosshair" />
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-y-0 left-1/2 w-px bg-emerald-300/30" />
-          <div className="absolute inset-x-0 top-1/2 h-px bg-emerald-300/20" />
           <div className="absolute top-2 left-2 text-[9px] tracking-[0.18em] uppercase text-emerald-300/70 font-mono">
-            ZAXIN · POSE-SENSE
+            LIVE FIELD · {[...modes].map((m) => m === "full" ? "FULL BODY" : m.toUpperCase()).join(" · ") || "—"}
           </div>
           {props.arOn && props.heading != null && (
             <div className="absolute top-2 right-2 text-[9px] tracking-[0.18em] uppercase text-emerald-300/70 font-mono">
@@ -413,24 +523,17 @@ function ArTab(props: {
           )}
         </div>
 
-        {/* Bearing markers */}
         {props.arOn && props.heading != null && hasBearings.map((c) => {
           const delta = bearingDelta(c.bearing!, props.heading!);
           if (Math.abs(delta) > FOV / 2) return null;
           const xPct = 50 + (delta / (FOV / 2)) * 50;
           const opacity = 0.4 + c.bearingConfidence * 0.6;
           return (
-            <div
-              key={c.id}
-              style={{ left: `${xPct}%`, opacity }}
-              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
-            >
-              <div className="w-10 h-10 rounded-full border-2 border-emerald-300/80 animate-pulse" />
-              <div className="mt-1 text-[9px] font-mono tracking-[0.1em] text-emerald-300/90 bg-black/50 px-1.5 py-0.5 rounded">
+            <div key={c.id} style={{ left: `${xPct}%`, opacity }}
+              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
+              <div className="w-8 h-8 rounded-full border-2 border-emerald-300/80 animate-pulse" />
+              <div className="mt-1 text-[8px] font-mono text-emerald-300/90 bg-black/50 px-1.5 py-0.5 rounded">
                 {c.displayName}
-              </div>
-              <div className="text-[8px] font-mono text-emerald-300/60">
-                {c.distanceLabel} · conf {(c.bearingConfidence * 100).toFixed(0)}%
               </div>
             </div>
           );
@@ -441,18 +544,73 @@ function ArTab(props: {
             <Camera className="h-6 w-6 text-foreground/30" />
             <div className="mt-2 text-[10px] tracking-[0.18em] uppercase text-foreground/50">Camera idle</div>
             <p className="mt-2 max-w-sm text-[10px] text-muted-foreground/55 font-light leading-relaxed">
-              Tap <b>Start AR</b>, grant camera + motion permissions, then walk a few steps with a live sweep running.
-              Markers appear once the RSSI gradient picks a direction.
+              Tap <b>Start AR</b>, grant camera + motion permissions. Body, face and finger landmarks render on the live feed.
+              Tap a detected region to bind it to a Bluetooth signal.
             </p>
           </div>
         )}
       </div>
 
-      <div className="text-[9px] tracking-[0.18em] uppercase text-muted-foreground/40 text-center">
-        Bearings are estimates from RSSI gradient — Zaxin does not see through walls.
+      <div className="text-[9px] tracking-[0.18em] uppercase text-muted-foreground/45 text-center">
+        Select a presence on camera, then a Bluetooth signal to link identity.
       </div>
     </div>
   );
+}
+
+function drawFrame(
+  ctx: CanvasRenderingContext2D, frame: BodyFrame, W: number, H: number,
+  bindings: Record<string, string>, contacts: Contact[],
+) {
+  for (const hit of frame.hits) {
+    const color =
+      hit.kind === "body"       ? "rgba(74,222,128,0.9)" :
+      hit.kind === "face"       ? "rgba(125,211,252,0.85)" :
+      hit.kind === "left-hand"  ? "rgba(251,191,36,0.9)" :
+                                  "rgba(74,222,128,0.9)";
+    ctx.strokeStyle = color; ctx.fillStyle = color;
+    ctx.lineWidth = hit.kind === "body" ? 2.5 : 1.5;
+    const edges =
+      hit.kind === "body" ? POSE_EDGES :
+      hit.kind === "left-hand" || hit.kind === "right-hand" ? HAND_EDGES : [];
+    for (const [a, b] of edges) {
+      const pa = hit.points[a], pb = hit.points[b];
+      if (!pa || !pb) continue;
+      ctx.beginPath();
+      ctx.moveTo(pa.x * W, pa.y * H);
+      ctx.lineTo(pb.x * W, pb.y * H);
+      ctx.stroke();
+    }
+    if (hit.kind === "face") {
+      ctx.fillStyle = "rgba(125,211,252,0.7)";
+      for (let i = 0; i < hit.points.length; i += 4) {
+        const p = hit.points[i];
+        ctx.fillRect(p.x * W, p.y * H, 1, 1);
+      }
+    } else {
+      for (const p of hit.points) {
+        ctx.beginPath();
+        ctx.arc(p.x * W, p.y * H, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    const boundId = bindings[hit.kind];
+    if (boundId) {
+      const c = contacts.find((x) => x.id === boundId);
+      const label = c?.displayName ?? boundId.slice(0, 10);
+      const bx = hit.bbox.x * W, by = hit.bbox.y * H;
+      ctx.font = "10px ui-monospace, monospace";
+      const tw = ctx.measureText(label).width + 10;
+      ctx.fillStyle = "rgba(16,185,129,0.92)";
+      ctx.fillRect(bx, Math.max(0, by - 16), tw, 14);
+      ctx.fillStyle = "#000";
+      ctx.fillText(label, bx + 5, Math.max(11, by - 5));
+    } else {
+      ctx.strokeStyle = "rgba(74,222,128,0.35)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(hit.bbox.x * W, hit.bbox.y * H, hit.bbox.w * W, hit.bbox.h * H);
+    }
+  }
 }
 
 /* ============================ HOPS TAB ============================ */
