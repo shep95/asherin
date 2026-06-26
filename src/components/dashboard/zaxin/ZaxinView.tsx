@@ -442,6 +442,7 @@ const ZaxinView = () => {
             contacts={locals}
             onStart={startAr} onStop={stopAr}
             compassOn={compassOn} onEnableCompass={enableCompass} compassErr={compassErr}
+            onManualHeading={setManualHeading}
           />
         )}
         {tab === "hops" && (
