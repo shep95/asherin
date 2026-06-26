@@ -2348,66 +2348,6 @@ export type Database = {
           },
         ]
       }
-      asset_predictions: {
-        Row: {
-          asset: string
-          confidence: number
-          created_at: string
-          direction: string
-          entry_price: number
-          generated_at: string
-          horizon_hours: number
-          id: string
-          pnl_pct: number | null
-          prediction_date: string
-          reasoning: string | null
-          settle_price: number | null
-          settled_at: string | null
-          status: string
-          stop_loss: number
-          take_profit: number
-          thesis: string
-        }
-        Insert: {
-          asset: string
-          confidence: number
-          created_at?: string
-          direction: string
-          entry_price: number
-          generated_at?: string
-          horizon_hours?: number
-          id?: string
-          pnl_pct?: number | null
-          prediction_date: string
-          reasoning?: string | null
-          settle_price?: number | null
-          settled_at?: string | null
-          status?: string
-          stop_loss: number
-          take_profit: number
-          thesis: string
-        }
-        Update: {
-          asset?: string
-          confidence?: number
-          created_at?: string
-          direction?: string
-          entry_price?: number
-          generated_at?: string
-          horizon_hours?: number
-          id?: string
-          pnl_pct?: number | null
-          prediction_date?: string
-          reasoning?: string | null
-          settle_price?: number | null
-          settled_at?: string | null
-          status?: string
-          stop_loss?: number
-          take_profit?: number
-          thesis?: string
-        }
-        Relationships: []
-      }
       audit_log: {
         Row: {
           action: string
