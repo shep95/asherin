@@ -25,16 +25,15 @@ const WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VERSION}/wa
 const MODEL =
   "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/1/efficientdet_lite0.tflite";
 
-/** COCO labels we treat as "device-like" — what an operator wants flagged. */
+/** COCO labels we treat as "device-like" — what an operator wants flagged.
+ *  Broadened with common room objects so the operator sees the pipeline is alive
+ *  even when no real electronics are in frame (bottle/cup/book/scissors). */
 const DEVICE_LABELS = new Set<string>([
-  "cell phone",
-  "laptop",
-  "remote",
-  "tv",
-  "mouse",
-  "keyboard",
-  "book",
-  "clock",
+  "cell phone", "laptop", "remote", "tv", "mouse", "keyboard",
+  "book", "clock", "scissors", "bottle", "cup", "wine glass",
+  "sports ball", "vase", "teddy bear", "hair drier", "toothbrush",
+  "backpack", "handbag", "suitcase", "microwave", "oven", "toaster",
+  "refrigerator", "sink",
 ]);
 const PERSON_LABEL = "person";
 
@@ -88,13 +87,27 @@ async function getDetector(): Promise<any> {
   if (_detector) return _detector;
   const mod = await loadVisionModule();
   const fileset = await mod.FilesetResolver.forVisionTasks(WASM);
-  _detector = await mod.ObjectDetector.createFromOptions(fileset, {
-    baseOptions: { modelAssetPath: MODEL, delegate: "GPU" },
-    runningMode: "VIDEO",
-    scoreThreshold: 0.4,
-    maxResults: 8,
-    categoryAllowlist: [...DEVICE_LABELS, PERSON_LABEL],
-  });
+  const baseOpts = {
+    runningMode: "VIDEO" as const,
+    scoreThreshold: 0.25,
+    maxResults: 16,
+    // No categoryAllowlist — let the model emit everything; we filter in mapResult.
+    // This way the operator actually sees brackets light up on common items
+    // (cups, bottles, books) which confirms the inference pipeline is alive.
+  };
+  // GPU delegate is faster but fails on some integrated GPUs / Safari; fall back to CPU.
+  try {
+    _detector = await mod.ObjectDetector.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: MODEL, delegate: "GPU" },
+      ...baseOpts,
+    });
+  } catch (e) {
+    console.warn("[opticalContacts] GPU delegate failed, falling back to CPU:", e);
+    _detector = await mod.ObjectDetector.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: MODEL, delegate: "CPU" },
+      ...baseOpts,
+    });
+  }
   return _detector;
 }
 
@@ -138,7 +151,7 @@ function mapResult(res: any, videoW: number, videoH: number, minScore: number, t
 
 export async function startOpticalScan(opts: StartOpts): Promise<OpticalHandle> {
   const { video, onFrame } = opts;
-  const minScore = opts.minScore ?? 0.45;
+  const minScore = opts.minScore ?? 0.3;
   const hz = Math.max(2, Math.min(15, opts.hz ?? 8));
   const periodMs = 1000 / hz;
 
