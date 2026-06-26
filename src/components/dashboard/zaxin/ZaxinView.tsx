@@ -2327,27 +2327,41 @@ function AiVisionIdentifyPanel(props: {
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button
-          onClick={run}
-          disabled={busy || !byok || !props.arOn}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] tracking-[0.18em] uppercase border border-[#c69a4a]/30 text-[#e8c684] hover:bg-[#c69a4a]/[0.08] disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Snapshot the current frame and identify visible devices."
+        <span
+          className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-mono tracking-[0.18em] uppercase border ${
+            !byok ? "text-foreground/45 border-white/[0.08]"
+              : !props.arOn ? "text-foreground/55 border-white/[0.10]"
+              : busy ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60 animate-pulse"
+              : autoOn ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60"
+              : "text-foreground/65 border-white/[0.10]"
+          }`}
+          title="Automated identification runs every 4 seconds while AR is active. No clicks required."
         >
-          <Activity className="h-3.5 w-3.5" />
-          {busy ? "Identifying…" : "Identify Now"}
-        </button>
+          <Activity className="h-3 w-3" />
+          {!byok ? "BYOK REQUIRED"
+            : !props.arOn ? "AR OFF"
+            : busy ? "IDENTIFYING…"
+            : autoOn ? "AUTO · LIVE"
+            : "AUTO PAUSED"}
+        </span>
         <button
           onClick={() => setAutoOn((v) => !v)}
           disabled={!byok || !props.arOn}
-          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] tracking-[0.18em] uppercase border disabled:opacity-40 disabled:cursor-not-allowed ${
-            autoOn ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60" : "text-foreground/65 border-white/[0.08] hover:text-foreground/85"
-          }`}
-          title="Re-run identification every 8 seconds."
+          className="text-[9px] tracking-[0.18em] uppercase text-foreground/55 hover:text-[#e8c684] underline-offset-2 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Toggle automated identification."
         >
-          {autoOn ? "AUTO ON" : "AUTO OFF"}
+          {autoOn ? "pause" : "resume"}
         </button>
-        <span className="text-[9px] tracking-[0.18em] uppercase text-muted-foreground/55">
-          {props.optical.length} optical · {props.contacts.length} BLE
+        <button
+          onClick={run}
+          disabled={busy || !byok || !props.arOn}
+          className="text-[9px] tracking-[0.18em] uppercase text-foreground/55 hover:text-[#e8c684] underline-offset-2 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Force one identification pass right now."
+        >
+          rerun
+        </button>
+        <span className="ml-auto text-[9px] tracking-[0.18em] uppercase text-muted-foreground/55">
+          {props.optical.length} optical · {props.contacts.length} BLE · {idents.length} ident
         </span>
       </div>
 
@@ -2365,12 +2379,18 @@ function AiVisionIdentifyPanel(props: {
                 {it.est_distance_m != null ? `${it.est_distance_m.toFixed(1)}m` : "—"}
               </span>
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-foreground/90 truncate">
-                  {it.label || "(unlabeled)"}
-                  {it.brand ? <span className="text-foreground/45"> · {it.brand}</span> : null}
+                <div className="text-[11px] text-foreground/90 truncate flex items-center gap-1.5">
+                  <span className="truncate">{it.label || "(unlabeled)"}</span>
+                  {it.brand ? <span className="text-foreground/45 shrink-0">· {it.brand}</span> : null}
+                  {it.has_bluetooth ? (
+                    <span className="shrink-0 text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm border border-[#c69a4a]/40 text-[#e8c684]/85 bg-[#6b4a18]/35">
+                      BLE
+                    </span>
+                  ) : null}
                 </div>
                 <div className="text-[9px] tracking-wide uppercase text-muted-foreground/55 truncate">
-                  {it.matched_ble_id ? `BLE ${it.matched_ble_id.slice(0, 10)}` : "no BLE pair"}
+                  {it.device_type ?? "device"}
+                  {it.matched_ble_id ? ` · paired ${it.matched_ble_id.slice(0, 10)}` : ""}
                   {it.matched_optical_id ? ` · ${it.matched_optical_id}` : ""}
                   {it.confidence != null ? ` · conf ${(it.confidence * 100).toFixed(0)}%` : ""}
                 </div>
@@ -2384,7 +2404,7 @@ function AiVisionIdentifyPanel(props: {
       ) : (
         !err && !busy && (
           <div className="mt-3 text-[10px] tracking-wide uppercase text-muted-foreground/55">
-            No identifications yet. Activate AR, point the camera at devices, then tap Identify Now.
+            Activate AR and point the camera. Identifications will stream onto the camera as labeled boxes automatically.
           </div>
         )
       )}
