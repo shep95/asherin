@@ -29,14 +29,14 @@ function randomNodeId() {
 }
 
 const ZONE_DOT: Record<string, string> = {
-  immediate: "bg-emerald-400/80",
+  immediate: "bg-[#c69a4a]/80",
   near:      "bg-sky-400/70",
   far:       "bg-amber-400/60",
   unknown:   "bg-foreground/30",
 };
 
 const BEHAVIOR_CHIP: Record<string, string> = {
-  active:          "text-emerald-300/80 border-emerald-300/20",
+  active:          "text-[#c69a4a]/80 border-[#c69a4a]/20",
   lost:            "text-foreground/40 border-border/20",
   resurrected:     "text-amber-300/80 border-amber-300/25",
   "clone-suspect": "text-rose-300/90 border-rose-300/30",
@@ -357,7 +357,7 @@ const ZaxinView = () => {
         </div>
         <div className="flex items-center gap-1.5">
           <span className={`text-[9px] tracking-[0.18em] uppercase px-2 py-1 rounded-md border ${
-            scanning ? "text-emerald-300/80 border-emerald-300/20 bg-emerald-300/[0.04]"
+            scanning ? "text-[#c69a4a]/80 border-[#c69a4a]/20 bg-[#c69a4a]/[0.04]"
                      : "text-foreground/40 border-border/20"
           }`}>
             {scanning ? (mode === "continuous" ? "Sweeping" : "Picker") : "Idle"}
@@ -471,7 +471,7 @@ function ScanTab(props: {
           )}
           <ActionButton onClick={props.onClear} icon={Trash2}>Clear</ActionButton>
           <div className="ml-auto flex items-center gap-2 text-[9px] tracking-[0.18em] uppercase text-muted-foreground/50">
-            <Activity className={`h-3 w-3 ${props.scanning ? "text-emerald-300/80 animate-pulse" : ""}`} />
+            <Activity className={`h-3 w-3 ${props.scanning ? "text-[#c69a4a]/80 animate-pulse" : ""}`} />
             {props.locals.length} local · {props.remotes.length} via hops
           </div>
         </div>
@@ -689,7 +689,7 @@ function ArTab(props: {
         <div className="flex items-center gap-2 flex-wrap">
           {!props.arOn ? (
             <button onClick={props.onStart}
-              className="group flex items-center gap-2 pl-2.5 pr-3.5 py-1.5 rounded-full bg-emerald-400/95 text-black text-[11px] font-medium tracking-[0.08em] shadow-[0_0_20px_-2px_rgba(110,231,183,0.6)] active:scale-[0.98] transition">
+              className="group flex items-center gap-2 pl-2.5 pr-3.5 py-1.5 rounded-full bg-[#c69a4a]/95 text-black text-[11px] font-medium tracking-[0.08em] shadow-[0_0_20px_-2px_rgba(198,154,74,0.6)] active:scale-[0.98] transition">
               <Play className="h-3.5 w-3.5" /> Activate
             </button>
           ) : (
@@ -713,7 +713,7 @@ function ArTab(props: {
                 <button key={m} onClick={() => toggleMode(m)}
                   className={`px-2.5 py-1 rounded-full text-[10px] tracking-[0.06em] transition ${
                     modes.has(m)
-                      ? "bg-emerald-300/15 text-emerald-200 border border-emerald-300/40"
+                      ? "bg-[#c69a4a]/15 text-[#e8c684] border border-[#c69a4a]/40"
                       : "text-foreground/45 border border-white/[0.06] hover:text-foreground/80"
                   }`}>
                   {m === "full" ? "Body" : m === "face" ? "Face" : "Hand"}
@@ -726,7 +726,7 @@ function ArTab(props: {
             {props.arOn && (
               <span className={`text-[9px] tracking-[0.16em] font-mono px-2 py-0.5 rounded-full ${
                 bvErr ? "text-rose-200 bg-rose-400/10" :
-                bvReady ? "text-emerald-200 bg-emerald-400/10" :
+                bvReady ? "text-[#e8c684] bg-[#c69a4a]/10" :
                 "text-amber-200 bg-amber-400/10 animate-pulse"
               }`}>
                 {bvErr ? "ERR" : bvReady ? "LIVE" : "INIT"}
@@ -832,7 +832,7 @@ function IconChip({ icon: Icon, onClick, active, tone, label }: {
   const cls = tone === "danger"
     ? "border-rose-300/30 text-rose-200 bg-rose-400/10 hover:bg-rose-400/15"
     : active
-      ? "border-emerald-300/40 text-emerald-200 bg-emerald-300/10"
+      ? "border-[#c69a4a]/40 text-[#e8c684] bg-[#c69a4a]/10"
       : "border-white/[0.08] text-foreground/70 bg-white/[0.02] hover:bg-white/[0.05]";
   return (
     <button onClick={onClick} className={`${base} ${cls}`}>
@@ -1040,7 +1040,7 @@ function DiagTab({ mode, snap, scanning, arOn, heading }: {
             <div key={r.k} className={`flex items-center justify-between gap-3 px-3 py-2 text-[11px] ${i % 2 ? "bg-foreground/[0.015]" : ""}`}>
               <span className="text-muted-foreground/65 font-light">{r.k}</span>
               <span className={`font-mono ${
-                r.ok === true ? "text-emerald-300/90" : r.ok === false ? "text-rose-300/85" : "text-foreground/80"
+                r.ok === true ? "text-[#c69a4a]/90" : r.ok === false ? "text-rose-300/85" : "text-foreground/80"
               }`}>{r.v}</span>
             </div>
           ))}
@@ -1375,7 +1375,7 @@ function RadarMap({
     <div className="mt-4 flex flex-col items-center gap-3">
       {/* heading readout */}
       <div className="flex items-center gap-2 text-[9px] font-mono tracking-[0.18em] uppercase text-foreground/60">
-        <span className={`px-2 py-0.5 rounded border ${compassOn ? "border-emerald-300/30 text-emerald-300/90" : "border-border/20"}`}>
+        <span className={`px-2 py-0.5 rounded border ${compassOn ? "border-[#c69a4a]/30 text-[#c69a4a]/90" : "border-border/20"}`}>
           HDG {heading != null ? Math.round(heading).toString().padStart(3, "0") : "---"}°
         </span>
         <span className="text-muted-foreground/40">
@@ -1385,14 +1385,14 @@ function RadarMap({
 
       <div className="relative" style={{ width: SIZE, height: SIZE }}>
         {/* outer ring */}
-        <div className="absolute inset-0 rounded-full border border-emerald-300/25 bg-black/60 backdrop-blur-sm" />
+        <div className="absolute inset-0 rounded-full border border-[#c69a4a]/25 bg-black/60 backdrop-blur-sm" />
         {/* range rings */}
-        <div className="absolute inset-[14%] rounded-full border border-emerald-300/15" />
-        <div className="absolute inset-[32%] rounded-full border border-emerald-300/12" />
-        <div className="absolute inset-[52%] rounded-full border border-emerald-300/10" />
+        <div className="absolute inset-[14%] rounded-full border border-[#c69a4a]/15" />
+        <div className="absolute inset-[32%] rounded-full border border-[#c69a4a]/12" />
+        <div className="absolute inset-[52%] rounded-full border border-[#c69a4a]/10" />
         {/* crosshairs */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-emerald-300/15" />
-        <div className="absolute top-1/2 left-0 right-0 h-px bg-emerald-300/15" />
+        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-[#c69a4a]/15" />
+        <div className="absolute top-1/2 left-0 right-0 h-px bg-[#c69a4a]/15" />
 
         {/* world layer: rotates opposite of heading so "up" is the device's forward direction */}
         <div
@@ -1407,7 +1407,7 @@ function RadarMap({
             return (
               <div
                 key={c.l}
-                className="absolute text-[10px] font-mono font-medium text-emerald-300/80"
+                className="absolute text-[10px] font-mono font-medium text-[#c69a4a]/80"
                 style={{
                   left: x, top: y,
                   transform: `translate(-50%,-50%) rotate(${h}deg)`,
@@ -1459,22 +1459,22 @@ function RadarMap({
           <div
             className="absolute inset-0"
             style={{
-              background: "conic-gradient(from -90deg, rgba(110,231,183,0.32) 0deg, rgba(110,231,183,0.04) 40deg, transparent 60deg 360deg)",
+              background: "conic-gradient(from -90deg, rgba(198,154,74,0.32) 0deg, rgba(198,154,74,0.04) 40deg, transparent 60deg 360deg)",
             }}
           />
         </div>
 
         {/* device pointer (always up) */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-          <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[14px] border-l-transparent border-r-transparent border-b-emerald-300 -translate-y-3 drop-shadow-[0_0_6px_rgba(110,231,183,0.9)]" />
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-emerald-300/90 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
+          <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[14px] border-l-transparent border-r-transparent border-b-#c69a4a -translate-y-3 drop-shadow-[0_0_6px_rgba(198,154,74,0.9)]" />
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#c69a4a]/90 shadow-[0_0_10px_rgba(198,154,74,0.95)]" />
         </div>
 
         {/* empty-state overlay */}
         {contacts.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 pointer-events-none">
-            <div className="pointer-events-auto flex flex-col items-center gap-2 px-3 py-2 rounded-lg bg-black/55 border border-emerald-300/15 backdrop-blur-sm">
-              <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-emerald-300/70">No contacts</span>
+            <div className="pointer-events-auto flex flex-col items-center gap-2 px-3 py-2 rounded-lg bg-black/55 border border-[#c69a4a]/15 backdrop-blur-sm">
+              <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-[#c69a4a]/70">No contacts</span>
               <span className="text-[8px] text-muted-foreground/70 tracking-wide text-center max-w-[200px] leading-relaxed">
                 {mode === "unsupported"
                   ? "Browser has no Web Bluetooth"
@@ -1483,7 +1483,7 @@ function RadarMap({
               {mode !== "unsupported" && (
                 <button
                   onClick={onPick}
-                  className="mt-0.5 px-2.5 py-1 rounded-md text-[9px] tracking-[0.18em] uppercase border border-emerald-300/30 text-emerald-200/90 hover:bg-emerald-300/[0.06]"
+                  className="mt-0.5 px-2.5 py-1 rounded-md text-[9px] tracking-[0.18em] uppercase border border-[#c69a4a]/30 text-[#e8c684]/90 hover:bg-[#c69a4a]/[0.06]"
                 >+ Add Device</button>
               )}
             </div>
@@ -1497,7 +1497,7 @@ function RadarMap({
         <div className="flex flex-col items-center gap-1">
           <button
             onClick={onEnableCompass}
-            className="px-3 py-1.5 rounded-md text-[10px] tracking-[0.18em] uppercase border border-emerald-300/30 text-emerald-200/90 hover:bg-emerald-300/[0.06]"
+            className="px-3 py-1.5 rounded-md text-[10px] tracking-[0.18em] uppercase border border-[#c69a4a]/30 text-[#e8c684]/90 hover:bg-[#c69a4a]/[0.06]"
           >Enable Compass</button>
           <span className="text-[8px] text-muted-foreground/45 tracking-[0.14em] uppercase">
             iOS requires a one-time motion permission tap
@@ -1505,7 +1505,7 @@ function RadarMap({
           {compassErr && <span className="text-[9px] text-rose-300/80">{compassErr}</span>}
         </div>
       ) : (
-        <span className="text-[8px] tracking-[0.18em] uppercase text-emerald-300/60">
+        <span className="text-[8px] tracking-[0.18em] uppercase text-[#c69a4a]/60">
           Compass live · move your device to rotate the map
         </span>
       )}
