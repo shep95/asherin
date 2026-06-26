@@ -2483,6 +2483,7 @@ function AiVisionIdentifyPanel(props: {
         </button>
         <span className="ml-auto text-[9px] tracking-[0.18em] uppercase text-muted-foreground/55">
           {props.optical.length} optical · {props.contacts.length} BLE · {idents.length} ident
+          {latencyMs != null ? <> · <span className={latencyMs < 1000 ? "text-[#e8c684]" : "text-amber-300/80"}>{latencyMs}ms</span></> : null}
         </span>
       </div>
 
