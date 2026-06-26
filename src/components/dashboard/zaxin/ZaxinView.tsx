@@ -1115,6 +1115,40 @@ function ArTab(props: {
           );
         })}
 
+        {/* Environment HUD — live forensic readout of the scene (room dims, lighting, sun, hazards) */}
+        {props.arOn && visionEnv && (
+          <div className="absolute top-2 right-2 max-w-[260px] text-[9px] font-mono leading-tight px-2 py-1.5 rounded-md bg-black/65 backdrop-blur-sm border border-[#c69a4a]/35 text-[#f0d59a]/90 space-y-0.5" style={{ zIndex: 5 }}>
+            <div className="flex items-center gap-1 text-[#e8c684] tracking-[0.18em] uppercase text-[8px]">
+              <Eye className="h-2.5 w-2.5" /> ENV SCAN
+            </div>
+            {visionEnv.scene && <div className="truncate">{visionEnv.scene}</div>}
+            {(visionEnv.room_width_m || visionEnv.room_length_m || visionEnv.room_height_m) && (
+              <div className="text-foreground/75">
+                {(visionEnv.room_width_m ?? "?")}×{(visionEnv.room_length_m ?? "?")}×{(visionEnv.room_height_m ?? "?")}m
+                {visionEnv.occupants != null ? ` · ${visionEnv.occupants} ppl` : ""}
+              </div>
+            )}
+            {visionEnv.lighting && (
+              <div className="text-foreground/70 truncate">
+                {visionEnv.lighting.type ?? "light"}
+                {visionEnv.lighting.intensity_lux_est != null ? ` · ${visionEnv.lighting.intensity_lux_est}lx` : ""}
+                {visionEnv.lighting.color_temp_k_est != null ? ` · ${visionEnv.lighting.color_temp_k_est}K` : ""}
+              </div>
+            )}
+            {visionEnv.lighting?.sun_position && (
+              <div className="text-foreground/70 truncate">☀ {visionEnv.lighting.sun_position}</div>
+            )}
+            {visionEnv.hazards && visionEnv.hazards.length > 0 && (
+              <div className="text-rose-200/85 truncate">⚠ {visionEnv.hazards.slice(0, 3).join(", ")}</div>
+            )}
+            {visionEnv.exits && visionEnv.exits.length > 0 && (
+              <div className="text-[#e8c684]/80 truncate">⇲ {visionEnv.exits.slice(0, 2).join(", ")}</div>
+            )}
+            {visionEnv.ambient_summary && (
+              <div className="text-foreground/55 text-[8px] line-clamp-2 mt-0.5">{visionEnv.ambient_summary}</div>
+            )}
+          </div>
+        )}
 
 
         {/* T7 — Ultrasonic chirp pill */}
