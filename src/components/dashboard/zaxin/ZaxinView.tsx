@@ -339,6 +339,8 @@ function ScanTab(props: {
   locals: Contact[]; remotes: Contact[];
   onToggleWatch: (id: string) => void;
   onPullIntel: (id: string) => void;
+  heading: number | null; compassOn: boolean; compassErr: string | null;
+  onEnableCompass: () => void;
 }) {
   return (
     <div className="max-w-4xl mx-auto space-y-5">
