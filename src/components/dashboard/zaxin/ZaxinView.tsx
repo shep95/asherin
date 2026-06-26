@@ -2143,13 +2143,16 @@ function AiVisionIdentifyPanel(props: {
   optical: OpticalContact[];
   contacts: Contact[];
   arOn: boolean;
+  onIdents?: (idents: VisionIdent[]) => void;
 }) {
   const byok = getActiveIntelMapByok();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [idents, setIdents] = useState<VisionIdent[]>([]);
-  const [autoOn, setAutoOn] = useState(false);
+  // Automated by default — no clicking required.
+  const [autoOn, setAutoOn] = useState(true);
   const timerRef = useRef<number | null>(null);
+  const busyRef = useRef(false);
 
   // Snapshot the current video frame to a base64 JPEG (max 768px on the long edge).
   const grabFrame = (): string | null => {
