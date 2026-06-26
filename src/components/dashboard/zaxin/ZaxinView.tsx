@@ -540,7 +540,7 @@ function ArTab(props: {
           if (Math.abs(delta) > FOV / 2) return null;
           const xPct = 50 + (delta / (FOV / 2)) * 50;
           const opacity = 0.4 + c.bearingConfidence * 0.6;
-          const dist = c.distanceM ?? null;
+          const dist = (c as any).distanceM ?? null;
           return (
             <div key={c.id} style={{ left: `${xPct}%`, opacity }}
               className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
