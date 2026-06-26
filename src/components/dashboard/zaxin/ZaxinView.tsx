@@ -18,7 +18,7 @@ import { rssiToDistance } from "./core/bleRanging";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { Link } from "react-router-dom";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Users } from "lucide-react";
 
 type Tab = "scan" | "tactical" | "ar" | "hops" | "diag";
 
@@ -1084,36 +1084,80 @@ function ArTab(props: {
         {props.arOn && visionIdents.map((it, i) => {
           if (it.matched_optical_id || !it.bbox_pct) return null;
           const b = it.bbox_pct;
-          // bbox_pct is in PERCENT of the video frame; convert to normalized for projectBbox.
           const proj = projectBbox({ x: b.x / 100, y: b.y / 100, w: b.w / 100, h: b.h / 100 });
           if (!proj) return null;
           const isBle = it.has_bluetooth === true;
-          const stroke = isBle ? "rgba(232,198,132,0.9)" : "rgba(170,170,170,0.55)";
+          const isPerson = it.device_type === "person";
+          const personChips: string[] = [];
+          if (isPerson && it.person) {
+            const pp = it.person;
+            if (pp.age_years != null) personChips.push(`~${pp.age_years}y`);
+            if (pp.height_cm != null) personChips.push(`${pp.height_cm}cm`);
+            if (pp.weight_kg != null) personChips.push(`${pp.weight_kg}kg`);
+            if (pp.gender) personChips.push(pp.gender);
+            if (pp.ethnicity) personChips.push(pp.ethnicity);
+            if (pp.build) personChips.push(pp.build);
+          }
+          const threatTone =
+            it.person?.threat === "high" ? "rgba(248,113,113,0.95)" :
+            it.person?.threat === "elevated" ? "rgba(251,146,60,0.95)" : null;
+          const stroke = threatTone || (isPerson ? "rgba(232,198,132,0.95)" : isBle ? "rgba(232,198,132,0.9)" : "rgba(170,170,170,0.55)");
           return (
             <div
               key={`ai-${i}`}
               style={{
                 left: `${proj.leftPct}%`, top: `${proj.topPct}%`,
                 width: `${proj.widthPct}%`, height: `${proj.heightPct}%`,
-                border: `${isBle ? 2 : 1}px dashed ${stroke}`,
+                border: `${isBle || isPerson ? 2 : 1}px dashed ${stroke}`,
                 zIndex: 4,
               }}
               className="absolute rounded-md pointer-events-none"
             >
-              <div className="absolute -top-[18px] left-0 flex items-center gap-1 max-w-[240px]">
+              <div className="absolute -top-[18px] left-0 flex items-center gap-1 max-w-[300px]">
                 <div className="text-[9px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/75 truncate"
-                     style={{ color: isBle ? "#f0d59a" : "rgba(255,255,255,0.7)" }}>
-                  {it.label || "device"}{it.brand ? ` · ${it.brand}` : ""}
+                     style={{ color: isBle || isPerson ? "#f0d59a" : "rgba(255,255,255,0.7)" }}>
+                  {it.label || (isPerson ? "person" : "device")}{it.brand ? ` · ${it.brand}` : ""}
                 </div>
                 {isBle ? (
-                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">
-                    BLE
+                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">BLE</div>
+                ) : null}
+                {isPerson && it.person?.threat && it.person.threat !== "none" ? (
+                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-rose-500/30 text-rose-100 border border-rose-300/50">
+                    {it.person.threat}
                   </div>
                 ) : null}
               </div>
+              {isPerson && personChips.length ? (
+                <div className="absolute -bottom-[18px] left-0 text-[8px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/70 text-[#f0d59a]/90 truncate max-w-[320px]">
+                  {personChips.join(" · ")}
+                </div>
+              ) : null}
             </div>
           );
         })}
+
+        {/* CROWD COUNTER — total visible people across optical + AI + env scan */}
+        {props.arOn && (() => {
+          const opticalPeople = optical.filter((o, idx) => {
+            const ai = visionIdents.find((vi) => vi.matched_optical_id === `opt:${idx}`);
+            return (ai?.device_type === "person") || o.label.toLowerCase() === "person";
+          }).length;
+          const aiOnlyPeople = visionIdents.filter((it) => !it.matched_optical_id && it.device_type === "person").length;
+          const detected = opticalPeople + aiOnlyPeople;
+          const envCount = visionEnv?.occupants ?? null;
+          const count = Math.max(detected, envCount ?? 0);
+          if (!count) return null;
+          return (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-sm border border-[#c69a4a]/45 text-[#f0d59a]" style={{ zIndex: 6 }}>
+              <Users className="h-3 w-3" />
+              <span className="text-[10px] font-mono tracking-[0.18em] uppercase">People</span>
+              <span className="text-[11px] font-mono font-semibold text-[#e8c684]">{count}</span>
+              {envCount != null && envCount !== detected ? (
+                <span className="text-[8px] font-mono text-foreground/55">(opt {detected} · env {envCount})</span>
+              ) : null}
+            </div>
+          );
+        })()}
 
         {/* Environment HUD — live forensic readout of the scene (room dims, lighting, sun, hazards) */}
         {props.arOn && visionEnv && (
