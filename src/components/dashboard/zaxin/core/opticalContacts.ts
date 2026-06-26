@@ -151,7 +151,7 @@ function mapResult(res: any, videoW: number, videoH: number, minScore: number, t
 
 export async function startOpticalScan(opts: StartOpts): Promise<OpticalHandle> {
   const { video, onFrame } = opts;
-  const minScore = opts.minScore ?? 0.45;
+  const minScore = opts.minScore ?? 0.3;
   const hz = Math.max(2, Math.min(15, opts.hz ?? 8));
   const periodMs = 1000 / hz;
 
