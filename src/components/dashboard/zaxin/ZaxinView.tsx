@@ -1155,6 +1155,7 @@ function ArTab(props: {
         optical={optical}
         contacts={smoothedContacts}
         arOn={props.arOn}
+        onIdents={setVisionIdents}
       />
     </div>
   );
