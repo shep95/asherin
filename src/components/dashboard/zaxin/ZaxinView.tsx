@@ -780,6 +780,25 @@ function ArTab(props: {
         {(props.arErr || bvErr) && (
           <div className="mt-2 text-[10px] text-rose-300/90 truncate">{props.arErr || bvErr}</div>
         )}
+        {props.arOn && !props.compassOn && (
+          <div className="mt-2 flex items-center gap-2 text-[10px] font-mono text-[#e8c684]/80">
+            <span className="tracking-[0.16em] uppercase">Manual heading</span>
+            <input
+              type="range"
+              min={0}
+              max={359}
+              step={1}
+              value={Math.round(props.heading ?? 0)}
+              onChange={(e) => props.onManualHeading(Number(e.target.value))}
+              className="flex-1 accent-[#c69a4a]"
+              aria-label="Manual compass heading in degrees"
+            />
+            <span className="w-10 text-right tabular-nums">{Math.round(props.heading ?? 0)}°</span>
+          </div>
+        )}
+        {props.arOn && !props.compassOn && props.compassErr && (
+          <div className="mt-1 text-[10px] text-[#c69a4a]/70 truncate">{props.compassErr}</div>
+        )}
       </div>
 
       {/* Camera surface */}
