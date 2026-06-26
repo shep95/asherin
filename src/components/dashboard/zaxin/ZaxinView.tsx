@@ -884,25 +884,75 @@ function ArTab(props: {
           </>
         )}
 
-        {/* In-FOV target reticles */}
+        {/* In-FOV target reticles (T1 + T2 Kalman + T5 behavior) */}
         {props.arOn && props.heading != null && hasBearings.map((c) => {
           const delta = bearingDelta(c.bearing!, props.heading!);
           if (Math.abs(delta) > FOV / 2) return null;
           const xPct = 50 + (delta / (FOV / 2)) * 50;
-          const opacity = 0.4 + c.bearingConfidence * 0.6;
-          const dist = (c as any).distanceM ?? null;
+          const conf = c.bearingConfidence ?? 0.4;
+          const opacity = 0.4 + conf * 0.6;
+          const ring = 1 + Math.round(conf * 3); // T2: thickness ∝ confidence
+          const dist = (c as { distanceM?: number | null }).distanceM ?? null;
+          const behavior: DeviceBehavior = classifyBehavior(c);
+          const behaviorTone =
+            behavior === "vehicle-mounted" ? "text-rose-200/90 border-rose-300/40" :
+            behavior === "carried-on-person" ? "text-[#f0d59a] border-[#c69a4a]/40" :
+            behavior === "stationary-beacon" ? "text-sky-200/85 border-sky-300/35" :
+            "text-foreground/55 border-white/[0.08]";
           return (
-            <div key={c.id} style={{ left: `${xPct}%`, opacity, zIndex: 4 }}
+            <div key={c.id} style={{ left: `${xPct}%`, opacity, zIndex: 4, borderWidth: ring }}
               className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-              <div className="relative w-12 h-12 rounded-full border border-[#c69a4a]/80 backdrop-blur-[2px] shadow-[0_0_12px_-2px_rgba(198,154,74,0.55)]">
+              <div className="relative w-12 h-12 rounded-full backdrop-blur-[2px] shadow-[0_0_12px_-2px_rgba(198,154,74,0.55)]"
+                   style={{ border: `${ring}px solid rgba(198,154,74,0.8)` }}>
                 <span className="absolute inset-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 bg-[#e8c684] rounded-full animate-pulse shadow-[0_0_8px_rgba(232,198,132,0.95)]" />
               </div>
               <div className="mt-1 text-[8px] font-mono text-[#f0d59a] bg-black/45 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
                 {c.displayName}{dist != null && <span className="opacity-60"> · {dist.toFixed(1)}m</span>}
               </div>
+              <div className={`mt-0.5 text-[7px] tracking-[0.16em] uppercase px-1.5 py-[1px] rounded-full bg-black/40 border ${behaviorTone}`}>
+                {behavior === "unknown" ? "—" : behavior.replace(/-/g, " ")}
+              </div>
             </div>
           );
         })}
+
+        {/* T6 — Out-of-FOV ghost edges (visual anchors) */}
+        {props.arOn && props.heading != null && ghosts.map((g) => {
+          const delta = bearingDelta(g.bearing, props.heading!);
+          const onLeft = delta < 0;
+          const ageS = (Date.now() - g.ts) / 1000;
+          const opacity = Math.max(0.18, 0.65 - ageS / 60);
+          const c = smoothedContacts.find((x) => x.id === g.contactId);
+          return (
+            <div key={`ghost-${g.contactId}`} style={{ opacity, zIndex: 3 }}
+              className={`absolute top-1/2 -translate-y-1/2 pointer-events-none ${onLeft ? "left-1" : "right-1"} flex flex-col items-center`}>
+              <div className="w-3.5 h-3.5 rounded-full border border-[#c69a4a]/60 bg-[#c69a4a]/20" />
+              <div className="text-[7px] font-mono text-[#e8c684]/80 mt-0.5">
+                {onLeft ? "◀" : "▶"} {Math.abs(delta).toFixed(0)}°
+              </div>
+              {c && <div className="text-[7px] font-mono text-[#f0d59a]/70 max-w-[60px] truncate">{c.displayName}</div>}
+            </div>
+          );
+        })}
+
+        {/* T7 — Ultrasonic chirp pill */}
+        {props.arOn && (
+          <button onClick={toggleChirp} style={{ zIndex: 5 }}
+            className={`absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-mono tracking-[0.14em] border transition ${
+              !chirpOn ? "bg-black/45 text-foreground/60 border-white/[0.08] hover:text-foreground/85" :
+              chirpActive ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60 shadow-[0_0_10px_rgba(232,198,132,0.45)]" :
+              "bg-black/45 text-[#e8c684]/70 border-[#c69a4a]/30"
+            }`}>
+            {chirpOn ? <Mic className="h-3 w-3" /> : <MicOff className="h-3 w-3" />}
+            <span>{!chirpOn ? "CHIRP OFF" : chirpActive ? "CHIRP DETECTED" : `${(chirpLevel * 100).toFixed(0)}%`}</span>
+          </button>
+        )}
+        {props.arOn && chirpErr && (
+          <div className="absolute bottom-10 right-2 text-[9px] text-rose-300/85 bg-black/55 px-1.5 py-0.5 rounded" style={{ zIndex: 5 }}>
+            {chirpErr}
+          </div>
+        )}
+
 
         {!props.arOn && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 z-10">
