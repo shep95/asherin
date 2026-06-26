@@ -130,10 +130,32 @@ const ZaxinView = () => {
     setScanning(false);
   }, []);
 
+  // Rapid auto-pair: re-opens the OS chooser after every successful pair until
+  // the user cancels. The OS picker itself can't be removed — browsers force a
+  // human gesture per device — but this collapses the loop to a single tap each.
+  const autoPairRef = useRef(false);
   const pickDevice = useCallback(async () => {
     setScanErr(null);
-    try { await pickOne((adv) => engine.ingest(adv)); }
-    catch (e) { setScanErr(e instanceof Error ? e.message : String(e)); }
+    autoPairRef.current = true;
+    while (autoPairRef.current) {
+      try {
+        await pickOne((adv) => engine.ingest(adv));
+        await new Promise((r) => setTimeout(r, 350));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        autoPairRef.current = false;
+        if (/cancell?ed|NotFoundError|chooser/i.test(msg)) {
+          // user closed the OS sheet — silent exit
+          return;
+        }
+        if (/connection attempt failed|GATT/i.test(msg)) {
+          setScanErr("Device refused the connection. Move closer, wake the device, then tap Add Device again.");
+          return;
+        }
+        setScanErr(msg);
+        return;
+      }
+    }
   }, [engine]);
 
   useEffect(() => () => { scanHandleRef.current?.stop(); }, []);
