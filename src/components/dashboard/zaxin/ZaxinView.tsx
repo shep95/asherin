@@ -704,9 +704,16 @@ function ArTab(props: {
                 {bvErr ? "ERR" : bvReady ? "LIVE" : "INIT"}
               </span>
             )}
-            <span className="flex items-center gap-1 text-[10px] tracking-[0.1em] font-mono text-foreground/60 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.05]">
-              <Compass className="h-3 w-3" /> {props.heading != null ? `${props.heading.toFixed(0)}°` : "—"}
-            </span>
+            {props.arOn && !props.compassOn ? (
+              <button onClick={props.onEnableCompass}
+                className="flex items-center gap-1 text-[10px] tracking-[0.1em] font-mono text-[#d4a85a] px-2 py-0.5 rounded-full bg-[#6b4a18]/30 border border-[#c69a4a]/40 hover:bg-[#6b4a18]/50 active:scale-[0.97] transition">
+                <Compass className="h-3 w-3" /> Enable
+              </button>
+            ) : (
+              <span className={`flex items-center gap-1 text-[10px] tracking-[0.1em] font-mono px-2 py-0.5 rounded-full ${props.compassOn ? "text-[#e8c684] bg-[#6b4a18]/30 border border-[#c69a4a]/40" : "text-foreground/60 bg-white/[0.04] border border-white/[0.05]"}`}>
+                <Compass className="h-3 w-3" /> {props.heading != null ? `${props.heading.toFixed(0)}°` : "—"}
+              </span>
+            )}
           </div>
         </div>
         {(props.arErr || bvErr) && (
