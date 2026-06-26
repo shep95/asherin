@@ -517,28 +517,48 @@ function ArTab(props: {
           <div className="absolute top-2 left-2 text-[9px] tracking-[0.18em] uppercase text-emerald-300/70 font-mono">
             LIVE FIELD · {[...modes].map((m) => m === "full" ? "FULL BODY" : m.toUpperCase()).join(" · ") || "—"}
           </div>
-          {props.arOn && props.heading != null && (
-            <div className="absolute top-2 right-2 text-[9px] tracking-[0.18em] uppercase text-emerald-300/70 font-mono">
-              HDG {props.heading.toFixed(0)}°
-            </div>
-          )}
         </div>
 
+        {/* Ghost-Recon style HUD: compass strip + minimap, only when AR active */}
+        {props.arOn && (
+          <>
+            <CompassStrip
+              heading={props.heading}
+              contacts={hasBearings}
+              fov={FOV}
+            />
+            <MiniMap
+              heading={props.heading}
+              contacts={props.contacts}
+            />
+          </>
+        )}
+
+        {/* In-FOV target reticles (existing behaviour, restyled) */}
         {props.arOn && props.heading != null && hasBearings.map((c) => {
           const delta = bearingDelta(c.bearing!, props.heading!);
           if (Math.abs(delta) > FOV / 2) return null;
           const xPct = 50 + (delta / (FOV / 2)) * 50;
           const opacity = 0.4 + c.bearingConfidence * 0.6;
+          const dist = c.distanceM ?? null;
           return (
             <div key={c.id} style={{ left: `${xPct}%`, opacity }}
               className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-              <div className="w-8 h-8 rounded-full border-2 border-emerald-300/80 animate-pulse" />
-              <div className="mt-1 text-[8px] font-mono text-emerald-300/90 bg-black/50 px-1.5 py-0.5 rounded">
-                {c.displayName}
+              <div className="relative w-14 h-10">
+                {/* corner brackets */}
+                <span className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l border-emerald-300/90" />
+                <span className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r border-emerald-300/90" />
+                <span className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l border-emerald-300/90" />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r border-emerald-300/90" />
+                <span className="absolute inset-1/2 w-1 h-1 -translate-x-1/2 -translate-y-1/2 bg-emerald-300 rounded-full animate-pulse" />
+              </div>
+              <div className="mt-1 text-[8px] font-mono text-emerald-300/95 bg-black/55 px-1.5 py-0.5 rounded border border-emerald-300/30">
+                {c.displayName}{dist != null && <span className="opacity-70"> · {dist.toFixed(1)}m</span>}
               </div>
             </div>
           );
         })}
+
 
         {!props.arOn && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
