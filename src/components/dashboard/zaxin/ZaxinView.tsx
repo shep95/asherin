@@ -190,10 +190,19 @@ const ZaxinView = () => {
       setCompassOn(true);
     } catch (e) {
       setCompassErr(e instanceof Error ? e.message : String(e));
+      setCompassOn(false);
     }
   }, [engine]);
 
   useEffect(() => () => { compassHandleRef.current?.stop(); }, []);
+
+  // Manual heading fallback — used when the device has no orientation
+  // sensor (desktops, most laptops). Driven by a slider in the AR HUD.
+  const setManualHeading = useCallback((deg: number) => {
+    const norm = ((deg % 360) + 360) % 360;
+    setHeading(norm);
+    engine.setHeading(norm);
+  }, [engine]);
 
   const openMain = useCallback(async (facing: "environment" | "user") => {
     if (!videoRef.current) throw new Error("Camera surface not ready.");
@@ -221,13 +230,26 @@ const ZaxinView = () => {
       await openMain(mainFacing);
       // Try to also open the opposite-facing camera for the binoc scope.
       await openScope(flipFacing(mainFacing));
-      // Only start a new heading stream if one isn't already running.
+      // Try to start a heading stream — but never fail AR if the sensor
+      // is missing. Surface as compassErr so the manual slider appears.
       if (!poseHandleRef.current && !compassHandleRef.current) {
-        const pose = await startHeadingStream((deg) => {
-          setHeading(deg);
-          engine.setHeading(deg);
-        });
-        poseHandleRef.current = pose;
+        try {
+          const pose = await startHeadingStream((deg) => {
+            setHeading(deg);
+            engine.setHeading(deg);
+          });
+          poseHandleRef.current = pose;
+          setCompassOn(true);
+        } catch (e) {
+          setCompassErr(e instanceof Error ? e.message : String(e));
+          setCompassOn(false);
+          // Seed heading to 0° so the HUD compass + reticles render
+          // immediately; user can drag the slider to adjust.
+          if (heading == null) {
+            setHeading(0);
+            engine.setHeading(0);
+          }
+        }
       }
       engine.setPose(true, null);
       setArOn(true);
@@ -420,6 +442,7 @@ const ZaxinView = () => {
             contacts={locals}
             onStart={startAr} onStop={stopAr}
             compassOn={compassOn} onEnableCompass={enableCompass} compassErr={compassErr}
+            onManualHeading={setManualHeading}
           />
         )}
         {tab === "hops" && (
@@ -595,6 +618,7 @@ function ArTab(props: {
   contacts: Contact[];
   onStart: () => void; onStop: () => void;
   compassOn: boolean; onEnableCompass: () => void; compassErr: string | null;
+  onManualHeading: (deg: number) => void;
 }) {
   const FOV = 60;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -755,6 +779,25 @@ function ArTab(props: {
         </div>
         {(props.arErr || bvErr) && (
           <div className="mt-2 text-[10px] text-rose-300/90 truncate">{props.arErr || bvErr}</div>
+        )}
+        {props.arOn && !props.compassOn && (
+          <div className="mt-2 flex items-center gap-2 text-[10px] font-mono text-[#e8c684]/80">
+            <span className="tracking-[0.16em] uppercase">Manual heading</span>
+            <input
+              type="range"
+              min={0}
+              max={359}
+              step={1}
+              value={Math.round(props.heading ?? 0)}
+              onChange={(e) => props.onManualHeading(Number(e.target.value))}
+              className="flex-1 accent-[#c69a4a]"
+              aria-label="Manual compass heading in degrees"
+            />
+            <span className="w-10 text-right tabular-nums">{Math.round(props.heading ?? 0)}°</span>
+          </div>
+        )}
+        {props.arOn && !props.compassOn && props.compassErr && (
+          <div className="mt-1 text-[10px] text-[#c69a4a]/70 truncate">{props.compassErr}</div>
         )}
       </div>
 
