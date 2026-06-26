@@ -13,6 +13,7 @@ import { HopBrain } from "./core/hop";
 import { startHeadingStream, startCamera, stopCamera, bearingDelta, flipFacing } from "./core/posesense";
 import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
 import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
+import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { Link } from "react-router-dom";
@@ -754,6 +755,70 @@ function ArTab(props: {
   };
   useEffect(() => () => { chirpRef.current?.stop(); chirpRef.current = null; }, []);
 
+  // ---- Optical Contacts (T3-PASSIVE) — pairing-free device detection ----
+  // Runs MediaPipe Object Detector on the rear-camera frame. Anything
+  // looking like personal electronics (phone, laptop, remote, tv, mouse,
+  // keyboard, book/tablet, clock) — or a person — gets a reticle pinned
+  // directly on its pixels. Zero pairing, zero radio, zero compass.
+  const [opticalOn, setOpticalOn] = useState(true);
+  const [optical, setOptical] = useState<OpticalContact[]>([]);
+  const [opticalErr, setOpticalErr] = useState<string | null>(null);
+  const [opticalReady, setOpticalReady] = useState(false);
+  const opticalRef = useRef<OpticalHandle | null>(null);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!props.arOn || !opticalOn || !props.videoRef.current) return;
+      setOpticalErr(null); setOpticalReady(false);
+      try {
+        const h = await startOpticalScan({
+          video: props.videoRef.current,
+          onFrame: (c) => setOptical(c),
+          hz: 8,
+        });
+
+        if (cancelled) { h.stop(); return; }
+        opticalRef.current = h;
+        setOpticalReady(true);
+      } catch (e) {
+        setOpticalErr(e instanceof Error ? e.message : String(e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+      opticalRef.current?.stop();
+      opticalRef.current = null;
+      setOpticalReady(false);
+      setOptical([]);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.arOn, opticalOn]);
+
+  // object-cover math: video is scaled to MAX(W/vw, H/vh) and centered.
+  // Convert normalized video coords → on-screen % of the wrapper.
+  const projectBbox = useCallback((b: { x: number; y: number; w: number; h: number }) => {
+    const wrap = wrapRef.current; const v = props.videoRef.current;
+    if (!wrap || !v || !v.videoWidth) return null;
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    const vw = v.videoWidth, vh = v.videoHeight;
+    const scale = Math.max(W / vw, H / vh);
+    const dispW = vw * scale, dispH = vh * scale;
+    const offX = (W - dispW) / 2, offY = (H - dispH) / 2;
+    const px = b.x * vw * scale + offX;
+    const py = b.y * vh * scale + offY;
+    const pw = b.w * vw * scale, ph = b.h * vh * scale;
+    return {
+      leftPct: (px / W) * 100,
+      topPct:  (py / H) * 100,
+      widthPct:  (pw / W) * 100,
+      heightPct: (ph / H) * 100,
+    };
+  }, [props.videoRef]);
+
+
+
 
   return (
     <div className="max-w-5xl mx-auto space-y-3">
@@ -935,6 +1000,39 @@ function ArTab(props: {
           );
         })}
 
+        {/* OPTICAL CONTACTS — pairing-free, drawn directly on detected pixels */}
+        {props.arOn && opticalOn && optical.map((o) => {
+          const p = projectBbox(o);
+          if (!p) return null;
+          const isDevice = o.kind === "device";
+          const stroke = isDevice ? "rgba(232,198,132,0.95)" : "rgba(180,180,180,0.55)";
+          const glow = isDevice ? "0 0 14px -2px rgba(232,198,132,0.55)" : "none";
+          return (
+            <div
+              key={`opt-${o.id}`}
+              style={{
+                left: `${p.leftPct}%`, top: `${p.topPct}%`,
+                width: `${p.widthPct}%`, height: `${p.heightPct}%`,
+                border: `${isDevice ? 2 : 1}px solid ${stroke}`,
+                boxShadow: glow, zIndex: 4,
+              }}
+              className="absolute rounded-md pointer-events-none transition-[left,top,width,height] duration-100 ease-out"
+            >
+              {/* corner brackets — tactical reticle feel */}
+              <span className="absolute -top-px -left-px w-2.5 h-2.5 border-t-2 border-l-2" style={{ borderColor: stroke }} />
+              <span className="absolute -top-px -right-px w-2.5 h-2.5 border-t-2 border-r-2" style={{ borderColor: stroke }} />
+              <span className="absolute -bottom-px -left-px w-2.5 h-2.5 border-b-2 border-l-2" style={{ borderColor: stroke }} />
+              <span className="absolute -bottom-px -right-px w-2.5 h-2.5 border-b-2 border-r-2" style={{ borderColor: stroke }} />
+              <div className="absolute -top-5 left-0 text-[8px] font-mono tracking-[0.16em] uppercase px-1.5 py-0.5 rounded-sm bg-black/65"
+                   style={{ color: isDevice ? "#f0d59a" : "rgba(255,255,255,0.65)" }}>
+                {o.label} · {(o.score * 100).toFixed(0)}%
+              </div>
+            </div>
+          );
+        })}
+
+
+
         {/* T7 — Ultrasonic chirp pill */}
         {props.arOn && (
           <button onClick={toggleChirp} style={{ zIndex: 5 }}
@@ -952,6 +1050,36 @@ function ArTab(props: {
             {chirpErr}
           </div>
         )}
+
+        {/* OPTICAL pill — pairing-free contact source */}
+        {props.arOn && (
+          <button
+            onClick={() => setOpticalOn((v) => !v)}
+            style={{ zIndex: 5 }}
+            className={`absolute bottom-2 left-2 flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-mono tracking-[0.14em] border transition ${
+              !opticalOn ? "bg-black/45 text-foreground/60 border-white/[0.08] hover:text-foreground/85" :
+              opticalErr ? "bg-black/45 text-rose-200 border-rose-300/40" :
+              opticalReady ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60 shadow-[0_0_10px_rgba(232,198,132,0.45)]" :
+              "bg-black/45 text-[#e8c684]/70 border-[#c69a4a]/30 animate-pulse"
+            }`}
+            title="Pairing-free optical detection of phones, laptops, remotes, TVs and people in the camera frame."
+          >
+            <Eye className="h-3 w-3" />
+            <span>
+              {!opticalOn ? "OPTICAL OFF"
+                : opticalErr ? "OPTICAL ERR"
+                : opticalReady ? `OPTICAL · ${optical.length}`
+                : "OPTICAL INIT"}
+            </span>
+          </button>
+        )}
+        {props.arOn && opticalOn && opticalErr && (
+          <div className="absolute bottom-10 left-2 max-w-[60%] text-[9px] text-rose-300/85 bg-black/55 px-1.5 py-0.5 rounded truncate" style={{ zIndex: 5 }}>
+            {opticalErr}
+          </div>
+        )}
+
+
 
 
         {!props.arOn && (
