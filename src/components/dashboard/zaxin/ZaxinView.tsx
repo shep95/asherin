@@ -1680,6 +1680,166 @@ function SatelliteMap({
   );
 }
 
+/* ============================ ZAXIN VISION THEORIES ============================ */
+
+const VISION_THEORIES: Array<{ id: string; title: string; body: string }> = [
+  {
+    id: "T1",
+    title: "RSSI → Camera Reticle",
+    body: "Rear camera = world plane. Project each contact's RSSI-derived bearing onto a ~65° FOV. x = (Δbearing / FOV) × width. Pip size scales inversely with distanceMeters. Ghost-Recon overlay without extra hardware.",
+  },
+  {
+    id: "T2",
+    title: "Inverse-RSSI SLAM",
+    body: "Buffer 30s of (heading, rssi) per device. A tiny on-device Kalman/TF.js head solves for most-likely (bearing, range) and tracks through operator motion. Confidence drives reticle thickness.",
+  },
+  {
+    id: "T3",
+    title: "Visual ↔ BLE Fusion",
+    body: "MediaPipe detects people, phones, watches, earbuds, AirTag shapes. When a detection's screen position overlaps a BLE reticle within tolerance, AI binds them: 'Pixel 8 at 4 m → person at center-frame'. IoU tracking persists names across frames.",
+  },
+  {
+    id: "T4",
+    title: "AXRLEN Threat Narrator",
+    body: "Every 5 s feed {contacts, alerts, scenario, fusion bindings} to AXRLEN for a one-sentence tactical brief: 'Clone-suspect AirPods at 8 o'clock, closing 1.2 m/s — likely tail.' Rendered as HUD ticker.",
+  },
+  {
+    id: "T5",
+    title: "Behavior Fingerprinting",
+    body: "Small classifier over RSSI time-series + manufacturer + service UUIDs labels device intent: stationary beacon vs. carried-on-person vs. vehicle-mounted. Auto-drives threatTier.",
+  },
+  {
+    id: "T6",
+    title: "Photogrammetric Anchor",
+    body: "When the camera sees a landmark (door, car, signpost) co-located with a strong BLE pip, the contact is anchored to that visual feature — stays pinned even when the operator turns away. True AR persistence without ARKit.",
+  },
+  {
+    id: "T7",
+    title: "Ultrasonic Cross-Check",
+    body: "Many BLE peripherals also emit 18–22 kHz chirps during pairing. Mic FFT detecting a pulse simultaneous with a new advert hardens the visual ↔ BLE fusion binding.",
+  },
+];
+
+function VisionTheoriesPanel() {
+  return (
+    <Panel icon={Eye} title="Zaxin Vision — AI Integration Theories" subtitle="Seven blueprints for fusing camera, BLE, audio, and AXRLEN into one tactical picture">
+      <div className="mt-3 grid sm:grid-cols-2 gap-2">
+        {VISION_THEORIES.map((t) => (
+          <div key={t.id} className="rounded-md border border-[#c69a4a]/15 bg-black/30 p-3">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[9px] tracking-[0.22em] uppercase text-[#c69a4a]/70">{t.id}</span>
+              <h4 className="text-[12px] text-[#e8c684]">{t.title}</h4>
+            </div>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-foreground/70">{t.body}</p>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+/* ============================ AI BRIEF (BYOK) ============================ */
+// Generates a Ghost-Recon-style tactical brief from the current contact picture.
+// Uses the user's BYOK key from Zophiel Engine settings — no platform key fallback.
+
+function AiBriefPanel({ contacts, scenario }: { contacts: Contact[]; scenario: ScenarioId }) {
+  const [brief, setBrief] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const byok = getActiveIntelMapByok();
+
+  const summarizeContacts = () =>
+    contacts.slice(0, 24).map((c) => ({
+      name: c.displayName,
+      kind: c.inferredKind ?? "unknown",
+      rssi: c.rssi,
+      dist: c.distanceLabel,
+      zone: c.zone,
+      bearing: c.bearing,
+      behavior: c.behavior,
+      source: c.source,
+    }));
+
+  const run = async () => {
+    setErr(null); setBusy(true); setBrief("");
+    try {
+      if (!byok) throw new Error("No BYOK key active. Add yours in Dashboard → Zophiel Engine → BYOK.");
+
+      const payload = { scenario, contacts: summarizeContacts() };
+      const prompt =
+        "You are AXRLEN, a tactical RF/BLE intelligence officer. Given the JSON contact picture, " +
+        "produce a four-line Ghost-Recon-style brief: (1) one-sentence situational summary, " +
+        "(2) highest-priority threat or anomaly, (3) recommended action, " +
+        "(4) confidence (low/med/high). No moralizing, no preamble. " +
+        "JSON:\n" + JSON.stringify(payload);
+
+      let text = "";
+      if (byok.provider === "google") {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(byok.model)}:generateContent?key=${encodeURIComponent(byok.apiKey)}`;
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j?.error?.message ?? `Gemini ${r.status}`);
+        text = j?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
+      } else if (byok.provider === "openai") {
+        const r = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${byok.apiKey}` },
+          body: JSON.stringify({ model: byok.model, messages: [{ role: "user", content: prompt }] }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j?.error?.message ?? `OpenAI ${r.status}`);
+        text = j?.choices?.[0]?.message?.content ?? "";
+      } else {
+        throw new Error(`Provider "${byok.provider}" is not yet wired for in-browser briefs. Switch your Zophiel BYOK to Google or OpenAI for the Zaxin AI Brief.`);
+      }
+      setBrief(text.trim() || "(empty response)");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Panel
+      icon={Cpu}
+      title="AXRLEN Tactical Brief"
+      subtitle={byok ? `BYOK active · ${byok.provider} · ${byok.model}` : "Bring-your-own-key required"}
+    >
+      {!byok && (
+        <div className="mt-3 rounded-md border border-[#c69a4a]/25 bg-black/40 p-3 text-[11px] text-foreground/75">
+          The Zaxin AI Brief uses <strong>your own API key</strong> — no platform fallback. Add a key in{" "}
+          <Link to="/dashboard/zophiel-engine" className="underline text-[#e8c684]">
+            Dashboard → Zophiel Engine → BYOK
+          </Link>{" "}
+          (Google, OpenAI, Anthropic, xAI, DeepSeek, Mistral, or Perplexity). Google or OpenAI are wired for in-browser briefs today.
+        </div>
+      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <ActionButton onClick={run} icon={Activity} disabled={busy || !byok}>
+          {busy ? "Composing…" : "Generate Brief"}
+        </ActionButton>
+        <span className="text-[9px] tracking-[0.18em] uppercase text-muted-foreground/55">
+          {contacts.length} contact{contacts.length === 1 ? "" : "s"} in scope · scenario {SCENARIOS[scenario].label}
+        </span>
+      </div>
+      {err && (
+        <div className="mt-2 text-[10px] rounded-md border border-rose-300/25 bg-rose-500/[0.06] text-rose-200/90 px-2 py-1.5">
+          {err}
+        </div>
+      )}
+      {brief && (
+        <pre className="mt-3 rounded-md border border-[#c69a4a]/20 bg-black/45 p-3 text-[11px] leading-relaxed text-[#e8c684]/95 whitespace-pre-wrap font-mono">
+{brief}
+        </pre>
+      )}
+    </Panel>
+  );
+}
 
 export default ZaxinView;
 
