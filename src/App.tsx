@@ -49,6 +49,8 @@ const BlogPredictionIsraelIran2026ShadowWar = lazy(() => import("./pages/blog/Pr
 const BlogTheCryptoDumpOctober2026 = lazy(() => import("./pages/blog/TheCryptoDumpOctober2026"));
 const BlogPredictionBtcDaily = lazy(() => import("./pages/blog/PredictionBtcDaily"));
 const BlogTheTruthAndRealityOfWars = lazy(() => import("./pages/blog/TheTruthAndRealityOfWars"));
+const BlogZaxinTacticalBleIntelligence = lazy(() => import("./pages/blog/ZaxinTacticalBleIntelligence"));
+const ZaxinTheories = lazy(() => import("./pages/zaxin/ZaxinTheories"));
 const BlogEliteCorporationsAlgorithmsVsAxrlen = lazy(() => import("./pages/blog/EliteCorporationsAlgorithmsVsAxrlen"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
 const FeatureZerlal = lazy(() => import("./pages/feature/FeatureZerlal"));
@@ -139,6 +141,8 @@ const App = () => (
             <Route path="/blog/elite-corporations-algorithms-vs-axrlen" element={<BlogEliteCorporationsAlgorithmsVsAxrlen />} />
             <Route path="/blog/btc-daily-predictions" element={<BlogPredictionBtcDaily />} />
             <Route path="/blog/the-truth-and-reality-of-wars" element={<BlogTheTruthAndRealityOfWars />} />
+            <Route path="/blog/zaxin-tactical-ble-intelligence" element={<BlogZaxinTacticalBleIntelligence />} />
+            <Route path="/zaxin/theories" element={<ZaxinTheories />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/investors" element={<Investors />} />
 
