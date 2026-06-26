@@ -2182,17 +2182,59 @@ function AiBriefPanel({ contacts, scenario }: { contacts: Contact[]; scenario: S
 // "who is in the room" list — labeled, identified, and distance-ordered.
 
 export type VisionIdent = {
-  label: string;            // refined human label, e.g. "iPhone 15 Pro, black case"
-  brand?: string | null;    // best-guess brand, e.g. "Apple"
-  device_type?: string | null; // phone|laptop|tablet|earbuds|watch|tv|speaker|router|camera|person|other
+  label: string;
+  brand?: string | null;
+  device_type?: string | null;
   has_bluetooth?: boolean | null;
   matched_optical_id?: string | null;
   matched_ble_id?: string | null;
-  // bbox in PERCENT of the frame — supplied by the AI when no optical pair exists
   bbox_pct?: { x: number; y: number; w: number; h: number } | null;
   est_distance_m?: number | null;
-  confidence?: number | null; // 0..1
+  confidence?: number | null;
   note?: string | null;
+  // Person-only forensic estimates (filled when device_type === "person")
+  person?: {
+    age_years?: number | null;
+    height_cm?: number | null;
+    weight_kg?: number | null;
+    gender?: string | null;       // m | f | nb | unknown
+    ethnicity?: string | null;    // best-guess descriptor (caucasian, east-asian, south-asian, african, hispanic, mena, mixed, unknown)
+    build?: string | null;        // slim | average | athletic | heavy
+    attire?: string | null;       // short clothing summary
+    posture?: string | null;      // standing | sitting | crouched | walking | running
+    mood?: string | null;         // neutral | tense | relaxed | aggressive | distressed
+    accessories?: string[] | null; // glasses, mask, hat, backpack, phone-in-hand
+    threat?: string | null;       // none | low | elevated | high
+  } | null;
+  // Free-form 1-line tactical narration: "Adult male, 6ft, athletic, hands in pockets, walking SE."
+  narration?: string | null;
+};
+
+export type EnvScan = {
+  scene?: string | null;             // "indoor living room" | "urban street" | "office cubicle"
+  indoor?: boolean | null;
+  room_width_m?: number | null;
+  room_length_m?: number | null;
+  room_height_m?: number | null;
+  ceiling_type?: string | null;
+  floor_material?: string | null;
+  wall_material?: string | null;
+  occupants?: number | null;
+  lighting?: {
+    type?: string | null;            // natural | mixed | artificial-warm | artificial-cool
+    intensity_lux_est?: number | null;
+    color_temp_k_est?: number | null;
+    shadows?: string | null;
+    sun_position?: string | null;    // "front-left, ~35° elevation"
+    sun_azimuth_deg?: number | null;
+    sun_elevation_deg?: number | null;
+  } | null;
+  weather_hint?: string | null;
+  time_of_day_hint?: string | null;
+  visibility_m?: number | null;
+  hazards?: string[] | null;
+  exits?: string[] | null;
+  ambient_summary?: string | null;
 };
 
 function AiVisionIdentifyPanel(props: {
