@@ -88,10 +88,28 @@ const ZaxinView = () => {
     return () => hop.stop();
   }, [hop, engine]);
 
-  // initial paired load
+  // initial + recurring paired load — picks up OS-paired devices without user re-tap
   useEffect(() => {
-    listPaired().then((rows) => rows.forEach((r) => engine.ingest(r))).catch(() => {/* */});
+    const pull = () =>
+      listPaired().then((rows) => rows.forEach((r) => engine.ingest(r))).catch(() => {/* */});
+    pull();
+    const t = window.setInterval(pull, 8_000);
+    return () => clearInterval(t);
   }, [engine]);
+
+  // auto-naming: for any local contact with a GATT handle and no intel yet, pull
+  // identity in the background (skips Silent Observe scenario — engine enforces).
+  const autoPulledRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const c of snap.contacts) {
+      if (c.source !== "local") continue;
+      if (c.intel) continue;
+      if (autoPulledRef.current.has(c.id)) continue;
+      if (!(c as any).__device) continue;
+      autoPulledRef.current.add(c.id);
+      engine.pullIntel(c.id).catch(() => autoPulledRef.current.delete(c.id));
+    }
+  }, [snap.contacts, engine]);
 
   /* ------------- scan controls ------------- */
   const startSweep = useCallback(async () => {
