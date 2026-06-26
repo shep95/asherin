@@ -775,15 +775,10 @@ function ArTab(props: {
       try {
         const h = await startOpticalScan({
           video: props.videoRef.current,
-          onFrame: (c) => {
-            setOptical(c);
-            const v = props.videoRef.current;
-            if (v && v.videoWidth && (v.videoWidth !== videoNatural.w || v.videoHeight !== videoNatural.h)) {
-              setVideoNatural({ w: v.videoWidth, h: v.videoHeight });
-            }
-          },
+          onFrame: (c) => setOptical(c),
           hz: 8,
         });
+
         if (cancelled) { h.stop(); return; }
         opticalRef.current = h;
         setOpticalReady(true);
