@@ -2219,8 +2219,12 @@ function AiVisionIdentifyPanel(props: {
     } catch { return []; }
   };
 
+  const onIdentsRef = useRef(props.onIdents);
+  useEffect(() => { onIdentsRef.current = props.onIdents; }, [props.onIdents]);
+
   const run = useCallback(async () => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setErr(null); setBusy(true);
     try {
       if (!byok) throw new Error("No BYOK key active. Add yours in Dashboard → Zophiel Engine → BYOK.");
@@ -2280,20 +2284,31 @@ function AiVisionIdentifyPanel(props: {
         return da - db;
       });
       setIdents(arr);
+      onIdentsRef.current?.(arr);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
-  }, [busy, byok, props.optical, props.contacts]);
+  }, [byok]);
 
-  // Auto-loop every 8s while enabled and AR is on.
+  // Auto-loop every 4s while AR is active and a BYOK key is configured.
+  // No buttons required — identifications stream in and project onto the camera as labeled boxes.
   useEffect(() => {
     if (timerRef.current) { window.clearInterval(timerRef.current); timerRef.current = null; }
     if (!autoOn || !props.arOn || !byok) return;
-    timerRef.current = window.setInterval(() => { run(); }, 8000);
-    return () => { if (timerRef.current) window.clearInterval(timerRef.current); };
+    const kick = window.setTimeout(() => { run(); }, 400);
+    timerRef.current = window.setInterval(() => { run(); }, 4000);
+    return () => {
+      window.clearTimeout(kick);
+      if (timerRef.current) window.clearInterval(timerRef.current);
+    };
   }, [autoOn, props.arOn, byok, run]);
+
+  useEffect(() => {
+    if (!props.arOn) { setIdents([]); onIdentsRef.current?.([]); }
+  }, [props.arOn]);
 
   return (
     <Panel
