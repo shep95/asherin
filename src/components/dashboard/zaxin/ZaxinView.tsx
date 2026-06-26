@@ -1156,57 +1156,63 @@ function MiniMap({ heading, contacts }: {
   heading: number | null;
   contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number }>;
 }) {
-  const size = 96; // px
+  const size = 124;
   const r = size / 2;
-  // Convert RSSI to radial distance (closer = stronger). RSSI typ -30..-95
   const rssiToRadius = (rssi?: number) => {
     if (rssi == null) return r * 0.85;
     const t = Math.min(1, Math.max(0, (Math.abs(rssi) - 30) / 65));
-    return 8 + t * (r - 12);
+    return 10 + t * (r - 16);
   };
+  // All BT contacts shown — pinless ones placed by hashed angle so even no-bearing devices appear on the compass
+  const placed = contacts.map((c) => {
+    let angle: number;
+    if (c.bearing != null) {
+      angle = (((c.bearing - (heading ?? 0)) % 360) + 360) % 360;
+    } else {
+      let hash = 0; for (let i = 0; i < c.id.length; i++) hash = (hash * 31 + c.id.charCodeAt(i)) >>> 0;
+      angle = hash % 360;
+    }
+    const rad = (angle - 90) * (Math.PI / 180);
+    const dist = rssiToRadius((c as any).rssi);
+    return { ...c, x: r + Math.cos(rad) * dist, y: r + Math.sin(rad) * dist, dim: c.bearing != null ? 1 : 0.55 };
+  });
   return (
-    <div className="absolute bottom-2 left-2 pointer-events-none select-none">
-      <div className="relative rounded-full border border-emerald-300/30 bg-black/55 backdrop-blur-sm"
+    <div className="absolute bottom-3 left-3 pointer-events-none select-none" style={{ zIndex: 5 }}>
+      <div className="relative rounded-full bg-black/45 backdrop-blur-xl ring-1 ring-white/[0.08] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.7),inset_0_0_30px_-12px_rgba(110,231,183,0.4)]"
         style={{ width: size, height: size }}>
-        {/* rings */}
+        {/* concentric range arcs */}
         <div className="absolute inset-2 rounded-full border border-emerald-300/15" />
         <div className="absolute inset-5 rounded-full border border-emerald-300/10" />
-        {/* crosshair */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-emerald-300/20" />
-        <div className="absolute top-1/2 left-0 right-0 h-px bg-emerald-300/20" />
-        {/* sweep gradient (FOV cone) rotated to heading */}
+        <div className="absolute inset-8 rounded-full border border-emerald-300/[0.07]" />
+        {/* cross */}
+        <div className="absolute left-1/2 top-1.5 bottom-1.5 w-px bg-emerald-300/15" />
+        <div className="absolute top-1/2 left-1.5 right-1.5 h-px bg-emerald-300/15" />
+        {/* FOV cone (forward direction = up) */}
         <div className="absolute inset-0 rounded-full overflow-hidden">
-          <div className="absolute left-1/2 top-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2"
-            style={{
-              transform: `translate(-50%,-50%) rotate(${heading ?? 0}deg)`,
-              background:
-                "conic-gradient(from -30deg, rgba(110,231,183,0.28) 0deg, rgba(110,231,183,0.05) 60deg, transparent 60deg 360deg)",
-            }} />
+          <div className="absolute inset-0"
+            style={{ background: "conic-gradient(from -30deg, rgba(110,231,183,0.32) 0deg, rgba(110,231,183,0.04) 60deg, transparent 60deg 360deg)" }} />
         </div>
-        {/* contacts */}
-        {contacts.map((c) => {
-          if (c.bearing == null) return null;
-          const rel = (((c.bearing - (heading ?? 0)) % 360) + 360) % 360;
-          const rad = (rel - 90) * (Math.PI / 180); // 0° = north → up
-          const dist = rssiToRadius((c as any).rssi);
-          const x = r + Math.cos(rad) * dist;
-          const y = r + Math.sin(rad) * dist;
-          return (
-            <div key={c.id} style={{ left: x, top: y }}
-              className="absolute -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.9)]" />
-          );
-        })}
-        {/* operator pip */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.9)]" />
-        {/* N label */}
-        <div className="absolute left-1/2 top-1 -translate-x-1/2 text-[8px] font-mono text-emerald-300/80">N</div>
-      </div>
-      <div className="mt-1 text-center text-[8px] font-mono text-emerald-300/70 tracking-[0.18em]">
-        {contacts.length} CONTACT{contacts.length === 1 ? "" : "S"}
+        {/* Bluetooth contacts */}
+        {placed.map((c) => (
+          <div key={c.id} className="absolute -translate-x-1/2 -translate-y-1/2"
+            style={{ left: c.x, top: c.y, opacity: c.dim }}>
+            <span className="block w-1.5 h-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.95)]" />
+          </div>
+        ))}
+        {/* operator pip + forward arrow */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
+        </div>
+        <div className="absolute left-1/2 top-1 -translate-x-1/2 text-[8px] font-mono text-emerald-200/80 tracking-[0.16em]">N</div>
+        {/* contact count bubble */}
+        <div className="absolute -top-1.5 -right-1.5 text-[8px] font-mono px-1.5 py-px rounded-full bg-emerald-400/90 text-black tracking-wider">
+          {contacts.length}
+        </div>
       </div>
     </div>
   );
 }
+
 
 /* ============================ FULL-SIZE RADAR (SCAN TAB) ============================ */
 
