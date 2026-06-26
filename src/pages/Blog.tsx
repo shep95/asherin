@@ -46,6 +46,15 @@ export const BLOG_POSTS: Post[] = [
     featured: true,
     pinned: true,
   },
+  {
+    slug: "/blog/zaxin-tactical-ble-intelligence",
+    title: "Zaxin — Tactical BLE Intelligence, AR HUD & Satellite Recon Inside Aureon",
+    dek: "The product briefing for Zaxin — the Web-Bluetooth tactical layer bundled with the Aureon $399 tier. Five-brain stack, Ghost-Recon HUD, Esri satellite recon, AXRLEN BYOK briefs. Includes diagrams and the seven AI fusion theories.",
+    tag: "Product",
+    published: "2026-06-26T00:00:00.000Z",
+    readTime: "11 min",
+    featured: true,
+  },
 
   {
     slug: "/blog/elite-corporations-algorithms-vs-axrlen",
