@@ -767,6 +767,9 @@ function ArTab(props: {
   const [opticalReady, setOpticalReady] = useState(false);
   const opticalRef = useRef<OpticalHandle | null>(null);
 
+  // Streamed identifications from the BYOK Vision panel — drawn as labeled boxes on the camera.
+  const [visionIdents, setVisionIdents] = useState<VisionIdent[]>([]);
+
 
   useEffect(() => {
     let cancelled = false;
