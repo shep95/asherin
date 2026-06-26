@@ -304,6 +304,8 @@ const ZaxinView = () => {
             locals={locals} remotes={remotes}
             onToggleWatch={(id) => engine.toggleWatch(id)}
             onPullIntel={(id) => engine.pullIntel(id)}
+            heading={heading} compassOn={compassOn} compassErr={compassErr}
+            onEnableCompass={enableCompass}
           />
         )}
         {tab === "tactical" && (
