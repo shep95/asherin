@@ -767,6 +767,9 @@ function ArTab(props: {
   const [opticalReady, setOpticalReady] = useState(false);
   const opticalRef = useRef<OpticalHandle | null>(null);
 
+  // Streamed identifications from the BYOK Vision panel — drawn as labeled boxes on the camera.
+  const [visionIdents, setVisionIdents] = useState<VisionIdent[]>([]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -1001,13 +1004,22 @@ function ArTab(props: {
           );
         })}
 
-        {/* OPTICAL CONTACTS — pairing-free, drawn directly on detected pixels */}
-        {props.arOn && opticalOn && optical.map((o) => {
+        {/* OPTICAL CONTACTS — pairing-free, drawn directly on detected pixels.
+            If the AI Vision panel has returned an identification paired to this
+            bbox (matched_optical_id === "opt:i"), we override the label with the
+            refined brand/model/type and a BLE pip. */}
+        {props.arOn && opticalOn && optical.map((o, idx) => {
           const p = projectBbox(o);
           if (!p) return null;
-          const isDevice = o.kind === "device";
+          const ai = visionIdents.find((vi) => vi.matched_optical_id === `opt:${idx}`);
+          const isDevice = (ai?.has_bluetooth === true) || o.kind === "device";
           const stroke = isDevice ? "rgba(232,198,132,0.95)" : "rgba(180,180,180,0.55)";
           const glow = isDevice ? "0 0 14px -2px rgba(232,198,132,0.55)" : "none";
+          const label = ai?.label || o.label;
+          const sub = ai
+            ? [ai.brand, ai.device_type, ai.est_distance_m != null ? `${ai.est_distance_m.toFixed(1)}m` : null]
+                .filter(Boolean).join(" · ")
+            : `${(o.score * 100).toFixed(0)}%`;
           return (
             <div
               key={`opt-${o.id}`}
@@ -1019,14 +1031,58 @@ function ArTab(props: {
               }}
               className="absolute rounded-md pointer-events-none transition-[left,top,width,height] duration-100 ease-out"
             >
-              {/* corner brackets — tactical reticle feel */}
               <span className="absolute -top-px -left-px w-2.5 h-2.5 border-t-2 border-l-2" style={{ borderColor: stroke }} />
               <span className="absolute -top-px -right-px w-2.5 h-2.5 border-t-2 border-r-2" style={{ borderColor: stroke }} />
               <span className="absolute -bottom-px -left-px w-2.5 h-2.5 border-b-2 border-l-2" style={{ borderColor: stroke }} />
               <span className="absolute -bottom-px -right-px w-2.5 h-2.5 border-b-2 border-r-2" style={{ borderColor: stroke }} />
-              <div className="absolute -top-5 left-0 text-[8px] font-mono tracking-[0.16em] uppercase px-1.5 py-0.5 rounded-sm bg-black/65"
-                   style={{ color: isDevice ? "#f0d59a" : "rgba(255,255,255,0.65)" }}>
-                {o.label} · {(o.score * 100).toFixed(0)}%
+              <div className="absolute -top-[34px] left-0 flex items-center gap-1 max-w-[260px]">
+                <div className="text-[9px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/75 truncate"
+                     style={{ color: isDevice ? "#f0d59a" : "rgba(255,255,255,0.7)" }}>
+                  {label}
+                </div>
+                {ai?.has_bluetooth ? (
+                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">
+                    BLE
+                  </div>
+                ) : null}
+              </div>
+              <div className="absolute -bottom-[18px] left-0 text-[8px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/65 text-foreground/75 truncate max-w-[260px]">
+                {sub}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* AI-ONLY IDENT BOXES — items the COCO detector missed but the BYOK vision model spotted */}
+        {props.arOn && visionIdents.map((it, i) => {
+          if (it.matched_optical_id || !it.bbox_pct) return null;
+          const b = it.bbox_pct;
+          // bbox_pct is in PERCENT of the video frame; convert to normalized for projectBbox.
+          const proj = projectBbox({ x: b.x / 100, y: b.y / 100, w: b.w / 100, h: b.h / 100 });
+          if (!proj) return null;
+          const isBle = it.has_bluetooth === true;
+          const stroke = isBle ? "rgba(232,198,132,0.9)" : "rgba(170,170,170,0.55)";
+          return (
+            <div
+              key={`ai-${i}`}
+              style={{
+                left: `${proj.leftPct}%`, top: `${proj.topPct}%`,
+                width: `${proj.widthPct}%`, height: `${proj.heightPct}%`,
+                border: `${isBle ? 2 : 1}px dashed ${stroke}`,
+                zIndex: 4,
+              }}
+              className="absolute rounded-md pointer-events-none"
+            >
+              <div className="absolute -top-[18px] left-0 flex items-center gap-1 max-w-[240px]">
+                <div className="text-[9px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/75 truncate"
+                     style={{ color: isBle ? "#f0d59a" : "rgba(255,255,255,0.7)" }}>
+                  {it.label || "device"}{it.brand ? ` · ${it.brand}` : ""}
+                </div>
+                {isBle ? (
+                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">
+                    BLE
+                  </div>
+                ) : null}
               </div>
             </div>
           );
@@ -1099,6 +1155,7 @@ function ArTab(props: {
         optical={optical}
         contacts={smoothedContacts}
         arOn={props.arOn}
+        onIdents={setVisionIdents}
       />
     </div>
   );
@@ -2124,11 +2181,15 @@ function AiBriefPanel({ contacts, scenario }: { contacts: Contact[]; scenario: S
 // by RSSI-derived distance (closest first) so the operator sees a ranked
 // "who is in the room" list — labeled, identified, and distance-ordered.
 
-type VisionIdent = {
-  label: string;            // refined human label, e.g. "iPhone, black case"
-  brand?: string | null;    // best-guess brand
+export type VisionIdent = {
+  label: string;            // refined human label, e.g. "iPhone 15 Pro, black case"
+  brand?: string | null;    // best-guess brand, e.g. "Apple"
+  device_type?: string | null; // phone|laptop|tablet|earbuds|watch|tv|speaker|router|camera|person|other
+  has_bluetooth?: boolean | null;
   matched_optical_id?: string | null;
   matched_ble_id?: string | null;
+  // bbox in PERCENT of the frame — supplied by the AI when no optical pair exists
+  bbox_pct?: { x: number; y: number; w: number; h: number } | null;
   est_distance_m?: number | null;
   confidence?: number | null; // 0..1
   note?: string | null;
@@ -2139,13 +2200,16 @@ function AiVisionIdentifyPanel(props: {
   optical: OpticalContact[];
   contacts: Contact[];
   arOn: boolean;
+  onIdents?: (idents: VisionIdent[]) => void;
 }) {
   const byok = getActiveIntelMapByok();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [idents, setIdents] = useState<VisionIdent[]>([]);
-  const [autoOn, setAutoOn] = useState(false);
+  // Automated by default — no clicking required.
+  const [autoOn, setAutoOn] = useState(true);
   const timerRef = useRef<number | null>(null);
+  const busyRef = useRef(false);
 
   // Snapshot the current video frame to a base64 JPEG (max 768px on the long edge).
   const grabFrame = (): string | null => {
@@ -2187,16 +2251,19 @@ function AiVisionIdentifyPanel(props: {
   const prompt = (payload: object) =>
     "You are AXRLEN Vision, a tactical sensor-fusion analyst. You are given:\n" +
     "1) ONE camera frame from a body-worn rear camera.\n" +
-    "2) An OPTICAL list — bounding boxes from a generic COCO detector (coarse labels).\n" +
+    "2) An OPTICAL list — bounding boxes from a generic COCO detector (coarse labels) in PERCENT of frame.\n" +
     "3) A BLE list — Bluetooth contacts with RSSI-derived distance estimates (meters).\n\n" +
-    "Task: Look at the IMAGE. For every visible electronic device or notable object, return a JSON " +
-    "array `identifications`. For each item, refine the label beyond the COCO term (e.g. 'cell phone' → " +
-    "'iPhone 15, black case'; 'remote' → 'Apple TV remote'; an object COCO missed but you can see → " +
-    "still include it). When confident, pair to one optical bbox via `matched_optical_id` and/or to one " +
-    "BLE id via `matched_ble_id` (use BLE name + bearing + distance + your visual range estimate to match). " +
-    "Set `est_distance_m` either from the BLE pair or from visual scale. Confidence is 0..1.\n\n" +
-    "Return ONLY this JSON, no prose, no markdown fences:\n" +
-    `{"identifications":[{"label":"","brand":null,"matched_optical_id":null,"matched_ble_id":null,"est_distance_m":null,"confidence":0,"note":null}]}\n\n` +
+    "For EVERY visible electronic device, accessory, or notable object in the IMAGE, return one entry. " +
+    "Refine the label well beyond the COCO term (e.g. 'cell phone' → 'iPhone 15 Pro, black case'; " +
+    "'remote' → 'Apple TV Siri Remote'; 'tv' → 'LG OLED C3 65\"'; an object COCO missed but you can see → still include it). " +
+    "Always fill: brand (Apple, Samsung, Sony, Bose, Logitech, etc. — null if unknown); " +
+    "device_type (one of: phone, laptop, tablet, earbuds, headphones, watch, tv, speaker, router, camera, console, keyboard, mouse, remote, appliance, vehicle, person, other); " +
+    "has_bluetooth (true if this device class typically transmits Bluetooth/BLE — phones, laptops, earbuds, watches, speakers, remotes, consoles, keyboards, mice, modern TVs, AirTags = true; basic appliances, books, bottles = false). " +
+    "When confident, pair to one optical bbox via matched_optical_id and/or to one BLE id via matched_ble_id (use BLE name + bearing + distance vs your visual range estimate). " +
+    "If the item is NOT in the optical list, provide bbox_pct {x,y,w,h} in PERCENT of the frame so we can draw a box on it. " +
+    "Set est_distance_m from the BLE pair if matched, otherwise from visual scale. Confidence is 0..1.\n\n" +
+    "Return ONLY this JSON, no prose, no markdown:\n" +
+    `{"identifications":[{"label":"","brand":null,"device_type":null,"has_bluetooth":null,"matched_optical_id":null,"matched_ble_id":null,"bbox_pct":null,"est_distance_m":null,"confidence":0,"note":null}]}\n\n` +
     "Context JSON:\n" + JSON.stringify(payload);
 
   const parseJson = (text: string): VisionIdent[] => {
@@ -2209,8 +2276,12 @@ function AiVisionIdentifyPanel(props: {
     } catch { return []; }
   };
 
+  const onIdentsRef = useRef(props.onIdents);
+  useEffect(() => { onIdentsRef.current = props.onIdents; }, [props.onIdents]);
+
   const run = useCallback(async () => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setErr(null); setBusy(true);
     try {
       if (!byok) throw new Error("No BYOK key active. Add yours in Dashboard → Zophiel Engine → BYOK.");
@@ -2270,20 +2341,31 @@ function AiVisionIdentifyPanel(props: {
         return da - db;
       });
       setIdents(arr);
+      onIdentsRef.current?.(arr);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
-  }, [busy, byok, props.optical, props.contacts]);
+  }, [byok]);
 
-  // Auto-loop every 8s while enabled and AR is on.
+  // Auto-loop every 4s while AR is active and a BYOK key is configured.
+  // No buttons required — identifications stream in and project onto the camera as labeled boxes.
   useEffect(() => {
     if (timerRef.current) { window.clearInterval(timerRef.current); timerRef.current = null; }
     if (!autoOn || !props.arOn || !byok) return;
-    timerRef.current = window.setInterval(() => { run(); }, 8000);
-    return () => { if (timerRef.current) window.clearInterval(timerRef.current); };
+    const kick = window.setTimeout(() => { run(); }, 400);
+    timerRef.current = window.setInterval(() => { run(); }, 4000);
+    return () => {
+      window.clearTimeout(kick);
+      if (timerRef.current) window.clearInterval(timerRef.current);
+    };
   }, [autoOn, props.arOn, byok, run]);
+
+  useEffect(() => {
+    if (!props.arOn) { setIdents([]); onIdentsRef.current?.([]); }
+  }, [props.arOn]);
 
   return (
     <Panel
@@ -2302,27 +2384,41 @@ function AiVisionIdentifyPanel(props: {
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button
-          onClick={run}
-          disabled={busy || !byok || !props.arOn}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] tracking-[0.18em] uppercase border border-[#c69a4a]/30 text-[#e8c684] hover:bg-[#c69a4a]/[0.08] disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Snapshot the current frame and identify visible devices."
+        <span
+          className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-mono tracking-[0.18em] uppercase border ${
+            !byok ? "text-foreground/45 border-white/[0.08]"
+              : !props.arOn ? "text-foreground/55 border-white/[0.10]"
+              : busy ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60 animate-pulse"
+              : autoOn ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60"
+              : "text-foreground/65 border-white/[0.10]"
+          }`}
+          title="Automated identification runs every 4 seconds while AR is active. No clicks required."
         >
-          <Activity className="h-3.5 w-3.5" />
-          {busy ? "Identifying…" : "Identify Now"}
-        </button>
+          <Activity className="h-3 w-3" />
+          {!byok ? "BYOK REQUIRED"
+            : !props.arOn ? "AR OFF"
+            : busy ? "IDENTIFYING…"
+            : autoOn ? "AUTO · LIVE"
+            : "AUTO PAUSED"}
+        </span>
         <button
           onClick={() => setAutoOn((v) => !v)}
           disabled={!byok || !props.arOn}
-          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] tracking-[0.18em] uppercase border disabled:opacity-40 disabled:cursor-not-allowed ${
-            autoOn ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60" : "text-foreground/65 border-white/[0.08] hover:text-foreground/85"
-          }`}
-          title="Re-run identification every 8 seconds."
+          className="text-[9px] tracking-[0.18em] uppercase text-foreground/55 hover:text-[#e8c684] underline-offset-2 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Toggle automated identification."
         >
-          {autoOn ? "AUTO ON" : "AUTO OFF"}
+          {autoOn ? "pause" : "resume"}
         </button>
-        <span className="text-[9px] tracking-[0.18em] uppercase text-muted-foreground/55">
-          {props.optical.length} optical · {props.contacts.length} BLE
+        <button
+          onClick={run}
+          disabled={busy || !byok || !props.arOn}
+          className="text-[9px] tracking-[0.18em] uppercase text-foreground/55 hover:text-[#e8c684] underline-offset-2 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Force one identification pass right now."
+        >
+          rerun
+        </button>
+        <span className="ml-auto text-[9px] tracking-[0.18em] uppercase text-muted-foreground/55">
+          {props.optical.length} optical · {props.contacts.length} BLE · {idents.length} ident
         </span>
       </div>
 
@@ -2340,12 +2436,18 @@ function AiVisionIdentifyPanel(props: {
                 {it.est_distance_m != null ? `${it.est_distance_m.toFixed(1)}m` : "—"}
               </span>
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-foreground/90 truncate">
-                  {it.label || "(unlabeled)"}
-                  {it.brand ? <span className="text-foreground/45"> · {it.brand}</span> : null}
+                <div className="text-[11px] text-foreground/90 truncate flex items-center gap-1.5">
+                  <span className="truncate">{it.label || "(unlabeled)"}</span>
+                  {it.brand ? <span className="text-foreground/45 shrink-0">· {it.brand}</span> : null}
+                  {it.has_bluetooth ? (
+                    <span className="shrink-0 text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm border border-[#c69a4a]/40 text-[#e8c684]/85 bg-[#6b4a18]/35">
+                      BLE
+                    </span>
+                  ) : null}
                 </div>
                 <div className="text-[9px] tracking-wide uppercase text-muted-foreground/55 truncate">
-                  {it.matched_ble_id ? `BLE ${it.matched_ble_id.slice(0, 10)}` : "no BLE pair"}
+                  {it.device_type ?? "device"}
+                  {it.matched_ble_id ? ` · paired ${it.matched_ble_id.slice(0, 10)}` : ""}
                   {it.matched_optical_id ? ` · ${it.matched_optical_id}` : ""}
                   {it.confidence != null ? ` · conf ${(it.confidence * 100).toFixed(0)}%` : ""}
                 </div>
@@ -2359,7 +2461,7 @@ function AiVisionIdentifyPanel(props: {
       ) : (
         !err && !busy && (
           <div className="mt-3 text-[10px] tracking-wide uppercase text-muted-foreground/55">
-            No identifications yet. Activate AR, point the camera at devices, then tap Identify Now.
+            Activate AR and point the camera. Identifications will stream onto the camera as labeled boxes automatically.
           </div>
         )
       )}
