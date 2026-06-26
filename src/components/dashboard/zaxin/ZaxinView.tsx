@@ -542,4 +542,109 @@ function DeviceTable({ rows }: { rows: Row[] }) {
   );
 }
 
+const FLAW_COLOR: Record<string, string> = {
+  technical:   "text-sky-300/80 border-sky-300/20",
+  security:    "text-rose-300/90 border-rose-300/30",
+  privacy:     "text-violet-300/80 border-violet-300/25",
+  legal:       "text-amber-300/80 border-amber-300/25",
+  operational: "text-emerald-300/80 border-emerald-300/20",
+  ethical:     "text-foreground/70 border-border/30",
+};
+
+function TheoryBrowser() {
+  const [cat, setCat] = useState<Category | "all">("all");
+  const [q, setQ] = useState("");
+
+  const filtered: TheoryRecord[] = useMemo(() => {
+    const byCat = cat === "all" ? ALL_THEORIES : ALL_THEORIES.filter((t) => t.category === cat);
+    if (!q.trim()) return byCat;
+    const matches = new Set(searchTheories(q).map((t) => t.id + ":" + t.category));
+    return byCat.filter((t) => matches.has(t.id + ":" + t.category));
+  }, [cat, q]);
+
+  const cats: Array<Category | "all"> = [
+    "all", "tactical", "passive", "gatt", "security", "architecture", "screen-relay", "wifi-pose",
+  ];
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-5">
+      <Panel
+        icon={BookOpen}
+        title={`Theory Corpus · ${TOTAL_THEORIES} entries`}
+        subtitle="Ported verbatim from houseofasher/bluetooth_software. Narrative → flaw → fix → code, indexed by category."
+      >
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-border/[0.08] bg-background/40 px-2.5 py-1.5">
+          <Search className="h-3 w-3 text-muted-foreground/50" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search narrative, flaw, fix, code module…"
+            className="flex-1 bg-transparent outline-none text-[11px] font-light text-foreground/85 placeholder:text-muted-foreground/30"
+          />
+          {q && (
+            <button onClick={() => setQ("")} className="text-[9px] tracking-[0.18em] uppercase text-muted-foreground/50 hover:text-foreground/80">Clear</button>
+          )}
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {cats.map((c) => {
+            const count = c === "all" ? TOTAL_THEORIES : CATEGORY_COUNTS[c];
+            const active = cat === c;
+            return (
+              <button
+                key={c}
+                onClick={() => setCat(c)}
+                className={`px-2.5 py-1 rounded-md text-[9px] tracking-[0.14em] uppercase border transition-all ${
+                  active
+                    ? "bg-foreground/[0.08] border-border/30 text-foreground/90"
+                    : "border-border/[0.08] text-muted-foreground/55 hover:text-foreground/80 hover:bg-foreground/[0.03]"
+                }`}
+              >
+                {CATEGORY_LABELS[c]} <span className="text-muted-foreground/40 ml-1">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-2 text-[9px] tracking-[0.18em] uppercase text-muted-foreground/40">
+          Showing {filtered.length} of {TOTAL_THEORIES}
+        </div>
+      </Panel>
+
+      <ul className="grid sm:grid-cols-2 gap-2.5">
+        {filtered.map((t, i) => (
+          <li
+            key={`${t.category}-${t.id}-${i}`}
+            className="border border-border/[0.08] rounded-xl p-3.5 bg-foreground/[0.02] hover:bg-foreground/[0.035] transition-colors"
+          >
+            <div className="flex items-center gap-2 flex-wrap text-[9px] tracking-[0.16em] uppercase">
+              <span className="text-muted-foreground/40 font-mono">#{String(i + 1).padStart(3, "0")}</span>
+              <span className="text-foreground/90 font-light tracking-[0.1em]">{t.id}</span>
+              <span className="text-muted-foreground/40">·</span>
+              <span className="text-muted-foreground/60">{CATEGORY_LABELS[t.category]}</span>
+              <span className={`ml-auto px-1.5 py-0.5 rounded border text-[9px] tracking-[0.12em] ${FLAW_COLOR[t.flawType] ?? FLAW_COLOR.ethical}`}>
+                {t.flawType}
+              </span>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-foreground/80 font-light">{t.narrative}</p>
+            <div className="mt-2 space-y-1 text-[10px] font-light leading-relaxed">
+              <div className="text-rose-200/70"><span className="text-muted-foreground/40 mr-1.5">flaw·</span>{t.flaw}</div>
+              <div className="text-emerald-200/70"><span className="text-muted-foreground/40 mr-1.5">fix·</span>{t.fix}</div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-border/[0.05] text-[9px] font-mono text-muted-foreground/45 break-all">
+              {t.module} → {t.code}
+            </div>
+          </li>
+        ))}
+        {filtered.length === 0 && (
+          <li className="sm:col-span-2 rounded-xl border border-dashed border-border/[0.1] p-8 text-center text-[10px] tracking-[0.18em] uppercase text-muted-foreground/40">
+            No matching theories
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+
 export default ZaxinView;
