@@ -1202,16 +1202,16 @@ function CompassStrip({ heading, contacts, fov }: {
   }
   return (
     <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[88%] max-w-[520px] pointer-events-none">
-      <div className="relative h-9 rounded-md border border-emerald-300/25 bg-black/40 backdrop-blur-sm overflow-hidden">
+      <div className="relative h-9 rounded-md border border-[#c69a4a]/30 bg-gradient-to-b from-[#1a1208]/70 to-black/55 backdrop-blur-md overflow-hidden shadow-[inset_0_0_18px_-6px_rgba(198,154,74,0.35)]">
         {/* tick row */}
         {ticks.map((t, i) => {
           const offset = ((t.deg - h) / (fov / 2)) * 50 + 50;
           if (offset < -2 || offset > 102) return null;
           return (
             <div key={i} style={{ left: `${offset}%` }} className="absolute top-0 -translate-x-1/2">
-              <div className={`mx-auto w-px ${t.major ? "h-3 bg-emerald-300/80" : "h-1.5 bg-emerald-300/35"}`} />
+              <div className={`mx-auto w-px ${t.major ? "h-3 bg-[#e8c684]" : "h-1.5 bg-[#c69a4a]/45"}`} />
               {t.label && (
-                <div className="mt-0.5 text-[9px] font-mono text-emerald-300/90 text-center -translate-x-1/2 absolute left-1/2 top-3 whitespace-nowrap">
+                <div className="mt-0.5 text-[9px] font-mono text-[#e8c684] text-center -translate-x-1/2 absolute left-1/2 top-3 whitespace-nowrap">
                   {t.label}
                 </div>
               )}
@@ -1225,14 +1225,14 @@ function CompassStrip({ heading, contacts, fov }: {
           const x = 50 + (delta / (fov / 2)) * 50;
           return (
             <div key={c.id} style={{ left: `${x}%` }}
-              className="absolute bottom-0.5 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.9)]" />
+              className="absolute bottom-0.5 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#f0d59a] shadow-[0_0_6px_rgba(240,213,154,0.95)]" />
           );
         })}
         {/* center heading marker */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-px bg-emerald-300" />
-        <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-emerald-300" />
+        <div className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-px bg-[#e8c684]" />
+        <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-[#e8c684]" />
       </div>
-      <div className="mt-1 text-center text-[10px] font-mono text-emerald-300/90 tracking-[0.2em]">
+      <div className="mt-1 text-center text-[10px] font-mono text-[#e8c684] tracking-[0.2em]">
         {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "--- °"}
       </div>
     </div>
