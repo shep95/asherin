@@ -408,23 +408,8 @@ const ZaxinView = () => {
           </div>
         )}
 
-        {tab === "theories" && (
-          <div className="max-w-4xl mx-auto space-y-5">
-            <Panel icon={BookOpen} title="Theory Chains" subtitle="Narrative → flaw → fix → code. Selected highlights from the 101-deep Zaxin codex.">
-              <ul className="mt-4 grid sm:grid-cols-2 gap-2">
-                {THEORIES.map((t) => (
-                  <li key={t.n} className="border border-border/[0.06] rounded-lg p-3 bg-foreground/[0.02]">
-                    <div className="flex items-center gap-2 text-[10px] tracking-[0.16em] uppercase">
-                      <span className="text-muted-foreground/40 font-mono">#{String(t.n).padStart(3, "0")}</span>
-                      <span className="text-foreground/85">{t.title}</span>
-                    </div>
-                    <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground/70 font-light">{t.body}</p>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
-          </div>
-        )}
+        {tab === "theories" && <TheoryBrowser />}
+
 
         {tab === "guide" && (
           <div className="max-w-3xl mx-auto space-y-5">
