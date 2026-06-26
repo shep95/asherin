@@ -140,18 +140,43 @@ const ZaxinView = () => {
 
   /* ------------- AR pose ------------- */
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const scopeVideoRef = useRef<HTMLVideoElement | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
   const [arOn, setArOn] = useState(false);
   const [arErr, setArErr] = useState<string | null>(null);
+  const [mainFacing, setMainFacing] = useState<"environment" | "user">("environment");
+  const [scopeOn, setScopeOn] = useState(true);
+  const [scopeAvail, setScopeAvail] = useState(true);
   const camStreamRef = useRef<MediaStream | null>(null);
+  const scopeStreamRef = useRef<MediaStream | null>(null);
   const poseHandleRef = useRef<{ stop: () => void } | null>(null);
+
+  const openMain = useCallback(async (facing: "environment" | "user") => {
+    if (!videoRef.current) throw new Error("Camera surface not ready.");
+    stopCamera(camStreamRef.current); camStreamRef.current = null;
+    const stream = await startCamera(videoRef.current, facing);
+    camStreamRef.current = stream;
+  }, []);
+
+  const openScope = useCallback(async (facing: "environment" | "user") => {
+    if (!scopeVideoRef.current) return;
+    stopCamera(scopeStreamRef.current); scopeStreamRef.current = null;
+    try {
+      const stream = await startCamera(scopeVideoRef.current, facing);
+      scopeStreamRef.current = stream;
+      setScopeAvail(true);
+    } catch {
+      // Most laptops only have one camera; mark scope unavailable.
+      setScopeAvail(false);
+    }
+  }, []);
 
   const startAr = useCallback(async () => {
     setArErr(null);
     try {
-      if (!videoRef.current) throw new Error("Camera surface not ready.");
-      const stream = await startCamera(videoRef.current);
-      camStreamRef.current = stream;
+      await openMain(mainFacing);
+      // Try to also open the opposite-facing camera for the binoc scope.
+      await openScope(flipFacing(mainFacing));
       const pose = await startHeadingStream((deg) => {
         setHeading(deg);
         engine.setHeading(deg);
@@ -162,17 +187,35 @@ const ZaxinView = () => {
     } catch (e) {
       setArErr(e instanceof Error ? e.message : String(e));
       stopCamera(camStreamRef.current); camStreamRef.current = null;
+      stopCamera(scopeStreamRef.current); scopeStreamRef.current = null;
     }
-  }, [engine]);
+  }, [engine, mainFacing, openMain, openScope]);
 
   const stopAr = useCallback(() => {
     poseHandleRef.current?.stop(); poseHandleRef.current = null;
     stopCamera(camStreamRef.current); camStreamRef.current = null;
+    stopCamera(scopeStreamRef.current); scopeStreamRef.current = null;
     engine.setPose(false, null);
     setArOn(false);
   }, [engine]);
 
-  useEffect(() => () => { poseHandleRef.current?.stop(); stopCamera(camStreamRef.current); }, []);
+  const flipMain = useCallback(async () => {
+    if (!arOn) return;
+    const next = flipFacing(mainFacing);
+    setMainFacing(next);
+    try {
+      await openMain(next);
+      await openScope(flipFacing(next));
+    } catch (e) {
+      setArErr(e instanceof Error ? e.message : String(e));
+    }
+  }, [arOn, mainFacing, openMain, openScope]);
+
+  useEffect(() => () => {
+    poseHandleRef.current?.stop();
+    stopCamera(camStreamRef.current);
+    stopCamera(scopeStreamRef.current);
+  }, []);
 
   /* ------------- derived ------------- */
   const locals = useMemo(() => snap.contacts.filter((c) => c.source === "local"), [snap]);
