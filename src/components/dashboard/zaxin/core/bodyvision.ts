@@ -11,12 +11,25 @@
 
 export type BodyMode = "full" | "face" | "fingers";
 
+export interface BodyMetrics {
+  /** estimated standing height in meters (rough — monocular, no depth). */
+  heightM: number;
+  /** estimated mass in kg via BMI=22 anthropometric assumption. */
+  weightKg: number;
+  /** 0..1 — how confident the estimate is (full body visible, vertical pose). */
+  confidence: number;
+  /** how the estimate was anchored, for the HUD. */
+  anchor: "shoulder-breadth" | "frame-fill";
+}
+
 export interface PoseHit {
   kind: "body" | "face" | "left-hand" | "right-hand";
   /** normalized bbox of this region (0..1, video coords) */
   bbox: { x: number; y: number; w: number; h: number };
   /** raw landmark list in normalized video coords */
   points: Array<{ x: number; y: number }>;
+  /** body-only: anthropometric estimate, when full body keypoints are visible. */
+  metrics?: BodyMetrics;
 }
 
 export interface BodyFrame {
