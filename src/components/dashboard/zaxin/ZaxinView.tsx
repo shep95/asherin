@@ -237,7 +237,7 @@ const ZaxinView = () => {
         {tab === "hops" && (
           <HopsTab snap={snap} hop={hop} />
         )}
-        {tab === "guide" && <GuideTab mode={mode} />}
+        {tab === "diag" && <DiagTab mode={mode} snap={snap} scanning={scanning} arOn={arOn} heading={heading} />}
       </div>
     </div>
   );
