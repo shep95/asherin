@@ -1521,10 +1521,19 @@ function RadarMap({
 // Uses Esri World Imagery (no API key). Browser geolocation → bbox export.
 // Contacts are overlaid as amber pips around operator, distanced by RSSI.
 
-function SatelliteMap({ heading, contacts }: { heading: number | null; contacts: Contact[] }) {
+function SatelliteMap({
+  heading,
+  contacts,
+  onPick,
+}: {
+  heading: number | null;
+  contacts: Contact[];
+  onPick?: () => void;
+}) {
   const [pos, setPos] = useState<{ lat: number; lon: number; acc: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(18); // 14 wide → 19 close
+  const [zoom, setZoom] = useState(18); // 10 wide → 20 close
+  const [showLabels, setShowLabels] = useState(true);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -1539,9 +1548,10 @@ function SatelliteMap({ heading, contacts }: { heading: number | null; contacts:
     return () => navigator.geolocation.clearWatch(w);
   }, []);
 
-  // bbox half-extent in degrees ~ inverse of zoom (rough but readable at all lats)
+  // half-extent in degrees — finer per zoom step so + actually zooms in noticeably
   const halfDeg = useMemo(() => {
-    const meters = Math.pow(2, 22 - zoom) * 80; // ~80m at z18, doubles each step out
+    // ~40m at z20, doubles every step out → ~40km at z10
+    const meters = 40 * Math.pow(2, 20 - zoom);
     return meters / 111_320;
   }, [zoom]);
 
@@ -1556,6 +1566,25 @@ function SatelliteMap({ heading, contacts }: { heading: number | null; contacts:
     return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&imageSR=3857&size=720,540&format=jpg&transparent=false&f=image`;
   }, [pos, halfDeg]);
 
+  // operator-relative pixel offset for a contact. Uses estimated bearing if present,
+  // otherwise hash-stable angle. Radius scales with RSSI distance AND current zoom
+  // (closer pips spread out as you zoom in — what the user expects from a map).
+  const pipFor = (c: Contact, i: number) => {
+    const rssi = c.rssi ?? -85;
+    const norm = Math.max(0, Math.min(1, (rssi + 100) / 60)); // -100..-40 → 0..1
+    const distMeters = c.distanceMeters ?? (1 + (1 - norm) * 60);
+    // meters per pixel at current bbox (map is 720 wide rendering into container)
+    const halfMeters = halfDeg * 111_320;
+    const pxPerMeter = 180 / Math.max(halfMeters, 1); // 180 ≈ container half-width fudge
+    const radiusPx = Math.min(180, distMeters * pxPerMeter);
+    const bearingDeg = c.bearing ?? ((parseInt(c.id.slice(-4), 36) || i * 47) % 360);
+    const rad = ((bearingDeg - (heading ?? 0)) * Math.PI) / 180;
+    return {
+      x: Math.sin(rad) * radiusPx,
+      y: -Math.cos(rad) * radiusPx,
+    };
+  };
+
   return (
     <div className="mt-3 space-y-2">
       {err && (
@@ -1563,9 +1592,14 @@ function SatelliteMap({ heading, contacts }: { heading: number | null; contacts:
           {err} · enable location to render satellite imagery
         </div>
       )}
-      <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-amber-400/15 bg-black">
+      <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-[#c69a4a]/20 bg-black">
         {tileUrl ? (
-          <img src={tileUrl} alt="Satellite imagery centered on operator" className="absolute inset-0 w-full h-full object-cover" />
+          <img
+            key={tileUrl}
+            src={tileUrl}
+            alt="Satellite imagery centered on operator"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
         ) : (
           <div className="absolute inset-0 grid place-items-center text-[10px] tracking-[0.18em] uppercase text-muted-foreground/60">
             {err ? "no satellite fix" : "acquiring GPS…"}
@@ -1574,50 +1608,66 @@ function SatelliteMap({ heading, contacts }: { heading: number | null; contacts:
 
         {/* operator + heading cone */}
         {pos && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
             <div
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+              className="absolute left-1/2 top-1/2"
               style={{
-                width: 100, height: 100,
+                width: 120, height: 120,
                 background: "conic-gradient(from -30deg, rgba(232,198,132,0.35), transparent 60deg)",
                 transform: `translate(-50%,-50%) rotate(${heading ?? 0}deg)`,
                 clipPath: "polygon(50% 50%, 0 0, 100% 0)",
                 borderRadius: "50%",
               }}
             />
-            <div className="relative h-3 w-3 rounded-full bg-amber-300 shadow-[0_0_12px_rgba(232,198,132,0.9)] ring-2 ring-black/40" />
+            <div className="relative h-3 w-3 rounded-full bg-[#e8c684] shadow-[0_0_12px_rgba(232,198,132,0.9)] ring-2 ring-black/40" />
           </div>
         )}
 
         {/* contact pips around operator */}
-        {pos && contacts.slice(0, 24).map((c, i) => {
-          const rssi = c.rssi ?? -85;
-          const norm = Math.max(0, Math.min(1, (rssi + 100) / 60)); // -100..-40
-          const radius = 30 + (1 - norm) * 130;
-          const bearing = (parseInt(c.id.slice(-4), 36) || i * 47) % 360;
-          const rad = ((bearing - (heading ?? 0)) * Math.PI) / 180;
-          const x = Math.sin(rad) * radius;
-          const y = -Math.cos(rad) * radius;
+        {pos && contacts.slice(0, 48).map((c, i) => {
+          const { x, y } = pipFor(c, i);
+          const dim = c.behavior === "lost" ? "opacity-40" : "";
           return (
             <div
               key={c.id}
-              className="absolute left-1/2 top-1/2 h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(232,198,132,0.85)]"
+              className="absolute left-1/2 top-1/2 pointer-events-none"
               style={{ transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` }}
-              title={c.displayName}
-            />
+            >
+              <div className={`h-2.5 w-2.5 rounded-full bg-[#c69a4a] shadow-[0_0_10px_rgba(198,154,74,0.95)] ring-1 ring-black/40 ${dim}`} />
+              {showLabels && (
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 whitespace-nowrap px-1.5 py-0.5 rounded bg-black/60 border border-[#c69a4a]/25 text-[8px] font-mono tracking-wider text-[#e8c684]/90">
+                  {c.displayName.slice(0, 18)} · {c.rssi ?? "—"}dBm
+                </div>
+              )}
+            </div>
           );
         })}
 
+        {/* empty-state add device */}
+        {pos && contacts.length === 0 && onPick && (
+          <button
+            onClick={onPick}
+            className="absolute left-1/2 bottom-3 -translate-x-1/2 px-3 py-1.5 rounded-md bg-black/70 border border-[#c69a4a]/40 text-[10px] tracking-[0.18em] uppercase text-[#e8c684] hover:bg-[#c69a4a]/[0.12]"
+          >
+            + Add Device
+          </button>
+        )}
+
         {/* zoom controls */}
         <div className="absolute top-2 right-2 flex flex-col gap-1">
-          <button onClick={() => setZoom((z) => Math.min(19, z + 1))} className="h-7 w-7 rounded-md bg-black/60 border border-amber-400/20 text-amber-200/90 text-sm">+</button>
-          <button onClick={() => setZoom((z) => Math.max(14, z - 1))} className="h-7 w-7 rounded-md bg-black/60 border border-amber-400/20 text-amber-200/90 text-sm">−</button>
+          <button onClick={() => setZoom((z) => Math.min(20, z + 1))} className="h-8 w-8 rounded-md bg-black/65 border border-[#c69a4a]/30 text-[#e8c684] text-base leading-none">+</button>
+          <button onClick={() => setZoom((z) => Math.max(10, z - 1))} className="h-8 w-8 rounded-md bg-black/65 border border-[#c69a4a]/30 text-[#e8c684] text-base leading-none">−</button>
+          <button
+            onClick={() => setShowLabels((s) => !s)}
+            className="h-8 w-8 rounded-md bg-black/65 border border-[#c69a4a]/30 text-[#e8c684] text-[9px] tracking-wider"
+            title="Toggle labels"
+          >{showLabels ? "LBL" : "•"}</button>
         </div>
 
         {/* readout */}
         {pos && (
-          <div className="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/55 border border-amber-400/15 text-[9px] font-mono tracking-wider text-amber-100/85">
-            {pos.lat.toFixed(5)}, {pos.lon.toFixed(5)} · ±{Math.round(pos.acc)}m · z{zoom}
+          <div className="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/60 border border-[#c69a4a]/20 text-[9px] font-mono tracking-wider text-[#e8c684]/90">
+            {pos.lat.toFixed(5)}, {pos.lon.toFixed(5)} · ±{Math.round(pos.acc)}m · z{zoom} · {contacts.length} pip{contacts.length === 1 ? "" : "s"}
           </div>
         )}
       </div>
