@@ -504,8 +504,12 @@ function ScanTab(props: {
         />
       </Panel>
 
-      <Panel icon={Compass} title="Satellite Overhead" subtitle="Live operator location · Esri World Imagery">
-        <SatelliteMap heading={props.heading} contacts={props.locals} />
+      <Panel icon={Compass} title="Satellite Overhead" subtitle="Live operator location · Esri World Imagery · zoom 10–20">
+        <SatelliteMap
+          heading={props.heading}
+          contacts={[...props.locals, ...props.remotes]}
+          onPick={props.onPick}
+        />
       </Panel>
 
 
