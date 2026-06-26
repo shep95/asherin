@@ -197,11 +197,14 @@ const ZaxinView = () => {
       await openMain(mainFacing);
       // Try to also open the opposite-facing camera for the binoc scope.
       await openScope(flipFacing(mainFacing));
-      const pose = await startHeadingStream((deg) => {
-        setHeading(deg);
-        engine.setHeading(deg);
-      });
-      poseHandleRef.current = pose;
+      // Only start a new heading stream if one isn't already running.
+      if (!poseHandleRef.current && !compassHandleRef.current) {
+        const pose = await startHeadingStream((deg) => {
+          setHeading(deg);
+          engine.setHeading(deg);
+        });
+        poseHandleRef.current = pose;
+      }
       engine.setPose(true, null);
       setArOn(true);
     } catch (e) {
@@ -230,6 +233,79 @@ const ZaxinView = () => {
       setArErr(e instanceof Error ? e.message : String(e));
     }
   }, [arOn, mainFacing, openMain, openScope]);
+
+  /* ------------- AR resilience: recover from blackouts ------------- */
+  // Mobile browsers kill or freeze video tracks on visibility loss, thermal
+  // throttling, or stream re-allocation. Watch for dead tracks / paused video
+  // and re-acquire the camera so the AR feed never stays black.
+  useEffect(() => {
+    if (!arOn) return;
+    let killed = false;
+
+    const reviveMain = async () => {
+      if (killed) return;
+      try {
+        const v = videoRef.current;
+        const tracks = camStreamRef.current?.getVideoTracks() ?? [];
+        const dead = tracks.length === 0 || tracks.every((t) => t.readyState === "ended" || !t.enabled);
+        if (dead) {
+          await openMain(mainFacing);
+        } else if (v && v.paused) {
+          try { await v.play(); } catch { /* ignore */ }
+        }
+      } catch (e) {
+        setArErr(e instanceof Error ? e.message : String(e));
+      }
+    };
+    const reviveScope = async () => {
+      if (killed) return;
+      try {
+        const v = scopeVideoRef.current;
+        const tracks = scopeStreamRef.current?.getVideoTracks() ?? [];
+        const dead = tracks.length === 0 || tracks.every((t) => t.readyState === "ended" || !t.enabled);
+        if (dead && scopeAvail) {
+          await openScope(flipFacing(mainFacing));
+        } else if (v && v.paused) {
+          try { await v.play(); } catch { /* ignore */ }
+        }
+      } catch { /* scope is optional */ }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        reviveMain(); reviveScope();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Watch track health
+    const wireTrackWatchers = () => {
+      camStreamRef.current?.getVideoTracks().forEach((t) => {
+        t.onended = reviveMain;
+        t.onmute = reviveMain;
+      });
+      scopeStreamRef.current?.getVideoTracks().forEach((t) => {
+        t.onended = reviveScope;
+        t.onmute = reviveScope;
+      });
+    };
+    wireTrackWatchers();
+
+    // Poll every 3s — cheap safety net for silent black frames.
+    const id = window.setInterval(() => {
+      const v = videoRef.current;
+      if (v && (v.readyState < 2 || v.paused)) reviveMain();
+      const s = scopeVideoRef.current;
+      if (s && scopeAvail && (s.readyState < 2 || s.paused)) reviveScope();
+      wireTrackWatchers();
+    }, 3000);
+
+    return () => {
+      killed = true;
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(id);
+    };
+  }, [arOn, mainFacing, scopeAvail, openMain, openScope]);
 
   useEffect(() => () => {
     poseHandleRef.current?.stop();
