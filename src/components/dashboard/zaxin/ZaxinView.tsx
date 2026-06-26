@@ -512,6 +512,9 @@ function ScanTab(props: {
         />
       </Panel>
 
+      <VisionTheoriesPanel />
+      <AiBriefPanel contacts={[...props.locals, ...props.remotes]} scenario={props.scenario} />
+
 
 
       <ContactList rows={props.locals} title="Local Contacts" onToggleWatch={props.onToggleWatch} onPullIntel={props.onPullIntel} />
