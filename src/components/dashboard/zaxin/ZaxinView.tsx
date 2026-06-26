@@ -3,9 +3,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bluetooth, Radar, ShieldAlert, Network, Sparkles, AlertTriangle, Eye,
+  Bluetooth, Radar, ShieldAlert, Network, AlertTriangle, Eye,
   Smartphone, Play, Square, Trash2, RefreshCw, Star, Compass, Camera, Download, Upload,
-  Activity, Radio, ChevronRight, Cpu, MapPin,
+  Activity, Radio, ChevronRight, Cpu,
 } from "lucide-react";
 import { TacticalEngine, SCENARIOS } from "./core/tactical";
 import { startScan, pickOne, detectScanMode, listPaired, type RawAdvert, type ScanMode } from "./core/scanner";
