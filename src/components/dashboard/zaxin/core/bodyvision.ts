@@ -24,8 +24,14 @@ export interface BodyFrame {
   ts: number;
 }
 
-const CDN = "https://esm.sh/@mediapipe/tasks-vision@0.10.14";
-const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
+const VERSION = "0.10.22-rc.20250304";
+// Try multiple CDNs — esm.sh sometimes fails to transpile the MediaPipe bundle.
+const CDN_CANDIDATES = [
+  `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VERSION}/vision_bundle.mjs`,
+  `https://esm.run/@mediapipe/tasks-vision@${VERSION}`,
+  `https://esm.sh/@mediapipe/tasks-vision@${VERSION}?bundle`,
+];
+const WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VERSION}/wasm`;
 const MODEL = {
   pose: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
   face: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
@@ -36,10 +42,26 @@ let cache: {
   pose: any; face: any; hand: any;
 } | null = null;
 
+async function loadVisionModule(): Promise<any> {
+  let lastErr: unknown = null;
+  for (const url of CDN_CANDIDATES) {
+    try {
+      const mod: any = await import(/* @vite-ignore */ url);
+      if (mod?.FilesetResolver) return mod;
+      lastErr = new Error(`module loaded but FilesetResolver missing: ${url}`);
+    } catch (e) {
+      lastErr = e;
+      console.warn("[bodyvision] CDN failed, trying next:", url, e);
+    }
+  }
+  throw lastErr ?? new Error("All MediaPipe CDNs failed to load.");
+}
+
 async function loadModels() {
   if (cache) return cache;
-  const mod: any = await import(/* @vite-ignore */ CDN);
+  const mod = await loadVisionModule();
   const fileset = await mod.FilesetResolver.forVisionTasks(WASM);
+
   const [pose, face, hand] = await Promise.all([
     mod.PoseLandmarker.createFromOptions(fileset, {
       baseOptions: { modelAssetPath: MODEL.pose, delegate: "GPU" },
