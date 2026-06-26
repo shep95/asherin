@@ -1219,13 +1219,15 @@ function MiniMap({ heading, contacts }: {
 /* ============================ FULL-SIZE RADAR (SCAN TAB) ============================ */
 
 function RadarMap({
-  heading, compassOn, compassErr, onEnableCompass, contacts,
+  heading, compassOn, compassErr, onEnableCompass, contacts, onPick, mode,
 }: {
   heading: number | null;
   compassOn: boolean;
   compassErr: string | null;
   onEnableCompass: () => void;
   contacts: Contact[];
+  onPick: () => void;
+  mode: ScanMode;
 }) {
   const SIZE = 280;
   const R = SIZE / 2;
