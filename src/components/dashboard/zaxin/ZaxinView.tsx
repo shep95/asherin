@@ -514,49 +514,74 @@ function HopsTab({ snap, hop }: { snap: ZaxinSnapshot; hop: HopBrain }) {
   );
 }
 
-/* ============================ GUIDE ============================ */
+/* ============================ DIAGNOSTICS ============================ */
 
-function GuideTab({ mode }: { mode: ScanMode }) {
+function DiagTab({ mode, snap, scanning, arOn, heading }: {
+  mode: ScanMode; snap: ZaxinSnapshot; scanning: boolean; arOn: boolean; heading: number | null;
+}) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const nav = typeof navigator !== "undefined" ? navigator : ({} as any);
+  const bt = (nav as any).bluetooth;
+  const hasBT = !!bt;
+  const hasLEScan = typeof bt?.requestLEScan === "function";
+  const hasGetDevices = typeof bt?.getDevices === "function";
+  const hasMedia = !!nav?.mediaDevices?.getUserMedia;
+  const hasOrient = typeof window !== "undefined" && "DeviceOrientationEvent" in window;
+  const hasBroadcast = typeof BroadcastChannel !== "undefined";
+  const isSecure = typeof window !== "undefined" && window.isSecureContext;
+  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+
+  const lastAdvert = snap.contacts.reduce((m, c) => Math.max(m, c.lastSeen ?? 0), 0);
+  const since = lastAdvert ? Math.round((now - lastAdvert) / 1000) : null;
+
+  const rows: Array<{ k: string; v: string; ok: boolean | null }> = [
+    { k: "Secure context (HTTPS)", v: isSecure ? "yes" : "no", ok: isSecure },
+    { k: "Running inside iframe",  v: inIframe ? "yes — host must allow bluetooth/camera" : "no", ok: !inIframe },
+    { k: "navigator.bluetooth",    v: hasBT ? "present" : "missing", ok: hasBT },
+    { k: "requestLEScan (sweep)",  v: hasLEScan ? "available" : "not available", ok: hasLEScan },
+    { k: "getDevices (paired)",    v: hasGetDevices ? "available" : "not available", ok: hasGetDevices },
+    { k: "getUserMedia (camera)",  v: hasMedia ? "available" : "not available", ok: hasMedia },
+    { k: "DeviceOrientationEvent", v: hasOrient ? "present" : "missing", ok: hasOrient },
+    { k: "BroadcastChannel (mesh)",v: hasBroadcast ? "present" : "missing", ok: hasBroadcast },
+    { k: "Detected scan mode",     v: mode, ok: mode !== "unsupported" },
+    { k: "Sweep state",            v: scanning ? "RUNNING" : "idle", ok: scanning || null },
+    { k: "AR pose",                v: arOn ? `on · heading ${heading?.toFixed(0) ?? "?"}°` : "off", ok: arOn || null },
+    { k: "Contacts tracked",       v: String(snap.contacts.length), ok: null },
+    { k: "Mesh peers",             v: String(Object.keys(snap.peers).length), ok: null },
+    { k: "Alerts emitted",         v: String(snap.alerts.length), ok: null },
+    { k: "Last advertisement",     v: since == null ? "—" : `${since}s ago`, ok: null },
+  ];
+
   return (
     <div className="max-w-3xl mx-auto space-y-5">
-      <Panel icon={Sparkles} title="Field Guide" subtitle="What Zaxin sees, and how to read it.">
-        <ol className="mt-4 space-y-3 text-[11px] leading-relaxed text-foreground/75 font-light">
-          <Step n={1} title="Five brains, one mission">
-            <b>Scanner</b> listens. <b>Naming</b> turns radios into names. <b>Intel</b> pulls GATT data on demand.
-            <b> Tactical</b> tracks behaviour and alerts. <b>Hop Mesh</b> stitches in peer scanners.
-          </Step>
-          <Step n={2} title="Current scan mode">
-            {mode === "continuous"
-              ? "Continuous sweep is available — your browser supports requestLEScan."
-              : mode === "picker"
-                ? "Picker mode only. Each tap on Pick Device adds one contact."
-                : "No Web Bluetooth in this browser."}
-          </Step>
-          <Step n={3} title="Reading proximity">
-            Green = arm's reach (immediate). Sky = same room (near). Amber = edge of range (far).
-            Distances are RSSI estimates with txPower −59 dBm and path-loss exponent 2.0.
-          </Step>
-          <Step n={4} title="Behaviour states">
-            <b>Active</b> = seen this sweep. <b>Lost</b> = no advert past the scenario window.
-            <b> Resurrected</b> = lost then returned. <b>Clone-suspect</b> = a second id wearing the same name.
-          </Step>
-          <Step n={5} title="AR Vision">
-            Open the AR tab, grant camera and motion permission, then walk. Each step feeds an RSSI gradient
-            into the heading samples. After a few seconds the bearing for each contact stabilises and a marker
-            anchors in the camera view at that compass bearing.
-          </Step>
-          <Step n={6} title="Hop mesh, honestly">
-            We use BroadcastChannel for same-origin tabs — no fake peer-to-peer. To bring in a phone in another room,
-            export a snapshot, send it over your usual channel, paste it on the receiving node.
-          </Step>
-        </ol>
-        <div className="mt-5 pt-4 border-t border-border/[0.06] text-[9px] tracking-[0.18em] uppercase text-muted-foreground/40">
-          Theory by Asher · #houseofasher
+      <Panel icon={Cpu} title="Live Runtime Diagnostics" subtitle="Real browser capabilities, real engine state. No simulation.">
+        <div className="mt-3 rounded-xl border border-border/[0.08] overflow-hidden">
+          {rows.map((r, i) => (
+            <div key={r.k} className={`flex items-center justify-between gap-3 px-3 py-2 text-[11px] ${i % 2 ? "bg-foreground/[0.015]" : ""}`}>
+              <span className="text-muted-foreground/65 font-light">{r.k}</span>
+              <span className={`font-mono ${
+                r.ok === true ? "text-emerald-300/90" : r.ok === false ? "text-rose-300/85" : "text-foreground/80"
+              }`}>{r.v}</span>
+            </div>
+          ))}
         </div>
       </Panel>
+
+      {inIframe && (
+        <Note tone="warn" icon={AlertTriangle}>
+          Web Bluetooth, camera and motion sensors are blocked inside cross-origin iframes unless the host page sets
+          a Permissions-Policy. Open this dashboard in a standalone tab (or your published URL) to grant the hardware.
+        </Note>
+      )}
     </div>
   );
 }
+
 
 /* ============================ shared UI ============================ */
 
