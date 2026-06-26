@@ -765,7 +765,7 @@ function ArTab(props: {
   const [opticalErr, setOpticalErr] = useState<string | null>(null);
   const [opticalReady, setOpticalReady] = useState(false);
   const opticalRef = useRef<OpticalHandle | null>(null);
-  const [videoNatural, setVideoNatural] = useState({ w: 0, h: 0 });
+
 
   useEffect(() => {
     let cancelled = false;
