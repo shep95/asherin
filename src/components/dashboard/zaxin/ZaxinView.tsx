@@ -618,6 +618,7 @@ function ArTab(props: {
   contacts: Contact[];
   onStart: () => void; onStop: () => void;
   compassOn: boolean; onEnableCompass: () => void; compassErr: string | null;
+  onManualHeading: (deg: number) => void;
 }) {
   const FOV = 60;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
