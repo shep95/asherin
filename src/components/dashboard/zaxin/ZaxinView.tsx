@@ -517,28 +517,48 @@ function ArTab(props: {
           <div className="absolute top-2 left-2 text-[9px] tracking-[0.18em] uppercase text-emerald-300/70 font-mono">
             LIVE FIELD · {[...modes].map((m) => m === "full" ? "FULL BODY" : m.toUpperCase()).join(" · ") || "—"}
           </div>
-          {props.arOn && props.heading != null && (
-            <div className="absolute top-2 right-2 text-[9px] tracking-[0.18em] uppercase text-emerald-300/70 font-mono">
-              HDG {props.heading.toFixed(0)}°
-            </div>
-          )}
         </div>
 
+        {/* Ghost-Recon style HUD: compass strip + minimap, only when AR active */}
+        {props.arOn && (
+          <>
+            <CompassStrip
+              heading={props.heading}
+              contacts={hasBearings}
+              fov={FOV}
+            />
+            <MiniMap
+              heading={props.heading}
+              contacts={props.contacts}
+            />
+          </>
+        )}
+
+        {/* In-FOV target reticles (existing behaviour, restyled) */}
         {props.arOn && props.heading != null && hasBearings.map((c) => {
           const delta = bearingDelta(c.bearing!, props.heading!);
           if (Math.abs(delta) > FOV / 2) return null;
           const xPct = 50 + (delta / (FOV / 2)) * 50;
           const opacity = 0.4 + c.bearingConfidence * 0.6;
+          const dist = (c as any).distanceM ?? null;
           return (
             <div key={c.id} style={{ left: `${xPct}%`, opacity }}
               className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-              <div className="w-8 h-8 rounded-full border-2 border-emerald-300/80 animate-pulse" />
-              <div className="mt-1 text-[8px] font-mono text-emerald-300/90 bg-black/50 px-1.5 py-0.5 rounded">
-                {c.displayName}
+              <div className="relative w-14 h-10">
+                {/* corner brackets */}
+                <span className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l border-emerald-300/90" />
+                <span className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r border-emerald-300/90" />
+                <span className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l border-emerald-300/90" />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r border-emerald-300/90" />
+                <span className="absolute inset-1/2 w-1 h-1 -translate-x-1/2 -translate-y-1/2 bg-emerald-300 rounded-full animate-pulse" />
+              </div>
+              <div className="mt-1 text-[8px] font-mono text-emerald-300/95 bg-black/55 px-1.5 py-0.5 rounded border border-emerald-300/30">
+                {c.displayName}{dist != null && <span className="opacity-70"> · {dist.toFixed(1)}m</span>}
               </div>
             </div>
           );
         })}
+
 
         {!props.arOn && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
@@ -890,4 +910,124 @@ function ActionButton({ icon: Icon, children, onClick, tone }: {
   );
 }
 
+// ───────────────────────────────────────────────────────────────────
+// Ghost-Recon style HUD
+// ───────────────────────────────────────────────────────────────────
+
+function CompassStrip({ heading, contacts, fov }: {
+  heading: number | null;
+  contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number }>;
+  fov: number;
+}) {
+  const h = heading ?? 0;
+  // Build ticks covering ±fov from heading
+  const ticks: Array<{ deg: number; major: boolean; label?: string }> = [];
+  const start = Math.floor((h - fov / 2) / 5) * 5;
+  for (let d = start; d <= h + fov / 2; d += 5) {
+    const norm = ((d % 360) + 360) % 360;
+    const major = norm % 30 === 0;
+    let label: string | undefined;
+    if (major) {
+      if (norm === 0) label = "N"; else if (norm === 90) label = "E";
+      else if (norm === 180) label = "S"; else if (norm === 270) label = "W";
+      else label = String(norm);
+    }
+    ticks.push({ deg: d, major, label });
+  }
+  return (
+    <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[88%] max-w-[520px] pointer-events-none">
+      <div className="relative h-9 rounded-md border border-emerald-300/25 bg-black/40 backdrop-blur-sm overflow-hidden">
+        {/* tick row */}
+        {ticks.map((t, i) => {
+          const offset = ((t.deg - h) / (fov / 2)) * 50 + 50;
+          if (offset < -2 || offset > 102) return null;
+          return (
+            <div key={i} style={{ left: `${offset}%` }} className="absolute top-0 -translate-x-1/2">
+              <div className={`mx-auto w-px ${t.major ? "h-3 bg-emerald-300/80" : "h-1.5 bg-emerald-300/35"}`} />
+              {t.label && (
+                <div className="mt-0.5 text-[9px] font-mono text-emerald-300/90 text-center -translate-x-1/2 absolute left-1/2 top-3 whitespace-nowrap">
+                  {t.label}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {/* contact pips on the strip */}
+        {heading != null && contacts.map((c) => {
+          const delta = bearingDelta(c.bearing!, heading);
+          if (Math.abs(delta) > fov / 2) return null;
+          const x = 50 + (delta / (fov / 2)) * 50;
+          return (
+            <div key={c.id} style={{ left: `${x}%` }}
+              className="absolute bottom-0.5 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.9)]" />
+          );
+        })}
+        {/* center heading marker */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-px bg-emerald-300" />
+        <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-emerald-300" />
+      </div>
+      <div className="mt-1 text-center text-[10px] font-mono text-emerald-300/90 tracking-[0.2em]">
+        {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "--- °"}
+      </div>
+    </div>
+  );
+}
+
+function MiniMap({ heading, contacts }: {
+  heading: number | null;
+  contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number }>;
+}) {
+  const size = 96; // px
+  const r = size / 2;
+  // Convert RSSI to radial distance (closer = stronger). RSSI typ -30..-95
+  const rssiToRadius = (rssi?: number) => {
+    if (rssi == null) return r * 0.85;
+    const t = Math.min(1, Math.max(0, (Math.abs(rssi) - 30) / 65));
+    return 8 + t * (r - 12);
+  };
+  return (
+    <div className="absolute bottom-2 left-2 pointer-events-none select-none">
+      <div className="relative rounded-full border border-emerald-300/30 bg-black/55 backdrop-blur-sm"
+        style={{ width: size, height: size }}>
+        {/* rings */}
+        <div className="absolute inset-2 rounded-full border border-emerald-300/15" />
+        <div className="absolute inset-5 rounded-full border border-emerald-300/10" />
+        {/* crosshair */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-emerald-300/20" />
+        <div className="absolute top-1/2 left-0 right-0 h-px bg-emerald-300/20" />
+        {/* sweep gradient (FOV cone) rotated to heading */}
+        <div className="absolute inset-0 rounded-full overflow-hidden">
+          <div className="absolute left-1/2 top-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2"
+            style={{
+              transform: `translate(-50%,-50%) rotate(${heading ?? 0}deg)`,
+              background:
+                "conic-gradient(from -30deg, rgba(110,231,183,0.28) 0deg, rgba(110,231,183,0.05) 60deg, transparent 60deg 360deg)",
+            }} />
+        </div>
+        {/* contacts */}
+        {contacts.map((c) => {
+          if (c.bearing == null) return null;
+          const rel = (((c.bearing - (heading ?? 0)) % 360) + 360) % 360;
+          const rad = (rel - 90) * (Math.PI / 180); // 0° = north → up
+          const dist = rssiToRadius((c as any).rssi);
+          const x = r + Math.cos(rad) * dist;
+          const y = r + Math.sin(rad) * dist;
+          return (
+            <div key={c.id} style={{ left: x, top: y }}
+              className="absolute -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.9)]" />
+          );
+        })}
+        {/* operator pip */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.9)]" />
+        {/* N label */}
+        <div className="absolute left-1/2 top-1 -translate-x-1/2 text-[8px] font-mono text-emerald-300/80">N</div>
+      </div>
+      <div className="mt-1 text-center text-[8px] font-mono text-emerald-300/70 tracking-[0.18em]">
+        {contacts.length} CONTACT{contacts.length === 1 ? "" : "S"}
+      </div>
+    </div>
+  );
+}
+
 export default ZaxinView;
+
