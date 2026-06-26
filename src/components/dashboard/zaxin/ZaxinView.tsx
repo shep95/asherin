@@ -14,6 +14,7 @@ import { startHeadingStream, startCamera, stopCamera, bearingDelta, flipFacing }
 import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
 import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
+import { rssiToDistance } from "./core/bleRanging";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { Link } from "react-router-dom";
@@ -1091,6 +1092,14 @@ function ArTab(props: {
           </div>
         )}
       </div>
+
+      {/* AI Vision Identify — BYOK Gemini/OpenAI vision over current frame + RSSI ranging */}
+      <AiVisionIdentifyPanel
+        videoRef={props.videoRef}
+        optical={optical}
+        contacts={smoothedContacts}
+        arOn={props.arOn}
+      />
     </div>
   );
 }
@@ -2107,6 +2116,258 @@ function AiBriefPanel({ contacts, scenario }: { contacts: Contact[]; scenario: S
   );
 }
 
+/* ====================== AI VISION IDENTIFY (BYOK) ====================== */
+// Sends a single camera frame + the current optical bboxes + BLE-ranged contacts
+// to the user's BYOK vision model (Google Gemini or OpenAI). The model returns
+// refined identifications ("AirPods Pro case", "iPhone 15", "MacBook Air") and
+// optionally pairs each visual object to a BLE contact id. We sort the result
+// by RSSI-derived distance (closest first) so the operator sees a ranked
+// "who is in the room" list — labeled, identified, and distance-ordered.
+
+type VisionIdent = {
+  label: string;            // refined human label, e.g. "iPhone, black case"
+  brand?: string | null;    // best-guess brand
+  matched_optical_id?: string | null;
+  matched_ble_id?: string | null;
+  est_distance_m?: number | null;
+  confidence?: number | null; // 0..1
+  note?: string | null;
+};
+
+function AiVisionIdentifyPanel(props: {
+  videoRef: React.MutableRefObject<HTMLVideoElement | null>;
+  optical: OpticalContact[];
+  contacts: Contact[];
+  arOn: boolean;
+}) {
+  const byok = getActiveIntelMapByok();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [idents, setIdents] = useState<VisionIdent[]>([]);
+  const [autoOn, setAutoOn] = useState(false);
+  const timerRef = useRef<number | null>(null);
+
+  // Snapshot the current video frame to a base64 JPEG (max 768px on the long edge).
+  const grabFrame = (): string | null => {
+    const v = props.videoRef.current;
+    if (!v || !v.videoWidth) return null;
+    const MAX = 768;
+    const scale = Math.min(1, MAX / Math.max(v.videoWidth, v.videoHeight));
+    const w = Math.floor(v.videoWidth * scale);
+    const h = Math.floor(v.videoHeight * scale);
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d"); if (!ctx) return null;
+    ctx.drawImage(v, 0, 0, w, h);
+    return c.toDataURL("image/jpeg", 0.78);
+  };
+
+  const buildPayload = () => {
+    const opt = props.optical.slice(0, 16).map((o, i) => ({
+      id: `opt:${i}`,
+      label: o.label,
+      score: Number(o.score.toFixed(2)),
+      bbox_pct: { x: +(o.x * 100).toFixed(1), y: +(o.y * 100).toFixed(1), w: +(o.w * 100).toFixed(1), h: +(o.h * 100).toFixed(1) },
+    }));
+    const ble = props.contacts.slice(0, 24).map((c) => {
+      const rssi = c.rssi ?? null;
+      const dist = rssi != null ? +rssiToDistance(rssi).toFixed(2) : null;
+      return {
+        id: c.id,
+        name: c.displayName,
+        kind: c.inferredKind ?? "unknown",
+        rssi, est_distance_m: dist,
+        bearing_deg: c.bearing ?? null,
+        zone: c.zone,
+      };
+    });
+    return { optical: opt, ble };
+  };
+
+  const prompt = (payload: object) =>
+    "You are AXRLEN Vision, a tactical sensor-fusion analyst. You are given:\n" +
+    "1) ONE camera frame from a body-worn rear camera.\n" +
+    "2) An OPTICAL list — bounding boxes from a generic COCO detector (coarse labels).\n" +
+    "3) A BLE list — Bluetooth contacts with RSSI-derived distance estimates (meters).\n\n" +
+    "Task: Look at the IMAGE. For every visible electronic device or notable object, return a JSON " +
+    "array `identifications`. For each item, refine the label beyond the COCO term (e.g. 'cell phone' → " +
+    "'iPhone 15, black case'; 'remote' → 'Apple TV remote'; an object COCO missed but you can see → " +
+    "still include it). When confident, pair to one optical bbox via `matched_optical_id` and/or to one " +
+    "BLE id via `matched_ble_id` (use BLE name + bearing + distance + your visual range estimate to match). " +
+    "Set `est_distance_m` either from the BLE pair or from visual scale. Confidence is 0..1.\n\n" +
+    "Return ONLY this JSON, no prose, no markdown fences:\n" +
+    `{"identifications":[{"label":"","brand":null,"matched_optical_id":null,"matched_ble_id":null,"est_distance_m":null,"confidence":0,"note":null}]}\n\n` +
+    "Context JSON:\n" + JSON.stringify(payload);
+
+  const parseJson = (text: string): VisionIdent[] => {
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m) return [];
+    try {
+      const j = JSON.parse(m[0]);
+      const arr = j?.identifications;
+      return Array.isArray(arr) ? arr.slice(0, 32) : [];
+    } catch { return []; }
+  };
+
+  const run = useCallback(async () => {
+    if (busy) return;
+    setErr(null); setBusy(true);
+    try {
+      if (!byok) throw new Error("No BYOK key active. Add yours in Dashboard → Zophiel Engine → BYOK.");
+      const dataUrl = grabFrame();
+      if (!dataUrl) throw new Error("Camera frame not ready — activate AR first.");
+      const payload = buildPayload();
+      const p = prompt(payload);
+
+      let text = "";
+      if (byok.provider === "google") {
+        const base64 = dataUrl.split(",")[1] ?? "";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(byok.model)}:generateContent?key=${encodeURIComponent(byok.apiKey)}`;
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              role: "user",
+              parts: [
+                { text: p },
+                { inline_data: { mime_type: "image/jpeg", data: base64 } },
+              ],
+            }],
+            generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+          }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j?.error?.message ?? `Gemini ${r.status}`);
+        text = j?.candidates?.[0]?.content?.parts?.map((q: { text?: string }) => q.text ?? "").join("") ?? "";
+      } else if (byok.provider === "openai") {
+        const r = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${byok.apiKey}` },
+          body: JSON.stringify({
+            model: byok.model,
+            response_format: { type: "json_object" },
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: p },
+                { type: "image_url", image_url: { url: dataUrl } },
+              ],
+            }],
+          }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j?.error?.message ?? `OpenAI ${r.status}`);
+        text = j?.choices?.[0]?.message?.content ?? "";
+      } else {
+        throw new Error(`Provider "${byok.provider}" is not wired for in-browser vision. Switch BYOK to Google or OpenAI.`);
+      }
+
+      const arr = parseJson(text);
+      arr.sort((a, b) => {
+        const da = a.est_distance_m ?? 9999;
+        const db = b.est_distance_m ?? 9999;
+        return da - db;
+      });
+      setIdents(arr);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, byok, props.optical, props.contacts]);
+
+  // Auto-loop every 8s while enabled and AR is on.
+  useEffect(() => {
+    if (timerRef.current) { window.clearInterval(timerRef.current); timerRef.current = null; }
+    if (!autoOn || !props.arOn || !byok) return;
+    timerRef.current = window.setInterval(() => { run(); }, 8000);
+    return () => { if (timerRef.current) window.clearInterval(timerRef.current); };
+  }, [autoOn, props.arOn, byok, run]);
+
+  return (
+    <Panel
+      icon={Eye}
+      title="AI Vision Identify"
+      subtitle={byok ? `BYOK active · ${byok.provider} · ${byok.model}` : "Bring-your-own-key required"}
+    >
+      {!byok && (
+        <div className="mt-3 rounded-md border border-[#c69a4a]/25 bg-black/40 p-3 text-[11px] text-foreground/75">
+          AI Vision uses <strong>your own API key</strong>. Add one in{" "}
+          <Link to="/dashboard/zophiel-engine" className="underline text-[#e8c684]">
+            Dashboard → Zophiel Engine → BYOK
+          </Link>{" "}
+          — Google Gemini or OpenAI (must be a vision-capable model).
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          onClick={run}
+          disabled={busy || !byok || !props.arOn}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] tracking-[0.18em] uppercase border border-[#c69a4a]/30 text-[#e8c684] hover:bg-[#c69a4a]/[0.08] disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Snapshot the current frame and identify visible devices."
+        >
+          <Activity className="h-3.5 w-3.5" />
+          {busy ? "Identifying…" : "Identify Now"}
+        </button>
+        <button
+          onClick={() => setAutoOn((v) => !v)}
+          disabled={!byok || !props.arOn}
+          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] tracking-[0.18em] uppercase border disabled:opacity-40 disabled:cursor-not-allowed ${
+            autoOn ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60" : "text-foreground/65 border-white/[0.08] hover:text-foreground/85"
+          }`}
+          title="Re-run identification every 8 seconds."
+        >
+          {autoOn ? "AUTO ON" : "AUTO OFF"}
+        </button>
+        <span className="text-[9px] tracking-[0.18em] uppercase text-muted-foreground/55">
+          {props.optical.length} optical · {props.contacts.length} BLE
+        </span>
+      </div>
+
+      {err && (
+        <div className="mt-2 text-[10px] rounded-md border border-rose-300/25 bg-rose-500/[0.06] text-rose-200/90 px-2 py-1.5">
+          {err}
+        </div>
+      )}
+
+      {idents.length > 0 ? (
+        <ul className="mt-3 space-y-1.5">
+          {idents.map((it, i) => (
+            <li key={i} className="flex items-start gap-2 rounded-md border border-[#c69a4a]/20 bg-black/40 px-2.5 py-1.5">
+              <span className="text-[10px] font-mono text-[#e8c684]/80 min-w-[3rem]">
+                {it.est_distance_m != null ? `${it.est_distance_m.toFixed(1)}m` : "—"}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] text-foreground/90 truncate">
+                  {it.label || "(unlabeled)"}
+                  {it.brand ? <span className="text-foreground/45"> · {it.brand}</span> : null}
+                </div>
+                <div className="text-[9px] tracking-wide uppercase text-muted-foreground/55 truncate">
+                  {it.matched_ble_id ? `BLE ${it.matched_ble_id.slice(0, 10)}` : "no BLE pair"}
+                  {it.matched_optical_id ? ` · ${it.matched_optical_id}` : ""}
+                  {it.confidence != null ? ` · conf ${(it.confidence * 100).toFixed(0)}%` : ""}
+                </div>
+                {it.note && (
+                  <div className="text-[10px] text-foreground/55 mt-0.5 line-clamp-2">{it.note}</div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        !err && !busy && (
+          <div className="mt-3 text-[10px] tracking-wide uppercase text-muted-foreground/55">
+            No identifications yet. Activate AR, point the camera at devices, then tap Identify Now.
+          </div>
+        )
+      )}
+    </Panel>
+  );
+}
+
 export default ZaxinView;
+
 
 
