@@ -1000,6 +1000,39 @@ function ArTab(props: {
           );
         })}
 
+        {/* OPTICAL CONTACTS — pairing-free, drawn directly on detected pixels */}
+        {props.arOn && opticalOn && optical.map((o) => {
+          const p = projectBbox(o);
+          if (!p) return null;
+          const isDevice = o.kind === "device";
+          const stroke = isDevice ? "rgba(232,198,132,0.95)" : "rgba(180,180,180,0.55)";
+          const glow = isDevice ? "0 0 14px -2px rgba(232,198,132,0.55)" : "none";
+          return (
+            <div
+              key={`opt-${o.id}`}
+              style={{
+                left: `${p.leftPct}%`, top: `${p.topPct}%`,
+                width: `${p.widthPct}%`, height: `${p.heightPct}%`,
+                border: `${isDevice ? 2 : 1}px solid ${stroke}`,
+                boxShadow: glow, zIndex: 4,
+              }}
+              className="absolute rounded-md pointer-events-none transition-[left,top,width,height] duration-100 ease-out"
+            >
+              {/* corner brackets — tactical reticle feel */}
+              <span className="absolute -top-px -left-px w-2.5 h-2.5 border-t-2 border-l-2" style={{ borderColor: stroke }} />
+              <span className="absolute -top-px -right-px w-2.5 h-2.5 border-t-2 border-r-2" style={{ borderColor: stroke }} />
+              <span className="absolute -bottom-px -left-px w-2.5 h-2.5 border-b-2 border-l-2" style={{ borderColor: stroke }} />
+              <span className="absolute -bottom-px -right-px w-2.5 h-2.5 border-b-2 border-r-2" style={{ borderColor: stroke }} />
+              <div className="absolute -top-5 left-0 text-[8px] font-mono tracking-[0.16em] uppercase px-1.5 py-0.5 rounded-sm bg-black/65"
+                   style={{ color: isDevice ? "#f0d59a" : "rgba(255,255,255,0.65)" }}>
+                {o.label} · {(o.score * 100).toFixed(0)}%
+              </div>
+            </div>
+          );
+        })}
+
+
+
         {/* T7 — Ultrasonic chirp pill */}
         {props.arOn && (
           <button onClick={toggleChirp} style={{ zIndex: 5 }}
