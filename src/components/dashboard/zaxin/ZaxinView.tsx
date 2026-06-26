@@ -395,6 +395,7 @@ const ZaxinView = () => {
             onToggleScope={() => setScopeOn((v) => !v)} onFlip={flipMain}
             contacts={locals}
             onStart={startAr} onStop={stopAr}
+            compassOn={compassOn} onEnableCompass={enableCompass} compassErr={compassErr}
           />
         )}
         {tab === "hops" && (
