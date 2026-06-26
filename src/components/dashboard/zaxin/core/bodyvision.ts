@@ -11,12 +11,25 @@
 
 export type BodyMode = "full" | "face" | "fingers";
 
+export interface BodyMetrics {
+  /** estimated standing height in meters (rough — monocular, no depth). */
+  heightM: number;
+  /** estimated mass in kg via BMI=22 anthropometric assumption. */
+  weightKg: number;
+  /** 0..1 — how confident the estimate is (full body visible, vertical pose). */
+  confidence: number;
+  /** how the estimate was anchored, for the HUD. */
+  anchor: "shoulder-breadth" | "frame-fill";
+}
+
 export interface PoseHit {
   kind: "body" | "face" | "left-hand" | "right-hand";
   /** normalized bbox of this region (0..1, video coords) */
   bbox: { x: number; y: number; w: number; h: number };
   /** raw landmark list in normalized video coords */
   points: Array<{ x: number; y: number }>;
+  /** body-only: anthropometric estimate, when full body keypoints are visible. */
+  metrics?: BodyMetrics;
 }
 
 export interface BodyFrame {
@@ -92,6 +105,70 @@ function bboxOf(points: Array<{ x: number; y: number }>) {
   return { x: x1, y: y1, w: Math.max(0, x2 - x1), h: Math.max(0, y2 - y1) };
 }
 
+function estimateBodyMetrics(
+  pts: Array<{ x: number; y: number }>,
+  aspect: number, // videoWidth / videoHeight
+): BodyMetrics | undefined {
+  // BlazePose 33-pt indices we rely on.
+  const NOSE = 0, L_SH = 11, R_SH = 12, L_HIP = 23, R_HIP = 24, L_AN = 27, R_AN = 28;
+  const need = [NOSE, L_SH, R_SH, L_HIP, R_HIP, L_AN, R_AN];
+  if (need.some((i) => !pts[i])) return undefined;
+
+  // Normalize so x is "real" by multiplying by aspect (square space → wide).
+  const P = (i: number) => ({ x: pts[i].x * aspect, y: pts[i].y });
+  const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.hypot(a.x - b.x, a.y - b.y);
+
+  const shoulderBreadth = dist(P(L_SH), P(R_SH));
+  const head = P(NOSE);
+  const ankleY = Math.max(pts[L_AN].y, pts[R_AN].y);
+  const headToAnkle = ankleY - head.y;            // pure-vertical span (normalized)
+  const torsoLen = ((P(L_HIP).y + P(R_HIP).y) / 2) - ((P(L_SH).y + P(R_SH).y) / 2);
+
+  // Reject crouching / partial frames.
+  if (headToAnkle < 0.25) return undefined;
+  if (torsoLen <= 0) return undefined;
+
+  // Anchor strategy.
+  // Adult mean biacromial (shoulder) breadth ≈ 0.40 m.
+  // Anchor 1 (preferred): use shoulder breadth in normalized-square to back out a
+  // "meters per normalized unit", then multiply head→ankle by it.
+  // Anchor 2 (fallback): assume the subject fills ~85 % of the frame and a 1.70 m
+  // adult stands at that fill ratio.
+  let heightM: number;
+  let anchor: BodyMetrics["anchor"];
+  let confidence: number;
+  if (shoulderBreadth > 0.05) {
+    const metersPerUnit = 0.40 / shoulderBreadth;
+    heightM = headToAnkle * metersPerUnit;
+    anchor = "shoulder-breadth";
+    confidence = 0.55;
+  } else {
+    heightM = (headToAnkle / 0.85) * 1.70;
+    anchor = "frame-fill";
+    confidence = 0.3;
+  }
+
+  // Clamp to physically plausible adult/child range so a partial detection
+  // never reports "12 m tall".
+  heightM = Math.min(2.3, Math.max(0.9, heightM));
+
+  // Frontal-pose bonus: shoulder-to-torso ratio should sit in a sane band.
+  const shoulderToTorso = shoulderBreadth / torsoLen;
+  if (shoulderToTorso > 0.8 && shoulderToTorso < 2.4) confidence += 0.2;
+
+  // BMI=22 → weight = 22 × h² (kg). Tag slight build-factor from shoulder ratio.
+  const buildAdj = Math.min(1.15, Math.max(0.85, shoulderToTorso / 1.45));
+  const weightKg = Math.round(22 * heightM * heightM * buildAdj);
+
+  return {
+    heightM: Math.round(heightM * 100) / 100,
+    weightKg,
+    confidence: Math.min(1, confidence),
+    anchor,
+  };
+}
+
 export interface BodyVisionHandle {
   stop: () => void;
   setModes: (m: Set<BodyMode>) => void;
@@ -117,6 +194,8 @@ export async function startBodyVision(
     if (ts === lastTs) { raf = requestAnimationFrame(loop); return; }
     lastTs = ts;
 
+    const aspect = video.videoWidth / Math.max(1, video.videoHeight);
+
     const hits: PoseHit[] = [];
     try {
       if (modes.has("full")) {
@@ -124,7 +203,12 @@ export async function startBodyVision(
         const lm = r?.landmarks?.[0];
         if (lm?.length) {
           const pts = lm.map((p: any) => ({ x: p.x, y: p.y }));
-          hits.push({ kind: "body", points: pts, bbox: bboxOf(pts) });
+          hits.push({
+            kind: "body",
+            points: pts,
+            bbox: bboxOf(pts),
+            metrics: estimateBodyMetrics(pts, aspect),
+          });
         }
       }
       if (modes.has("face")) {
