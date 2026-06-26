@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bluetooth, Radar, Radio, ShieldAlert, Network, Cpu, BookOpen, Plug,
   Activity, MapPin, Trash2, Play, Square, AlertTriangle, Sparkles,
-  Smartphone, ChevronRight, Eye, RefreshCw,
+  Smartphone, ChevronRight, Eye, RefreshCw, Search,
 } from "lucide-react";
 import {
   ZaxinBridge,
@@ -15,6 +15,15 @@ import {
   type ScannedDevice,
   type ScenarioId,
 } from "./bluetoothClient";
+import {
+  ALL_THEORIES,
+  CATEGORY_COUNTS,
+  TOTAL_THEORIES,
+  searchTheories,
+  type Category,
+  type TheoryRecord,
+} from "./upstream/theories";
+
 
 type Tab = "live" | "bridge" | "tactical" | "theories" | "guide";
 
@@ -34,15 +43,17 @@ const SCENARIOS: Array<{ id: ScenarioId; label: string; blurb: string }> = [
   { id: "deep_pull",      label: "Deep Pull",      blurb: "Exhaustive GATT enumeration per device." },
 ];
 
-const THEORIES = [
-  { n: 1,  title: "RSSI Lies",            body: "Signal strength is not distance. Multipath fade can swing 10 dB. Average across 5+ frames and weight by manufacturer TxPower." },
-  { n: 7,  title: "Domino Hop Chain",     body: "Devices that share GATT services bridge networks. Trace 3 hops and you usually find a forgotten gateway." },
-  { n: 13, title: "MAC Randomization",    body: "iOS rotates every 15 min. Fingerprint by advertised service UUIDs + interval pattern, not the address." },
-  { n: 29, title: "Paired Window",        body: "A device that paired once leaks vendor name in cached registry even after factory reset. Pull paired registry first." },
-  { n: 47, title: "Screen Relay",         body: "AirPlay/Miracast announce 0xFFD2 + 0xFE0F. If both fire from one MAC, it is mirroring a display." },
-  { n: 73, title: "Silent Observe Rule",  body: "GATT connect alters the target's connection counter. Use silent_observe when you cannot be detected." },
-  { n: 101, title: "Honest Naming",       body: "Broadcast > paired > GATT > inferred > MAC suffix. Never trust the first name you see — verify across two sources." },
-];
+const CATEGORY_LABELS: Record<Category | "all", string> = {
+  all: "All",
+  tactical: "Tactical",
+  passive: "Passive",
+  gatt: "GATT",
+  security: "Security",
+  architecture: "Architecture",
+  "screen-relay": "Screen Relay",
+  "wifi-pose": "WiFi Pose",
+};
+
 
 const TIER_COLOR: Record<string, string> = {
   friendly: "text-emerald-300/80 border-emerald-300/20",
