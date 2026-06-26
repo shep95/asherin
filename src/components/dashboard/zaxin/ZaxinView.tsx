@@ -1157,6 +1157,7 @@ function ArTab(props: {
         contacts={smoothedContacts}
         arOn={props.arOn}
         onIdents={setVisionIdents}
+        onEnv={setVisionEnv}
       />
     </div>
   );
