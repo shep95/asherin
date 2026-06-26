@@ -263,8 +263,8 @@ function ScanTab(props: {
         )}
         {props.mode === "picker" && (
           <Note tone="info" icon={Eye}>
-            Continuous sweep needs Chrome on Android with <code>chrome://flags#enable-experimental-web-platform-features</code>.
-            Without it you can add contacts one at a time via the picker.
+            <span className="block mb-1 font-medium text-foreground/80">Your browser shows the system pair sheet — it cannot be replaced.</span>
+            Web Bluetooth on iOS / Bluefy / desktop Chrome forces the OS-level "Pick a device" chooser for every scan. Only <strong>Chrome on Android</strong> with <code className="text-[9px]">chrome://flags#enable-experimental-web-platform-features</code> turned on can list BLE devices directly inside this app (continuous sweep). Devices you confirm via the chooser will appear in the list below and stay paired across sessions.
           </Note>
         )}
         {props.scanErr && <Note tone="error" icon={AlertTriangle}>{props.scanErr}</Note>}
@@ -277,7 +277,9 @@ function ScanTab(props: {
             <ActionButton onClick={props.onStop} icon={Square} tone="danger">Stop Sweep</ActionButton>
           )}
           {props.mode !== "unsupported" && (
-            <ActionButton onClick={props.onPick} icon={Bluetooth}>Pick Device</ActionButton>
+            <ActionButton onClick={props.onPick} icon={Bluetooth}>
+              {props.mode === "picker" ? "Add Device (OS prompt)" : "Pick Device"}
+            </ActionButton>
           )}
           <ActionButton onClick={props.onClear} icon={Trash2}>Clear</ActionButton>
           <div className="ml-auto flex items-center gap-2 text-[9px] tracking-[0.18em] uppercase text-muted-foreground/50">
