@@ -714,17 +714,6 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   );
 }
 
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
-  return (
-    <li className="flex gap-3">
-      <span className="shrink-0 w-6 h-6 rounded-md border border-border/[0.1] bg-foreground/[0.03] flex items-center justify-center text-[10px] font-mono text-muted-foreground/60">{n}</span>
-      <div>
-        <div className="text-[11px] tracking-[0.1em] uppercase text-foreground/85">{title}</div>
-        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70 font-light">{children}</p>
-      </div>
-    </li>
-  );
-}
 
 function ActionButton({ icon: Icon, children, onClick, tone }: {
   icon: React.ElementType; children: React.ReactNode; onClick: () => void; tone?: "danger";
