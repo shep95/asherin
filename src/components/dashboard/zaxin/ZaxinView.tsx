@@ -1051,6 +1051,36 @@ function ArTab(props: {
           </div>
         )}
 
+        {/* OPTICAL pill — pairing-free contact source */}
+        {props.arOn && (
+          <button
+            onClick={() => setOpticalOn((v) => !v)}
+            style={{ zIndex: 5 }}
+            className={`absolute bottom-2 left-2 flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-mono tracking-[0.14em] border transition ${
+              !opticalOn ? "bg-black/45 text-foreground/60 border-white/[0.08] hover:text-foreground/85" :
+              opticalErr ? "bg-black/45 text-rose-200 border-rose-300/40" :
+              opticalReady ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60 shadow-[0_0_10px_rgba(232,198,132,0.45)]" :
+              "bg-black/45 text-[#e8c684]/70 border-[#c69a4a]/30 animate-pulse"
+            }`}
+            title="Pairing-free optical detection of phones, laptops, remotes, TVs and people in the camera frame."
+          >
+            <Eye className="h-3 w-3" />
+            <span>
+              {!opticalOn ? "OPTICAL OFF"
+                : opticalErr ? "OPTICAL ERR"
+                : opticalReady ? `OPTICAL · ${optical.length}`
+                : "OPTICAL INIT"}
+            </span>
+          </button>
+        )}
+        {props.arOn && opticalOn && opticalErr && (
+          <div className="absolute bottom-10 left-2 max-w-[60%] text-[9px] text-rose-300/85 bg-black/55 px-1.5 py-0.5 rounded truncate" style={{ zIndex: 5 }}>
+            {opticalErr}
+          </div>
+        )}
+
+
+
 
         {!props.arOn && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 z-10">
