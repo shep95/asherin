@@ -11,6 +11,7 @@ import { TacticalEngine, SCENARIOS } from "./core/tactical";
 import { startScan, pickOne, detectScanMode, listPaired, type RawAdvert, type ScanMode } from "./core/scanner";
 import { HopBrain } from "./core/hop";
 import { startHeadingStream, startCamera, stopCamera, bearingDelta } from "./core/posesense";
+import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 
 type Tab = "scan" | "tactical" | "ar" | "hops" | "diag";
