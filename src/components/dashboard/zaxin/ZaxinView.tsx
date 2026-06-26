@@ -2443,7 +2443,6 @@ function AiVisionIdentifyPanel(props: {
         const buildBody = (useCompletion: boolean) => ({
           model: byok.model,
           response_format: { type: "json_object" as const },
-          temperature: 0,
           ...(useCompletion ? { max_completion_tokens: 2048 } : { max_tokens: 2048 }),
           messages: [{ role: "user", content: [ { type: "text", text: p }, { type: "image_url", image_url: { url: dataUrl } } ] }],
         });
