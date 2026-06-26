@@ -13,6 +13,7 @@ import { HopBrain } from "./core/hop";
 import { startHeadingStream, startCamera, stopCamera, bearingDelta, flipFacing } from "./core/posesense";
 import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
 import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
+import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { Link } from "react-router-dom";
