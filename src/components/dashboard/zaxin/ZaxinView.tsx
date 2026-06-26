@@ -130,10 +130,32 @@ const ZaxinView = () => {
     setScanning(false);
   }, []);
 
+  // Rapid auto-pair: re-opens the OS chooser after every successful pair until
+  // the user cancels. The OS picker itself can't be removed — browsers force a
+  // human gesture per device — but this collapses the loop to a single tap each.
+  const autoPairRef = useRef(false);
   const pickDevice = useCallback(async () => {
     setScanErr(null);
-    try { await pickOne((adv) => engine.ingest(adv)); }
-    catch (e) { setScanErr(e instanceof Error ? e.message : String(e)); }
+    autoPairRef.current = true;
+    while (autoPairRef.current) {
+      try {
+        await pickOne((adv) => engine.ingest(adv));
+        await new Promise((r) => setTimeout(r, 350));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        autoPairRef.current = false;
+        if (/cancell?ed|NotFoundError|chooser/i.test(msg)) {
+          // user closed the OS sheet — silent exit
+          return;
+        }
+        if (/connection attempt failed|GATT/i.test(msg)) {
+          setScanErr("Device refused the connection. Move closer, wake the device, then tap Add Device again.");
+          return;
+        }
+        setScanErr(msg);
+        return;
+      }
+    }
   }, [engine]);
 
   useEffect(() => () => { scanHandleRef.current?.stop(); }, []);
@@ -481,6 +503,12 @@ function ScanTab(props: {
           mode={props.mode}
         />
       </Panel>
+
+      <Panel icon={Compass} title="Satellite Overhead" subtitle="Live operator location · Esri World Imagery">
+        <SatelliteMap heading={props.heading} contacts={props.locals} />
+      </Panel>
+
+
 
       <ContactList rows={props.locals} title="Local Contacts" onToggleWatch={props.onToggleWatch} onPullIntel={props.onPullIntel} />
       {props.remotes.length > 0 && (
@@ -1484,6 +1512,115 @@ function RadarMap({
     </div>
   );
 }
+
+/* ============================ SATELLITE MAP ============================ */
+// Uses Esri World Imagery (no API key). Browser geolocation → bbox export.
+// Contacts are overlaid as amber pips around operator, distanced by RSSI.
+
+function SatelliteMap({ heading, contacts }: { heading: number | null; contacts: Contact[] }) {
+  const [pos, setPos] = useState<{ lat: number; lon: number; acc: number } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(18); // 14 wide → 19 close
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setErr("Geolocation not available in this browser.");
+      return;
+    }
+    const w = navigator.geolocation.watchPosition(
+      (p) => setPos({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }),
+      (e) => setErr(e.message),
+      { enableHighAccuracy: true, maximumAge: 4000, timeout: 15000 },
+    );
+    return () => navigator.geolocation.clearWatch(w);
+  }, []);
+
+  // bbox half-extent in degrees ~ inverse of zoom (rough but readable at all lats)
+  const halfDeg = useMemo(() => {
+    const meters = Math.pow(2, 22 - zoom) * 80; // ~80m at z18, doubles each step out
+    return meters / 111_320;
+  }, [zoom]);
+
+  const tileUrl = useMemo(() => {
+    if (!pos) return null;
+    const { lat, lon } = pos;
+    const minLon = lon - halfDeg;
+    const minLat = lat - halfDeg;
+    const maxLon = lon + halfDeg;
+    const maxLat = lat + halfDeg;
+    const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
+    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&imageSR=3857&size=720,540&format=jpg&transparent=false&f=image`;
+  }, [pos, halfDeg]);
+
+  return (
+    <div className="mt-3 space-y-2">
+      {err && (
+        <div className="text-[10px] text-rose-300/80 border border-rose-300/20 rounded-md px-2 py-1.5">
+          {err} · enable location to render satellite imagery
+        </div>
+      )}
+      <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-amber-400/15 bg-black">
+        {tileUrl ? (
+          <img src={tileUrl} alt="Satellite imagery centered on operator" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center text-[10px] tracking-[0.18em] uppercase text-muted-foreground/60">
+            {err ? "no satellite fix" : "acquiring GPS…"}
+          </div>
+        )}
+
+        {/* operator + heading cone */}
+        {pos && (
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{
+                width: 100, height: 100,
+                background: "conic-gradient(from -30deg, rgba(232,198,132,0.35), transparent 60deg)",
+                transform: `translate(-50%,-50%) rotate(${heading ?? 0}deg)`,
+                clipPath: "polygon(50% 50%, 0 0, 100% 0)",
+                borderRadius: "50%",
+              }}
+            />
+            <div className="relative h-3 w-3 rounded-full bg-amber-300 shadow-[0_0_12px_rgba(232,198,132,0.9)] ring-2 ring-black/40" />
+          </div>
+        )}
+
+        {/* contact pips around operator */}
+        {pos && contacts.slice(0, 24).map((c, i) => {
+          const rssi = c.rssi ?? -85;
+          const norm = Math.max(0, Math.min(1, (rssi + 100) / 60)); // -100..-40
+          const radius = 30 + (1 - norm) * 130;
+          const bearing = (parseInt(c.id.slice(-4), 36) || i * 47) % 360;
+          const rad = ((bearing - (heading ?? 0)) * Math.PI) / 180;
+          const x = Math.sin(rad) * radius;
+          const y = -Math.cos(rad) * radius;
+          return (
+            <div
+              key={c.id}
+              className="absolute left-1/2 top-1/2 h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(232,198,132,0.85)]"
+              style={{ transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` }}
+              title={c.displayName}
+            />
+          );
+        })}
+
+        {/* zoom controls */}
+        <div className="absolute top-2 right-2 flex flex-col gap-1">
+          <button onClick={() => setZoom((z) => Math.min(19, z + 1))} className="h-7 w-7 rounded-md bg-black/60 border border-amber-400/20 text-amber-200/90 text-sm">+</button>
+          <button onClick={() => setZoom((z) => Math.max(14, z - 1))} className="h-7 w-7 rounded-md bg-black/60 border border-amber-400/20 text-amber-200/90 text-sm">−</button>
+        </div>
+
+        {/* readout */}
+        {pos && (
+          <div className="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/55 border border-amber-400/15 text-[9px] font-mono tracking-wider text-amber-100/85">
+            {pos.lat.toFixed(5)}, {pos.lon.toFixed(5)} · ±{Math.round(pos.acc)}m · z{zoom}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 export default ZaxinView;
 
