@@ -13,14 +13,14 @@ import { HopBrain } from "./core/hop";
 import { startHeadingStream, startCamera, stopCamera, bearingDelta } from "./core/posesense";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 
-type Tab = "scan" | "tactical" | "ar" | "hops" | "guide";
+type Tab = "scan" | "tactical" | "ar" | "hops" | "diag";
 
 const TABS: Array<{ id: Tab; label: string; icon: React.ElementType }> = [
   { id: "scan",     label: "Scan",        icon: Radar },
   { id: "tactical", label: "Tactical",    icon: ShieldAlert },
   { id: "ar",       label: "AR Vision",   icon: Camera },
   { id: "hops",     label: "Hop Mesh",    icon: Network },
-  { id: "guide",    label: "Field Guide", icon: Sparkles },
+  { id: "diag",     label: "Diagnostics", icon: Cpu },
 ];
 
 function randomNodeId() {
