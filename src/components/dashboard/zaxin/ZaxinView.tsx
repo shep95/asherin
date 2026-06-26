@@ -774,10 +774,10 @@ function ArTab(props: {
           return (
             <div key={c.id} style={{ left: `${xPct}%`, opacity, zIndex: 4 }}
               className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-              <div className="relative w-12 h-12 rounded-full border border-emerald-300/70 backdrop-blur-[2px]">
-                <span className="absolute inset-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 bg-emerald-300 rounded-full animate-pulse shadow-[0_0_8px_rgba(110,231,183,0.9)]" />
+              <div className="relative w-12 h-12 rounded-full border border-[#c69a4a]/80 backdrop-blur-[2px] shadow-[0_0_12px_-2px_rgba(198,154,74,0.55)]">
+                <span className="absolute inset-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 bg-[#e8c684] rounded-full animate-pulse shadow-[0_0_8px_rgba(232,198,132,0.95)]" />
               </div>
-              <div className="mt-1 text-[8px] font-mono text-emerald-100/90 bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
+              <div className="mt-1 text-[8px] font-mono text-[#f0d59a] bg-black/45 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
                 {c.displayName}{dist != null && <span className="opacity-60"> · {dist.toFixed(1)}m</span>}
               </div>
             </div>
