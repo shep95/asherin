@@ -150,6 +150,26 @@ const ZaxinView = () => {
   const camStreamRef = useRef<MediaStream | null>(null);
   const scopeStreamRef = useRef<MediaStream | null>(null);
   const poseHandleRef = useRef<{ stop: () => void } | null>(null);
+  const compassHandleRef = useRef<{ stop: () => void } | null>(null);
+  const [compassOn, setCompassOn] = useState(false);
+  const [compassErr, setCompassErr] = useState<string | null>(null);
+
+  const enableCompass = useCallback(async () => {
+    if (compassHandleRef.current) return;
+    setCompassErr(null);
+    try {
+      const h = await startHeadingStream((deg) => {
+        setHeading(deg);
+        engine.setHeading(deg);
+      });
+      compassHandleRef.current = h;
+      setCompassOn(true);
+    } catch (e) {
+      setCompassErr(e instanceof Error ? e.message : String(e));
+    }
+  }, [engine]);
+
+  useEffect(() => () => { compassHandleRef.current?.stop(); }, []);
 
   const openMain = useCallback(async (facing: "environment" | "user") => {
     if (!videoRef.current) throw new Error("Camera surface not ready.");
@@ -284,6 +304,8 @@ const ZaxinView = () => {
             locals={locals} remotes={remotes}
             onToggleWatch={(id) => engine.toggleWatch(id)}
             onPullIntel={(id) => engine.pullIntel(id)}
+            heading={heading} compassOn={compassOn} compassErr={compassErr}
+            onEnableCompass={enableCompass}
           />
         )}
         {tab === "tactical" && (
@@ -317,6 +339,8 @@ function ScanTab(props: {
   locals: Contact[]; remotes: Contact[];
   onToggleWatch: (id: string) => void;
   onPullIntel: (id: string) => void;
+  heading: number | null; compassOn: boolean; compassErr: string | null;
+  onEnableCompass: () => void;
 }) {
   return (
     <div className="max-w-4xl mx-auto space-y-5">
@@ -367,6 +391,16 @@ function ScanTab(props: {
             >{SCENARIOS[sid].label}</button>
           ))}
         </div>
+      </Panel>
+
+      <Panel icon={Radar} title="Live Radar" subtitle="Device heading is up. Contacts plotted by bearing (RSSI gradient) and distance (signal strength).">
+        <RadarMap
+          heading={props.heading}
+          compassOn={props.compassOn}
+          compassErr={props.compassErr}
+          onEnableCompass={props.onEnableCompass}
+          contacts={props.locals}
+        />
       </Panel>
 
       <ContactList rows={props.locals} title="Local Contacts" onToggleWatch={props.onToggleWatch} onPullIntel={props.onPullIntel} />
@@ -1169,5 +1203,167 @@ function MiniMap({ heading, contacts }: {
   );
 }
 
+/* ============================ FULL-SIZE RADAR (SCAN TAB) ============================ */
+
+function RadarMap({
+  heading, compassOn, compassErr, onEnableCompass, contacts,
+}: {
+  heading: number | null;
+  compassOn: boolean;
+  compassErr: string | null;
+  onEnableCompass: () => void;
+  contacts: Contact[];
+}) {
+  const SIZE = 280;
+  const R = SIZE / 2;
+  const h = heading ?? 0;
+
+  // RSSI -> radial distance from center (closer = stronger)
+  const rssiToRadius = (rssi?: number) => {
+    if (rssi == null) return R * 0.78;
+    const t = Math.min(1, Math.max(0, (Math.abs(rssi) - 30) / 65));
+    return 14 + t * (R - 24);
+  };
+
+  // Sweep animation angle (CSS-only via animate-spin would override transform; do JS lite)
+  const [sweep, setSweep] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const loop = (t: number) => {
+      const dt = t - last; last = t;
+      setSweep((s) => (s + dt * 0.12) % 360); // ~30s per rev
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const cardinals = [
+    { l: "N", a: 0 }, { l: "E", a: 90 }, { l: "S", a: 180 }, { l: "W", a: 270 },
+  ];
+
+  return (
+    <div className="mt-4 flex flex-col items-center gap-3">
+      {/* heading readout */}
+      <div className="flex items-center gap-2 text-[9px] font-mono tracking-[0.18em] uppercase text-foreground/60">
+        <span className={`px-2 py-0.5 rounded border ${compassOn ? "border-emerald-300/30 text-emerald-300/90" : "border-border/20"}`}>
+          HDG {heading != null ? Math.round(heading).toString().padStart(3, "0") : "---"}°
+        </span>
+        <span className="text-muted-foreground/40">
+          {contacts.length} contact{contacts.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      <div className="relative" style={{ width: SIZE, height: SIZE }}>
+        {/* outer ring */}
+        <div className="absolute inset-0 rounded-full border border-emerald-300/25 bg-black/60 backdrop-blur-sm" />
+        {/* range rings */}
+        <div className="absolute inset-[14%] rounded-full border border-emerald-300/15" />
+        <div className="absolute inset-[32%] rounded-full border border-emerald-300/12" />
+        <div className="absolute inset-[52%] rounded-full border border-emerald-300/10" />
+        {/* crosshairs */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-emerald-300/15" />
+        <div className="absolute top-1/2 left-0 right-0 h-px bg-emerald-300/15" />
+
+        {/* world layer: rotates opposite of heading so "up" is the device's forward direction */}
+        <div
+          className="absolute inset-0"
+          style={{ transform: `rotate(${-h}deg)`, transformOrigin: "50% 50%" }}
+        >
+          {/* cardinal markers (in world coordinates) */}
+          {cardinals.map((c) => {
+            const rad = (c.a - 90) * (Math.PI / 180);
+            const x = R + Math.cos(rad) * (R - 10);
+            const y = R + Math.sin(rad) * (R - 10);
+            return (
+              <div
+                key={c.l}
+                className="absolute text-[10px] font-mono font-medium text-emerald-300/80"
+                style={{
+                  left: x, top: y,
+                  transform: `translate(-50%,-50%) rotate(${h}deg)`,
+                }}
+              >{c.l}</div>
+            );
+          })}
+
+          {/* contacts (bearing is world-absolute compass degrees) */}
+          {contacts.map((c) => {
+            const bearing = c.bearing;
+            const rssi = (c as any).rssi as number | undefined;
+            // If no bearing yet, place by RSSI only at a stable angle from id hash
+            let angleDeg: number;
+            if (bearing != null) {
+              angleDeg = bearing;
+            } else {
+              let hash = 0;
+              for (let i = 0; i < c.id.length; i++) hash = (hash * 31 + c.id.charCodeAt(i)) >>> 0;
+              angleDeg = hash % 360;
+            }
+            const rad = (angleDeg - 90) * (Math.PI / 180);
+            const dist = rssiToRadius(rssi);
+            const x = R + Math.cos(rad) * dist;
+            const y = R + Math.sin(rad) * dist;
+            const conf = c.bearingConfidence ?? 0;
+            const dim = bearing == null ? 0.45 : 0.55 + Math.min(0.45, conf);
+            const label = c.displayName || c.id.slice(0, 8);
+            return (
+              <div key={c.id} className="absolute" style={{ left: x, top: y, transform: "translate(-50%,-50%)" }}>
+                <div
+                  className="w-2 h-2 rounded-full bg-amber-300"
+                  style={{ boxShadow: "0 0 10px rgba(252,211,77,0.85)", opacity: dim }}
+                />
+                <div
+                  className="mt-0.5 text-[8px] font-mono tracking-wide text-amber-200/80 whitespace-nowrap"
+                  style={{ transform: `translateX(-50%) translateX(6px) rotate(${h}deg)`, transformOrigin: "0 0", opacity: dim }}
+                >{label}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* radar sweep — relative to device (always points up) */}
+        <div
+          className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
+          style={{ transform: `rotate(${sweep}deg)` }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              background: "conic-gradient(from -90deg, rgba(110,231,183,0.32) 0deg, rgba(110,231,183,0.04) 40deg, transparent 60deg 360deg)",
+            }}
+          />
+        </div>
+
+        {/* device pointer (always up) */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+          <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[14px] border-l-transparent border-r-transparent border-b-emerald-300 -translate-y-3 drop-shadow-[0_0_6px_rgba(110,231,183,0.9)]" />
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-emerald-300/90 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
+        </div>
+      </div>
+
+      {/* compass controls */}
+      {!compassOn ? (
+        <div className="flex flex-col items-center gap-1">
+          <button
+            onClick={onEnableCompass}
+            className="px-3 py-1.5 rounded-md text-[10px] tracking-[0.18em] uppercase border border-emerald-300/30 text-emerald-200/90 hover:bg-emerald-300/[0.06]"
+          >Enable Compass</button>
+          <span className="text-[8px] text-muted-foreground/45 tracking-[0.14em] uppercase">
+            iOS requires a one-time motion permission tap
+          </span>
+          {compassErr && <span className="text-[9px] text-rose-300/80">{compassErr}</span>}
+        </div>
+      ) : (
+        <span className="text-[8px] tracking-[0.18em] uppercase text-emerald-300/60">
+          Compass live · move your device to rotate the map
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default ZaxinView;
+
 
