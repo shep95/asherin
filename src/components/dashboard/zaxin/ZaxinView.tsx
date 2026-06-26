@@ -1004,13 +1004,22 @@ function ArTab(props: {
           );
         })}
 
-        {/* OPTICAL CONTACTS — pairing-free, drawn directly on detected pixels */}
-        {props.arOn && opticalOn && optical.map((o) => {
+        {/* OPTICAL CONTACTS — pairing-free, drawn directly on detected pixels.
+            If the AI Vision panel has returned an identification paired to this
+            bbox (matched_optical_id === "opt:i"), we override the label with the
+            refined brand/model/type and a BLE pip. */}
+        {props.arOn && opticalOn && optical.map((o, idx) => {
           const p = projectBbox(o);
           if (!p) return null;
-          const isDevice = o.kind === "device";
+          const ai = visionIdents.find((vi) => vi.matched_optical_id === `opt:${idx}`);
+          const isDevice = (ai?.has_bluetooth === true) || o.kind === "device";
           const stroke = isDevice ? "rgba(232,198,132,0.95)" : "rgba(180,180,180,0.55)";
           const glow = isDevice ? "0 0 14px -2px rgba(232,198,132,0.55)" : "none";
+          const label = ai?.label || o.label;
+          const sub = ai
+            ? [ai.brand, ai.device_type, ai.est_distance_m != null ? `${ai.est_distance_m.toFixed(1)}m` : null]
+                .filter(Boolean).join(" · ")
+            : `${(o.score * 100).toFixed(0)}%`;
           return (
             <div
               key={`opt-${o.id}`}
@@ -1022,14 +1031,58 @@ function ArTab(props: {
               }}
               className="absolute rounded-md pointer-events-none transition-[left,top,width,height] duration-100 ease-out"
             >
-              {/* corner brackets — tactical reticle feel */}
               <span className="absolute -top-px -left-px w-2.5 h-2.5 border-t-2 border-l-2" style={{ borderColor: stroke }} />
               <span className="absolute -top-px -right-px w-2.5 h-2.5 border-t-2 border-r-2" style={{ borderColor: stroke }} />
               <span className="absolute -bottom-px -left-px w-2.5 h-2.5 border-b-2 border-l-2" style={{ borderColor: stroke }} />
               <span className="absolute -bottom-px -right-px w-2.5 h-2.5 border-b-2 border-r-2" style={{ borderColor: stroke }} />
-              <div className="absolute -top-5 left-0 text-[8px] font-mono tracking-[0.16em] uppercase px-1.5 py-0.5 rounded-sm bg-black/65"
-                   style={{ color: isDevice ? "#f0d59a" : "rgba(255,255,255,0.65)" }}>
-                {o.label} · {(o.score * 100).toFixed(0)}%
+              <div className="absolute -top-[34px] left-0 flex items-center gap-1 max-w-[260px]">
+                <div className="text-[9px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/75 truncate"
+                     style={{ color: isDevice ? "#f0d59a" : "rgba(255,255,255,0.7)" }}>
+                  {label}
+                </div>
+                {ai?.has_bluetooth ? (
+                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">
+                    BLE
+                  </div>
+                ) : null}
+              </div>
+              <div className="absolute -bottom-[18px] left-0 text-[8px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/65 text-foreground/75 truncate max-w-[260px]">
+                {sub}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* AI-ONLY IDENT BOXES — items the COCO detector missed but the BYOK vision model spotted */}
+        {props.arOn && visionIdents.map((it, i) => {
+          if (it.matched_optical_id || !it.bbox_pct) return null;
+          const b = it.bbox_pct;
+          // bbox_pct is in PERCENT of the video frame; convert to normalized for projectBbox.
+          const proj = projectBbox({ x: b.x / 100, y: b.y / 100, w: b.w / 100, h: b.h / 100 });
+          if (!proj) return null;
+          const isBle = it.has_bluetooth === true;
+          const stroke = isBle ? "rgba(232,198,132,0.9)" : "rgba(170,170,170,0.55)";
+          return (
+            <div
+              key={`ai-${i}`}
+              style={{
+                left: `${proj.leftPct}%`, top: `${proj.topPct}%`,
+                width: `${proj.widthPct}%`, height: `${proj.heightPct}%`,
+                border: `${isBle ? 2 : 1}px dashed ${stroke}`,
+                zIndex: 4,
+              }}
+              className="absolute rounded-md pointer-events-none"
+            >
+              <div className="absolute -top-[18px] left-0 flex items-center gap-1 max-w-[240px]">
+                <div className="text-[9px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/75 truncate"
+                     style={{ color: isBle ? "#f0d59a" : "rgba(255,255,255,0.7)" }}>
+                  {it.label || "device"}{it.brand ? ` · ${it.brand}` : ""}
+                </div>
+                {isBle ? (
+                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">
+                    BLE
+                  </div>
+                ) : null}
               </div>
             </div>
           );
