@@ -1265,34 +1265,34 @@ function MiniMap({ heading, contacts }: {
   });
   return (
     <div className="absolute bottom-3 left-3 pointer-events-none select-none" style={{ zIndex: 5 }}>
-      <div className="relative rounded-full bg-black/45 backdrop-blur-xl ring-1 ring-white/[0.08] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.7),inset_0_0_30px_-12px_rgba(110,231,183,0.4)]"
+      <div className="relative rounded-full bg-gradient-to-br from-[#1a1208]/70 to-black/55 backdrop-blur-xl ring-1 ring-[#c69a4a]/35 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.7),inset_0_0_30px_-10px_rgba(198,154,74,0.45)]"
         style={{ width: size, height: size }}>
         {/* concentric range arcs */}
-        <div className="absolute inset-2 rounded-full border border-emerald-300/15" />
-        <div className="absolute inset-5 rounded-full border border-emerald-300/10" />
-        <div className="absolute inset-8 rounded-full border border-emerald-300/[0.07]" />
+        <div className="absolute inset-2 rounded-full border border-[#c69a4a]/20" />
+        <div className="absolute inset-5 rounded-full border border-[#c69a4a]/15" />
+        <div className="absolute inset-8 rounded-full border border-[#c69a4a]/10" />
         {/* cross */}
-        <div className="absolute left-1/2 top-1.5 bottom-1.5 w-px bg-emerald-300/15" />
-        <div className="absolute top-1/2 left-1.5 right-1.5 h-px bg-emerald-300/15" />
+        <div className="absolute left-1/2 top-1.5 bottom-1.5 w-px bg-[#c69a4a]/20" />
+        <div className="absolute top-1/2 left-1.5 right-1.5 h-px bg-[#c69a4a]/20" />
         {/* FOV cone (forward direction = up) */}
         <div className="absolute inset-0 rounded-full overflow-hidden">
           <div className="absolute inset-0"
-            style={{ background: "conic-gradient(from -30deg, rgba(110,231,183,0.32) 0deg, rgba(110,231,183,0.04) 60deg, transparent 60deg 360deg)" }} />
+            style={{ background: "conic-gradient(from -30deg, rgba(232,198,132,0.32) 0deg, rgba(232,198,132,0.05) 60deg, transparent 60deg 360deg)" }} />
         </div>
         {/* Bluetooth contacts */}
         {placed.map((c) => (
           <div key={c.id} className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: c.x, top: c.y, opacity: c.dim }}>
-            <span className="block w-1.5 h-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.95)]" />
+            <span className="block w-1.5 h-1.5 rounded-full bg-[#f0d59a] shadow-[0_0_8px_rgba(240,213,154,0.95)]" />
           </div>
         ))}
         {/* operator pip + forward arrow */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#e8c684] shadow-[0_0_10px_rgba(232,198,132,0.95)]" />
         </div>
-        <div className="absolute left-1/2 top-1 -translate-x-1/2 text-[8px] font-mono text-emerald-200/80 tracking-[0.16em]">N</div>
+        <div className="absolute left-1/2 top-1 -translate-x-1/2 text-[8px] font-mono text-[#e8c684] tracking-[0.16em]">N</div>
         {/* contact count bubble */}
-        <div className="absolute -top-1.5 -right-1.5 text-[8px] font-mono px-1.5 py-px rounded-full bg-emerald-400/90 text-black tracking-wider">
+        <div className="absolute -top-1.5 -right-1.5 text-[8px] font-mono px-1.5 py-px rounded-full bg-[#c69a4a] text-black tracking-wider shadow-[0_0_8px_-1px_rgba(198,154,74,0.7)]">
           {contacts.length}
         </div>
       </div>
