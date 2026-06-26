@@ -53,10 +53,13 @@ export async function startHeadingStream(onHeading: (deg: number) => void): Prom
   };
 }
 
-/** Open the rear-facing camera. */
-export async function startCamera(video: HTMLVideoElement): Promise<MediaStream> {
+/** Open a camera by facing mode. Defaults to rear-facing. */
+export async function startCamera(
+  video: HTMLVideoElement,
+  facing: "environment" | "user" = "environment",
+): Promise<MediaStream> {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: "environment" } },
+    video: { facingMode: { ideal: facing } },
     audio: false,
   });
   video.srcObject = stream;
@@ -66,6 +69,11 @@ export async function startCamera(video: HTMLVideoElement): Promise<MediaStream>
 
 export function stopCamera(stream: MediaStream | null) {
   stream?.getTracks().forEach((t) => t.stop());
+}
+
+/** Opposite of a facing mode. */
+export function flipFacing(f: "environment" | "user"): "environment" | "user" {
+  return f === "environment" ? "user" : "environment";
 }
 
 /** Signed angular delta in [-180, 180]. Positive = clockwise. */

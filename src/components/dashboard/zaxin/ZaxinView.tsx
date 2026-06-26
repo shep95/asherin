@@ -10,7 +10,7 @@ import {
 import { TacticalEngine, SCENARIOS } from "./core/tactical";
 import { startScan, pickOne, detectScanMode, listPaired, type RawAdvert, type ScanMode } from "./core/scanner";
 import { HopBrain } from "./core/hop";
-import { startHeadingStream, startCamera, stopCamera, bearingDelta } from "./core/posesense";
+import { startHeadingStream, startCamera, stopCamera, bearingDelta, flipFacing } from "./core/posesense";
 import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 
@@ -140,18 +140,43 @@ const ZaxinView = () => {
 
   /* ------------- AR pose ------------- */
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const scopeVideoRef = useRef<HTMLVideoElement | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
   const [arOn, setArOn] = useState(false);
   const [arErr, setArErr] = useState<string | null>(null);
+  const [mainFacing, setMainFacing] = useState<"environment" | "user">("environment");
+  const [scopeOn, setScopeOn] = useState(true);
+  const [scopeAvail, setScopeAvail] = useState(true);
   const camStreamRef = useRef<MediaStream | null>(null);
+  const scopeStreamRef = useRef<MediaStream | null>(null);
   const poseHandleRef = useRef<{ stop: () => void } | null>(null);
+
+  const openMain = useCallback(async (facing: "environment" | "user") => {
+    if (!videoRef.current) throw new Error("Camera surface not ready.");
+    stopCamera(camStreamRef.current); camStreamRef.current = null;
+    const stream = await startCamera(videoRef.current, facing);
+    camStreamRef.current = stream;
+  }, []);
+
+  const openScope = useCallback(async (facing: "environment" | "user") => {
+    if (!scopeVideoRef.current) return;
+    stopCamera(scopeStreamRef.current); scopeStreamRef.current = null;
+    try {
+      const stream = await startCamera(scopeVideoRef.current, facing);
+      scopeStreamRef.current = stream;
+      setScopeAvail(true);
+    } catch {
+      // Most laptops only have one camera; mark scope unavailable.
+      setScopeAvail(false);
+    }
+  }, []);
 
   const startAr = useCallback(async () => {
     setArErr(null);
     try {
-      if (!videoRef.current) throw new Error("Camera surface not ready.");
-      const stream = await startCamera(videoRef.current);
-      camStreamRef.current = stream;
+      await openMain(mainFacing);
+      // Try to also open the opposite-facing camera for the binoc scope.
+      await openScope(flipFacing(mainFacing));
       const pose = await startHeadingStream((deg) => {
         setHeading(deg);
         engine.setHeading(deg);
@@ -162,17 +187,35 @@ const ZaxinView = () => {
     } catch (e) {
       setArErr(e instanceof Error ? e.message : String(e));
       stopCamera(camStreamRef.current); camStreamRef.current = null;
+      stopCamera(scopeStreamRef.current); scopeStreamRef.current = null;
     }
-  }, [engine]);
+  }, [engine, mainFacing, openMain, openScope]);
 
   const stopAr = useCallback(() => {
     poseHandleRef.current?.stop(); poseHandleRef.current = null;
     stopCamera(camStreamRef.current); camStreamRef.current = null;
+    stopCamera(scopeStreamRef.current); scopeStreamRef.current = null;
     engine.setPose(false, null);
     setArOn(false);
   }, [engine]);
 
-  useEffect(() => () => { poseHandleRef.current?.stop(); stopCamera(camStreamRef.current); }, []);
+  const flipMain = useCallback(async () => {
+    if (!arOn) return;
+    const next = flipFacing(mainFacing);
+    setMainFacing(next);
+    try {
+      await openMain(next);
+      await openScope(flipFacing(next));
+    } catch (e) {
+      setArErr(e instanceof Error ? e.message : String(e));
+    }
+  }, [arOn, mainFacing, openMain, openScope]);
+
+  useEffect(() => () => {
+    poseHandleRef.current?.stop();
+    stopCamera(camStreamRef.current);
+    stopCamera(scopeStreamRef.current);
+  }, []);
 
   /* ------------- derived ------------- */
   const locals = useMemo(() => snap.contacts.filter((c) => c.source === "local"), [snap]);
@@ -248,7 +291,10 @@ const ZaxinView = () => {
         )}
         {tab === "ar" && (
           <ArTab
-            videoRef={videoRef} arOn={arOn} arErr={arErr} heading={heading}
+            videoRef={videoRef} scopeVideoRef={scopeVideoRef}
+            arOn={arOn} arErr={arErr} heading={heading}
+            mainFacing={mainFacing} scopeOn={scopeOn} scopeAvail={scopeAvail}
+            onToggleScope={() => setScopeOn((v) => !v)} onFlip={flipMain}
             contacts={locals}
             onStart={startAr} onStop={stopAr}
           />
@@ -391,7 +437,11 @@ function TacticalTab({ snap, engine }: { snap: ZaxinSnapshot; engine: TacticalEn
 
 function ArTab(props: {
   videoRef: React.MutableRefObject<HTMLVideoElement | null>;
+  scopeVideoRef: React.MutableRefObject<HTMLVideoElement | null>;
   arOn: boolean; arErr: string | null; heading: number | null;
+  mainFacing: "environment" | "user";
+  scopeOn: boolean; scopeAvail: boolean;
+  onToggleScope: () => void; onFlip: () => void;
   contacts: Contact[];
   onStart: () => void; onStop: () => void;
 }) {
@@ -502,6 +552,23 @@ function ArTab(props: {
           {props.arOn && Object.keys(bindings).length > 0 && (
             <ActionButton icon={Trash2} onClick={clearBindings}>Unlink All</ActionButton>
           )}
+          {props.arOn && (
+            <>
+              <ActionButton icon={RefreshCw} onClick={props.onFlip}>
+                Flip · {props.mainFacing === "environment" ? "Rear" : "Front"}
+              </ActionButton>
+              {props.scopeAvail && (
+                <button onClick={props.onToggleScope}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] tracking-[0.16em] uppercase border ${
+                    props.scopeOn
+                      ? "bg-emerald-300/[0.08] border-emerald-300/30 text-emerald-200/90"
+                      : "bg-foreground/[0.04] border-border/[0.08] text-foreground/70"
+                  }`}>
+                  <Eye className="h-3 w-3" /> Scope
+                </button>
+              )}
+            </>
+          )}
           <div className="ml-auto flex items-center gap-2 text-[9px] tracking-[0.18em] uppercase text-muted-foreground/50">
             <Compass className="h-3 w-3" /> {props.heading != null ? `${props.heading.toFixed(0)}°` : "no heading"}
           </div>
@@ -518,20 +585,45 @@ function ArTab(props: {
                 {m === "full" ? "Full Body" : m === "face" ? "Face" : "Fingers"}
               </button>
             ))}
-            <span className="ml-auto text-[9px] tracking-[0.18em] uppercase text-muted-foreground/45 font-mono">
-              {bvReady ? "vision · live" : "vision · loading models…"}
+            <span className={`ml-auto text-[9px] tracking-[0.18em] uppercase font-mono px-2 py-0.5 rounded border ${
+              bvErr ? "text-rose-300/90 border-rose-300/30 bg-rose-300/[0.05]" :
+              bvReady ? "text-emerald-300/90 border-emerald-300/30 bg-emerald-300/[0.05]" :
+              "text-amber-300/80 border-amber-300/25 bg-amber-300/[0.04]"
+            }`}>
+              vision · {bvErr ? "failed" : bvReady ? "live" : "loading"}
             </span>
           </div>
         )}
       </Panel>
 
       <div ref={wrapRef}
-        className="relative rounded-2xl overflow-hidden border border-border/[0.1] bg-black aspect-[3/4] sm:aspect-video select-none">
+        className="relative rounded-2xl overflow-hidden border border-border/[0.1] bg-black min-h-[70vh] sm:min-h-0 sm:aspect-video select-none">
         <video ref={props.videoRef} playsInline muted autoPlay
           className="absolute inset-0 w-full h-full object-cover opacity-95" />
         <canvas ref={canvasRef} onClick={onTap} onTouchStart={onTap}
-          className="absolute inset-0 w-full h-full cursor-crosshair" />
-        <div className="absolute inset-0 pointer-events-none">
+          className="absolute inset-0 w-full h-full cursor-crosshair" style={{ zIndex: 2 }} />
+
+        {/* Binocular scope: opposite-facing camera, masked into a rectangular cutout pinned to top */}
+        {props.arOn && props.scopeOn && props.scopeAvail && (
+          <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-[78%] max-w-[560px] pointer-events-none" style={{ zIndex: 3 }}>
+            <div className="relative aspect-[16/5] rounded-md overflow-hidden border border-emerald-300/40 bg-black/40 shadow-[0_0_22px_rgba(16,185,129,0.18)]">
+              <video ref={props.scopeVideoRef} playsInline muted autoPlay
+                className="absolute inset-0 w-full h-full object-cover" />
+              {/* corner brackets */}
+              <span className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-emerald-300/95" />
+              <span className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-emerald-300/95" />
+              <span className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-emerald-300/95" />
+              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-emerald-300/95" />
+              {/* center tick */}
+              <span className="absolute top-1 left-1/2 -translate-x-1/2 w-px h-2 bg-emerald-300/95" />
+              <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-mono text-emerald-300/90 tracking-[0.2em]">
+                {props.mainFacing === "environment" ? "FRONT" : "REAR"} SCOPE
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 4 }}>
           <div className="absolute top-2 left-2 text-[9px] tracking-[0.18em] uppercase text-emerald-300/70 font-mono">
             LIVE FIELD · {[...modes].map((m) => m === "full" ? "FULL BODY" : m.toUpperCase()).join(" · ") || "—"}
           </div>
