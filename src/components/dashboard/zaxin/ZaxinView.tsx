@@ -393,6 +393,16 @@ function ScanTab(props: {
         </div>
       </Panel>
 
+      <Panel icon={Radar} title="Live Radar" subtitle="Device heading is up. Contacts plotted by bearing (RSSI gradient) and distance (signal strength).">
+        <RadarMap
+          heading={props.heading}
+          compassOn={props.compassOn}
+          compassErr={props.compassErr}
+          onEnableCompass={props.onEnableCompass}
+          contacts={props.locals}
+        />
+      </Panel>
+
       <ContactList rows={props.locals} title="Local Contacts" onToggleWatch={props.onToggleWatch} onPullIntel={props.onPullIntel} />
       {props.remotes.length > 0 && (
         <ContactList rows={props.remotes} title="Reported via Hop Mesh" onToggleWatch={props.onToggleWatch} onPullIntel={() => {}} compact />
