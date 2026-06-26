@@ -18,7 +18,7 @@ import { rssiToDistance } from "./core/bleRanging";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { Link } from "react-router-dom";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Users } from "lucide-react";
 
 type Tab = "scan" | "tactical" | "ar" | "hops" | "diag";
 
