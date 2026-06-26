@@ -715,7 +715,45 @@ function ArTab(props: {
   };
 
   const clearBindings = () => setBindings({});
-  const hasBearings = props.contacts.filter((c) => c.bearing != null);
+
+  // ---- Live AI subsystems (T2 SLAM, T5 behavior, T6 anchors, T7 chirp) ----
+  const slamRef = useRef<BearingSlam | null>(null);
+  if (!slamRef.current) slamRef.current = new BearingSlam();
+  const anchorsRef = useRef<VisualAnchors | null>(null);
+  if (!anchorsRef.current) anchorsRef.current = new VisualAnchors();
+
+  const smoothedContacts = useMemo(
+    () => slamRef.current!.apply(props.contacts),
+    [props.contacts],
+  );
+  useEffect(() => {
+    anchorsRef.current!.update(smoothedContacts, props.heading, FOV);
+  }, [smoothedContacts, props.heading]);
+
+  const hasBearings = smoothedContacts.filter((c) => c.bearing != null);
+  const ghosts = anchorsRef.current!.ghosts(smoothedContacts, props.heading, FOV);
+
+  // T7 — ultrasonic chirp detector (mic FFT 18–22 kHz)
+  const [chirpOn, setChirpOn] = useState(false);
+  const [chirpActive, setChirpActive] = useState(false);
+  const [chirpLevel, setChirpLevel] = useState(0);
+  const [chirpErr, setChirpErr] = useState<string | null>(null);
+  const chirpRef = useRef<ChirpHandle | null>(null);
+  const toggleChirp = async () => {
+    if (chirpRef.current) {
+      chirpRef.current.stop(); chirpRef.current = null;
+      setChirpOn(false); setChirpActive(false); setChirpLevel(0); return;
+    }
+    try {
+      setChirpErr(null);
+      const h = await startChirpDetector((a, l) => { setChirpActive(a); setChirpLevel(l); });
+      chirpRef.current = h; setChirpOn(true);
+    } catch (e) {
+      setChirpErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+  useEffect(() => () => { chirpRef.current?.stop(); chirpRef.current = null; }, []);
+
 
   return (
     <div className="max-w-5xl mx-auto space-y-3">
