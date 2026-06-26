@@ -2512,31 +2512,70 @@ function AiVisionIdentifyPanel(props: {
 
       const { idents: arr, env: e } = parseJson(text);
       arr.sort((a, b) => (a.est_distance_m ?? 9999) - (b.est_distance_m ?? 9999));
-      setIdents(arr);
-      setEnv(e);
+      const now = Date.now();
+      const stamped = arr.map((x) => ({ ...x, _ts: now }));
       setLatencyMs(Math.round(performance.now() - t0));
-      onIdentsRef.current?.(arr);
-      onEnvRef.current?.(e);
+
+      // ROLLING INTEL FEED: never wipe last-known-good on an empty/garbage frame.
+      const hasSignal = stamped.length > 0 || (e && Object.keys(e).length > 0);
+      if (hasSignal) {
+        if (stamped.length > 0) {
+          setIdents(stamped);
+          onIdentsRef.current?.(stamped);
+        }
+        if (e) {
+          setEnv(e);
+          onEnvRef.current?.(e);
+        }
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
       busyRef.current = false;
       setBusy(false);
+      // Self-pacing: schedule the NEXT call right after this one finishes.
+      // Removes the dead-air gap that fixed setInterval(900) caused when a
+      // single round-trip exceeded the cadence.
+      if (autoOnRef.current && arOnRef.current && byokRef.current) {
+        if (timerRef.current) window.clearTimeout(timerRef.current);
+        timerRef.current = window.setTimeout(() => { run(); }, 250);
+      }
     }
   }, [byok]);
 
-  // Sub-second loop: kick immediately, then re-fire every 900ms while AR is active.
-  // busyRef gate prevents request stacking when a single round-trip exceeds the cadence.
+  // Refs so the self-pacing tail of `run` reads live state without rebinding.
+  const autoOnRef = useRef(autoOn);
+  const arOnRef = useRef(props.arOn);
+  const byokRef = useRef(byok);
+  useEffect(() => { autoOnRef.current = autoOn; }, [autoOn]);
+  useEffect(() => { arOnRef.current = props.arOn; }, [props.arOn]);
+  useEffect(() => { byokRef.current = byok; }, [byok]);
+
+  // Kick the chain; run() perpetuates itself via setTimeout in its finally.
   useEffect(() => {
-    if (timerRef.current) { window.clearInterval(timerRef.current); timerRef.current = null; }
+    if (timerRef.current) { window.clearTimeout(timerRef.current); timerRef.current = null; }
     if (!autoOn || !props.arOn || !byok) return;
     const kick = window.setTimeout(() => { run(); }, 120);
-    timerRef.current = window.setInterval(() => { run(); }, 900);
     return () => {
       window.clearTimeout(kick);
-      if (timerRef.current) window.clearInterval(timerRef.current);
+      if (timerRef.current) { window.clearTimeout(timerRef.current); timerRef.current = null; }
     };
   }, [autoOn, props.arOn, byok, run]);
+
+  // Per-item stale decay (15s) — keeps the HUD honest without nuking the
+  // whole feed when the next AI call is in-flight.
+  useEffect(() => {
+    if (!props.arOn) return;
+    const sweep = window.setInterval(() => {
+      const cutoff = Date.now() - 15_000;
+      setIdents((prev) => {
+        const fresh = prev.filter((i) => !i._ts || i._ts > cutoff);
+        if (fresh.length !== prev.length) onIdentsRef.current?.(fresh);
+        return fresh;
+      });
+    }, 2_000);
+    return () => window.clearInterval(sweep);
+  }, [props.arOn]);
 
   useEffect(() => {
     if (!props.arOn) {
