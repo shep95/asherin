@@ -2440,18 +2440,27 @@ function AiVisionIdentifyPanel(props: {
         if (!r.ok) throw new Error(j?.error?.message ?? `Gemini ${r.status}`);
         text = j?.candidates?.[0]?.content?.parts?.map((q: { text?: string }) => q.text ?? "").join("") ?? "";
       } else if (byok.provider === "openai") {
-        const r = await fetch("https://api.openai.com/v1/chat/completions", {
+        const buildBody = (useCompletion: boolean) => ({
+          model: byok.model,
+          response_format: { type: "json_object" as const },
+          temperature: 0,
+          ...(useCompletion ? { max_completion_tokens: 2048 } : { max_tokens: 2048 }),
+          messages: [{ role: "user", content: [ { type: "text", text: p }, { type: "image_url", image_url: { url: dataUrl } } ] }],
+        });
+        let r = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${byok.apiKey}` },
-          body: JSON.stringify({
-            model: byok.model,
-            response_format: { type: "json_object" },
-            temperature: 0,
-            max_tokens: 2048,
-            messages: [{ role: "user", content: [ { type: "text", text: p }, { type: "image_url", image_url: { url: dataUrl } } ] }],
-          }),
+          body: JSON.stringify(buildBody(false)),
         });
-        const j = await r.json();
+        let j = await r.json();
+        if (!r.ok && /max_completion_tokens/i.test(j?.error?.message ?? "")) {
+          r = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${byok.apiKey}` },
+            body: JSON.stringify(buildBody(true)),
+          });
+          j = await r.json();
+        }
         if (!r.ok) throw new Error(j?.error?.message ?? `OpenAI ${r.status}`);
         text = j?.choices?.[0]?.message?.content ?? "";
       } else {
