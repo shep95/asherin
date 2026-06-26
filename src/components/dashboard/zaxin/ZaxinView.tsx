@@ -504,6 +504,12 @@ function ScanTab(props: {
         />
       </Panel>
 
+      <Panel icon={Compass} title="Satellite Overhead" subtitle="Live operator location · Esri World Imagery">
+        <SatelliteMap heading={props.heading} contacts={props.locals} />
+      </Panel>
+
+
+
       <ContactList rows={props.locals} title="Local Contacts" onToggleWatch={props.onToggleWatch} onPullIntel={props.onPullIntel} />
       {props.remotes.length > 0 && (
         <ContactList rows={props.remotes} title="Reported via Hop Mesh" onToggleWatch={props.onToggleWatch} onPullIntel={() => {}} compact />
