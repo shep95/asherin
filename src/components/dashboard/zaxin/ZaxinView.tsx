@@ -2194,16 +2194,19 @@ function AiVisionIdentifyPanel(props: {
   const prompt = (payload: object) =>
     "You are AXRLEN Vision, a tactical sensor-fusion analyst. You are given:\n" +
     "1) ONE camera frame from a body-worn rear camera.\n" +
-    "2) An OPTICAL list — bounding boxes from a generic COCO detector (coarse labels).\n" +
+    "2) An OPTICAL list — bounding boxes from a generic COCO detector (coarse labels) in PERCENT of frame.\n" +
     "3) A BLE list — Bluetooth contacts with RSSI-derived distance estimates (meters).\n\n" +
-    "Task: Look at the IMAGE. For every visible electronic device or notable object, return a JSON " +
-    "array `identifications`. For each item, refine the label beyond the COCO term (e.g. 'cell phone' → " +
-    "'iPhone 15, black case'; 'remote' → 'Apple TV remote'; an object COCO missed but you can see → " +
-    "still include it). When confident, pair to one optical bbox via `matched_optical_id` and/or to one " +
-    "BLE id via `matched_ble_id` (use BLE name + bearing + distance + your visual range estimate to match). " +
-    "Set `est_distance_m` either from the BLE pair or from visual scale. Confidence is 0..1.\n\n" +
-    "Return ONLY this JSON, no prose, no markdown fences:\n" +
-    `{"identifications":[{"label":"","brand":null,"matched_optical_id":null,"matched_ble_id":null,"est_distance_m":null,"confidence":0,"note":null}]}\n\n` +
+    "For EVERY visible electronic device, accessory, or notable object in the IMAGE, return one entry. " +
+    "Refine the label well beyond the COCO term (e.g. 'cell phone' → 'iPhone 15 Pro, black case'; " +
+    "'remote' → 'Apple TV Siri Remote'; 'tv' → 'LG OLED C3 65\"'; an object COCO missed but you can see → still include it). " +
+    "Always fill: brand (Apple, Samsung, Sony, Bose, Logitech, etc. — null if unknown); " +
+    "device_type (one of: phone, laptop, tablet, earbuds, headphones, watch, tv, speaker, router, camera, console, keyboard, mouse, remote, appliance, vehicle, person, other); " +
+    "has_bluetooth (true if this device class typically transmits Bluetooth/BLE — phones, laptops, earbuds, watches, speakers, remotes, consoles, keyboards, mice, modern TVs, AirTags = true; basic appliances, books, bottles = false). " +
+    "When confident, pair to one optical bbox via matched_optical_id and/or to one BLE id via matched_ble_id (use BLE name + bearing + distance vs your visual range estimate). " +
+    "If the item is NOT in the optical list, provide bbox_pct {x,y,w,h} in PERCENT of the frame so we can draw a box on it. " +
+    "Set est_distance_m from the BLE pair if matched, otherwise from visual scale. Confidence is 0..1.\n\n" +
+    "Return ONLY this JSON, no prose, no markdown:\n" +
+    `{"identifications":[{"label":"","brand":null,"device_type":null,"has_bluetooth":null,"matched_optical_id":null,"matched_ble_id":null,"bbox_pct":null,"est_distance_m":null,"confidence":0,"note":null}]}\n\n` +
     "Context JSON:\n" + JSON.stringify(payload);
 
   const parseJson = (text: string): VisionIdent[] => {
