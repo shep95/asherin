@@ -2433,7 +2433,7 @@ function AiVisionIdentifyPanel(props: {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ role: "user", parts: [ { text: p }, { inline_data: { mime_type: "image/jpeg", data: base64 } } ] }],
-            generationConfig: { responseMimeType: "application/json", temperature: 0, maxOutputTokens: 2048 },
+            generationConfig: { responseMimeType: "application/json", maxOutputTokens: 2048 },
           }),
         });
         const j = await r.json();
