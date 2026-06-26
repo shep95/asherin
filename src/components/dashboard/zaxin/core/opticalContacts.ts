@@ -87,13 +87,27 @@ async function getDetector(): Promise<any> {
   if (_detector) return _detector;
   const mod = await loadVisionModule();
   const fileset = await mod.FilesetResolver.forVisionTasks(WASM);
-  _detector = await mod.ObjectDetector.createFromOptions(fileset, {
-    baseOptions: { modelAssetPath: MODEL, delegate: "GPU" },
-    runningMode: "VIDEO",
-    scoreThreshold: 0.4,
-    maxResults: 8,
-    categoryAllowlist: [...DEVICE_LABELS, PERSON_LABEL],
-  });
+  const baseOpts = {
+    runningMode: "VIDEO" as const,
+    scoreThreshold: 0.25,
+    maxResults: 16,
+    // No categoryAllowlist — let the model emit everything; we filter in mapResult.
+    // This way the operator actually sees brackets light up on common items
+    // (cups, bottles, books) which confirms the inference pipeline is alive.
+  };
+  // GPU delegate is faster but fails on some integrated GPUs / Safari; fall back to CPU.
+  try {
+    _detector = await mod.ObjectDetector.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: MODEL, delegate: "GPU" },
+      ...baseOpts,
+    });
+  } catch (e) {
+    console.warn("[opticalContacts] GPU delegate failed, falling back to CPU:", e);
+    _detector = await mod.ObjectDetector.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: MODEL, delegate: "CPU" },
+      ...baseOpts,
+    });
+  }
   return _detector;
 }
 
