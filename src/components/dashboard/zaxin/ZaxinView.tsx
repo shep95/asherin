@@ -291,7 +291,10 @@ const ZaxinView = () => {
         )}
         {tab === "ar" && (
           <ArTab
-            videoRef={videoRef} arOn={arOn} arErr={arErr} heading={heading}
+            videoRef={videoRef} scopeVideoRef={scopeVideoRef}
+            arOn={arOn} arErr={arErr} heading={heading}
+            mainFacing={mainFacing} scopeOn={scopeOn} scopeAvail={scopeAvail}
+            onToggleScope={() => setScopeOn((v) => !v)} onFlip={flipMain}
             contacts={locals}
             onStart={startAr} onStop={stopAr}
           />
