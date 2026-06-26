@@ -755,6 +755,75 @@ function ArTab(props: {
   };
   useEffect(() => () => { chirpRef.current?.stop(); chirpRef.current = null; }, []);
 
+  // ---- Optical Contacts (T3-PASSIVE) — pairing-free device detection ----
+  // Runs MediaPipe Object Detector on the rear-camera frame. Anything
+  // looking like personal electronics (phone, laptop, remote, tv, mouse,
+  // keyboard, book/tablet, clock) — or a person — gets a reticle pinned
+  // directly on its pixels. Zero pairing, zero radio, zero compass.
+  const [opticalOn, setOpticalOn] = useState(true);
+  const [optical, setOptical] = useState<OpticalContact[]>([]);
+  const [opticalErr, setOpticalErr] = useState<string | null>(null);
+  const [opticalReady, setOpticalReady] = useState(false);
+  const opticalRef = useRef<OpticalHandle | null>(null);
+  const [videoNatural, setVideoNatural] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!props.arOn || !opticalOn || !props.videoRef.current) return;
+      setOpticalErr(null); setOpticalReady(false);
+      try {
+        const h = await startOpticalScan({
+          video: props.videoRef.current,
+          onFrame: (c) => {
+            setOptical(c);
+            const v = props.videoRef.current;
+            if (v && v.videoWidth && (v.videoWidth !== videoNatural.w || v.videoHeight !== videoNatural.h)) {
+              setVideoNatural({ w: v.videoWidth, h: v.videoHeight });
+            }
+          },
+          hz: 8,
+        });
+        if (cancelled) { h.stop(); return; }
+        opticalRef.current = h;
+        setOpticalReady(true);
+      } catch (e) {
+        setOpticalErr(e instanceof Error ? e.message : String(e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+      opticalRef.current?.stop();
+      opticalRef.current = null;
+      setOpticalReady(false);
+      setOptical([]);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.arOn, opticalOn]);
+
+  // object-cover math: video is scaled to MAX(W/vw, H/vh) and centered.
+  // Convert normalized video coords → on-screen % of the wrapper.
+  const projectBbox = useCallback((b: { x: number; y: number; w: number; h: number }) => {
+    const wrap = wrapRef.current; const v = props.videoRef.current;
+    if (!wrap || !v || !v.videoWidth) return null;
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    const vw = v.videoWidth, vh = v.videoHeight;
+    const scale = Math.max(W / vw, H / vh);
+    const dispW = vw * scale, dispH = vh * scale;
+    const offX = (W - dispW) / 2, offY = (H - dispH) / 2;
+    const px = b.x * vw * scale + offX;
+    const py = b.y * vh * scale + offY;
+    const pw = b.w * vw * scale, ph = b.h * vh * scale;
+    return {
+      leftPct: (px / W) * 100,
+      topPct:  (py / H) * 100,
+      widthPct:  (pw / W) * 100,
+      heightPct: (ph / H) * 100,
+    };
+  }, [props.videoRef]);
+
+
+
 
   return (
     <div className="max-w-5xl mx-auto space-y-3">
