@@ -25,16 +25,15 @@ const WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VERSION}/wa
 const MODEL =
   "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/1/efficientdet_lite0.tflite";
 
-/** COCO labels we treat as "device-like" — what an operator wants flagged. */
+/** COCO labels we treat as "device-like" — what an operator wants flagged.
+ *  Broadened with common room objects so the operator sees the pipeline is alive
+ *  even when no real electronics are in frame (bottle/cup/book/scissors). */
 const DEVICE_LABELS = new Set<string>([
-  "cell phone",
-  "laptop",
-  "remote",
-  "tv",
-  "mouse",
-  "keyboard",
-  "book",
-  "clock",
+  "cell phone", "laptop", "remote", "tv", "mouse", "keyboard",
+  "book", "clock", "scissors", "bottle", "cup", "wine glass",
+  "sports ball", "vase", "teddy bear", "hair drier", "toothbrush",
+  "backpack", "handbag", "suitcase", "microwave", "oven", "toaster",
+  "refrigerator", "sink",
 ]);
 const PERSON_LABEL = "person";
 
