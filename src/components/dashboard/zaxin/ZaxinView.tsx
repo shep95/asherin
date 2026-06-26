@@ -1820,9 +1820,14 @@ function AiBriefPanel({ contacts, scenario }: { contacts: Contact[]; scenario: S
         </div>
       )}
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <ActionButton onClick={run} icon={Activity} disabled={busy || !byok}>
+        <button
+          onClick={run}
+          disabled={busy || !byok}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] tracking-[0.18em] uppercase border border-[#c69a4a]/30 text-[#e8c684] hover:bg-[#c69a4a]/[0.08] disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Activity className="h-3.5 w-3.5" />
           {busy ? "Composing…" : "Generate Brief"}
-        </ActionButton>
+        </button>
         <span className="text-[9px] tracking-[0.18em] uppercase text-muted-foreground/55">
           {contacts.length} contact{contacts.length === 1 ? "" : "s"} in scope · scenario {SCENARIOS[scenario].label}
         </span>
