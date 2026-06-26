@@ -1017,6 +1017,22 @@ function ArTab(props: {
           const stroke = isDevice ? "rgba(232,198,132,0.95)" : "rgba(180,180,180,0.55)";
           const glow = isDevice ? "0 0 14px -2px rgba(232,198,132,0.55)" : "none";
           const label = ai?.label || o.label;
+          const isPerson = (ai?.device_type === "person") || o.label.toLowerCase() === "person";
+          const personChips: string[] = [];
+          if (isPerson && ai?.person) {
+            const pp = ai.person;
+            if (pp.age_years != null) personChips.push(`~${pp.age_years}y`);
+            if (pp.height_cm != null) personChips.push(`${pp.height_cm}cm`);
+            if (pp.weight_kg != null) personChips.push(`${pp.weight_kg}kg`);
+            if (pp.gender) personChips.push(pp.gender);
+            if (pp.ethnicity) personChips.push(pp.ethnicity);
+            if (pp.build) personChips.push(pp.build);
+          }
+          const threatTone =
+            ai?.person?.threat === "high" ? "rgba(248,113,113,0.95)" :
+            ai?.person?.threat === "elevated" ? "rgba(251,146,60,0.95)" :
+            stroke;
+          const strokeFinal = isPerson ? threatTone : stroke;
           const sub = ai
             ? [ai.brand, ai.device_type, ai.est_distance_m != null ? `${ai.est_distance_m.toFixed(1)}m` : null]
                 .filter(Boolean).join(" · ")
@@ -1027,18 +1043,18 @@ function ArTab(props: {
               style={{
                 left: `${p.leftPct}%`, top: `${p.topPct}%`,
                 width: `${p.widthPct}%`, height: `${p.heightPct}%`,
-                border: `${isDevice ? 2 : 1}px solid ${stroke}`,
+                border: `${isDevice || isPerson ? 2 : 1}px solid ${strokeFinal}`,
                 boxShadow: glow, zIndex: 4,
               }}
               className="absolute rounded-md pointer-events-none transition-[left,top,width,height] duration-100 ease-out"
             >
-              <span className="absolute -top-px -left-px w-2.5 h-2.5 border-t-2 border-l-2" style={{ borderColor: stroke }} />
-              <span className="absolute -top-px -right-px w-2.5 h-2.5 border-t-2 border-r-2" style={{ borderColor: stroke }} />
-              <span className="absolute -bottom-px -left-px w-2.5 h-2.5 border-b-2 border-l-2" style={{ borderColor: stroke }} />
-              <span className="absolute -bottom-px -right-px w-2.5 h-2.5 border-b-2 border-r-2" style={{ borderColor: stroke }} />
-              <div className="absolute -top-[34px] left-0 flex items-center gap-1 max-w-[260px]">
+              <span className="absolute -top-px -left-px w-2.5 h-2.5 border-t-2 border-l-2" style={{ borderColor: strokeFinal }} />
+              <span className="absolute -top-px -right-px w-2.5 h-2.5 border-t-2 border-r-2" style={{ borderColor: strokeFinal }} />
+              <span className="absolute -bottom-px -left-px w-2.5 h-2.5 border-b-2 border-l-2" style={{ borderColor: strokeFinal }} />
+              <span className="absolute -bottom-px -right-px w-2.5 h-2.5 border-b-2 border-r-2" style={{ borderColor: strokeFinal }} />
+              <div className="absolute -top-[34px] left-0 flex items-center gap-1 max-w-[300px]">
                 <div className="text-[9px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/75 truncate"
-                     style={{ color: isDevice ? "#f0d59a" : "rgba(255,255,255,0.7)" }}>
+                     style={{ color: isDevice || isPerson ? "#f0d59a" : "rgba(255,255,255,0.7)" }}>
                   {label}
                 </div>
                 {ai?.has_bluetooth ? (
@@ -1046,10 +1062,20 @@ function ArTab(props: {
                     BLE
                   </div>
                 ) : null}
+                {isPerson && ai?.person?.threat && ai.person.threat !== "none" ? (
+                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-rose-500/30 text-rose-100 border border-rose-300/50">
+                    {ai.person.threat}
+                  </div>
+                ) : null}
               </div>
-              <div className="absolute -bottom-[18px] left-0 text-[8px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/65 text-foreground/75 truncate max-w-[260px]">
-                {sub}
+              <div className="absolute -bottom-[18px] left-0 text-[8px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/65 text-foreground/75 truncate max-w-[320px]">
+                {isPerson && personChips.length ? personChips.join(" · ") : sub}
               </div>
+              {isPerson && ai?.narration ? (
+                <div className="absolute -bottom-[34px] left-0 text-[8px] font-mono px-1.5 py-0.5 rounded-sm bg-black/70 text-[#f0d59a]/90 max-w-[340px] truncate">
+                  {ai.narration}
+                </div>
+              ) : null}
             </div>
           );
         })}
