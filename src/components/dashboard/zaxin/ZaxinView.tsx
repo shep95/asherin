@@ -631,6 +631,36 @@ function drawFrame(
       ctx.lineWidth = 1;
       ctx.strokeRect(hit.bbox.x * W, hit.bbox.y * H, hit.bbox.w * W, hit.bbox.h * H);
     }
+
+    // Anthropometric estimate readout for body hits.
+    if (hit.kind === "body" && hit.metrics) {
+      const m = hit.metrics;
+      const ft = m.heightM * 3.28084;
+      const feet = Math.floor(ft);
+      const inch = Math.round((ft - feet) * 12);
+      const lbs = Math.round(m.weightKg * 2.20462);
+      const line1 = `H ${m.heightM.toFixed(2)}m · ${feet}'${inch}"`;
+      const line2 = `W ~${m.weightKg}kg · ${lbs}lb`;
+      const line3 = `${Math.round(m.confidence * 100)}% · ${m.anchor}`;
+      ctx.font = "10px ui-monospace, monospace";
+      const tw = Math.max(
+        ctx.measureText(line1).width,
+        ctx.measureText(line2).width,
+        ctx.measureText(line3).width,
+      ) + 10;
+      const bx = hit.bbox.x * W;
+      const by = (hit.bbox.y + hit.bbox.h) * H + 4;
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(bx, by, tw, 44);
+      ctx.strokeStyle = "rgba(74,222,128,0.4)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bx, by, tw, 44);
+      ctx.fillStyle = "rgba(167,243,208,0.95)";
+      ctx.fillText(line1, bx + 5, by + 12);
+      ctx.fillText(line2, bx + 5, by + 25);
+      ctx.fillStyle = "rgba(125,211,252,0.85)";
+      ctx.fillText(line3, bx + 5, by + 38);
+    }
   }
 }
 
