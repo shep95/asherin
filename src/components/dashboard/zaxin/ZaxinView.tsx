@@ -150,6 +150,26 @@ const ZaxinView = () => {
   const camStreamRef = useRef<MediaStream | null>(null);
   const scopeStreamRef = useRef<MediaStream | null>(null);
   const poseHandleRef = useRef<{ stop: () => void } | null>(null);
+  const compassHandleRef = useRef<{ stop: () => void } | null>(null);
+  const [compassOn, setCompassOn] = useState(false);
+  const [compassErr, setCompassErr] = useState<string | null>(null);
+
+  const enableCompass = useCallback(async () => {
+    if (compassHandleRef.current) return;
+    setCompassErr(null);
+    try {
+      const h = await startHeadingStream((deg) => {
+        setHeading(deg);
+        engine.setHeading(deg);
+      });
+      compassHandleRef.current = h;
+      setCompassOn(true);
+    } catch (e) {
+      setCompassErr(e instanceof Error ? e.message : String(e));
+    }
+  }, [engine]);
+
+  useEffect(() => () => { compassHandleRef.current?.stop(); }, []);
 
   const openMain = useCallback(async (facing: "environment" | "user") => {
     if (!videoRef.current) throw new Error("Camera surface not ready.");
