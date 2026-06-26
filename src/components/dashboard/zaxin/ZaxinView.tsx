@@ -399,7 +399,9 @@ function ScanTab(props: {
           compassOn={props.compassOn}
           compassErr={props.compassErr}
           onEnableCompass={props.onEnableCompass}
-          contacts={props.locals}
+          contacts={[...props.locals, ...props.remotes]}
+          onPick={props.onPick}
+          mode={props.mode}
         />
       </Panel>
 
