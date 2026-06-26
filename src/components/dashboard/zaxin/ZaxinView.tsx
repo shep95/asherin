@@ -437,7 +437,11 @@ function TacticalTab({ snap, engine }: { snap: ZaxinSnapshot; engine: TacticalEn
 
 function ArTab(props: {
   videoRef: React.MutableRefObject<HTMLVideoElement | null>;
+  scopeVideoRef: React.MutableRefObject<HTMLVideoElement | null>;
   arOn: boolean; arErr: string | null; heading: number | null;
+  mainFacing: "environment" | "user";
+  scopeOn: boolean; scopeAvail: boolean;
+  onToggleScope: () => void; onFlip: () => void;
   contacts: Contact[];
   onStart: () => void; onStop: () => void;
 }) {
