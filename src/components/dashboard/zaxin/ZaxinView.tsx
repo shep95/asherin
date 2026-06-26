@@ -2314,6 +2314,8 @@ export type VisionIdent = {
   } | null;
   // Free-form 1-line tactical narration: "Adult male, 6ft, athletic, hands in pockets, walking SE."
   narration?: string | null;
+  // Client-side freshness timestamp (ms epoch) — set when the AI commits the frame.
+  _ts?: number;
 };
 
 export type EnvScan = {
