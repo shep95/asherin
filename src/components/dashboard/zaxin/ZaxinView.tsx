@@ -3,9 +3,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bluetooth, Radar, ShieldAlert, Network, Sparkles, AlertTriangle, Eye,
+  Bluetooth, Radar, ShieldAlert, Network, AlertTriangle, Eye,
   Smartphone, Play, Square, Trash2, RefreshCw, Star, Compass, Camera, Download, Upload,
-  Activity, Radio, ChevronRight, Cpu, MapPin,
+  Activity, Radio, ChevronRight, Cpu,
 } from "lucide-react";
 import { TacticalEngine, SCENARIOS } from "./core/tactical";
 import { startScan, pickOne, detectScanMode, listPaired, type RawAdvert, type ScanMode } from "./core/scanner";
@@ -13,14 +13,14 @@ import { HopBrain } from "./core/hop";
 import { startHeadingStream, startCamera, stopCamera, bearingDelta } from "./core/posesense";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 
-type Tab = "scan" | "tactical" | "ar" | "hops" | "guide";
+type Tab = "scan" | "tactical" | "ar" | "hops" | "diag";
 
 const TABS: Array<{ id: Tab; label: string; icon: React.ElementType }> = [
   { id: "scan",     label: "Scan",        icon: Radar },
   { id: "tactical", label: "Tactical",    icon: ShieldAlert },
   { id: "ar",       label: "AR Vision",   icon: Camera },
   { id: "hops",     label: "Hop Mesh",    icon: Network },
-  { id: "guide",    label: "Field Guide", icon: Sparkles },
+  { id: "diag",     label: "Diagnostics", icon: Cpu },
 ];
 
 function randomNodeId() {
@@ -237,7 +237,7 @@ const ZaxinView = () => {
         {tab === "hops" && (
           <HopsTab snap={snap} hop={hop} />
         )}
-        {tab === "guide" && <GuideTab mode={mode} />}
+        {tab === "diag" && <DiagTab mode={mode} snap={snap} scanning={scanning} arOn={arOn} heading={heading} />}
       </div>
     </div>
   );
@@ -514,49 +514,74 @@ function HopsTab({ snap, hop }: { snap: ZaxinSnapshot; hop: HopBrain }) {
   );
 }
 
-/* ============================ GUIDE ============================ */
+/* ============================ DIAGNOSTICS ============================ */
 
-function GuideTab({ mode }: { mode: ScanMode }) {
+function DiagTab({ mode, snap, scanning, arOn, heading }: {
+  mode: ScanMode; snap: ZaxinSnapshot; scanning: boolean; arOn: boolean; heading: number | null;
+}) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const nav = typeof navigator !== "undefined" ? navigator : ({} as any);
+  const bt = (nav as any).bluetooth;
+  const hasBT = !!bt;
+  const hasLEScan = typeof bt?.requestLEScan === "function";
+  const hasGetDevices = typeof bt?.getDevices === "function";
+  const hasMedia = !!nav?.mediaDevices?.getUserMedia;
+  const hasOrient = typeof window !== "undefined" && "DeviceOrientationEvent" in window;
+  const hasBroadcast = typeof BroadcastChannel !== "undefined";
+  const isSecure = typeof window !== "undefined" && window.isSecureContext;
+  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+
+  const lastAdvert = snap.contacts.reduce((m, c) => Math.max(m, c.lastSeen ?? 0), 0);
+  const since = lastAdvert ? Math.round((now - lastAdvert) / 1000) : null;
+
+  const rows: Array<{ k: string; v: string; ok: boolean | null }> = [
+    { k: "Secure context (HTTPS)", v: isSecure ? "yes" : "no", ok: isSecure },
+    { k: "Running inside iframe",  v: inIframe ? "yes — host must allow bluetooth/camera" : "no", ok: !inIframe },
+    { k: "navigator.bluetooth",    v: hasBT ? "present" : "missing", ok: hasBT },
+    { k: "requestLEScan (sweep)",  v: hasLEScan ? "available" : "not available", ok: hasLEScan },
+    { k: "getDevices (paired)",    v: hasGetDevices ? "available" : "not available", ok: hasGetDevices },
+    { k: "getUserMedia (camera)",  v: hasMedia ? "available" : "not available", ok: hasMedia },
+    { k: "DeviceOrientationEvent", v: hasOrient ? "present" : "missing", ok: hasOrient },
+    { k: "BroadcastChannel (mesh)",v: hasBroadcast ? "present" : "missing", ok: hasBroadcast },
+    { k: "Detected scan mode",     v: mode, ok: mode !== "unsupported" },
+    { k: "Sweep state",            v: scanning ? "RUNNING" : "idle", ok: scanning || null },
+    { k: "AR pose",                v: arOn ? `on · heading ${heading?.toFixed(0) ?? "?"}°` : "off", ok: arOn || null },
+    { k: "Contacts tracked",       v: String(snap.contacts.length), ok: null },
+    { k: "Mesh peers",             v: String(Object.keys(snap.peers).length), ok: null },
+    { k: "Alerts emitted",         v: String(snap.alerts.length), ok: null },
+    { k: "Last advertisement",     v: since == null ? "—" : `${since}s ago`, ok: null },
+  ];
+
   return (
     <div className="max-w-3xl mx-auto space-y-5">
-      <Panel icon={Sparkles} title="Field Guide" subtitle="What Zaxin sees, and how to read it.">
-        <ol className="mt-4 space-y-3 text-[11px] leading-relaxed text-foreground/75 font-light">
-          <Step n={1} title="Five brains, one mission">
-            <b>Scanner</b> listens. <b>Naming</b> turns radios into names. <b>Intel</b> pulls GATT data on demand.
-            <b> Tactical</b> tracks behaviour and alerts. <b>Hop Mesh</b> stitches in peer scanners.
-          </Step>
-          <Step n={2} title="Current scan mode">
-            {mode === "continuous"
-              ? "Continuous sweep is available — your browser supports requestLEScan."
-              : mode === "picker"
-                ? "Picker mode only. Each tap on Pick Device adds one contact."
-                : "No Web Bluetooth in this browser."}
-          </Step>
-          <Step n={3} title="Reading proximity">
-            Green = arm's reach (immediate). Sky = same room (near). Amber = edge of range (far).
-            Distances are RSSI estimates with txPower −59 dBm and path-loss exponent 2.0.
-          </Step>
-          <Step n={4} title="Behaviour states">
-            <b>Active</b> = seen this sweep. <b>Lost</b> = no advert past the scenario window.
-            <b> Resurrected</b> = lost then returned. <b>Clone-suspect</b> = a second id wearing the same name.
-          </Step>
-          <Step n={5} title="AR Vision">
-            Open the AR tab, grant camera and motion permission, then walk. Each step feeds an RSSI gradient
-            into the heading samples. After a few seconds the bearing for each contact stabilises and a marker
-            anchors in the camera view at that compass bearing.
-          </Step>
-          <Step n={6} title="Hop mesh, honestly">
-            We use BroadcastChannel for same-origin tabs — no fake peer-to-peer. To bring in a phone in another room,
-            export a snapshot, send it over your usual channel, paste it on the receiving node.
-          </Step>
-        </ol>
-        <div className="mt-5 pt-4 border-t border-border/[0.06] text-[9px] tracking-[0.18em] uppercase text-muted-foreground/40">
-          Theory by Asher · #houseofasher
+      <Panel icon={Cpu} title="Live Runtime Diagnostics" subtitle="Real browser capabilities, real engine state. No simulation.">
+        <div className="mt-3 rounded-xl border border-border/[0.08] overflow-hidden">
+          {rows.map((r, i) => (
+            <div key={r.k} className={`flex items-center justify-between gap-3 px-3 py-2 text-[11px] ${i % 2 ? "bg-foreground/[0.015]" : ""}`}>
+              <span className="text-muted-foreground/65 font-light">{r.k}</span>
+              <span className={`font-mono ${
+                r.ok === true ? "text-emerald-300/90" : r.ok === false ? "text-rose-300/85" : "text-foreground/80"
+              }`}>{r.v}</span>
+            </div>
+          ))}
         </div>
       </Panel>
+
+      {inIframe && (
+        <Note tone="warn" icon={AlertTriangle}>
+          Web Bluetooth, camera and motion sensors are blocked inside cross-origin iframes unless the host page sets
+          a Permissions-Policy. Open this dashboard in a standalone tab (or your published URL) to grant the hardware.
+        </Note>
+      )}
     </div>
   );
 }
+
 
 /* ============================ shared UI ============================ */
 
@@ -689,17 +714,6 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   );
 }
 
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
-  return (
-    <li className="flex gap-3">
-      <span className="shrink-0 w-6 h-6 rounded-md border border-border/[0.1] bg-foreground/[0.03] flex items-center justify-center text-[10px] font-mono text-muted-foreground/60">{n}</span>
-      <div>
-        <div className="text-[11px] tracking-[0.1em] uppercase text-foreground/85">{title}</div>
-        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70 font-light">{children}</p>
-      </div>
-    </li>
-  );
-}
 
 function ActionButton({ icon: Icon, children, onClick, tone }: {
   icon: React.ElementType; children: React.ReactNode; onClick: () => void; tone?: "danger";
