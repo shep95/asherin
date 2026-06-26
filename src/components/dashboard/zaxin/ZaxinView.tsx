@@ -552,6 +552,23 @@ function ArTab(props: {
           {props.arOn && Object.keys(bindings).length > 0 && (
             <ActionButton icon={Trash2} onClick={clearBindings}>Unlink All</ActionButton>
           )}
+          {props.arOn && (
+            <>
+              <ActionButton icon={RefreshCw} onClick={props.onFlip}>
+                Flip · {props.mainFacing === "environment" ? "Rear" : "Front"}
+              </ActionButton>
+              {props.scopeAvail && (
+                <button onClick={props.onToggleScope}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] tracking-[0.16em] uppercase border ${
+                    props.scopeOn
+                      ? "bg-emerald-300/[0.08] border-emerald-300/30 text-emerald-200/90"
+                      : "bg-foreground/[0.04] border-border/[0.08] text-foreground/70"
+                  }`}>
+                  <Eye className="h-3 w-3" /> Scope
+                </button>
+              )}
+            </>
+          )}
           <div className="ml-auto flex items-center gap-2 text-[9px] tracking-[0.18em] uppercase text-muted-foreground/50">
             <Compass className="h-3 w-3" /> {props.heading != null ? `${props.heading.toFixed(0)}°` : "no heading"}
           </div>
@@ -568,20 +585,45 @@ function ArTab(props: {
                 {m === "full" ? "Full Body" : m === "face" ? "Face" : "Fingers"}
               </button>
             ))}
-            <span className="ml-auto text-[9px] tracking-[0.18em] uppercase text-muted-foreground/45 font-mono">
-              {bvReady ? "vision · live" : "vision · loading models…"}
+            <span className={`ml-auto text-[9px] tracking-[0.18em] uppercase font-mono px-2 py-0.5 rounded border ${
+              bvErr ? "text-rose-300/90 border-rose-300/30 bg-rose-300/[0.05]" :
+              bvReady ? "text-emerald-300/90 border-emerald-300/30 bg-emerald-300/[0.05]" :
+              "text-amber-300/80 border-amber-300/25 bg-amber-300/[0.04]"
+            }`}>
+              vision · {bvErr ? "failed" : bvReady ? "live" : "loading"}
             </span>
           </div>
         )}
       </Panel>
 
       <div ref={wrapRef}
-        className="relative rounded-2xl overflow-hidden border border-border/[0.1] bg-black aspect-[3/4] sm:aspect-video select-none">
+        className="relative rounded-2xl overflow-hidden border border-border/[0.1] bg-black min-h-[70vh] sm:min-h-0 sm:aspect-video select-none">
         <video ref={props.videoRef} playsInline muted autoPlay
           className="absolute inset-0 w-full h-full object-cover opacity-95" />
         <canvas ref={canvasRef} onClick={onTap} onTouchStart={onTap}
-          className="absolute inset-0 w-full h-full cursor-crosshair" />
-        <div className="absolute inset-0 pointer-events-none">
+          className="absolute inset-0 w-full h-full cursor-crosshair" style={{ zIndex: 2 }} />
+
+        {/* Binocular scope: opposite-facing camera, masked into a rectangular cutout pinned to top */}
+        {props.arOn && props.scopeOn && props.scopeAvail && (
+          <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-[78%] max-w-[560px] pointer-events-none" style={{ zIndex: 3 }}>
+            <div className="relative aspect-[16/5] rounded-md overflow-hidden border border-emerald-300/40 bg-black/40 shadow-[0_0_22px_rgba(16,185,129,0.18)]">
+              <video ref={props.scopeVideoRef} playsInline muted autoPlay
+                className="absolute inset-0 w-full h-full object-cover" />
+              {/* corner brackets */}
+              <span className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-emerald-300/95" />
+              <span className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-emerald-300/95" />
+              <span className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-emerald-300/95" />
+              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-emerald-300/95" />
+              {/* center tick */}
+              <span className="absolute top-1 left-1/2 -translate-x-1/2 w-px h-2 bg-emerald-300/95" />
+              <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-mono text-emerald-300/90 tracking-[0.2em]">
+                {props.mainFacing === "environment" ? "FRONT" : "REAR"} SCOPE
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 4 }}>
           <div className="absolute top-2 left-2 text-[9px] tracking-[0.18em] uppercase text-emerald-300/70 font-mono">
             LIVE FIELD · {[...modes].map((m) => m === "full" ? "FULL BODY" : m.toUpperCase()).join(" · ") || "—"}
           </div>
