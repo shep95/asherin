@@ -575,95 +575,94 @@ function ArTab(props: {
   const hasBearings = props.contacts.filter((c) => c.bearing != null);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
-      <Panel icon={Camera} title="AR Bluetooth Vision" subtitle="On-device pose + face + hand tracking. Tap a presence on camera to bind it to the strongest Bluetooth signal.">
-        {props.arErr && <Note tone="error" icon={AlertTriangle}>{props.arErr}</Note>}
-        {bvErr && <Note tone="warn" icon={AlertTriangle}>{bvErr}</Note>}
-        <div className="flex flex-wrap gap-2 mt-3">
-          {!props.arOn
-            ? <ActionButton icon={Play} onClick={props.onStart}>Start AR</ActionButton>
-            : <ActionButton icon={Square} tone="danger" onClick={props.onStop}>Stop AR</ActionButton>}
-          {props.arOn && Object.keys(bindings).length > 0 && (
-            <ActionButton icon={Trash2} onClick={clearBindings}>Unlink All</ActionButton>
+    <div className="max-w-5xl mx-auto space-y-3">
+      {/* Floating glass control rail — icons + minimal text */}
+      <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] backdrop-blur-xl px-3 py-2.5 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]">
+        <div className="flex items-center gap-2 flex-wrap">
+          {!props.arOn ? (
+            <button onClick={props.onStart}
+              className="group flex items-center gap-2 pl-2.5 pr-3.5 py-1.5 rounded-full bg-emerald-400/95 text-black text-[11px] font-medium tracking-[0.08em] shadow-[0_0_20px_-2px_rgba(110,231,183,0.6)] active:scale-[0.98] transition">
+              <Play className="h-3.5 w-3.5" /> Activate
+            </button>
+          ) : (
+            <button onClick={props.onStop}
+              className="flex items-center gap-2 pl-2.5 pr-3.5 py-1.5 rounded-full bg-rose-400/15 border border-rose-300/40 text-rose-200 text-[11px] font-medium tracking-[0.08em] active:scale-[0.98] transition">
+              <Square className="h-3.5 w-3.5" /> Stop
+            </button>
           )}
+
           {props.arOn && (
             <>
-              <ActionButton icon={RefreshCw} onClick={props.onFlip}>
-                Flip · {props.mainFacing === "environment" ? "Rear" : "Front"}
-              </ActionButton>
+              <IconChip onClick={props.onFlip} icon={RefreshCw} label={props.mainFacing === "environment" ? "R" : "F"} />
               {props.scopeAvail && (
-                <button onClick={props.onToggleScope}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] tracking-[0.16em] uppercase border ${
-                    props.scopeOn
-                      ? "bg-emerald-300/[0.08] border-emerald-300/30 text-emerald-200/90"
-                      : "bg-foreground/[0.04] border-border/[0.08] text-foreground/70"
-                  }`}>
-                  <Eye className="h-3 w-3" /> Scope
-                </button>
+                <IconChip onClick={props.onToggleScope} icon={Eye} active={props.scopeOn} />
               )}
+              {Object.keys(bindings).length > 0 && (
+                <IconChip onClick={clearBindings} icon={Trash2} tone="danger" />
+              )}
+              <div className="mx-1 h-5 w-px bg-white/[0.08]" />
+              {(["full","face","fingers"] as BodyMode[]).map((m) => (
+                <button key={m} onClick={() => toggleMode(m)}
+                  className={`px-2.5 py-1 rounded-full text-[10px] tracking-[0.06em] transition ${
+                    modes.has(m)
+                      ? "bg-emerald-300/15 text-emerald-200 border border-emerald-300/40"
+                      : "text-foreground/45 border border-white/[0.06] hover:text-foreground/80"
+                  }`}>
+                  {m === "full" ? "Body" : m === "face" ? "Face" : "Hand"}
+                </button>
+              ))}
             </>
           )}
-          <div className="ml-auto flex items-center gap-2 text-[9px] tracking-[0.18em] uppercase text-muted-foreground/50">
-            <Compass className="h-3 w-3" /> {props.heading != null ? `${props.heading.toFixed(0)}°` : "no heading"}
-          </div>
-        </div>
-        {props.arOn && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {(["full","face","fingers"] as BodyMode[]).map((m) => (
-              <button key={m} onClick={() => toggleMode(m)}
-                className={`px-2.5 py-1 rounded-md text-[9px] tracking-[0.14em] uppercase border transition-all ${
-                  modes.has(m)
-                    ? "bg-emerald-300/[0.08] border-emerald-300/30 text-emerald-200/90"
-                    : "border-border/[0.08] text-muted-foreground/55 hover:text-foreground/80"
-                }`}>
-                {m === "full" ? "Full Body" : m === "face" ? "Face" : "Fingers"}
-              </button>
-            ))}
-            <span className={`ml-auto text-[9px] tracking-[0.18em] uppercase font-mono px-2 py-0.5 rounded border ${
-              bvErr ? "text-rose-300/90 border-rose-300/30 bg-rose-300/[0.05]" :
-              bvReady ? "text-emerald-300/90 border-emerald-300/30 bg-emerald-300/[0.05]" :
-              "text-amber-300/80 border-amber-300/25 bg-amber-300/[0.04]"
-            }`}>
-              vision · {bvErr ? "failed" : bvReady ? "live" : "loading"}
+
+          <div className="ml-auto flex items-center gap-1.5">
+            {props.arOn && (
+              <span className={`text-[9px] tracking-[0.16em] font-mono px-2 py-0.5 rounded-full ${
+                bvErr ? "text-rose-200 bg-rose-400/10" :
+                bvReady ? "text-emerald-200 bg-emerald-400/10" :
+                "text-amber-200 bg-amber-400/10 animate-pulse"
+              }`}>
+                {bvErr ? "ERR" : bvReady ? "LIVE" : "INIT"}
+              </span>
+            )}
+            <span className="flex items-center gap-1 text-[10px] tracking-[0.1em] font-mono text-foreground/60 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.05]">
+              <Compass className="h-3 w-3" /> {props.heading != null ? `${props.heading.toFixed(0)}°` : "—"}
             </span>
           </div>
+        </div>
+        {(props.arErr || bvErr) && (
+          <div className="mt-2 text-[10px] text-rose-300/90 truncate">{props.arErr || bvErr}</div>
         )}
-      </Panel>
+      </div>
 
+      {/* Camera surface */}
       <div ref={wrapRef}
-        className="relative rounded-2xl overflow-hidden border border-border/[0.1] bg-black min-h-[70vh] sm:min-h-0 sm:aspect-video select-none">
+        className="relative rounded-3xl overflow-hidden border border-white/[0.06] bg-black min-h-[70vh] sm:min-h-0 sm:aspect-video select-none shadow-[0_20px_60px_-20px_rgba(16,185,129,0.18)]">
         <video ref={props.videoRef} playsInline muted autoPlay
-          className="absolute inset-0 w-full h-full object-cover opacity-95" />
+          className="absolute inset-0 w-full h-full object-cover" />
         <canvas ref={canvasRef} onClick={onTap} onTouchStart={onTap}
           className="absolute inset-0 w-full h-full cursor-crosshair" style={{ zIndex: 2 }} />
 
-        {/* Binocular scope: opposite-facing camera, masked into a rectangular cutout pinned to top */}
+        {/* edge vignette for depth */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "radial-gradient(120% 80% at 50% 50%, transparent 60%, rgba(0,0,0,0.55) 100%)",
+          zIndex: 1,
+        }} />
+
+        {/* Binocular scope — minimal frameless cutout */}
         {props.arOn && props.scopeOn && props.scopeAvail && (
-          <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-[78%] max-w-[560px] pointer-events-none" style={{ zIndex: 3 }}>
-            <div className="relative aspect-[16/5] rounded-md overflow-hidden border border-emerald-300/40 bg-black/40 shadow-[0_0_22px_rgba(16,185,129,0.18)]">
+          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-[72%] max-w-[520px] pointer-events-none" style={{ zIndex: 3 }}>
+            <div className="relative aspect-[16/5] rounded-2xl overflow-hidden bg-black/30 ring-1 ring-emerald-300/30 shadow-[0_0_24px_-6px_rgba(16,185,129,0.4)]">
               <video ref={props.scopeVideoRef} playsInline muted autoPlay
                 className="absolute inset-0 w-full h-full object-cover" />
-              {/* corner brackets */}
-              <span className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-emerald-300/95" />
-              <span className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-emerald-300/95" />
-              <span className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-emerald-300/95" />
-              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-emerald-300/95" />
-              {/* center tick */}
-              <span className="absolute top-1 left-1/2 -translate-x-1/2 w-px h-2 bg-emerald-300/95" />
-              <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-mono text-emerald-300/90 tracking-[0.2em]">
-                {props.mainFacing === "environment" ? "FRONT" : "REAR"} SCOPE
+              <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-emerald-300/90 shadow-[0_0_6px_rgba(110,231,183,0.9)]" />
+              <span className="absolute bottom-1 right-1.5 text-[7px] font-mono text-emerald-200/80 tracking-[0.22em]">
+                {props.mainFacing === "environment" ? "FRONT" : "REAR"}
               </span>
             </div>
           </div>
         )}
 
-        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 4 }}>
-          <div className="absolute top-2 left-2 text-[9px] tracking-[0.18em] uppercase text-emerald-300/70 font-mono">
-            LIVE FIELD · {[...modes].map((m) => m === "full" ? "FULL BODY" : m.toUpperCase()).join(" · ") || "—"}
-          </div>
-        </div>
-
-        {/* Ghost-Recon style HUD: compass strip + minimap, only when AR active */}
+        {/* Top compass strip + reticles */}
         {props.arOn && (
           <>
             <CompassStrip
@@ -678,7 +677,7 @@ function ArTab(props: {
           </>
         )}
 
-        {/* In-FOV target reticles (existing behaviour, restyled) */}
+        {/* In-FOV target reticles */}
         {props.arOn && props.heading != null && hasBearings.map((c) => {
           const delta = bearingDelta(c.bearing!, props.heading!);
           if (Math.abs(delta) > FOV / 2) return null;
@@ -686,42 +685,48 @@ function ArTab(props: {
           const opacity = 0.4 + c.bearingConfidence * 0.6;
           const dist = (c as any).distanceM ?? null;
           return (
-            <div key={c.id} style={{ left: `${xPct}%`, opacity }}
+            <div key={c.id} style={{ left: `${xPct}%`, opacity, zIndex: 4 }}
               className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-              <div className="relative w-14 h-10">
-                {/* corner brackets */}
-                <span className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l border-emerald-300/90" />
-                <span className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r border-emerald-300/90" />
-                <span className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l border-emerald-300/90" />
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r border-emerald-300/90" />
-                <span className="absolute inset-1/2 w-1 h-1 -translate-x-1/2 -translate-y-1/2 bg-emerald-300 rounded-full animate-pulse" />
+              <div className="relative w-12 h-12 rounded-full border border-emerald-300/70 backdrop-blur-[2px]">
+                <span className="absolute inset-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 bg-emerald-300 rounded-full animate-pulse shadow-[0_0_8px_rgba(110,231,183,0.9)]" />
               </div>
-              <div className="mt-1 text-[8px] font-mono text-emerald-300/95 bg-black/55 px-1.5 py-0.5 rounded border border-emerald-300/30">
-                {c.displayName}{dist != null && <span className="opacity-70"> · {dist.toFixed(1)}m</span>}
+              <div className="mt-1 text-[8px] font-mono text-emerald-100/90 bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
+                {c.displayName}{dist != null && <span className="opacity-60"> · {dist.toFixed(1)}m</span>}
               </div>
             </div>
           );
         })}
 
-
         {!props.arOn && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
-            <Camera className="h-6 w-6 text-foreground/30" />
-            <div className="mt-2 text-[10px] tracking-[0.18em] uppercase text-foreground/50">Camera idle</div>
-            <p className="mt-2 max-w-sm text-[10px] text-muted-foreground/55 font-light leading-relaxed">
-              Tap <b>Start AR</b>, grant camera + motion permissions. Body, face and finger landmarks render on the live feed.
-              Tap a detected region to bind it to a Bluetooth signal.
-            </p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 z-10">
+            <div className="w-14 h-14 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md flex items-center justify-center">
+              <Camera className="h-5 w-5 text-foreground/40" />
+            </div>
+            <div className="mt-3 text-[10px] tracking-[0.22em] uppercase text-foreground/45">Tap activate</div>
           </div>
         )}
-      </div>
-
-      <div className="text-[9px] tracking-[0.18em] uppercase text-muted-foreground/45 text-center">
-        Select a presence on camera, then a Bluetooth signal to link identity.
       </div>
     </div>
   );
 }
+
+function IconChip({ icon: Icon, onClick, active, tone, label }: {
+  icon: any; onClick: () => void; active?: boolean; tone?: "danger"; label?: string;
+}) {
+  const base = "flex items-center justify-center gap-1 h-8 min-w-[2rem] px-2 rounded-full border text-[10px] font-mono transition active:scale-[0.95]";
+  const cls = tone === "danger"
+    ? "border-rose-300/30 text-rose-200 bg-rose-400/10 hover:bg-rose-400/15"
+    : active
+      ? "border-emerald-300/40 text-emerald-200 bg-emerald-300/10"
+      : "border-white/[0.08] text-foreground/70 bg-white/[0.02] hover:bg-white/[0.05]";
+  return (
+    <button onClick={onClick} className={`${base} ${cls}`}>
+      <Icon className="h-3.5 w-3.5" />
+      {label && <span className="tracking-[0.1em]">{label}</span>}
+    </button>
+  );
+}
+
 
 function drawFrame(
   ctx: CanvasRenderingContext2D, frame: BodyFrame, W: number, H: number,
