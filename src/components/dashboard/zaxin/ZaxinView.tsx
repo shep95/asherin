@@ -2124,11 +2124,15 @@ function AiBriefPanel({ contacts, scenario }: { contacts: Contact[]; scenario: S
 // by RSSI-derived distance (closest first) so the operator sees a ranked
 // "who is in the room" list — labeled, identified, and distance-ordered.
 
-type VisionIdent = {
-  label: string;            // refined human label, e.g. "iPhone, black case"
-  brand?: string | null;    // best-guess brand
+export type VisionIdent = {
+  label: string;            // refined human label, e.g. "iPhone 15 Pro, black case"
+  brand?: string | null;    // best-guess brand, e.g. "Apple"
+  device_type?: string | null; // phone|laptop|tablet|earbuds|watch|tv|speaker|router|camera|person|other
+  has_bluetooth?: boolean | null;
   matched_optical_id?: string | null;
   matched_ble_id?: string | null;
+  // bbox in PERCENT of the frame — supplied by the AI when no optical pair exists
+  bbox_pct?: { x: number; y: number; w: number; h: number } | null;
   est_distance_m?: number | null;
   confidence?: number | null; // 0..1
   note?: string | null;
