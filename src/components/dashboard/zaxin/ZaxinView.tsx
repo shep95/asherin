@@ -197,11 +197,14 @@ const ZaxinView = () => {
       await openMain(mainFacing);
       // Try to also open the opposite-facing camera for the binoc scope.
       await openScope(flipFacing(mainFacing));
-      const pose = await startHeadingStream((deg) => {
-        setHeading(deg);
-        engine.setHeading(deg);
-      });
-      poseHandleRef.current = pose;
+      // Only start a new heading stream if one isn't already running.
+      if (!poseHandleRef.current && !compassHandleRef.current) {
+        const pose = await startHeadingStream((deg) => {
+          setHeading(deg);
+          engine.setHeading(deg);
+        });
+        poseHandleRef.current = pose;
+      }
       engine.setPose(true, null);
       setArOn(true);
     } catch (e) {
@@ -230,6 +233,79 @@ const ZaxinView = () => {
       setArErr(e instanceof Error ? e.message : String(e));
     }
   }, [arOn, mainFacing, openMain, openScope]);
+
+  /* ------------- AR resilience: recover from blackouts ------------- */
+  // Mobile browsers kill or freeze video tracks on visibility loss, thermal
+  // throttling, or stream re-allocation. Watch for dead tracks / paused video
+  // and re-acquire the camera so the AR feed never stays black.
+  useEffect(() => {
+    if (!arOn) return;
+    let killed = false;
+
+    const reviveMain = async () => {
+      if (killed) return;
+      try {
+        const v = videoRef.current;
+        const tracks = camStreamRef.current?.getVideoTracks() ?? [];
+        const dead = tracks.length === 0 || tracks.every((t) => t.readyState === "ended" || !t.enabled);
+        if (dead) {
+          await openMain(mainFacing);
+        } else if (v && v.paused) {
+          try { await v.play(); } catch { /* ignore */ }
+        }
+      } catch (e) {
+        setArErr(e instanceof Error ? e.message : String(e));
+      }
+    };
+    const reviveScope = async () => {
+      if (killed) return;
+      try {
+        const v = scopeVideoRef.current;
+        const tracks = scopeStreamRef.current?.getVideoTracks() ?? [];
+        const dead = tracks.length === 0 || tracks.every((t) => t.readyState === "ended" || !t.enabled);
+        if (dead && scopeAvail) {
+          await openScope(flipFacing(mainFacing));
+        } else if (v && v.paused) {
+          try { await v.play(); } catch { /* ignore */ }
+        }
+      } catch { /* scope is optional */ }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        reviveMain(); reviveScope();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Watch track health
+    const wireTrackWatchers = () => {
+      camStreamRef.current?.getVideoTracks().forEach((t) => {
+        t.onended = reviveMain;
+        t.onmute = reviveMain;
+      });
+      scopeStreamRef.current?.getVideoTracks().forEach((t) => {
+        t.onended = reviveScope;
+        t.onmute = reviveScope;
+      });
+    };
+    wireTrackWatchers();
+
+    // Poll every 3s — cheap safety net for silent black frames.
+    const id = window.setInterval(() => {
+      const v = videoRef.current;
+      if (v && (v.readyState < 2 || v.paused)) reviveMain();
+      const s = scopeVideoRef.current;
+      if (s && scopeAvail && (s.readyState < 2 || s.paused)) reviveScope();
+      wireTrackWatchers();
+    }, 3000);
+
+    return () => {
+      killed = true;
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(id);
+    };
+  }, [arOn, mainFacing, scopeAvail, openMain, openScope]);
 
   useEffect(() => () => {
     poseHandleRef.current?.stop();
@@ -319,6 +395,7 @@ const ZaxinView = () => {
             onToggleScope={() => setScopeOn((v) => !v)} onFlip={flipMain}
             contacts={locals}
             onStart={startAr} onStop={stopAr}
+            compassOn={compassOn} onEnableCompass={enableCompass} compassErr={compassErr}
           />
         )}
         {tab === "hops" && (
@@ -480,6 +557,7 @@ function ArTab(props: {
   onToggleScope: () => void; onFlip: () => void;
   contacts: Contact[];
   onStart: () => void; onStop: () => void;
+  compassOn: boolean; onEnableCompass: () => void; compassErr: string | null;
 }) {
   const FOV = 60;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -626,9 +704,16 @@ function ArTab(props: {
                 {bvErr ? "ERR" : bvReady ? "LIVE" : "INIT"}
               </span>
             )}
-            <span className="flex items-center gap-1 text-[10px] tracking-[0.1em] font-mono text-foreground/60 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.05]">
-              <Compass className="h-3 w-3" /> {props.heading != null ? `${props.heading.toFixed(0)}°` : "—"}
-            </span>
+            {props.arOn && !props.compassOn ? (
+              <button onClick={props.onEnableCompass}
+                className="flex items-center gap-1 text-[10px] tracking-[0.1em] font-mono text-[#d4a85a] px-2 py-0.5 rounded-full bg-[#6b4a18]/30 border border-[#c69a4a]/40 hover:bg-[#6b4a18]/50 active:scale-[0.97] transition">
+                <Compass className="h-3 w-3" /> Enable
+              </button>
+            ) : (
+              <span className={`flex items-center gap-1 text-[10px] tracking-[0.1em] font-mono px-2 py-0.5 rounded-full ${props.compassOn ? "text-[#e8c684] bg-[#6b4a18]/30 border border-[#c69a4a]/40" : "text-foreground/60 bg-white/[0.04] border border-white/[0.05]"}`}>
+                <Compass className="h-3 w-3" /> {props.heading != null ? `${props.heading.toFixed(0)}°` : "—"}
+              </span>
+            )}
           </div>
         </div>
         {(props.arErr || bvErr) && (
@@ -638,7 +723,7 @@ function ArTab(props: {
 
       {/* Camera surface */}
       <div ref={wrapRef}
-        className="relative rounded-3xl overflow-hidden border border-white/[0.06] bg-black min-h-[70vh] sm:min-h-0 sm:aspect-video select-none shadow-[0_20px_60px_-20px_rgba(16,185,129,0.18)]">
+        className="relative rounded-3xl overflow-hidden border border-[#c69a4a]/15 bg-black min-h-[70vh] sm:min-h-0 sm:aspect-video select-none shadow-[0_20px_60px_-20px_rgba(198,154,74,0.25)]">
         <video ref={props.videoRef} playsInline muted autoPlay
           className="absolute inset-0 w-full h-full object-cover" />
         <canvas ref={canvasRef} onClick={onTap} onTouchStart={onTap}
@@ -653,11 +738,11 @@ function ArTab(props: {
         {/* Binocular scope — minimal frameless cutout */}
         {props.arOn && props.scopeOn && props.scopeAvail && (
           <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-[72%] max-w-[520px] pointer-events-none" style={{ zIndex: 3 }}>
-            <div className="relative aspect-[16/5] rounded-2xl overflow-hidden bg-black/30 ring-1 ring-emerald-300/30 shadow-[0_0_24px_-6px_rgba(16,185,129,0.4)]">
+            <div className="relative aspect-[16/5] rounded-2xl overflow-hidden bg-black/30 ring-1 ring-[#c69a4a]/40 shadow-[0_0_24px_-6px_rgba(198,154,74,0.45)]">
               <video ref={props.scopeVideoRef} playsInline muted autoPlay
                 className="absolute inset-0 w-full h-full object-cover" />
-              <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-emerald-300/90 shadow-[0_0_6px_rgba(110,231,183,0.9)]" />
-              <span className="absolute bottom-1 right-1.5 text-[7px] font-mono text-emerald-200/80 tracking-[0.22em]">
+              <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-[#e8c684] shadow-[0_0_6px_rgba(232,198,132,0.9)]" />
+              <span className="absolute bottom-1 right-1.5 text-[7px] font-mono text-[#e8c684]/85 tracking-[0.22em]">
                 {props.mainFacing === "environment" ? "FRONT" : "REAR"}
               </span>
             </div>
@@ -689,10 +774,10 @@ function ArTab(props: {
           return (
             <div key={c.id} style={{ left: `${xPct}%`, opacity, zIndex: 4 }}
               className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-              <div className="relative w-12 h-12 rounded-full border border-emerald-300/70 backdrop-blur-[2px]">
-                <span className="absolute inset-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 bg-emerald-300 rounded-full animate-pulse shadow-[0_0_8px_rgba(110,231,183,0.9)]" />
+              <div className="relative w-12 h-12 rounded-full border border-[#c69a4a]/80 backdrop-blur-[2px] shadow-[0_0_12px_-2px_rgba(198,154,74,0.55)]">
+                <span className="absolute inset-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 bg-[#e8c684] rounded-full animate-pulse shadow-[0_0_8px_rgba(232,198,132,0.95)]" />
               </div>
-              <div className="mt-1 text-[8px] font-mono text-emerald-100/90 bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
+              <div className="mt-1 text-[8px] font-mono text-[#f0d59a] bg-black/45 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
                 {c.displayName}{dist != null && <span className="opacity-60"> · {dist.toFixed(1)}m</span>}
               </div>
             </div>
@@ -1117,16 +1202,16 @@ function CompassStrip({ heading, contacts, fov }: {
   }
   return (
     <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[88%] max-w-[520px] pointer-events-none">
-      <div className="relative h-9 rounded-md border border-emerald-300/25 bg-black/40 backdrop-blur-sm overflow-hidden">
+      <div className="relative h-9 rounded-md border border-[#c69a4a]/30 bg-gradient-to-b from-[#1a1208]/70 to-black/55 backdrop-blur-md overflow-hidden shadow-[inset_0_0_18px_-6px_rgba(198,154,74,0.35)]">
         {/* tick row */}
         {ticks.map((t, i) => {
           const offset = ((t.deg - h) / (fov / 2)) * 50 + 50;
           if (offset < -2 || offset > 102) return null;
           return (
             <div key={i} style={{ left: `${offset}%` }} className="absolute top-0 -translate-x-1/2">
-              <div className={`mx-auto w-px ${t.major ? "h-3 bg-emerald-300/80" : "h-1.5 bg-emerald-300/35"}`} />
+              <div className={`mx-auto w-px ${t.major ? "h-3 bg-[#e8c684]" : "h-1.5 bg-[#c69a4a]/45"}`} />
               {t.label && (
-                <div className="mt-0.5 text-[9px] font-mono text-emerald-300/90 text-center -translate-x-1/2 absolute left-1/2 top-3 whitespace-nowrap">
+                <div className="mt-0.5 text-[9px] font-mono text-[#e8c684] text-center -translate-x-1/2 absolute left-1/2 top-3 whitespace-nowrap">
                   {t.label}
                 </div>
               )}
@@ -1140,14 +1225,14 @@ function CompassStrip({ heading, contacts, fov }: {
           const x = 50 + (delta / (fov / 2)) * 50;
           return (
             <div key={c.id} style={{ left: `${x}%` }}
-              className="absolute bottom-0.5 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.9)]" />
+              className="absolute bottom-0.5 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#f0d59a] shadow-[0_0_6px_rgba(240,213,154,0.95)]" />
           );
         })}
         {/* center heading marker */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-px bg-emerald-300" />
-        <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-emerald-300" />
+        <div className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-px bg-[#e8c684]" />
+        <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-[#e8c684]" />
       </div>
-      <div className="mt-1 text-center text-[10px] font-mono text-emerald-300/90 tracking-[0.2em]">
+      <div className="mt-1 text-center text-[10px] font-mono text-[#e8c684] tracking-[0.2em]">
         {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "--- °"}
       </div>
     </div>
@@ -1180,34 +1265,34 @@ function MiniMap({ heading, contacts }: {
   });
   return (
     <div className="absolute bottom-3 left-3 pointer-events-none select-none" style={{ zIndex: 5 }}>
-      <div className="relative rounded-full bg-black/45 backdrop-blur-xl ring-1 ring-white/[0.08] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.7),inset_0_0_30px_-12px_rgba(110,231,183,0.4)]"
+      <div className="relative rounded-full bg-gradient-to-br from-[#1a1208]/70 to-black/55 backdrop-blur-xl ring-1 ring-[#c69a4a]/35 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.7),inset_0_0_30px_-10px_rgba(198,154,74,0.45)]"
         style={{ width: size, height: size }}>
         {/* concentric range arcs */}
-        <div className="absolute inset-2 rounded-full border border-emerald-300/15" />
-        <div className="absolute inset-5 rounded-full border border-emerald-300/10" />
-        <div className="absolute inset-8 rounded-full border border-emerald-300/[0.07]" />
+        <div className="absolute inset-2 rounded-full border border-[#c69a4a]/20" />
+        <div className="absolute inset-5 rounded-full border border-[#c69a4a]/15" />
+        <div className="absolute inset-8 rounded-full border border-[#c69a4a]/10" />
         {/* cross */}
-        <div className="absolute left-1/2 top-1.5 bottom-1.5 w-px bg-emerald-300/15" />
-        <div className="absolute top-1/2 left-1.5 right-1.5 h-px bg-emerald-300/15" />
+        <div className="absolute left-1/2 top-1.5 bottom-1.5 w-px bg-[#c69a4a]/20" />
+        <div className="absolute top-1/2 left-1.5 right-1.5 h-px bg-[#c69a4a]/20" />
         {/* FOV cone (forward direction = up) */}
         <div className="absolute inset-0 rounded-full overflow-hidden">
           <div className="absolute inset-0"
-            style={{ background: "conic-gradient(from -30deg, rgba(110,231,183,0.32) 0deg, rgba(110,231,183,0.04) 60deg, transparent 60deg 360deg)" }} />
+            style={{ background: "conic-gradient(from -30deg, rgba(232,198,132,0.32) 0deg, rgba(232,198,132,0.05) 60deg, transparent 60deg 360deg)" }} />
         </div>
         {/* Bluetooth contacts */}
         {placed.map((c) => (
           <div key={c.id} className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: c.x, top: c.y, opacity: c.dim }}>
-            <span className="block w-1.5 h-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.95)]" />
+            <span className="block w-1.5 h-1.5 rounded-full bg-[#f0d59a] shadow-[0_0_8px_rgba(240,213,154,0.95)]" />
           </div>
         ))}
         {/* operator pip + forward arrow */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.95)]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#e8c684] shadow-[0_0_10px_rgba(232,198,132,0.95)]" />
         </div>
-        <div className="absolute left-1/2 top-1 -translate-x-1/2 text-[8px] font-mono text-emerald-200/80 tracking-[0.16em]">N</div>
+        <div className="absolute left-1/2 top-1 -translate-x-1/2 text-[8px] font-mono text-[#e8c684] tracking-[0.16em]">N</div>
         {/* contact count bubble */}
-        <div className="absolute -top-1.5 -right-1.5 text-[8px] font-mono px-1.5 py-px rounded-full bg-emerald-400/90 text-black tracking-wider">
+        <div className="absolute -top-1.5 -right-1.5 text-[8px] font-mono px-1.5 py-px rounded-full bg-[#c69a4a] text-black tracking-wider shadow-[0_0_8px_-1px_rgba(198,154,74,0.7)]">
           {contacts.length}
         </div>
       </div>
