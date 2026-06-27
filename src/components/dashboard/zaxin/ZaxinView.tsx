@@ -16,7 +16,8 @@ import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type 
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
 import { rssiToDistance } from "./core/bleRanging";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
-import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import { useResolvedZaxinByok } from "@/lib/zaxin/resolveByok";
+import ZaxinInlineByok from "./ZaxinInlineByok";
 import { Link } from "react-router-dom";
 import { Mic, MicOff, Users } from "lucide-react";
 
@@ -925,14 +926,14 @@ function ArTab(props: {
           zIndex: 1,
         }} />
 
-        {/* Binocular scope — minimal frameless cutout */}
+        {/* Binocular scope — moved to top-LEFT so the compass strip can claim the right side on mobile */}
         {props.arOn && props.scopeOn && props.scopeAvail && (
-          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-[72%] max-w-[520px] pointer-events-none" style={{ zIndex: 3 }}>
-            <div className="relative aspect-[16/5] rounded-2xl overflow-hidden bg-black/30 ring-1 ring-[#c69a4a]/40 shadow-[0_0_24px_-6px_rgba(198,154,74,0.45)]">
+          <div className="absolute top-2 left-2 w-[38%] max-w-[160px] pointer-events-none" style={{ zIndex: 3 }}>
+            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-black/30 ring-1 ring-[#c69a4a]/40 shadow-[0_0_18px_-6px_rgba(198,154,74,0.45)]">
               <video ref={props.scopeVideoRef} playsInline muted autoPlay
                 className="absolute inset-0 w-full h-full object-cover" />
-              <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-[#e8c684] shadow-[0_0_6px_rgba(232,198,132,0.9)]" />
-              <span className="absolute bottom-1 right-1.5 text-[7px] font-mono text-[#e8c684]/85 tracking-[0.22em]">
+              <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-[#e8c684] shadow-[0_0_6px_rgba(232,198,132,0.9)]" />
+              <span className="absolute bottom-0.5 right-1 text-[6px] font-mono text-[#e8c684]/85 tracking-[0.22em]">
                 {props.mainFacing === "environment" ? "FRONT" : "REAR"}
               </span>
             </div>
@@ -1671,7 +1672,7 @@ function CompassStrip({ heading, contacts, fov }: {
     ticks.push({ deg: d, major, label });
   }
   return (
-    <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[88%] max-w-[520px] pointer-events-none">
+    <div className="absolute top-2 right-2 left-[170px] sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[60%] max-w-[520px] pointer-events-none">
       <div className="relative h-9 rounded-md border border-[#c69a4a]/30 bg-gradient-to-b from-[#1a1208]/70 to-black/55 backdrop-blur-md overflow-hidden shadow-[inset_0_0_18px_-6px_rgba(198,154,74,0.35)]">
         {/* tick row */}
         {ticks.map((t, i) => {
@@ -1711,60 +1712,104 @@ function CompassStrip({ heading, contacts, fov }: {
 
 function MiniMap({ heading, contacts }: {
   heading: number | null;
-  contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number }>;
+  contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number; distanceMeters?: number | null }>;
 }) {
-  const size = 124;
-  const r = size / 2;
-  const rssiToRadius = (rssi?: number) => {
-    if (rssi == null) return r * 0.85;
-    const t = Math.min(1, Math.max(0, (Math.abs(rssi) - 30) / 65));
-    return 10 + t * (r - 16);
+  // Live GPS for a true satellite mini-map (replaces the prior abstract radar).
+  const [pos, setPos] = useState<{ lat: number; lon: number; acc: number } | null>(null);
+  const [zoom] = useState(19); // tight overhead — operator-scale
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    const w = navigator.geolocation.watchPosition(
+      (p) => setPos({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }),
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 4000, timeout: 15000 },
+    );
+    return () => navigator.geolocation.clearWatch(w);
+  }, []);
+
+  // Half-extent in degrees — same formula as the full SatelliteMap.
+  const halfDeg = useMemo(() => {
+    const meters = 40 * Math.pow(2, 20 - zoom);
+    return meters / 111_320;
+  }, [zoom]);
+
+  const tileUrl = useMemo(() => {
+    if (!pos) return null;
+    const { lat, lon } = pos;
+    const bbox = `${lon - halfDeg},${lat - halfDeg},${lon + halfDeg},${lat + halfDeg}`;
+    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&imageSR=3857&size=320,320&format=jpg&transparent=false&f=image`;
+  }, [pos, halfDeg]);
+
+  const SIZE = 140;
+  const HALF_PX = SIZE / 2;
+
+  // Place each contact around the operator. Bearing is world-absolute when
+  // available; otherwise hash a stable angle so it still appears.
+  const pipFor = (c: { id: string; bearing?: number | null; rssi?: number; distanceMeters?: number | null }, i: number) => {
+    const halfMeters = halfDeg * 111_320; // half the map's real-world span
+    const pxPerMeter = (SIZE / 2 - 8) / Math.max(halfMeters, 1);
+    const distM = c.distanceMeters ?? (c.rssi != null ? Math.max(0.5, Math.min(40, Math.pow(10, (-59 - c.rssi) / 20))) : 8);
+    const radiusPx = Math.min(SIZE / 2 - 6, distM * pxPerMeter * 0.8);
+    const bearing = c.bearing ?? ((parseInt(c.id.slice(-4), 36) || i * 47) % 360);
+    const rad = ((bearing - (heading ?? 0)) * Math.PI) / 180;
+    return { x: Math.sin(rad) * radiusPx, y: -Math.cos(rad) * radiusPx };
   };
-  // All BT contacts shown — pinless ones placed by hashed angle so even no-bearing devices appear on the compass
-  const placed = contacts.map((c) => {
-    let angle: number;
-    if (c.bearing != null) {
-      angle = (((c.bearing - (heading ?? 0)) % 360) + 360) % 360;
-    } else {
-      let hash = 0; for (let i = 0; i < c.id.length; i++) hash = (hash * 31 + c.id.charCodeAt(i)) >>> 0;
-      angle = hash % 360;
-    }
-    const rad = (angle - 90) * (Math.PI / 180);
-    const dist = rssiToRadius((c as any).rssi);
-    return { ...c, x: r + Math.cos(rad) * dist, y: r + Math.sin(rad) * dist, dim: c.bearing != null ? 1 : 0.55 };
-  });
+
   return (
-    <div className="absolute bottom-3 left-3 pointer-events-none select-none" style={{ zIndex: 5 }}>
-      <div className="relative rounded-full bg-gradient-to-br from-[#1a1208]/70 to-black/55 backdrop-blur-xl ring-1 ring-[#c69a4a]/35 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.7),inset_0_0_30px_-10px_rgba(198,154,74,0.45)]"
-        style={{ width: size, height: size }}>
-        {/* concentric range arcs */}
-        <div className="absolute inset-2 rounded-full border border-[#c69a4a]/20" />
-        <div className="absolute inset-5 rounded-full border border-[#c69a4a]/15" />
-        <div className="absolute inset-8 rounded-full border border-[#c69a4a]/10" />
-        {/* cross */}
-        <div className="absolute left-1/2 top-1.5 bottom-1.5 w-px bg-[#c69a4a]/20" />
-        <div className="absolute top-1/2 left-1.5 right-1.5 h-px bg-[#c69a4a]/20" />
-        {/* FOV cone (forward direction = up) */}
-        <div className="absolute inset-0 rounded-full overflow-hidden">
-          <div className="absolute inset-0"
-            style={{ background: "conic-gradient(from -30deg, rgba(232,198,132,0.32) 0deg, rgba(232,198,132,0.05) 60deg, transparent 60deg 360deg)" }} />
-        </div>
-        {/* Bluetooth contacts */}
-        {placed.map((c) => (
-          <div key={c.id} className="absolute -translate-x-1/2 -translate-y-1/2"
-            style={{ left: c.x, top: c.y, opacity: c.dim }}>
-            <span className="block w-1.5 h-1.5 rounded-full bg-[#f0d59a] shadow-[0_0_8px_rgba(240,213,154,0.95)]" />
+    <div className="absolute bottom-3 right-3 pointer-events-none select-none" style={{ zIndex: 5 }}>
+      <div
+        className="relative rounded-[18px] overflow-hidden bg-black/55 backdrop-blur-md ring-1 ring-[#c69a4a]/45 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.7),inset_0_0_24px_-10px_rgba(198,154,74,0.45)]"
+        style={{ width: SIZE, height: SIZE }}
+      >
+        {tileUrl ? (
+          <img src={tileUrl} alt="Operator satellite overhead" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center text-[8px] tracking-[0.18em] uppercase text-[#e8c684]/70">
+            acquiring GPS…
           </div>
-        ))}
-        {/* operator pip + forward arrow */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#e8c684] shadow-[0_0_10px_rgba(232,198,132,0.95)]" />
+        )}
+
+        {/* tint overlay so pips & arrow read clearly */}
+        <div className="absolute inset-0 bg-black/25" />
+
+        {/* contact pips */}
+        {contacts.slice(0, 32).map((c, i) => {
+          const { x, y } = pipFor(c, i);
+          return (
+            <div
+              key={c.id}
+              className="absolute left-1/2 top-1/2"
+              style={{ transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` }}
+            >
+              <span className="block w-1.5 h-1.5 rounded-full bg-[#f0d59a] shadow-[0_0_8px_rgba(240,213,154,0.95)] ring-1 ring-black/40" />
+            </div>
+          );
+        })}
+
+        {/* operator white arrow — rotates with heading */}
+        <div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          style={{ transform: `translate(-50%,-50%) rotate(${heading ?? 0}deg)` }}
+        >
+          <svg width={22} height={22} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M12 2 L18 20 L12 16 L6 20 Z"
+              fill="white"
+              stroke="rgba(0,0,0,0.7)"
+              strokeWidth={1.2}
+              strokeLinejoin="round"
+            />
+          </svg>
         </div>
-        <div className="absolute left-1/2 top-1 -translate-x-1/2 text-[8px] font-mono text-[#e8c684] tracking-[0.16em]">N</div>
-        {/* contact count bubble */}
-        <div className="absolute -top-1.5 -right-1.5 text-[8px] font-mono px-1.5 py-px rounded-full bg-[#c69a4a] text-black tracking-wider shadow-[0_0_8px_-1px_rgba(198,154,74,0.7)]">
-          {contacts.length}
+
+        {/* heading & contacts readout */}
+        <div className="absolute top-1 left-1 text-[8px] font-mono tracking-[0.16em] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+          {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "---°"}
         </div>
+        <div className="absolute bottom-1 right-1.5 text-[8px] font-mono tracking-[0.16em] text-[#e8c684] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+          {contacts.length} BT
+        </div>
+        <div className="absolute top-1 right-1.5 text-[8px] font-mono tracking-[0.16em] text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">N</div>
       </div>
     </div>
   );
@@ -2179,7 +2224,7 @@ function AiBriefPanel({ contacts, scenario }: { contacts: Contact[]; scenario: S
   const [brief, setBrief] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const byok = getActiveIntelMapByok();
+  const { byok, source, saveInline } = useResolvedZaxinByok();
 
   const summarizeContacts = () =>
     contacts.slice(0, 24).map((c) => ({
@@ -2241,16 +2286,18 @@ function AiBriefPanel({ contacts, scenario }: { contacts: Contact[]; scenario: S
     <Panel
       icon={Cpu}
       title="AXRLEN Tactical Brief"
-      subtitle={byok ? `BYOK active · ${byok.provider} · ${byok.model}` : "Bring-your-own-key required"}
+      subtitle={byok ? `BYOK active · ${byok.provider} · ${byok.model}${source === "settings" ? " · from Settings → API Keys" : ""}` : "Bring-your-own-key required"}
     >
       {!byok && (
-        <div className="mt-3 rounded-md border border-[#c69a4a]/25 bg-black/40 p-3 text-[11px] text-foreground/75">
-          The Zaxin AI Brief uses <strong>your own API key</strong> — no platform fallback. Add a key in{" "}
-          <Link to="/dashboard/zophiel-engine" className="underline text-[#e8c684]">
-            Dashboard → Zophiel Engine → BYOK
-          </Link>{" "}
-          (Google, OpenAI, Anthropic, xAI, DeepSeek, Mistral, or Perplexity). Google or OpenAI are wired for in-browser briefs today.
-        </div>
+        <>
+          <div className="mt-3 rounded-md border border-[#c69a4a]/25 bg-black/40 p-3 text-[11px] text-foreground/75">
+            The Zaxin AI Brief uses <strong>your own API key</strong>. Use a key already saved in{" "}
+            <Link to="/dashboard/api-keys" className="underline text-[#e8c684]">Settings → API Keys</Link>{" "}
+            or in <Link to="/dashboard/zophiel-engine" className="underline text-[#e8c684]">Zophiel Engine → BYOK</Link>{" "}
+            — or paste one below right now.
+          </div>
+          <ZaxinInlineByok onSave={saveInline} />
+        </>
       )}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
@@ -2353,7 +2400,7 @@ function AiVisionIdentifyPanel(props: {
   onIdents?: (idents: VisionIdent[]) => void;
   onEnv?: (env: EnvScan | null) => void;
 }) {
-  const byok = getActiveIntelMapByok();
+  const { byok, source, saveInline } = useResolvedZaxinByok();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [idents, setIdents] = useState<VisionIdent[]>([]);
@@ -2590,16 +2637,18 @@ function AiVisionIdentifyPanel(props: {
     <Panel
       icon={Eye}
       title="AI Vision Identify"
-      subtitle={byok ? `BYOK active · ${byok.provider} · ${byok.model}` : "Bring-your-own-key required"}
+      subtitle={byok ? `BYOK active · ${byok.provider} · ${byok.model}${source === "settings" ? " · from Settings → API Keys" : ""}` : "Bring-your-own-key required"}
     >
       {!byok && (
-        <div className="mt-3 rounded-md border border-[#c69a4a]/25 bg-black/40 p-3 text-[11px] text-foreground/75">
-          AI Vision uses <strong>your own API key</strong>. Add one in{" "}
-          <Link to="/dashboard/zophiel-engine" className="underline text-[#e8c684]">
-            Dashboard → Zophiel Engine → BYOK
-          </Link>{" "}
-          — Google Gemini or OpenAI (must be a vision-capable model).
-        </div>
+        <>
+          <div className="mt-3 rounded-md border border-[#c69a4a]/25 bg-black/40 p-3 text-[11px] text-foreground/75">
+            AI Vision uses <strong>your own API key</strong>. Use a key from{" "}
+            <Link to="/dashboard/api-keys" className="underline text-[#e8c684]">Settings → API Keys</Link>{" "}
+            or <Link to="/dashboard/zophiel-engine" className="underline text-[#e8c684]">Zophiel BYOK</Link>{" "}
+            — or paste a Google Gemini / OpenAI vision key below.
+          </div>
+          <ZaxinInlineByok onSave={saveInline} />
+        </>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
