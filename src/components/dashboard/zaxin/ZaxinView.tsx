@@ -537,6 +537,7 @@ function ScanTab(props: {
       <Panel icon={Compass} title="Satellite Overhead" subtitle="Live operator location · Esri World Imagery · zoom 10–20">
         <SatelliteMap
           heading={props.heading}
+          compassOn={props.compassOn}
           contacts={[...props.locals, ...props.remotes]}
           onPick={props.onPick}
         />
@@ -951,6 +952,7 @@ function ArTab(props: {
             />
             <MiniMap
               heading={props.heading}
+              compassOn={props.compassOn}
               contacts={props.contacts}
             />
           </>
@@ -1938,10 +1940,11 @@ function shouldPromoteGeoFix(current: GeoFix | null, next: GeoFix) {
   if (!current) return true;
   const ageMs = Math.max(1, next.ts - current.ts);
   const moved = geoDistanceMeters(current, next);
-  const materiallyMoved = moved > Math.max(8, Math.min(60, current.acc * 0.7));
-  const muchBetter = next.acc <= current.acc * 0.82;
-  const fresherSameQuality = ageMs > 5_000 && next.acc <= current.acc * 1.12;
-  return muchBetter || materiallyMoved || fresherSameQuality;
+  // Rendering must track every real accepted GPS update. The satellite image
+  // refresh threshold is handled separately by the map anchor, so blocking
+  // small movement here made the operator arrow look frozen while walking.
+  const stationaryWorseFix = moved < Math.max(1.2, next.acc * 0.05) && next.acc > current.acc * 1.8 && ageMs < 5_000;
+  return !stationaryWorseFix;
 }
 
 function stableBearing(id: string, index: number) {
@@ -2074,8 +2077,9 @@ function usePrecisionGeo() {
   return { fix, err, samples, quality: geoQuality(fix?.acc) };
 }
 
-function MiniMap({ heading, contacts }: {
+function MiniMap({ heading, compassOn, contacts }: {
   heading: number | null;
+  compassOn: boolean;
   contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number; distanceMeters?: number | null }>;
 }) {
   // Live GPS for a true satellite mini-map (replaces the prior abstract radar).
@@ -2095,6 +2099,7 @@ function MiniMap({ heading, contacts }: {
 
   const SIZE = 172;
   const HALF_PX = SIZE / 2;
+  const arrowHeading = compassOn && heading != null ? heading : (pos?.course ?? heading ?? 0);
 
   // North-up satellite view: operator arrow rotates, but contact pips stay in
   // real compass/world bearing so turning the phone does not rotate the map.
@@ -2136,7 +2141,7 @@ function MiniMap({ heading, contacts }: {
         {/* operator white arrow — rotates with heading */}
         <div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{ transform: `translate(-50%,-50%) rotate(${heading ?? 0}deg)` }}
+          style={{ transform: `translate(-50%,-50%) rotate(${arrowHeading}deg)`, transition: "transform 120ms linear" }}
         >
           <svg width={22} height={22} viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
@@ -2151,7 +2156,7 @@ function MiniMap({ heading, contacts }: {
 
         {/* heading & contacts readout */}
         <div className="absolute top-1 left-1 text-[8px] font-mono tracking-[0.16em] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-          {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "---°"}
+          {`${arrowHeading.toFixed(0).padStart(3, "0")}°`}
         </div>
         <div className="absolute bottom-1 right-1.5 text-[8px] font-mono tracking-[0.16em] text-[#e8c684] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
           {contacts.length} BT
@@ -2356,10 +2361,12 @@ function RadarMap({
 
 function SatelliteMap({
   heading,
+  compassOn,
   contacts,
   onPick,
 }: {
   heading: number | null;
+  compassOn: boolean;
   contacts: Contact[];
   onPick?: () => void;
 }) {
@@ -2374,6 +2381,7 @@ function SatelliteMap({
   // Double-buffer: only swap the visible <img> once the next tile finishes loading.
   const [activeUrl, setActiveUrl] = useState<string | null>(null);
   const pendingUrlRef = useRef<string | null>(null);
+  const arrowHeading = compassOn && heading != null ? heading : (pos?.course ?? heading ?? 0);
 
   // Decide when to refresh the satellite tile.
   // - First fix → fetch immediately.
@@ -2466,7 +2474,8 @@ function SatelliteMap({
               style={{
                 width: 120, height: 120,
                 background: "conic-gradient(from -30deg, rgba(232,198,132,0.35), transparent 60deg)",
-                transform: `translate(-50%,-50%) rotate(${heading ?? 0}deg)`,
+                transform: `translate(-50%,-50%) rotate(${arrowHeading}deg)`,
+                transition: "transform 120ms linear",
                 clipPath: "polygon(50% 50%, 0 0, 100% 0)",
                 borderRadius: "50%",
               }}
@@ -2521,7 +2530,7 @@ function SatelliteMap({
         {/* readout */}
         {pos && (
           <div className="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/60 border border-[#c69a4a]/20 text-[9px] font-mono tracking-wider text-[#e8c684]/90">
-            {quality.toUpperCase()} · {pos.source} · {samples} fixes · {pos.lat.toFixed(6)}, {pos.lon.toFixed(6)} · ±{Math.round(pos.acc)}m · z{zoom} · {groundMetersPerCssPx(pos.lat, zoom).toFixed(2)}m/px · {contacts.length} pip{contacts.length === 1 ? "" : "s"}
+            LIVE · {quality.toUpperCase()} · {pos.source} · {samples} fixes · {pos.lat.toFixed(6)}, {pos.lon.toFixed(6)} · ±{Math.round(pos.acc)}m · hdg {Math.round(arrowHeading)}° · z{zoom} · {groundMetersPerCssPx(pos.lat, zoom).toFixed(2)}m/px · {contacts.length} pip{contacts.length === 1 ? "" : "s"}
           </div>
         )}
       </div>
