@@ -963,7 +963,7 @@ function ArTab(props: {
 
       {/* Camera surface */}
       <div ref={wrapRef}
-        className="relative rounded-3xl overflow-hidden border border-[#c69a4a]/15 bg-black min-h-[82vh] sm:min-h-0 sm:aspect-video portrait:min-h-[82vh] landscape:min-h-[60vh] select-none shadow-[0_20px_60px_-20px_rgba(198,154,74,0.25)]">
+        className="relative rounded-3xl overflow-hidden border border-[#c69a4a]/15 bg-black min-h-[82vh] landscape:min-h-[82vh] select-none shadow-[0_20px_60px_-20px_rgba(198,154,74,0.25)]">
         <video ref={props.videoRef} playsInline muted autoPlay
           className="absolute inset-0 w-full h-full object-cover" />
         <canvas ref={canvasRef} onClick={onTap} onTouchStart={onTap}
