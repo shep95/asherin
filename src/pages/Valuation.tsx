@@ -57,14 +57,15 @@ const COMPARABLES = [
   { name: "Shield AI", category: "Autonomy Stack", valuation: 2_700, stage: "Series F", source: "Reuters" },
 ];
 
-const REVENUE_MULTIPLES = [
-  { peer: "Palantir", multiple: 24 },
-  { peer: "CrowdStrike", multiple: 18 },
-  { peer: "Recorded Future", multiple: 11 },
-  { peer: "Maltego", multiple: 9 },
-  { peer: "Glean", multiple: 28 },
-  { peer: "Perplexity", multiple: 45 },
-  { peer: "Aureon (applied)", multiple: 22 },
+// Strategic acquisitions valued primarily on SOFTWARE / TECHNOLOGY ASSET
+// — not revenue. These deals closed with little or no profit at the target.
+const SOFTWARE_ASSET_DEALS = [
+  { peer: "WhatsApp → Meta (2014)", priceB: 19, note: "≈$0 revenue at close. Pure software + user-graph value." },
+  { peer: "Instagram → Meta (2012)", priceB: 1, note: "13 employees, $0 revenue. Acquired for product." },
+  { peer: "DeepMind → Google (2014)", priceB: 0.5, note: "Pre-revenue AI lab. Pure IP value." },
+  { peer: "GitHub → Microsoft (2018)", priceB: 7.5, note: "Software & community asset." },
+  { peer: "Figma → Adobe (2022, blocked)", priceB: 20, note: "Software + design-graph asset." },
+  { peer: "Aureon (modeled)", priceB: 0.95, note: "20 shipped modules, sovereign AI stack." },
 ];
 
 // Software-asset value (NOT revenue). Modeled as cumulative engineering value of
