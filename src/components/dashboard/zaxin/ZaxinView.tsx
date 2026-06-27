@@ -1853,7 +1853,8 @@ function CompassStrip({ heading, contacts, fov }: {
   );
 }
 
-type GeoFix = { lat: number; lon: number; acc: number; ts: number };
+type GeoFix = { lat: number; lon: number; acc: number; ts: number; source: "watch" | "poll" };
+type GeoQuality = "searching" | "coarse" | "good" | "precision";
 type MercatorPoint = { x: number; y: number };
 
 const WEB_MERCATOR_R = 6_378_137;
@@ -1890,9 +1891,17 @@ function geoDistanceMeters(a: Pick<GeoFix, "lat" | "lon">, b: Pick<GeoFix, "lat"
   return 2 * 6_371_000 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
+function geoQuality(acc?: number | null): GeoQuality {
+  if (acc == null || !Number.isFinite(acc)) return "searching";
+  if (acc <= 12) return "precision";
+  if (acc <= 45) return "good";
+  return "coarse";
+}
+
 function shouldAcceptGeoFix(prev: GeoFix | null, next: GeoFix) {
   if (!Number.isFinite(next.lat) || !Number.isFinite(next.lon)) return false;
-  if (next.acc > 250 && prev) return false;
+  if (next.acc > 1_500) return false;
+  if (next.acc > 250 && prev && prev.acc <= 250) return false;
   if (!prev) return true;
   const ageMs = Math.max(1, next.ts - prev.ts);
   const jump = geoDistanceMeters(prev, next);
@@ -1900,6 +1909,17 @@ function shouldAcceptGeoFix(prev: GeoFix | null, next: GeoFix) {
   if (jump > allowedJump && next.acc >= prev.acc) return false;
   if (jump < Math.max(2.5, next.acc * 0.12) && next.acc > prev.acc * 1.35) return false;
   return true;
+}
+
+function shouldPromoteGeoFix(current: GeoFix | null, next: GeoFix) {
+  if (!shouldAcceptGeoFix(current, next)) return false;
+  if (!current) return true;
+  const ageMs = Math.max(1, next.ts - current.ts);
+  const moved = geoDistanceMeters(current, next);
+  const materiallyMoved = moved > Math.max(8, Math.min(60, current.acc * 0.7));
+  const muchBetter = next.acc <= current.acc * 0.82;
+  const fresherSameQuality = ageMs > 5_000 && next.acc <= current.acc * 1.12;
+  return muchBetter || materiallyMoved || fresherSameQuality;
 }
 
 function stableBearing(id: string, index: number) {
@@ -1959,28 +1979,74 @@ function useMeasuredElement<T extends HTMLElement>() {
   return [ref, size] as const;
 }
 
+function usePrecisionGeo() {
+  const [fix, setFix] = useState<GeoFix | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [samples, setSamples] = useState(0);
+  const fixRef = useRef<GeoFix | null>(null);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setErr("Geolocation not available in this browser.");
+      return;
+    }
+
+    let killed = false;
+    const commit = (p: GeolocationPosition, source: GeoFix["source"]) => {
+      if (killed) return;
+      setSamples((n) => n + 1);
+      const next: GeoFix = {
+        lat: p.coords.latitude,
+        lon: p.coords.longitude,
+        acc: Math.max(1, p.coords.accuracy || 999),
+        ts: p.timestamp || Date.now(),
+        source,
+      };
+      if (!shouldPromoteGeoFix(fixRef.current, next)) return;
+      fixRef.current = next;
+      setFix(next);
+      setErr(null);
+    };
+
+    const onError = (e: GeolocationPositionError) => {
+      if (!killed) setErr(e.message);
+    };
+
+    // Cold GPS often emits a stale Wi-Fi/IP fix first. Poll aggressively for a
+    // short warm-up window while watchPosition stays open for live movement.
+    const poll = () => navigator.geolocation.getCurrentPosition(
+      (p) => commit(p, "poll"),
+      onError,
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 9_000 },
+    );
+    poll();
+    const warmup = window.setInterval(poll, 2_500);
+    const stopWarmup = window.setTimeout(() => window.clearInterval(warmup), 22_000);
+
+    const watch = navigator.geolocation.watchPosition(
+      (p) => commit(p, "watch"),
+      onError,
+      { enableHighAccuracy: true, maximumAge: 750, timeout: 12_000 },
+    );
+
+    return () => {
+      killed = true;
+      window.clearInterval(warmup);
+      window.clearTimeout(stopWarmup);
+      navigator.geolocation.clearWatch(watch);
+    };
+  }, []);
+
+  return { fix, err, samples, quality: geoQuality(fix?.acc) };
+}
+
 function MiniMap({ heading, contacts }: {
   heading: number | null;
   contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number; distanceMeters?: number | null }>;
 }) {
   // Live GPS for a true satellite mini-map (replaces the prior abstract radar).
-  const [pos, setPos] = useState<GeoFix | null>(null);
+  const { fix: pos, quality } = usePrecisionGeo();
   const [zoom] = useState(19); // tight overhead — operator-scale
-  const fixRef = useRef<GeoFix | null>(null);
-  useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) return;
-    const w = navigator.geolocation.watchPosition(
-      (p) => {
-        const next: GeoFix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy || 999, ts: p.timestamp || Date.now() };
-        if (!shouldAcceptGeoFix(fixRef.current, next)) return;
-        fixRef.current = next;
-        setPos(next);
-      },
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 12000 },
-    );
-    return () => navigator.geolocation.clearWatch(w);
-  }, []);
 
   const tileUrl = useMemo(() => {
     if (!pos) return null;
@@ -2055,6 +2121,9 @@ function MiniMap({ heading, contacts }: {
         </div>
         <div className="absolute bottom-1 right-1.5 text-[8px] font-mono tracking-[0.16em] text-[#e8c684] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
           {contacts.length} BT
+        </div>
+        <div className="absolute bottom-1 left-1 text-[7px] font-mono tracking-[0.14em] uppercase text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+          {pos ? `${quality} ±${Math.round(pos.acc)}m` : "GPS"}
         </div>
         <div className="absolute top-1 right-1.5 text-[8px] font-mono tracking-[0.16em] text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">N</div>
       </div>
@@ -2260,12 +2329,10 @@ function SatelliteMap({
   contacts: Contact[];
   onPick?: () => void;
 }) {
-  const [pos, setPos] = useState<GeoFix | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const { fix: pos, err, samples, quality } = usePrecisionGeo();
   const [zoom, setZoom] = useState(18); // 10 wide → 20 close
   const [showLabels, setShowLabels] = useState(true);
   const [mapRef, mapSize] = useMeasuredElement<HTMLDivElement>();
-  const fixRef = useRef<GeoFix | null>(null);
   // Anchor = the lat/lon the currently-loaded tile is centered on.
   // Operator dot translates in pixels relative to anchor without reloading the tile,
   // and we only refetch when the operator drifts past ~25% of the tile half-extent.
@@ -2273,29 +2340,6 @@ function SatelliteMap({
   // Double-buffer: only swap the visible <img> once the next tile finishes loading.
   const [activeUrl, setActiveUrl] = useState<string | null>(null);
   const pendingUrlRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setErr("Geolocation not available in this browser.");
-      return;
-    }
-    const w = navigator.geolocation.watchPosition(
-      (p) => {
-        const next: GeoFix = {
-          lat: p.coords.latitude,
-          lon: p.coords.longitude,
-          acc: p.coords.accuracy || 999,
-          ts: p.timestamp || Date.now(),
-        };
-        if (!shouldAcceptGeoFix(fixRef.current, next)) return;
-        fixRef.current = next;
-        setPos(next);
-      },
-      (e) => setErr(e.message),
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 12000 },
-    );
-    return () => navigator.geolocation.clearWatch(w);
-  }, []);
 
   // Decide when to refresh the satellite tile.
   // - First fix → fetch immediately.
@@ -2443,7 +2487,7 @@ function SatelliteMap({
         {/* readout */}
         {pos && (
           <div className="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/60 border border-[#c69a4a]/20 text-[9px] font-mono tracking-wider text-[#e8c684]/90">
-            {pos.lat.toFixed(5)}, {pos.lon.toFixed(5)} · ±{Math.round(pos.acc)}m · z{zoom} · {groundMetersPerCssPx(pos.lat, zoom).toFixed(2)}m/px · {contacts.length} pip{contacts.length === 1 ? "" : "s"}
+            {quality.toUpperCase()} · {pos.source} · {samples} fixes · {pos.lat.toFixed(6)}, {pos.lon.toFixed(6)} · ±{Math.round(pos.acc)}m · z{zoom} · {groundMetersPerCssPx(pos.lat, zoom).toFixed(2)}m/px · {contacts.length} pip{contacts.length === 1 ? "" : "s"}
           </div>
         )}
       </div>
