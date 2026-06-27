@@ -2260,14 +2260,16 @@ function SatelliteMap({
   contacts: Contact[];
   onPick?: () => void;
 }) {
-  const [pos, setPos] = useState<{ lat: number; lon: number; acc: number } | null>(null);
+  const [pos, setPos] = useState<GeoFix | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [zoom, setZoom] = useState(18); // 10 wide → 20 close
   const [showLabels, setShowLabels] = useState(true);
+  const [mapRef, mapSize] = useMeasuredElement<HTMLDivElement>();
+  const fixRef = useRef<GeoFix | null>(null);
   // Anchor = the lat/lon the currently-loaded tile is centered on.
   // Operator dot translates in pixels relative to anchor without reloading the tile,
   // and we only refetch when the operator drifts past ~25% of the tile half-extent.
-  const [anchor, setAnchor] = useState<{ lat: number; lon: number; zoom: number } | null>(null);
+  const [anchor, setAnchor] = useState<{ lat: number; lon: number; zoom: number; mx: number; my: number; width: number; height: number } | null>(null);
   // Double-buffer: only swap the visible <img> once the next tile finishes loading.
   const [activeUrl, setActiveUrl] = useState<string | null>(null);
   const pendingUrlRef = useRef<string | null>(null);
@@ -2279,46 +2281,50 @@ function SatelliteMap({
     }
     const w = navigator.geolocation.watchPosition(
       (p) => {
-        // Reject obvious outliers (>500m accuracy) to stop the map jitter loop.
-        if (p.coords.accuracy && p.coords.accuracy > 500) return;
-        setPos({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy });
+        const next: GeoFix = {
+          lat: p.coords.latitude,
+          lon: p.coords.longitude,
+          acc: p.coords.accuracy || 999,
+          ts: p.timestamp || Date.now(),
+        };
+        if (!shouldAcceptGeoFix(fixRef.current, next)) return;
+        fixRef.current = next;
+        setPos(next);
       },
       (e) => setErr(e.message),
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 12000 },
     );
     return () => navigator.geolocation.clearWatch(w);
   }, []);
 
-  // half-extent in degrees of LATITUDE. Longitude span is corrected by cos(lat) below.
-  const halfDeg = useMemo(() => {
-    const meters = 40 * Math.pow(2, 20 - zoom);
-    return meters / 111_320;
-  }, [zoom]);
-
   // Decide when to refresh the satellite tile.
   // - First fix → fetch immediately.
   // - Zoom changed → fetch.
-  // - Drifted >25% of half-extent from anchor → fetch.
+  // - Drifted >25% of the visible tile from anchor → fetch.
   useEffect(() => {
     if (!pos) return;
+    const width = Math.max(360, mapSize.width || 720);
+    const height = Math.max(270, mapSize.height || Math.round(width * 0.75));
+    const center = lonLatToMercator(pos.lon, pos.lat);
+    const mpp = mercatorMetersPerCssPx(zoom);
+    const dx = anchor ? (center.x - anchor.mx) / mpp : 0;
+    const dy = anchor ? -(center.y - anchor.my) / mpp : 0;
     const needsRefresh =
       !anchor ||
       anchor.zoom !== zoom ||
-      Math.abs(pos.lat - anchor.lat) > halfDeg * 0.25 ||
-      Math.abs(pos.lon - anchor.lon) * Math.cos((pos.lat * Math.PI) / 180) > halfDeg * 0.25;
+      Math.abs(anchor.width - width) > 24 ||
+      Math.abs(anchor.height - height) > 24 ||
+      Math.abs(dx) > width * 0.24 ||
+      Math.abs(dy) > height * 0.24;
     if (!needsRefresh) return;
 
-    const lat = pos.lat;
-    const lon = pos.lon;
-    const lonHalf = halfDeg / Math.max(0.05, Math.cos((lat * Math.PI) / 180));
-    const minLon = lon - lonHalf;
-    const minLat = lat - halfDeg;
-    const maxLon = lon + lonHalf;
-    const maxLat = lat + halfDeg;
     const dpr = Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
-    const w = Math.round(720 * dpr);
-    const h = Math.round(540 * dpr);
-    const url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${minLon},${minLat},${maxLon},${maxLat}&bboxSR=4326&imageSR=3857&size=${w},${h}&format=jpg&transparent=false&f=image`;
+    const exportWidth = Math.round(width * dpr);
+    const exportHeight = Math.round(height * dpr);
+    const halfW = (width / 2) * mpp;
+    const halfH = (height / 2) * mpp;
+    const bbox = `${center.x - halfW},${center.y - halfH},${center.x + halfW},${center.y + halfH}`;
+    const url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=3857&imageSR=3857&size=${exportWidth},${exportHeight}&format=jpg&transparent=false&f=image`;
 
     pendingUrlRef.current = url;
     const img = new Image();
@@ -2327,38 +2333,27 @@ function SatelliteMap({
       // Only commit if this is still the newest request.
       if (pendingUrlRef.current !== url) return;
       setActiveUrl(url);
-      setAnchor({ lat, lon, zoom });
+      setAnchor({ lat: pos.lat, lon: pos.lon, zoom, mx: center.x, my: center.y, width, height });
     };
     img.src = url;
-  }, [pos, zoom, halfDeg, anchor]);
+  }, [pos, zoom, anchor, mapSize.width, mapSize.height]);
 
   // Operator offset from anchor center, in container pixels.
-  // Container renders 720×540 logical, so 360px = half-width = halfDeg (lon-corrected).
+  // Uses exact Web-Mercator meters-per-pixel so it does not skew at latitude.
   const operatorOffset = useMemo(() => {
     if (!pos || !anchor) return { x: 0, y: 0 };
-    const lonHalf = halfDeg / Math.max(0.05, Math.cos((anchor.lat * Math.PI) / 180));
-    const dx = ((pos.lon - anchor.lon) / lonHalf) * 360;
-    const dy = -((pos.lat - anchor.lat) / halfDeg) * 270;
-    return { x: dx, y: dy };
-  }, [pos, anchor, halfDeg]);
+    const current = lonLatToMercator(pos.lon, pos.lat);
+    const mpp = mercatorMetersPerCssPx(anchor.zoom);
+    return { x: (current.x - anchor.mx) / mpp, y: -(current.y - anchor.my) / mpp };
+  }, [pos, anchor]);
 
   // operator-relative pixel offset for a contact. Uses estimated bearing if present,
   // otherwise hash-stable angle. Radius scales with RSSI distance AND current zoom
   // (closer pips spread out as you zoom in — what the user expects from a map).
   const pipFor = (c: Contact, i: number) => {
-    const rssi = c.rssi ?? -85;
-    const norm = Math.max(0, Math.min(1, (rssi + 100) / 60)); // -100..-40 → 0..1
-    const distMeters = c.distanceMeters ?? (1 + (1 - norm) * 60);
-    // meters per pixel at current bbox (map is 720 wide rendering into container)
-    const halfMeters = halfDeg * 111_320;
-    const pxPerMeter = 180 / Math.max(halfMeters, 1); // 180 ≈ container half-width fudge
-    const radiusPx = Math.min(180, distMeters * pxPerMeter);
-    const bearingDeg = c.bearing ?? ((parseInt(c.id.slice(-4), 36) || i * 47) % 360);
-    const rad = ((bearingDeg - (heading ?? 0)) * Math.PI) / 180;
-    return {
-      x: Math.sin(rad) * radiusPx,
-      y: -Math.cos(rad) * radiusPx,
-    };
+    const width = anchor?.width || mapSize.width || 720;
+    const height = anchor?.height || mapSize.height || Math.round(width * 0.75);
+    return contactOffsetPx(c, i, pos?.lat ?? anchor?.lat ?? 0, zoom, Math.min(width, height) / 2 - 18);
   };
 
   return (
@@ -2368,12 +2363,12 @@ function SatelliteMap({
           {err} · enable location to render satellite imagery
         </div>
       )}
-      <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-[#c69a4a]/20 bg-black">
+      <div ref={mapRef} className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-[#c69a4a]/20 bg-black">
         {activeUrl ? (
           <img
             src={activeUrl}
             alt="Satellite imagery centered on operator"
-            className="absolute inset-0 w-full h-full object-cover select-none"
+            className="absolute inset-0 w-full h-full select-none"
             draggable={false}
           />
         ) : (
@@ -2386,7 +2381,7 @@ function SatelliteMap({
         {pos && anchor && (
           <div
             className="absolute left-1/2 top-1/2 pointer-events-none"
-            style={{ transform: `translate(calc(-50% + ${operatorOffset.x}px), calc(-50% + ${operatorOffset.y}px))`, transition: "transform 350ms linear" }}
+              style={{ transform: `translate(calc(-50% + ${operatorOffset.x}px), calc(-50% + ${operatorOffset.y}px))`, transition: "transform 180ms linear" }}
           >
             <div
               className="absolute left-1/2 top-1/2"
@@ -2412,7 +2407,7 @@ function SatelliteMap({
             <div
               key={c.id}
               className="absolute left-1/2 top-1/2 pointer-events-none"
-              style={{ transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`, transition: "transform 350ms linear" }}
+              style={{ transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`, transition: "transform 180ms linear" }}
             >
               <div className={`h-2.5 w-2.5 rounded-full bg-[#c69a4a] shadow-[0_0_10px_rgba(198,154,74,0.95)] ring-1 ring-black/40 ${dim}`} />
               {showLabels && (
@@ -2448,7 +2443,7 @@ function SatelliteMap({
         {/* readout */}
         {pos && (
           <div className="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/60 border border-[#c69a4a]/20 text-[9px] font-mono tracking-wider text-[#e8c684]/90">
-            {pos.lat.toFixed(5)}, {pos.lon.toFixed(5)} · ±{Math.round(pos.acc)}m · z{zoom} · {contacts.length} pip{contacts.length === 1 ? "" : "s"}
+            {pos.lat.toFixed(5)}, {pos.lon.toFixed(5)} · ±{Math.round(pos.acc)}m · z{zoom} · {groundMetersPerCssPx(pos.lat, zoom).toFixed(2)}m/px · {contacts.length} pip{contacts.length === 1 ? "" : "s"}
           </div>
         )}
       </div>
