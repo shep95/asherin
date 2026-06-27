@@ -1877,6 +1877,58 @@ function CompassStrip({ heading, contacts, fov }: {
   );
 }
 
+// World-locked HUD reticle: fixed center ring + crosshair, with side tick marks
+// and a horizon bar that translates horizontally based on the live heading so it
+// "drifts" against the world as the operator pans the camera.
+function TacticalReticle({ heading }: { heading: number | null }) {
+  const h = heading ?? 0;
+  // Map heading degrees → horizontal drift (-50% .. +50% across a 90° window)
+  const driftPct = ((((h + 45) % 90) + 90) % 90 - 45) / 45 * 50;
+  const ticks = Array.from({ length: 21 }, (_, i) => (i - 10) * 5);
+  return (
+    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
+      {/* world-drifting horizon bar with tick marks */}
+      <div className="absolute left-1/2 top-1/2 -translate-y-1/2 w-[140%] h-px -translate-x-1/2"
+        style={{ transform: `translate(calc(-50% + ${driftPct}%), -50%)` }}>
+        <div className="relative w-full h-px bg-white/25" />
+        {ticks.map((t) => (
+          <div key={t} style={{ left: `${50 + t * 2}%` }}
+            className="absolute top-0 -translate-x-1/2 w-px h-2 bg-white/35" />
+        ))}
+      </div>
+
+      {/* outer faint targeting ring */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/15"
+        style={{ width: "min(62vh, 62vw)", height: "min(62vh, 62vw)" }} />
+      {/* mid ring with tick notches */}
+      <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{ width: "min(34vh, 34vw)", height: "min(34vh, 34vw)" }} viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1" />
+        {Array.from({ length: 36 }, (_, i) => i * 10).map((deg) => {
+          const major = deg % 30 === 0;
+          const r1 = 90, r2 = major ? 82 : 86;
+          const rad = (deg - 90) * Math.PI / 180;
+          return (
+            <line key={deg}
+              x1={100 + Math.cos(rad) * r1} y1={100 + Math.sin(rad) * r1}
+              x2={100 + Math.cos(rad) * r2} y2={100 + Math.sin(rad) * r2}
+              stroke="rgba(255,255,255,0.55)" strokeWidth={major ? 1.2 : 0.7} />
+          );
+        })}
+      </svg>
+      {/* center crosshair dot */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white/80 shadow-[0_0_6px_rgba(255,255,255,0.7)]" />
+      {/* small corner brackets (top + bottom edges of mid ring) */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{ width: "min(34vh, 34vw)", height: "min(34vh, 34vw)" }}>
+        <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-px bg-white/70" />
+        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-px bg-white/70" />
+        <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 h-3 w-px bg-white/70" />
+        <div className="absolute top-1/2 -right-1.5 -translate-y-1/2 h-3 w-px bg-white/70" />
+      </div>
+    </div>
+  );
+
 type GeoFix = {
   lat: number;
   lon: number;
