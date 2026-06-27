@@ -1987,9 +1987,10 @@ function TacticalReticle({
         {ladder.map((p) => (
           <div key={p} className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2"
             style={{ top: `calc(50% + ${-p * 0.9}%)` }}>
-            <div className="w-10 sm:w-14 h-px" style={{ background: tone }} />
+            <div className="w-10 h-px" style={{ background: tone }} />
             <span className="text-[8px] font-mono opacity-80">{p === 0 ? "" : p}</span>
-            <div className="w-10 sm:w-14 h-px" style={{ background: tone }} />
+            <div className="w-10 h-px" style={{ background: tone }} />
+
           </div>
         ))}
       </div>
