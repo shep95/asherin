@@ -2045,23 +2045,8 @@ function MiniMap({ heading, contacts }: {
   contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number; distanceMeters?: number | null }>;
 }) {
   // Live GPS for a true satellite mini-map (replaces the prior abstract radar).
-  const [pos, setPos] = useState<GeoFix | null>(null);
+  const { fix: pos, quality } = usePrecisionGeo();
   const [zoom] = useState(19); // tight overhead — operator-scale
-  const fixRef = useRef<GeoFix | null>(null);
-  useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) return;
-    const w = navigator.geolocation.watchPosition(
-      (p) => {
-        const next: GeoFix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy || 999, ts: p.timestamp || Date.now() };
-        if (!shouldAcceptGeoFix(fixRef.current, next)) return;
-        fixRef.current = next;
-        setPos(next);
-      },
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 12000 },
-    );
-    return () => navigator.geolocation.clearWatch(w);
-  }, []);
 
   const tileUrl = useMemo(() => {
     if (!pos) return null;
@@ -2136,6 +2121,9 @@ function MiniMap({ heading, contacts }: {
         </div>
         <div className="absolute bottom-1 right-1.5 text-[8px] font-mono tracking-[0.16em] text-[#e8c684] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
           {contacts.length} BT
+        </div>
+        <div className="absolute bottom-1 left-1 text-[7px] font-mono tracking-[0.14em] uppercase text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+          {pos ? `${quality} ±${Math.round(pos.acc)}m` : "GPS"}
         </div>
         <div className="absolute top-1 right-1.5 text-[8px] font-mono tracking-[0.16em] text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">N</div>
       </div>
@@ -2341,12 +2329,10 @@ function SatelliteMap({
   contacts: Contact[];
   onPick?: () => void;
 }) {
-  const [pos, setPos] = useState<GeoFix | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const { fix: pos, err, samples, quality } = usePrecisionGeo();
   const [zoom, setZoom] = useState(18); // 10 wide → 20 close
   const [showLabels, setShowLabels] = useState(true);
   const [mapRef, mapSize] = useMeasuredElement<HTMLDivElement>();
-  const fixRef = useRef<GeoFix | null>(null);
   // Anchor = the lat/lon the currently-loaded tile is centered on.
   // Operator dot translates in pixels relative to anchor without reloading the tile,
   // and we only refetch when the operator drifts past ~25% of the tile half-extent.
@@ -2354,29 +2340,6 @@ function SatelliteMap({
   // Double-buffer: only swap the visible <img> once the next tile finishes loading.
   const [activeUrl, setActiveUrl] = useState<string | null>(null);
   const pendingUrlRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setErr("Geolocation not available in this browser.");
-      return;
-    }
-    const w = navigator.geolocation.watchPosition(
-      (p) => {
-        const next: GeoFix = {
-          lat: p.coords.latitude,
-          lon: p.coords.longitude,
-          acc: p.coords.accuracy || 999,
-          ts: p.timestamp || Date.now(),
-        };
-        if (!shouldAcceptGeoFix(fixRef.current, next)) return;
-        fixRef.current = next;
-        setPos(next);
-      },
-      (e) => setErr(e.message),
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 12000 },
-    );
-    return () => navigator.geolocation.clearWatch(w);
-  }, []);
 
   // Decide when to refresh the satellite tile.
   // - First fix → fetch immediately.
@@ -2524,7 +2487,7 @@ function SatelliteMap({
         {/* readout */}
         {pos && (
           <div className="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/60 border border-[#c69a4a]/20 text-[9px] font-mono tracking-wider text-[#e8c684]/90">
-            {pos.lat.toFixed(5)}, {pos.lon.toFixed(5)} · ±{Math.round(pos.acc)}m · z{zoom} · {groundMetersPerCssPx(pos.lat, zoom).toFixed(2)}m/px · {contacts.length} pip{contacts.length === 1 ? "" : "s"}
+            {quality.toUpperCase()} · {pos.source} · {samples} fixes · {pos.lat.toFixed(6)}, {pos.lon.toFixed(6)} · ±{Math.round(pos.acc)}m · z{zoom} · {groundMetersPerCssPx(pos.lat, zoom).toFixed(2)}m/px · {contacts.length} pip{contacts.length === 1 ? "" : "s"}
           </div>
         )}
       </div>
