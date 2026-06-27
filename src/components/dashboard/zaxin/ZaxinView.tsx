@@ -2265,12 +2265,12 @@ function SatelliteMap({
         </div>
       )}
       <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-[#c69a4a]/20 bg-black">
-        {tileUrl ? (
+        {activeUrl ? (
           <img
-            key={tileUrl}
-            src={tileUrl}
+            src={activeUrl}
             alt="Satellite imagery centered on operator"
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover select-none"
+            draggable={false}
           />
         ) : (
           <div className="absolute inset-0 grid place-items-center text-[10px] tracking-[0.18em] uppercase text-muted-foreground/60">
@@ -2278,9 +2278,12 @@ function SatelliteMap({
           </div>
         )}
 
-        {/* operator + heading cone */}
-        {pos && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+        {/* operator + heading cone (translated from anchor center by GPS drift) */}
+        {pos && anchor && (
+          <div
+            className="absolute left-1/2 top-1/2 pointer-events-none"
+            style={{ transform: `translate(calc(-50% + ${operatorOffset.x}px), calc(-50% + ${operatorOffset.y}px))`, transition: "transform 350ms linear" }}
+          >
             <div
               className="absolute left-1/2 top-1/2"
               style={{
@@ -2295,15 +2298,17 @@ function SatelliteMap({
           </div>
         )}
 
-        {/* contact pips around operator */}
-        {pos && contacts.slice(0, 48).map((c, i) => {
+        {/* contact pips anchored to operator */}
+        {pos && anchor && contacts.slice(0, 48).map((c, i) => {
           const { x, y } = pipFor(c, i);
           const dim = c.behavior === "lost" ? "opacity-40" : "";
+          const tx = operatorOffset.x + x;
+          const ty = operatorOffset.y + y;
           return (
             <div
               key={c.id}
               className="absolute left-1/2 top-1/2 pointer-events-none"
-              style={{ transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` }}
+              style={{ transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`, transition: "transform 350ms linear" }}
             >
               <div className={`h-2.5 w-2.5 rounded-full bg-[#c69a4a] shadow-[0_0_10px_rgba(198,154,74,0.95)] ring-1 ring-black/40 ${dim}`} />
               {showLabels && (
