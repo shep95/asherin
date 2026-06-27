@@ -1853,7 +1853,15 @@ function CompassStrip({ heading, contacts, fov }: {
   );
 }
 
-type GeoFix = { lat: number; lon: number; acc: number; ts: number; source: "watch" | "poll" };
+type GeoFix = {
+  lat: number;
+  lon: number;
+  acc: number;
+  ts: number;
+  source: "watch" | "poll";
+  course: number | null;
+  speed: number | null;
+};
 type GeoQuality = "searching" | "coarse" | "good" | "precision";
 type MercatorPoint = { x: number; y: number };
 
@@ -1889,6 +1897,20 @@ function geoDistanceMeters(a: Pick<GeoFix, "lat" | "lon">, b: Pick<GeoFix, "lat"
   const Δλ = (b.lon - a.lon) * Math.PI / 180;
   const h = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   return 2 * 6_371_000 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function normalizeHeading(deg: number) {
+  return ((deg % 360) + 360) % 360;
+}
+
+function geoBearingDegrees(a: Pick<GeoFix, "lat" | "lon">, b: Pick<GeoFix, "lat" | "lon">) {
+  const φ1 = a.lat * Math.PI / 180;
+  const φ2 = b.lat * Math.PI / 180;
+  const λ1 = a.lon * Math.PI / 180;
+  const λ2 = b.lon * Math.PI / 180;
+  const y = Math.sin(λ2 - λ1) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(λ2 - λ1);
+  return normalizeHeading(Math.atan2(y, x) * 180 / Math.PI);
 }
 
 function geoQuality(acc?: number | null): GeoQuality {
@@ -1995,13 +2017,25 @@ function usePrecisionGeo() {
     const commit = (p: GeolocationPosition, source: GeoFix["source"]) => {
       if (killed) return;
       setSamples((n) => n + 1);
+      const previous = fixRef.current;
+      const rawHeading = p.coords.heading;
+      const liveCourse = typeof rawHeading === "number" && Number.isFinite(rawHeading)
+        ? normalizeHeading(rawHeading)
+        : null;
       const next: GeoFix = {
         lat: p.coords.latitude,
         lon: p.coords.longitude,
         acc: Math.max(1, p.coords.accuracy || 999),
         ts: p.timestamp || Date.now(),
         source,
+        course: liveCourse,
+        speed: typeof p.coords.speed === "number" && Number.isFinite(p.coords.speed) ? p.coords.speed : null,
       };
+      if (next.course == null && previous) {
+        const moved = geoDistanceMeters(previous, next);
+        const minCourseMove = Math.max(1.5, Math.min(18, Math.max(previous.acc, next.acc) * 0.2));
+        if (moved >= minCourseMove) next.course = geoBearingDegrees(previous, next);
+      }
       if (!shouldPromoteGeoFix(fixRef.current, next)) return;
       fixRef.current = next;
       setFix(next);
