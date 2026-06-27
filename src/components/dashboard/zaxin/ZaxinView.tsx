@@ -1830,7 +1830,7 @@ function CompassStrip({ heading, contacts, fov }: {
   contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number }>;
   fov: number;
 }) {
-  const h = heading ?? 0;
+  const h = heading != null ? normalizeHeading(heading) : 0;
   // Build ticks covering ±fov from heading
   const ticks: Array<{ deg: number; major: boolean; label?: string }> = [];
   const start = Math.floor((h - fov / 2) / 5) * 5;
@@ -1846,14 +1846,14 @@ function CompassStrip({ heading, contacts, fov }: {
     ticks.push({ deg: d, major, label });
   }
   return (
-    <div className="absolute top-0 left-0 right-0 pointer-events-none">
+    <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{ zIndex: 7 }}>
       <div className="relative h-7 sm:h-8 w-full border-b border-[#c69a4a]/35 bg-gradient-to-b from-black/70 via-[#1a1208]/55 to-transparent backdrop-blur-[2px] overflow-hidden">
         {/* tick row */}
         {ticks.map((t, i) => {
           const offset = ((t.deg - h) / (fov / 2)) * 50 + 50;
           if (offset < -2 || offset > 102) return null;
           return (
-            <div key={i} style={{ left: `${offset}%` }} className="absolute top-0 -translate-x-1/2">
+            <div key={i} style={{ left: `${offset}%`, transition: "left 100ms linear" }} className="absolute top-0 -translate-x-1/2">
               <div className={`mx-auto w-px ${t.major ? "h-3 bg-[#e8c684]" : "h-1.5 bg-[#c69a4a]/50"}`} />
               {t.label && (
                 <div className="mt-0.5 text-[9px] font-mono text-[#e8c684] text-center -translate-x-1/2 absolute left-1/2 top-3 whitespace-nowrap">
@@ -1869,7 +1869,7 @@ function CompassStrip({ heading, contacts, fov }: {
           if (Math.abs(delta) > fov / 2) return null;
           const x = 50 + (delta / (fov / 2)) * 50;
           return (
-            <div key={c.id} style={{ left: `${x}%` }}
+            <div key={c.id} style={{ left: `${x}%`, transition: "left 100ms linear" }}
               className="absolute bottom-0.5 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#f0d59a] shadow-[0_0_6px_rgba(240,213,154,0.95)]" />
           );
         })}
@@ -1877,8 +1877,11 @@ function CompassStrip({ heading, contacts, fov }: {
         <div className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-px bg-[#e8c684]" />
         <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-[#e8c684]" />
         {/* heading readout pinned right */}
-        <div className="absolute right-2 top-1 text-[10px] font-mono text-[#e8c684] tracking-[0.2em]">
+        <div className="absolute right-2 top-1 text-[10px] font-mono text-[#e8c684] tracking-[0.2em] tabular-nums">
           {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "--- °"}
+        </div>
+        <div className="absolute left-2 top-1 text-[8px] font-mono text-[#f0d59a]/80 tracking-[0.18em] uppercase">
+          HDG LIVE
         </div>
       </div>
     </div>
