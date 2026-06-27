@@ -2160,6 +2160,13 @@ function SatelliteMap({
   const [err, setErr] = useState<string | null>(null);
   const [zoom, setZoom] = useState(18); // 10 wide → 20 close
   const [showLabels, setShowLabels] = useState(true);
+  // Anchor = the lat/lon the currently-loaded tile is centered on.
+  // Operator dot translates in pixels relative to anchor without reloading the tile,
+  // and we only refetch when the operator drifts past ~25% of the tile half-extent.
+  const [anchor, setAnchor] = useState<{ lat: number; lon: number; zoom: number } | null>(null);
+  // Double-buffer: only swap the visible <img> once the next tile finishes loading.
+  const [activeUrl, setActiveUrl] = useState<string | null>(null);
+  const pendingUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -2167,30 +2174,69 @@ function SatelliteMap({
       return;
     }
     const w = navigator.geolocation.watchPosition(
-      (p) => setPos({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }),
+      (p) => {
+        // Reject obvious outliers (>500m accuracy) to stop the map jitter loop.
+        if (p.coords.accuracy && p.coords.accuracy > 500) return;
+        setPos({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy });
+      },
       (e) => setErr(e.message),
-      { enableHighAccuracy: true, maximumAge: 4000, timeout: 15000 },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
     );
     return () => navigator.geolocation.clearWatch(w);
   }, []);
 
-  // half-extent in degrees — finer per zoom step so + actually zooms in noticeably
+  // half-extent in degrees of LATITUDE. Longitude span is corrected by cos(lat) below.
   const halfDeg = useMemo(() => {
-    // ~40m at z20, doubles every step out → ~40km at z10
     const meters = 40 * Math.pow(2, 20 - zoom);
     return meters / 111_320;
   }, [zoom]);
 
-  const tileUrl = useMemo(() => {
-    if (!pos) return null;
-    const { lat, lon } = pos;
-    const minLon = lon - halfDeg;
+  // Decide when to refresh the satellite tile.
+  // - First fix → fetch immediately.
+  // - Zoom changed → fetch.
+  // - Drifted >25% of half-extent from anchor → fetch.
+  useEffect(() => {
+    if (!pos) return;
+    const needsRefresh =
+      !anchor ||
+      anchor.zoom !== zoom ||
+      Math.abs(pos.lat - anchor.lat) > halfDeg * 0.25 ||
+      Math.abs(pos.lon - anchor.lon) * Math.cos((pos.lat * Math.PI) / 180) > halfDeg * 0.25;
+    if (!needsRefresh) return;
+
+    const lat = pos.lat;
+    const lon = pos.lon;
+    const lonHalf = halfDeg / Math.max(0.05, Math.cos((lat * Math.PI) / 180));
+    const minLon = lon - lonHalf;
     const minLat = lat - halfDeg;
-    const maxLon = lon + halfDeg;
+    const maxLon = lon + lonHalf;
     const maxLat = lat + halfDeg;
-    const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
-    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&imageSR=3857&size=720,540&format=jpg&transparent=false&f=image`;
-  }, [pos, halfDeg]);
+    const dpr = Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
+    const w = Math.round(720 * dpr);
+    const h = Math.round(540 * dpr);
+    const url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${minLon},${minLat},${maxLon},${maxLat}&bboxSR=4326&imageSR=3857&size=${w},${h}&format=jpg&transparent=false&f=image`;
+
+    pendingUrlRef.current = url;
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => {
+      // Only commit if this is still the newest request.
+      if (pendingUrlRef.current !== url) return;
+      setActiveUrl(url);
+      setAnchor({ lat, lon, zoom });
+    };
+    img.src = url;
+  }, [pos, zoom, halfDeg, anchor]);
+
+  // Operator offset from anchor center, in container pixels.
+  // Container renders 720×540 logical, so 360px = half-width = halfDeg (lon-corrected).
+  const operatorOffset = useMemo(() => {
+    if (!pos || !anchor) return { x: 0, y: 0 };
+    const lonHalf = halfDeg / Math.max(0.05, Math.cos((anchor.lat * Math.PI) / 180));
+    const dx = ((pos.lon - anchor.lon) / lonHalf) * 360;
+    const dy = -((pos.lat - anchor.lat) / halfDeg) * 270;
+    return { x: dx, y: dy };
+  }, [pos, anchor, halfDeg]);
 
   // operator-relative pixel offset for a contact. Uses estimated bearing if present,
   // otherwise hash-stable angle. Radius scales with RSSI distance AND current zoom
