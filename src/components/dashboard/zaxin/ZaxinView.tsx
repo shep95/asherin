@@ -2042,6 +2042,23 @@ function normalizeHeading(deg: number) {
   return ((deg % 360) + 360) % 360;
 }
 
+function compassHeadingForRender({
+  sensorOnline,
+  manualActive,
+  heading,
+  course,
+}: {
+  sensorOnline: boolean;
+  manualActive: boolean;
+  heading: number | null;
+  course: number | null;
+}) {
+  if ((sensorOnline || manualActive) && heading != null) return normalizeHeading(heading);
+  if (course != null) return normalizeHeading(course);
+  if (heading != null) return normalizeHeading(heading);
+  return null;
+}
+
 function geoBearingDegrees(a: Pick<GeoFix, "lat" | "lon">, b: Pick<GeoFix, "lat" | "lon">) {
   const φ1 = a.lat * Math.PI / 180;
   const φ2 = b.lat * Math.PI / 180;
