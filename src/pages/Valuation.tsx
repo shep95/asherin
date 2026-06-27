@@ -38,17 +38,11 @@ const SOFTWARE = [
   { name: "Zaxin", desc: "Tactical BLE intelligence + AR vision (HMD reticle, optical contacts).", tier: "Tactical" },
   { name: "Zaplen", desc: "Dual-AI war scenario chess engine (admin).", tier: "Strategic" },
   { name: "Zeeion", desc: "Dispute resolution, forensics, workforce analytics.", tier: "Forensics" },
-  { name: "Aureon Shield", desc: "DoH audit, hardening, tracker + extension forensics.", tier: "Security" },
   { name: "Guardian Vault", desc: "Centralized security command, TOTP MFA hygiene.", tier: "Security" },
   { name: "NOMAD", desc: "30-source OSINT, 14-pass analysis, persistent dossier trees.", tier: "Intelligence" },
-  { name: "AZIION Trading", desc: "Hyperliquid BRENTOIL trading bot (admin).", tier: "Trading" },
   { name: "Vedic Engine", desc: "Swiss-grade astrology compute (country/company charts).", tier: "Niche" },
-  { name: "Persona Store", desc: "CRUD AI assistants with metadata customization.", tier: "Core" },
   { name: "Whiteboard", desc: "Infinite canvas, layer stack, snap grids.", tier: "Core" },
   { name: "Notebooks", desc: "SQL execution, debounced auto-save, SECURITY DEFINER.", tier: "Data" },
-  { name: "Plugin Marketplace", desc: "Live execution engine for 3rd party integrations.", tier: "Platform" },
-  { name: "Bug Reporting Portal", desc: "Private RLS portal with AI summarization.", tier: "Platform" },
-  { name: "BTC Daily Predictions", desc: "Automated daily AXRLEN forecast with tally.", tier: "Predictive" },
 ];
 
 // ── Comparable companies ────────────────────────────────────────────────────
