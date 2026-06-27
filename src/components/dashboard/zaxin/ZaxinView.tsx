@@ -938,14 +938,19 @@ function ArTab(props: {
           zIndex: 1,
         }} />
 
-        {/* Binocular scope — moved to top-LEFT so the compass strip can claim the right side on mobile */}
+        {/* Binocular scope — centered just below the top compass strip (Ghost Recon style) */}
         {props.arOn && props.scopeOn && props.scopeAvail && (
-          <div className="absolute top-2 left-2 w-[38%] max-w-[160px] pointer-events-none" style={{ zIndex: 3 }}>
-            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-black/30 ring-1 ring-[#c69a4a]/40 shadow-[0_0_18px_-6px_rgba(198,154,74,0.45)]">
+          <div className="absolute left-1/2 -translate-x-1/2 top-[44px] sm:top-[52px] w-[46%] sm:w-[34%] max-w-[420px] pointer-events-none" style={{ zIndex: 3 }}>
+            <div className="relative aspect-[16/5] rounded-sm overflow-hidden bg-black/40 ring-1 ring-[#c69a4a]/45 shadow-[0_0_22px_-6px_rgba(198,154,74,0.55)]">
               <video ref={props.scopeVideoRef} playsInline muted autoPlay
                 className="absolute inset-0 w-full h-full object-cover" />
-              <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-[#e8c684] shadow-[0_0_6px_rgba(232,198,132,0.9)]" />
-              <span className="absolute bottom-0.5 right-1 text-[6px] font-mono text-[#e8c684]/85 tracking-[0.22em]">
+              {/* subtle horizon line + side brackets like the screenshot */}
+              <div className="absolute inset-y-0 left-0 w-px bg-[#e8c684]/70" />
+              <div className="absolute inset-y-0 right-0 w-px bg-[#e8c684]/70" />
+              <div className="absolute inset-x-0 top-0 h-px bg-[#e8c684]/40" />
+              <div className="absolute inset-x-0 bottom-0 h-px bg-[#e8c684]/40" />
+              <span className="absolute top-0.5 left-1 w-1 h-1 rounded-full bg-[#e8c684] shadow-[0_0_6px_rgba(232,198,132,0.9)]" />
+              <span className="absolute bottom-0.5 right-1 text-[7px] font-mono text-[#e8c684]/85 tracking-[0.22em]">
                 {props.mainFacing === "environment" ? "FRONT" : "REAR"}
               </span>
             </div>
@@ -1828,15 +1833,15 @@ function CompassStrip({ heading, contacts, fov }: {
     ticks.push({ deg: d, major, label });
   }
   return (
-    <div className="absolute top-2 right-2 left-[170px] sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[60%] max-w-[520px] pointer-events-none">
-      <div className="relative h-9 rounded-md border border-[#c69a4a]/30 bg-gradient-to-b from-[#1a1208]/70 to-black/55 backdrop-blur-md overflow-hidden shadow-[inset_0_0_18px_-6px_rgba(198,154,74,0.35)]">
+    <div className="absolute top-0 left-0 right-0 pointer-events-none">
+      <div className="relative h-7 sm:h-8 w-full border-b border-[#c69a4a]/35 bg-gradient-to-b from-black/70 via-[#1a1208]/55 to-transparent backdrop-blur-[2px] overflow-hidden">
         {/* tick row */}
         {ticks.map((t, i) => {
           const offset = ((t.deg - h) / (fov / 2)) * 50 + 50;
           if (offset < -2 || offset > 102) return null;
           return (
             <div key={i} style={{ left: `${offset}%` }} className="absolute top-0 -translate-x-1/2">
-              <div className={`mx-auto w-px ${t.major ? "h-3 bg-[#e8c684]" : "h-1.5 bg-[#c69a4a]/45"}`} />
+              <div className={`mx-auto w-px ${t.major ? "h-3 bg-[#e8c684]" : "h-1.5 bg-[#c69a4a]/50"}`} />
               {t.label && (
                 <div className="mt-0.5 text-[9px] font-mono text-[#e8c684] text-center -translate-x-1/2 absolute left-1/2 top-3 whitespace-nowrap">
                   {t.label}
@@ -1857,10 +1862,11 @@ function CompassStrip({ heading, contacts, fov }: {
         })}
         {/* center heading marker */}
         <div className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-px bg-[#e8c684]" />
-        <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-[#e8c684]" />
-      </div>
-      <div className="mt-1 text-center text-[10px] font-mono text-[#e8c684] tracking-[0.2em]">
-        {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "--- °"}
+        <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-[#e8c684]" />
+        {/* heading readout pinned right */}
+        <div className="absolute right-2 top-1 text-[10px] font-mono text-[#e8c684] tracking-[0.2em]">
+          {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "--- °"}
+        </div>
       </div>
     </div>
   );
