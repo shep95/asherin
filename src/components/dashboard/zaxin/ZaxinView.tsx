@@ -2088,13 +2088,14 @@ function usePrecisionGeo() {
   return { fix, err, samples, quality: geoQuality(fix?.acc) };
 }
 
-function MiniMap({ heading, compassOn, contacts }: {
+function MiniMap({ heading, compassOn, geo, contacts }: {
   heading: number | null;
   compassOn: boolean;
+  geo: ReturnType<typeof usePrecisionGeo>;
   contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number; distanceMeters?: number | null }>;
 }) {
   // Live GPS for a true satellite mini-map (replaces the prior abstract radar).
-  const { fix: pos, quality } = usePrecisionGeo();
+  const { fix: pos, quality } = geo;
   const [zoom] = useState(19); // tight overhead — operator-scale
 
   const tileUrl = useMemo(() => {
@@ -2373,15 +2374,17 @@ function RadarMap({
 function SatelliteMap({
   heading,
   compassOn,
+  geo,
   contacts,
   onPick,
 }: {
   heading: number | null;
   compassOn: boolean;
+  geo: ReturnType<typeof usePrecisionGeo>;
   contacts: Contact[];
   onPick?: () => void;
 }) {
-  const { fix: pos, err, samples, quality } = usePrecisionGeo();
+  const { fix: pos, err, samples, quality } = geo;
   const [zoom, setZoom] = useState(18); // 10 wide → 20 close
   const [showLabels, setShowLabels] = useState(true);
   const [mapRef, mapSize] = useMeasuredElement<HTMLDivElement>();
