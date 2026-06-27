@@ -172,6 +172,8 @@ const ZaxinView = () => {
   const scopeVideoRef = useRef<HTMLVideoElement | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
   const [manualHeadingActive, setManualHeadingActive] = useState(false);
+  const [compassOn, setCompassOn] = useState(false);
+  const [compassErr, setCompassErr] = useState<string | null>(null);
   const liveGeo = usePrecisionGeo();
   const liveMapHeading = compassHeadingForRender({
     sensorOnline: compassOn,
@@ -191,8 +193,6 @@ const ZaxinView = () => {
   const scopeStreamRef = useRef<MediaStream | null>(null);
   const poseHandleRef = useRef<{ stop: () => void } | null>(null);
   const compassHandleRef = useRef<{ stop: () => void } | null>(null);
-  const [compassOn, setCompassOn] = useState(false);
-  const [compassErr, setCompassErr] = useState<string | null>(null);
 
   const enableCompass = useCallback(async () => {
     if (compassHandleRef.current) return;
