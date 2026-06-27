@@ -963,7 +963,7 @@ function ArTab(props: {
 
       {/* Camera surface */}
       <div ref={wrapRef}
-        className="relative rounded-3xl overflow-hidden border border-[#c69a4a]/15 bg-black min-h-[82vh] sm:min-h-0 sm:aspect-video portrait:min-h-[82vh] landscape:min-h-[60vh] select-none shadow-[0_20px_60px_-20px_rgba(198,154,74,0.25)]">
+        className="relative rounded-3xl overflow-hidden border border-[#c69a4a]/15 bg-black min-h-[82vh] landscape:min-h-[82vh] select-none shadow-[0_20px_60px_-20px_rgba(198,154,74,0.25)]">
         <video ref={props.videoRef} playsInline muted autoPlay
           className="absolute inset-0 w-full h-full object-cover" />
         <canvas ref={canvasRef} onClick={onTap} onTouchStart={onTap}
@@ -977,7 +977,7 @@ function ArTab(props: {
 
         {/* Binocular scope — centered just below the top compass strip (Ghost Recon style) */}
         {props.arOn && props.scopeOn && props.scopeAvail && (
-          <div className="absolute left-1/2 -translate-x-1/2 top-[34px] sm:top-[40px] w-[58%] sm:w-[52%] max-w-[720px] pointer-events-none" style={{ zIndex: 3 }}>
+          <div className="absolute left-1/2 -translate-x-1/2 top-[34px] w-[58%] max-w-[720px] pointer-events-none" style={{ zIndex: 3 }}>
             <div className="relative aspect-[16/3] rounded-2xl overflow-hidden bg-black/20 backdrop-blur-md ring-1 ring-[#c69a4a]/40 shadow-[0_0_22px_-6px_rgba(198,154,74,0.55)]">
               <video ref={props.scopeVideoRef} playsInline muted autoPlay
                 className="absolute inset-0 w-full h-full object-cover" />
@@ -1266,7 +1266,7 @@ function ArTab(props: {
             ? `${visionEnv.room_width_m ?? "?"}×${visionEnv.room_length_m ?? "?"}×${visionEnv.room_height_m ?? "?"}m`
             : null;
           return (
-            <div className="absolute top-2 right-2 max-w-[180px] sm:max-w-[220px]" style={{ zIndex: 5 }}>
+            <div className="absolute top-2 right-2 max-w-[180px]" style={{ zIndex: 5 }}>
               <button
                 onClick={() => setEnvExpanded((v) => !v)}
                 className="w-full flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/65 backdrop-blur-sm border border-[#c69a4a]/35 text-[#e8c684] text-[9px] font-mono tracking-[0.16em] uppercase hover:bg-black/75 transition"
@@ -1875,7 +1875,7 @@ function CompassStrip({ heading, contacts, fov }: {
   }
   return (
     <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{ zIndex: 7 }}>
-      <div className="relative h-7 sm:h-8 w-full border-b border-[#c69a4a]/35 bg-gradient-to-b from-black/70 via-[#1a1208]/55 to-transparent backdrop-blur-[2px] overflow-hidden">
+      <div className="relative h-7 w-full border-b border-[#c69a4a]/35 bg-gradient-to-b from-black/70 via-[#1a1208]/55 to-transparent backdrop-blur-[2px] overflow-hidden">
         {/* tick row */}
         {ticks.map((t, i) => {
           const offset = ((t.deg - h) / (fov / 2)) * 50 + 50;
@@ -1967,7 +1967,7 @@ function TacticalReticle({
   return (
     <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2, color: tone, opacity: alpha }}>
       {/* Heading tape — thin world-locked rail just above center */}
-      <div className="absolute left-1/2 top-[44%] -translate-x-1/2 w-[70%] sm:w-[52%]"
+      <div className="absolute left-1/2 top-[44%] -translate-x-1/2 w-[70%]"
         style={{ transform: `translate(calc(-50% + ${driftPct}%), -50%)` }}>
         <div className="relative h-3">
           {Array.from({ length: 25 }, (_, i) => (i - 12) * 5).map((t) => {
@@ -1987,9 +1987,10 @@ function TacticalReticle({
         {ladder.map((p) => (
           <div key={p} className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2"
             style={{ top: `calc(50% + ${-p * 0.9}%)` }}>
-            <div className="w-10 sm:w-14 h-px" style={{ background: tone }} />
+            <div className="w-10 h-px" style={{ background: tone }} />
             <span className="text-[8px] font-mono opacity-80">{p === 0 ? "" : p}</span>
-            <div className="w-10 sm:w-14 h-px" style={{ background: tone }} />
+            <div className="w-10 h-px" style={{ background: tone }} />
+
           </div>
         ))}
       </div>
