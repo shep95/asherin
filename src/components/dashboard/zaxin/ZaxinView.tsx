@@ -173,6 +173,9 @@ const ZaxinView = () => {
   const [heading, setHeading] = useState<number | null>(null);
   const liveGeo = usePrecisionGeo();
   const liveMapHeading = heading ?? liveGeo.fix?.course ?? null;
+  useEffect(() => {
+    if (heading == null && liveGeo.fix?.course != null) engine.setHeading(liveGeo.fix.course);
+  }, [engine, heading, liveGeo.fix?.course]);
   const [arOn, setArOn] = useState(false);
   const [arErr, setArErr] = useState<string | null>(null);
   const [mainFacing, setMainFacing] = useState<"environment" | "user">("environment");
@@ -451,6 +454,7 @@ const ZaxinView = () => {
             onStart={startAr} onStop={stopAr}
             compassOn={compassOn} onEnableCompass={enableCompass} compassErr={compassErr}
             onManualHeading={setManualHeading}
+            geo={liveGeo}
           />
         )}
         {tab === "hops" && (
@@ -630,6 +634,7 @@ function ArTab(props: {
   onStart: () => void; onStop: () => void;
   compassOn: boolean; onEnableCompass: () => void; compassErr: string | null;
   onManualHeading: (deg: number) => void;
+  geo: ReturnType<typeof usePrecisionGeo>;
 }) {
   const FOV = 60;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -958,6 +963,7 @@ function ArTab(props: {
             <MiniMap
               heading={props.heading}
               compassOn={props.compassOn}
+              geo={props.geo}
               contacts={props.contacts}
             />
           </>
