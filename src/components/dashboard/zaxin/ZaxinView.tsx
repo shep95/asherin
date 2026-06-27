@@ -1967,7 +1967,7 @@ function TacticalReticle({
   return (
     <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2, color: tone, opacity: alpha }}>
       {/* Heading tape — thin world-locked rail just above center */}
-      <div className="absolute left-1/2 top-[44%] -translate-x-1/2 w-[70%] sm:w-[52%]"
+      <div className="absolute left-1/2 top-[44%] -translate-x-1/2 w-[70%]"
         style={{ transform: `translate(calc(-50% + ${driftPct}%), -50%)` }}>
         <div className="relative h-3">
           {Array.from({ length: 25 }, (_, i) => (i - 12) * 5).map((t) => {
