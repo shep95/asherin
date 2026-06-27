@@ -1826,7 +1826,7 @@ function MiniMap({ heading, contacts }: {
         )}
 
         {/* tint overlay so pips & arrow read clearly */}
-        <div className="absolute inset-0 bg-black/25" />
+        <div className="absolute inset-0 bg-black/10" />
 
         {/* contact pips */}
         {contacts.slice(0, 32).map((c, i) => {
