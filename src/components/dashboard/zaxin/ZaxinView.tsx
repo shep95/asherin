@@ -977,7 +977,7 @@ function ArTab(props: {
 
         {/* Binocular scope — centered just below the top compass strip (Ghost Recon style) */}
         {props.arOn && props.scopeOn && props.scopeAvail && (
-          <div className="absolute left-1/2 -translate-x-1/2 top-[34px] sm:top-[40px] w-[58%] sm:w-[52%] max-w-[720px] pointer-events-none" style={{ zIndex: 3 }}>
+          <div className="absolute left-1/2 -translate-x-1/2 top-[34px] w-[58%] max-w-[720px] pointer-events-none" style={{ zIndex: 3 }}>
             <div className="relative aspect-[16/3] rounded-2xl overflow-hidden bg-black/20 backdrop-blur-md ring-1 ring-[#c69a4a]/40 shadow-[0_0_22px_-6px_rgba(198,154,74,0.55)]">
               <video ref={props.scopeVideoRef} playsInline muted autoPlay
                 className="absolute inset-0 w-full h-full object-cover" />
