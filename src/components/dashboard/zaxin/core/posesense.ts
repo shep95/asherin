@@ -6,7 +6,7 @@
 // short watchdog that rejects with a clear, actionable error if nothing
 // arrives. The UI surfaces a manual-heading fallback in that case.
 
-export type HeadingSource = "orientation" | "absolute" | "none";
+export type HeadingSource = "orientation" | "absolute" | "visual" | "none";
 
 export interface PoseStream {
   source: HeadingSource;
@@ -151,6 +151,113 @@ export async function startCamera(
 
 export function stopCamera(stream: MediaStream | null) {
   stream?.getTracks().forEach((t) => t.stop());
+}
+
+/**
+ * Desktop fallback: derive relative heading from live camera motion.
+ *
+ * Laptops/desktops usually expose no magnetometer, so DeviceOrientation never
+ * changes. This optical dead-reckoning path compares low-res luminance frames,
+ * estimates horizontal pan, then accumulates it into a heading. It is not true
+ * north, but it is live camera data and makes the top compass move when the
+ * operator pans/turns the camera on desktop hardware.
+ */
+export function startVisualHeadingStream(
+  video: HTMLVideoElement,
+  onHeading: (deg: number) => void,
+  opts: { initialHeading?: number; horizontalFov?: number; hz?: number } = {},
+): PoseStream {
+  const width = 72;
+  const height = 40;
+  const horizontalFov = opts.horizontalFov ?? 60;
+  const hz = opts.hz ?? 18;
+  let heading = ((opts.initialHeading ?? 0) % 360 + 360) % 360;
+  let prev: Uint8ClampedArray | null = null;
+  let stopped = false;
+  let timer = 0;
+  let lastEmit = 0;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) throw new Error("Visual heading unavailable. Use manual heading.");
+
+  const luminance = () => {
+    if (video.readyState < 2 || video.videoWidth <= 0 || video.videoHeight <= 0) return null;
+    ctx.drawImage(video, 0, 0, width, height);
+    const rgba = ctx.getImageData(0, 0, width, height).data;
+    const gray = new Uint8ClampedArray(width * height);
+    for (let i = 0, j = 0; i < rgba.length; i += 4, j++) {
+      gray[j] = (rgba[i] * 0.299 + rgba[i + 1] * 0.587 + rgba[i + 2] * 0.114) | 0;
+    }
+    return gray;
+  };
+
+  const estimateShift = (a: Uint8ClampedArray, b: Uint8ClampedArray) => {
+    let bestShift = 0;
+    let bestScore = Number.POSITIVE_INFINITY;
+    let secondScore = Number.POSITIVE_INFINITY;
+    for (let shift = -8; shift <= 8; shift++) {
+      let score = 0;
+      let count = 0;
+      const xStart = Math.max(0, -shift);
+      const xEnd = Math.min(width, width - shift);
+      for (let y = 8; y < height - 6; y += 2) {
+        const row = y * width;
+        for (let x = xStart; x < xEnd; x += 2) {
+          score += Math.abs(a[row + x] - b[row + x + shift]);
+          count++;
+        }
+      }
+      const norm = score / Math.max(1, count);
+      if (norm < bestScore) {
+        secondScore = bestScore;
+        bestScore = norm;
+        bestShift = shift;
+      } else if (norm < secondScore) {
+        secondScore = norm;
+      }
+    }
+    const confidence = Math.max(0, Math.min(1, (secondScore - bestScore) / Math.max(1, secondScore)));
+    return { shift: bestShift, confidence };
+  };
+
+  const tick = () => {
+    if (stopped) return;
+    try {
+      const current = luminance();
+      if (current) {
+        if (prev) {
+          const { shift, confidence } = estimateShift(prev, current);
+          if (Math.abs(shift) > 0 && confidence > 0.012) {
+            const degPerPx = horizontalFov / width;
+            heading = (heading - shift * degPerPx * 0.85 + 360) % 360;
+          }
+        }
+        prev = current;
+        const now = performance.now();
+        if (now - lastEmit > 1000 / hz) {
+          lastEmit = now;
+          onHeading(heading);
+        }
+      }
+    } catch {
+      // Camera frames can transiently be unavailable during device flips.
+    }
+    timer = window.setTimeout(() => requestAnimationFrame(tick), 1000 / hz);
+  };
+
+  onHeading(heading);
+  tick();
+
+  return {
+    source: "visual",
+    stop: () => {
+      stopped = true;
+      window.clearTimeout(timer);
+    },
+  };
 }
 
 /** Opposite of a facing mode. */

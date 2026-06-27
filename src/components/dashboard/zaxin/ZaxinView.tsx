@@ -10,7 +10,7 @@ import {
 import { TacticalEngine, SCENARIOS } from "./core/tactical";
 import { startScan, pickOne, detectScanMode, listPaired, type RawAdvert, type ScanMode } from "./core/scanner";
 import { HopBrain } from "./core/hop";
-import { startHeadingStream, startCamera, stopCamera, bearingDelta, flipFacing } from "./core/posesense";
+import { startHeadingStream, startVisualHeadingStream, startCamera, stopCamera, bearingDelta, flipFacing } from "./core/posesense";
 import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
 import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
@@ -30,6 +30,8 @@ const TABS: Array<{ id: Tab; label: string; icon: React.ElementType }> = [
   { id: "hops",     label: "Hop Mesh",    icon: Network },
   { id: "diag",     label: "Diagnostics", icon: Cpu },
 ];
+
+const AR_CAMERA_FOV = 60;
 
 function randomNodeId() {
   return "node-" + Math.random().toString(36).slice(2, 8);
@@ -171,11 +173,19 @@ const ZaxinView = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scopeVideoRef = useRef<HTMLVideoElement | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
+  const [manualHeadingActive, setManualHeadingActive] = useState(false);
+  const [compassOn, setCompassOn] = useState(false);
+  const [compassErr, setCompassErr] = useState<string | null>(null);
   const liveGeo = usePrecisionGeo();
-  const liveMapHeading = heading ?? liveGeo.fix?.course ?? null;
+  const liveMapHeading = compassHeadingForRender({
+    sensorOnline: compassOn,
+    manualActive: manualHeadingActive,
+    heading,
+    course: liveGeo.fix?.course ?? null,
+  });
   useEffect(() => {
-    if (heading == null && liveGeo.fix?.course != null) engine.setHeading(liveGeo.fix.course);
-  }, [engine, heading, liveGeo.fix?.course]);
+    if (liveMapHeading != null) engine.setHeading(liveMapHeading);
+  }, [engine, liveMapHeading]);
   const [arOn, setArOn] = useState(false);
   const [arErr, setArErr] = useState<string | null>(null);
   const [mainFacing, setMainFacing] = useState<"environment" | "user">("environment");
@@ -185,24 +195,35 @@ const ZaxinView = () => {
   const scopeStreamRef = useRef<MediaStream | null>(null);
   const poseHandleRef = useRef<{ stop: () => void } | null>(null);
   const compassHandleRef = useRef<{ stop: () => void } | null>(null);
-  const [compassOn, setCompassOn] = useState(false);
-  const [compassErr, setCompassErr] = useState<string | null>(null);
 
   const enableCompass = useCallback(async () => {
     if (compassHandleRef.current) return;
     setCompassErr(null);
     try {
       const h = await startHeadingStream((deg) => {
+        setManualHeadingActive(false);
         setHeading(deg);
         engine.setHeading(deg);
       });
       compassHandleRef.current = h;
       setCompassOn(true);
     } catch (e) {
-      setCompassErr(e instanceof Error ? e.message : String(e));
-      setCompassOn(false);
+      const sensorMessage = e instanceof Error ? e.message : String(e);
+      if (arOn && videoRef.current) {
+        const h = startVisualHeadingStream(videoRef.current, (deg) => {
+          setManualHeadingActive(false);
+          setHeading(deg);
+          engine.setHeading(deg);
+        }, { initialHeading: heading ?? liveGeo.fix?.course ?? 0, horizontalFov: AR_CAMERA_FOV, hz: 18 });
+        compassHandleRef.current = h;
+        setCompassOn(true);
+        setCompassErr(`Desktop visual compass active. ${sensorMessage}`);
+      } else {
+        setCompassErr(sensorMessage);
+        setCompassOn(false);
+      }
     }
-  }, [engine]);
+  }, [arOn, engine, heading, liveGeo.fix?.course]);
 
   useEffect(() => () => { compassHandleRef.current?.stop(); }, []);
 
@@ -210,6 +231,7 @@ const ZaxinView = () => {
   // sensor (desktops, most laptops). Driven by a slider in the AR HUD.
   const setManualHeading = useCallback((deg: number) => {
     const norm = ((deg % 360) + 360) % 360;
+    setManualHeadingActive(true);
     setHeading(norm);
     engine.setHeading(norm);
   }, [engine]);
@@ -245,19 +267,32 @@ const ZaxinView = () => {
       if (!poseHandleRef.current && !compassHandleRef.current) {
         try {
           const pose = await startHeadingStream((deg) => {
+            setManualHeadingActive(false);
             setHeading(deg);
             engine.setHeading(deg);
           });
           poseHandleRef.current = pose;
           setCompassOn(true);
         } catch (e) {
-          setCompassErr(e instanceof Error ? e.message : String(e));
-          setCompassOn(false);
-          // Seed heading to 0° so the HUD compass + reticles render
-          // immediately; user can drag the slider to adjust.
-          if (heading == null) {
-            setHeading(0);
-            engine.setHeading(0);
+          const sensorMessage = e instanceof Error ? e.message : String(e);
+          if (videoRef.current) {
+            const visual = startVisualHeadingStream(videoRef.current, (deg) => {
+              setManualHeadingActive(false);
+              setHeading(deg);
+              engine.setHeading(deg);
+            }, { initialHeading: heading ?? liveGeo.fix?.course ?? 0, horizontalFov: AR_CAMERA_FOV, hz: 18 });
+            poseHandleRef.current = visual;
+            setCompassOn(true);
+            setCompassErr(`Desktop visual compass active. ${sensorMessage}`);
+          } else {
+            setCompassErr(sensorMessage);
+            setCompassOn(false);
+            // Seed heading to 0° so the HUD compass + reticles render
+            // immediately; user can drag the slider to adjust.
+            if (heading == null) {
+              setHeading(0);
+              engine.setHeading(0);
+            }
           }
         }
       }
@@ -272,10 +307,12 @@ const ZaxinView = () => {
 
   const stopAr = useCallback(() => {
     poseHandleRef.current?.stop(); poseHandleRef.current = null;
+    compassHandleRef.current?.stop(); compassHandleRef.current = null;
     stopCamera(camStreamRef.current); camStreamRef.current = null;
     stopCamera(scopeStreamRef.current); scopeStreamRef.current = null;
     engine.setPose(false, null);
     setArOn(false);
+    setCompassOn(false);
   }, [engine]);
 
   const flipMain = useCallback(async () => {
@@ -1821,7 +1858,7 @@ function CompassStrip({ heading, contacts, fov }: {
   contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number }>;
   fov: number;
 }) {
-  const h = heading ?? 0;
+  const h = heading != null ? normalizeHeading(heading) : 0;
   // Build ticks covering ±fov from heading
   const ticks: Array<{ deg: number; major: boolean; label?: string }> = [];
   const start = Math.floor((h - fov / 2) / 5) * 5;
@@ -1837,14 +1874,14 @@ function CompassStrip({ heading, contacts, fov }: {
     ticks.push({ deg: d, major, label });
   }
   return (
-    <div className="absolute top-0 left-0 right-0 pointer-events-none">
+    <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{ zIndex: 7 }}>
       <div className="relative h-7 sm:h-8 w-full border-b border-[#c69a4a]/35 bg-gradient-to-b from-black/70 via-[#1a1208]/55 to-transparent backdrop-blur-[2px] overflow-hidden">
         {/* tick row */}
         {ticks.map((t, i) => {
           const offset = ((t.deg - h) / (fov / 2)) * 50 + 50;
           if (offset < -2 || offset > 102) return null;
           return (
-            <div key={i} style={{ left: `${offset}%` }} className="absolute top-0 -translate-x-1/2">
+            <div key={i} style={{ left: `${offset}%`, transition: "left 100ms linear" }} className="absolute top-0 -translate-x-1/2">
               <div className={`mx-auto w-px ${t.major ? "h-3 bg-[#e8c684]" : "h-1.5 bg-[#c69a4a]/50"}`} />
               {t.label && (
                 <div className="mt-0.5 text-[9px] font-mono text-[#e8c684] text-center -translate-x-1/2 absolute left-1/2 top-3 whitespace-nowrap">
@@ -1860,7 +1897,7 @@ function CompassStrip({ heading, contacts, fov }: {
           if (Math.abs(delta) > fov / 2) return null;
           const x = 50 + (delta / (fov / 2)) * 50;
           return (
-            <div key={c.id} style={{ left: `${x}%` }}
+            <div key={c.id} style={{ left: `${x}%`, transition: "left 100ms linear" }}
               className="absolute bottom-0.5 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#f0d59a] shadow-[0_0_6px_rgba(240,213,154,0.95)]" />
           );
         })}
@@ -1868,8 +1905,11 @@ function CompassStrip({ heading, contacts, fov }: {
         <div className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-px bg-[#e8c684]" />
         <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-[#e8c684]" />
         {/* heading readout pinned right */}
-        <div className="absolute right-2 top-1 text-[10px] font-mono text-[#e8c684] tracking-[0.2em]">
+        <div className="absolute right-2 top-1 text-[10px] font-mono text-[#e8c684] tracking-[0.2em] tabular-nums">
           {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "--- °"}
+        </div>
+        <div className="absolute left-2 top-1 text-[8px] font-mono text-[#f0d59a]/80 tracking-[0.18em] uppercase">
+          HDG LIVE
         </div>
       </div>
     </div>
@@ -2031,6 +2071,23 @@ function geoDistanceMeters(a: Pick<GeoFix, "lat" | "lon">, b: Pick<GeoFix, "lat"
 
 function normalizeHeading(deg: number) {
   return ((deg % 360) + 360) % 360;
+}
+
+function compassHeadingForRender({
+  sensorOnline,
+  manualActive,
+  heading,
+  course,
+}: {
+  sensorOnline: boolean;
+  manualActive: boolean;
+  heading: number | null;
+  course: number | null;
+}) {
+  if ((sensorOnline || manualActive) && heading != null) return normalizeHeading(heading);
+  if (course != null) return normalizeHeading(course);
+  if (heading != null) return normalizeHeading(heading);
+  return null;
 }
 
 function geoBearingDegrees(a: Pick<GeoFix, "lat" | "lon">, b: Pick<GeoFix, "lat" | "lon">) {
