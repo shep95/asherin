@@ -208,10 +208,22 @@ const ZaxinView = () => {
       compassHandleRef.current = h;
       setCompassOn(true);
     } catch (e) {
-      setCompassErr(e instanceof Error ? e.message : String(e));
-      setCompassOn(false);
+      const sensorMessage = e instanceof Error ? e.message : String(e);
+      if (arOn && videoRef.current) {
+        const h = startVisualHeadingStream(videoRef.current, (deg) => {
+          setManualHeadingActive(false);
+          setHeading(deg);
+          engine.setHeading(deg);
+        }, { initialHeading: heading ?? liveGeo.fix?.course ?? 0, horizontalFov: AR_CAMERA_FOV, hz: 18 });
+        compassHandleRef.current = h;
+        setCompassOn(true);
+        setCompassErr(`Desktop visual compass active. ${sensorMessage}`);
+      } else {
+        setCompassErr(sensorMessage);
+        setCompassOn(false);
+      }
     }
-  }, [engine]);
+  }, [arOn, engine, heading, liveGeo.fix?.course]);
 
   useEffect(() => () => { compassHandleRef.current?.stop(); }, []);
 
@@ -295,10 +307,12 @@ const ZaxinView = () => {
 
   const stopAr = useCallback(() => {
     poseHandleRef.current?.stop(); poseHandleRef.current = null;
+    compassHandleRef.current?.stop(); compassHandleRef.current = null;
     stopCamera(camStreamRef.current); camStreamRef.current = null;
     stopCamera(scopeStreamRef.current); scopeStreamRef.current = null;
     engine.setPose(false, null);
     setArOn(false);
+    setCompassOn(false);
   }, [engine]);
 
   const flipMain = useCallback(async () => {
