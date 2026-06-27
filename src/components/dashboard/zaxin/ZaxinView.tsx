@@ -2242,16 +2242,18 @@ function AiBriefPanel({ contacts, scenario }: { contacts: Contact[]; scenario: S
     <Panel
       icon={Cpu}
       title="AXRLEN Tactical Brief"
-      subtitle={byok ? `BYOK active · ${byok.provider} · ${byok.model}` : "Bring-your-own-key required"}
+      subtitle={byok ? `BYOK active · ${byok.provider} · ${byok.model}${source === "settings" ? " · from Settings → API Keys" : ""}` : "Bring-your-own-key required"}
     >
       {!byok && (
-        <div className="mt-3 rounded-md border border-[#c69a4a]/25 bg-black/40 p-3 text-[11px] text-foreground/75">
-          The Zaxin AI Brief uses <strong>your own API key</strong> — no platform fallback. Add a key in{" "}
-          <Link to="/dashboard/zophiel-engine" className="underline text-[#e8c684]">
-            Dashboard → Zophiel Engine → BYOK
-          </Link>{" "}
-          (Google, OpenAI, Anthropic, xAI, DeepSeek, Mistral, or Perplexity). Google or OpenAI are wired for in-browser briefs today.
-        </div>
+        <>
+          <div className="mt-3 rounded-md border border-[#c69a4a]/25 bg-black/40 p-3 text-[11px] text-foreground/75">
+            The Zaxin AI Brief uses <strong>your own API key</strong>. Use a key already saved in{" "}
+            <Link to="/dashboard/api-keys" className="underline text-[#e8c684]">Settings → API Keys</Link>{" "}
+            or in <Link to="/dashboard/zophiel-engine" className="underline text-[#e8c684]">Zophiel Engine → BYOK</Link>{" "}
+            — or paste one below right now.
+          </div>
+          <ZaxinInlineByok onSave={saveInline} />
+        </>
       )}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
