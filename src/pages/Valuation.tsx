@@ -322,7 +322,7 @@ const Valuation = () => {
                     <td className="px-4 py-3 font-light">{c.name}</td>
                     <td className="px-4 py-3 text-muted-foreground/80 font-light">{c.category}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-amber-200/90">
-                      ${c.valuation.toLocaleString()}
+                      ${c.valuation.toLocaleString()}M
                     </td>
                     <td className="px-4 py-3 text-muted-foreground/80 font-light">{c.stage}</td>
                     <td className="px-4 py-3 text-muted-foreground/60 font-light text-xs">{c.source}</td>
@@ -339,12 +339,12 @@ const Valuation = () => {
           <pre className="text-[11px] leading-relaxed text-muted-foreground/80 rounded-2xl border border-border/40 p-6 overflow-x-auto font-mono">
 {`   ┌─────────────────────┐      ┌──────────────────────┐      ┌─────────────────────┐
    │  Software Inventory │ ───▶ │  Capability Matrix   │ ───▶ │  Peer Selection     │
-   │  (20 modules)       │      │  (6 axes, 1–10)      │      │  (8 comparables)    │
+   │  (15 modules)       │      │  (6 axes, 1–10)      │      │  (8 comparables)    │
    └─────────────────────┘      └──────────────────────┘      └─────────┬───────────┘
                                                                          │
    ┌─────────────────────┐      ┌──────────────────────┐      ┌─────────▼───────────┐
-   │  Valuation Range    │ ◀─── │  Scenario Weighting  │ ◀─── │  EV/ARR Multiples   │
-   │  $800M – $1.1B      │      │  (Bear / Base / Bull)│      │  (median = 22x)     │
+   │  Valuation Range    │ ◀─── │  Scenario Weighting  │ ◀─── │  Software-Asset     │
+   │  $800M – $1.1B      │      │  (Bear / Base / Bull)│      │  Precedents (WA/IG) │
    └─────────────────────┘      └──────────────────────┘      └─────────────────────┘`}
           </pre>
         </section>
