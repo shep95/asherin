@@ -171,11 +171,17 @@ const ZaxinView = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scopeVideoRef = useRef<HTMLVideoElement | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
+  const [manualHeadingActive, setManualHeadingActive] = useState(false);
   const liveGeo = usePrecisionGeo();
-  const liveMapHeading = heading ?? liveGeo.fix?.course ?? null;
+  const liveMapHeading = compassHeadingForRender({
+    sensorOnline: compassOn,
+    manualActive: manualHeadingActive,
+    heading,
+    course: liveGeo.fix?.course ?? null,
+  });
   useEffect(() => {
-    if (heading == null && liveGeo.fix?.course != null) engine.setHeading(liveGeo.fix.course);
-  }, [engine, heading, liveGeo.fix?.course]);
+    if (liveMapHeading != null) engine.setHeading(liveMapHeading);
+  }, [engine, liveMapHeading]);
   const [arOn, setArOn] = useState(false);
   const [arErr, setArErr] = useState<string | null>(null);
   const [mainFacing, setMainFacing] = useState<"environment" | "user">("environment");
@@ -193,6 +199,7 @@ const ZaxinView = () => {
     setCompassErr(null);
     try {
       const h = await startHeadingStream((deg) => {
+        setManualHeadingActive(false);
         setHeading(deg);
         engine.setHeading(deg);
       });
@@ -210,6 +217,7 @@ const ZaxinView = () => {
   // sensor (desktops, most laptops). Driven by a slider in the AR HUD.
   const setManualHeading = useCallback((deg: number) => {
     const norm = ((deg % 360) + 360) % 360;
+    setManualHeadingActive(true);
     setHeading(norm);
     engine.setHeading(norm);
   }, [engine]);
@@ -245,6 +253,7 @@ const ZaxinView = () => {
       if (!poseHandleRef.current && !compassHandleRef.current) {
         try {
           const pose = await startHeadingStream((deg) => {
+            setManualHeadingActive(false);
             setHeading(deg);
             engine.setHeading(deg);
           });
