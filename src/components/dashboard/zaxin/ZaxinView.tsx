@@ -974,6 +974,11 @@ function ArTab(props: {
           </>
         )}
 
+        {/* Fixed HUD reticle — center circle stays locked, side ticks drift with heading like a gunship overlay */}
+        {props.arOn && <TacticalReticle heading={props.heading} />}
+
+
+
         {/* In-FOV target reticles (T1 + T2 Kalman + T5 behavior) */}
         {props.arOn && props.heading != null && hasBearings.map((c) => {
           const delta = bearingDelta(c.bearing!, props.heading!);
