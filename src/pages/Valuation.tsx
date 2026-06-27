@@ -67,22 +67,24 @@ const REVENUE_MULTIPLES = [
   { peer: "Aureon (applied)", multiple: 22 },
 ];
 
-const ARR_PROJECTION = [
-  { month: "Jan 26", arr: 0.8 },
-  { month: "Feb 26", arr: 1.4 },
-  { month: "Mar 26", arr: 2.6 },
-  { month: "Apr 26", arr: 4.1 },
-  { month: "May 26", arr: 6.0 },
-  { month: "Jun 26", arr: 8.7 },
-  { month: "Jul 26", arr: 12.4 },
-  { month: "Aug 26", arr: 17.0 },
-  { month: "Sep 26", arr: 22.5 },
+// Software-asset value (NOT revenue). Modeled as cumulative engineering value of
+// shipped modules, weighted by capability uniqueness vs the comparable set.
+const SOFTWARE_VALUE_RAMP = [
+  { month: "Jan 26", value: 120 },
+  { month: "Feb 26", value: 180 },
+  { month: "Mar 26", value: 260 },
+  { month: "Apr 26", value: 360 },
+  { month: "May 26", value: 510 },
+  { month: "Jun 26", value: 720 },
+  { month: "Jul 26", value: 860 },
+  { month: "Aug 26", value: 960 },
+  { month: "Sep 26", value: 1050 },
 ];
 
 const SCENARIOS = [
-  { scenario: "Bear", low: 600, high: 720, basis: "12x ARR, slow enterprise adoption" },
-  { scenario: "Base", low: 800, high: 1100, basis: "22x ARR midpoint, comp-weighted" },
-  { scenario: "Bull", low: 1300, high: 1800, basis: "32x ARR, defense + intel contracts" },
+  { scenario: "Bear", low: 600, high: 720, basis: "Software value only — slow strategic acquirer interest" },
+  { scenario: "Base", low: 800, high: 1100, basis: "Software value — comp-weighted vs Palantir / Maltego / Anduril stack" },
+  { scenario: "Bull", low: 1300, high: 1800, basis: "Software value + sovereign-AI scarcity premium" },
 ];
 
 const CAPABILITY_RADAR = [
