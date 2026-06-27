@@ -2354,7 +2354,7 @@ function AiVisionIdentifyPanel(props: {
   onIdents?: (idents: VisionIdent[]) => void;
   onEnv?: (env: EnvScan | null) => void;
 }) {
-  const byok = getActiveIntelMapByok();
+  const { byok, source, saveInline } = useResolvedZaxinByok();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [idents, setIdents] = useState<VisionIdent[]>([]);
