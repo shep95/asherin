@@ -1409,7 +1409,7 @@ function drawFrame(
 ) {
   // Drop cache entries for kinds no longer present, to free memory.
   const active = new Set(frame.hits.map((h) => h.kind));
-  for (const k of SMOOTH_CACHE.keys()) if (!active.has(k as BodyMode | string)) SMOOTH_CACHE.delete(k);
+  for (const k of SMOOTH_CACHE.keys()) if (!active.has(k as BodyFrame["hits"][number]["kind"])) SMOOTH_CACHE.delete(k);
 
   for (const hit of frame.hits) {
     const isHand = hit.kind === "left-hand" || hit.kind === "right-hand";
