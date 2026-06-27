@@ -2180,7 +2180,7 @@ function AiBriefPanel({ contacts, scenario }: { contacts: Contact[]; scenario: S
   const [brief, setBrief] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const byok = getActiveIntelMapByok();
+  const { byok, source, saveInline } = useResolvedZaxinByok();
 
   const summarizeContacts = () =>
     contacts.slice(0, 24).map((c) => ({
