@@ -771,6 +771,7 @@ function ArTab(props: {
   // Streamed identifications + environment scan from the BYOK Vision panel.
   const [visionIdents, setVisionIdents] = useState<VisionIdent[]>([]);
   const [visionEnv, setVisionEnv] = useState<EnvScan | null>(null);
+  const [envExpanded, setEnvExpanded] = useState(false);
 
 
   useEffect(() => {
@@ -914,7 +915,7 @@ function ArTab(props: {
 
       {/* Camera surface */}
       <div ref={wrapRef}
-        className="relative rounded-3xl overflow-hidden border border-[#c69a4a]/15 bg-black min-h-[70vh] sm:min-h-0 sm:aspect-video select-none shadow-[0_20px_60px_-20px_rgba(198,154,74,0.25)]">
+        className="relative rounded-3xl overflow-hidden border border-[#c69a4a]/15 bg-black min-h-[82vh] sm:min-h-0 sm:aspect-video portrait:min-h-[82vh] landscape:min-h-[60vh] select-none shadow-[0_20px_60px_-20px_rgba(198,154,74,0.25)]">
         <video ref={props.videoRef} playsInline muted autoPlay
           className="absolute inset-0 w-full h-full object-cover" />
         <canvas ref={canvasRef} onClick={onTap} onTouchStart={onTap}
@@ -1010,132 +1011,171 @@ function ArTab(props: {
             If the AI Vision panel has returned an identification paired to this
             bbox (matched_optical_id === "opt:i"), we override the label with the
             refined brand/model/type and a BLE pip. */}
-        {props.arOn && opticalOn && optical.map((o, idx) => {
-          const p = projectBbox(o);
-          if (!p) return null;
-          const ai = visionIdents.find((vi) => vi.matched_optical_id === `opt:${idx}`);
-          const isDevice = (ai?.has_bluetooth === true) || o.kind === "device";
-          const stroke = isDevice ? "rgba(232,198,132,0.95)" : "rgba(180,180,180,0.55)";
-          const glow = isDevice ? "0 0 14px -2px rgba(232,198,132,0.55)" : "none";
-          const label = ai?.label || o.label;
-          const isPerson = (ai?.device_type === "person") || o.label.toLowerCase() === "person";
-          const personChips: string[] = [];
-          if (isPerson && ai?.person) {
-            const pp = ai.person;
-            if (pp.age_years != null) personChips.push(`~${pp.age_years}y`);
-            if (pp.height_cm != null) personChips.push(`${pp.height_cm}cm`);
-            if (pp.weight_kg != null) personChips.push(`${pp.weight_kg}kg`);
-            if (pp.gender) personChips.push(pp.gender);
-            if (pp.ethnicity) personChips.push(pp.ethnicity);
-            if (pp.build) personChips.push(pp.build);
-          }
-          const threatTone =
-            ai?.person?.threat === "high" ? "rgba(248,113,113,0.95)" :
-            ai?.person?.threat === "elevated" ? "rgba(251,146,60,0.95)" :
-            stroke;
-          const strokeFinal = isPerson ? threatTone : stroke;
-          const sub = ai
-            ? [ai.brand, ai.device_type, ai.est_distance_m != null ? `${ai.est_distance_m.toFixed(1)}m` : null]
-                .filter(Boolean).join(" · ")
-            : `${(o.score * 100).toFixed(0)}%`;
-          return (
-            <div
-              key={`opt-${o.id}`}
-              style={{
-                left: `${p.leftPct}%`, top: `${p.topPct}%`,
-                width: `${p.widthPct}%`, height: `${p.heightPct}%`,
-                border: `${isDevice || isPerson ? 2 : 1}px solid ${strokeFinal}`,
-                boxShadow: glow, zIndex: 4,
-              }}
-              className="absolute rounded-md pointer-events-none transition-[left,top,width,height] duration-100 ease-out"
-            >
-              <span className="absolute -top-px -left-px w-2.5 h-2.5 border-t-2 border-l-2" style={{ borderColor: strokeFinal }} />
-              <span className="absolute -top-px -right-px w-2.5 h-2.5 border-t-2 border-r-2" style={{ borderColor: strokeFinal }} />
-              <span className="absolute -bottom-px -left-px w-2.5 h-2.5 border-b-2 border-l-2" style={{ borderColor: strokeFinal }} />
-              <span className="absolute -bottom-px -right-px w-2.5 h-2.5 border-b-2 border-r-2" style={{ borderColor: strokeFinal }} />
-              <div className="absolute -top-[34px] left-0 flex items-center gap-1 max-w-[300px]">
-                <div className="text-[9px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/75 truncate"
-                     style={{ color: isDevice || isPerson ? "#f0d59a" : "rgba(255,255,255,0.7)" }}>
-                  {label}
-                </div>
-                {ai?.has_bluetooth ? (
-                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">
-                    BLE
+        {props.arOn && opticalOn && (() => {
+          // Cap to the 5 highest-confidence detections (persons/devices win),
+          // dedupe near-overlapping boxes, hide the noisy floor/wall area-fillers,
+          // and only render labels inside the camera viewport. Preserve original
+          // index so AI vision matches by `opt:<idx>` still resolve.
+          const enriched = optical.map((o, idx) => ({ o, idx, area: o.x !== undefined ? 0 : 0 }));
+          const ranked = optical
+            .map((o, idx) => ({ o, idx }))
+            .filter(({ o }) => o.score >= 0.32) // drop low-confidence "unknown" clutter
+            .sort((a, b) => {
+              // Prefer person > device > misc, then score
+              const tier = (x: typeof a) =>
+                x.o.label.toLowerCase() === "person" ? 2 : x.o.kind === "device" ? 1 : 0;
+              const t = tier(b) - tier(a);
+              return t !== 0 ? t : b.o.score - a.o.score;
+            })
+            .filter(({ o }, i, arr) => {
+              // IoU dedupe — drop overlapping boxes with same label
+              for (let j = 0; j < i; j++) {
+                const a = arr[j].o;
+                const ix = Math.max(0, Math.min(a.x + a.w, o.x + o.w) - Math.max(a.x, o.x));
+                const iy = Math.max(0, Math.min(a.y + a.h, o.y + o.h) - Math.max(a.y, o.y));
+                const inter = ix * iy;
+                const uni = a.w * a.h + o.w * o.h - inter;
+                if (uni > 0 && inter / uni > 0.4 && a.label === o.label) return false;
+              }
+              return true;
+            })
+            .slice(0, 5);
+          // toss the unused enriched variable
+          void enriched;
+          return ranked.map(({ o, idx }) => {
+            const p = projectBbox(o);
+            if (!p) return null;
+            const ai = visionIdents.find((vi) => vi.matched_optical_id === `opt:${idx}`);
+            const isDevice = (ai?.has_bluetooth === true) || o.kind === "device";
+            const stroke = isDevice ? "rgba(232,198,132,0.95)" : "rgba(180,180,180,0.55)";
+            const glow = isDevice ? "0 0 14px -2px rgba(232,198,132,0.55)" : "none";
+            const confPct = Math.round((ai?.confidence ?? o.score) * 100);
+            const hedged = confPct < 60;
+            const rawLabel = ai?.label || o.label;
+            const label = hedged ? `Possible ${rawLabel} · ${confPct}%` : `${rawLabel} · ${confPct}%`;
+            const isPerson = (ai?.device_type === "person") || o.label.toLowerCase() === "person";
+            const personChips: string[] = [];
+            if (isPerson && ai?.person) {
+              const pp = ai.person;
+              if (pp.age_years != null) personChips.push(`~${pp.age_years}y`);
+              if (pp.height_cm != null) personChips.push(`${pp.height_cm}cm`);
+              if (pp.weight_kg != null) personChips.push(`${pp.weight_kg}kg`);
+              if (pp.gender) personChips.push(pp.gender);
+              if (pp.ethnicity) personChips.push(pp.ethnicity);
+              if (pp.build) personChips.push(pp.build);
+            }
+            const threatTone =
+              ai?.person?.threat === "high" ? "rgba(248,113,113,0.95)" :
+              ai?.person?.threat === "elevated" ? "rgba(251,146,60,0.95)" :
+              stroke;
+            const strokeFinal = isPerson ? threatTone : stroke;
+            const sub = ai
+              ? [ai.brand, ai.device_type, ai.est_distance_m != null ? `${ai.est_distance_m.toFixed(1)}m` : null]
+                  .filter(Boolean).join(" · ")
+              : null;
+            // Anchor label above when there's room, otherwise inside-top.
+            const labelAbove = p.topPct > 8;
+            return (
+              <div
+                key={`opt-${o.id}`}
+                style={{
+                  left: `${p.leftPct}%`, top: `${p.topPct}%`,
+                  width: `${p.widthPct}%`, height: `${p.heightPct}%`,
+                  border: `${isDevice || isPerson ? 2 : 1}px solid ${strokeFinal}`,
+                  boxShadow: glow, zIndex: 4,
+                }}
+                className="absolute rounded-md pointer-events-none transition-[left,top,width,height] duration-150 ease-out"
+              >
+                <span className="absolute -top-px -left-px w-2.5 h-2.5 border-t-2 border-l-2" style={{ borderColor: strokeFinal }} />
+                <span className="absolute -top-px -right-px w-2.5 h-2.5 border-t-2 border-r-2" style={{ borderColor: strokeFinal }} />
+                <span className="absolute -bottom-px -left-px w-2.5 h-2.5 border-b-2 border-l-2" style={{ borderColor: strokeFinal }} />
+                <span className="absolute -bottom-px -right-px w-2.5 h-2.5 border-b-2 border-r-2" style={{ borderColor: strokeFinal }} />
+                <div className={`absolute ${labelAbove ? "-top-[32px]" : "top-1"} left-0 right-0 flex flex-wrap items-start gap-1`}>
+                  <div className="text-[9px] font-mono tracking-[0.1em] px-1.5 py-0.5 rounded-sm bg-black/80 max-w-[160px] whitespace-normal leading-tight"
+                       style={{ color: isDevice || isPerson ? "#f0d59a" : "rgba(255,255,255,0.78)" }}>
+                    {label}
                   </div>
-                ) : null}
-                {isPerson && ai?.person?.threat && ai.person.threat !== "none" ? (
-                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-rose-500/30 text-rose-100 border border-rose-300/50">
-                    {ai.person.threat}
+                  {ai?.has_bluetooth ? (
+                    <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">BLE</div>
+                  ) : null}
+                  {isPerson && ai?.person?.threat && ai.person.threat !== "none" ? (
+                    <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-rose-500/40 text-rose-50 border border-rose-300/70 animate-pulse">
+                      ⚠ {ai.person.threat}
+                    </div>
+                  ) : null}
+                </div>
+                {(isPerson && personChips.length) || sub ? (
+                  <div className="absolute -bottom-[20px] left-0 text-[8px] font-mono tracking-[0.12em] px-1.5 py-0.5 rounded-sm bg-black/70 text-foreground/80 max-w-[200px] whitespace-normal leading-tight">
+                    {isPerson && personChips.length ? personChips.join(" · ") : sub}
                   </div>
                 ) : null}
               </div>
-              <div className="absolute -bottom-[18px] left-0 text-[8px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/65 text-foreground/75 truncate max-w-[320px]">
-                {isPerson && personChips.length ? personChips.join(" · ") : sub}
-              </div>
-              {isPerson && ai?.narration ? (
-                <div className="absolute -bottom-[34px] left-0 text-[8px] font-mono px-1.5 py-0.5 rounded-sm bg-black/70 text-[#f0d59a]/90 max-w-[340px] truncate">
-                  {ai.narration}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
+            );
+          });
+        })()}
 
-        {/* AI-ONLY IDENT BOXES — items the COCO detector missed but the BYOK vision model spotted */}
-        {props.arOn && visionIdents.map((it, i) => {
-          if (it.matched_optical_id || !it.bbox_pct) return null;
-          const b = it.bbox_pct;
-          const proj = projectBbox({ x: b.x / 100, y: b.y / 100, w: b.w / 100, h: b.h / 100 });
-          if (!proj) return null;
-          const isBle = it.has_bluetooth === true;
-          const isPerson = it.device_type === "person";
-          const personChips: string[] = [];
-          if (isPerson && it.person) {
-            const pp = it.person;
-            if (pp.age_years != null) personChips.push(`~${pp.age_years}y`);
-            if (pp.height_cm != null) personChips.push(`${pp.height_cm}cm`);
-            if (pp.weight_kg != null) personChips.push(`${pp.weight_kg}kg`);
-            if (pp.gender) personChips.push(pp.gender);
-            if (pp.ethnicity) personChips.push(pp.ethnicity);
-            if (pp.build) personChips.push(pp.build);
-          }
-          const threatTone =
-            it.person?.threat === "high" ? "rgba(248,113,113,0.95)" :
-            it.person?.threat === "elevated" ? "rgba(251,146,60,0.95)" : null;
-          const stroke = threatTone || (isPerson ? "rgba(232,198,132,0.95)" : isBle ? "rgba(232,198,132,0.9)" : "rgba(170,170,170,0.55)");
-          return (
-            <div
-              key={`ai-${i}`}
-              style={{
-                left: `${proj.leftPct}%`, top: `${proj.topPct}%`,
-                width: `${proj.widthPct}%`, height: `${proj.heightPct}%`,
-                border: `${isBle || isPerson ? 2 : 1}px dashed ${stroke}`,
-                zIndex: 4,
-              }}
-              className="absolute rounded-md pointer-events-none"
-            >
-              <div className="absolute -top-[18px] left-0 flex items-center gap-1 max-w-[300px]">
-                <div className="text-[9px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/75 truncate"
-                     style={{ color: isBle || isPerson ? "#f0d59a" : "rgba(255,255,255,0.7)" }}>
-                  {it.label || (isPerson ? "person" : "device")}{it.brand ? ` · ${it.brand}` : ""}
+        {/* AI-ONLY IDENT BOXES — top 5 only, with confidence + wrapping labels. */}
+        {props.arOn && visionIdents
+          .filter((it) => !it.matched_optical_id && it.bbox_pct)
+          .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
+          .slice(0, 5)
+          .map((it, i) => {
+            const b = it.bbox_pct!;
+            const proj = projectBbox({ x: b.x / 100, y: b.y / 100, w: b.w / 100, h: b.h / 100 });
+            if (!proj) return null;
+            const isBle = it.has_bluetooth === true;
+            const isPerson = it.device_type === "person";
+            const confPct = Math.round((it.confidence ?? 0.5) * 100);
+            const hedged = confPct < 60;
+            const personChips: string[] = [];
+            if (isPerson && it.person) {
+              const pp = it.person;
+              if (pp.age_years != null) personChips.push(`~${pp.age_years}y`);
+              if (pp.height_cm != null) personChips.push(`${pp.height_cm}cm`);
+              if (pp.weight_kg != null) personChips.push(`${pp.weight_kg}kg`);
+              if (pp.gender) personChips.push(pp.gender);
+              if (pp.ethnicity) personChips.push(pp.ethnicity);
+              if (pp.build) personChips.push(pp.build);
+            }
+            const threatTone =
+              it.person?.threat === "high" ? "rgba(248,113,113,0.95)" :
+              it.person?.threat === "elevated" ? "rgba(251,146,60,0.95)" : null;
+            const stroke = threatTone || (isPerson ? "rgba(232,198,132,0.95)" : isBle ? "rgba(232,198,132,0.9)" : "rgba(170,170,170,0.55)");
+            const baseLabel = it.label || (isPerson ? "person" : "device");
+            const labelText = `${hedged ? "Possible " : ""}${baseLabel}${it.brand ? ` · ${it.brand}` : ""} · ${confPct}%`;
+            return (
+              <div
+                key={`ai-${i}`}
+                style={{
+                  left: `${proj.leftPct}%`, top: `${proj.topPct}%`,
+                  width: `${proj.widthPct}%`, height: `${proj.heightPct}%`,
+                  border: `${isBle || isPerson ? 2 : 1}px dashed ${stroke}`,
+                  zIndex: 4,
+                }}
+                className="absolute rounded-md pointer-events-none"
+              >
+                <div className="absolute -top-[20px] left-0 right-0 flex flex-wrap items-start gap-1">
+                  <div className="text-[9px] font-mono tracking-[0.1em] px-1.5 py-0.5 rounded-sm bg-black/80 max-w-[160px] whitespace-normal leading-tight"
+                       style={{ color: isBle || isPerson ? "#f0d59a" : "rgba(255,255,255,0.78)" }}>
+                    {labelText}
+                  </div>
+                  {isBle ? (
+                    <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">BLE</div>
+                  ) : null}
+                  {isPerson && it.person?.threat && it.person.threat !== "none" ? (
+                    <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-rose-500/40 text-rose-50 border border-rose-300/70 animate-pulse">
+                      ⚠ {it.person.threat}
+                    </div>
+                  ) : null}
                 </div>
-                {isBle ? (
-                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">BLE</div>
-                ) : null}
-                {isPerson && it.person?.threat && it.person.threat !== "none" ? (
-                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-rose-500/30 text-rose-100 border border-rose-300/50">
-                    {it.person.threat}
+                {isPerson && personChips.length ? (
+                  <div className="absolute -bottom-[20px] left-0 text-[8px] font-mono tracking-[0.12em] px-1.5 py-0.5 rounded-sm bg-black/70 text-[#f0d59a]/90 max-w-[200px] whitespace-normal leading-tight">
+                    {personChips.join(" · ")}
                   </div>
                 ) : null}
               </div>
-              {isPerson && personChips.length ? (
-                <div className="absolute -bottom-[18px] left-0 text-[8px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/70 text-[#f0d59a]/90 truncate max-w-[320px]">
-                  {personChips.join(" · ")}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
+            );
+          })}
 
         {/* CROWD COUNTER — total visible people across optical + AI + env scan */}
         {props.arOn && (() => {
@@ -1160,40 +1200,56 @@ function ArTab(props: {
           );
         })()}
 
-        {/* Environment HUD — live forensic readout of the scene (room dims, lighting, sun, hazards) */}
-        {props.arOn && visionEnv && (
-          <div className="absolute top-2 right-2 max-w-[260px] text-[9px] font-mono leading-tight px-2 py-1.5 rounded-md bg-black/65 backdrop-blur-sm border border-[#c69a4a]/35 text-[#f0d59a]/90 space-y-0.5" style={{ zIndex: 5 }}>
-            <div className="flex items-center gap-1 text-[#e8c684] tracking-[0.18em] uppercase text-[8px]">
-              <Eye className="h-2.5 w-2.5" /> ENV SCAN
+        {/* Environment HUD — collapsible. Compact chip by default so the camera view stays clear. */}
+        {props.arOn && visionEnv && (() => {
+          const hazards = visionEnv.hazards ?? [];
+          const dims = (visionEnv.room_width_m || visionEnv.room_length_m || visionEnv.room_height_m)
+            ? `${visionEnv.room_width_m ?? "?"}×${visionEnv.room_length_m ?? "?"}×${visionEnv.room_height_m ?? "?"}m`
+            : null;
+          return (
+            <div className="absolute top-2 right-2 max-w-[180px] sm:max-w-[220px]" style={{ zIndex: 5 }}>
+              <button
+                onClick={() => setEnvExpanded((v) => !v)}
+                className="w-full flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/65 backdrop-blur-sm border border-[#c69a4a]/35 text-[#e8c684] text-[9px] font-mono tracking-[0.16em] uppercase hover:bg-black/75 transition"
+              >
+                <Eye className="h-2.5 w-2.5 shrink-0" />
+                <span className="truncate flex-1 text-left">
+                  {dims ?? "ENV"}{visionEnv.occupants != null ? ` · ${visionEnv.occupants}p` : ""}
+                </span>
+                {hazards.length > 0 && (
+                  <span className="px-1 rounded-sm bg-rose-500/30 text-rose-100 border border-rose-300/60 text-[8px] animate-pulse">
+                    ⚠{hazards.length}
+                  </span>
+                )}
+                <span className="text-[#e8c684]/60">{envExpanded ? "▴" : "▾"}</span>
+              </button>
+              {envExpanded && (
+                <div className="mt-1 text-[9px] font-mono leading-tight px-2 py-1.5 rounded-md bg-black/70 backdrop-blur-sm border border-[#c69a4a]/35 text-[#f0d59a]/90 space-y-0.5 whitespace-normal">
+                  {visionEnv.scene && <div>{visionEnv.scene}</div>}
+                  {visionEnv.lighting && (
+                    <div className="text-foreground/70">
+                      {visionEnv.lighting.type ?? "light"}
+                      {visionEnv.lighting.intensity_lux_est != null ? ` · ${visionEnv.lighting.intensity_lux_est}lx` : ""}
+                      {visionEnv.lighting.color_temp_k_est != null ? ` · ${visionEnv.lighting.color_temp_k_est}K` : ""}
+                    </div>
+                  )}
+                  {visionEnv.lighting?.sun_position && (
+                    <div className="text-foreground/70">☀ {visionEnv.lighting.sun_position}</div>
+                  )}
+                  {hazards.length > 0 && (
+                    <div className="text-rose-200/90 font-semibold">⚠ {hazards.slice(0, 3).join(" · ")}</div>
+                  )}
+                  {visionEnv.exits && visionEnv.exits.length > 0 && (
+                    <div className="text-[#e8c684]/80">⇲ {visionEnv.exits.slice(0, 2).join(", ")}</div>
+                  )}
+                  {visionEnv.ambient_summary && (
+                    <div className="text-foreground/55 text-[8px] line-clamp-3 mt-0.5">{visionEnv.ambient_summary}</div>
+                  )}
+                </div>
+              )}
             </div>
-            {visionEnv.scene && <div className="truncate">{visionEnv.scene}</div>}
-            {(visionEnv.room_width_m || visionEnv.room_length_m || visionEnv.room_height_m) && (
-              <div className="text-foreground/75">
-                {(visionEnv.room_width_m ?? "?")}×{(visionEnv.room_length_m ?? "?")}×{(visionEnv.room_height_m ?? "?")}m
-                {visionEnv.occupants != null ? ` · ${visionEnv.occupants} ppl` : ""}
-              </div>
-            )}
-            {visionEnv.lighting && (
-              <div className="text-foreground/70 truncate">
-                {visionEnv.lighting.type ?? "light"}
-                {visionEnv.lighting.intensity_lux_est != null ? ` · ${visionEnv.lighting.intensity_lux_est}lx` : ""}
-                {visionEnv.lighting.color_temp_k_est != null ? ` · ${visionEnv.lighting.color_temp_k_est}K` : ""}
-              </div>
-            )}
-            {visionEnv.lighting?.sun_position && (
-              <div className="text-foreground/70 truncate">☀ {visionEnv.lighting.sun_position}</div>
-            )}
-            {visionEnv.hazards && visionEnv.hazards.length > 0 && (
-              <div className="text-rose-200/85 truncate">⚠ {visionEnv.hazards.slice(0, 3).join(", ")}</div>
-            )}
-            {visionEnv.exits && visionEnv.exits.length > 0 && (
-              <div className="text-[#e8c684]/80 truncate">⇲ {visionEnv.exits.slice(0, 2).join(", ")}</div>
-            )}
-            {visionEnv.ambient_summary && (
-              <div className="text-foreground/55 text-[8px] line-clamp-2 mt-0.5">{visionEnv.ambient_summary}</div>
-            )}
-          </div>
-        )}
+          );
+        })()}
 
 
         {/* T7 — Ultrasonic chirp pill */}
@@ -1286,42 +1342,132 @@ function IconChip({ icon: Icon, onClick, active, tone, label }: {
 }
 
 
+// Smoothing cache + velocity prediction so the skeleton glides between MediaPipe
+// inferences instead of snapping every ~80–120ms. Each kind tracks: last shown
+// points, last *measured* points (from MediaPipe), measurement timestamp, and a
+// per-point velocity estimate. On each RAF we (a) extrapolate the measured
+// points forward by Δt × velocity (occlusion prediction — if the limb just went
+// behind an arm, it keeps moving briefly), then (b) lerp the shown points
+// toward that prediction. Result: high-FPS feel without raising inference cost.
+type SmoothEntry = {
+  shown: Array<{ x: number; y: number }>;
+  measured: Array<{ x: number; y: number }>;
+  vel: Array<{ x: number; y: number }>;
+  measuredAt: number;
+};
+const SMOOTH_CACHE: Map<string, SmoothEntry> = new Map();
+const FINGER_TIPS = new Set([4, 8, 12, 16, 20]);
+
+function getSmoothed(kind: string, latest: Array<{ x: number; y: number }>): Array<{ x: number; y: number }> {
+  const now = performance.now();
+  const prev = SMOOTH_CACHE.get(kind);
+  // Detect a new measurement (point[0] coordinate changed).
+  const isNewMeasure = !prev || prev.measured.length !== latest.length ||
+    Math.abs((prev.measured[0]?.x ?? 0) - (latest[0]?.x ?? 0)) > 1e-6 ||
+    Math.abs((prev.measured[0]?.y ?? 0) - (latest[0]?.y ?? 0)) > 1e-6;
+
+  let measured = latest;
+  let vel = prev?.vel ?? latest.map(() => ({ x: 0, y: 0 }));
+  let measuredAt = prev?.measuredAt ?? now;
+
+  if (isNewMeasure && prev && prev.measured.length === latest.length) {
+    const dt = Math.max(0.016, (now - prev.measuredAt) / 1000);
+    vel = latest.map((p, i) => {
+      const pp = prev.measured[i];
+      const vx = (p.x - pp.x) / dt;
+      const vy = (p.y - pp.y) / dt;
+      // EMA on velocity for stability
+      const ov = prev.vel[i] ?? { x: 0, y: 0 };
+      return { x: ov.x * 0.5 + vx * 0.5, y: ov.y * 0.5 + vy * 0.5 };
+    });
+    measuredAt = now;
+  }
+
+  // Predict where the measured points should be NOW (compensate inference lag).
+  const lead = Math.min(0.06, (now - measuredAt) / 1000); // cap 60ms lookahead
+  const predicted = measured.map((p, i) => ({
+    x: p.x + (vel[i]?.x ?? 0) * lead,
+    y: p.y + (vel[i]?.y ?? 0) * lead,
+  }));
+
+  // Lerp shown toward predicted — fast convergence (0.45) for responsiveness,
+  // slow enough to filter jitter.
+  const shown = prev && prev.shown.length === predicted.length
+    ? predicted.map((p, i) => ({
+        x: prev.shown[i].x + (p.x - prev.shown[i].x) * 0.45,
+        y: prev.shown[i].y + (p.y - prev.shown[i].y) * 0.45,
+      }))
+    : predicted.map((p) => ({ x: p.x, y: p.y }));
+
+  SMOOTH_CACHE.set(kind, { shown, measured: latest, vel, measuredAt });
+  return shown;
+}
+
 function drawFrame(
   ctx: CanvasRenderingContext2D, frame: BodyFrame, W: number, H: number,
   bindings: Record<string, string>, contacts: Contact[],
 ) {
+  // Drop cache entries for kinds no longer present, to free memory.
+  const active = new Set(frame.hits.map((h) => h.kind));
+  for (const k of SMOOTH_CACHE.keys()) if (!active.has(k as BodyFrame["hits"][number]["kind"])) SMOOTH_CACHE.delete(k);
+
   for (const hit of frame.hits) {
-    const color =
-      hit.kind === "body"       ? "rgba(74,222,128,0.9)" :
-      hit.kind === "face"       ? "rgba(125,211,252,0.85)" :
-      hit.kind === "left-hand"  ? "rgba(251,191,36,0.9)" :
-                                  "rgba(74,222,128,0.9)";
-    ctx.strokeStyle = color; ctx.fillStyle = color;
-    ctx.lineWidth = hit.kind === "body" ? 2.5 : 1.5;
+    const isHand = hit.kind === "left-hand" || hit.kind === "right-hand";
+    const pts = getSmoothed(hit.kind, hit.points);
+
+    // Hand: gold bones, brighter fingertip caps. Body: green. Face: light blue mesh.
+    const boneColor =
+      hit.kind === "body" ? "rgba(74,222,128,0.92)" :
+      hit.kind === "face" ? "rgba(125,211,252,0.85)" :
+      "rgba(198,154,74,0.92)"; // gold bones for hands
+    ctx.strokeStyle = boneColor;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = hit.kind === "body" ? 2.6 : isHand ? 1.25 : 1.2;
+
     const edges =
       hit.kind === "body" ? POSE_EDGES :
-      hit.kind === "left-hand" || hit.kind === "right-hand" ? HAND_EDGES : [];
+      isHand ? HAND_EDGES : [];
     for (const [a, b] of edges) {
-      const pa = hit.points[a], pb = hit.points[b];
+      const pa = pts[a], pb = pts[b];
       if (!pa || !pb) continue;
       ctx.beginPath();
       ctx.moveTo(pa.x * W, pa.y * H);
       ctx.lineTo(pb.x * W, pb.y * H);
       ctx.stroke();
     }
+
     if (hit.kind === "face") {
       ctx.fillStyle = "rgba(125,211,252,0.7)";
-      for (let i = 0; i < hit.points.length; i += 4) {
-        const p = hit.points[i];
+      for (let i = 0; i < pts.length; i += 4) {
+        const p = pts[i];
         ctx.fillRect(p.x * W, p.y * H, 1, 1);
       }
-    } else {
-      for (const p of hit.points) {
+    } else if (isHand) {
+      // Joints: small dim dots; fingertips: bright big caps.
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        const tip = FINGER_TIPS.has(i);
         ctx.beginPath();
-        ctx.arc(p.x * W, p.y * H, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = tip ? "rgba(232,198,132,0.98)" : "rgba(198,154,74,0.55)";
+        ctx.arc(p.x * W, p.y * H, tip ? 4 : 2, 0, Math.PI * 2);
+        ctx.fill();
+        if (tip) {
+          ctx.strokeStyle = "rgba(0,0,0,0.55)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    } else {
+      // body joints
+      ctx.fillStyle = boneColor;
+      for (const p of pts) {
+        ctx.beginPath();
+        ctx.arc(p.x * W, p.y * H, 3, 0, Math.PI * 2);
         ctx.fill();
       }
     }
+
     const boundId = bindings[hit.kind];
     if (boundId) {
       const c = contacts.find((x) => x.id === boundId);
@@ -1333,11 +1479,8 @@ function drawFrame(
       ctx.fillRect(bx, Math.max(0, by - 16), tw, 14);
       ctx.fillStyle = "#000";
       ctx.fillText(label, bx + 5, Math.max(11, by - 5));
-    } else {
-      ctx.strokeStyle = "rgba(74,222,128,0.35)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(hit.bbox.x * W, hit.bbox.y * H, hit.bbox.w * W, hit.bbox.h * H);
     }
+    // (No bare bounding-box stroke when unbound — keeps the camera view clean.)
 
     // Anthropometric estimate readout for body hits.
     if (hit.kind === "body" && hit.metrics) {
@@ -1740,7 +1883,7 @@ function MiniMap({ heading, contacts }: {
     return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&imageSR=3857&size=320,320&format=jpg&transparent=false&f=image`;
   }, [pos, halfDeg]);
 
-  const SIZE = 140;
+  const SIZE = 172;
   const HALF_PX = SIZE / 2;
 
   // Place each contact around the operator. Bearing is world-absolute when
@@ -1770,7 +1913,7 @@ function MiniMap({ heading, contacts }: {
         )}
 
         {/* tint overlay so pips & arrow read clearly */}
-        <div className="absolute inset-0 bg-black/25" />
+        <div className="absolute inset-0 bg-black/10" />
 
         {/* contact pips */}
         {contacts.slice(0, 32).map((c, i) => {
