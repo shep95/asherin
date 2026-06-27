@@ -2593,16 +2593,18 @@ function AiVisionIdentifyPanel(props: {
     <Panel
       icon={Eye}
       title="AI Vision Identify"
-      subtitle={byok ? `BYOK active · ${byok.provider} · ${byok.model}` : "Bring-your-own-key required"}
+      subtitle={byok ? `BYOK active · ${byok.provider} · ${byok.model}${source === "settings" ? " · from Settings → API Keys" : ""}` : "Bring-your-own-key required"}
     >
       {!byok && (
-        <div className="mt-3 rounded-md border border-[#c69a4a]/25 bg-black/40 p-3 text-[11px] text-foreground/75">
-          AI Vision uses <strong>your own API key</strong>. Add one in{" "}
-          <Link to="/dashboard/zophiel-engine" className="underline text-[#e8c684]">
-            Dashboard → Zophiel Engine → BYOK
-          </Link>{" "}
-          — Google Gemini or OpenAI (must be a vision-capable model).
-        </div>
+        <>
+          <div className="mt-3 rounded-md border border-[#c69a4a]/25 bg-black/40 p-3 text-[11px] text-foreground/75">
+            AI Vision uses <strong>your own API key</strong>. Use a key from{" "}
+            <Link to="/dashboard/api-keys" className="underline text-[#e8c684]">Settings → API Keys</Link>{" "}
+            or <Link to="/dashboard/zophiel-engine" className="underline text-[#e8c684]">Zophiel BYOK</Link>{" "}
+            — or paste a Google Gemini / OpenAI vision key below.
+          </div>
+          <ZaxinInlineByok onSave={saveInline} />
+        </>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
