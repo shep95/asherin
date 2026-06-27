@@ -27,6 +27,7 @@ const Blog = lazy(() => import("./pages/Blog"));
 const Updates = lazy(() => import("./pages/Updates"));
 const HouseOfAsherTheories = lazy(() => import("./pages/HouseOfAsherTheories"));
 const Investors = lazy(() => import("./pages/Investors"));
+const Valuation = lazy(() => import("./pages/Valuation"));
 
 
 // SEO content cluster (Theories 8-14): glossary, satellites, predictions, feature spines.
@@ -145,6 +146,7 @@ const App = () => (
             <Route path="/zaxin/theories" element={<ZaxinTheories />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/investors" element={<Investors />} />
+            <Route path="/valuation" element={<Valuation />} />
 
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
