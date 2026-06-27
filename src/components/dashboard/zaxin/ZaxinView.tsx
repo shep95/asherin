@@ -1928,6 +1928,9 @@ function TacticalReticle({ heading }: { heading: number | null }) {
       </div>
     </div>
   );
+}
+
+
 
 type GeoFix = {
   lat: number;
