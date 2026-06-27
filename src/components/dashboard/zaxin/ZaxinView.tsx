@@ -1833,15 +1833,15 @@ function CompassStrip({ heading, contacts, fov }: {
     ticks.push({ deg: d, major, label });
   }
   return (
-    <div className="absolute top-2 right-2 left-[170px] sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[60%] max-w-[520px] pointer-events-none">
-      <div className="relative h-9 rounded-md border border-[#c69a4a]/30 bg-gradient-to-b from-[#1a1208]/70 to-black/55 backdrop-blur-md overflow-hidden shadow-[inset_0_0_18px_-6px_rgba(198,154,74,0.35)]">
+    <div className="absolute top-0 left-0 right-0 pointer-events-none">
+      <div className="relative h-7 sm:h-8 w-full border-b border-[#c69a4a]/35 bg-gradient-to-b from-black/70 via-[#1a1208]/55 to-transparent backdrop-blur-[2px] overflow-hidden">
         {/* tick row */}
         {ticks.map((t, i) => {
           const offset = ((t.deg - h) / (fov / 2)) * 50 + 50;
           if (offset < -2 || offset > 102) return null;
           return (
             <div key={i} style={{ left: `${offset}%` }} className="absolute top-0 -translate-x-1/2">
-              <div className={`mx-auto w-px ${t.major ? "h-3 bg-[#e8c684]" : "h-1.5 bg-[#c69a4a]/45"}`} />
+              <div className={`mx-auto w-px ${t.major ? "h-3 bg-[#e8c684]" : "h-1.5 bg-[#c69a4a]/50"}`} />
               {t.label && (
                 <div className="mt-0.5 text-[9px] font-mono text-[#e8c684] text-center -translate-x-1/2 absolute left-1/2 top-3 whitespace-nowrap">
                   {t.label}
@@ -1862,10 +1862,11 @@ function CompassStrip({ heading, contacts, fov }: {
         })}
         {/* center heading marker */}
         <div className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-px bg-[#e8c684]" />
-        <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-[#e8c684]" />
-      </div>
-      <div className="mt-1 text-center text-[10px] font-mono text-[#e8c684] tracking-[0.2em]">
-        {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "--- °"}
+        <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-[#e8c684]" />
+        {/* heading readout pinned right */}
+        <div className="absolute right-2 top-1 text-[10px] font-mono text-[#e8c684] tracking-[0.2em]">
+          {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "--- °"}
+        </div>
       </div>
     </div>
   );
