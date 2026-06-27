@@ -171,6 +171,11 @@ const ZaxinView = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scopeVideoRef = useRef<HTMLVideoElement | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
+  const liveGeo = usePrecisionGeo();
+  const liveMapHeading = heading ?? liveGeo.fix?.course ?? null;
+  useEffect(() => {
+    if (heading == null && liveGeo.fix?.course != null) engine.setHeading(liveGeo.fix.course);
+  }, [engine, heading, liveGeo.fix?.course]);
   const [arOn, setArOn] = useState(false);
   const [arErr, setArErr] = useState<string | null>(null);
   const [mainFacing, setMainFacing] = useState<"environment" | "user">("environment");
@@ -431,8 +436,9 @@ const ZaxinView = () => {
             locals={locals} remotes={remotes}
             onToggleWatch={(id) => engine.toggleWatch(id)}
             onPullIntel={(id) => engine.pullIntel(id)}
-            heading={heading} compassOn={compassOn} compassErr={compassErr}
+            heading={liveMapHeading} compassOn={compassOn} compassErr={compassErr}
             onEnableCompass={enableCompass}
+            geo={liveGeo}
           />
         )}
         {tab === "tactical" && (
@@ -441,19 +447,20 @@ const ZaxinView = () => {
         {tab === "ar" && (
           <ArTab
             videoRef={videoRef} scopeVideoRef={scopeVideoRef}
-            arOn={arOn} arErr={arErr} heading={heading}
+            arOn={arOn} arErr={arErr} heading={liveMapHeading}
             mainFacing={mainFacing} scopeOn={scopeOn} scopeAvail={scopeAvail}
             onToggleScope={() => setScopeOn((v) => !v)} onFlip={flipMain}
             contacts={locals}
             onStart={startAr} onStop={stopAr}
             compassOn={compassOn} onEnableCompass={enableCompass} compassErr={compassErr}
             onManualHeading={setManualHeading}
+            geo={liveGeo}
           />
         )}
         {tab === "hops" && (
           <HopsTab snap={snap} hop={hop} />
         )}
-        {tab === "diag" && <DiagTab mode={mode} snap={snap} scanning={scanning} arOn={arOn} heading={heading} />}
+        {tab === "diag" && <DiagTab mode={mode} snap={snap} scanning={scanning} arOn={arOn} heading={liveMapHeading} />}
       </div>
     </div>
   );
@@ -470,6 +477,7 @@ function ScanTab(props: {
   onPullIntel: (id: string) => void;
   heading: number | null; compassOn: boolean; compassErr: string | null;
   onEnableCompass: () => void;
+  geo: ReturnType<typeof usePrecisionGeo>;
 }) {
   return (
     <div className="max-w-4xl mx-auto space-y-5">
@@ -537,6 +545,8 @@ function ScanTab(props: {
       <Panel icon={Compass} title="Satellite Overhead" subtitle="Live operator location · Esri World Imagery · zoom 10–20">
         <SatelliteMap
           heading={props.heading}
+          compassOn={props.compassOn}
+          geo={props.geo}
           contacts={[...props.locals, ...props.remotes]}
           onPick={props.onPick}
         />
@@ -624,6 +634,7 @@ function ArTab(props: {
   onStart: () => void; onStop: () => void;
   compassOn: boolean; onEnableCompass: () => void; compassErr: string | null;
   onManualHeading: (deg: number) => void;
+  geo: ReturnType<typeof usePrecisionGeo>;
 }) {
   const FOV = 60;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -951,6 +962,8 @@ function ArTab(props: {
             />
             <MiniMap
               heading={props.heading}
+              compassOn={props.compassOn}
+              geo={props.geo}
               contacts={props.contacts}
             />
           </>
@@ -1853,7 +1866,15 @@ function CompassStrip({ heading, contacts, fov }: {
   );
 }
 
-type GeoFix = { lat: number; lon: number; acc: number; ts: number; source: "watch" | "poll" };
+type GeoFix = {
+  lat: number;
+  lon: number;
+  acc: number;
+  ts: number;
+  source: "watch" | "poll";
+  course: number | null;
+  speed: number | null;
+};
 type GeoQuality = "searching" | "coarse" | "good" | "precision";
 type MercatorPoint = { x: number; y: number };
 
@@ -1891,6 +1912,20 @@ function geoDistanceMeters(a: Pick<GeoFix, "lat" | "lon">, b: Pick<GeoFix, "lat"
   return 2 * 6_371_000 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
+function normalizeHeading(deg: number) {
+  return ((deg % 360) + 360) % 360;
+}
+
+function geoBearingDegrees(a: Pick<GeoFix, "lat" | "lon">, b: Pick<GeoFix, "lat" | "lon">) {
+  const φ1 = a.lat * Math.PI / 180;
+  const φ2 = b.lat * Math.PI / 180;
+  const λ1 = a.lon * Math.PI / 180;
+  const λ2 = b.lon * Math.PI / 180;
+  const y = Math.sin(λ2 - λ1) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(λ2 - λ1);
+  return normalizeHeading(Math.atan2(y, x) * 180 / Math.PI);
+}
+
 function geoQuality(acc?: number | null): GeoQuality {
   if (acc == null || !Number.isFinite(acc)) return "searching";
   if (acc <= 12) return "precision";
@@ -1916,10 +1951,11 @@ function shouldPromoteGeoFix(current: GeoFix | null, next: GeoFix) {
   if (!current) return true;
   const ageMs = Math.max(1, next.ts - current.ts);
   const moved = geoDistanceMeters(current, next);
-  const materiallyMoved = moved > Math.max(8, Math.min(60, current.acc * 0.7));
-  const muchBetter = next.acc <= current.acc * 0.82;
-  const fresherSameQuality = ageMs > 5_000 && next.acc <= current.acc * 1.12;
-  return muchBetter || materiallyMoved || fresherSameQuality;
+  // Rendering must track every real accepted GPS update. The satellite image
+  // refresh threshold is handled separately by the map anchor, so blocking
+  // small movement here made the operator arrow look frozen while walking.
+  const stationaryWorseFix = moved < Math.max(1.2, next.acc * 0.05) && next.acc > current.acc * 1.8 && ageMs < 5_000;
+  return !stationaryWorseFix;
 }
 
 function stableBearing(id: string, index: number) {
@@ -1995,13 +2031,25 @@ function usePrecisionGeo() {
     const commit = (p: GeolocationPosition, source: GeoFix["source"]) => {
       if (killed) return;
       setSamples((n) => n + 1);
+      const previous = fixRef.current;
+      const rawHeading = p.coords.heading;
+      const liveCourse = typeof rawHeading === "number" && Number.isFinite(rawHeading)
+        ? normalizeHeading(rawHeading)
+        : null;
       const next: GeoFix = {
         lat: p.coords.latitude,
         lon: p.coords.longitude,
         acc: Math.max(1, p.coords.accuracy || 999),
         ts: p.timestamp || Date.now(),
         source,
+        course: liveCourse,
+        speed: typeof p.coords.speed === "number" && Number.isFinite(p.coords.speed) ? p.coords.speed : null,
       };
+      if (next.course == null && previous) {
+        const moved = geoDistanceMeters(previous, next);
+        const minCourseMove = Math.max(1.5, Math.min(18, Math.max(previous.acc, next.acc) * 0.2));
+        if (moved >= minCourseMove) next.course = geoBearingDegrees(previous, next);
+      }
       if (!shouldPromoteGeoFix(fixRef.current, next)) return;
       fixRef.current = next;
       setFix(next);
@@ -2040,12 +2088,14 @@ function usePrecisionGeo() {
   return { fix, err, samples, quality: geoQuality(fix?.acc) };
 }
 
-function MiniMap({ heading, contacts }: {
+function MiniMap({ heading, compassOn, geo, contacts }: {
   heading: number | null;
+  compassOn: boolean;
+  geo: ReturnType<typeof usePrecisionGeo>;
   contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number; distanceMeters?: number | null }>;
 }) {
   // Live GPS for a true satellite mini-map (replaces the prior abstract radar).
-  const { fix: pos, quality } = usePrecisionGeo();
+  const { fix: pos, quality } = geo;
   const [zoom] = useState(19); // tight overhead — operator-scale
 
   const tileUrl = useMemo(() => {
@@ -2061,6 +2111,7 @@ function MiniMap({ heading, contacts }: {
 
   const SIZE = 172;
   const HALF_PX = SIZE / 2;
+  const arrowHeading = compassOn && heading != null ? heading : (pos?.course ?? heading ?? 0);
 
   // North-up satellite view: operator arrow rotates, but contact pips stay in
   // real compass/world bearing so turning the phone does not rotate the map.
@@ -2102,7 +2153,7 @@ function MiniMap({ heading, contacts }: {
         {/* operator white arrow — rotates with heading */}
         <div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{ transform: `translate(-50%,-50%) rotate(${heading ?? 0}deg)` }}
+          style={{ transform: `translate(-50%,-50%) rotate(${arrowHeading}deg)`, transition: "transform 120ms linear" }}
         >
           <svg width={22} height={22} viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
@@ -2117,7 +2168,7 @@ function MiniMap({ heading, contacts }: {
 
         {/* heading & contacts readout */}
         <div className="absolute top-1 left-1 text-[8px] font-mono tracking-[0.16em] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-          {heading != null ? `${heading.toFixed(0).padStart(3, "0")}°` : "---°"}
+          {`${arrowHeading.toFixed(0).padStart(3, "0")}°`}
         </div>
         <div className="absolute bottom-1 right-1.5 text-[8px] font-mono tracking-[0.16em] text-[#e8c684] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
           {contacts.length} BT
@@ -2322,14 +2373,18 @@ function RadarMap({
 
 function SatelliteMap({
   heading,
+  compassOn,
+  geo,
   contacts,
   onPick,
 }: {
   heading: number | null;
+  compassOn: boolean;
+  geo: ReturnType<typeof usePrecisionGeo>;
   contacts: Contact[];
   onPick?: () => void;
 }) {
-  const { fix: pos, err, samples, quality } = usePrecisionGeo();
+  const { fix: pos, err, samples, quality } = geo;
   const [zoom, setZoom] = useState(18); // 10 wide → 20 close
   const [showLabels, setShowLabels] = useState(true);
   const [mapRef, mapSize] = useMeasuredElement<HTMLDivElement>();
@@ -2340,6 +2395,7 @@ function SatelliteMap({
   // Double-buffer: only swap the visible <img> once the next tile finishes loading.
   const [activeUrl, setActiveUrl] = useState<string | null>(null);
   const pendingUrlRef = useRef<string | null>(null);
+  const arrowHeading = compassOn && heading != null ? heading : (pos?.course ?? heading ?? 0);
 
   // Decide when to refresh the satellite tile.
   // - First fix → fetch immediately.
@@ -2432,7 +2488,8 @@ function SatelliteMap({
               style={{
                 width: 120, height: 120,
                 background: "conic-gradient(from -30deg, rgba(232,198,132,0.35), transparent 60deg)",
-                transform: `translate(-50%,-50%) rotate(${heading ?? 0}deg)`,
+                transform: `translate(-50%,-50%) rotate(${arrowHeading}deg)`,
+                transition: "transform 120ms linear",
                 clipPath: "polygon(50% 50%, 0 0, 100% 0)",
                 borderRadius: "50%",
               }}
@@ -2487,7 +2544,7 @@ function SatelliteMap({
         {/* readout */}
         {pos && (
           <div className="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/60 border border-[#c69a4a]/20 text-[9px] font-mono tracking-wider text-[#e8c684]/90">
-            {quality.toUpperCase()} · {pos.source} · {samples} fixes · {pos.lat.toFixed(6)}, {pos.lon.toFixed(6)} · ±{Math.round(pos.acc)}m · z{zoom} · {groundMetersPerCssPx(pos.lat, zoom).toFixed(2)}m/px · {contacts.length} pip{contacts.length === 1 ? "" : "s"}
+            LIVE · {quality.toUpperCase()} · {pos.source} · {samples} fixes · {pos.lat.toFixed(6)}, {pos.lon.toFixed(6)} · ±{Math.round(pos.acc)}m · hdg {Math.round(arrowHeading)}° · z{zoom} · {groundMetersPerCssPx(pos.lat, zoom).toFixed(2)}m/px · {contacts.length} pip{contacts.length === 1 ? "" : "s"}
           </div>
         )}
       </div>
