@@ -1342,42 +1342,132 @@ function IconChip({ icon: Icon, onClick, active, tone, label }: {
 }
 
 
+// Smoothing cache + velocity prediction so the skeleton glides between MediaPipe
+// inferences instead of snapping every ~80–120ms. Each kind tracks: last shown
+// points, last *measured* points (from MediaPipe), measurement timestamp, and a
+// per-point velocity estimate. On each RAF we (a) extrapolate the measured
+// points forward by Δt × velocity (occlusion prediction — if the limb just went
+// behind an arm, it keeps moving briefly), then (b) lerp the shown points
+// toward that prediction. Result: high-FPS feel without raising inference cost.
+type SmoothEntry = {
+  shown: Array<{ x: number; y: number }>;
+  measured: Array<{ x: number; y: number }>;
+  vel: Array<{ x: number; y: number }>;
+  measuredAt: number;
+};
+const SMOOTH_CACHE: Map<string, SmoothEntry> = new Map();
+const FINGER_TIPS = new Set([4, 8, 12, 16, 20]);
+
+function getSmoothed(kind: string, latest: Array<{ x: number; y: number }>): Array<{ x: number; y: number }> {
+  const now = performance.now();
+  const prev = SMOOTH_CACHE.get(kind);
+  // Detect a new measurement (point[0] coordinate changed).
+  const isNewMeasure = !prev || prev.measured.length !== latest.length ||
+    Math.abs((prev.measured[0]?.x ?? 0) - (latest[0]?.x ?? 0)) > 1e-6 ||
+    Math.abs((prev.measured[0]?.y ?? 0) - (latest[0]?.y ?? 0)) > 1e-6;
+
+  let measured = latest;
+  let vel = prev?.vel ?? latest.map(() => ({ x: 0, y: 0 }));
+  let measuredAt = prev?.measuredAt ?? now;
+
+  if (isNewMeasure && prev && prev.measured.length === latest.length) {
+    const dt = Math.max(0.016, (now - prev.measuredAt) / 1000);
+    vel = latest.map((p, i) => {
+      const pp = prev.measured[i];
+      const vx = (p.x - pp.x) / dt;
+      const vy = (p.y - pp.y) / dt;
+      // EMA on velocity for stability
+      const ov = prev.vel[i] ?? { x: 0, y: 0 };
+      return { x: ov.x * 0.5 + vx * 0.5, y: ov.y * 0.5 + vy * 0.5 };
+    });
+    measuredAt = now;
+  }
+
+  // Predict where the measured points should be NOW (compensate inference lag).
+  const lead = Math.min(0.06, (now - measuredAt) / 1000); // cap 60ms lookahead
+  const predicted = measured.map((p, i) => ({
+    x: p.x + (vel[i]?.x ?? 0) * lead,
+    y: p.y + (vel[i]?.y ?? 0) * lead,
+  }));
+
+  // Lerp shown toward predicted — fast convergence (0.45) for responsiveness,
+  // slow enough to filter jitter.
+  const shown = prev && prev.shown.length === predicted.length
+    ? predicted.map((p, i) => ({
+        x: prev.shown[i].x + (p.x - prev.shown[i].x) * 0.45,
+        y: prev.shown[i].y + (p.y - prev.shown[i].y) * 0.45,
+      }))
+    : predicted.map((p) => ({ x: p.x, y: p.y }));
+
+  SMOOTH_CACHE.set(kind, { shown, measured: latest, vel, measuredAt });
+  return shown;
+}
+
 function drawFrame(
   ctx: CanvasRenderingContext2D, frame: BodyFrame, W: number, H: number,
   bindings: Record<string, string>, contacts: Contact[],
 ) {
+  // Drop cache entries for kinds no longer present, to free memory.
+  const active = new Set(frame.hits.map((h) => h.kind));
+  for (const k of SMOOTH_CACHE.keys()) if (!active.has(k as BodyMode | string)) SMOOTH_CACHE.delete(k);
+
   for (const hit of frame.hits) {
-    const color =
-      hit.kind === "body"       ? "rgba(74,222,128,0.9)" :
-      hit.kind === "face"       ? "rgba(125,211,252,0.85)" :
-      hit.kind === "left-hand"  ? "rgba(251,191,36,0.9)" :
-                                  "rgba(74,222,128,0.9)";
-    ctx.strokeStyle = color; ctx.fillStyle = color;
-    ctx.lineWidth = hit.kind === "body" ? 2.5 : 1.5;
+    const isHand = hit.kind === "left-hand" || hit.kind === "right-hand";
+    const pts = getSmoothed(hit.kind, hit.points);
+
+    // Hand: gold bones, brighter fingertip caps. Body: green. Face: light blue mesh.
+    const boneColor =
+      hit.kind === "body" ? "rgba(74,222,128,0.92)" :
+      hit.kind === "face" ? "rgba(125,211,252,0.85)" :
+      "rgba(198,154,74,0.92)"; // gold bones for hands
+    ctx.strokeStyle = boneColor;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = hit.kind === "body" ? 2.6 : isHand ? 1.25 : 1.2;
+
     const edges =
       hit.kind === "body" ? POSE_EDGES :
-      hit.kind === "left-hand" || hit.kind === "right-hand" ? HAND_EDGES : [];
+      isHand ? HAND_EDGES : [];
     for (const [a, b] of edges) {
-      const pa = hit.points[a], pb = hit.points[b];
+      const pa = pts[a], pb = pts[b];
       if (!pa || !pb) continue;
       ctx.beginPath();
       ctx.moveTo(pa.x * W, pa.y * H);
       ctx.lineTo(pb.x * W, pb.y * H);
       ctx.stroke();
     }
+
     if (hit.kind === "face") {
       ctx.fillStyle = "rgba(125,211,252,0.7)";
-      for (let i = 0; i < hit.points.length; i += 4) {
-        const p = hit.points[i];
+      for (let i = 0; i < pts.length; i += 4) {
+        const p = pts[i];
         ctx.fillRect(p.x * W, p.y * H, 1, 1);
       }
-    } else {
-      for (const p of hit.points) {
+    } else if (isHand) {
+      // Joints: small dim dots; fingertips: bright big caps.
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        const tip = FINGER_TIPS.has(i);
         ctx.beginPath();
-        ctx.arc(p.x * W, p.y * H, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = tip ? "rgba(232,198,132,0.98)" : "rgba(198,154,74,0.55)";
+        ctx.arc(p.x * W, p.y * H, tip ? 4 : 2, 0, Math.PI * 2);
+        ctx.fill();
+        if (tip) {
+          ctx.strokeStyle = "rgba(0,0,0,0.55)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    } else {
+      // body joints
+      ctx.fillStyle = boneColor;
+      for (const p of pts) {
+        ctx.beginPath();
+        ctx.arc(p.x * W, p.y * H, 3, 0, Math.PI * 2);
         ctx.fill();
       }
     }
+
     const boundId = bindings[hit.kind];
     if (boundId) {
       const c = contacts.find((x) => x.id === boundId);
@@ -1389,11 +1479,8 @@ function drawFrame(
       ctx.fillRect(bx, Math.max(0, by - 16), tw, 14);
       ctx.fillStyle = "#000";
       ctx.fillText(label, bx + 5, Math.max(11, by - 5));
-    } else {
-      ctx.strokeStyle = "rgba(74,222,128,0.35)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(hit.bbox.x * W, hit.bbox.y * H, hit.bbox.w * W, hit.bbox.h * H);
     }
+    // (No bare bounding-box stroke when unbound — keeps the camera view clean.)
 
     // Anthropometric estimate readout for body hits.
     if (hit.kind === "body" && hit.metrics) {
