@@ -17,6 +17,8 @@ import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./cor
 import { rssiToDistance } from "./core/bleRanging";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import { useResolvedZaxinByok } from "@/lib/zaxin/resolveByok";
+import ZaxinInlineByok from "./ZaxinInlineByok";
 import { Link } from "react-router-dom";
 import { Mic, MicOff, Users } from "lucide-react";
 
