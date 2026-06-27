@@ -1011,76 +1011,108 @@ function ArTab(props: {
             If the AI Vision panel has returned an identification paired to this
             bbox (matched_optical_id === "opt:i"), we override the label with the
             refined brand/model/type and a BLE pip. */}
-        {props.arOn && opticalOn && optical.map((o, idx) => {
-          const p = projectBbox(o);
-          if (!p) return null;
-          const ai = visionIdents.find((vi) => vi.matched_optical_id === `opt:${idx}`);
-          const isDevice = (ai?.has_bluetooth === true) || o.kind === "device";
-          const stroke = isDevice ? "rgba(232,198,132,0.95)" : "rgba(180,180,180,0.55)";
-          const glow = isDevice ? "0 0 14px -2px rgba(232,198,132,0.55)" : "none";
-          const label = ai?.label || o.label;
-          const isPerson = (ai?.device_type === "person") || o.label.toLowerCase() === "person";
-          const personChips: string[] = [];
-          if (isPerson && ai?.person) {
-            const pp = ai.person;
-            if (pp.age_years != null) personChips.push(`~${pp.age_years}y`);
-            if (pp.height_cm != null) personChips.push(`${pp.height_cm}cm`);
-            if (pp.weight_kg != null) personChips.push(`${pp.weight_kg}kg`);
-            if (pp.gender) personChips.push(pp.gender);
-            if (pp.ethnicity) personChips.push(pp.ethnicity);
-            if (pp.build) personChips.push(pp.build);
-          }
-          const threatTone =
-            ai?.person?.threat === "high" ? "rgba(248,113,113,0.95)" :
-            ai?.person?.threat === "elevated" ? "rgba(251,146,60,0.95)" :
-            stroke;
-          const strokeFinal = isPerson ? threatTone : stroke;
-          const sub = ai
-            ? [ai.brand, ai.device_type, ai.est_distance_m != null ? `${ai.est_distance_m.toFixed(1)}m` : null]
-                .filter(Boolean).join(" · ")
-            : `${(o.score * 100).toFixed(0)}%`;
-          return (
-            <div
-              key={`opt-${o.id}`}
-              style={{
-                left: `${p.leftPct}%`, top: `${p.topPct}%`,
-                width: `${p.widthPct}%`, height: `${p.heightPct}%`,
-                border: `${isDevice || isPerson ? 2 : 1}px solid ${strokeFinal}`,
-                boxShadow: glow, zIndex: 4,
-              }}
-              className="absolute rounded-md pointer-events-none transition-[left,top,width,height] duration-100 ease-out"
-            >
-              <span className="absolute -top-px -left-px w-2.5 h-2.5 border-t-2 border-l-2" style={{ borderColor: strokeFinal }} />
-              <span className="absolute -top-px -right-px w-2.5 h-2.5 border-t-2 border-r-2" style={{ borderColor: strokeFinal }} />
-              <span className="absolute -bottom-px -left-px w-2.5 h-2.5 border-b-2 border-l-2" style={{ borderColor: strokeFinal }} />
-              <span className="absolute -bottom-px -right-px w-2.5 h-2.5 border-b-2 border-r-2" style={{ borderColor: strokeFinal }} />
-              <div className="absolute -top-[34px] left-0 flex items-center gap-1 max-w-[300px]">
-                <div className="text-[9px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/75 truncate"
-                     style={{ color: isDevice || isPerson ? "#f0d59a" : "rgba(255,255,255,0.7)" }}>
-                  {label}
-                </div>
-                {ai?.has_bluetooth ? (
-                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">
-                    BLE
+        {props.arOn && opticalOn && (() => {
+          // Cap to the 5 highest-confidence detections (persons/devices win),
+          // dedupe near-overlapping boxes, hide the noisy floor/wall area-fillers,
+          // and only render labels inside the camera viewport. Preserve original
+          // index so AI vision matches by `opt:<idx>` still resolve.
+          const enriched = optical.map((o, idx) => ({ o, idx, area: o.x !== undefined ? 0 : 0 }));
+          const ranked = optical
+            .map((o, idx) => ({ o, idx }))
+            .filter(({ o }) => o.score >= 0.32) // drop low-confidence "unknown" clutter
+            .sort((a, b) => {
+              // Prefer person > device > misc, then score
+              const tier = (x: typeof a) =>
+                x.o.label.toLowerCase() === "person" ? 2 : x.o.kind === "device" ? 1 : 0;
+              const t = tier(b) - tier(a);
+              return t !== 0 ? t : b.o.score - a.o.score;
+            })
+            .filter(({ o }, i, arr) => {
+              // IoU dedupe — drop overlapping boxes with same label
+              for (let j = 0; j < i; j++) {
+                const a = arr[j].o;
+                const ix = Math.max(0, Math.min(a.x + a.w, o.x + o.w) - Math.max(a.x, o.x));
+                const iy = Math.max(0, Math.min(a.y + a.h, o.y + o.h) - Math.max(a.y, o.y));
+                const inter = ix * iy;
+                const uni = a.w * a.h + o.w * o.h - inter;
+                if (uni > 0 && inter / uni > 0.4 && a.label === o.label) return false;
+              }
+              return true;
+            })
+            .slice(0, 5);
+          // toss the unused enriched variable
+          void enriched;
+          return ranked.map(({ o, idx }) => {
+            const p = projectBbox(o);
+            if (!p) return null;
+            const ai = visionIdents.find((vi) => vi.matched_optical_id === `opt:${idx}`);
+            const isDevice = (ai?.has_bluetooth === true) || o.kind === "device";
+            const stroke = isDevice ? "rgba(232,198,132,0.95)" : "rgba(180,180,180,0.55)";
+            const glow = isDevice ? "0 0 14px -2px rgba(232,198,132,0.55)" : "none";
+            const confPct = Math.round((ai?.confidence ?? o.score) * 100);
+            const hedged = confPct < 60;
+            const rawLabel = ai?.label || o.label;
+            const label = hedged ? `Possible ${rawLabel} · ${confPct}%` : `${rawLabel} · ${confPct}%`;
+            const isPerson = (ai?.device_type === "person") || o.label.toLowerCase() === "person";
+            const personChips: string[] = [];
+            if (isPerson && ai?.person) {
+              const pp = ai.person;
+              if (pp.age_years != null) personChips.push(`~${pp.age_years}y`);
+              if (pp.height_cm != null) personChips.push(`${pp.height_cm}cm`);
+              if (pp.weight_kg != null) personChips.push(`${pp.weight_kg}kg`);
+              if (pp.gender) personChips.push(pp.gender);
+              if (pp.ethnicity) personChips.push(pp.ethnicity);
+              if (pp.build) personChips.push(pp.build);
+            }
+            const threatTone =
+              ai?.person?.threat === "high" ? "rgba(248,113,113,0.95)" :
+              ai?.person?.threat === "elevated" ? "rgba(251,146,60,0.95)" :
+              stroke;
+            const strokeFinal = isPerson ? threatTone : stroke;
+            const sub = ai
+              ? [ai.brand, ai.device_type, ai.est_distance_m != null ? `${ai.est_distance_m.toFixed(1)}m` : null]
+                  .filter(Boolean).join(" · ")
+              : null;
+            // Anchor label above when there's room, otherwise inside-top.
+            const labelAbove = p.topPct > 8;
+            return (
+              <div
+                key={`opt-${o.id}`}
+                style={{
+                  left: `${p.leftPct}%`, top: `${p.topPct}%`,
+                  width: `${p.widthPct}%`, height: `${p.heightPct}%`,
+                  border: `${isDevice || isPerson ? 2 : 1}px solid ${strokeFinal}`,
+                  boxShadow: glow, zIndex: 4,
+                }}
+                className="absolute rounded-md pointer-events-none transition-[left,top,width,height] duration-150 ease-out"
+              >
+                <span className="absolute -top-px -left-px w-2.5 h-2.5 border-t-2 border-l-2" style={{ borderColor: strokeFinal }} />
+                <span className="absolute -top-px -right-px w-2.5 h-2.5 border-t-2 border-r-2" style={{ borderColor: strokeFinal }} />
+                <span className="absolute -bottom-px -left-px w-2.5 h-2.5 border-b-2 border-l-2" style={{ borderColor: strokeFinal }} />
+                <span className="absolute -bottom-px -right-px w-2.5 h-2.5 border-b-2 border-r-2" style={{ borderColor: strokeFinal }} />
+                <div className={`absolute ${labelAbove ? "-top-[32px]" : "top-1"} left-0 right-0 flex flex-wrap items-start gap-1`}>
+                  <div className="text-[9px] font-mono tracking-[0.1em] px-1.5 py-0.5 rounded-sm bg-black/80 max-w-[160px] whitespace-normal leading-tight"
+                       style={{ color: isDevice || isPerson ? "#f0d59a" : "rgba(255,255,255,0.78)" }}>
+                    {label}
                   </div>
-                ) : null}
-                {isPerson && ai?.person?.threat && ai.person.threat !== "none" ? (
-                  <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-rose-500/30 text-rose-100 border border-rose-300/50">
-                    {ai.person.threat}
+                  {ai?.has_bluetooth ? (
+                    <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">BLE</div>
+                  ) : null}
+                  {isPerson && ai?.person?.threat && ai.person.threat !== "none" ? (
+                    <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-rose-500/40 text-rose-50 border border-rose-300/70 animate-pulse">
+                      ⚠ {ai.person.threat}
+                    </div>
+                  ) : null}
+                </div>
+                {(isPerson && personChips.length) || sub ? (
+                  <div className="absolute -bottom-[20px] left-0 text-[8px] font-mono tracking-[0.12em] px-1.5 py-0.5 rounded-sm bg-black/70 text-foreground/80 max-w-[200px] whitespace-normal leading-tight">
+                    {isPerson && personChips.length ? personChips.join(" · ") : sub}
                   </div>
                 ) : null}
               </div>
-              <div className="absolute -bottom-[18px] left-0 text-[8px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-sm bg-black/65 text-foreground/75 truncate max-w-[320px]">
-                {isPerson && personChips.length ? personChips.join(" · ") : sub}
-              </div>
-              {isPerson && ai?.narration ? (
-                <div className="absolute -bottom-[34px] left-0 text-[8px] font-mono px-1.5 py-0.5 rounded-sm bg-black/70 text-[#f0d59a]/90 max-w-[340px] truncate">
-                  {ai.narration}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
+            );
+          });
+        })()}
 
         {/* AI-ONLY IDENT BOXES — items the COCO detector missed but the BYOK vision model spotted */}
         {props.arOn && visionIdents.map((it, i) => {
