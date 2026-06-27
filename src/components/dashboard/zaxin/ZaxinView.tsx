@@ -938,14 +938,19 @@ function ArTab(props: {
           zIndex: 1,
         }} />
 
-        {/* Binocular scope — moved to top-LEFT so the compass strip can claim the right side on mobile */}
+        {/* Binocular scope — centered just below the top compass strip (Ghost Recon style) */}
         {props.arOn && props.scopeOn && props.scopeAvail && (
-          <div className="absolute top-2 left-2 w-[38%] max-w-[160px] pointer-events-none" style={{ zIndex: 3 }}>
-            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-black/30 ring-1 ring-[#c69a4a]/40 shadow-[0_0_18px_-6px_rgba(198,154,74,0.45)]">
+          <div className="absolute left-1/2 -translate-x-1/2 top-[44px] sm:top-[52px] w-[46%] sm:w-[34%] max-w-[420px] pointer-events-none" style={{ zIndex: 3 }}>
+            <div className="relative aspect-[16/5] rounded-sm overflow-hidden bg-black/40 ring-1 ring-[#c69a4a]/45 shadow-[0_0_22px_-6px_rgba(198,154,74,0.55)]">
               <video ref={props.scopeVideoRef} playsInline muted autoPlay
                 className="absolute inset-0 w-full h-full object-cover" />
-              <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-[#e8c684] shadow-[0_0_6px_rgba(232,198,132,0.9)]" />
-              <span className="absolute bottom-0.5 right-1 text-[6px] font-mono text-[#e8c684]/85 tracking-[0.22em]">
+              {/* subtle horizon line + side brackets like the screenshot */}
+              <div className="absolute inset-y-0 left-0 w-px bg-[#e8c684]/70" />
+              <div className="absolute inset-y-0 right-0 w-px bg-[#e8c684]/70" />
+              <div className="absolute inset-x-0 top-0 h-px bg-[#e8c684]/40" />
+              <div className="absolute inset-x-0 bottom-0 h-px bg-[#e8c684]/40" />
+              <span className="absolute top-0.5 left-1 w-1 h-1 rounded-full bg-[#e8c684] shadow-[0_0_6px_rgba(232,198,132,0.9)]" />
+              <span className="absolute bottom-0.5 right-1 text-[7px] font-mono text-[#e8c684]/85 tracking-[0.22em]">
                 {props.mainFacing === "environment" ? "FRONT" : "REAR"}
               </span>
             </div>
