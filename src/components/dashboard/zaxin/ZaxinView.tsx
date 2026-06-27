@@ -171,6 +171,8 @@ const ZaxinView = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scopeVideoRef = useRef<HTMLVideoElement | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
+  const liveGeo = usePrecisionGeo();
+  const liveMapHeading = heading ?? liveGeo.fix?.course ?? null;
   const [arOn, setArOn] = useState(false);
   const [arErr, setArErr] = useState<string | null>(null);
   const [mainFacing, setMainFacing] = useState<"environment" | "user">("environment");
@@ -431,8 +433,9 @@ const ZaxinView = () => {
             locals={locals} remotes={remotes}
             onToggleWatch={(id) => engine.toggleWatch(id)}
             onPullIntel={(id) => engine.pullIntel(id)}
-            heading={heading} compassOn={compassOn} compassErr={compassErr}
+            heading={liveMapHeading} compassOn={compassOn} compassErr={compassErr}
             onEnableCompass={enableCompass}
+            geo={liveGeo}
           />
         )}
         {tab === "tactical" && (
@@ -441,7 +444,7 @@ const ZaxinView = () => {
         {tab === "ar" && (
           <ArTab
             videoRef={videoRef} scopeVideoRef={scopeVideoRef}
-            arOn={arOn} arErr={arErr} heading={heading}
+            arOn={arOn} arErr={arErr} heading={liveMapHeading}
             mainFacing={mainFacing} scopeOn={scopeOn} scopeAvail={scopeAvail}
             onToggleScope={() => setScopeOn((v) => !v)} onFlip={flipMain}
             contacts={locals}
@@ -453,7 +456,7 @@ const ZaxinView = () => {
         {tab === "hops" && (
           <HopsTab snap={snap} hop={hop} />
         )}
-        {tab === "diag" && <DiagTab mode={mode} snap={snap} scanning={scanning} arOn={arOn} heading={heading} />}
+        {tab === "diag" && <DiagTab mode={mode} snap={snap} scanning={scanning} arOn={arOn} heading={liveMapHeading} />}
       </div>
     </div>
   );
@@ -470,6 +473,7 @@ function ScanTab(props: {
   onPullIntel: (id: string) => void;
   heading: number | null; compassOn: boolean; compassErr: string | null;
   onEnableCompass: () => void;
+  geo: ReturnType<typeof usePrecisionGeo>;
 }) {
   return (
     <div className="max-w-4xl mx-auto space-y-5">
@@ -538,6 +542,7 @@ function ScanTab(props: {
         <SatelliteMap
           heading={props.heading}
           compassOn={props.compassOn}
+          geo={props.geo}
           contacts={[...props.locals, ...props.remotes]}
           onPick={props.onPick}
         />
