@@ -1796,7 +1796,7 @@ function MiniMap({ heading, contacts }: {
     return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&imageSR=3857&size=320,320&format=jpg&transparent=false&f=image`;
   }, [pos, halfDeg]);
 
-  const SIZE = 140;
+  const SIZE = 172;
   const HALF_PX = SIZE / 2;
 
   // Place each contact around the operator. Bearing is world-absolute when
