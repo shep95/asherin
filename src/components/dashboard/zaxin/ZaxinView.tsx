@@ -974,8 +974,7 @@ function ArTab(props: {
           </>
         )}
 
-        {/* Fixed HUD reticle — center circle stays locked, side ticks drift with heading like a gunship overlay */}
-        {props.arOn && <TacticalReticle heading={props.heading} videoRef={props.videoRef} />}
+        {/* HUD reticle removed per user request */}
 
 
 
