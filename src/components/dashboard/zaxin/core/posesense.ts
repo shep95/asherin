@@ -44,11 +44,46 @@ export async function startHeadingStream(onHeading: (deg: number) => void): Prom
     rejectFirst = reject;
   });
 
+  // -------- High-rate path: Generic Sensor API (60 Hz when available) --------
+  // AbsoluteOrientationSensor delivers true-north heading at the requested
+  // frequency (typically 60 Hz), versus DeviceOrientation which most browsers
+  // throttle to ~10-20 Hz. We try this first, then fall back.
+  let hiResStop: (() => void) | null = null;
+  try {
+    const SensorCtor = (window as unknown as {
+      AbsoluteOrientationSensor?: new (opts: { frequency: number; referenceFrame?: string }) => {
+        quaternion: [number, number, number, number];
+        start: () => void;
+        stop: () => void;
+        addEventListener: (e: string, cb: () => void) => void;
+        removeEventListener: (e: string, cb: () => void) => void;
+      };
+    }).AbsoluteOrientationSensor;
+    if (SensorCtor) {
+      const sensor = new SensorCtor({ frequency: 60, referenceFrame: "screen" });
+      const onReading = () => {
+        const q = sensor.quaternion;
+        if (!q) return;
+        // Quaternion → yaw (heading around Z, north-relative)
+        const [x, y, z, w] = q;
+        const siny_cosp = 2 * (w * z + x * y);
+        const cosy_cosp = 1 - 2 * (y * y + z * z);
+        let yaw = Math.atan2(siny_cosp, cosy_cosp) * (180 / Math.PI);
+        let heading = (360 - yaw) % 360;
+        if (heading < 0) heading += 360;
+        if (!firstEventResolved) { firstEventResolved = true; detectedSource = "absolute"; resolveFirst?.(); }
+        onHeading(heading);
+      };
+      sensor.addEventListener("reading", onReading);
+      sensor.start();
+      hiResStop = () => { try { sensor.removeEventListener("reading", onReading); sensor.stop(); } catch { /* noop */ } };
+    }
+  } catch { /* permissions-policy block or unsupported — fall through */ }
+
   const handler = (ev: DeviceOrientationEvent) => {
     let heading: number | null = null;
     const anyEv = ev as DeviceOrientationEvent & { webkitCompassHeading?: number };
     if (typeof anyEv.webkitCompassHeading === "number") {
-      // iOS: 0 = north, increases clockwise — already what we want.
       heading = anyEv.webkitCompassHeading;
       detectedSource = "absolute";
     } else if (ev.absolute && typeof ev.alpha === "number") {
@@ -74,6 +109,7 @@ export async function startHeadingStream(onHeading: (deg: number) => void): Prom
   }
 
   const stop = () => {
+    hiResStop?.();
     window.removeEventListener("deviceorientation", handler as EventListener, true);
     if (hasAbsolute) {
       window.removeEventListener("deviceorientationabsolute", handler as EventListener, true);
@@ -97,6 +133,7 @@ export async function startHeadingStream(onHeading: (deg: number) => void): Prom
 
   return { source: detectedSource, stop };
 }
+
 
 /** Open a camera by facing mode. Defaults to rear-facing. */
 export async function startCamera(

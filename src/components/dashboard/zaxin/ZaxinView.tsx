@@ -1910,7 +1910,7 @@ function TacticalReticle({
           setLum(Math.min(1, sum / (d.length / 4) / 255));
         } catch { /* cross-origin or not ready */ }
       }
-      raf = window.setTimeout(() => requestAnimationFrame(tick), 330) as unknown as number;
+      raf = window.setTimeout(() => requestAnimationFrame(tick), 100) as unknown as number;
     };
     tick();
     return () => { clearTimeout(raf); };
