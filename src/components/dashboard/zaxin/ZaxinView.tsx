@@ -31,6 +31,8 @@ const TABS: Array<{ id: Tab; label: string; icon: React.ElementType }> = [
   { id: "diag",     label: "Diagnostics", icon: Cpu },
 ];
 
+const AR_CAMERA_FOV = 60;
+
 function randomNodeId() {
   return "node-" + Math.random().toString(36).slice(2, 8);
 }
@@ -266,7 +268,7 @@ const ZaxinView = () => {
               setManualHeadingActive(false);
               setHeading(deg);
               engine.setHeading(deg);
-            }, { initialHeading: heading ?? liveGeo.fix?.course ?? 0, horizontalFov: FOV, hz: 18 });
+            }, { initialHeading: heading ?? liveGeo.fix?.course ?? 0, horizontalFov: AR_CAMERA_FOV, hz: 18 });
             poseHandleRef.current = visual;
             setCompassOn(true);
             setCompassErr(`Desktop visual compass active. ${sensorMessage}`);
