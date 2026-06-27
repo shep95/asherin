@@ -382,15 +382,15 @@ const Valuation = () => {
               (e.g., Zophiel ↔ Recorded Future, Zaxin ↔ Anduril Lattice, Asher ↔ Glean).
             </li>
             <li>
-              Public EV/ARR multiples pulled from Bloomberg, Reuters, PitchBook, and Crunchbase
-              (June 2026 snapshot).
+              Software-asset acquisition precedents (WhatsApp $19B, Instagram $1B, DeepMind $500M,
+              GitHub $7.5B) pulled from Reuters, WSJ, and SEC filings.
             </li>
             <li>
-              Aureon ARR projected via bottom-up subscription model across the four tiers
-              ($47, $199, $740 monthly + $470 lifetime).
+              Aureon is a <span className="text-foreground/90">private company</span>; this is a software
+              / technology asset valuation, not a revenue or P&amp;L valuation.
             </li>
             <li>
-              Applied a 22x median revenue multiple, weighted 60% base / 25% bear / 15% bull.
+              Weighted 60% base / 25% bear / 15% bull across scenario ranges.
             </li>
             <li>
               Capability radar normalized 1–10 by feature coverage and uniqueness (sovereign / BYOK +
