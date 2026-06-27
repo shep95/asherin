@@ -940,8 +940,8 @@ function ArTab(props: {
 
         {/* Binocular scope — centered just below the top compass strip (Ghost Recon style) */}
         {props.arOn && props.scopeOn && props.scopeAvail && (
-          <div className="absolute left-1/2 -translate-x-1/2 top-[44px] sm:top-[52px] w-[46%] sm:w-[34%] max-w-[420px] pointer-events-none" style={{ zIndex: 3 }}>
-            <div className="relative aspect-[16/5] rounded-sm overflow-hidden bg-black/40 ring-1 ring-[#c69a4a]/45 shadow-[0_0_22px_-6px_rgba(198,154,74,0.55)]">
+          <div className="absolute left-1/2 -translate-x-1/2 top-[34px] sm:top-[40px] w-[58%] sm:w-[52%] max-w-[720px] pointer-events-none" style={{ zIndex: 3 }}>
+            <div className="relative aspect-[16/3] rounded-[2px] overflow-hidden bg-black/40 ring-1 ring-[#c69a4a]/45 shadow-[0_0_22px_-6px_rgba(198,154,74,0.55)]">
               <video ref={props.scopeVideoRef} playsInline muted autoPlay
                 className="absolute inset-0 w-full h-full object-cover" />
               {/* subtle horizon line + side brackets like the screenshot */}
@@ -975,7 +975,7 @@ function ArTab(props: {
         )}
 
         {/* Fixed HUD reticle — center circle stays locked, side ticks drift with heading like a gunship overlay */}
-        {props.arOn && <TacticalReticle heading={props.heading} />}
+        {props.arOn && <TacticalReticle heading={props.heading} videoRef={props.videoRef} />}
 
 
 
@@ -1877,54 +1877,106 @@ function CompassStrip({ heading, contacts, fov }: {
   );
 }
 
-// World-locked HUD reticle: fixed center ring + crosshair, with side tick marks
-// and a horizon bar that translates horizontally based on the live heading so it
-// "drifts" against the world as the operator pans the camera.
-function TacticalReticle({ heading }: { heading: number | null }) {
+// Helmet-Mounted Display (HMD) style HUD — F-35/IVAS inspired.
+// Center waterline (velocity vector) stays locked; pitch ladder + heading tape
+// drift with operator pan; brightness auto-adapts to the live camera luminance
+// so the reticle stays legible against sky or shadow ("reactive to environment").
+function TacticalReticle({
+  heading,
+  videoRef,
+}: {
+  heading: number | null;
+  videoRef: React.MutableRefObject<HTMLVideoElement | null>;
+}) {
   const h = heading ?? 0;
-  // Map heading degrees → horizontal drift (-50% .. +50% across a 90° window)
-  const driftPct = ((((h + 45) % 90) + 90) % 90 - 45) / 45 * 50;
-  const ticks = Array.from({ length: 21 }, (_, i) => (i - 10) * 5);
+  // Heading drift across a 60° window → ±50% horizontal pan
+  const driftPct = ((((h + 30) % 60) + 60) % 60 - 30) / 30 * 50;
+  const [lum, setLum] = useState(0.5);
+
+  // Sample one downscaled frame ~3 fps to estimate ambient luminance
+  useEffect(() => {
+    const c = document.createElement("canvas");
+    c.width = 24; c.height = 14;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+    let raf = 0;
+    const tick = () => {
+      const v = videoRef.current;
+      if (v && v.readyState >= 2 && v.videoWidth > 0) {
+        try {
+          ctx.drawImage(v, 0, 0, 24, 14);
+          const d = ctx.getImageData(0, 0, 24, 14).data;
+          let sum = 0;
+          for (let i = 0; i < d.length; i += 4) sum += (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+          setLum(Math.min(1, sum / (d.length / 4) / 255));
+        } catch { /* cross-origin or not ready */ }
+      }
+      raf = window.setTimeout(() => requestAnimationFrame(tick), 330) as unknown as number;
+    };
+    tick();
+    return () => { clearTimeout(raf); };
+  }, [videoRef]);
+
+  // Bright scene → switch to dark amber; dark scene → soft phosphor green
+  const tone = lum > 0.55 ? "#1a1208" : "#9eff9e";
+  const glow = lum > 0.55 ? "rgba(26,18,8,0.85)" : "rgba(158,255,158,0.55)";
+  const alpha = lum > 0.55 ? 0.85 : 0.7;
+
+  // Pitch ladder rungs: -20, -10, 0 (horizon), +10, +20
+  const ladder = [-20, -10, 0, 10, 20];
+
   return (
-    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
-      {/* world-drifting horizon bar with tick marks */}
-      <div className="absolute left-1/2 top-1/2 -translate-y-1/2 w-[140%] h-px -translate-x-1/2"
+    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2, color: tone, opacity: alpha }}>
+      {/* Heading tape — thin world-locked rail just above center */}
+      <div className="absolute left-1/2 top-[44%] -translate-x-1/2 w-[70%] sm:w-[52%]"
         style={{ transform: `translate(calc(-50% + ${driftPct}%), -50%)` }}>
-        <div className="relative w-full h-px bg-white/25" />
-        {ticks.map((t) => (
-          <div key={t} style={{ left: `${50 + t * 2}%` }}
-            className="absolute top-0 -translate-x-1/2 w-px h-2 bg-white/35" />
+        <div className="relative h-3">
+          {Array.from({ length: 25 }, (_, i) => (i - 12) * 5).map((t) => {
+            const major = ((t % 30) + 30) % 30 === 0;
+            return (
+              <div key={t} style={{ left: `${50 + t * 1.6}%` }} className="absolute top-0 -translate-x-1/2">
+                <div className={`mx-auto w-px ${major ? "h-2.5" : "h-1"}`} style={{ background: tone }} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Pitch ladder — short rungs centered around waterline (drifts with heading for parallax) */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{ transform: `translate(calc(-50% + ${driftPct * 0.35}%), -50%)`, width: "min(40vh, 40vw)" }}>
+        {ladder.map((p) => (
+          <div key={p} className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2"
+            style={{ top: `calc(50% + ${-p * 0.9}%)` }}>
+            <div className="w-10 sm:w-14 h-px" style={{ background: tone }} />
+            <span className="text-[8px] font-mono opacity-80">{p === 0 ? "" : p}</span>
+            <div className="w-10 sm:w-14 h-px" style={{ background: tone }} />
+          </div>
         ))}
       </div>
 
-      {/* outer faint targeting ring */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/15"
-        style={{ width: "min(62vh, 62vw)", height: "min(62vh, 62vw)" }} />
-      {/* mid ring with tick notches */}
+      {/* Waterline (velocity vector "W") — center-locked symbol like helmet sight */}
       <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ width: "min(34vh, 34vw)", height: "min(34vh, 34vw)" }} viewBox="0 0 200 200">
-        <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1" />
-        {Array.from({ length: 36 }, (_, i) => i * 10).map((deg) => {
-          const major = deg % 30 === 0;
-          const r1 = 90, r2 = major ? 82 : 86;
-          const rad = (deg - 90) * Math.PI / 180;
-          return (
-            <line key={deg}
-              x1={100 + Math.cos(rad) * r1} y1={100 + Math.sin(rad) * r1}
-              x2={100 + Math.cos(rad) * r2} y2={100 + Math.sin(rad) * r2}
-              stroke="rgba(255,255,255,0.55)" strokeWidth={major ? 1.2 : 0.7} />
-          );
-        })}
+        width="64" height="32" viewBox="0 0 64 32">
+        <circle cx="32" cy="16" r="3" fill="none" stroke={tone} strokeWidth="1.2" />
+        <line x1="0"  y1="16" x2="20" y2="16" stroke={tone} strokeWidth="1.2" />
+        <line x1="44" y1="16" x2="64" y2="16" stroke={tone} strokeWidth="1.2" />
+        <line x1="32" y1="3"  x2="32" y2="11" stroke={tone} strokeWidth="1.2" />
+        <circle cx="32" cy="16" r="0.9" fill={tone} />
       </svg>
-      {/* center crosshair dot */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white/80 shadow-[0_0_6px_rgba(255,255,255,0.7)]" />
-      {/* small corner brackets (top + bottom edges of mid ring) */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ width: "min(34vh, 34vw)", height: "min(34vh, 34vw)" }}>
-        <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-px bg-white/70" />
-        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-px bg-white/70" />
-        <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 h-3 w-px bg-white/70" />
-        <div className="absolute top-1/2 -right-1.5 -translate-y-1/2 h-3 w-px bg-white/70" />
+
+      {/* Reactive ambient hint — soft phosphor bloom that intensifies in dark scenes */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          width: 220, height: 220,
+          boxShadow: `inset 0 0 60px ${glow}`,
+          opacity: lum > 0.55 ? 0.18 : 0.32,
+        }} />
+
+      {/* Lower-left data block (AZ + ambient) */}
+      <div className="absolute left-3 bottom-3 text-[9px] font-mono tracking-[0.18em]" style={{ color: tone }}>
+        AZ {String(Math.round(h)).padStart(3, "0")}°
+        <div className="opacity-70">AMB {Math.round(lum * 100)}%</div>
       </div>
     </div>
   );
