@@ -1672,7 +1672,7 @@ function CompassStrip({ heading, contacts, fov }: {
     ticks.push({ deg: d, major, label });
   }
   return (
-    <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[88%] max-w-[520px] pointer-events-none">
+    <div className="absolute top-2 right-2 left-[170px] sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[60%] max-w-[520px] pointer-events-none">
       <div className="relative h-9 rounded-md border border-[#c69a4a]/30 bg-gradient-to-b from-[#1a1208]/70 to-black/55 backdrop-blur-md overflow-hidden shadow-[inset_0_0_18px_-6px_rgba(198,154,74,0.35)]">
         {/* tick row */}
         {ticks.map((t, i) => {
