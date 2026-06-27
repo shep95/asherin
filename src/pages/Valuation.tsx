@@ -99,14 +99,56 @@ const CAPABILITY_RADAR = [
 
 const Valuation = () => {
   useEffect(() => {
-    document.title = "Aureon Valuation · $800M–$1.1B · 06/26/2026";
-    const meta = document.querySelector('meta[name="description"]') ?? document.createElement("meta");
-    meta.setAttribute("name", "description");
-    meta.setAttribute(
-      "content",
-      "Aureon company valuation $800M–$1.1B as of 06/26/2026. Comparable-company analysis vs Palantir, Recorded Future, Maltego, Glean, Anduril Lattice. Software inventory, ARR projections, capability radar.",
-    );
-    if (!meta.parentElement) document.head.appendChild(meta);
+    document.title = "Aureon Valuation $800M–$1.1B (Private Company) · 06/26/2026";
+
+    const upsertMeta = (selector: string, attrs: Record<string, string>) => {
+      let el = document.head.querySelector<HTMLMetaElement>(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        document.head.appendChild(el);
+      }
+      Object.entries(attrs).forEach(([k, v]) => el!.setAttribute(k, v));
+    };
+
+    const description =
+      "Aureon (private company) software-asset valuation $800M–$1.1B as of 06/26/2026. Based on software value, not revenue — modeled like WhatsApp's $19B Meta acquisition. Comparable analysis vs Palantir, Recorded Future, Maltego, Anduril Lattice.";
+
+    upsertMeta('meta[name="description"]', { name: "description", content: description });
+    upsertMeta('meta[property="og:title"]', { property: "og:title", content: "Aureon Valuation · $800M–$1.1B" });
+    upsertMeta('meta[property="og:description"]', { property: "og:description", content: description });
+    upsertMeta('meta[property="og:url"]', { property: "og:url", content: "https://aureonai.app/valuation" });
+    upsertMeta('meta[property="og:type"]', { property: "og:type", content: "article" });
+    upsertMeta('meta[name="twitter:card"]', { name: "twitter:card", content: "summary_large_image" });
+    upsertMeta('meta[name="robots"]', { name: "robots", content: "index, follow" });
+
+    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+    }
+    canonical.href = "https://aureonai.app/valuation";
+
+    const ldId = "valuation-jsonld";
+    document.getElementById(ldId)?.remove();
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = ldId;
+    ld.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: "Aureon Company Valuation: $800M–$1.1B",
+      datePublished: "2026-06-26",
+      author: { "@type": "Organization", name: "Aureon" },
+      publisher: { "@type": "Organization", name: "Aureon" },
+      about: "Private-company software-asset valuation based on comparable acquisitions.",
+      mainEntityOfPage: "https://aureonai.app/valuation",
+    });
+    document.head.appendChild(ld);
+
+    return () => {
+      document.getElementById(ldId)?.remove();
+    };
   }, []);
 
   return (
@@ -117,7 +159,12 @@ const Valuation = () => {
           <Link to="/" className="text-[10px] tracking-[0.3em] text-muted-foreground/60 uppercase hover:text-foreground/80">
             ← Aureon
           </Link>
-          <p className="mt-8 text-[10px] tracking-[0.3em] text-amber-200/70 uppercase">◈ Company Valuation</p>
+          <div className="mt-8 flex flex-wrap items-center gap-2">
+            <span className="text-[10px] tracking-[0.3em] text-amber-200/70 uppercase">◈ Company Valuation</span>
+            <span className="text-[9px] tracking-[0.25em] uppercase px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground/70">
+              Private Company
+            </span>
+          </div>
           <h1 className="mt-3 text-5xl md:text-7xl font-extralight tracking-tight">
             ${VALUATION_LOW}M – ${(VALUATION_HIGH / 1000).toFixed(1)}B
           </h1>
@@ -125,10 +172,23 @@ const Valuation = () => {
             As of <span className="text-foreground/90">{VALUATION_DATE}</span> · based on market research and competitive analysis.
           </p>
           <p className="mt-6 max-w-2xl text-sm font-light leading-relaxed text-muted-foreground/80">
-            Aureon is valued using a comparable-company framework against publicly disclosed valuations of
-            intelligence, cyber, and AI-platform peers. Range reflects revenue-multiple compression vs.
-            expansion under enterprise + defense adoption scenarios.
+            Aureon is a <span className="text-foreground/90">private company</span>. This valuation is based on{" "}
+            <span className="text-amber-200/90">software / technology asset value</span> — not revenue. The same
+            framework values shipped engineering, defensible IP, and capability uniqueness rather than P&amp;L.
           </p>
+
+          {/* WHATSAPP PRECEDENT */}
+          <div className="mt-6 max-w-2xl rounded-2xl border border-amber-200/20 bg-amber-200/[0.03] p-5">
+            <p className="text-[10px] tracking-[0.25em] uppercase text-amber-200/80 mb-2">
+              ◉ Precedent · Software value over revenue
+            </p>
+            <p className="text-sm font-light leading-relaxed text-foreground/85">
+              <span className="text-amber-200/90">WhatsApp had effectively zero revenue</span> when Facebook acquired it
+              for <span className="text-amber-200/90">$19,000M ($19B)</span> in 2014. The price reflected the
+              software, the user-graph, and the strategic asset — not the income statement. Aureon's range is
+              modeled on the same logic.
+            </p>
+          </div>
         </div>
 
         {/* SCENARIO TABLE */}
@@ -158,43 +218,66 @@ const Valuation = () => {
           </div>
         </section>
 
-        {/* ARR PROJECTION */}
+        {/* SOFTWARE VALUE RAMP */}
         <section className="mb-16">
-          <h2 className="text-xs tracking-[0.3em] uppercase text-foreground/70 mb-2">◉ ARR Projection ($M)</h2>
+          <h2 className="text-xs tracking-[0.3em] uppercase text-foreground/70 mb-2">
+            ◉ Software Asset Value Ramp ($M)
+          </h2>
           <p className="text-xs text-muted-foreground/60 mb-4 font-light">
-            Modeled monthly recurring revenue ramp across Aureon's four subscription tiers.
+            Cumulative engineering / IP value of shipped modules. Not revenue.
           </p>
           <div className="h-72 rounded-2xl border border-border/40 p-4">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={ARR_PROJECTION}>
+              <LineChart data={SOFTWARE_VALUE_RAMP}>
                 <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.2} vertical={false} />
                 <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 10 }} />
                 <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 10 }} />
                 <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
-                <Line type="monotone" dataKey="arr" stroke="hsl(45 80% 60%)" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="value" stroke="hsl(45 80% 60%)" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </section>
 
-        {/* REVENUE MULTIPLES */}
+        {/* SOFTWARE-ASSET ACQUISITION PRECEDENTS */}
         <section className="mb-16">
-          <h2 className="text-xs tracking-[0.3em] uppercase text-foreground/70 mb-2">◉ Revenue Multiples vs Peers</h2>
+          <h2 className="text-xs tracking-[0.3em] uppercase text-foreground/70 mb-2">
+            ◉ Software-Asset Acquisition Precedents ($B)
+          </h2>
           <p className="text-xs text-muted-foreground/60 mb-4 font-light">
-            EV/ARR multiples sourced from public filings and reported private rounds.
+            Strategic acquisitions priced primarily on software, IP, and product — not revenue.
           </p>
-          <div className="h-72 rounded-2xl border border-border/40 p-4">
+          <div className="h-80 rounded-2xl border border-border/40 p-4">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={REVENUE_MULTIPLES}>
+              <BarChart data={SOFTWARE_ASSET_DEALS} margin={{ bottom: 40 }}>
                 <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.2} vertical={false} />
-                <XAxis dataKey="peer" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 10 }} />
+                <XAxis
+                  dataKey="peer"
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fontSize: 9 }}
+                  angle={-15}
+                  textAnchor="end"
+                  height={60}
+                />
                 <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
-                <Bar dataKey="multiple" fill="hsl(45 80% 60%)" />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }}
+                  formatter={(v: number, _n, p) => [`$${v}B`, p.payload.note]}
+                />
+                <Bar dataKey="priceB" fill="hsl(45 80% 60%)" />
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <ul className="mt-4 space-y-1.5 text-xs text-muted-foreground/75 font-light">
+            {SOFTWARE_ASSET_DEALS.map((d) => (
+              <li key={d.peer}>
+                <span className="text-amber-200/90 tabular-nums">${d.priceB.toLocaleString()}B</span>{" "}
+                <span className="text-foreground/80">· {d.peer}</span> — {d.note}
+              </li>
+            ))}
+          </ul>
         </section>
+
 
         {/* CAPABILITY RADAR */}
         <section className="mb-16">
