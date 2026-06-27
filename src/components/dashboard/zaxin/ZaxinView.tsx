@@ -10,7 +10,7 @@ import {
 import { TacticalEngine, SCENARIOS } from "./core/tactical";
 import { startScan, pickOne, detectScanMode, listPaired, type RawAdvert, type ScanMode } from "./core/scanner";
 import { HopBrain } from "./core/hop";
-import { startHeadingStream, startCamera, stopCamera, bearingDelta, flipFacing } from "./core/posesense";
+import { startHeadingStream, startVisualHeadingStream, startCamera, stopCamera, bearingDelta, flipFacing } from "./core/posesense";
 import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
 import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
@@ -260,13 +260,25 @@ const ZaxinView = () => {
           poseHandleRef.current = pose;
           setCompassOn(true);
         } catch (e) {
-          setCompassErr(e instanceof Error ? e.message : String(e));
-          setCompassOn(false);
-          // Seed heading to 0° so the HUD compass + reticles render
-          // immediately; user can drag the slider to adjust.
-          if (heading == null) {
-            setHeading(0);
-            engine.setHeading(0);
+          const sensorMessage = e instanceof Error ? e.message : String(e);
+          if (videoRef.current) {
+            const visual = startVisualHeadingStream(videoRef.current, (deg) => {
+              setManualHeadingActive(false);
+              setHeading(deg);
+              engine.setHeading(deg);
+            }, { initialHeading: heading ?? liveGeo.fix?.course ?? 0, horizontalFov: FOV, hz: 18 });
+            poseHandleRef.current = visual;
+            setCompassOn(true);
+            setCompassErr(`Desktop visual compass active. ${sensorMessage}`);
+          } else {
+            setCompassErr(sensorMessage);
+            setCompassOn(false);
+            // Seed heading to 0° so the HUD compass + reticles render
+            // immediately; user can drag the slider to adjust.
+            if (heading == null) {
+              setHeading(0);
+              engine.setHeading(0);
+            }
           }
         }
       }
