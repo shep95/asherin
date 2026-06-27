@@ -926,14 +926,14 @@ function ArTab(props: {
           zIndex: 1,
         }} />
 
-        {/* Binocular scope — minimal frameless cutout */}
+        {/* Binocular scope — moved to top-LEFT so the compass strip can claim the right side on mobile */}
         {props.arOn && props.scopeOn && props.scopeAvail && (
-          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-[72%] max-w-[520px] pointer-events-none" style={{ zIndex: 3 }}>
-            <div className="relative aspect-[16/5] rounded-2xl overflow-hidden bg-black/30 ring-1 ring-[#c69a4a]/40 shadow-[0_0_24px_-6px_rgba(198,154,74,0.45)]">
+          <div className="absolute top-2 left-2 w-[38%] max-w-[160px] pointer-events-none" style={{ zIndex: 3 }}>
+            <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-black/30 ring-1 ring-[#c69a4a]/40 shadow-[0_0_18px_-6px_rgba(198,154,74,0.45)]">
               <video ref={props.scopeVideoRef} playsInline muted autoPlay
                 className="absolute inset-0 w-full h-full object-cover" />
-              <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-[#e8c684] shadow-[0_0_6px_rgba(232,198,132,0.9)]" />
-              <span className="absolute bottom-1 right-1.5 text-[7px] font-mono text-[#e8c684]/85 tracking-[0.22em]">
+              <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-[#e8c684] shadow-[0_0_6px_rgba(232,198,132,0.9)]" />
+              <span className="absolute bottom-0.5 right-1 text-[6px] font-mono text-[#e8c684]/85 tracking-[0.22em]">
                 {props.mainFacing === "environment" ? "FRONT" : "REAR"}
               </span>
             </div>
