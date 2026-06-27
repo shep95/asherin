@@ -1853,50 +1853,154 @@ function CompassStrip({ heading, contacts, fov }: {
   );
 }
 
+type GeoFix = { lat: number; lon: number; acc: number; ts: number };
+type MercatorPoint = { x: number; y: number };
+
+const WEB_MERCATOR_R = 6_378_137;
+const WEB_MERCATOR_MAX_LAT = 85.05112878;
+const WEB_MERCATOR_WORLD = 2 * Math.PI * WEB_MERCATOR_R;
+
+function clampLat(lat: number) {
+  return Math.max(-WEB_MERCATOR_MAX_LAT, Math.min(WEB_MERCATOR_MAX_LAT, lat));
+}
+
+function lonLatToMercator(lon: number, lat: number): MercatorPoint {
+  const safeLat = clampLat(lat);
+  return {
+    x: WEB_MERCATOR_R * lon * Math.PI / 180,
+    y: WEB_MERCATOR_R * Math.log(Math.tan(Math.PI / 4 + safeLat * Math.PI / 360)),
+  };
+}
+
+function mercatorMetersPerCssPx(zoom: number) {
+  return WEB_MERCATOR_WORLD / (256 * Math.pow(2, zoom));
+}
+
+function groundMetersPerCssPx(lat: number, zoom: number) {
+  const cosLat = Math.max(0.08, Math.cos(clampLat(lat) * Math.PI / 180));
+  return mercatorMetersPerCssPx(zoom) * cosLat;
+}
+
+function geoDistanceMeters(a: Pick<GeoFix, "lat" | "lon">, b: Pick<GeoFix, "lat" | "lon">) {
+  const φ1 = a.lat * Math.PI / 180;
+  const φ2 = b.lat * Math.PI / 180;
+  const Δφ = (b.lat - a.lat) * Math.PI / 180;
+  const Δλ = (b.lon - a.lon) * Math.PI / 180;
+  const h = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return 2 * 6_371_000 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function shouldAcceptGeoFix(prev: GeoFix | null, next: GeoFix) {
+  if (!Number.isFinite(next.lat) || !Number.isFinite(next.lon)) return false;
+  if (next.acc > 250 && prev) return false;
+  if (!prev) return true;
+  const ageMs = Math.max(1, next.ts - prev.ts);
+  const jump = geoDistanceMeters(prev, next);
+  const allowedJump = Math.max(35, prev.acc + next.acc + (ageMs / 1000) * 8);
+  if (jump > allowedJump && next.acc >= prev.acc) return false;
+  if (jump < Math.max(2.5, next.acc * 0.12) && next.acc > prev.acc * 1.35) return false;
+  return true;
+}
+
+function stableBearing(id: string, index: number) {
+  let hash = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    hash ^= id.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return ((hash >>> 0) + index * 47) % 360;
+}
+
+function contactDistance(c: Pick<Contact, "distanceMeters" | "rssi">) {
+  if (typeof c.distanceMeters === "number" && Number.isFinite(c.distanceMeters)) {
+    return Math.max(0.25, Math.min(120, c.distanceMeters));
+  }
+  if (typeof c.rssi === "number" && Number.isFinite(c.rssi)) {
+    return Math.max(0.25, Math.min(120, rssiToDistance(c.rssi)));
+  }
+  return 8;
+}
+
+function contactOffsetPx(
+  c: Pick<Contact, "id" | "bearing" | "distanceMeters" | "rssi">,
+  index: number,
+  centerLat: number,
+  zoom: number,
+  maxRadiusPx: number,
+) {
+  const bearing = c.bearing ?? stableBearing(c.id, index);
+  const distance = contactDistance(c);
+  const radiusPx = Math.min(maxRadiusPx, distance / groundMetersPerCssPx(centerLat, zoom));
+  const rad = bearing * Math.PI / 180;
+  return { x: Math.sin(rad) * radiusPx, y: -Math.cos(rad) * radiusPx };
+}
+
+function useMeasuredElement<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const update = () => {
+      const box = node.getBoundingClientRect();
+      setSize((prev) => {
+        const width = Math.round(box.width);
+        const height = Math.round(box.height);
+        return Math.abs(prev.width - width) > 1 || Math.abs(prev.height - height) > 1 ? { width, height } : prev;
+      });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, []);
+
+  return [ref, size] as const;
+}
+
 function MiniMap({ heading, contacts }: {
   heading: number | null;
   contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number; distanceMeters?: number | null }>;
 }) {
   // Live GPS for a true satellite mini-map (replaces the prior abstract radar).
-  const [pos, setPos] = useState<{ lat: number; lon: number; acc: number } | null>(null);
+  const [pos, setPos] = useState<GeoFix | null>(null);
   const [zoom] = useState(19); // tight overhead — operator-scale
+  const fixRef = useRef<GeoFix | null>(null);
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
     const w = navigator.geolocation.watchPosition(
-      (p) => setPos({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }),
+      (p) => {
+        const next: GeoFix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy || 999, ts: p.timestamp || Date.now() };
+        if (!shouldAcceptGeoFix(fixRef.current, next)) return;
+        fixRef.current = next;
+        setPos(next);
+      },
       () => {},
-      { enableHighAccuracy: true, maximumAge: 4000, timeout: 15000 },
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 12000 },
     );
     return () => navigator.geolocation.clearWatch(w);
   }, []);
 
-  // Half-extent in degrees — same formula as the full SatelliteMap.
-  const halfDeg = useMemo(() => {
-    const meters = 40 * Math.pow(2, 20 - zoom);
-    return meters / 111_320;
-  }, [zoom]);
-
   const tileUrl = useMemo(() => {
     if (!pos) return null;
-    const { lat, lon } = pos;
-    const bbox = `${lon - halfDeg},${lat - halfDeg},${lon + halfDeg},${lat + halfDeg}`;
-    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&imageSR=3857&size=320,320&format=jpg&transparent=false&f=image`;
-  }, [pos, halfDeg]);
+    const center = lonLatToMercator(pos.lon, pos.lat);
+    const mpp = mercatorMetersPerCssPx(zoom);
+    const half = (172 / 2) * mpp;
+    const dpr = Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
+    const size = Math.round(172 * dpr);
+    const bbox = `${center.x - half},${center.y - half},${center.x + half},${center.y + half}`;
+    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=3857&imageSR=3857&size=${size},${size}&format=jpg&transparent=false&f=image`;
+  }, [pos, zoom]);
 
   const SIZE = 172;
   const HALF_PX = SIZE / 2;
 
-  // Place each contact around the operator. Bearing is world-absolute when
-  // available; otherwise hash a stable angle so it still appears.
-  const pipFor = (c: { id: string; bearing?: number | null; rssi?: number; distanceMeters?: number | null }, i: number) => {
-    const halfMeters = halfDeg * 111_320; // half the map's real-world span
-    const pxPerMeter = (SIZE / 2 - 8) / Math.max(halfMeters, 1);
-    const distM = c.distanceMeters ?? (c.rssi != null ? Math.max(0.5, Math.min(40, Math.pow(10, (-59 - c.rssi) / 20))) : 8);
-    const radiusPx = Math.min(SIZE / 2 - 6, distM * pxPerMeter * 0.8);
-    const bearing = c.bearing ?? ((parseInt(c.id.slice(-4), 36) || i * 47) % 360);
-    const rad = ((bearing - (heading ?? 0)) * Math.PI) / 180;
-    return { x: Math.sin(rad) * radiusPx, y: -Math.cos(rad) * radiusPx };
-  };
+  // North-up satellite view: operator arrow rotates, but contact pips stay in
+  // real compass/world bearing so turning the phone does not rotate the map.
+  const pipFor = (c: { id: string; bearing?: number | null; rssi?: number | null; distanceMeters?: number | null }, i: number) => (
+    contactOffsetPx(c as Pick<Contact, "id" | "bearing" | "distanceMeters" | "rssi">, i, pos?.lat ?? 0, zoom, HALF_PX - 7)
+  );
 
   return (
     <div className="absolute bottom-3 right-3 pointer-events-none select-none" style={{ zIndex: 5 }}>
