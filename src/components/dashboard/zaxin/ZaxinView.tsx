@@ -1875,7 +1875,7 @@ function CompassStrip({ heading, contacts, fov }: {
   }
   return (
     <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{ zIndex: 7 }}>
-      <div className="relative h-7 sm:h-8 w-full border-b border-[#c69a4a]/35 bg-gradient-to-b from-black/70 via-[#1a1208]/55 to-transparent backdrop-blur-[2px] overflow-hidden">
+      <div className="relative h-7 w-full border-b border-[#c69a4a]/35 bg-gradient-to-b from-black/70 via-[#1a1208]/55 to-transparent backdrop-blur-[2px] overflow-hidden">
         {/* tick row */}
         {ticks.map((t, i) => {
           const offset = ((t.deg - h) / (fov / 2)) * 50 + 50;
