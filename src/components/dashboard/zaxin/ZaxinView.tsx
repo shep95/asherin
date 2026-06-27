@@ -1266,7 +1266,7 @@ function ArTab(props: {
             ? `${visionEnv.room_width_m ?? "?"}×${visionEnv.room_length_m ?? "?"}×${visionEnv.room_height_m ?? "?"}m`
             : null;
           return (
-            <div className="absolute top-2 right-2 max-w-[180px] sm:max-w-[220px]" style={{ zIndex: 5 }}>
+            <div className="absolute top-2 right-2 max-w-[180px]" style={{ zIndex: 5 }}>
               <button
                 onClick={() => setEnvExpanded((v) => !v)}
                 className="w-full flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/65 backdrop-blur-sm border border-[#c69a4a]/35 text-[#e8c684] text-[9px] font-mono tracking-[0.16em] uppercase hover:bg-black/75 transition"
