@@ -1,5 +1,6 @@
 import { applySeoHead } from "@/lib/seoHead";
 import { isAdminEmail } from "@/lib/adminEmail";
+import NewAccountWelcomeModal from "@/components/NewAccountWelcomeModal";
 import heroBgDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
@@ -1554,6 +1555,7 @@ const Dashboard = () => {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
+      <NewAccountWelcomeModal />
       <h1 className="sr-only">Aureon Dashboard — Your Intelligence Workspace</h1>
       {/* Previous wallpaper (fades out during transition) */}
       {prevDashWallpaper && isDashTransitioning && (
