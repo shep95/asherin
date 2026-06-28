@@ -25,10 +25,9 @@ const CAPABILITIES = [
 ];
 
 const PLANS = [
-  { tier: "Chat",    price: "$47",   per: "/mo",   desc: "Aureon Chat · Search · IDE · Whiteboard" },
-  { tier: "Aureon",  price: "$199",  per: "/mo",   desc: "+ NOMAD · Briefings · Notebooks · ZALI" },
-  { tier: "Pro",     price: "$740",  per: "/mo",   desc: "+ Zaxin · Zerlal · Axrlen · Zeeion · Teams" },
-  { tier: "Lifetime",price: "$470",  per: " once", desc: "Everything, forever. One payment." },
+  { tier: "Aureon",     price: "$18",     per: "/mo", desc: "Core uncensored chat, code, research, Zophiel Search (Base)." },
+  { tier: "Aureon Pro", price: "$399",    per: "/mo", desc: "Full intelligence suite — Azplen, NOMAD, Axrlen, Zaxin, Zerlal, Zeeion." },
+  { tier: "Enterprise", price: "Custom",  per: "",    desc: "Dedicated capacity, SSO, org controls, SLA." },
 ];
 
 export default function NewAccountWelcomeModal() {
@@ -84,6 +83,7 @@ export default function NewAccountWelcomeModal() {
               src={welcomeImg.url}
               alt="Aureon initiation silhouette"
               className="h-full w-full object-cover"
+              style={{ filter: "grayscale(1) brightness(0.95) contrast(1.05)" }}
             />
             {/* Right-edge fade: blurred dark gradient that bleeds into the next column */}
             <div
@@ -235,7 +235,7 @@ function CapabilityGrid() {
 
 function PlanList({ compact = false }: { compact?: boolean }) {
   return (
-    <div className={`grid grid-cols-1 ${compact ? "sm:grid-cols-4" : "sm:grid-cols-2"} gap-2`}>
+    <div className={`grid grid-cols-1 ${compact ? "sm:grid-cols-3" : "sm:grid-cols-3"} gap-2`}>
       {PLANS.map((p) => (
         <div
           key={p.tier}
