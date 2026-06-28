@@ -1149,31 +1149,45 @@ serve(async (req) => {
     }
 
     if (!incomingByok) {
-      const storedByok = await resolveStoredByok(req, _hasAttachments);
-      if (storedByok) {
-        _parsedBody.byokProvider = storedByok.provider;
-        _parsedBody.byokModel = storedByok.model;
-        _injectedKey = storedByok.apiKey;
-      } else if (_hasAttachments) {
-        return new Response(
-          JSON.stringify({
-            error: "Image, file, and media uploads require a vision-capable key. Save or select Google, OpenAI, Anthropic, or xAI in Settings → AI Keys, then retry.",
-            code: "BYOK_REQUIRED",
-            reason: "vision_requires_byok",
-          }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      } else {
-      const resolved = await resolveKey(req, null);
-      if (resolved.mode === "admin" && resolved.geminiKey) {
+      // ADMIN-FIRST: admin team always routes through the platform Gemini key
+      // (matches the hard-coded admin bypass). Saving a personal key in
+      // Settings → AI Keys must NOT silently swap the admin's model/personality.
+      // Non-admin path falls through to stored BYOK → Venice free-tier.
+      const resolved = await resolveKey(req, null).catch(() => null);
+      const adminRouted =
+        resolved && resolved.mode === "admin" && resolved.geminiKey;
+
+      if (adminRouted) {
         _parsedBody.byokProvider = "google";
         _parsedBody.byokModel = "gemini-2.0-flash-exp";
-        _injectedKey = resolved.geminiKey;
-      } else if (resolved.mode === "byok" && resolved.byok) {
-        _parsedBody.byokProvider = resolved.byok.provider;
-        _parsedBody.byokModel = resolved.byok.model;
-        _injectedKey = resolved.byok.apiKey;
-      }
+        _injectedKey = resolved!.geminiKey!;
+      } else {
+        const storedByok = await resolveStoredByok(req, _hasAttachments);
+        if (storedByok) {
+          _parsedBody.byokProvider = storedByok.provider;
+          _parsedBody.byokModel = storedByok.model;
+          _injectedKey = storedByok.apiKey;
+        } else if (_hasAttachments) {
+          return new Response(
+            JSON.stringify({
+              error: "Image, file, and media uploads require a vision-capable key. Save or select Google, OpenAI, Anthropic, or xAI in Settings → AI Keys, then retry.",
+              code: "BYOK_REQUIRED",
+              reason: "vision_requires_byok",
+            }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        } else if (resolved?.mode === "byok" && resolved.byok) {
+          // Venice free-tier fallback for authenticated non-admin without BYOK.
+          _parsedBody.byokProvider = resolved.byok.provider;
+          _parsedBody.byokModel = resolved.byok.model;
+          _injectedKey = resolved.byok.apiKey;
+        } else {
+          // No admin key, no stored BYOK, no Venice → surface BYOK_REQUIRED.
+          const e: any = new Error("BYOK_REQUIRED");
+          e.status = 403;
+          e.code = "BYOK_REQUIRED";
+          throw e;
+        }
       }
     }
 
