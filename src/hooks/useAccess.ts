@@ -24,6 +24,11 @@ const PUBLIC_VIEWS: DashboardView[] = [
 
 const TRIAL_HOURS = 24;
 
+// ── KILL SWITCH ──────────────────────────────────────────────────────────────
+// Set to `false` to PAUSE all paywalls (every account gets full access,
+// regardless of tier or trial age). Flip back to `true` to re-enable gating.
+const GATING_ENABLED = false;
+
 export function useAccess() {
   const { tierKey, isPastDue, loading: subLoading } = useSubscription();
   const { user } = useAuth();
