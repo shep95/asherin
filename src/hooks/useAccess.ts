@@ -1,44 +1,63 @@
-import { ADMIN_EMAIL, isAdminEmail } from "@/lib/adminEmail";
-import { useSubscription, hasChatAccess, hasSearchAccess, hasProAccess, hasEnterpriseOnlyAccess, hasAureonAccess } from "@/contexts/SubscriptionContext";
+import { isAdminEmail } from "@/lib/adminEmail";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { DashboardView } from "@/components/dashboard/types";
 
-// Views that require Enterprise access (Axrlen & Zeeion are enterprise-only)
+// Enterprise / Pro-only views
 const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion", "axrlen"];
-
-// Views that require Pro access
 const PRO_VIEWS: DashboardView[] = [
   "community", "azplen",
   "teams", "geospatial", "plugins", "timeseries",
   "audit", "predictive", "security", "tracker",
   "google", "pattern-analysis", "video-intelligence", "lavba", "cross",
-  "zaplen",
+  "zaplen", "zaxin", "zerlal",
 ];
-
-// Views that require Aureon-tier ($199) — NOMAD, Briefings, ZANOEM Design Lab
 const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks"];
-
-// Views that require any paid plan (search-tier)
 const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "file-scrapper", "cipher"];
-
-// Views that require any paid plan (chat-tier minimum)
-const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow", "zahten"];
-
-// Views that are always accessible to authenticated users
+const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow", "zahten", "ebook", "ide", "whiteboard", "media2code"];
 const PUBLIC_VIEWS: DashboardView[] = [
   "library", "snippets", "projects", "memory", "stats",
-  "settings", "subscription", "persona-store",
+  "settings", "api-keys", "subscription", "persona-store",
   "self-learning", "self-access",
-  "bug-reports", "ebook", "vedic-astrology",
+  "bug-reports", "vedic-astrology",
 ];
+
+const TRIAL_HOURS = 24;
 
 export function useAccess() {
   const { tierKey, isPastDue } = useSubscription();
   const { user } = useAuth();
   const isAdmin = isAdminEmail(user?.email);
 
-  // Donation Era: Aureon is fully free — every authenticated user gets every view.
-  const canAccess = (_view: DashboardView): boolean => true;
+  // 24-hour free-trial window from account creation timestamp.
+  const createdAt = user?.created_at ? new Date(user.created_at).getTime() : 0;
+  const trialActive = createdAt > 0 && (Date.now() - createdAt) < TRIAL_HOURS * 3600 * 1000;
+  const trialEndsAt = createdAt > 0 ? createdAt + TRIAL_HOURS * 3600 * 1000 : 0;
 
-  return { canAccess, isAdmin, tierKey, isPastDue, hasChat: true, hasSearch: true, hasAureon: true, hasPro: true, hasEnterprise: true };
+  // Tier ladder: lifetime/monthly_pro/pro > monthly_aureon/aureon > chat > free
+  const tier = tierKey;
+  const hasChat = !!tier;
+  const hasSearch = !!tier;
+  const hasAureon = tier === "monthly_aureon" || tier === "aureon" || tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
+  const hasPro = tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
+  const hasEnterprise = tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
+
+  const canAccess = (view: DashboardView): boolean => {
+    if (isAdmin) return true;
+    if (trialActive) return true;
+    if (PUBLIC_VIEWS.includes(view)) return true;
+    if (CHAT_VIEWS.includes(view)) return hasChat;
+    if (SEARCH_VIEWS.includes(view)) return hasSearch;
+    if (AUREON_VIEWS.includes(view)) return hasAureon;
+    if (PRO_VIEWS.includes(view)) return hasPro;
+    if (ENTERPRISE_VIEWS.includes(view)) return hasEnterprise;
+    // Unknown views — allow (avoid accidental lock-out on new modules).
+    return true;
+  };
+
+  return {
+    canAccess, isAdmin, tierKey, isPastDue,
+    hasChat, hasSearch, hasAureon, hasPro, hasEnterprise,
+    trialActive, trialEndsAt,
+  };
 }

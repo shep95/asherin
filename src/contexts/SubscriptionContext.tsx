@@ -98,18 +98,17 @@ function productToTier(productId: string | null): TierKey | null {
 }
 
 // ── Access helpers ───────────────────────────────────────────────────────────
-// NOTE: Aureon currently keeps gating permissive at the runtime level while the
-// new monthly subscription products are wired up in Stripe. Display, copy and
-// pricing now reflect the $18 / $399 model, but every authenticated user can
-// still reach every view. Flip these helpers to real checks once monthly
-// price IDs and webhook → tier mapping are in place.
-export function hasChatAccess(_tierKey: TierKey | null): boolean { return true; }
-export function hasSearchAccess(_tierKey: TierKey | null): boolean { return true; }
-export function hasAureonAccess(_tierKey: TierKey | null): boolean { return true; }
-export function hasProAccess(_tierKey: TierKey | null): boolean { return true; }
-export function hasEnterpriseOnlyAccess(_tierKey: TierKey | null): boolean { return true; }
-/** @deprecated Retained for legacy callers — always returns true. */
-export function hasEnterpriseAccess(_tierKey: TierKey | null): boolean { return true; }
+// Real tier-based gating. Tier ladder:
+//   chat < aureon/monthly_aureon < pro/monthly_pro/lifetime/algorithm
+const AUREON_TIERS: TierKey[] = ["monthly_aureon", "aureon", "monthly_pro", "pro", "lifetime", "algorithm"];
+const PRO_TIERS: TierKey[] = ["monthly_pro", "pro", "lifetime", "algorithm"];
+export function hasChatAccess(t: TierKey | null): boolean { return !!t; }
+export function hasSearchAccess(t: TierKey | null): boolean { return !!t; }
+export function hasAureonAccess(t: TierKey | null): boolean { return !!t && AUREON_TIERS.includes(t); }
+export function hasProAccess(t: TierKey | null): boolean { return !!t && PRO_TIERS.includes(t); }
+export function hasEnterpriseOnlyAccess(t: TierKey | null): boolean { return !!t && PRO_TIERS.includes(t); }
+/** @deprecated alias retained for legacy callers. */
+export function hasEnterpriseAccess(t: TierKey | null): boolean { return hasProAccess(t); }
 
 
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
