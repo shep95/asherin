@@ -272,7 +272,16 @@ const Dashboard = () => {
     } catch { return []; }
   });
   const [wallpaperKey, setWallpaperKey] = useState(() => {
-    try { return localStorage.getItem("aureon_wallpaper") || "aureon"; } catch { return "aureon"; }
+    try {
+      // Newbies: seed the default Aureon wallpaper so it persists across reloads
+      // until they explicitly change it in Settings.
+      const existing = localStorage.getItem("aureon_wallpaper");
+      if (!existing) {
+        localStorage.setItem("aureon_wallpaper", "aureon");
+        return "aureon";
+      }
+      return existing;
+    } catch { return "aureon"; }
   });
   const [prevDashWallpaper, setPrevDashWallpaper] = useState<string | null>(null);
   const [isDashTransitioning, setIsDashTransitioning] = useState(false);
