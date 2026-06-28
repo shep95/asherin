@@ -25,9 +25,9 @@ const PUBLIC_VIEWS: DashboardView[] = [
 const TRIAL_HOURS = 24;
 
 // ── KILL SWITCH ──────────────────────────────────────────────────────────────
-// Set to `false` to PAUSE all paywalls (every account gets full access,
-// regardless of tier or trial age). Flip back to `true` to re-enable gating.
-const GATING_ENABLED = false;
+// `true`  → paywalls enforced (admin + <24h trial bypass).
+// `false` → paywalls paused (every account gets full access).
+const GATING_ENABLED = true;
 
 export function useAccess() {
   const { tierKey, isPastDue, loading: subLoading } = useSubscription();
@@ -48,20 +48,21 @@ export function useAccess() {
   const hasEnterprise = tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
 
   const canAccess = (view: DashboardView): boolean => {
-    if (!GATING_ENABLED) return true; // ← paywalls paused
+    if (!GATING_ENABLED) return true;
     if (isAdmin) return true;
     if (trialActive) return true;
-    // Permissive while subscription state is still loading — avoids a 1s
-    // paywall flash for paying users on reload.
-    if (subLoading) return true;
     if (PUBLIC_VIEWS.includes(view)) return true;
+    // Subscription still resolving — only forgive the flash for users who
+    // already hold a tier (paid). Free / expired-trial users stay gated so
+    // a slow network can't leak access.
+    if (subLoading && !!tier) return true;
     if (CHAT_VIEWS.includes(view)) return hasChat;
     if (SEARCH_VIEWS.includes(view)) return hasSearch;
     if (AUREON_VIEWS.includes(view)) return hasAureon;
     if (PRO_VIEWS.includes(view)) return hasPro;
     if (ENTERPRISE_VIEWS.includes(view)) return hasEnterprise;
-    // Unknown views — allow (avoid accidental lock-out on new modules).
-    return true;
+    // Unknown views default to the lowest paid tier — fail closed.
+    return hasChat;
   };
 
   return {
