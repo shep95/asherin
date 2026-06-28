@@ -48,6 +48,7 @@ export function useAccess() {
   const hasEnterprise = tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
 
   const canAccess = (view: DashboardView): boolean => {
+    if (!GATING_ENABLED) return true; // ← paywalls paused
     if (isAdmin) return true;
     if (trialActive) return true;
     // Permissive while subscription state is still loading — avoids a 1s
