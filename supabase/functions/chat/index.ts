@@ -1741,7 +1741,7 @@ ${zophielCodingBrainContent}
 
     const geminiMessages = [
       { role: "user", parts: [{ text: systemParts }] },
-      { role: "model", parts: [{ text: "All intelligence protocols loaded. Ghost Chain active. Aureon online. Ready." }] },
+      { role: "model", parts: [{ text: "Understood. I'll classify each new message on its own — casual stays casual, technical gets the full treatment. Ready." }] },
       ...prunedMessages.map((m: { role: string; content: string; attachments?: { name: string; type: string; base64: string }[] }) => {
         const parts: any[] = [];
         if (m.attachments?.length) {
