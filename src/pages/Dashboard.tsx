@@ -1,5 +1,6 @@
 import { applySeoHead } from "@/lib/seoHead";
 import { isAdminEmail } from "@/lib/adminEmail";
+import NewAccountWelcomeModal from "@/components/NewAccountWelcomeModal";
 import heroBgDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
@@ -1538,7 +1539,33 @@ const Dashboard = () => {
           onBrainChange={setActiveBrainId}
         />
         </>
-      ) : null;
+      ) : (
+        <div className="flex h-full w-full items-center justify-center px-6">
+          <div className="max-w-md text-center space-y-4">
+            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">◈ AUREON</p>
+            <h2 className="text-xl font-extralight tracking-wide text-foreground">Welcome to your workspace.</h2>
+            <p className="text-sm font-extralight text-muted-foreground">
+              Spin up your first conversation, or pick a module from the sidebar.
+            </p>
+            <button
+              onClick={async () => {
+                if (!user) return;
+                const { data: nc } = await supabase
+                  .from("conversations")
+                  .insert({ user_id: user.id, title: "New conversation", mode: "chat" })
+                  .select().single();
+                if (nc) {
+                  setConversations([{ id: nc.id, title: nc.title, messages: [], createdAt: new Date(nc.created_at), pinned: nc.pinned, mode: nc.mode as ChatMode }]);
+                  setActiveConvId(nc.id);
+                }
+              }}
+              className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.04] px-5 py-2 text-sm font-light text-foreground hover:bg-white/[0.08] transition"
+            >
+              + Start a conversation
+            </button>
+          </div>
+        </div>
+      );
     }
   };
 
@@ -1554,6 +1581,7 @@ const Dashboard = () => {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
+      <NewAccountWelcomeModal />
       <h1 className="sr-only">Aureon Dashboard — Your Intelligence Workspace</h1>
       {/* Previous wallpaper (fades out during transition) */}
       {prevDashWallpaper && isDashTransitioning && (
