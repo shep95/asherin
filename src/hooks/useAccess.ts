@@ -25,7 +25,7 @@ const PUBLIC_VIEWS: DashboardView[] = [
 const TRIAL_HOURS = 24;
 
 export function useAccess() {
-  const { tierKey, isPastDue } = useSubscription();
+  const { tierKey, isPastDue, loading: subLoading } = useSubscription();
   const { user } = useAuth();
   const isAdmin = isAdminEmail(user?.email);
 
@@ -45,6 +45,9 @@ export function useAccess() {
   const canAccess = (view: DashboardView): boolean => {
     if (isAdmin) return true;
     if (trialActive) return true;
+    // Permissive while subscription state is still loading — avoids a 1s
+    // paywall flash for paying users on reload.
+    if (subLoading) return true;
     if (PUBLIC_VIEWS.includes(view)) return true;
     if (CHAT_VIEWS.includes(view)) return hasChat;
     if (SEARCH_VIEWS.includes(view)) return hasSearch;
