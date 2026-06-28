@@ -1876,7 +1876,9 @@ ${zophielCodingBrainContent}
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: geminiMessages,
-            generationConfig: { temperature: 0.7 },
+            // Match zali-chat budget so the multi-brain system prompt doesn't
+            // truncate Aureon's reply into a short factual blurb.
+            generationConfig: { temperature: 0.7, maxOutputTokens: 16384 },
           }),
         },
       );
