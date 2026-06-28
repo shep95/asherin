@@ -76,32 +76,43 @@ export default function NewAccountWelcomeModal() {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) dismiss(); }}>
       <DialogContent className="max-w-3xl border border-white/10 bg-black p-0 overflow-hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-[260px_1fr]">
-          {/* Hero image with cinematic right-edge fade into the panel */}
-          <div className="relative hidden sm:block bg-black">
+        {/* Mobile: image as background wallpaper behind the panel */}
+        <div className="relative sm:hidden">
+          <img
+            src={welcomeImg.url}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40"
+            style={{ filter: "grayscale(1) brightness(0.7) contrast(1.05)" }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.82) 60%, #000 100%)" }}
+          />
+          <div className="relative">
+            {state === "active" ? (
+              <ActivePanel countdown={countdown} onBegin={dismiss} onPlans={goToPlans} />
+            ) : (
+              <ExpiredPanel onPlans={goToPlans} onDismiss={dismiss} />
+            )}
+          </div>
+        </div>
+
+        {/* Desktop: side-by-side, image on the left, no blur */}
+        <div className="hidden sm:grid sm:grid-cols-[260px_1fr]">
+          <div className="relative bg-black">
             <img
               src={welcomeImg.url}
               alt="Aureon initiation silhouette"
               className="h-full w-full object-cover"
               style={{ filter: "grayscale(1) brightness(0.95) contrast(1.05)" }}
             />
-            {/* Right-edge fade: blurred dark gradient that bleeds into the next column */}
-            <div
-              className="pointer-events-none absolute inset-y-0 right-0 w-32"
-              style={{
-                background: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.55) 45%, #000 100%)",
-                backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
-              }}
-            />
-            {/* Subtle top/bottom vignette for depth */}
             <div
               className="pointer-events-none absolute inset-0"
               style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 25%, transparent 75%, rgba(0,0,0,0.35) 100%)" }}
             />
           </div>
 
-          {/* Body */}
           {state === "active" ? (
             <ActivePanel countdown={countdown} onBegin={dismiss} onPlans={goToPlans} />
           ) : (
