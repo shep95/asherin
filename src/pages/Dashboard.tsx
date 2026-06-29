@@ -1661,7 +1661,8 @@ const Dashboard = () => {
           }}
         >
           {splitPanes.length > 0 ? (
-            <SplitPaneManager
+            <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-muted-foreground">Loading split view…</div>}>
+              <SplitPaneManager
               panes={splitPanes}
               conversations={conversations}
               onRemovePane={(paneId) => {
@@ -1697,7 +1698,8 @@ const Dashboard = () => {
                 }
               }}
               isDraggingConvo={isDraggingConvo}
-            />
+              />
+            </Suspense>
           ) : (
             <>
               {renderView()}
