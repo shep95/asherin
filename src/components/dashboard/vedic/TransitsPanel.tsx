@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Orbit, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Building2, User2, Gem, Activity, Crown, Megaphone, Star, Briefcase, ScrollText, Trophy, Users } from "lucide-react";
+import { Loader2, Orbit, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Building2, User2, Gem, Activity, Crown, Megaphone, ScrollText, Trophy } from "lucide-react";
 import { computeFutureIngresses, type SignIngress } from "@/lib/vedic/transits";
 import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
 import { computeSensitivePoints, type SensitivePoints } from "@/lib/vedic/sensitivePoints";
