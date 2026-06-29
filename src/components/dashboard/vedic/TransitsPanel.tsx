@@ -1143,7 +1143,8 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       )}
 
       {/* MOON-ONLY MONTHLY BRIEF — 100% Moon transits: house ingresses + conjunctions with natal planets, rendered in the user's local time. */}
-      {!loadingNow && (
+      {(
+
         <div className="rounded-lg border border-border/35 bg-background/40 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <ScrollText className="h-4 w-4 text-foreground/80" />
