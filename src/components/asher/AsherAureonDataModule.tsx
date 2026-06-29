@@ -11,7 +11,7 @@ import {
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { format, subDays, startOfDay, formatDistanceToNow } from "date-fns";
-const wallpaperAureon = "/wallpapers/wallpaper-aureon.png";
+const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
 type Range = 7 | 14 | 30 | 90;
 

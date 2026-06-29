@@ -15,7 +15,7 @@ import { logAsherEvent } from "@/lib/asherAudit";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { routeBrainsForPrompt, type SwarmRouteResult } from "@/lib/asherBrainRouter";
 import { useAuth } from "@/contexts/AuthContext";
-const wallpaperAureon = "/wallpapers/wallpaper-aureon.png";
+const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
 interface Attachment {
