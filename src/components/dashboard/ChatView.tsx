@@ -842,7 +842,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     {msg.role === "assistant" && !msg.content && isStreaming && msg === lastMsg ? (
                       <TypingIndicator mode="thinking" />
                     ) : msg.role === "assistant" && msg.consensusData ? (
-                      <ConsensusMessage data={msg.consensusData} />
+                      <Suspense fallback={null}>
+                        <ConsensusMessage data={msg.consensusData} />
+                      </Suspense>
                     ) : msg.role === "assistant" ? (
                       <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
                         <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
