@@ -89,7 +89,7 @@ const WallpaperSwitcher = () => {
                 }}
               >
                 <img
-                  src={wp.src}
+                  src={wp.thumb}
                   alt={wp.label}
                   loading="lazy"
                   decoding="async"

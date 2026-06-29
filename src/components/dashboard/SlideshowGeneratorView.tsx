@@ -3,17 +3,14 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { Presentation, Upload, Download, Sparkles, Image, Loader2, Trash2, Plus, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import { streamChat } from "@/lib/ai";
-import wallpaperDefault from "@/assets/hero-bg.png";
-import wallpaperRaven from "@/assets/wallpaper-raven.png";
-import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
-import wallpaperGlitch from "@/assets/wallpaper-glitch.png";
+import { ALL_WALLPAPERS, getWallpaperSrc } from "@/lib/wallpapers";
 
-const WALLPAPERS = [
-  { key: "default", label: "Original", src: wallpaperDefault },
-  { key: "raven", label: "Raven", src: wallpaperRaven },
-  { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
-  { key: "glitch", label: "Glitch", src: wallpaperGlitch },
-];
+const WALLPAPER_KEYS = ["default", "raven", "eclipse", "glitch"] as const;
+const WALLPAPERS = WALLPAPER_KEYS.map((k) => {
+  const wp = ALL_WALLPAPERS.find((w) => w.key === k)!;
+  return { key: wp.key, label: wp.label, src: wp.src };
+});
+
 
 interface Slide {
   id: string;
@@ -42,7 +39,7 @@ const SlideshowGeneratorView = () => {
   const slideRef = useRef<HTMLDivElement>(null);
   const fullscreenRef = useRef<HTMLDivElement>(null);
 
-  const wallpaperSrc = WALLPAPERS.find(w => w.key === selectedWallpaper)?.src || wallpaperDefault;
+  const wallpaperSrc = WALLPAPERS.find(w => w.key === selectedWallpaper)?.src || getWallpaperSrc("default");
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
