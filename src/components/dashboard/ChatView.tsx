@@ -1043,27 +1043,37 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     </div>
                   )}
                   {msg.role === "assistant" && cotId === msg.id && (
-                    <ChainOfThoughtPanel
-                      open={true}
-                      content={msg.content}
-                      query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content}
-                    />
+                    <Suspense fallback={null}>
+                      <ChainOfThoughtPanel
+                        open={true}
+                        content={msg.content}
+                        query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content}
+                      />
+                    </Suspense>
                   )}
-                  {msg.role === "assistant" && decodeId === msg.id && <DecodeView open={true} content={msg.content} />}
+                  {msg.role === "assistant" && decodeId === msg.id && (
+                    <Suspense fallback={null}>
+                      <DecodeView open={true} content={msg.content} />
+                    </Suspense>
+                  )}
                   {msg.role === "assistant" && diagramId === msg.id && (
-                    <MessageDiagramPanel
-                      open={true}
-                      content={msg.content}
-                      onClose={() => setDiagramId(null)}
-                    />
+                    <Suspense fallback={null}>
+                      <MessageDiagramPanel
+                        open={true}
+                        content={msg.content}
+                        onClose={() => setDiagramId(null)}
+                      />
+                    </Suspense>
                   )}
                   {msg.role === "assistant" && neuralId === msg.id && (
-                    <NeuralThinkingModal
-                      open={true}
-                      query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content || ""}
-                      response={msg.content}
-                      onClose={() => setNeuralId(null)}
-                    />
+                    <Suspense fallback={null}>
+                      <NeuralThinkingModal
+                        open={true}
+                        query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content || ""}
+                        response={msg.content}
+                        onClose={() => setNeuralId(null)}
+                      />
+                    </Suspense>
                   )}
                   {/* Diff view for regenerated responses */}
                   {msg.role === "assistant" && showDiffId === msg.id && previousResponses[msg.id] && (
