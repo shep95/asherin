@@ -89,7 +89,9 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
         style={{ backgroundImage: "url('/wallpapers/auth-king.webp')" }}
       >
         <div className="pointer-events-none absolute inset-0 bg-black/72" aria-hidden="true" />
-        <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors">
+        <div className="relative">
+        <button onClick={onClose} className="absolute top-0 right-0 text-muted-foreground hover:text-foreground transition-colors">
+
           <X className="h-5 w-5" />
         </button>
 
