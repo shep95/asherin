@@ -1,8 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Key, Plus, Trash2, Check, Loader2, Eye, EyeOff, ChevronDown, Zap, AlertTriangle, Brain, Search, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { AI_PROVIDERS, type ProviderConfig } from "@/lib/aiProviders";
+
+// Re-export for legacy imports — new code should import from "@/lib/aiProviders".
+export { AI_PROVIDERS };
+export type { ProviderConfig };
 
 export interface ProviderConfig {
   id: string;
