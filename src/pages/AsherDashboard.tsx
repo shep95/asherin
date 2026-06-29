@@ -536,7 +536,9 @@ const AsherDashboard = () => {
         <DialogContent className="p-0 gap-0 max-w-[min(1200px,95vw)] w-[95vw] h-[90vh] overflow-hidden bg-background border-border/30">
           <VisuallyHidden><DialogTitle>Vedic Strategy</DialogTitle></VisuallyHidden>
           <div className="h-full w-full overflow-auto">
-            <VedicAstrologyView />
+            <Suspense fallback={<div className="h-full flex items-center justify-center"><Loader2 className="h-4 w-4 text-muted-foreground/40 animate-spin" /></div>}>
+              <VedicAstrologyView />
+            </Suspense>
           </div>
         </DialogContent>
       </Dialog>
