@@ -439,6 +439,36 @@ const AxrlenView = () => {
     "Apply the Thucydides Trap framework to US-China relations",
   ];
 
+  // Memoize sessions filtering/bucketing/stats. Previously this ran inline inside the
+  // popout IIFE on every render — including every streaming token — burning CPU even
+  // when the drawer was closed via children re-renders.
+  const sessionStats = useMemo(() => {
+    const q = sessionsQuery.trim().toLowerCase();
+    const filtered = q
+      ? sessions.filter(s => s.title.toLowerCase().includes(q) || (s.region || "").toLowerCase().includes(q))
+      : sessions;
+    const now = Date.now();
+    const buckets: Record<string, AxrlenSession[]> = { Today: [], Yesterday: [], "Last 7 Days": [], Earlier: [] };
+    for (const s of filtered) {
+      const ageH = (now - s.createdAt.getTime()) / 36e5;
+      if (ageH < 24) buckets.Today.push(s);
+      else if (ageH < 48) buckets.Yesterday.push(s);
+      else if (ageH < 24 * 7) buckets["Last 7 Days"].push(s);
+      else buckets.Earlier.push(s);
+    }
+    let totalPredictions = 0;
+    let confSum = 0;
+    let confCount = 0;
+    for (const s of sessions) {
+      if (Array.isArray(s.predictions)) totalPredictions += s.predictions.length;
+      if (s.confidenceScore != null) { confSum += s.confidenceScore; confCount += 1; }
+    }
+    const avgConf = confCount ? confSum / confCount : 0;
+    return { filtered, buckets, totalPredictions, avgConf };
+  }, [sessions, sessionsQuery]);
+
+
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
