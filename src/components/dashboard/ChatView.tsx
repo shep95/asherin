@@ -775,7 +775,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         )}
         {styleProfileOpen && (
           <div className="px-2 pb-2">
-            <PersonalStyleProfile open={styleProfileOpen} onClose={() => setStyleProfileOpen(false)} />
+            <Suspense fallback={null}>
+              <PersonalStyleProfile open={styleProfileOpen} onClose={() => setStyleProfileOpen(false)} />
+            </Suspense>
           </div>
         )}
       </div>
