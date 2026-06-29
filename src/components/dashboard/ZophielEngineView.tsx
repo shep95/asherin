@@ -850,18 +850,22 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       {/* Mobile: full-screen overlay for Intelligence Suite */}
       {intelSuiteOpen && searched && results.length > 0 && (
         <div className="lg:hidden fixed inset-0 z-40 bg-background animate-fade-in">
-          <IntelligenceSuitePanel
-            query={query}
-            results={results}
-            onClose={() => setIntelSuiteOpen(false)}
-            onRunQuery={(q) => { setQuery(q); search(q); }}
-          />
+          <Suspense fallback={null}>
+            <IntelligenceSuitePanel
+              query={query}
+              results={results}
+              onClose={() => setIntelSuiteOpen(false)}
+              onRunQuery={(q) => { setQuery(q); search(q); }}
+            />
+          </Suspense>
         </div>
       )}
 
       {/* Page Preview Panel */}
       {preview && (
-        <PagePreviewPanel preview={preview.data} url={preview.url} onClose={() => setPreview(null)} />
+        <Suspense fallback={null}>
+          <PagePreviewPanel preview={preview.data} url={preview.url} onClose={() => setPreview(null)} />
+        </Suspense>
       )}
 
       {/* Keyboard Shortcuts Modal */}
