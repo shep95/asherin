@@ -499,22 +499,30 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     <div className="flex flex-1 min-w-0 h-full relative overflow-hidden">
       {/* Main chat column */}
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
-      {/* Floating Notepad */}
-      <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} conversationId={conversation.id} />
-      {/* Voice Call Overlay */}
-      <VoiceCallOverlay
-        isConnected={elevenLabsVoice.isConnected}
-        isConnecting={elevenLabsVoice.status === "connecting"}
-        isSpeaking={elevenLabsVoice.isSpeaking}
-        currentText={elevenLabsVoice.currentText}
-        transcriptLog={elevenLabsVoice.transcriptLog}
-        userSpeechIndicator={elevenLabsVoice.userSpeechIndicator}
-        error={elevenLabsVoice.error}
-        onDisconnect={elevenLabsVoice.disconnect}
-        onDownloadTranscript={elevenLabsVoice.downloadTranscript}
-        getInputVolume={elevenLabsVoice.getInputVolume}
-        getOutputVolume={elevenLabsVoice.getOutputVolume}
-      />
+      {/* Floating Notepad — mount only when open */}
+      {notepadOpen && (
+        <Suspense fallback={null}>
+          <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} conversationId={conversation.id} />
+        </Suspense>
+      )}
+      {/* Voice Call Overlay — mount only when active */}
+      {(elevenLabsVoice.isConnected || elevenLabsVoice.status === "connecting") && (
+        <Suspense fallback={null}>
+          <VoiceCallOverlay
+            isConnected={elevenLabsVoice.isConnected}
+            isConnecting={elevenLabsVoice.status === "connecting"}
+            isSpeaking={elevenLabsVoice.isSpeaking}
+            currentText={elevenLabsVoice.currentText}
+            transcriptLog={elevenLabsVoice.transcriptLog}
+            userSpeechIndicator={elevenLabsVoice.userSpeechIndicator}
+            error={elevenLabsVoice.error}
+            onDisconnect={elevenLabsVoice.disconnect}
+            onDownloadTranscript={elevenLabsVoice.downloadTranscript}
+            getInputVolume={elevenLabsVoice.getInputVolume}
+            getOutputVolume={elevenLabsVoice.getOutputVolume}
+          />
+        </Suspense>
+      )}
 
       {/* Top bar — hidden in focus mode */}
       {!focusMode && (
