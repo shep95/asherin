@@ -500,22 +500,10 @@ const AxrlenView = () => {
 
       {/* Sessions popout — side drawer */}
       {showSessions && (() => {
-        const [q, setQ] = [sessionsQuery, setSessionsQuery];
-        const filtered = sessions.filter(s =>
-          !q.trim() || s.title.toLowerCase().includes(q.toLowerCase()) || (s.region || "").toLowerCase().includes(q.toLowerCase())
-        );
-        const now = Date.now();
-        const buckets: Record<string, AxrlenSession[]> = { Today: [], Yesterday: [], "Last 7 Days": [], Earlier: [] };
-        filtered.forEach(s => {
-          const ageH = (now - s.createdAt.getTime()) / 36e5;
-          if (ageH < 24) buckets.Today.push(s);
-          else if (ageH < 48) buckets.Yesterday.push(s);
-          else if (ageH < 24 * 7) buckets["Last 7 Days"].push(s);
-          else buckets.Earlier.push(s);
-        });
-        const totalPredictions = sessions.reduce((acc, s) => acc + (Array.isArray(s.predictions) ? s.predictions.length : 0), 0);
-        const avgConf = sessions.filter(s => s.confidenceScore != null).reduce((a, s, _, arr) => a + (s.confidenceScore || 0) / arr.length, 0);
-        const completeCount = sessions.filter(s => s.status === "complete").length;
+        const q = sessionsQuery;
+        const setQ = setSessionsQuery;
+        const { filtered, buckets, totalPredictions, avgConf } = sessionStats;
+
 
         return (
           <>
