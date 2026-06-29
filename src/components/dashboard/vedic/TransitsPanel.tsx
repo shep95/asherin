@@ -1143,7 +1143,8 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
       )}
 
       {/* MOON-ONLY MONTHLY BRIEF — 100% Moon transits: house ingresses + conjunctions with natal planets, rendered in the user's local time. */}
-      {!loadingNow && (
+      {(
+
         <div className="rounded-lg border border-border/35 bg-background/40 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <ScrollText className="h-4 w-4 text-foreground/80" />
@@ -1430,38 +1431,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         );
       })()}
 
-      {/* STRONGEST PREDICTIONS — Dasha + Transit convergence */}
-      {!loadingNow && !loadingFuture && activeDashaSummary && monthlyBrief.strongest.length > 0 && (
-        <div className="rounded-lg border border-border/35 bg-background/40 p-4 space-y-2.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Zap className="h-4 w-4 text-foreground/80" />
-            <h4 className="text-xs font-light tracking-[0.18em] text-foreground/85 uppercase">Strongest Predictions · Dasha + Transit Converge</h4>
-            <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 ml-auto">Active: {activeDashaSummary}</span>
-          </div>
-          <p className="text-[10.5px] text-muted-foreground/75 italic leading-relaxed">
-            These life-areas have BOTH the Dasha lord supporting them AND a transit firing the same point at the same time — the textbook "event happens" combo.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {monthlyBrief.strongest.map((b) => {
-              const Icon = b.icon;
-              return (
-                <div key={`strong-${b.key}`} className="rounded-md border border-border/30 bg-background/35 p-2.5 space-y-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <Icon className="h-3.5 w-3.5 text-foreground/80" />
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/85">{b.label}</span>
-                    <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${b.confidence === "peak" ? "border-foreground/45 bg-foreground/[0.08] text-foreground" : "border-border/40 bg-background/40 text-foreground/80"}`}>{b.confidence === "peak" ? "PEAK" : "STRONG"}</span>
-                    <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/70 ml-auto">{b.when}</span>
-                  </div>
-                  <div className="text-[11.5px] font-light text-foreground leading-snug">{b.headline}</div>
-                  <div className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground/75">
-                    Dasha backing: {b.dashaLords.join(" + ")}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* STRONGEST PREDICTIONS panel removed — superseded by 100% Moon-driven brief above. */}
 
       {/* WHY THIS MATTERS TO YOUR CHART — collapsible reasoning */}
       {!loadingNow && topWhys.length > 0 && (
