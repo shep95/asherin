@@ -396,13 +396,15 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     <div className="zophiel-aurora-shell flex h-full relative">
       {/* Filter Sidebar */}
       {searched && (
-        <FilterSidebar
-          filters={filters}
-          onFiltersChange={(f) => { setFilters(f); }}
-          blockedDomains={blockedDomains}
-          onBlockDomain={blockDomain}
-          onUnblockDomain={unblockDomain}
-        />
+        <Suspense fallback={null}>
+          <FilterSidebar
+            filters={filters}
+            onFiltersChange={(f) => { setFilters(f); }}
+            blockedDomains={blockedDomains}
+            onBlockDomain={blockDomain}
+            onUnblockDomain={unblockDomain}
+          />
+        </Suspense>
       )}
 
       <div
