@@ -244,13 +244,18 @@ const AxrlenView = () => {
     setActiveWorkflow(null);
     let assistantSoFar = "";
     let workflowSteps: WorkflowStep[] | null = null;
+    let assistantIdx = -1; // cached index of the assistant message; avoids O(n) prev.map per token
     const upsert = (chunk: string) => {
       assistantSoFar += chunk;
       setMessages(prev => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant") {
-          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar, workflow: workflowSteps || undefined } : m);
+        // Fast path: known index — splice in place (O(1) clone of one slot).
+        if (assistantIdx >= 0 && assistantIdx < prev.length && prev[assistantIdx]?.role === "assistant") {
+          const next = prev.slice();
+          next[assistantIdx] = { ...next[assistantIdx], content: assistantSoFar, workflow: workflowSteps || undefined };
+          return next;
         }
+        // First token: append assistant message and cache its index.
+        assistantIdx = prev.length;
         return [...prev, { role: "assistant", content: assistantSoFar, workflow: workflowSteps || undefined }];
       });
     };
