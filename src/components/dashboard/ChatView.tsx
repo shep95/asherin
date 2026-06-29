@@ -1,15 +1,16 @@
-import { useState, useRef, useEffect, useCallback, useMemo, forwardRef } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, Suspense } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Eye, Lock, Copy, Check, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2, Target, AlertTriangle, Gavel, Shield, Palette, Gauge, MoreHorizontal, X, ZoomIn } from "lucide-react";
 import ConversationBranches, { getActiveBranch, getBranches, getMessageBranch, setActiveBranchStorage, tagMessageBranch } from "./ConversationBranches";
 import OutputFormatMenu from "./OutputFormatMenu";
 import DiffView from "./DiffView";
 import CitationFootnote from "./CitationFootnote";
 import ChatErrorBanner from "./ChatErrorBanner";
-import ArtifactCanvas from "./ArtifactCanvas";
-import ReusableBlocks from "./ReusableBlocks";
+const ArtifactCanvas = lazyWithRetry(() => import("./ArtifactCanvas"));
+const ReusableBlocks = lazyWithRetry(() => import("./ReusableBlocks"));
 import AnswerControls from "./AnswerControls";
-import StructuredInputForms from "./StructuredInputForms";
-import ShareWithRedaction from "./ShareWithRedaction";
+const StructuredInputForms = lazyWithRetry(() => import("./StructuredInputForms"));
+const ShareWithRedaction = lazyWithRetry(() => import("./ShareWithRedaction"));
 import TokenCostIndicator from "./TokenCostIndicator";
 import GoalLockHeader from "./GoalLockHeader";
 import AssumptionTracker from "./AssumptionTracker";
@@ -19,10 +20,10 @@ import DeterminismSlider from "./DeterminismSlider";
 import VerificationWorkflow from "./VerificationWorkflow";
 import MessageStatusControls from "./MessageStatusControls";
 import ThreadReceipt from "./ThreadReceipt";
-import PersonalStyleProfile from "./PersonalStyleProfile";
+const PersonalStyleProfile = lazyWithRetry(() => import("./PersonalStyleProfile"));
 import QualityOfServiceControls, { type QoSMode } from "./QualityOfServiceControls";
 import MessageNote from "./MessageNote";
-import FloatingNotepad from "./FloatingNotepad";
+const FloatingNotepad = lazyWithRetry(() => import("./FloatingNotepad"));
 import ChatSearchBar from "./ChatSearchBar";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useAccess } from "@/hooks/useAccess";
@@ -38,8 +39,8 @@ import DepthSelector from "./DepthSelector";
 import ContextHealthIndicator from "./ContextHealthIndicator";
 import TruthScore from "./TruthScore";
 import FollowUpSuggestions from "./FollowUpSuggestions";
-import DecodeView from "./DecodeView";
-import ChainOfThoughtPanel from "./ChainOfThoughtPanel";
+const DecodeView = lazyWithRetry(() => import("./DecodeView"));
+const ChainOfThoughtPanel = lazyWithRetry(() => import("./ChainOfThoughtPanel"));
 import CalibrationFeedback from "./CalibrationFeedback";
 import type { FeedbackType } from "./CalibrationFeedback";
 import AdaptiveInputBar from "./AdaptiveInputBar";
@@ -48,14 +49,15 @@ import StickyQuestionHeader from "./StickyQuestionHeader";
 import SmartSelectionMenu from "./SmartSelectionMenu";
 import TypingIndicator from "./TypingIndicator";
 import { renderLinkPreviews } from "./LinkPreview";
-import MessageDiagramPanel from "./MessageDiagramPanel";
+const MessageDiagramPanel = lazyWithRetry(() => import("./MessageDiagramPanel"));
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
-import VoiceCallOverlay from "./VoiceCallOverlay";
-import NeuralThinkingModal from "./NeuralThinkingModal";
+const VoiceCallOverlay = lazyWithRetry(() => import("./VoiceCallOverlay"));
+const NeuralThinkingModal = lazyWithRetry(() => import("./NeuralThinkingModal"));
 import { useElevenLabsVoice } from "@/hooks/useElevenLabsVoice";
-import MultiModelSelector, { type SelectedModel } from "./MultiModelSelector";
-import ConsensusMessage from "./ConsensusMessage";
-import BrainsManager from "./BrainsManager";
+const MultiModelSelector = lazyWithRetry(() => import("./MultiModelSelector"));
+import type { SelectedModel } from "./MultiModelSelector";
+const ConsensusMessage = lazyWithRetry(() => import("./ConsensusMessage"));
+const BrainsManager = lazyWithRetry(() => import("./BrainsManager"));
 import ConversationApiToggles from "./ConversationApiToggles";
 import NumberedFormatToggle from "./NumberedFormatToggle";
 import TradingProofButton from "./TradingProofButton";
@@ -497,22 +499,30 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     <div className="flex flex-1 min-w-0 h-full relative overflow-hidden">
       {/* Main chat column */}
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
-      {/* Floating Notepad */}
-      <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} conversationId={conversation.id} />
-      {/* Voice Call Overlay */}
-      <VoiceCallOverlay
-        isConnected={elevenLabsVoice.isConnected}
-        isConnecting={elevenLabsVoice.status === "connecting"}
-        isSpeaking={elevenLabsVoice.isSpeaking}
-        currentText={elevenLabsVoice.currentText}
-        transcriptLog={elevenLabsVoice.transcriptLog}
-        userSpeechIndicator={elevenLabsVoice.userSpeechIndicator}
-        error={elevenLabsVoice.error}
-        onDisconnect={elevenLabsVoice.disconnect}
-        onDownloadTranscript={elevenLabsVoice.downloadTranscript}
-        getInputVolume={elevenLabsVoice.getInputVolume}
-        getOutputVolume={elevenLabsVoice.getOutputVolume}
-      />
+      {/* Floating Notepad — mount only when open */}
+      {notepadOpen && (
+        <Suspense fallback={null}>
+          <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} conversationId={conversation.id} />
+        </Suspense>
+      )}
+      {/* Voice Call Overlay — mount only when active */}
+      {(elevenLabsVoice.isConnected || elevenLabsVoice.status === "connecting") && (
+        <Suspense fallback={null}>
+          <VoiceCallOverlay
+            isConnected={elevenLabsVoice.isConnected}
+            isConnecting={elevenLabsVoice.status === "connecting"}
+            isSpeaking={elevenLabsVoice.isSpeaking}
+            currentText={elevenLabsVoice.currentText}
+            transcriptLog={elevenLabsVoice.transcriptLog}
+            userSpeechIndicator={elevenLabsVoice.userSpeechIndicator}
+            error={elevenLabsVoice.error}
+            onDisconnect={elevenLabsVoice.disconnect}
+            onDownloadTranscript={elevenLabsVoice.downloadTranscript}
+            getInputVolume={elevenLabsVoice.getInputVolume}
+            getOutputVolume={elevenLabsVoice.getOutputVolume}
+          />
+        </Suspense>
+      )}
 
       {/* Top bar — hidden in focus mode */}
       {!focusMode && (
@@ -622,13 +632,15 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     {onConsensusToggle && onConsensusModelsChange && (
                       <div className="pt-2 border-t border-border/20">
                         <p className="text-[9px] font-light tracking-[0.18em] text-muted-foreground/50 uppercase pb-2">Consensus</p>
-                        <MultiModelSelector
-                          enabled={consensusEnabled}
-                          onToggle={onConsensusToggle}
-                          selectedModels={consensusModels}
-                          onModelsChange={onConsensusModelsChange}
-                          storedProviders={storedProviders}
-                        />
+                        <Suspense fallback={null}>
+                          <MultiModelSelector
+                            enabled={consensusEnabled}
+                            onToggle={onConsensusToggle}
+                            selectedModels={consensusModels}
+                            onModelsChange={onConsensusModelsChange}
+                            storedProviders={storedProviders}
+                          />
+                        </Suspense>
                       </div>
                     )}
                   </div>
@@ -655,7 +667,11 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               />
               <DecisionLog conversationId={conversation.id} open={decisionsOpen} onClose={() => setDecisionsOpen(false)} />
               <OutputQAToggles conversationId={conversation.id} open={qaTogglesOpen} onClose={() => setQaTogglesOpen(false)} />
-              <PersonalStyleProfile open={styleProfileOpen} onClose={() => setStyleProfileOpen(false)} />
+              {styleProfileOpen && (
+                <Suspense fallback={null}>
+                  <PersonalStyleProfile open={styleProfileOpen} onClose={() => setStyleProfileOpen(false)} />
+                </Suspense>
+              )}
             </div>
           </div>
 
@@ -718,7 +734,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           </div>
 
           {onBrainChange && (
-            <BrainsManager activeBrainId={activeBrainId ?? null} onBrainChange={onBrainChange} />
+            <Suspense fallback={null}>
+              <BrainsManager activeBrainId={activeBrainId ?? null} onBrainChange={onBrainChange} />
+            </Suspense>
           )}
           <NumberedFormatToggle scopeId={conversation.id} />
           <ConversationApiToggles conversationId={conversation.id} storedProviders={storedProviders} />
@@ -757,7 +775,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         )}
         {styleProfileOpen && (
           <div className="px-2 pb-2">
-            <PersonalStyleProfile open={styleProfileOpen} onClose={() => setStyleProfileOpen(false)} />
+            <Suspense fallback={null}>
+              <PersonalStyleProfile open={styleProfileOpen} onClose={() => setStyleProfileOpen(false)} />
+            </Suspense>
           </div>
         )}
       </div>
@@ -822,7 +842,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     {msg.role === "assistant" && !msg.content && isStreaming && msg === lastMsg ? (
                       <TypingIndicator mode="thinking" />
                     ) : msg.role === "assistant" && msg.consensusData ? (
-                      <ConsensusMessage data={msg.consensusData} />
+                      <Suspense fallback={null}>
+                        <ConsensusMessage data={msg.consensusData} />
+                      </Suspense>
                     ) : msg.role === "assistant" ? (
                       <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
                         <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
@@ -1021,27 +1043,37 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     </div>
                   )}
                   {msg.role === "assistant" && cotId === msg.id && (
-                    <ChainOfThoughtPanel
-                      open={true}
-                      content={msg.content}
-                      query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content}
-                    />
+                    <Suspense fallback={null}>
+                      <ChainOfThoughtPanel
+                        open={true}
+                        content={msg.content}
+                        query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content}
+                      />
+                    </Suspense>
                   )}
-                  {msg.role === "assistant" && decodeId === msg.id && <DecodeView open={true} content={msg.content} />}
+                  {msg.role === "assistant" && decodeId === msg.id && (
+                    <Suspense fallback={null}>
+                      <DecodeView open={true} content={msg.content} />
+                    </Suspense>
+                  )}
                   {msg.role === "assistant" && diagramId === msg.id && (
-                    <MessageDiagramPanel
-                      open={true}
-                      content={msg.content}
-                      onClose={() => setDiagramId(null)}
-                    />
+                    <Suspense fallback={null}>
+                      <MessageDiagramPanel
+                        open={true}
+                        content={msg.content}
+                        onClose={() => setDiagramId(null)}
+                      />
+                    </Suspense>
                   )}
                   {msg.role === "assistant" && neuralId === msg.id && (
-                    <NeuralThinkingModal
-                      open={true}
-                      query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content || ""}
-                      response={msg.content}
-                      onClose={() => setNeuralId(null)}
-                    />
+                    <Suspense fallback={null}>
+                      <NeuralThinkingModal
+                        open={true}
+                        query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content || ""}
+                        response={msg.content}
+                        onClose={() => setNeuralId(null)}
+                      />
+                    </Suspense>
                   )}
                   {/* Diff view for regenerated responses */}
                   {msg.role === "assistant" && showDiffId === msg.id && previousResponses[msg.id] && (
@@ -1098,12 +1130,16 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             <Blocks className="h-3 w-3" />
             Blocks
           </button>
-          <ReusableBlocks
-            open={blocksOpen}
-            onClose={() => { setBlocksOpen(false); setBlockSaveContent(undefined); }}
-            onInsert={(content) => inputBarRef.current?.insertText(content)}
-            contentToSave={blockSaveContent}
-          />
+          {blocksOpen && (
+            <Suspense fallback={null}>
+              <ReusableBlocks
+                open={blocksOpen}
+                onClose={() => { setBlocksOpen(false); setBlockSaveContent(undefined); }}
+                onInsert={(content) => inputBarRef.current?.insertText(content)}
+                contentToSave={blockSaveContent}
+              />
+            </Suspense>
+          )}
         </div>
         <div className="relative">
           <button
@@ -1113,11 +1149,15 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             <ClipboardList className="h-3 w-3" />
             Forms
           </button>
-          <StructuredInputForms
-            open={structuredOpen}
-            onClose={() => setStructuredOpen(false)}
-            onSubmit={(prompt) => onSendMessage(prompt)}
-          />
+          {structuredOpen && (
+            <Suspense fallback={null}>
+              <StructuredInputForms
+                open={structuredOpen}
+                onClose={() => setStructuredOpen(false)}
+                onSubmit={(prompt) => onSendMessage(prompt)}
+              />
+            </Suspense>
+          )}
         </div>
       </div>
 
@@ -1131,21 +1171,27 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         conversationId={conversation.id}
       />
 
-      {/* Share with Redaction modal */}
-      <ShareWithRedaction
-        messages={branchMessages}
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-      />
+      {/* Share with Redaction modal — mount only when open */}
+      {shareOpen && (
+        <Suspense fallback={null}>
+          <ShareWithRedaction
+            messages={branchMessages}
+            open={shareOpen}
+            onClose={() => setShareOpen(false)}
+          />
+        </Suspense>
+      )}
       </div>
       {/* Artifact Canvas - right panel */}
       {artifactOpen && (
-        <ArtifactCanvas
-          open={artifactOpen}
-          onClose={() => setArtifactOpen(false)}
-          initialContent={artifactContent}
-          persistKey={artifactKey}
-        />
+        <Suspense fallback={null}>
+          <ArtifactCanvas
+            open={artifactOpen}
+            onClose={() => setArtifactOpen(false)}
+            initialContent={artifactContent}
+            persistKey={artifactKey}
+          />
+        </Suspense>
       )}
 
       {/* Image Lightbox */}
