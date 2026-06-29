@@ -2289,7 +2289,7 @@ function usePrecisionGeo() {
     };
   }, []);
 
-  return { fix, err, samples, quality: geoQuality(fix?.acc) };
+  return { fix, err, samples: samplesRef.current, quality: geoQuality(fix?.acc) };
 }
 
 function MiniMap({ heading, compassOn, geo, contacts }: {
