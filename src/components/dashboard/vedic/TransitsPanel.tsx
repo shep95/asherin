@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Orbit, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Building2, User2, Gem, Activity, Crown, Megaphone, ScrollText, Trophy } from "lucide-react";
 import { computeFutureIngresses, type SignIngress } from "@/lib/vedic/transits";
+import { DOMAIN_META, type MoonEventDomain } from "@/lib/vedic/moonEvents";
 import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
 import { computeSensitivePoints, type SensitivePoints } from "@/lib/vedic/sensitivePoints";
 import { detectWindows } from "@/lib/vedic/wealthSoulmateWindows";
