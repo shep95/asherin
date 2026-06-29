@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } fro
 import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain, Download, FileText, FileJson, FileSpreadsheet, Image as ImageIcon } from "lucide-react";
 import { exportPDF, exportCSV, exportJSON, exportMarkdown } from "@/lib/exportEngine";
 import { logAudit } from "@/lib/auditLogger";
-import IntelMapByokPanel from "./search/IntelMapByokPanel";
 import { isIntelMapByokEnabled } from "@/lib/intelMapByok";
 import MessageQueuePanel from "./MessageQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,11 +13,15 @@ import SearchOperatorsPanel from "./search/SearchOperatorsPanel";
 import QuerySuggestions from "./search/QuerySuggestions";
 import InstantAnswerCard from "./search/InstantAnswerCard";
 import SearchResultCard from "./search/SearchResultCard";
-import FilterSidebar from "./search/FilterSidebar";
-import PagePreviewPanel from "./search/PagePreviewPanel";
-import DeepSearchPanel from "./search/DeepSearchPanel";
-import IntelMapPanel from "./search/IntelMapPanel";
-import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
+
+const FilterSidebar = lazy(() => import("./search/FilterSidebar"));
+const PagePreviewPanel = lazy(() => import("./search/PagePreviewPanel"));
+const DeepSearchPanel = lazy(() => import("./search/DeepSearchPanel"));
+const IntelMapPanel = lazy(() => import("./search/IntelMapPanel"));
+const IntelligenceSuitePanel = lazy(() => import("./search/intel/IntelligenceSuitePanel"));
+const ArchivesHarvesterPanel = lazy(() => import("./search/ArchivesHarvesterPanel"));
+const UrlIntelMapPanel = lazy(() => import("./search/UrlIntelMapPanel"));
+const IntelMapByokPanel = lazy(() => import("./search/IntelMapByokPanel"));
 
 const OracleLocusView = lazy(() => import("./OracleLocusView"));
 const LinkExtractView = lazy(() => import("./search/LinkExtractView"));
@@ -29,8 +32,6 @@ const LeaksPanel = lazy(() => import("./search/LeaksPanel"));
 const ArchivePanel = lazy(() => import("./search/ArchivePanel"));
 const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
-import ArchivesHarvesterPanel from "./search/ArchivesHarvesterPanel";
-import UrlIntelMapPanel from "./search/UrlIntelMapPanel";
 
 // Detect when the search query is actually a URL (with or without scheme).
 // Examples that match: x.com/MonaBets, https://example.com, www.foo.com/a/b
