@@ -54,8 +54,8 @@ export default function NewAccountWelcomeModal() {
 
   useEffect(() => {
     if (!open || state !== "active" || !user?.created_at) return;
-    const trialEnd = new Date(user.created_at).getTime() + TRIAL_HOURS * 3600 * 1000;
-    const tick = () => {
+    const trialEnd = new Date(user.created_at).getTime() + TRIAL_MS;
+
       const ms = Math.max(0, trialEnd - Date.now());
       const h = Math.floor(ms / 3600000);
       const m = Math.floor((ms % 3600000) / 60000);
