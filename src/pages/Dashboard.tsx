@@ -1,6 +1,5 @@
 import { applySeoHead } from "@/lib/seoHead";
 import { isAdminEmail } from "@/lib/adminEmail";
-import NewAccountWelcomeModal from "@/components/NewAccountWelcomeModal";
 import { getWallpaperSrc } from "@/lib/wallpapers";
 import React, { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -13,6 +12,7 @@ import type { UserProfile } from "@/lib/ai";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import ChatView from "@/components/dashboard/ChatView";
 import { useAccess } from "@/hooks/useAccess";
+const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
 
 // Lazy-load heavy views
 const LibraryView = lazyWithRetry(() => import("@/components/dashboard/LibraryView"));
