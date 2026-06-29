@@ -2215,8 +2215,9 @@ function useMeasuredElement<T extends HTMLElement>() {
 function usePrecisionGeo() {
   const [fix, setFix] = useState<GeoFix | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [samples, setSamples] = useState(0);
+  const samplesRef = useRef(0);
   const fixRef = useRef<GeoFix | null>(null);
+  const lastCommitRef = useRef(0);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -2227,7 +2228,7 @@ function usePrecisionGeo() {
     let killed = false;
     const commit = (p: GeolocationPosition, source: GeoFix["source"]) => {
       if (killed) return;
-      setSamples((n) => n + 1);
+      samplesRef.current += 1;
       const previous = fixRef.current;
       const rawHeading = p.coords.heading;
       const liveCourse = typeof rawHeading === "number" && Number.isFinite(rawHeading)
@@ -2249,9 +2250,15 @@ function usePrecisionGeo() {
       }
       if (!shouldPromoteGeoFix(fixRef.current, next)) return;
       fixRef.current = next;
+      // Throttle React commits to ≤2.5 Hz so the map/HUD doesn't re-render on
+      // every raw sample while we still keep the latest fix in the ref.
+      const now = performance.now();
+      if (now - lastCommitRef.current < 400) return;
+      lastCommitRef.current = now;
       setFix(next);
       setErr(null);
     };
+
 
     const onError = (e: GeolocationPositionError) => {
       if (!killed) setErr(e.message);
