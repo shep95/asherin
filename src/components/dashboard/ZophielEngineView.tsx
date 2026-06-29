@@ -894,11 +894,15 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         </div>
       )}
 
-      <IntelMapByokPanel
-        open={byokOpen}
-        onClose={() => setByokOpen(false)}
-        onChange={() => setByokActive(isIntelMapByokEnabled())}
-      />
+      {byokOpen && (
+        <Suspense fallback={null}>
+          <IntelMapByokPanel
+            open={byokOpen}
+            onClose={() => setByokOpen(false)}
+            onChange={() => setByokActive(isIntelMapByokEnabled())}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };
