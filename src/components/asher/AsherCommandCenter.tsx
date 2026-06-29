@@ -3,7 +3,7 @@
 // in `asher_ai_messages`. Files uploaded to private `asher-ai-uploads` bucket and
 // streamed to Gemini as inline_data parts via the asher-ai edge function.
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 import {
   Brain, Send, Loader2, Trash2, Sparkles, ShieldCheck, Database, Lock, Network,
   Plus, MessageSquare, Paperclip, X, FileText, Film, Image as ImageIcon, Pencil, Check,
