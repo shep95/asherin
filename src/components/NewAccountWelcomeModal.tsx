@@ -39,16 +39,18 @@ export default function NewAccountWelcomeModal() {
   const { state, key } = useMemo(() => {
     if (!user?.id || !user.created_at) return { state: null as null | "active" | "expired", key: "" };
     const ageMs = Date.now() - new Date(user.created_at).getTime();
-    const trialMs = TRIAL_HOURS * 3600 * 1000;
-    if (ageMs < trialMs) return { state: "active" as const, key: STORAGE_PREFIX + user.id };
+    if (ageMs < TRIAL_MS) return { state: "active" as const, key: STORAGE_PREFIX + user.id };
     return { state: "expired" as const, key: EXPIRED_PREFIX + user.id };
   }, [user?.id, user?.created_at]);
 
+  // Reset open whenever the identity (user/state) changes — prevents lingering
+  // open=true from a prior account in the same tab.
   useEffect(() => {
-    if (!state || !key) return;
-    if (localStorage.getItem(key)) return;
+    if (!state || !key) { setOpen(false); return; }
+    if (localStorage.getItem(key)) { setOpen(false); return; }
     setOpen(true);
   }, [state, key]);
+
 
   useEffect(() => {
     if (!open || state !== "active" || !user?.created_at) return;
