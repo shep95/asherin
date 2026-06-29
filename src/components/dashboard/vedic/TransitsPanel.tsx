@@ -380,55 +380,94 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
             </h4>
           </div>
           <p className="text-[10.5px] text-muted-foreground/75 italic leading-relaxed">
-            100% Moon-driven. Two event types only: <span className="text-foreground/85">House ingress</span> (Moon enters a new life-area) and <span className="text-foreground/85">conjunction</span> (Moon directly hits a natal planet). Timestamps are precise to ~1 minute and shown in <span className="text-foreground/85">your local timezone</span>.
+            100% Moon-driven, filtered to <span className="text-foreground/85">Wealth (Equity/Liquidity), Love, Power, Mental &amp; Physical Health</span>. Personalized to your ascendant — each event lists the natal planets sitting in the house being activated. Timestamps in your local time.
           </p>
+          {/* Domain filter chips */}
+          {(() => {
+            const { DOMAIN_META } = require("@/lib/vedic/moonEvents") as typeof import("@/lib/vedic/moonEvents");
+            return (
+              <div className="flex flex-wrap gap-1.5">
+                {ALL_DOMAINS.map((d) => {
+                  const on = activeDomains.has(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleDomain(d)}
+                      className={`text-[9.5px] uppercase tracking-[0.18em] px-2 py-1 rounded border transition ${
+                        on ? "border-foreground/45 bg-foreground/[0.08] text-foreground"
+                           : "border-border/30 bg-background/30 text-muted-foreground/60 hover:text-foreground/80"
+                      }`}
+                    >
+                      {DOMAIN_META[d].label}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
           {loadingMoon && !moonEvents ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Tracing the Moon across {periodLabel}…</div>
-          ) : !moonEvents || moonEvents.length === 0 ? (
-            <div className="text-[11.5px] text-muted-foreground/70 italic">
-              No Moon events resolved for this {granularity}. Try a different period.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {moonEvents.map((ev) => {
-                const tone = ev.tone;
-                const isConj = ev.kind === "conjunction";
-                const localStr = ev.at.toLocaleString(undefined, {
-                  weekday: "short", month: "short", day: "numeric",
-                  hour: "numeric", minute: "2-digit", hour12: true, timeZoneName: "short",
-                });
-                return (
-                  <div key={ev.id} className={`relative rounded-md border p-3 space-y-1.5 ${
-                    tone === "bad" ? "border-red-500/35 bg-red-500/[0.05]"
-                    : tone === "good" ? "border-emerald-500/35 bg-emerald-500/[0.05]"
-                    : "border-border/25 bg-background/30"
-                  }`}>
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-foreground/80 text-sm leading-none">☽</span>
-                        <span className={`text-[10px] uppercase tracking-[0.2em] ${
-                          tone === "bad" ? "text-red-200/90"
-                          : tone === "good" ? "text-emerald-200/90"
-                          : "text-foreground/85"
-                        }`}>{ev.label}</span>
-                        <span className={`text-[9px] uppercase tracking-[0.18em] ${
-                          tone === "bad" ? "text-red-300/70"
-                          : tone === "good" ? "text-emerald-300/70"
-                          : "text-muted-foreground/60"
-                        }`}>· {isConj ? "conjunction" : "ingress"}</span>
+          ) : (() => {
+            const filtered = (moonEvents ?? []).filter((ev) => ev.domains.some((d) => activeDomains.has(d)));
+            if (!moonEvents || moonEvents.length === 0) {
+              return <div className="text-[11.5px] text-muted-foreground/70 italic">No Moon events resolved for this {granularity}. Try a different period.</div>;
+            }
+            if (filtered.length === 0) {
+              return <div className="text-[11.5px] text-muted-foreground/70 italic">No events match the selected domains this {granularity}. Toggle more chips above.</div>;
+            }
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {filtered.map((ev) => {
+                  const tone = ev.tone;
+                  const isConj = ev.kind === "conjunction";
+                  const localStr = ev.at.toLocaleString(undefined, {
+                    weekday: "short", month: "short", day: "numeric",
+                    hour: "numeric", minute: "2-digit", hour12: true, timeZoneName: "short",
+                  });
+                  return (
+                    <div key={ev.id} className={`relative rounded-md border p-3 space-y-1.5 ${
+                      tone === "bad" ? "border-red-500/35 bg-red-500/[0.05]"
+                      : tone === "good" ? "border-emerald-500/35 bg-emerald-500/[0.05]"
+                      : "border-border/25 bg-background/30"
+                    }`}>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-foreground/80 text-sm leading-none">☽</span>
+                          <span className={`text-[10px] uppercase tracking-[0.2em] ${
+                            tone === "bad" ? "text-red-200/90"
+                            : tone === "good" ? "text-emerald-200/90"
+                            : "text-foreground/85"
+                          }`}>{ev.label}</span>
+                          <span className={`text-[9px] uppercase tracking-[0.18em] ${
+                            tone === "bad" ? "text-red-300/70"
+                            : tone === "good" ? "text-emerald-300/70"
+                            : "text-muted-foreground/60"
+                          }`}>· {isConj ? "conjunction" : "ingress"}</span>
+                        </div>
+                        <span className="text-[9.5px] uppercase tracking-[0.16em] text-foreground/85 font-mono">{localStr}</span>
                       </div>
-                      <span className="text-[9.5px] uppercase tracking-[0.16em] text-foreground/85 font-mono">{localStr}</span>
+                      <div className="flex flex-wrap gap-1">
+                        {ev.domains.map((d) => (
+                          <span key={d} className="text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border border-border/30 bg-background/40 text-muted-foreground/80">
+                            {d.replace("-", " · ")}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="text-[12px] font-light text-foreground leading-snug">{ev.headline}</div>
+                      <div className="pt-1.5 mt-1 border-t border-border/15 space-y-1">
+                        <div className="text-[8.5px] uppercase tracking-[0.22em] text-muted-foreground/60">What to expect</div>
+                        <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{ev.expect}</p>
+                        {ev.natalEnrich && (
+                          <p className="text-[10.5px] leading-relaxed font-light text-foreground/75 italic">↳ Your chart: {ev.natalEnrich}</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-[12px] font-light text-foreground leading-snug">{ev.headline}</div>
-                    <div className="pt-1.5 mt-1 border-t border-border/15 space-y-1">
-                      <div className="text-[8.5px] uppercase tracking-[0.22em] text-muted-foreground/60">What to expect</div>
-                      <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{ev.expect}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 
