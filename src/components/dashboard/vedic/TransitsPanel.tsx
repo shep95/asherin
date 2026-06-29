@@ -90,6 +90,7 @@ interface NatalRef {
   kind: "user" | "company";
   key: string;
   points: SensitivePoints | null;
+  planets: Array<{ name: string; sid: number }> | null;
 }
 
 const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts, currentDasha, dashaTimeline, onIngresses }: Props) => {
