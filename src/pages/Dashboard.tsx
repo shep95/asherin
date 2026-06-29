@@ -1719,14 +1719,18 @@ const Dashboard = () => {
         </main>
       </div>
 
-      <CommandPalette
-        open={cmdPaletteOpen}
-        onClose={() => setCmdPaletteOpen(false)}
-        onNewConversation={() => { newConversation(); setCmdPaletteOpen(false); }}
-        onViewChange={(v) => { setActiveView(v); setCmdPaletteOpen(false); }}
-        onModeChange={(m) => { setMode(m); setCmdPaletteOpen(false); }}
-        onFocusMode={() => setFocusMode((f) => !f)}
-      />
+      {cmdPaletteOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette
+            open={cmdPaletteOpen}
+            onClose={() => setCmdPaletteOpen(false)}
+            onNewConversation={() => { newConversation(); setCmdPaletteOpen(false); }}
+            onViewChange={(v) => { setActiveView(v); setCmdPaletteOpen(false); }}
+            onModeChange={(m) => { setMode(m); setCmdPaletteOpen(false); }}
+            onFocusMode={() => setFocusMode((f) => !f)}
+          />
+        </Suspense>
+      )}
       <style>{`
         @keyframes wpFadeIn {
           from { opacity: 0; transform: scale(1.015); }
