@@ -65,9 +65,10 @@ const MediaToCodeView = lazyWithRetry(() => import("@/components/asher/AsherMedi
 const CipherView = lazyWithRetry(() => import("@/components/dashboard/cipher/CipherToolkit"));
 const AsherZahtenModule = lazyWithRetry(() => import("@/components/asher/AsherZahtenModule"));
 const AsherPublishedTabRenderer = lazyWithRetry(() => import("@/components/asher/AsherPublishedTabRenderer"));
-import CommandPalette from "@/components/dashboard/CommandPalette";
-import FocusMode from "@/components/dashboard/FocusMode";
-import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
+const CommandPalette = lazyWithRetry(() => import("@/components/dashboard/CommandPalette"));
+const FocusMode = lazyWithRetry(() => import("@/components/dashboard/FocusMode"));
+const SplitPaneManager = lazyWithRetry(() => import("@/components/dashboard/SplitPaneManager"));
+import type { SplitPane } from "@/components/dashboard/SplitPaneManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
