@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Building2, Calendar, FolderOpen, Globe2, Heart, Loader2, MapPin, Megaphone, MessageSquare, Moon, Save, Sparkles, Trash2, TrendingUp, User2 } from "lucide-react";
-import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+const wallpaperAureon = "/wallpapers/wallpaper-aureon.png";
 import {
   getNakshatraFromDeg,
   getRashiFromDeg,
