@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { TRIAL_HOURS, TRIAL_MS } from "@/lib/trial";
 import welcomeImg from "@/assets/welcome-silhouette.png.asset.json";
 
 const STORAGE_PREFIX = "aureon_welcome_seen_";
 const EXPIRED_PREFIX = "aureon_trial_expired_seen_";
-const TRIAL_HOURS = 24;
+
 
 /**
  * Two-state initiation modal.
