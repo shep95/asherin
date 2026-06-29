@@ -380,6 +380,7 @@ const AIKeysSettings = () => {
             </div>
           );
               })}
+            </div>
           ))}
       </div>
 
