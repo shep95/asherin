@@ -1,51 +1,7 @@
 import { applySeoHead } from "@/lib/seoHead";
 import { isAdminEmail } from "@/lib/adminEmail";
 import NewAccountWelcomeModal from "@/components/NewAccountWelcomeModal";
-import heroBgDefault from "@/assets/hero-bg.png";
-import wallpaperRaven from "@/assets/wallpaper-raven.png";
-import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
-import wallpaperGlitch from "@/assets/wallpaper-glitch.png";
-import wallpaperAureon from "@/assets/wallpaper-aureon.png";
-import wallpaperSeraph from "@/assets/wallpaper-seraph.png";
-import wallpaperProphet from "@/assets/wallpaper-prophet.png";
-import wallpaperNexus from "@/assets/wallpaper-nexus.png";
-import wallpaperSentinel from "@/assets/wallpaper-sentinel.png";
-import wallpaperInferno from "@/assets/wallpaper-inferno.png";
-import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
-import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
-import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
-import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
-import wallpaperStealth from "@/assets/wallpaper-stealth.png";
-import wallpaperStatic from "@/assets/wallpaper-static.png";
-import wallpaperMane from "@/assets/wallpaper-mane.png";
-import wallpaperImpact from "@/assets/wallpaper-impact.png";
-import wallpaperOracle from "@/assets/wallpaper-oracle.png";
-import wallpaperAscend from "@/assets/wallpaper-ascend.png";
-import wallpaperCosmos from "@/assets/wallpaper-cosmos.png";
-
-const WALLPAPER_MAP: Record<string, string> = {
-  default: heroBgDefault,
-  raven: wallpaperRaven,
-  eclipse: wallpaperEclipse,
-  glitch: wallpaperGlitch,
-  aureon: wallpaperAureon,
-  seraph: wallpaperSeraph,
-  prophet: wallpaperProphet,
-  nexus: wallpaperNexus,
-  sentinel: wallpaperSentinel,
-  inferno: wallpaperInferno,
-  sorrow: wallpaperSorrow,
-  silhouette: wallpaperSilhouette,
-  phantom: wallpaperPhantom,
-  abyss: wallpaperAbyss,
-  stealth: wallpaperStealth,
-  static: wallpaperStatic,
-  mane: wallpaperMane,
-  impact: wallpaperImpact,
-  oracle: wallpaperOracle,
-  ascend: wallpaperAscend,
-  cosmos: wallpaperCosmos,
-};
+import { getWallpaperSrc } from "@/lib/wallpapers";
 import React, { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
