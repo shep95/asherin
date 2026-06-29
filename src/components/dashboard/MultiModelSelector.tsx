@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layers, Check, ChevronDown, X } from "lucide-react";
-import { AI_PROVIDERS } from "./AIKeysSettings";
+import { AI_PROVIDERS } from "@/lib/aiProviders";
 
 export interface SelectedModel {
   provider: string;

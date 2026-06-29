@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { KeyRound, ChevronDown, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { AI_PROVIDERS } from "@/components/dashboard/AIKeysSettings";
+import { AI_PROVIDERS } from "@/lib/aiProviders";
 
 /**
  * Global Model Picker.

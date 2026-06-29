@@ -4,7 +4,7 @@ import {
   Copy, Check, Eye, Brain, Scale, Clock, Zap, AlertOctagon
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { AI_PROVIDERS } from "./AIKeysSettings";
+import { AI_PROVIDERS } from "@/lib/aiProviders";
 
 // ── Types matching the multi-model consensus engine ──────────────────────
 
