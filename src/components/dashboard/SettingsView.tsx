@@ -460,7 +460,7 @@ const SettingsView = () => {
                     active ? "border-foreground/50 ring-1 ring-foreground/20" : "border-border/20 hover:border-foreground/30"
                   }`}
                 >
-                  <img src={wp.src} alt={wp.label} className="w-full h-full object-cover" />
+                  <img src={wp.src} alt={wp.label} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-background/60" />
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
                     {active && <Check className="h-4 w-4 text-foreground" />}
