@@ -25,27 +25,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { decryptText, encryptText } from "@/lib/encryption";
-import heroBgDefault from "@/assets/hero-bg.png";
-import wallpaperRaven from "@/assets/wallpaper-raven.png";
-import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
-import wallpaperGlitch from "@/assets/wallpaper-glitch.png";
-import wallpaperAureon from "@/assets/wallpaper-aureon.png";
-import wallpaperSeraph from "@/assets/wallpaper-seraph.png";
-import wallpaperProphet from "@/assets/wallpaper-prophet.png";
-import wallpaperNexus from "@/assets/wallpaper-nexus.png";
-import wallpaperSentinel from "@/assets/wallpaper-sentinel.png";
-import wallpaperInferno from "@/assets/wallpaper-inferno.png";
-import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
-import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
-import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
-import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
-import wallpaperStealth from "@/assets/wallpaper-stealth.png";
-import wallpaperStatic from "@/assets/wallpaper-static.png";
-import wallpaperMane from "@/assets/wallpaper-mane.png";
-import wallpaperImpact from "@/assets/wallpaper-impact.png";
-import wallpaperOracle from "@/assets/wallpaper-oracle.png";
-import wallpaperAscend from "@/assets/wallpaper-ascend.png";
-import wallpaperCosmos from "@/assets/wallpaper-cosmos.png";
+import { ALL_WALLPAPERS, getWallpaperSrc } from "@/lib/wallpapers";
+const heroBgDefault = getWallpaperSrc("default");
 
 type Tool =
   | "select"
