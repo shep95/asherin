@@ -632,13 +632,15 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     {onConsensusToggle && onConsensusModelsChange && (
                       <div className="pt-2 border-t border-border/20">
                         <p className="text-[9px] font-light tracking-[0.18em] text-muted-foreground/50 uppercase pb-2">Consensus</p>
-                        <MultiModelSelector
-                          enabled={consensusEnabled}
-                          onToggle={onConsensusToggle}
-                          selectedModels={consensusModels}
-                          onModelsChange={onConsensusModelsChange}
-                          storedProviders={storedProviders}
-                        />
+                        <Suspense fallback={null}>
+                          <MultiModelSelector
+                            enabled={consensusEnabled}
+                            onToggle={onConsensusToggle}
+                            selectedModels={consensusModels}
+                            onModelsChange={onConsensusModelsChange}
+                            storedProviders={storedProviders}
+                          />
+                        </Suspense>
                       </div>
                     )}
                   </div>
