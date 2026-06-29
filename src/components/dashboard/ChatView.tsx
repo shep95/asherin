@@ -667,7 +667,11 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               />
               <DecisionLog conversationId={conversation.id} open={decisionsOpen} onClose={() => setDecisionsOpen(false)} />
               <OutputQAToggles conversationId={conversation.id} open={qaTogglesOpen} onClose={() => setQaTogglesOpen(false)} />
-              <PersonalStyleProfile open={styleProfileOpen} onClose={() => setStyleProfileOpen(false)} />
+              {styleProfileOpen && (
+                <Suspense fallback={null}>
+                  <PersonalStyleProfile open={styleProfileOpen} onClose={() => setStyleProfileOpen(false)} />
+                </Suspense>
+              )}
             </div>
           </div>
 
