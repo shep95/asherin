@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useMemo, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { registerSession, updateSessionActivity } from "@/utils/sessionTracker";
@@ -27,69 +27,86 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const activityIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    let mounted = true;
+
+    // Single source of truth: auth-js v2 fires INITIAL_SESSION on subscribe,
+    // so we don't need a parallel getSession() call (which previously caused
+    // two render cycles and a tug-of-war on `setLoading`).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (!mounted) return;
+
+      // Purge stale/corrupt JWTs (root cause of recurring 403 "missing sub
+      // claim" hits in the auth gateway). When INITIAL_SESSION resolves to
+      // null after a token refresh failure, wipe local storage so we stop
+      // re-sending the malformed bearer on every page load.
+      if (event === "INITIAL_SESSION" && !nextSession) {
+        const stale = Object.keys(localStorage).some((k) =>
+          k.startsWith("sb-") && k.endsWith("-auth-token")
+        );
+        if (stale) {
+          // Local-only signOut: clears storage without round-tripping the API
+          supabase.auth.signOut({ scope: "local" }).catch(() => void 0);
+        }
+      }
+
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
       setLoading(false);
 
-      // Register session on sign-in events
-      if (session?.user && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
-        const sid = session.user.id + "_" + (session.access_token?.substring(0, 8) || "x");
-        if (sessionRegisteredRef.current !== sid && event === "SIGNED_IN") {
+      if (nextSession?.user && event === "SIGNED_IN") {
+        const sid = nextSession.user.id + "_" + (nextSession.access_token?.substring(0, 8) || "x");
+        if (sessionRegisteredRef.current !== sid) {
           sessionRegisteredRef.current = sid;
-          registerSession(session.user.id, sid);
+          registerSession(nextSession.user.id, sid);
         }
+      }
+
+      if (event === "SIGNED_OUT") {
+        sessionRegisteredRef.current = null;
       }
     });
 
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        // Register session on initial load if logged in
-        if (session?.user) {
-          const sid = session.user.id + "_" + (session.access_token?.substring(0, 8) || "x");
-          if (sessionRegisteredRef.current !== sid) {
-            sessionRegisteredRef.current = sid;
-            registerSession(session.user.id, sid);
-          }
-        }
-      })
-      .catch((error) => {
-        console.error("auth session restore error:", error);
-        setSession(null);
-        setUser(null);
-        setLoading(false);
-      });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Update session activity every 5 minutes
+  // Activity heartbeat: depend on userId only so a routine TOKEN_REFRESHED
+  // (which mints a new session object every ~hour) doesn't tear down and
+  // recreate the 5-minute interval.
+  const userId = user?.id ?? null;
   useEffect(() => {
-    if (activityIntervalRef.current) clearInterval(activityIntervalRef.current);
-    if (user && session) {
-      const sid = user.id + "_" + (session.access_token?.substring(0, 8) || "x");
-      activityIntervalRef.current = setInterval(() => {
-        updateSessionActivity(user.id, sid);
-      }, 5 * 60 * 1000);
+    if (activityIntervalRef.current) {
+      clearInterval(activityIntervalRef.current);
+      activityIntervalRef.current = null;
     }
+    if (!userId) return;
+    activityIntervalRef.current = setInterval(() => {
+      // Read the latest token at tick time, not closure time.
+      supabase.auth.getSession().then(({ data }) => {
+        const tok = data.session?.access_token?.substring(0, 8) || "x";
+        updateSessionActivity(userId, `${userId}_${tok}`);
+      });
+    }, 5 * 60 * 1000);
     return () => {
-      if (activityIntervalRef.current) clearInterval(activityIntervalRef.current);
+      if (activityIntervalRef.current) {
+        clearInterval(activityIntervalRef.current);
+        activityIntervalRef.current = null;
+      }
     };
-  }, [user, session]);
+  }, [userId]);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const signOut = useMemo(() => async () => {
+    await supabase.auth.signOut().catch(() => void 0);
     sessionRegisteredRef.current = null;
     window.location.href = "/";
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ user, session, loading, signOut }),
+    [user, session, loading, signOut]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
