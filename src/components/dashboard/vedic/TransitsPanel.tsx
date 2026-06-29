@@ -127,6 +127,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           label: `${co.name} (${co.symbol})`, kind: "company",
           key: `co:${co.symbol}`,
           points: computeSensitivePoints(c.planets, c.ascendant),
+          planets: c.planets.map((p) => ({ name: p.name, sid: p.sid })),
         });
       } finally {
         if (!cancelled) setResolvingCompany(false);
