@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import { Brain, Globe, Loader2, Trash2, Clock, Send, ArrowDown, Copy, Check, MessageSquare, Zap, X, PanelRightClose, PanelRightOpen, Search, Target, Activity, TrendingUp, Plus, ChevronRight, Shield, Coins, Landmark, Radar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
-import AxrlenDashboard from "./AxrlenDashboard";
 import AxrlenMessageRenderer from "./AxrlenMessageRenderer";
-import AxrlenBrainsManager from "./AxrlenBrainsManager";
+
+// Lazy-load heavy panels — dashboard charts (~456 lines) and brains manager (~323 lines)
+// are only needed once the user opens a session or the brain editor.
+const AxrlenDashboard = lazy(() => import("./AxrlenDashboard"));
+const AxrlenBrainsManager = lazy(() => import("./AxrlenBrainsManager"));
 
 export interface AxrlenSession {
   id: string;
