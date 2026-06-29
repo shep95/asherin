@@ -170,8 +170,10 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
             </p>
           </>
         )}
+        </div>
       </div>
     </div>
+
   );
 };
 
