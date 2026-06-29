@@ -210,6 +210,7 @@ const AxrlenView = () => {
         content: `⚠️ Scan failed: ${err.message}`,
       }]);
     } finally {
+      clearInterval(progressTimer);
       setIsScanning(false);
       setScanProgress("");
     }
