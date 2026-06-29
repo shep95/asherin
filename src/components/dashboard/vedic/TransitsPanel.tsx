@@ -105,6 +105,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     label: userChartName || "Your Chart", kind: "user",
     key: `user:${chartKey ?? `${natalAscendant.toFixed(3)}:${lat}:${lon}`}`,
     points: natalPlanets ? computeSensitivePoints(natalPlanets, natalAscendant) : null,
+    planets: natalPlanets ? natalPlanets.map((p) => ({ name: p.name, sid: p.sid })) : null,
   }), [natalAscendant, natalPlanets, lat, lon, chartKey, userChartName]);
 
   // Resolve company natal chart whenever mode changes to a company symbol
