@@ -257,8 +257,8 @@ const Dashboard = () => {
   useEffect(() => {
     const handler = () => {
       const newKey = localStorage.getItem("aureon_wallpaper") || "aureon";
-      const newSrc = WALLPAPER_MAP[newKey] || WALLPAPER_MAP.aureon || WALLPAPER_MAP.default;
-      const oldSrc = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.aureon || WALLPAPER_MAP.default;
+      const newSrc = getWallpaperSrc(newKey);
+      const oldSrc = getWallpaperSrc(wallpaperKey);
       if (newSrc !== oldSrc) {
         setPrevDashWallpaper(oldSrc);
         setIsDashTransitioning(true);
