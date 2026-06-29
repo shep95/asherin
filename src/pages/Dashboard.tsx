@@ -1599,7 +1599,11 @@ const Dashboard = () => {
         </div>
       )}
 
-      <FocusMode active={focusMode} onExit={() => setFocusMode(false)} />
+      {focusMode && (
+        <Suspense fallback={null}>
+          <FocusMode active={focusMode} onExit={() => setFocusMode(false)} />
+        </Suspense>
+      )}
 
       {asherEmbed && (
         <style>{`
