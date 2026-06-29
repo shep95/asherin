@@ -1130,12 +1130,16 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             <Blocks className="h-3 w-3" />
             Blocks
           </button>
-          <ReusableBlocks
-            open={blocksOpen}
-            onClose={() => { setBlocksOpen(false); setBlockSaveContent(undefined); }}
-            onInsert={(content) => inputBarRef.current?.insertText(content)}
-            contentToSave={blockSaveContent}
-          />
+          {blocksOpen && (
+            <Suspense fallback={null}>
+              <ReusableBlocks
+                open={blocksOpen}
+                onClose={() => { setBlocksOpen(false); setBlockSaveContent(undefined); }}
+                onInsert={(content) => inputBarRef.current?.insertText(content)}
+                contentToSave={blockSaveContent}
+              />
+            </Suspense>
+          )}
         </div>
         <div className="relative">
           <button
