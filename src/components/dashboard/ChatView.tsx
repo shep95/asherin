@@ -1149,11 +1149,15 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             <ClipboardList className="h-3 w-3" />
             Forms
           </button>
-          <StructuredInputForms
-            open={structuredOpen}
-            onClose={() => setStructuredOpen(false)}
-            onSubmit={(prompt) => onSendMessage(prompt)}
-          />
+          {structuredOpen && (
+            <Suspense fallback={null}>
+              <StructuredInputForms
+                open={structuredOpen}
+                onClose={() => setStructuredOpen(false)}
+                onSubmit={(prompt) => onSendMessage(prompt)}
+              />
+            </Suspense>
+          )}
         </div>
       </div>
 
