@@ -823,11 +823,13 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
           className="fixed inset-0 z-40 bg-background/40 backdrop-blur-2xl animate-fade-in lg:static lg:z-auto lg:min-w-0 lg:bg-transparent lg:backdrop-blur-none"
           style={{ width: window.innerWidth >= 1024 ? `${splitPct}%` : undefined }}
         >
-          <IntelMapPanel
-            query={query}
-            results={results}
-            onClose={() => setIntelMapOpen(false)}
-          />
+          <Suspense fallback={null}>
+            <IntelMapPanel
+              query={query}
+              results={results}
+              onClose={() => setIntelMapOpen(false)}
+            />
+          </Suspense>
         </div>
       )}
 
