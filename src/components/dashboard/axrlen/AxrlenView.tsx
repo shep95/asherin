@@ -673,7 +673,9 @@ const AxrlenView = () => {
         {/* ── Dashboard (primary, left) — hidden on mobile when chat is open ── */}
         {activeSession ? (
           <div className={`flex-1 min-w-0 overflow-hidden ${!chatCollapsed ? "hidden md:block" : ""}`}>
-            <AxrlenDashboard session={activeSession} />
+            <Suspense fallback={<div className="h-full flex items-center justify-center"><Loader2 className="h-4 w-4 text-muted-foreground/30 animate-spin" /></div>}>
+              <AxrlenDashboard session={activeSession} />
+            </Suspense>
           </div>
         ) : (
           <div className={`relative flex flex-1 min-w-0 flex-col items-center justify-start px-4 py-10 sm:py-16 gap-10 overflow-y-auto ${!chatCollapsed ? "hidden md:flex" : ""}`}>
