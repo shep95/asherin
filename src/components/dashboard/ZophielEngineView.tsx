@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } fro
 import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain, Download, FileText, FileJson, FileSpreadsheet, Image as ImageIcon } from "lucide-react";
 import { exportPDF, exportCSV, exportJSON, exportMarkdown } from "@/lib/exportEngine";
 import { logAudit } from "@/lib/auditLogger";
-import IntelMapByokPanel from "./search/IntelMapByokPanel";
 import { isIntelMapByokEnabled } from "@/lib/intelMapByok";
 import MessageQueuePanel from "./MessageQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,11 +13,15 @@ import SearchOperatorsPanel from "./search/SearchOperatorsPanel";
 import QuerySuggestions from "./search/QuerySuggestions";
 import InstantAnswerCard from "./search/InstantAnswerCard";
 import SearchResultCard from "./search/SearchResultCard";
-import FilterSidebar from "./search/FilterSidebar";
-import PagePreviewPanel from "./search/PagePreviewPanel";
-import DeepSearchPanel from "./search/DeepSearchPanel";
-import IntelMapPanel from "./search/IntelMapPanel";
-import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
+
+const FilterSidebar = lazy(() => import("./search/FilterSidebar"));
+const PagePreviewPanel = lazy(() => import("./search/PagePreviewPanel"));
+const DeepSearchPanel = lazy(() => import("./search/DeepSearchPanel"));
+const IntelMapPanel = lazy(() => import("./search/IntelMapPanel"));
+const IntelligenceSuitePanel = lazy(() => import("./search/intel/IntelligenceSuitePanel"));
+const ArchivesHarvesterPanel = lazy(() => import("./search/ArchivesHarvesterPanel"));
+const UrlIntelMapPanel = lazy(() => import("./search/UrlIntelMapPanel"));
+const IntelMapByokPanel = lazy(() => import("./search/IntelMapByokPanel"));
 
 const OracleLocusView = lazy(() => import("./OracleLocusView"));
 const LinkExtractView = lazy(() => import("./search/LinkExtractView"));
@@ -29,8 +32,6 @@ const LeaksPanel = lazy(() => import("./search/LeaksPanel"));
 const ArchivePanel = lazy(() => import("./search/ArchivePanel"));
 const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
-import ArchivesHarvesterPanel from "./search/ArchivesHarvesterPanel";
-import UrlIntelMapPanel from "./search/UrlIntelMapPanel";
 
 // Detect when the search query is actually a URL (with or without scheme).
 // Examples that match: x.com/MonaBets, https://example.com, www.foo.com/a/b
@@ -395,13 +396,15 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     <div className="zophiel-aurora-shell flex h-full relative">
       {/* Filter Sidebar */}
       {searched && (
-        <FilterSidebar
-          filters={filters}
-          onFiltersChange={(f) => { setFilters(f); }}
-          blockedDomains={blockedDomains}
-          onBlockDomain={blockDomain}
-          onUnblockDomain={unblockDomain}
-        />
+        <Suspense fallback={null}>
+          <FilterSidebar
+            filters={filters}
+            onFiltersChange={(f) => { setFilters(f); }}
+            blockedDomains={blockedDomains}
+            onBlockDomain={blockDomain}
+            onUnblockDomain={unblockDomain}
+          />
+        </Suspense>
       )}
 
       <div
@@ -605,7 +608,9 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
               {/* Deep Search Panel */}
               {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && deepSearchQuery && (
-                <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
+                <Suspense fallback={null}>
+                  <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
+                </Suspense>
               )}
 
               {/* Inline Dark Web sweep — shown when scope=mix or dark */}
@@ -640,7 +645,9 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
               {/* URL Intelligence Map — auto when query is a URL */}
               {urlIntelTarget && (
-                <UrlIntelMapPanel url={urlIntelTarget} onClose={() => setUrlIntelTarget(null)} />
+                <Suspense fallback={null}>
+                  <UrlIntelMapPanel url={urlIntelTarget} onClose={() => setUrlIntelTarget(null)} />
+                </Suspense>
               )}
 
               {/* Standard search results */}
@@ -816,41 +823,49 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
           className="fixed inset-0 z-40 bg-background/40 backdrop-blur-2xl animate-fade-in lg:static lg:z-auto lg:min-w-0 lg:bg-transparent lg:backdrop-blur-none"
           style={{ width: window.innerWidth >= 1024 ? `${splitPct}%` : undefined }}
         >
-          <IntelMapPanel
-            query={query}
-            results={results}
-            onClose={() => setIntelMapOpen(false)}
-          />
+          <Suspense fallback={null}>
+            <IntelMapPanel
+              query={query}
+              results={results}
+              onClose={() => setIntelMapOpen(false)}
+            />
+          </Suspense>
         </div>
       )}
 
       {/* Intelligence Suite split-screen panel */}
       {intelSuiteOpen && searched && results.length > 0 && (
         <div ref={rightPanelRef} className="hidden lg:block min-w-0 animate-fade-in" style={{ width: `${splitPct}%` }}>
-          <IntelligenceSuitePanel
-            query={query}
-            results={results}
-            onClose={() => setIntelSuiteOpen(false)}
-            onRunQuery={(q) => { setQuery(q); search(q); }}
-          />
+          <Suspense fallback={null}>
+            <IntelligenceSuitePanel
+              query={query}
+              results={results}
+              onClose={() => setIntelSuiteOpen(false)}
+              onRunQuery={(q) => { setQuery(q); search(q); }}
+            />
+          </Suspense>
         </div>
       )}
 
       {/* Mobile: full-screen overlay for Intelligence Suite */}
       {intelSuiteOpen && searched && results.length > 0 && (
         <div className="lg:hidden fixed inset-0 z-40 bg-background animate-fade-in">
-          <IntelligenceSuitePanel
-            query={query}
-            results={results}
-            onClose={() => setIntelSuiteOpen(false)}
-            onRunQuery={(q) => { setQuery(q); search(q); }}
-          />
+          <Suspense fallback={null}>
+            <IntelligenceSuitePanel
+              query={query}
+              results={results}
+              onClose={() => setIntelSuiteOpen(false)}
+              onRunQuery={(q) => { setQuery(q); search(q); }}
+            />
+          </Suspense>
         </div>
       )}
 
       {/* Page Preview Panel */}
       {preview && (
-        <PagePreviewPanel preview={preview.data} url={preview.url} onClose={() => setPreview(null)} />
+        <Suspense fallback={null}>
+          <PagePreviewPanel preview={preview.data} url={preview.url} onClose={() => setPreview(null)} />
+        </Suspense>
       )}
 
       {/* Keyboard Shortcuts Modal */}
@@ -879,11 +894,15 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         </div>
       )}
 
-      <IntelMapByokPanel
-        open={byokOpen}
-        onClose={() => setByokOpen(false)}
-        onChange={() => setByokActive(isIntelMapByokEnabled())}
-      />
+      {byokOpen && (
+        <Suspense fallback={null}>
+          <IntelMapByokPanel
+            open={byokOpen}
+            onClose={() => setByokOpen(false)}
+            onChange={() => setByokActive(isIntelMapByokEnabled())}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };
