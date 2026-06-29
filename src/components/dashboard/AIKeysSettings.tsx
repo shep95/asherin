@@ -218,21 +218,10 @@ const AIKeysSettings = () => {
 
       {/* Provider list grouped by country */}
       <div className="space-y-4">
-        <p className="text-[10px] font-light tracking-wider text-muted-foreground/40 uppercase">Available Providers · {AI_PROVIDERS.length} companies across {new Set(AI_PROVIDERS.map(p => p.country)).size} countries</p>
-        {(() => {
-          const q = search.trim().toLowerCase();
-          const filtered = AI_PROVIDERS.filter(p =>
-            !q || p.name.toLowerCase().includes(q) || p.country.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)
-          );
-          if (filtered.length === 0) {
-            return <p className="text-[11px] text-muted-foreground/40 px-1 py-4">No providers match “{search}”.</p>;
-          }
-          const byCountry = new Map<string, typeof filtered>();
-          filtered.forEach(p => {
-            if (!byCountry.has(p.country)) byCountry.set(p.country, [] as any);
-            byCountry.get(p.country)!.push(p);
-          });
-          return Array.from(byCountry.entries()).map(([country, provs]) => (
+        <p className="text-[10px] font-light tracking-wider text-muted-foreground/40 uppercase">Available Providers · {AI_PROVIDERS.length} companies across {countryCount} countries</p>
+        {groupedProviders.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground/40 px-1 py-4">No providers match “{search}”.</p>
+        ) : groupedProviders.map(([country, provs]) => (
             <div key={country} className="space-y-2">
               <div className="flex items-center gap-2 px-1">
                 <Globe className="h-3 w-3 text-muted-foreground/40" />
