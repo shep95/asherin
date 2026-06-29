@@ -608,7 +608,9 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
               {/* Deep Search Panel */}
               {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && deepSearchQuery && (
-                <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
+                <Suspense fallback={null}>
+                  <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
+                </Suspense>
               )}
 
               {/* Inline Dark Web sweep — shown when scope=mix or dark */}
