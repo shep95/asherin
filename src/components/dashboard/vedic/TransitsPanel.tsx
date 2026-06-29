@@ -186,6 +186,16 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   const [moonEvents, setMoonEvents] = useState<import("@/lib/vedic/moonEvents").MoonEvent[] | null>(null);
   const [loadingMoon, setLoadingMoon] = useState(false);
   const moonCacheRef = useRef<Map<string, import("@/lib/vedic/moonEvents").MoonEvent[]>>(new Map());
+  // Domain filter chips — all on by default
+  const ALL_DOMAINS: import("@/lib/vedic/moonEvents").MoonEventDomain[] = [
+    "wealth-equity", "wealth-liquidity", "love", "power", "mental-health", "physical-health",
+  ];
+  const [activeDomains, setActiveDomains] = useState<Set<string>>(() => new Set(ALL_DOMAINS));
+  const toggleDomain = (d: string) => setActiveDomains((prev) => {
+    const next = new Set(prev);
+    if (next.has(d)) next.delete(d); else next.add(d);
+    return next;
+  });
   useEffect(() => { moonCacheRef.current.clear(); }, [activeRef.key]);
   useEffect(() => {
     if (mode !== "user" && !companyRef) return;
