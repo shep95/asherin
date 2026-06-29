@@ -242,7 +242,7 @@ const Dashboard = () => {
   const [prevDashWallpaper, setPrevDashWallpaper] = useState<string | null>(null);
   const [isDashTransitioning, setIsDashTransitioning] = useState(false);
   const dashTransRef = useRef<ReturnType<typeof setTimeout>>();
-  const activeWallpaper = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.aureon || WALLPAPER_MAP.default;
+  const activeWallpaper = getWallpaperSrc(wallpaperKey);
 
   useEffect(() => {
     applySeoHead({
