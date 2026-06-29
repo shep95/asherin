@@ -87,7 +87,7 @@ const ZaxinView = () => {
   // tactical subscription + tick loop — coalesce snapshot updates to ≤4 fps to
   // avoid a full-tree re-render every time the engine mutates a single contact.
   useEffect(() => {
-    let pending: ZaxlinPending = null;
+    let pending: ZaxinSnapshot | null = null;
     let raf = 0;
     let last = 0;
     const flush = () => {
