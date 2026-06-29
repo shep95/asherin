@@ -3,7 +3,7 @@ import { Loader2, Orbit, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 import { computeFutureIngresses, type SignIngress } from "@/lib/vedic/transits";
 import { calculateSweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
 import { computeSensitivePoints, type SensitivePoints } from "@/lib/vedic/sensitivePoints";
-import { detectWindows, type KarmicWindow } from "@/lib/vedic/wealthSoulmateWindows";
+import { detectWindows } from "@/lib/vedic/wealthSoulmateWindows";
 import { computeLifeSequence, type LifeEvent } from "@/lib/vedic/lifeSequence";
 import type { CompanyFoundation } from "@/data/vedic/companyCharts";
 import type { CurrentDashaPath, DashaPeriod } from "@/lib/vedic/dasha";
@@ -29,11 +29,6 @@ function fmtDate(d: Date) {
 }
 function fmtDateTime(d: Date) {
   return d.toLocaleString("en-US", { year: "numeric", month: "short", day: "2-digit", hour: "numeric", minute: "2-digit", hour12: true });
-}
-function fmtDeg(deg: number) {
-  const dInt = Math.floor(deg);
-  const m = Math.floor((deg - dInt) * 60);
-  return `${dInt}°${m.toString().padStart(2, "0")}'`;
 }
 function monthLabel(d: Date) { return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`; }
 function midOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 15, 12, 0); }
@@ -77,7 +72,7 @@ interface NatalRef {
   planets: Array<{ name: string; sid: number }> | null;
 }
 
-const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts, currentDasha, dashaTimeline, onIngresses }: Props) => {
+const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts, dashaTimeline, onIngresses }: Props) => {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState<Date>(() => midOfMonth(new Date()));
   const [mode, setMode] = useState<"user" | string>("user"); // "user" or company symbol
@@ -122,7 +117,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
 
   const activeRef: NatalRef = mode === "user" ? userRef : (companyRef ?? userRef);
 
-  const [horizonMonths, setHorizonMonths] = useState<3 | 12 | 24>(12);
+  const horizonMonths = 12;
   const [granularity, setGranularity] = useState<"week" | "month">("month");
 
   const chosen = useMemo(
@@ -138,7 +133,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   // ── Ingresses — anchored at today, horizon auto-extended for chosen month ──
   // Cache key is independent of `chosen` so flipping months stays instant.
   const [ingresses, setIngresses] = useState<SignIngress[] | null>(null);
-  const [loadingFuture, setLoadingFuture] = useState(false);
+  const [, setLoadingFuture] = useState(false);
   const ingressCacheRef = useRef<Map<string, SignIngress[]>>(new Map());
 
   // Horizon: cover both backward (past months user scrolled to) and forward.
