@@ -41,6 +41,27 @@ const AIKeysSettings = () => {
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
+  // Country count is a constant of the static provider catalog — compute once.
+  const countryCount = useMemo(() => new Set(AI_PROVIDERS.map(p => p.country)).size, []);
+
+  // Filter + group only when search changes (was recomputed on every keystroke,
+  // expand, save, etc. — touching ~50 providers + a fresh Map every render).
+  const groupedProviders = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const filtered = q
+      ? AI_PROVIDERS.filter(p =>
+          p.name.toLowerCase().includes(q) ||
+          p.country.toLowerCase().includes(q) ||
+          p.id.toLowerCase().includes(q))
+      : AI_PROVIDERS;
+    const byCountry = new Map<string, ProviderConfig[]>();
+    for (const p of filtered) {
+      const arr = byCountry.get(p.country);
+      if (arr) arr.push(p); else byCountry.set(p.country, [p]);
+    }
+    return Array.from(byCountry.entries());
+  }, [search]);
+
   useEffect(() => {
     if (!user) return;
     loadData();
