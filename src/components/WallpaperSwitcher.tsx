@@ -1,51 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Settings } from "lucide-react";
-import wallpaperDefault from "@/assets/hero-bg.png";
-import wallpaperRaven from "@/assets/wallpaper-raven.png";
-import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
-import wallpaperGlitch from "@/assets/wallpaper-glitch.png";
-import wallpaperAureon from "@/assets/wallpaper-aureon.png";
-import wallpaperSeraph from "@/assets/wallpaper-seraph.png";
-import wallpaperProphet from "@/assets/wallpaper-prophet.png";
-import wallpaperNexus from "@/assets/wallpaper-nexus.png";
-import wallpaperSentinel from "@/assets/wallpaper-sentinel.png";
-import wallpaperInferno from "@/assets/wallpaper-inferno.png";
-import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
-import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
-import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
-import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
-import wallpaperStealth from "@/assets/wallpaper-stealth.png";
-import wallpaperStatic from "@/assets/wallpaper-static.png";
-import wallpaperMane from "@/assets/wallpaper-mane.png";
-import wallpaperImpact from "@/assets/wallpaper-impact.png";
-import wallpaperOracle from "@/assets/wallpaper-oracle.png";
-import wallpaperAscend from "@/assets/wallpaper-ascend.png";
-import wallpaperCosmos from "@/assets/wallpaper-cosmos.png";
+import { ALL_WALLPAPERS, getWallpaperSrc } from "@/lib/wallpapers";
 
-const WALLPAPERS = [
-  { key: "default", label: "Original", src: wallpaperDefault },
-  { key: "raven", label: "Raven", src: wallpaperRaven },
-  { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
-  { key: "glitch", label: "Glitch", src: wallpaperGlitch },
-  { key: "aureon", label: "Aureon", src: wallpaperAureon },
-  { key: "seraph", label: "Seraph", src: wallpaperSeraph },
-  { key: "prophet", label: "Prophet", src: wallpaperProphet },
-  { key: "nexus", label: "Nexus", src: wallpaperNexus },
-  { key: "sentinel", label: "Sentinel", src: wallpaperSentinel },
-  { key: "inferno", label: "Inferno", src: wallpaperInferno },
-  { key: "sorrow", label: "Sorrow", src: wallpaperSorrow },
-  { key: "silhouette", label: "Silhouette", src: wallpaperSilhouette },
-  { key: "phantom", label: "Phantom", src: wallpaperPhantom },
-  { key: "abyss", label: "Abyss", src: wallpaperAbyss },
-  { key: "stealth", label: "Stealth", src: wallpaperStealth },
-  { key: "static", label: "Static", src: wallpaperStatic },
-  { key: "mane", label: "Mane", src: wallpaperMane },
-  { key: "impact", label: "Impact", src: wallpaperImpact },
-  { key: "oracle", label: "Oracle", src: wallpaperOracle },
-  { key: "ascend", label: "Ascend", src: wallpaperAscend },
-  { key: "cosmos", label: "Cosmos", src: wallpaperCosmos },
-];
-
+const WALLPAPERS = ALL_WALLPAPERS;
 const STORAGE_KEY = "aureon_landing_wallpaper";
 
 export const getStoredWallpaper = (): string => {
@@ -54,9 +11,7 @@ export const getStoredWallpaper = (): string => {
     const customUrl = localStorage.getItem("aureon_custom_wallpaper_url");
     if (customUrl) return customUrl;
   }
-  const key = stored ?? "aureon";
-  const wp = WALLPAPERS.find((w) => w.key === key);
-  return wp ? wp.src : wallpaperAureon;
+  return getWallpaperSrc(stored ?? "aureon");
 };
 
 const WallpaperSwitcher = () => {
@@ -105,7 +60,6 @@ const WallpaperSwitcher = () => {
           className="absolute bottom-12 right-0 rounded-2xl border border-border/30 bg-card/80 backdrop-blur-xl p-3 shadow-2xl min-w-[220px] max-h-[400px] overflow-y-auto"
           style={{ animation: "wpPanelIn 0.25s cubic-bezier(0.16,1,0.3,1)" }}
         >
-          {/* Number + Label header */}
           <div className="flex items-end gap-2 mb-2 px-1">
             <span
               className="text-[28px] font-extralight leading-none text-foreground/15 tracking-tight"
@@ -137,9 +91,10 @@ const WallpaperSwitcher = () => {
                 <img
                   src={wp.src}
                   alt={wp.label}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-12 object-cover transition-transform duration-500 group-hover:scale-110"
                 />
-                {/* Light sweep on hover */}
                 <div
                   className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
                   style={{
