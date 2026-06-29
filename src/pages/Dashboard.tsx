@@ -1,6 +1,5 @@
 import { applySeoHead } from "@/lib/seoHead";
 import { isAdminEmail } from "@/lib/adminEmail";
-import NewAccountWelcomeModal from "@/components/NewAccountWelcomeModal";
 import { getWallpaperSrc } from "@/lib/wallpapers";
 import React, { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -13,6 +12,7 @@ import type { UserProfile } from "@/lib/ai";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import ChatView from "@/components/dashboard/ChatView";
 import { useAccess } from "@/hooks/useAccess";
+const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
 
 // Lazy-load heavy views
 const LibraryView = lazyWithRetry(() => import("@/components/dashboard/LibraryView"));
@@ -65,9 +65,10 @@ const MediaToCodeView = lazyWithRetry(() => import("@/components/asher/AsherMedi
 const CipherView = lazyWithRetry(() => import("@/components/dashboard/cipher/CipherToolkit"));
 const AsherZahtenModule = lazyWithRetry(() => import("@/components/asher/AsherZahtenModule"));
 const AsherPublishedTabRenderer = lazyWithRetry(() => import("@/components/asher/AsherPublishedTabRenderer"));
-import CommandPalette from "@/components/dashboard/CommandPalette";
-import FocusMode from "@/components/dashboard/FocusMode";
-import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
+const CommandPalette = lazyWithRetry(() => import("@/components/dashboard/CommandPalette"));
+const FocusMode = lazyWithRetry(() => import("@/components/dashboard/FocusMode"));
+const SplitPaneManager = lazyWithRetry(() => import("@/components/dashboard/SplitPaneManager"));
+import type { SplitPane } from "@/components/dashboard/SplitPaneManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -1546,7 +1547,7 @@ const Dashboard = () => {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      <NewAccountWelcomeModal />
+      <Suspense fallback={null}><NewAccountWelcomeModal /></Suspense>
       <h1 className="sr-only">Aureon Dashboard — Your Intelligence Workspace</h1>
       {/* Previous wallpaper (fades out during transition) */}
       {prevDashWallpaper && isDashTransitioning && (
@@ -1598,7 +1599,11 @@ const Dashboard = () => {
         </div>
       )}
 
-      <FocusMode active={focusMode} onExit={() => setFocusMode(false)} />
+      {focusMode && (
+        <Suspense fallback={null}>
+          <FocusMode active={focusMode} onExit={() => setFocusMode(false)} />
+        </Suspense>
+      )}
 
       {asherEmbed && (
         <style>{`
@@ -1656,7 +1661,8 @@ const Dashboard = () => {
           }}
         >
           {splitPanes.length > 0 ? (
-            <SplitPaneManager
+            <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-muted-foreground">Loading split view…</div>}>
+              <SplitPaneManager
               panes={splitPanes}
               conversations={conversations}
               onRemovePane={(paneId) => {
@@ -1692,7 +1698,8 @@ const Dashboard = () => {
                 }
               }}
               isDraggingConvo={isDraggingConvo}
-            />
+              />
+            </Suspense>
           ) : (
             <>
               {renderView()}
@@ -1712,14 +1719,18 @@ const Dashboard = () => {
         </main>
       </div>
 
-      <CommandPalette
-        open={cmdPaletteOpen}
-        onClose={() => setCmdPaletteOpen(false)}
-        onNewConversation={() => { newConversation(); setCmdPaletteOpen(false); }}
-        onViewChange={(v) => { setActiveView(v); setCmdPaletteOpen(false); }}
-        onModeChange={(m) => { setMode(m); setCmdPaletteOpen(false); }}
-        onFocusMode={() => setFocusMode((f) => !f)}
-      />
+      {cmdPaletteOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette
+            open={cmdPaletteOpen}
+            onClose={() => setCmdPaletteOpen(false)}
+            onNewConversation={() => { newConversation(); setCmdPaletteOpen(false); }}
+            onViewChange={(v) => { setActiveView(v); setCmdPaletteOpen(false); }}
+            onModeChange={(m) => { setMode(m); setCmdPaletteOpen(false); }}
+            onFocusMode={() => setFocusMode((f) => !f)}
+          />
+        </Suspense>
+      )}
       <style>{`
         @keyframes wpFadeIn {
           from { opacity: 0; transform: scale(1.015); }
