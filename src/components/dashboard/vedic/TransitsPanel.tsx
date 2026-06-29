@@ -90,6 +90,7 @@ interface NatalRef {
   kind: "user" | "company";
   key: string;
   points: SensitivePoints | null;
+  planets: Array<{ name: string; sid: number }> | null;
 }
 
 const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userChartName, companyCharts, currentDasha, dashaTimeline, onIngresses }: Props) => {
@@ -104,6 +105,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
     label: userChartName || "Your Chart", kind: "user",
     key: `user:${chartKey ?? `${natalAscendant.toFixed(3)}:${lat}:${lon}`}`,
     points: natalPlanets ? computeSensitivePoints(natalPlanets, natalAscendant) : null,
+    planets: natalPlanets ? natalPlanets.map((p) => ({ name: p.name, sid: p.sid })) : null,
   }), [natalAscendant, natalPlanets, lat, lon, chartKey, userChartName]);
 
   // Resolve company natal chart whenever mode changes to a company symbol
@@ -125,6 +127,7 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
           label: `${co.name} (${co.symbol})`, kind: "company",
           key: `co:${co.symbol}`,
           points: computeSensitivePoints(c.planets, c.ascendant),
+          planets: c.planets.map((p) => ({ name: p.name, sid: p.sid })),
         });
       } finally {
         if (!cancelled) setResolvingCompany(false);
@@ -230,6 +233,45 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   useEffect(() => { ingressCacheRef.current.clear(); setIngresses(null); }, [activeRef.key]);
   // Publish ingresses up so sibling panels (WealthHousesPanel) can reuse without refetching
   useEffect(() => { onIngresses?.(ingresses); }, [ingresses, onIngresses]);
+
+  // ── MOON EVENTS — 100% Moon-driven monthly/weekly forecast ──
+  // House ingresses + Moon-to-natal-planet conjunctions, bisected to ~1 min
+  // and rendered in the user's local timezone.
+  const [moonEvents, setMoonEvents] = useState<import("@/lib/vedic/moonEvents").MoonEvent[] | null>(null);
+  const [loadingMoon, setLoadingMoon] = useState(false);
+  const moonCacheRef = useRef<Map<string, import("@/lib/vedic/moonEvents").MoonEvent[]>>(new Map());
+  useEffect(() => { moonCacheRef.current.clear(); }, [activeRef.key]);
+  useEffect(() => {
+    if (mode !== "user" && !companyRef) return;
+    if (!activeRef.planets || activeRef.planets.length === 0) { setMoonEvents([]); return; }
+    const cacheKey = `${activeRef.key}:${granularity}:${periodStart.getTime()}-${periodEnd.getTime()}`;
+    const cached = moonCacheRef.current.get(cacheKey);
+    if (cached) { setMoonEvents(cached); return; }
+    let cancelled = false;
+    setLoadingMoon(true);
+    (async () => {
+      try {
+        const { computeMoonEvents } = await import("@/lib/vedic/moonEvents");
+        const list = await computeMoonEvents(
+          periodStart, periodEnd,
+          activeRef.ascendant,
+          activeRef.planets!,
+          activeRef.lat, activeRef.lon,
+        );
+        if (cancelled) return;
+        moonCacheRef.current.set(cacheKey, list);
+        setMoonEvents(list);
+      } catch (e) {
+        console.error("[moon-events] failed:", e);
+        if (!cancelled) setMoonEvents([]);
+      } finally {
+        if (!cancelled) setLoadingMoon(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeRef.key, activeRef.ascendant, activeRef.lat, activeRef.lon, activeRef.planets, granularity, periodStart, periodEnd, mode, companyRef]);
+
+
 
 
   const readings = useMemo(() => {
@@ -1100,137 +1142,69 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
         </div>
       )}
 
-      {/* PLAIN-ENGLISH BRIEF — keep this pinned near the top so the monthly forecast never disappears behind deeper analysis */}
+      {/* MOON-ONLY MONTHLY BRIEF — 100% Moon transits: house ingresses + conjunctions with natal planets, rendered in the user's local time. */}
       {!loadingNow && (
         <div className="rounded-lg border border-border/35 bg-background/40 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <ScrollText className="h-4 w-4 text-foreground/80" />
             <h4 className="text-xs font-light tracking-[0.18em] text-foreground uppercase">
-              What's gonna happen this {monthlyBrief.periodWord} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
+              What's gonna happen this {granularity === "week" ? "week" : "month"} · <span className="text-muted-foreground/80 normal-case tracking-normal">{subjectLabel}</span>
             </h4>
           </div>
           <p className="text-[10.5px] text-muted-foreground/75 italic leading-relaxed">
-            Plain English. No nerd jargon. The strongest hit per life-area, scoped to {periodLabel}.
-            {activeDashaSummary && <> Confidence badges fuse your active Dasha ({activeDashaSummary}) with live transits.</>}
+            100% Moon-driven. Two event types only: <span className="text-foreground/85">House ingress</span> (Moon enters a new life-area) and <span className="text-foreground/85">conjunction</span> (Moon directly hits a natal planet). Timestamps are precise to ~1 minute and shown in <span className="text-foreground/85">your local timezone</span>.
           </p>
-          {loadingFuture && !ingresses ? (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Building the live transit forecast…</div>
-          ) : monthlyBrief.briefs.length === 0 ? (
+          {loadingMoon && !moonEvents ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Tracing the Moon across {periodLabel}…</div>
+          ) : !moonEvents || moonEvents.length === 0 ? (
             <div className="text-[11.5px] text-muted-foreground/70 italic">
-              Quiet {monthlyBrief.periodWord}. No major life-area is firing — steady background period. Good for rest, planning, and small consistent moves.
+              No Moon events resolved for this {granularity}. Try a different period.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {monthlyBrief.briefs.map((b) => {
-                const Icon = b.icon;
-                const confStyle = b.confidence === "peak"
-                  ? "border-foreground/50 bg-foreground/[0.08] text-foreground"
-                  : b.confidence === "strong"
-                    ? "border-foreground/35 bg-foreground/[0.05] text-foreground/85"
-                    : b.confidence === "moderate"
-                      ? "border-border/40 bg-background/40 text-foreground/70"
-                      : "border-border/25 bg-background/20 text-muted-foreground/60";
-                const confLabel = b.confidence === "peak" ? "PEAK" : b.confidence === "strong" ? "STRONG" : b.confidence === "moderate" ? "MODERATE" : "BACKGROUND";
+              {moonEvents.map((ev) => {
+                const tone = ev.tone;
+                const isConj = ev.kind === "conjunction";
+                const localStr = ev.at.toLocaleString(undefined, {
+                  weekday: "short", month: "short", day: "numeric",
+                  hour: "numeric", minute: "2-digit", hour12: true, timeZoneName: "short",
+                });
                 return (
-                  <div key={`brief-${b.key}`} className={`relative rounded-md border p-3 space-y-1.5 ${b.tone === "bad" ? "border-red-500/35 bg-red-500/[0.05]" : b.tone === "good" ? "border-emerald-500/35 bg-emerald-500/[0.05]" : "border-border/25 bg-background/30"}`}>
+                  <div key={ev.id} className={`relative rounded-md border p-3 space-y-1.5 ${
+                    tone === "bad" ? "border-red-500/35 bg-red-500/[0.05]"
+                    : tone === "good" ? "border-emerald-500/35 bg-emerald-500/[0.05]"
+                    : "border-border/25 bg-background/30"
+                  }`}>
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5">
-                        <Icon className={`h-3.5 w-3.5 ${b.tone === "bad" ? "text-red-300/90" : b.tone === "good" ? "text-emerald-300/90" : "text-foreground/70"}`} />
-                        <span className={`text-[10px] uppercase tracking-[0.2em] ${b.tone === "bad" ? "text-red-200/90" : b.tone === "good" ? "text-emerald-200/90" : "text-foreground/85"}`}>{b.label}</span>
-                        <span className={`text-[9px] uppercase tracking-[0.18em] ${b.tone === "bad" ? "text-red-300/70" : b.tone === "good" ? "text-emerald-300/70" : "text-muted-foreground/60"}`}>· {b.tone === "good" ? "favorable" : b.tone === "bad" ? "adverse" : "mixed"}</span>
+                        <span className="text-foreground/80 text-sm leading-none">☽</span>
+                        <span className={`text-[10px] uppercase tracking-[0.2em] ${
+                          tone === "bad" ? "text-red-200/90"
+                          : tone === "good" ? "text-emerald-200/90"
+                          : "text-foreground/85"
+                        }`}>{ev.label}</span>
+                        <span className={`text-[9px] uppercase tracking-[0.18em] ${
+                          tone === "bad" ? "text-red-300/70"
+                          : tone === "good" ? "text-emerald-300/70"
+                          : "text-muted-foreground/60"
+                        }`}>· {isConj ? "conjunction" : "ingress"}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-foreground/75">{b.duration}</span>
-                        <span className="text-[9.5px] uppercase tracking-[0.18em] text-muted-foreground/70">{b.when}</span>
-                      </div>
+                      <span className="text-[9.5px] uppercase tracking-[0.16em] text-foreground/85 font-mono">{localStr}</span>
                     </div>
-                    <div className="text-[12px] font-light text-foreground leading-snug">{b.headline}</div>
-                    <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{b.detail}</p>
-                    {(b as any).cause && (
-                      <div className="pt-1.5 mt-1 border-t border-border/15 space-y-1">
-                        <div className="text-[8.5px] uppercase tracking-[0.22em] text-muted-foreground/60">Why this is happening</div>
-                        <p className="text-[10px] leading-relaxed font-light text-foreground/75">{(b as any).cause}</p>
-                        {(b as any).dashaFlavor && (
-                          <p className="text-[9.5px] leading-relaxed italic font-light text-muted-foreground/70">↳ {(b as any).dashaFlavor}</p>
-                        )}
-                      </div>
-                    )}
-                    {activeDashaSummary && (
-                      <div className="flex items-center gap-1.5 pt-1 border-t border-border/15">
-                        <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${confStyle}`}>{confLabel}</span>
-                        <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/65">
-                          {b.dashaLords.length > 0 ? `Dasha-backed by ${b.dashaLords.join(" + ")}` : "No active Dasha lord on this axis"}
-                        </span>
-                      </div>
-                    )}
+                    <div className="text-[12px] font-light text-foreground leading-snug">{ev.headline}</div>
+                    <div className="pt-1.5 mt-1 border-t border-border/15 space-y-1">
+                      <div className="text-[8.5px] uppercase tracking-[0.22em] text-muted-foreground/60">What to expect</div>
+                      <p className="text-[10.5px] leading-relaxed font-light text-muted-foreground/85">{ev.expect}</p>
+                    </div>
                   </div>
                 );
               })}
             </div>
           )}
-
-          {/* CROSS-DOMAIN COMBOS — golden tint, synthesizes overlapping transits */}
-          {monthlyBrief.combos && monthlyBrief.combos.length > 0 && (
-            <div className="pt-3 mt-2 border-t border-amber-400/20 space-y-2">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5 text-amber-300/90" />
-                <h5 className="text-[10.5px] font-light tracking-[0.22em] text-amber-200/90 uppercase">
-                  Cross-Domain Combinations
-                </h5>
-                <span className="text-[9px] uppercase tracking-[0.18em] text-amber-200/50">
-                  · what {monthlyBrief.combos.length} overlapping transit{monthlyBrief.combos.length === 1 ? "" : "s"} braid into
-                </span>
-              </div>
-              <p className="text-[10px] italic text-amber-100/55 leading-relaxed">
-                When two life-area windows fire at the same time, their energies don't play out separately — they merge into one outcome.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {monthlyBrief.combos.slice(0, 8).map((c) => {
-                  const IconA = c.iconA;
-                  const IconB = c.iconB;
-                  return (
-                    <div
-                      key={`combo-${c.keyA}-${c.keyB}`}
-                      className="relative rounded-md border border-amber-400/35 bg-gradient-to-br from-amber-400/[0.09] via-amber-300/[0.05] to-yellow-500/[0.04] p-3 space-y-1.5 shadow-[0_0_18px_-8px_rgba(251,191,36,0.35)]"
-                    >
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <IconA className="h-3.5 w-3.5 text-amber-200/90" />
-                          <span className="text-[10px] uppercase tracking-[0.2em] text-amber-100/95">{c.labelA}</span>
-                          <span className="text-amber-300/60 text-[10px]">+</span>
-                          <IconB className="h-3.5 w-3.5 text-amber-200/90" />
-                          <span className="text-[10px] uppercase tracking-[0.2em] text-amber-100/95">{c.labelB}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9.5px] uppercase tracking-[0.18em] text-amber-200/85">{c.duration}</span>
-                          <span className="text-[9.5px] uppercase tracking-[0.18em] text-amber-200/65">{c.when}</span>
-                        </div>
-                      </div>
-                      <div className="text-[12px] font-light text-amber-50/95 leading-snug">{c.headline}</div>
-                      <p className="text-[10.5px] leading-relaxed font-light text-amber-100/70">{c.detail}</p>
-                      <div className="flex items-center gap-1.5 pt-1 border-t border-amber-400/15">
-                        <span className={`text-[8.5px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded border ${
-                          c.tone === "good"
-                            ? "border-amber-300/55 bg-amber-400/[0.12] text-amber-100"
-                            : c.tone === "bad"
-                              ? "border-red-400/45 bg-red-500/[0.10] text-red-100"
-                              : "border-amber-300/35 bg-amber-300/[0.06] text-amber-200/85"
-                        }`}>
-                          {c.tone === "good" ? "COMPOUND FAVORABLE" : c.tone === "bad" ? "COMPOUND FRICTION" : "MIXED COLLISION"}
-                        </span>
-                        <span className="text-[9px] uppercase tracking-[0.16em] text-amber-200/55">
-                          combined intensity {c.combinedScore.toFixed(0)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
-
       )}
+
+
 
       {/* WEALTH & POWER CALCULATOR — natal capacity (%) + dasha+transit timing */}
       {lifeSequence && (() => {
