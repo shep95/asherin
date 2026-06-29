@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import { Brain, Globe, Loader2, Trash2, Clock, Send, ArrowDown, Copy, Check, MessageSquare, Zap, X, PanelRightClose, PanelRightOpen, Search, Target, Activity, TrendingUp, Plus, ChevronRight, Shield, Coins, Landmark, Radar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
-import AxrlenDashboard from "./AxrlenDashboard";
 import AxrlenMessageRenderer from "./AxrlenMessageRenderer";
-import AxrlenBrainsManager from "./AxrlenBrainsManager";
+
+// Lazy-load heavy panels — dashboard charts (~456 lines) and brains manager (~323 lines)
+// are only needed once the user opens a session or the brain editor.
+const AxrlenDashboard = lazy(() => import("./AxrlenDashboard"));
+const AxrlenBrainsManager = lazy(() => import("./AxrlenBrainsManager"));
 
 export interface AxrlenSession {
   id: string;
@@ -133,6 +136,8 @@ const AxrlenView = () => {
   // ── Scan trigger (from chat) ──
   const runScan = async (region: string, scanType: string) => {
     setIsScanning(true);
+    // Progress ticker runs ALONGSIDE the real analysis (no artificial sleep).
+    // Previously this looped 8x900ms = 7.2s of pure theater BEFORE the real call.
     const steps = [
       "Initializing AXRLEN intelligence grid...",
       "Querying GDELT global event database...",
@@ -143,11 +148,13 @@ const AxrlenView = () => {
       "Running multi-domain prediction engine...",
       "Generating timeline divergence analysis...",
     ];
+    let stepIdx = 0;
+    setScanProgress(steps[0]);
+    const progressTimer = setInterval(() => {
+      stepIdx = (stepIdx + 1) % steps.length;
+      setScanProgress(steps[stepIdx]);
+    }, 1400);
 
-    for (const step of steps) {
-      setScanProgress(step);
-      await new Promise(r => setTimeout(r, 900));
-    }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -203,6 +210,7 @@ const AxrlenView = () => {
         content: `⚠️ Scan failed: ${err.message}`,
       }]);
     } finally {
+      clearInterval(progressTimer);
       setIsScanning(false);
       setScanProgress("");
     }
@@ -236,13 +244,18 @@ const AxrlenView = () => {
     setActiveWorkflow(null);
     let assistantSoFar = "";
     let workflowSteps: WorkflowStep[] | null = null;
+    let assistantIdx = -1; // cached index of the assistant message; avoids O(n) prev.map per token
     const upsert = (chunk: string) => {
       assistantSoFar += chunk;
       setMessages(prev => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant") {
-          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar, workflow: workflowSteps || undefined } : m);
+        // Fast path: known index — splice in place (O(1) clone of one slot).
+        if (assistantIdx >= 0 && assistantIdx < prev.length && prev[assistantIdx]?.role === "assistant") {
+          const next = prev.slice();
+          next[assistantIdx] = { ...next[assistantIdx], content: assistantSoFar, workflow: workflowSteps || undefined };
+          return next;
         }
+        // First token: append assistant message and cache its index.
+        assistantIdx = prev.length;
         return [...prev, { role: "assistant", content: assistantSoFar, workflow: workflowSteps || undefined }];
       });
     };
@@ -426,6 +439,36 @@ const AxrlenView = () => {
     "Apply the Thucydides Trap framework to US-China relations",
   ];
 
+  // Memoize sessions filtering/bucketing/stats. Previously this ran inline inside the
+  // popout IIFE on every render — including every streaming token — burning CPU even
+  // when the drawer was closed via children re-renders.
+  const sessionStats = useMemo(() => {
+    const q = sessionsQuery.trim().toLowerCase();
+    const filtered = q
+      ? sessions.filter(s => s.title.toLowerCase().includes(q) || (s.region || "").toLowerCase().includes(q))
+      : sessions;
+    const now = Date.now();
+    const buckets: Record<string, AxrlenSession[]> = { Today: [], Yesterday: [], "Last 7 Days": [], Earlier: [] };
+    for (const s of filtered) {
+      const ageH = (now - s.createdAt.getTime()) / 36e5;
+      if (ageH < 24) buckets.Today.push(s);
+      else if (ageH < 48) buckets.Yesterday.push(s);
+      else if (ageH < 24 * 7) buckets["Last 7 Days"].push(s);
+      else buckets.Earlier.push(s);
+    }
+    let totalPredictions = 0;
+    let confSum = 0;
+    let confCount = 0;
+    for (const s of sessions) {
+      if (Array.isArray(s.predictions)) totalPredictions += s.predictions.length;
+      if (s.confidenceScore != null) { confSum += s.confidenceScore; confCount += 1; }
+    }
+    const avgConf = confCount ? confSum / confCount : 0;
+    return { filtered, buckets, totalPredictions, avgConf };
+  }, [sessions, sessionsQuery]);
+
+
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -447,7 +490,7 @@ const AxrlenView = () => {
               <span className="text-[8px] text-foreground/40">{activeSession.confidenceScore}%</span>
             </div>
           )}
-          <AxrlenBrainsManager />
+          <Suspense fallback={null}><AxrlenBrainsManager /></Suspense>
           <button onClick={() => setShowSessions(!showSessions)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] tracking-wide transition-all ${showSessions ? "border-foreground/[0.12] bg-foreground/[0.06] text-foreground/70" : "border-border/[0.08] bg-foreground/[0.02] text-muted-foreground/50 hover:bg-foreground/[0.04]"}`}>
             <Clock className="h-3 w-3" /> Sessions
@@ -457,22 +500,10 @@ const AxrlenView = () => {
 
       {/* Sessions popout — side drawer */}
       {showSessions && (() => {
-        const [q, setQ] = [sessionsQuery, setSessionsQuery];
-        const filtered = sessions.filter(s =>
-          !q.trim() || s.title.toLowerCase().includes(q.toLowerCase()) || (s.region || "").toLowerCase().includes(q.toLowerCase())
-        );
-        const now = Date.now();
-        const buckets: Record<string, AxrlenSession[]> = { Today: [], Yesterday: [], "Last 7 Days": [], Earlier: [] };
-        filtered.forEach(s => {
-          const ageH = (now - s.createdAt.getTime()) / 36e5;
-          if (ageH < 24) buckets.Today.push(s);
-          else if (ageH < 48) buckets.Yesterday.push(s);
-          else if (ageH < 24 * 7) buckets["Last 7 Days"].push(s);
-          else buckets.Earlier.push(s);
-        });
-        const totalPredictions = sessions.reduce((acc, s) => acc + (Array.isArray(s.predictions) ? s.predictions.length : 0), 0);
-        const avgConf = sessions.filter(s => s.confidenceScore != null).reduce((a, s, _, arr) => a + (s.confidenceScore || 0) / arr.length, 0);
-        const completeCount = sessions.filter(s => s.status === "complete").length;
+        const q = sessionsQuery;
+        const setQ = setSessionsQuery;
+        const { filtered, buckets, totalPredictions, avgConf } = sessionStats;
+
 
         return (
           <>
@@ -642,7 +673,9 @@ const AxrlenView = () => {
         {/* ── Dashboard (primary, left) — hidden on mobile when chat is open ── */}
         {activeSession ? (
           <div className={`flex-1 min-w-0 overflow-hidden ${!chatCollapsed ? "hidden md:block" : ""}`}>
-            <AxrlenDashboard session={activeSession} />
+            <Suspense fallback={<div className="h-full flex items-center justify-center"><Loader2 className="h-4 w-4 text-muted-foreground/30 animate-spin" /></div>}>
+              <AxrlenDashboard session={activeSession} />
+            </Suspense>
           </div>
         ) : (
           <div className={`relative flex flex-1 min-w-0 flex-col items-center justify-start px-4 py-10 sm:py-16 gap-10 overflow-y-auto ${!chatCollapsed ? "hidden md:flex" : ""}`}>
