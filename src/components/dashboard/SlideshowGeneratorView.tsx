@@ -39,7 +39,7 @@ const SlideshowGeneratorView = () => {
   const slideRef = useRef<HTMLDivElement>(null);
   const fullscreenRef = useRef<HTMLDivElement>(null);
 
-  const wallpaperSrc = WALLPAPERS.find(w => w.key === selectedWallpaper)?.src || wallpaperDefault;
+  const wallpaperSrc = WALLPAPERS.find(w => w.key === selectedWallpaper)?.src || getWallpaperSrc("default");
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
