@@ -1,7 +1,7 @@
 // Zaxin — five-brain BLE tactical scanner UI.
 // Theory by Asher · #houseofasher. Built browser-native (Web Bluetooth + DeviceOrientation).
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bluetooth, Radar, ShieldAlert, Network, AlertTriangle, Eye,
   Smartphone, Play, Square, Trash2, RefreshCw, Star, Compass, Camera, Download, Upload,
