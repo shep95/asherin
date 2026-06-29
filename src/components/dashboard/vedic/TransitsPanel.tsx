@@ -384,29 +384,26 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
             100% Moon-driven, filtered to <span className="text-foreground/85">Wealth (Equity/Liquidity), Love, Power, Mental &amp; Physical Health</span>. Personalized to your ascendant — each event lists the natal planets sitting in the house being activated. Timestamps in your local time.
           </p>
           {/* Domain filter chips */}
-          {(() => {
-            const { DOMAIN_META } = require("@/lib/vedic/moonEvents") as typeof import("@/lib/vedic/moonEvents");
-            return (
-              <div className="flex flex-wrap gap-1.5">
-                {ALL_DOMAINS.map((d) => {
-                  const on = activeDomains.has(d);
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => toggleDomain(d)}
-                      className={`text-[9.5px] uppercase tracking-[0.18em] px-2 py-1 rounded border transition ${
-                        on ? "border-foreground/45 bg-foreground/[0.08] text-foreground"
-                           : "border-border/30 bg-background/30 text-muted-foreground/60 hover:text-foreground/80"
-                      }`}
-                    >
-                      {DOMAIN_META[d].label}
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })()}
+          {(
+            <div className="flex flex-wrap gap-1.5">
+              {ALL_DOMAINS.map((d) => {
+                const on = activeDomains.has(d);
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => toggleDomain(d)}
+                    className={`text-[9.5px] uppercase tracking-[0.18em] px-2 py-1 rounded border transition ${
+                      on ? "border-foreground/45 bg-foreground/[0.08] text-foreground"
+                         : "border-border/30 bg-background/30 text-muted-foreground/60 hover:text-foreground/80"
+                    }`}
+                  >
+                    {DOMAIN_META[d].label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {loadingMoon && !moonEvents ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Tracing the Moon across {periodLabel}…</div>
           ) : (() => {
