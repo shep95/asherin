@@ -3,7 +3,7 @@
 // in `asher_ai_messages`. Files uploaded to private `asher-ai-uploads` bucket and
 // streamed to Gemini as inline_data parts via the asher-ai edge function.
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 import {
   Brain, Send, Loader2, Trash2, Sparkles, ShieldCheck, Database, Lock, Network,
   Plus, MessageSquare, Paperclip, X, FileText, Film, Image as ImageIcon, Pencil, Check,
@@ -15,7 +15,7 @@ import { logAsherEvent } from "@/lib/asherAudit";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { routeBrainsForPrompt, type SwarmRouteResult } from "@/lib/asherBrainRouter";
 import { useAuth } from "@/contexts/AuthContext";
-import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+const wallpaperAureon = "/wallpapers/wallpaper-aureon.png";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
 interface Attachment {
@@ -60,6 +60,44 @@ const AttIcon = ({ mime }: { mime: string }) => {
   if (mime.startsWith("video/")) return <Film className="h-3 w-3" strokeWidth={1.6} />;
   return <FileText className="h-3 w-3" strokeWidth={1.6} />;
 };
+
+// Memoized bubble — Markdown re-parses only when this message's content changes,
+// so streaming a token into the last assistant message no longer re-renders all
+// prior bubbles (huge win on long conversations).
+const MessageBubble = memo(function MessageBubble({ m }: { m: Msg }) {
+  return (
+    <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+      <div
+        className={`max-w-[85%] rounded-xl px-4 py-3 text-[13px] font-light leading-relaxed ${
+          m.role === "user"
+            ? "bg-foreground/10 text-foreground border border-border/15"
+            : "bg-card/40 text-foreground/90 border border-border/10 backdrop-blur-sm"
+        }`}
+      >
+        {m.role === "assistant" && (
+          <div className="flex items-center gap-1.5 mb-2 opacity-60">
+            <Sparkles className="h-3 w-3" strokeWidth={1.5} />
+            <span className="text-[8px] font-light tracking-[0.3em] uppercase">Asher</span>
+          </div>
+        )}
+        {m.attachments && m.attachments.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {m.attachments.map((a, i) => (
+              <span key={i} className="flex items-center gap-1 rounded-md bg-foreground/5 border border-border/20 px-2 py-0.5 text-[10px] font-light text-muted-foreground">
+                <AttIcon mime={a.mimeType} />
+                <span className="truncate max-w-[140px]">{a.name}</span>
+                <span className="text-muted-foreground/50">{fmtSize(a.size)}</span>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-headings:font-light prose-headings:tracking-wide prose-strong:font-normal prose-strong:text-foreground prose-code:text-foreground/90 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-background/60 prose-pre:border prose-pre:border-border/20 prose-li:my-0.5">
+          <ReactMarkdown>{m.content || " "}</ReactMarkdown>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 const AsherCommandCenter = () => {
   const { user } = useAuth();
@@ -445,36 +483,7 @@ const AsherCommandCenter = () => {
               </div>
             )}
             {messages.map((m) => (
-              <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[85%] rounded-xl px-4 py-3 text-[13px] font-light leading-relaxed ${
-                    m.role === "user"
-                      ? "bg-foreground/10 text-foreground border border-border/15"
-                      : "bg-card/40 text-foreground/90 border border-border/10 backdrop-blur-sm"
-                  }`}
-                >
-                  {m.role === "assistant" && (
-                    <div className="flex items-center gap-1.5 mb-2 opacity-60">
-                      <Sparkles className="h-3 w-3" strokeWidth={1.5} />
-                      <span className="text-[8px] font-light tracking-[0.3em] uppercase">Asher</span>
-                    </div>
-                  )}
-                  {m.attachments && m.attachments.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {m.attachments.map((a, i) => (
-                        <span key={i} className="flex items-center gap-1 rounded-md bg-foreground/5 border border-border/20 px-2 py-0.5 text-[10px] font-light text-muted-foreground">
-                          <AttIcon mime={a.mimeType} />
-                          <span className="truncate max-w-[140px]">{a.name}</span>
-                          <span className="text-muted-foreground/50">{fmtSize(a.size)}</span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-headings:font-light prose-headings:tracking-wide prose-strong:font-normal prose-strong:text-foreground prose-code:text-foreground/90 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-background/60 prose-pre:border prose-pre:border-border/20 prose-li:my-0.5">
-                    <ReactMarkdown>{m.content || (busy ? "…" : " ")}</ReactMarkdown>
-                  </div>
-                </div>
-              </div>
+              <MessageBubble key={m.id} m={m} />
             ))}
             {busy && messages[messages.length - 1]?.role === "user" && (
               <div className="flex justify-start">
