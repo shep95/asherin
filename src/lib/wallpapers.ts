@@ -1,24 +1,6 @@
-import wallpaperDefault from "@/assets/hero-bg.png";
-import wallpaperRaven from "@/assets/wallpaper-raven.png";
-import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
-import wallpaperGlitch from "@/assets/wallpaper-glitch.png";
-import wallpaperAureon from "@/assets/wallpaper-aureon.png";
-import wallpaperSeraph from "@/assets/wallpaper-seraph.png";
-import wallpaperProphet from "@/assets/wallpaper-prophet.png";
-import wallpaperNexus from "@/assets/wallpaper-nexus.png";
-import wallpaperSentinel from "@/assets/wallpaper-sentinel.png";
-import wallpaperInferno from "@/assets/wallpaper-inferno.png";
-import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
-import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
-import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
-import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
-import wallpaperStealth from "@/assets/wallpaper-stealth.png";
-import wallpaperStatic from "@/assets/wallpaper-static.png";
-import wallpaperMane from "@/assets/wallpaper-mane.png";
-import wallpaperImpact from "@/assets/wallpaper-impact.png";
-import wallpaperOracle from "@/assets/wallpaper-oracle.png";
-import wallpaperAscend from "@/assets/wallpaper-ascend.png";
-import wallpaperCosmos from "@/assets/wallpaper-cosmos.png";
+// Wallpapers are served as static URLs from /public/wallpapers/ so they are NOT
+// bundled into the JS payload. Only the active wallpaper is fetched at runtime
+// (previously all 21 PNGs ≈ 50MB were eagerly imported on landing + dashboard).
 
 export interface WallpaperOption {
   key: string;
@@ -26,28 +8,30 @@ export interface WallpaperOption {
   src: string;
 }
 
+const url = (file: string) => `/wallpapers/${file}`;
+
 export const ALL_WALLPAPERS: WallpaperOption[] = [
-  { key: "default", label: "Original", src: wallpaperDefault },
-  { key: "raven", label: "Raven", src: wallpaperRaven },
-  { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
-  { key: "glitch", label: "Glitch", src: wallpaperGlitch },
-  { key: "aureon", label: "Aureon", src: wallpaperAureon },
-  { key: "seraph", label: "Seraph", src: wallpaperSeraph },
-  { key: "prophet", label: "Prophet", src: wallpaperProphet },
-  { key: "nexus", label: "Nexus", src: wallpaperNexus },
-  { key: "sentinel", label: "Sentinel", src: wallpaperSentinel },
-  { key: "inferno", label: "Inferno", src: wallpaperInferno },
-  { key: "sorrow", label: "Sorrow", src: wallpaperSorrow },
-  { key: "silhouette", label: "Silhouette", src: wallpaperSilhouette },
-  { key: "phantom", label: "Phantom", src: wallpaperPhantom },
-  { key: "abyss", label: "Abyss", src: wallpaperAbyss },
-  { key: "stealth", label: "Stealth", src: wallpaperStealth },
-  { key: "static", label: "Static", src: wallpaperStatic },
-  { key: "mane", label: "Mane", src: wallpaperMane },
-  { key: "impact", label: "Impact", src: wallpaperImpact },
-  { key: "oracle", label: "Oracle", src: wallpaperOracle },
-  { key: "ascend", label: "Ascend", src: wallpaperAscend },
-  { key: "cosmos", label: "Cosmos", src: wallpaperCosmos },
+  { key: "default", label: "Original", src: url("hero-bg.png") },
+  { key: "raven", label: "Raven", src: url("wallpaper-raven.png") },
+  { key: "eclipse", label: "Eclipse", src: url("wallpaper-eclipse.png") },
+  { key: "glitch", label: "Glitch", src: url("wallpaper-glitch.png") },
+  { key: "aureon", label: "Aureon", src: url("wallpaper-aureon.png") },
+  { key: "seraph", label: "Seraph", src: url("wallpaper-seraph.png") },
+  { key: "prophet", label: "Prophet", src: url("wallpaper-prophet.png") },
+  { key: "nexus", label: "Nexus", src: url("wallpaper-nexus.png") },
+  { key: "sentinel", label: "Sentinel", src: url("wallpaper-sentinel.png") },
+  { key: "inferno", label: "Inferno", src: url("wallpaper-inferno.png") },
+  { key: "sorrow", label: "Sorrow", src: url("wallpaper-sorrow.png") },
+  { key: "silhouette", label: "Silhouette", src: url("wallpaper-silhouette.png") },
+  { key: "phantom", label: "Phantom", src: url("wallpaper-phantom.png") },
+  { key: "abyss", label: "Abyss", src: url("wallpaper-abyss.png") },
+  { key: "stealth", label: "Stealth", src: url("wallpaper-stealth.png") },
+  { key: "static", label: "Static", src: url("wallpaper-static.png") },
+  { key: "mane", label: "Mane", src: url("wallpaper-mane.png") },
+  { key: "impact", label: "Impact", src: url("wallpaper-impact.png") },
+  { key: "oracle", label: "Oracle", src: url("wallpaper-oracle.png") },
+  { key: "ascend", label: "Ascend", src: url("wallpaper-ascend.png") },
+  { key: "cosmos", label: "Cosmos", src: url("wallpaper-cosmos.png") },
 ];
 
 export const getWallpaperSrc = (key: string, fallback?: string): string => {
