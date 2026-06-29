@@ -1,6 +1,8 @@
+import { useCallback, useMemo } from "react";
 import { isAdminEmail } from "@/lib/adminEmail";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { trialStateFor } from "@/lib/trial";
 import type { DashboardView } from "@/components/dashboard/types";
 
 // Enterprise / Pro-only views
@@ -22,8 +24,6 @@ const PUBLIC_VIEWS: DashboardView[] = [
   "bug-reports", "vedic-astrology",
 ];
 
-const TRIAL_HOURS = 24;
-
 // ── KILL SWITCH ──────────────────────────────────────────────────────────────
 // `true`  → paywalls enforced (admin + <24h trial bypass).
 // `false` → paywalls paused (every account gets full access).
@@ -34,20 +34,19 @@ export function useAccess() {
   const { user } = useAuth();
   const isAdmin = isAdminEmail(user?.email);
 
-  // 24-hour free-trial window from account creation timestamp.
-  const createdAt = user?.created_at ? new Date(user.created_at).getTime() : 0;
-  const trialActive = createdAt > 0 && (Date.now() - createdAt) < TRIAL_HOURS * 3600 * 1000;
-  const trialEndsAt = createdAt > 0 ? createdAt + TRIAL_HOURS * 3600 * 1000 : 0;
+  const trial = useMemo(() => trialStateFor(user?.created_at), [user?.created_at]);
+  const trialActive = trial.active;
+  const trialEnded = trial.ended && !!user?.id;
+  const trialEndsAt = trial.endsAt;
 
-  // Tier ladder: lifetime/monthly_pro/pro > monthly_aureon/aureon > chat > free
   const tier = tierKey;
   const hasChat = !!tier;
   const hasSearch = !!tier;
   const hasAureon = tier === "monthly_aureon" || tier === "aureon" || tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
   const hasPro = tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
-  const hasEnterprise = tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
+  const hasEnterprise = hasPro;
 
-  const canAccess = (view: DashboardView): boolean => {
+  const canAccess = useCallback((view: DashboardView): boolean => {
     if (!GATING_ENABLED) return true;
     if (isAdmin) return true;
     if (trialActive) return true;
@@ -63,11 +62,11 @@ export function useAccess() {
     if (ENTERPRISE_VIEWS.includes(view)) return hasEnterprise;
     // Unknown views default to the lowest paid tier — fail closed.
     return hasChat;
-  };
+  }, [isAdmin, trialActive, subLoading, tier, hasChat, hasSearch, hasAureon, hasPro, hasEnterprise]);
 
-  return {
+  return useMemo(() => ({
     canAccess, isAdmin, tierKey, isPastDue,
     hasChat, hasSearch, hasAureon, hasPro, hasEnterprise,
-    trialActive, trialEndsAt,
-  };
+    trialActive, trialEnded, trialEndsAt,
+  }), [canAccess, isAdmin, tierKey, isPastDue, hasChat, hasSearch, hasAureon, hasPro, hasEnterprise, trialActive, trialEnded, trialEndsAt]);
 }

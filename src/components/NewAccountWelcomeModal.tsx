@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { TRIAL_HOURS, TRIAL_MS } from "@/lib/trial";
 import welcomeImg from "@/assets/welcome-silhouette.png.asset.json";
 
 const STORAGE_PREFIX = "aureon_welcome_seen_";
 const EXPIRED_PREFIX = "aureon_trial_expired_seen_";
-const TRIAL_HOURS = 24;
+
 
 /**
  * Two-state initiation modal.
@@ -38,21 +39,25 @@ export default function NewAccountWelcomeModal() {
   const { state, key } = useMemo(() => {
     if (!user?.id || !user.created_at) return { state: null as null | "active" | "expired", key: "" };
     const ageMs = Date.now() - new Date(user.created_at).getTime();
-    const trialMs = TRIAL_HOURS * 3600 * 1000;
-    if (ageMs < trialMs) return { state: "active" as const, key: STORAGE_PREFIX + user.id };
+    if (ageMs < TRIAL_MS) return { state: "active" as const, key: STORAGE_PREFIX + user.id };
     return { state: "expired" as const, key: EXPIRED_PREFIX + user.id };
   }, [user?.id, user?.created_at]);
 
+  // Reset open whenever the identity (user/state) changes — prevents lingering
+  // open=true from a prior account in the same tab.
   useEffect(() => {
-    if (!state || !key) return;
-    if (localStorage.getItem(key)) return;
+    if (!state || !key) { setOpen(false); return; }
+    if (localStorage.getItem(key)) { setOpen(false); return; }
     setOpen(true);
   }, [state, key]);
 
+
   useEffect(() => {
     if (!open || state !== "active" || !user?.created_at) return;
-    const trialEnd = new Date(user.created_at).getTime() + TRIAL_HOURS * 3600 * 1000;
+    const trialEnd = new Date(user.created_at).getTime() + TRIAL_MS;
     const tick = () => {
+
+
       const ms = Math.max(0, trialEnd - Date.now());
       const h = Math.floor(ms / 3600000);
       const m = Math.floor((ms % 3600000) / 60000);
