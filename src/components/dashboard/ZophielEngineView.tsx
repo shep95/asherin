@@ -836,12 +836,14 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       {/* Intelligence Suite split-screen panel */}
       {intelSuiteOpen && searched && results.length > 0 && (
         <div ref={rightPanelRef} className="hidden lg:block min-w-0 animate-fade-in" style={{ width: `${splitPct}%` }}>
-          <IntelligenceSuitePanel
-            query={query}
-            results={results}
-            onClose={() => setIntelSuiteOpen(false)}
-            onRunQuery={(q) => { setQuery(q); search(q); }}
-          />
+          <Suspense fallback={null}>
+            <IntelligenceSuitePanel
+              query={query}
+              results={results}
+              onClose={() => setIntelSuiteOpen(false)}
+              onRunQuery={(q) => { setQuery(q); search(q); }}
+            />
+          </Suspense>
         </div>
       )}
 
