@@ -1171,21 +1171,27 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         conversationId={conversation.id}
       />
 
-      {/* Share with Redaction modal */}
-      <ShareWithRedaction
-        messages={branchMessages}
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-      />
+      {/* Share with Redaction modal — mount only when open */}
+      {shareOpen && (
+        <Suspense fallback={null}>
+          <ShareWithRedaction
+            messages={branchMessages}
+            open={shareOpen}
+            onClose={() => setShareOpen(false)}
+          />
+        </Suspense>
+      )}
       </div>
       {/* Artifact Canvas - right panel */}
       {artifactOpen && (
-        <ArtifactCanvas
-          open={artifactOpen}
-          onClose={() => setArtifactOpen(false)}
-          initialContent={artifactContent}
-          persistKey={artifactKey}
-        />
+        <Suspense fallback={null}>
+          <ArtifactCanvas
+            open={artifactOpen}
+            onClose={() => setArtifactOpen(false)}
+            initialContent={artifactContent}
+            persistKey={artifactKey}
+          />
+        </Suspense>
       )}
 
       {/* Image Lightbox */}
