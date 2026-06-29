@@ -112,3 +112,22 @@ export async function calculateSweVedicChart(input: ChartInput): Promise<SweVedi
 
   return { planets, ascendant, houses, ayanamsa, jd, birthUtc, dashaBirthUtc, dashaMoonSid };
 }
+
+/**
+ * Lightweight Moon-only sidereal longitude probe. Avoids the cost of a full
+ * chart compute when all we need is the Moon's position at instant `at`.
+ * Returns Lahiri-corrected sidereal degrees in [0, 360).
+ */
+export async function siderealMoonAt(at: Date, lat: number, lon: number): Promise<number> {
+  const swe = await getSwissEph();
+  const y = at.getUTCFullYear();
+  const m = at.getUTCMonth() + 1;
+  const d = at.getUTCDate();
+  const utHours = at.getUTCHours() + at.getUTCMinutes() / 60 + at.getUTCSeconds() / 3600;
+  const jd = swe.swe_julday(y, m, d, utHours, swe.SE_GREG_CAL);
+  swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
+  swe.swe_set_topo(lon, lat, 0);
+  const flag = swe.SEFLG_SIDEREAL | swe.SEFLG_TOPOCTR;
+  const pos = swe.swe_calc_ut(jd, 1, flag);
+  return norm360(pos[0]);
+}
