@@ -84,11 +84,33 @@ const ZaxinView = () => {
   const [scanErr, setScanErr] = useState<string | null>(null);
   const scanHandleRef = useRef<{ stop: () => Promise<void> } | null>(null);
 
-  // tactical subscription + tick loop
+  // tactical subscription + tick loop — coalesce snapshot updates to ≤4 fps to
+  // avoid a full-tree re-render every time the engine mutates a single contact.
   useEffect(() => {
-    const unsub = engine.subscribe(setSnap);
+    let pending: ZaxlinPending = null;
+    let raf = 0;
+    let last = 0;
+    const flush = () => {
+      raf = 0;
+      if (!pending) return;
+      const next = pending;
+      pending = null;
+      last = performance.now();
+      setSnap(next);
+    };
+    const unsub = engine.subscribe((s) => {
+      pending = s;
+      const now = performance.now();
+      const wait = Math.max(0, 240 - (now - last));
+      if (raf) return;
+      raf = window.setTimeout(flush, wait) as unknown as number;
+    });
     const t = window.setInterval(() => engine.tick(), 2_000);
-    return () => { unsub(); clearInterval(t); };
+    return () => {
+      unsub();
+      clearInterval(t);
+      if (raf) clearTimeout(raf);
+    };
   }, [engine]);
 
   // hop brain
