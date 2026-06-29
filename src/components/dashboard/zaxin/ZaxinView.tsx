@@ -1,7 +1,7 @@
 // Zaxin — five-brain BLE tactical scanner UI.
 // Theory by Asher · #houseofasher. Built browser-native (Web Bluetooth + DeviceOrientation).
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bluetooth, Radar, ShieldAlert, Network, AlertTriangle, Eye,
   Smartphone, Play, Square, Trash2, RefreshCw, Star, Compass, Camera, Download, Upload,
@@ -84,11 +84,33 @@ const ZaxinView = () => {
   const [scanErr, setScanErr] = useState<string | null>(null);
   const scanHandleRef = useRef<{ stop: () => Promise<void> } | null>(null);
 
-  // tactical subscription + tick loop
+  // tactical subscription + tick loop — coalesce snapshot updates to ≤4 fps to
+  // avoid a full-tree re-render every time the engine mutates a single contact.
   useEffect(() => {
-    const unsub = engine.subscribe(setSnap);
+    let pending: ZaxinSnapshot | null = null;
+    let raf = 0;
+    let last = 0;
+    const flush = () => {
+      raf = 0;
+      if (!pending) return;
+      const next = pending;
+      pending = null;
+      last = performance.now();
+      setSnap(next);
+    };
+    const unsub = engine.subscribe((s) => {
+      pending = s;
+      const now = performance.now();
+      const wait = Math.max(0, 240 - (now - last));
+      if (raf) return;
+      raf = window.setTimeout(flush, wait) as unknown as number;
+    });
     const t = window.setInterval(() => engine.tick(), 2_000);
-    return () => { unsub(); clearInterval(t); };
+    return () => {
+      unsub();
+      clearInterval(t);
+      if (raf) clearTimeout(raf);
+    };
   }, [engine]);
 
   // hop brain
@@ -2193,8 +2215,9 @@ function useMeasuredElement<T extends HTMLElement>() {
 function usePrecisionGeo() {
   const [fix, setFix] = useState<GeoFix | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [samples, setSamples] = useState(0);
+  const samplesRef = useRef(0);
   const fixRef = useRef<GeoFix | null>(null);
+  const lastCommitRef = useRef(0);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -2205,7 +2228,7 @@ function usePrecisionGeo() {
     let killed = false;
     const commit = (p: GeolocationPosition, source: GeoFix["source"]) => {
       if (killed) return;
-      setSamples((n) => n + 1);
+      samplesRef.current += 1;
       const previous = fixRef.current;
       const rawHeading = p.coords.heading;
       const liveCourse = typeof rawHeading === "number" && Number.isFinite(rawHeading)
@@ -2227,9 +2250,15 @@ function usePrecisionGeo() {
       }
       if (!shouldPromoteGeoFix(fixRef.current, next)) return;
       fixRef.current = next;
+      // Throttle React commits to ≤2.5 Hz so the map/HUD doesn't re-render on
+      // every raw sample while we still keep the latest fix in the ref.
+      const now = performance.now();
+      if (now - lastCommitRef.current < 400) return;
+      lastCommitRef.current = now;
       setFix(next);
       setErr(null);
     };
+
 
     const onError = (e: GeolocationPositionError) => {
       if (!killed) setErr(e.message);
@@ -2260,7 +2289,7 @@ function usePrecisionGeo() {
     };
   }, []);
 
-  return { fix, err, samples, quality: geoQuality(fix?.acc) };
+  return { fix, err, samples: samplesRef.current, quality: geoQuality(fix?.acc) };
 }
 
 function MiniMap({ heading, compassOn, geo, contacts }: {
