@@ -94,22 +94,7 @@ const PageLoader = () => (
   </div>
 );
 
-// Tuned defaults: avoid redundant network chatter (refetch storms on focus/mount)
-// and keep a sensible cache so route swaps don't refire the same queries.
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60_000,
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      retry: 1,
-    },
-    mutations: {
-      retry: 0,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
