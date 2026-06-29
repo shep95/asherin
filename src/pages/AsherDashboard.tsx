@@ -1,44 +1,47 @@
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
   Building2, Wrench, PenSquare, Activity, NotebookPen, Code2, Package, Moon,
-  BrainCircuit, BarChart3, Workflow, Bot,
+  BrainCircuit, BarChart3, Workflow, Bot, Loader2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+// Eager: default tab (map) + chrome (banner, command bar) + lightweight shared pieces.
 import IntelligenceMapModule from "@/components/asher/IntelligenceMapModule";
 import ComingSoonModule from "@/components/asher/ComingSoonModule";
 import AsherCommandCenter from "@/components/asher/AsherCommandCenter";
-import AsherAzplenModule from "@/components/asher/AsherAzplenModule";
-import AsherZaliModule from "@/components/asher/AsherZaliModule";
-import AsherWhiteboardModule from "@/components/asher/AsherWhiteboardModule";
-import AsherAxrlenModule from "@/components/asher/AsherAxrlenModule";
-import AsherNotebooksModule from "@/components/asher/AsherNotebooksModule";
-import AsherSettingsModule from "@/components/asher/AsherSettingsModule";
-import AsherAuditVault from "@/components/asher/AsherAuditVault";
-import AsherSavedTargets from "@/components/asher/AsherSavedTargets";
-import AsherZophielModule from "@/components/asher/AsherZophielModule";
-import AsherCommsModule from "@/components/asher/AsherCommsModule";
-import AsherOrganizationsModule from "@/components/asher/AsherOrganizationsModule";
 import AsherInvitationsBanner from "@/components/asher/AsherInvitationsBanner";
-import AsherCodeModule from "@/components/asher/AsherCodeModule";
-import VedicAstrologyView from "@/components/dashboard/VedicAstrologyView";
+// Lazy: every other tab loads only when its `active` value is selected.
+// Previously all 20+ modules shipped in the first chunk even though one renders at a time.
+const AsherAzplenModule       = lazy(() => import("@/components/asher/AsherAzplenModule"));
+const AsherZaliModule         = lazy(() => import("@/components/asher/AsherZaliModule"));
+const AsherWhiteboardModule   = lazy(() => import("@/components/asher/AsherWhiteboardModule"));
+const AsherAxrlenModule       = lazy(() => import("@/components/asher/AsherAxrlenModule"));
+const AsherNotebooksModule    = lazy(() => import("@/components/asher/AsherNotebooksModule"));
+const AsherSettingsModule     = lazy(() => import("@/components/asher/AsherSettingsModule"));
+const AsherAuditVault         = lazy(() => import("@/components/asher/AsherAuditVault"));
+const AsherSavedTargets       = lazy(() => import("@/components/asher/AsherSavedTargets"));
+const AsherZophielModule      = lazy(() => import("@/components/asher/AsherZophielModule"));
+const AsherCommsModule        = lazy(() => import("@/components/asher/AsherCommsModule"));
+const AsherOrganizationsModule= lazy(() => import("@/components/asher/AsherOrganizationsModule"));
+const AsherCodeModule         = lazy(() => import("@/components/asher/AsherCodeModule"));
+const VedicAstrologyView      = lazy(() => import("@/components/dashboard/VedicAstrologyView"));
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import AsherPublishedTabRenderer from "@/components/asher/AsherPublishedTabRenderer";
-import AsherBrainsModule from "@/components/asher/AsherBrainsModule";
-import AsherAureonDataModule from "@/components/asher/AsherAureonDataModule";
-import AsherZahtenModule from "@/components/asher/AsherZahtenModule";
-import AsherZacoonModule from "@/components/asher/AsherZacoonModule";
+const AsherPublishedTabRenderer = lazy(() => import("@/components/asher/AsherPublishedTabRenderer"));
+const AsherBrainsModule       = lazy(() => import("@/components/asher/AsherBrainsModule"));
+const AsherAureonDataModule   = lazy(() => import("@/components/asher/AsherAureonDataModule"));
+const AsherZahtenModule       = lazy(() => import("@/components/asher/AsherZahtenModule"));
+const AsherZacoonModule       = lazy(() => import("@/components/asher/AsherZacoonModule"));
 
 
 import { isSuperOwner } from "@/lib/asherOrgs";
 
-import AsherProfile from "@/components/asher/AsherProfile";
+const AsherProfile = lazy(() => import("@/components/asher/AsherProfile"));
 import { logAsherEvent } from "@/lib/asherAudit";
 import { useAsherAutoLock } from "@/components/asher/useAsherAutoLock";
 
