@@ -132,29 +132,9 @@ interface HistoryState {
   activeLayerId: string | null;
 }
 
-const WALLPAPERS = [
-  { key: "default", label: "Current", src: heroBgDefault },
-  { key: "raven", label: "Raven", src: wallpaperRaven },
-  { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
-  { key: "glitch", label: "Glitch", src: wallpaperGlitch },
-  { key: "aureon", label: "Aureon", src: wallpaperAureon },
-  { key: "seraph", label: "Seraph", src: wallpaperSeraph },
-  { key: "prophet", label: "Prophet", src: wallpaperProphet },
-  { key: "nexus", label: "Nexus", src: wallpaperNexus },
-  { key: "sentinel", label: "Sentinel", src: wallpaperSentinel },
-  { key: "inferno", label: "Inferno", src: wallpaperInferno },
-  { key: "sorrow", label: "Sorrow", src: wallpaperSorrow },
-  { key: "silhouette", label: "Silhouette", src: wallpaperSilhouette },
-  { key: "phantom", label: "Phantom", src: wallpaperPhantom },
-  { key: "abyss", label: "Abyss", src: wallpaperAbyss },
-  { key: "stealth", label: "Stealth", src: wallpaperStealth },
-  { key: "static", label: "Static", src: wallpaperStatic },
-  { key: "mane", label: "Mane", src: wallpaperMane },
-  { key: "impact", label: "Impact", src: wallpaperImpact },
-  { key: "oracle", label: "Oracle", src: wallpaperOracle },
-  { key: "ascend", label: "Ascend", src: wallpaperAscend },
-  { key: "cosmos", label: "Cosmos", src: wallpaperCosmos },
-];
+const WALLPAPERS = ALL_WALLPAPERS.map((w) =>
+  w.key === "default" ? { ...w, label: "Current" } : w,
+);
 
 const COLORS = [
   "#ffffff",
