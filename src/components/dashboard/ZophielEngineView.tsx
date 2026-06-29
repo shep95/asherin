@@ -645,7 +645,9 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
               {/* URL Intelligence Map — auto when query is a URL */}
               {urlIntelTarget && (
-                <UrlIntelMapPanel url={urlIntelTarget} onClose={() => setUrlIntelTarget(null)} />
+                <Suspense fallback={null}>
+                  <UrlIntelMapPanel url={urlIntelTarget} onClose={() => setUrlIntelTarget(null)} />
+                </Suspense>
               )}
 
               {/* Standard search results */}
