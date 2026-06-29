@@ -136,6 +136,8 @@ const AxrlenView = () => {
   // ── Scan trigger (from chat) ──
   const runScan = async (region: string, scanType: string) => {
     setIsScanning(true);
+    // Progress ticker runs ALONGSIDE the real analysis (no artificial sleep).
+    // Previously this looped 8x900ms = 7.2s of pure theater BEFORE the real call.
     const steps = [
       "Initializing AXRLEN intelligence grid...",
       "Querying GDELT global event database...",
@@ -146,11 +148,13 @@ const AxrlenView = () => {
       "Running multi-domain prediction engine...",
       "Generating timeline divergence analysis...",
     ];
+    let stepIdx = 0;
+    setScanProgress(steps[0]);
+    const progressTimer = setInterval(() => {
+      stepIdx = (stepIdx + 1) % steps.length;
+      setScanProgress(steps[stepIdx]);
+    }, 1400);
 
-    for (const step of steps) {
-      setScanProgress(step);
-      await new Promise(r => setTimeout(r, 900));
-    }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
