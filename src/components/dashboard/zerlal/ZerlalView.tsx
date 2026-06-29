@@ -1,30 +1,33 @@
 import { useState, lazy, Suspense } from "react";
 import { Shield, Bell, Plus } from "lucide-react";
 import ZerlalNav from "./ZerlalNav";
-import DashboardScreen from "./DashboardScreen";
-import ProjectView from "./ProjectView";
-import FindingDetail from "./FindingDetail";
-import ReportsScreen from "./ReportsScreen";
-import IntegrationsScreen from "./IntegrationsScreen";
-import IntelligenceModule from "./IntelligenceModule";
-import DeviceSecurityScanner from "./DeviceSecurityScanner";
-import DomainReconScreen from "./DomainReconScreen";
-import ScanModal from "./ScanModal";
 import { useZerlalFindings } from "./useZerlalData";
 import type { ZerlalScreen } from "./types";
 import { ScanProvider } from "./scanContext";
 
-const SigmaRuleEngine = lazy(() => import("./SigmaRuleEngine"));
-const StixTaxiiFeed = lazy(() => import("./StixTaxiiFeed"));
-const LogCorrelationEngine = lazy(() => import("./LogCorrelationEngine"));
+// Every screen is lazy-loaded so opening Zerlal only pulls the active screen's
+// bundle instead of dragging in ScanModal (746 LOC), ProjectView (543 LOC),
+// IntelligenceModule, DomainRecon, etc. on first paint.
+const DashboardScreen        = lazy(() => import("./DashboardScreen"));
+const ProjectView            = lazy(() => import("./ProjectView"));
+const FindingDetail          = lazy(() => import("./FindingDetail"));
+const ReportsScreen          = lazy(() => import("./ReportsScreen"));
+const IntegrationsScreen     = lazy(() => import("./IntegrationsScreen"));
+const IntelligenceModule     = lazy(() => import("./IntelligenceModule"));
+const DeviceSecurityScanner  = lazy(() => import("./DeviceSecurityScanner"));
+const DomainReconScreen      = lazy(() => import("./DomainReconScreen"));
+const ScanModal              = lazy(() => import("./ScanModal"));
+const SigmaRuleEngine        = lazy(() => import("./SigmaRuleEngine"));
+const StixTaxiiFeed          = lazy(() => import("./StixTaxiiFeed"));
+const LogCorrelationEngine   = lazy(() => import("./LogCorrelationEngine"));
 const CertTransparencyMonitor = lazy(() => import("./CertTransparencyMonitor"));
-const CodeVulnScanner = lazy(() => import("./CodeVulnScanner"));
-const PortScannerUI = lazy(() => import("./PortScannerUI"));
-const WhoisTimeline = lazy(() => import("./WhoisTimeline"));
-const TorExitNodeChecker = lazy(() => import("./TorExitNodeChecker"));
-const TeamScreen = lazy(() => import("./TeamScreen"));
-const SettingsScreen = lazy(() => import("./SettingsScreen"));
-const GhostChainScanner = lazy(() => import("./GhostChainScanner"));
+const CodeVulnScanner        = lazy(() => import("./CodeVulnScanner"));
+const PortScannerUI          = lazy(() => import("./PortScannerUI"));
+const WhoisTimeline          = lazy(() => import("./WhoisTimeline"));
+const TorExitNodeChecker     = lazy(() => import("./TorExitNodeChecker"));
+const TeamScreen             = lazy(() => import("./TeamScreen"));
+const SettingsScreen         = lazy(() => import("./SettingsScreen"));
+const GhostChainScanner      = lazy(() => import("./GhostChainScanner"));
 
 const intelligenceScreens: ZerlalScreen[] = [
   "compliance", "supply-chain", "quantum", "ai-security", "zero-trust",
@@ -32,15 +35,24 @@ const intelligenceScreens: ZerlalScreen[] = [
   "exec-risk", "cvd-pipeline", "device-security", "governance", "deployment", "workforce", "pattern-engine"
 ];
 
+const ScreenFallback = () => (
+  <div className="flex-1 flex items-center justify-center">
+    <div className="text-[10px] text-muted-foreground/30 tracking-[0.18em] uppercase">Loading…</div>
+  </div>
+);
+
 const ZerlalView = () => {
   const [activeScreen, setActiveScreen] = useState<ZerlalScreen>("dashboard");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
   const [scanModalOpen, setScanModalOpen] = useState(false);
+  const [scanModalMounted, setScanModalMounted] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { findings } = useZerlalFindings();
   const criticalCount = findings.filter(f => f.severity === "critical" && f.status === "open").length;
+
+  const openScan = () => { setScanModalMounted(true); setScanModalOpen(true); };
 
   const handleNavigate = (screen: ZerlalScreen) => {
     setActiveScreen(screen);
@@ -94,20 +106,12 @@ const ZerlalView = () => {
 
     if (activeScreen in toolScreens) {
       const Component = toolScreens[activeScreen];
-      return <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="text-[10px] text-muted-foreground/30">Loading...</div></div>}><Component /></Suspense>;
+      return <Component />;
     }
 
-    if (activeScreen === "domain-recon") {
-      return <DomainReconScreen onSelectFinding={handleSelectFinding} />;
-    }
-
-    if (activeScreen === "device-security") {
-      return <DeviceSecurityScanner />;
-    }
-
-    if (intelligenceScreens.includes(activeScreen)) {
-      return <IntelligenceModule screen={activeScreen} />;
-    }
+    if (activeScreen === "domain-recon")    return <DomainReconScreen onSelectFinding={handleSelectFinding} />;
+    if (activeScreen === "device-security") return <DeviceSecurityScanner />;
+    if (intelligenceScreens.includes(activeScreen)) return <IntelligenceModule screen={activeScreen} />;
 
     switch (activeScreen) {
       case "dashboard":
@@ -117,7 +121,7 @@ const ZerlalView = () => {
             onNavigate={handleNavigate}
             onSelectProject={handleSelectProject}
             onSelectFinding={handleSelectFinding}
-            onOpenScan={() => setScanModalOpen(true)}
+            onOpenScan={openScan}
           />
         );
       case "project":
@@ -128,33 +132,20 @@ const ZerlalView = () => {
             onSelectProject={handleSelectProject}
             onSelectFinding={handleSelectFinding}
             onBack={handleBackFromProject}
-            onRetryScan={() => setScanModalOpen(true)}
+            onRetryScan={openScan}
           />
         );
       case "finding":
         return selectedFindingId ? (
           <FindingDetail key={selectedFindingId} findingId={selectedFindingId} onBack={handleBackFromFinding} />
         ) : (
-          <ProjectView projectId={null} onSelectProject={handleSelectProject} onSelectFinding={handleSelectFinding} onBack={handleBackFromProject} onRetryScan={() => setScanModalOpen(true)} />
+          <ProjectView projectId={null} onSelectProject={handleSelectProject} onSelectFinding={handleSelectFinding} onBack={handleBackFromProject} onRetryScan={openScan} />
         );
-      case "reports":
-        return <ReportsScreen />;
-      case "integrations":
-        return <IntegrationsScreen />;
-      case "team":
-        return (
-          <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="text-[10px] text-muted-foreground/30">Loading...</div></div>}>
-            <TeamScreen />
-          </Suspense>
-        );
-      case "settings":
-        return (
-          <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="text-[10px] text-muted-foreground/30">Loading...</div></div>}>
-            <SettingsScreen />
-          </Suspense>
-        );
-      default:
-        return null;
+      case "reports":      return <ReportsScreen />;
+      case "integrations": return <IntegrationsScreen />;
+      case "team":         return <TeamScreen />;
+      case "settings":     return <SettingsScreen />;
+      default:             return null;
     }
   };
 
@@ -174,7 +165,7 @@ const ZerlalView = () => {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setScanModalOpen(true)}
+              onClick={openScan}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
             >
               <Plus className="h-3 w-3" /> Scan Now
@@ -188,15 +179,19 @@ const ZerlalView = () => {
 
         <div className="flex-1 flex min-h-0">
           <ZerlalNav activeScreen={activeScreen} onNavigate={handleNavigate} criticalCount={criticalCount} />
-          {renderScreen()}
+          <Suspense fallback={<ScreenFallback />}>{renderScreen()}</Suspense>
         </div>
 
-        <ScanModal
-          open={scanModalOpen}
-          onClose={() => setScanModalOpen(false)}
-          onScanComplete={handleScanComplete}
-          onScanStarted={handleScanStarted}
-        />
+        {scanModalMounted && (
+          <Suspense fallback={null}>
+            <ScanModal
+              open={scanModalOpen}
+              onClose={() => setScanModalOpen(false)}
+              onScanComplete={handleScanComplete}
+              onScanStarted={handleScanStarted}
+            />
+          </Suspense>
+        )}
       </div>
     </ScanProvider>
   );
