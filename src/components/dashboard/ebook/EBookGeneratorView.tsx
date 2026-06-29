@@ -7,7 +7,8 @@ import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 import type { EBookChapter, EBookMetadata, EBookSettings, EBookStep, EBookSession, EBookTextUpload } from "./types";
 
-import heroBgDefault from "@/assets/hero-bg.png";
+import { getWallpaperSrc } from "@/lib/wallpapers";
+const heroBgDefault = getWallpaperSrc("default");
 import { ALL_WALLPAPERS as WALLPAPERS } from "@/lib/wallpapers";
 
 const PAGE_SIZES = {
