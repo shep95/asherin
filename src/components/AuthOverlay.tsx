@@ -82,9 +82,12 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md mx-4 rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl p-8 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-cover bg-center"
+      style={{ backgroundImage: "url('/wallpapers/auth-king.webp')" }}
+    >
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md mx-4 rounded-2xl border border-border/30 bg-card/90 backdrop-blur-xl p-8 shadow-2xl">
         <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors">
           <X className="h-5 w-5" />
         </button>
