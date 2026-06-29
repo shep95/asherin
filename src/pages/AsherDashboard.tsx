@@ -489,40 +489,46 @@ const AsherDashboard = () => {
       <main className="relative flex-1 overflow-hidden flex flex-col">
         <AsherInvitationsBanner />
         <div className="flex-1 overflow-hidden relative">
-          {active === "orgs"      && <AsherOrganizationsModule />}
-          {active === "map"       && <IntelligenceMapModule />}
-          {active === "command"   && <AsherCommandCenter />}
-          {active === "brains"    && <AsherBrainsModule />}
-          {active === "aureondata"&& <AsherAureonDataModule />}
-          {active === "zophiel"   && <AsherZophielModule />}
-          {active === "azplen"    && <AsherAzplenModule />}
-          {active === "zali"      && <AsherZaliModule />}
-          {active === "whiteboard"&& <AsherWhiteboardModule />}
-          {active === "axrlen"    && <AsherAxrlenModule />}
-          {active === "notebooks" && <AsherNotebooksModule />}
-          {/* Vedic Strategy renders as a popout dialog below */}
-          {active === "zahten"    && <AsherZahtenModule />}
-          {active === "zacoon"    && <AsherZacoonModule />}
-          
-          {active === "targets"   && <AsherSavedTargets />}
-          {active === "comms"     && <AsherCommsModule />}
-          {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
-          {active === "targeting" && <ComingSoonModule title="Targeting Aid"   sub="Decision support for target packages" />}
-          {active === "sigint"    && <ComingSoonModule title="SIGINT Fusion"   sub="Signal priority + intercept correlation" />}
-          {active === "geoint"    && <ComingSoonModule title="GEOINT Layer"    sub="Imagery + geospatial intelligence overlays" />}
-          {active === "doctrine"  && <ComingSoonModule title="Doctrine Recall" sub="Searchable doctrine + reference corpus" />}
-          {active === "audit"     && <AsherAuditVault />}
-          {active === "settings"  && <AsherSettingsModule />}
-          {active === "profile"   && <AsherProfile />}
-          {active === "code"      && <AsherCodeModule />}
-          {typeof active === "string" && active.startsWith("pub:") && (() => {
-            const tab = publishedTabs.find((t) => `pub:${t.id}` === active);
-            return tab ? <AsherPublishedTabRenderer name={tab.name} entryHtml={tab.entry_html} /> : null;
-          })()}
-          {typeof active === "string" && active.startsWith("agent:") && (() => {
-            const a = agentStore.find((x) => `agent:${x.id}` === active);
-            return a ? <AsherPublishedTabRenderer name={a.name} entryHtml={a.entry_html || ""} /> : null;
-          })()}
+          <Suspense fallback={
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="h-4 w-4 text-muted-foreground/40 animate-spin" />
+            </div>
+          }>
+            {active === "orgs"      && <AsherOrganizationsModule />}
+            {active === "map"       && <IntelligenceMapModule />}
+            {active === "command"   && <AsherCommandCenter />}
+            {active === "brains"    && <AsherBrainsModule />}
+            {active === "aureondata"&& <AsherAureonDataModule />}
+            {active === "zophiel"   && <AsherZophielModule />}
+            {active === "azplen"    && <AsherAzplenModule />}
+            {active === "zali"      && <AsherZaliModule />}
+            {active === "whiteboard"&& <AsherWhiteboardModule />}
+            {active === "axrlen"    && <AsherAxrlenModule />}
+            {active === "notebooks" && <AsherNotebooksModule />}
+            {/* Vedic Strategy renders as a popout dialog below */}
+            {active === "zahten"    && <AsherZahtenModule />}
+            {active === "zacoon"    && <AsherZacoonModule />}
+
+            {active === "targets"   && <AsherSavedTargets />}
+            {active === "comms"     && <AsherCommsModule />}
+            {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
+            {active === "targeting" && <ComingSoonModule title="Targeting Aid"   sub="Decision support for target packages" />}
+            {active === "sigint"    && <ComingSoonModule title="SIGINT Fusion"   sub="Signal priority + intercept correlation" />}
+            {active === "geoint"    && <ComingSoonModule title="GEOINT Layer"    sub="Imagery + geospatial intelligence overlays" />}
+            {active === "doctrine"  && <ComingSoonModule title="Doctrine Recall" sub="Searchable doctrine + reference corpus" />}
+            {active === "audit"     && <AsherAuditVault />}
+            {active === "settings"  && <AsherSettingsModule />}
+            {active === "profile"   && <AsherProfile />}
+            {active === "code"      && <AsherCodeModule />}
+            {typeof active === "string" && active.startsWith("pub:") && (() => {
+              const tab = publishedTabs.find((t) => `pub:${t.id}` === active);
+              return tab ? <AsherPublishedTabRenderer name={tab.name} entryHtml={tab.entry_html} /> : null;
+            })()}
+            {typeof active === "string" && active.startsWith("agent:") && (() => {
+              const a = agentStore.find((x) => `agent:${x.id}` === active);
+              return a ? <AsherPublishedTabRenderer name={a.name} entryHtml={a.entry_html || ""} /> : null;
+            })()}
+          </Suspense>
         </div>
       </main>
 
