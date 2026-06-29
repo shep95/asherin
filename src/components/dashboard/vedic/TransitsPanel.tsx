@@ -234,6 +234,45 @@ const TransitsPanel = ({ natalAscendant, natalPlanets, lat, lon, chartKey, userC
   // Publish ingresses up so sibling panels (WealthHousesPanel) can reuse without refetching
   useEffect(() => { onIngresses?.(ingresses); }, [ingresses, onIngresses]);
 
+  // ── MOON EVENTS — 100% Moon-driven monthly/weekly forecast ──
+  // House ingresses + Moon-to-natal-planet conjunctions, bisected to ~1 min
+  // and rendered in the user's local timezone.
+  const [moonEvents, setMoonEvents] = useState<import("@/lib/vedic/moonEvents").MoonEvent[] | null>(null);
+  const [loadingMoon, setLoadingMoon] = useState(false);
+  const moonCacheRef = useRef<Map<string, import("@/lib/vedic/moonEvents").MoonEvent[]>>(new Map());
+  useEffect(() => { moonCacheRef.current.clear(); }, [activeRef.key]);
+  useEffect(() => {
+    if (mode !== "user" && !companyRef) return;
+    if (!activeRef.planets || activeRef.planets.length === 0) { setMoonEvents([]); return; }
+    const cacheKey = `${activeRef.key}:${granularity}:${periodStart.getTime()}-${periodEnd.getTime()}`;
+    const cached = moonCacheRef.current.get(cacheKey);
+    if (cached) { setMoonEvents(cached); return; }
+    let cancelled = false;
+    setLoadingMoon(true);
+    (async () => {
+      try {
+        const { computeMoonEvents } = await import("@/lib/vedic/moonEvents");
+        const list = await computeMoonEvents(
+          periodStart, periodEnd,
+          activeRef.ascendant,
+          activeRef.planets!,
+          activeRef.lat, activeRef.lon,
+        );
+        if (cancelled) return;
+        moonCacheRef.current.set(cacheKey, list);
+        setMoonEvents(list);
+      } catch (e) {
+        console.error("[moon-events] failed:", e);
+        if (!cancelled) setMoonEvents([]);
+      } finally {
+        if (!cancelled) setLoadingMoon(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeRef.key, activeRef.ascendant, activeRef.lat, activeRef.lon, activeRef.planets, granularity, periodStart, periodEnd, mode, companyRef]);
+
+
+
 
   const readings = useMemo(() => {
     if (!transit) return [];
