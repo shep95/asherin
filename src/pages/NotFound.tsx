@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { applySeoHead } from "@/lib/seoHead";
-import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+const wallpaperAureon = "/wallpapers/wallpaper-aureon.png";
 
 
 /**
