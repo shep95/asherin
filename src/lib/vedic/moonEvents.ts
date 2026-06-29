@@ -1,18 +1,31 @@
 /**
- * MOON EVENTS — 100% Moon-driven monthly/weekly forecast.
+ * MOON EVENTS — 100% Moon-driven forecast, filtered to 5 life domains and
+ * personalized per ascendant (whole-sign houses + natal planet occupants).
  *
- * Two event types within [start, end]:
- *  1. House Ingress  — transiting Moon crosses a whole-sign house cusp anchored
- *                       on the natal Ascendant (life-area changes).
- *  2. Conjunction    — transiting Moon's sidereal longitude crosses within
- *                       orb of a natal planet's sidereal longitude (direct hit).
+ * Domains we keep:
+ *   wealth-equity   — long-term net worth (11th gains, Jupiter, Sun)
+ *   wealth-liquidity— cash flow / spending (2nd, Venus, Moon, Mercury)
+ *   love            — romance + partnership (5th, 7th, Venus)
+ *   power           — career + status + authority (10th, Sun, Mars, Saturn)
+ *   mental-health   — mood, peace, rest (1st, 4th, 8th, 12th, Moon, Rahu, Ketu, Saturn)
+ *   physical-health — body, illness, vitality (6th, 1st, Mars, Saturn)
  *
- * Both event timestamps are bisected to ~1-minute precision using Swiss
- * Ephemeris (Lahiri sidereal). The Date objects returned are absolute UTC
- * instants; the caller renders them with `toLocaleString(undefined, …)` so
- * each user sees their own local time + zone abbreviation.
+ * Everything outside these buckets is dropped (3rd siblings, 9th luck/teachers
+ * by default — turn them on via the panel filter if exposed later).
+ *
+ * Personalization: every event lists which natal planets sit in the same sign
+ * the Moon is transiting (for ingresses) or which house the conjuncted planet
+ * occupies (for conjunctions), framed against the user's ascendant.
  */
 import { siderealMoonAt } from "./sweChart";
+
+export type MoonEventDomain =
+  | "wealth-equity"
+  | "wealth-liquidity"
+  | "love"
+  | "power"
+  | "mental-health"
+  | "physical-health";
 
 export interface NatalPlanetRef {
   name: string; // Sun | Moon | Mercury | Venus | Mars | Jupiter | Saturn | Rahu | Ketu
@@ -22,61 +35,102 @@ export interface NatalPlanetRef {
 export interface MoonEvent {
   id: string;
   kind: "house-ingress" | "conjunction";
-  at: Date;             // absolute UTC instant — render with toLocaleString()
-  house?: number;       // 1..12 (house-ingress)
-  planet?: string;      // natal planet name (conjunction)
+  at: Date;
+  house?: number;          // 1..12 (for ingress, and for conjunction = house the planet occupies)
+  planet?: string;
   tone: "good" | "bad" | "mixed";
-  label: string;        // e.g. "House 10 — Career & Status" or "Natal Saturn"
-  headline: string;     // one-liner ("Moon enters House 10 — career visibility")
-  expect: string;       // "what to expect" narrative
+  domains: MoonEventDomain[]; // one or more — used by filter chips
+  label: string;
+  headline: string;
+  expect: string;          // base meaning
+  natalEnrich?: string;    // appended line listing natal planets in this house, if any
 }
 
-// ── HOUSE MEANINGS (Moon transiting natal houses 1..12) ──────────────────────
-const HOUSE_MEANINGS: Record<number, { label: string; tone: "good" | "bad" | "mixed"; headline: string; expect: string }> = {
-  1:  { label: "House 1 — Self & Body",            tone: "mixed", headline: "Mood reset — you are the room's center of gravity.",
-        expect: "Energy + self-focus spike. Identity, body, appearance, first impressions matter. Expect emotional self-awareness, restlessness, and a pull to start something personal. Avoid major decisions made purely on mood." },
-  2:  { label: "House 2 — Money, Family, Speech",  tone: "mixed", headline: "Cashflow + voice + family chatter come online.",
-        expect: "Money conversations, small purchases, food, and what you say carry weight. Expect family calls, comfort eating, and a sensitivity around savings or possessions." },
-  3:  { label: "House 3 — Courage & Communication",tone: "good",  headline: "Initiative window — send the message, take the short trip.",
-        expect: "Bold messaging, sibling/peer contact, short trips, content output. Expect a wave of confidence, faster decisions, and a willingness to push." },
-  4:  { label: "House 4 — Home & Mother",          tone: "mixed", headline: "Pull toward home, comfort, mom.",
-        expect: "Nesting urge, mother on the mind, emotional refuge needed. Expect domestic chores, real-estate thoughts, sentimental memories, and tender moods." },
-  5:  { label: "House 5 — Romance, Children, Play",tone: "good",  headline: "Creative + romantic spark.",
-        expect: "Playful, flirty, creative period. Expect dates, kids' news, creative output, speculation interest. Avoid impulsive gambling." },
-  6:  { label: "House 6 — Health, Work, Conflict", tone: "bad",   headline: "Task pile-up — guard health and arguments.",
-        expect: "Minor irritations spike. Expect a busy work queue, small health flares, diet slip-ups, and short-fuse arguments. Don't pick fights, hydrate, sleep early." },
-  7:  { label: "House 7 — Partnership & Public",   tone: "mixed", headline: "Partner-facing day — meetings, dates, public eyes.",
-        expect: "One-on-one interactions intensify. Expect partner conversations, client meetings, negotiations, and emotional reads of the other person." },
-  8:  { label: "House 8 — Transformation & Hidden",tone: "bad",   headline: "Deep emotions surface — intimacy, secrets, sudden shifts.",
-        expect: "Old wounds, intimacy, joint resources, occult pull. Expect intense moods, sexual energy, hidden info coming up, and possible sudden changes. Don't sign legal docs blindly." },
-  9:  { label: "House 9 — Luck, Travel, Teachers", tone: "good",  headline: "Optimism, meaningful conversation, travel pull.",
-        expect: "Long-range vision, teachers, philosophy, foreign contact. Expect lucky breaks, mentor texts, travel ideas, and a desire to expand the worldview." },
-  10: { label: "House 10 — Career & Status",       tone: "good",  headline: "Visibility at work — reputation moment.",
-        expect: "Public eye on the career. Expect bosses noticing, status conversations, promotions discussed, and a need to perform. Show up sharp." },
-  11: { label: "House 11 — Gains & Network",       tone: "good",  headline: "Income + friends + opportunities arriving.",
-        expect: "Network activates. Expect group chats firing, intros, gain notifications, payouts, and friends bringing wins. Say yes to social invites." },
-  12: { label: "House 12 — Loss, Rest, Foreign",   tone: "mixed", headline: "Withdraw — sleep, dreams, expenses.",
-        expect: "Low-energy rest day. Expect vivid dreams, foreign-land thoughts, expenses you didn't plan, urge to be alone. Don't fight it — recharge." },
+// ── HOUSE → domains + base meaning (whole-sign, anchored on natal asc) ───────
+const HOUSE_DEF: Record<number, { domains: MoonEventDomain[]; tone: "good" | "bad" | "mixed"; label: string; headline: string; expect: string } | null> = {
+  1:  { domains: ["mental-health", "physical-health"], tone: "mixed",
+        label: "House 1 — Self & Body",
+        headline: "Mood reset — you are the center of gravity.",
+        expect: "Self-focus + vitality spike. Identity, body, appearance carry weight. Expect emotional self-awareness, restlessness, and a pull to start something personal. Don't make big calls purely on mood." },
+  2:  { domains: ["wealth-liquidity"], tone: "mixed",
+        label: "House 2 — Cashflow, Family, Speech",
+        headline: "Liquidity window — money in/out, family chatter, what you say lands.",
+        expect: "Day-to-day cash moves: small purchases, food spend, bills, family money talks. Watch comfort eating and impulse buys. Good for short cash conversations, bad for long-term equity decisions." },
+  4:  { domains: ["mental-health"], tone: "mixed",
+        label: "House 4 — Heart, Home, Mother",
+        headline: "Pull toward home, comfort, mother — emotional refuge.",
+        expect: "Nesting urge, mom on the mind, sentimental moods. Domestic chores, real-estate thoughts, tender memories. Good for rest, bad for confrontation." },
+  5:  { domains: ["love"], tone: "good",
+        label: "House 5 — Romance, Play, Children",
+        headline: "Romance + creative spark.",
+        expect: "Flirty, playful, creative. Dates, kids' news, art, content output. Speculation tempting — keep stakes small." },
+  6:  { domains: ["physical-health"], tone: "bad",
+        label: "House 6 — Illness, Work, Conflict",
+        headline: "Body load + arguments — guard health.",
+        expect: "Minor health flares, busy work queue, diet slips, short-fuse arguments. Don't pick fights. Hydrate, sleep early, eat clean." },
+  7:  { domains: ["love"], tone: "mixed",
+        label: "House 7 — Partnership & Public",
+        headline: "Partner-facing window — meetings, dates, negotiations.",
+        expect: "One-on-one intensity. Spouse, dates, clients, public eyes. Emotional reads of the other person are sharper. Good for relationship talks." },
+  8:  { domains: ["mental-health"], tone: "bad",
+        label: "House 8 — Hidden, Intimacy, Transformation",
+        headline: "Deep emotions surface — secrets, intimacy, sudden shifts.",
+        expect: "Old wounds, intimacy, joint money, occult pull. Intense moods, hidden info coming up, possible sudden changes. Don't sign legal docs blindly." },
+  10: { domains: ["power"], tone: "good",
+        label: "House 10 — Career & Status",
+        headline: "Visibility at work — reputation moment.",
+        expect: "Boss notices, status conversations, promotions discussed, public eye on the career. Show up sharp. Best window of the cycle for power moves." },
+  11: { domains: ["wealth-equity"], tone: "good",
+        label: "House 11 — Gains & Network",
+        headline: "Equity window — gains, payouts, network activates.",
+        expect: "Long-cycle gains, network firing, intros, payouts, friends bringing wins. Best window for compounding/equity decisions and saying yes to social invites." },
+  12: { domains: ["mental-health", "wealth-liquidity"], tone: "mixed",
+        label: "House 12 — Rest, Loss, Foreign",
+        headline: "Withdraw — sleep, dreams, hidden expenses.",
+        expect: "Low-energy day. Vivid dreams, foreign-land thoughts, surprise expenses, urge to be alone. Don't fight it — recharge. Watch leaky spending." },
+  3: null,  // siblings/courage — skipped
+  9: null,  // luck/dharma — skipped
 };
 
-// ── CONJUNCTION MEANINGS (Moon hitting a natal planet) ───────────────────────
-const CONJ_MEANINGS: Record<string, { tone: "good" | "bad" | "mixed"; headline: string; expect: string }> = {
-  Sun:     { tone: "good",  headline: "Identity activated — visibility + vitality surge.",
-             expect: "Ego pinged, father/authority on the mind. Expect a visibility moment, a check on who you are, and a confidence boost (or test). Good for public moves." },
-  Mercury: { tone: "good",  headline: "Mind activated — important messages, deals, decisions.",
-             expect: "Mental clarity spike. Expect key calls, signed papers, smart conversations, and a sharp memory. Best window of the week for negotiation." },
-  Venus:   { tone: "good",  headline: "Love + comfort surge — sweetness in the air.",
-             expect: "Beauty, romance, gifts, sweet food, harmony. Expect tender feelings, attraction moments, art/music pull, and easy conversations. Reach out to the person you like." },
-  Mars:    { tone: "bad",   headline: "Drive + conflict — impulsive action, watch the temper.",
-             expect: "Physical energy spike, libido up, short-fuse. Expect arguments, impulsive moves, accidents if rushing, and a craving for spicy food. Channel it into exercise, not fights." },
-  Jupiter: { tone: "good",  headline: "Blessing window — good news, mentors, lucky break.",
-             expect: "Optimism floods in. Expect mentor contact, generous gestures, opportunity ping, and a sense that things are working. Ask for what you want." },
-  Saturn:  { tone: "bad",   headline: "Weight lands — serious mood, slow day, responsibility.",
-             expect: "Heaviness, fatigue, isolation pull. Expect a sober mood, work pressure, delays, bones/joints achy, and old fears surfacing. Don't quit — just go slow." },
-  Rahu:    { tone: "mixed", headline: "Obsession + craving — unusual desires, distraction.",
-             expect: "Intensity, foreign pull, weird cravings, addictive scrolling. Expect a magnetism toward something risky/unfamiliar. Notice the loop before you fall in." },
-  Ketu:    { tone: "mixed", headline: "Detachment + release — spiritual pull, sudden endings.",
-             expect: "Withdrawal urge, intuition flash, things falling away effortlessly. Expect a meditative mood, a finished chapter, or a quiet knowing. Don't grasp — let it pass through." },
+// ── CONJUNCTIONS (Moon hits natal planet) ────────────────────────────────────
+const CONJ_DEF: Record<string, { domains: MoonEventDomain[]; tone: "good" | "bad" | "mixed"; headline: string; expect: string }> = {
+  Sun:     { domains: ["power"], tone: "good",
+             headline: "Identity activated — visibility + vitality surge.",
+             expect: "Ego pinged, father/authority on the mind. Visibility moment, confidence test. Good for public moves and status plays." },
+  Mercury: { domains: ["wealth-liquidity", "power"], tone: "good",
+             headline: "Mind activated — key messages, deals, decisions.",
+             expect: "Mental clarity spike. Calls, contracts, sharp memory. Best window of the week for negotiation and short-cycle money moves." },
+  Venus:   { domains: ["love", "wealth-liquidity"], tone: "good",
+             headline: "Love + comfort surge — sweetness, beauty, small luxury.",
+             expect: "Romance, gifts, sweet food, harmony. Reach out to the person you like. Watch impulse luxury spend." },
+  Mars:    { domains: ["physical-health", "power"], tone: "bad",
+             headline: "Drive + conflict — impulsive action, watch the temper.",
+             expect: "Energy spike, libido up, short-fuse. Arguments, accidents if rushing, spicy-food craving. Channel into training, not fights." },
+  Jupiter: { domains: ["wealth-equity", "mental-health"], tone: "good",
+             headline: "Blessing window — good news, mentors, lucky break.",
+             expect: "Optimism floods in. Mentor contact, generous gestures, opportunity ping. Best long-cycle window — ask for what you want." },
+  Saturn:  { domains: ["power", "physical-health", "mental-health"], tone: "bad",
+             headline: "Weight lands — serious mood, slow day, responsibility.",
+             expect: "Heaviness, fatigue, isolation pull. Work pressure, delays, bones/joints achy, old fears surface. Don't quit — just go slow." },
+  Rahu:    { domains: ["mental-health", "wealth-liquidity"], tone: "mixed",
+             headline: "Obsession + craving — unusual desires, distraction.",
+             expect: "Intensity, foreign pull, weird cravings, addictive scrolling. Magnetism toward something risky. Notice the loop before falling in." },
+  Ketu:    { domains: ["mental-health"], tone: "mixed",
+             headline: "Detachment + release — spiritual pull, sudden endings.",
+             expect: "Withdrawal urge, intuition flash, things falling away. Meditative mood, a chapter closing. Don't grasp — let it pass." },
+};
+
+// Brief flavor used when a natal planet sits in the transited sign.
+const NATAL_FLAVOR: Record<string, string> = {
+  Sun:     "ego + authority lit up",
+  Moon:    "moods doubled, sleep weird",
+  Mercury: "messages, decisions, deals amplified",
+  Venus:   "romance + cashflow charged",
+  Mars:    "drive + temper running hot",
+  Jupiter: "blessings + expansion magnified",
+  Saturn:  "weight, delay, discipline lands harder",
+  Rahu:    "obsession + cravings amplified",
+  Ketu:    "detachment + loss more pronounced",
 };
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -89,7 +143,7 @@ function signedDiff(a: number, b: number) {
 
 function houseOf(sid: number, ascSignStart: number): number {
   const rel = (((sid - ascSignStart) % 360) + 360) % 360;
-  return Math.floor(rel / 30) + 1; // 1..12
+  return Math.floor(rel / 30) + 1;
 }
 
 async function bisectIngress(
@@ -123,12 +177,9 @@ async function bisectConjunction(
 }
 
 /**
- * Compute every Moon house-ingress and Moon-to-natal-planet conjunction
- * within [start, end] for the given natal chart (ascendant + planets).
- *
- * Sampling: 1-hour Moon probes (~744 calls for a 31-day month). Moon moves
- * ~0.5°/hour so every 30° boundary and every conjunction zero-crossing is
- * detected, then bisected to ~1-minute precision.
+ * Compute every Moon house-ingress and Moon-to-natal-planet conjunction in
+ * [start, end], tagged with domain(s) and enriched with which natal planets
+ * sit in the affected house for THIS ascendant.
  */
 export async function computeMoonEvents(
   start: Date,
@@ -141,7 +192,17 @@ export async function computeMoonEvents(
   if (end.getTime() <= start.getTime()) return [];
   const ascSignStart = Math.floor(natalAscendant / 30) * 30;
 
-  const STEP = 60 * 60_000; // 1 hour
+  // Pre-bucket natal planets by which natal house they occupy.
+  const planetsByHouse = new Map<number, NatalPlanetRef[]>();
+  for (const p of natalPlanets) {
+    if (typeof p.sid !== "number") continue;
+    const h = houseOf(p.sid, ascSignStart);
+    const arr = planetsByHouse.get(h) ?? [];
+    arr.push(p);
+    planetsByHouse.set(h, arr);
+  }
+
+  const STEP = 60 * 60_000;
   const samples: Array<{ t: number; sid: number }> = [];
   for (let t = start.getTime(); t <= end.getTime(); t += STEP) {
     samples.push({ t, sid: await siderealMoonAt(new Date(t), lat, lon) });
@@ -150,36 +211,48 @@ export async function computeMoonEvents(
 
   const events: MoonEvent[] = [];
 
+  const enrichFor = (house: number): string | undefined => {
+    const occupants = planetsByHouse.get(house);
+    if (!occupants || occupants.length === 0) return undefined;
+    const parts = occupants.map((p) => {
+      const flavor = NATAL_FLAVOR[p.name] ?? "activated";
+      return `Natal ${p.name} — ${flavor}`;
+    });
+    return parts.join(" · ");
+  };
+
   // House ingresses
   for (let i = 1; i < samples.length; i++) {
     const hPrev = houseOf(samples[i - 1].sid, ascSignStart);
     const hNow = houseOf(samples[i].sid, ascSignStart);
     if (hPrev === hNow) continue;
+    const def = HOUSE_DEF[hNow];
+    if (!def) continue; // skipped house
     const at = await bisectIngress(samples[i - 1].t, samples[i].t, lat, lon, ascSignStart, hNow);
     if (at.getTime() < start.getTime() || at.getTime() > end.getTime()) continue;
-    const meta = HOUSE_MEANINGS[hNow];
     events.push({
       id: `house-${hNow}-${at.getTime()}`,
       kind: "house-ingress",
       at,
       house: hNow,
-      tone: meta.tone,
-      label: meta.label,
-      headline: `Moon enters ${meta.label} — ${meta.headline}`,
-      expect: meta.expect,
+      tone: def.tone,
+      domains: def.domains,
+      label: def.label,
+      headline: `Moon enters ${def.label} — ${def.headline}`,
+      expect: def.expect,
+      natalEnrich: enrichFor(hNow),
     });
   }
 
-  // Conjunctions with each natal planet
+  // Conjunctions
   for (const np of natalPlanets) {
-    const meta = CONJ_MEANINGS[np.name];
-    if (!meta || typeof np.sid !== "number") continue;
+    const def = CONJ_DEF[np.name];
+    if (!def || typeof np.sid !== "number") continue;
+    const occHouse = houseOf(np.sid, ascSignStart);
     let prev = signedDiff(samples[0].sid, np.sid);
     for (let i = 1; i < samples.length; i++) {
       const cur = signedDiff(samples[i].sid, np.sid);
       const crossed = (prev <= 0 && cur >= 0) || (prev >= 0 && cur <= 0);
-      // Reject the 180° wrap (opposition) — only accept true conjunction crossings
-      // where the moon was within ~10° of the target on at least one side.
       if (crossed && (Math.abs(prev) < 10 || Math.abs(cur) < 10)) {
         const at = await bisectConjunction(samples[i - 1].t, samples[i].t, lat, lon, np.sid);
         if (at.getTime() >= start.getTime() && at.getTime() <= end.getTime()) {
@@ -187,11 +260,14 @@ export async function computeMoonEvents(
             id: `conj-${np.name}-${at.getTime()}`,
             kind: "conjunction",
             at,
+            house: occHouse,
             planet: np.name,
-            tone: meta.tone,
-            label: `Natal ${np.name}`,
-            headline: `Moon conjuncts natal ${np.name} — ${meta.headline}`,
-            expect: meta.expect,
+            tone: def.tone,
+            domains: def.domains,
+            label: `Natal ${np.name} · House ${occHouse}`,
+            headline: `Moon conjuncts natal ${np.name} — ${def.headline}`,
+            expect: def.expect,
+            natalEnrich: `Sits in your House ${occHouse} — flavor of that life area is amplified during this hit.`,
           });
         }
       }
@@ -203,7 +279,6 @@ export async function computeMoonEvents(
   return events;
 }
 
-/** Format an absolute UTC instant in the viewer's local timezone with zone abbr. */
 export function formatLocal(at: Date): string {
   return at.toLocaleString(undefined, {
     weekday: "short",
@@ -215,3 +290,12 @@ export function formatLocal(at: Date): string {
     timeZoneName: "short",
   });
 }
+
+export const DOMAIN_META: Record<MoonEventDomain, { label: string; short: string }> = {
+  "wealth-equity":    { label: "Wealth · Equity",    short: "Equity" },
+  "wealth-liquidity": { label: "Wealth · Liquidity", short: "Liquidity" },
+  "love":             { label: "Love",               short: "Love" },
+  "power":            { label: "Power",              short: "Power" },
+  "mental-health":    { label: "Mental Health",      short: "Mental" },
+  "physical-health":  { label: "Physical Health",    short: "Health" },
+};
