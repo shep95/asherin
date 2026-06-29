@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, Key, Zap, Check, X } from "lucide-react";
-import { AI_PROVIDERS } from "../AIKeysSettings";
+import { AI_PROVIDERS } from "@/lib/aiProviders";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";

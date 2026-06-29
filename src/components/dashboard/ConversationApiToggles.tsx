@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Key, ChevronDown, X, Power } from "lucide-react";
-import { AI_PROVIDERS } from "./AIKeysSettings";
+import { AI_PROVIDERS } from "@/lib/aiProviders";
 
 interface Props {
   conversationId: string;
