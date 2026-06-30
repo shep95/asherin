@@ -23,8 +23,7 @@ import {
  * Public, SEO-optimized, sourced from comparable-company analysis.
  */
 
-const VALUATION_LOW = 800; // $M
-const VALUATION_HIGH = 1100; // $M
+const VALUATION_HEADLINE = 1100; // $M  → displayed as $1.1B (flat headline number)
 const VALUATION_DATE = "06/26/2026";
 
 // ── Software inventory inside the Aureon Dashboard ──────────────────────────
