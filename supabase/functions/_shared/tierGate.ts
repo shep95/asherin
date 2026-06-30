@@ -19,6 +19,8 @@ const PRODUCT_TIER_MAP: Record<string, Tier> = {
   prod_U4YWDDwSXK3SGO: "chat",
   prod_U1rtJ8HXSCtvqO: "aureon",
   prod_U1PuUztkmieRrE: "pro",
+  prod_UjaQPixvFi3Qlr: "aureon",   // monthly_aureon ($18/mo)
+  prod_UjaQFcAkQnTOm1: "pro",      // monthly_pro ($399/mo) — Vault, Zahten, premium
   prod_aureon_algorithm: "lifetime",
 };
 
