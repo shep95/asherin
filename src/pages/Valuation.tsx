@@ -342,8 +342,8 @@ const Valuation = () => {
    └─────────────────────┘      └──────────────────────┘      └─────────┬───────────┘
                                                                          │
    ┌─────────────────────┐      ┌──────────────────────┐      ┌─────────▼───────────┐
-   │  Valuation Range    │ ◀─── │  Scenario Weighting  │ ◀─── │  Software-Asset     │
-   │  $800M – $1.1B      │      │  (Bear / Base / Bull)│      │  Precedents (WA/IG) │
+    │  Valuation Anchor   │ ◀─── │  Scenario Weighting  │ ◀─── │  Software-Asset     │
+    │  $1.1B (flat)       │      │  (Bear / Base / Bull)│      │  Precedents (WA/IG) │
    └─────────────────────┘      └──────────────────────┘      └─────────────────────┘`}
           </pre>
         </section>
