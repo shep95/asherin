@@ -136,7 +136,7 @@ const Valuation = () => {
     ld.text = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "Article",
-      headline: "Aureon Company Valuation: $800M–$1.1B",
+      headline: "Aureon Company Valuation: $1.1B",
       datePublished: "2026-06-26",
       author: { "@type": "Organization", name: "Aureon" },
       publisher: { "@type": "Organization", name: "Aureon" },
