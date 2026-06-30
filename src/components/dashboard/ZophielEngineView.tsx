@@ -607,6 +607,15 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
+              {/* Dork — cross-domain OSINT dorking battery */}
+              {mode === "dork" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <DorkPanel />
+                </Suspense>
+              )}
+
+
+
               {/* Deep Search Panel */}
               {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && mode !== "dork" && deepSearchQuery && (
                 <Suspense fallback={null}>
