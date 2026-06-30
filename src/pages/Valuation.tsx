@@ -98,7 +98,7 @@ const CAPABILITY_RADAR = [
 
 const Valuation = () => {
   useEffect(() => {
-    document.title = "Aureon Valuation $800M–$1.1B (Private Company) · 06/26/2026";
+    document.title = "Aureon Valuation $1.1B (Private Company) · 06/26/2026";
 
     const upsertMeta = (selector: string, attrs: Record<string, string>) => {
       let el = document.head.querySelector<HTMLMetaElement>(selector);
