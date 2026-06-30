@@ -247,13 +247,24 @@ Today: ${new Date().toISOString().slice(0, 10)}
 
 Generate the dork battery now.`;
 
+    // Try caller's BYOK first when in byok mode, otherwise platform Gemini.
+    // The fallback chain inside planWithFallback will rescue us if the
+    // primary key is invalid/expired/rate-limited.
     let planRaw = "";
-    if (useByok) {
-      planRaw = await callByokJsonWithRetry(byok as ZophielByokConfig, DORK_SYSTEM, planPrompt, {
-        timeoutMs: 35_000, temperature: 0.5, maxOutputTokens: 4096, jsonMode: true, attempts: 2,
-      });
-    } else {
-      planRaw = await callGeminiJson(GEMINI_API_KEY, DORK_SYSTEM, planPrompt);
+    let planVia = "";
+    try {
+      const result = useByok
+        ? await planWithFallback("", byok, DORK_SYSTEM, planPrompt)
+        : await planWithFallback(GEMINI_API_KEY, byok, DORK_SYSTEM, planPrompt);
+      planRaw = result.raw;
+      planVia = result.via;
+    } catch (e: any) {
+      console.error("[dork] plan all-providers failed:", e.message);
+      return new Response(JSON.stringify({
+        error: "ai_unavailable",
+        message: "All AI providers failed. Add a BYOK key in Settings → API Keys, or try again later.",
+        detail: e.message?.slice(0, 300),
+      }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     let plan: { profile?: string; queries?: { q: string; why: string }[] } = {};
