@@ -165,7 +165,7 @@ const Valuation = () => {
             </span>
           </div>
           <h1 className="mt-3 text-5xl md:text-7xl font-extralight tracking-tight">
-            ${VALUATION_LOW}M – ${(VALUATION_HIGH / 1000).toFixed(1)}B
+            ${(VALUATION_HEADLINE / 1000).toFixed(1)}B
           </h1>
           <p className="mt-4 text-sm font-light text-muted-foreground/80">
             As of <span className="text-foreground/90">{VALUATION_DATE}</span> · based on market research and competitive analysis.
