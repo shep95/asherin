@@ -32,6 +32,7 @@ const LeaksPanel = lazy(() => import("./search/LeaksPanel"));
 const ArchivePanel = lazy(() => import("./search/ArchivePanel"));
 const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
+const DorkPanel = lazy(() => import("./search/DorkPanel"));
 
 // Detect when the search query is actually a URL (with or without scheme).
 // Examples that match: x.com/MonaBets, https://example.com, www.foo.com/a/b
