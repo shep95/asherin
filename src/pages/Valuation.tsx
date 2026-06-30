@@ -23,8 +23,7 @@ import {
  * Public, SEO-optimized, sourced from comparable-company analysis.
  */
 
-const VALUATION_LOW = 800; // $M
-const VALUATION_HIGH = 1100; // $M
+const VALUATION_HEADLINE = 1100; // $M  → displayed as $1.1B (flat headline number)
 const VALUATION_DATE = "06/26/2026";
 
 // ── Software inventory inside the Aureon Dashboard ──────────────────────────
@@ -99,7 +98,7 @@ const CAPABILITY_RADAR = [
 
 const Valuation = () => {
   useEffect(() => {
-    document.title = "Aureon Valuation $800M–$1.1B (Private Company) · 06/26/2026";
+    document.title = "Aureon Valuation $1.1B (Private Company) · 06/26/2026";
 
     const upsertMeta = (selector: string, attrs: Record<string, string>) => {
       let el = document.head.querySelector<HTMLMetaElement>(selector);
@@ -111,10 +110,10 @@ const Valuation = () => {
     };
 
     const description =
-      "Aureon (private company) software-asset valuation $800M–$1.1B as of 06/26/2026. Based on software value, not revenue — modeled like WhatsApp's $19B Meta acquisition. Comparable analysis vs Palantir, Recorded Future, Maltego, Anduril Lattice.";
+      "Aureon (private company) software-asset valuation $1.1B as of 06/26/2026. Based on software value, not revenue — modeled like WhatsApp's $19B Meta acquisition. Comparable analysis vs Palantir, Recorded Future, Maltego, Anduril Lattice.";
 
     upsertMeta('meta[name="description"]', { name: "description", content: description });
-    upsertMeta('meta[property="og:title"]', { property: "og:title", content: "Aureon Valuation · $800M–$1.1B" });
+    upsertMeta('meta[property="og:title"]', { property: "og:title", content: "Aureon Valuation · $1.1B" });
     upsertMeta('meta[property="og:description"]', { property: "og:description", content: description });
     upsertMeta('meta[property="og:url"]', { property: "og:url", content: "https://aureonai.app/valuation" });
     upsertMeta('meta[property="og:type"]', { property: "og:type", content: "article" });
@@ -137,7 +136,7 @@ const Valuation = () => {
     ld.text = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "Article",
-      headline: "Aureon Company Valuation: $800M–$1.1B",
+      headline: "Aureon Company Valuation: $1.1B",
       datePublished: "2026-06-26",
       author: { "@type": "Organization", name: "Aureon" },
       publisher: { "@type": "Organization", name: "Aureon" },
@@ -166,7 +165,7 @@ const Valuation = () => {
             </span>
           </div>
           <h1 className="mt-3 text-5xl md:text-7xl font-extralight tracking-tight">
-            ${VALUATION_LOW}M – ${(VALUATION_HIGH / 1000).toFixed(1)}B
+            ${(VALUATION_HEADLINE / 1000).toFixed(1)}B
           </h1>
           <p className="mt-4 text-sm font-light text-muted-foreground/80">
             As of <span className="text-foreground/90">{VALUATION_DATE}</span> · based on market research and competitive analysis.
@@ -343,8 +342,8 @@ const Valuation = () => {
    └─────────────────────┘      └──────────────────────┘      └─────────┬───────────┘
                                                                          │
    ┌─────────────────────┐      ┌──────────────────────┐      ┌─────────▼───────────┐
-   │  Valuation Range    │ ◀─── │  Scenario Weighting  │ ◀─── │  Software-Asset     │
-   │  $800M – $1.1B      │      │  (Bear / Base / Bull)│      │  Precedents (WA/IG) │
+    │  Valuation Anchor   │ ◀─── │  Scenario Weighting  │ ◀─── │  Software-Asset     │
+    │  $1.1B (flat)       │      │  (Bear / Base / Bull)│      │  Precedents (WA/IG) │
    └─────────────────────┘      └──────────────────────┘      └─────────────────────┘`}
           </pre>
         </section>

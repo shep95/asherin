@@ -76,6 +76,7 @@ export const NAV_INTENTS: NavIntent[] = [
   { view: "persona-store", label: "Persona Store", codename: "Personas", blurb: "Browse and configure AI personas", keywords: ["persona", "character", "personality"], group: "Workspace" },
   { view: "vedic-astrology", label: "Vedic Astrology", codename: "Vedic", blurb: "Sidereal chart calculations", keywords: ["astrology", "vedic", "horoscope", "chart"], group: "Workspace" },
   { view: "guardian-vault", label: "Guardian Vault", codename: "Vault", blurb: "Centralized security command center", keywords: ["vault", "password", "secret", "mfa", "totp"], group: "Workspace" },
+  { view: "knowledge-vault", label: "Knowledge Vault (RAG)", codename: "Knowledge Vault", blurb: "Upload files or connect APIs — Aureon retrieves them live during chat", keywords: ["rag", "knowledge", "vault", "retrieval", "embeddings", "ingest", "upload", "api source"], group: "Workspace", access: "pro" },
 
   // ACCOUNT
   { view: "settings", label: "Settings", codename: "Settings", keywords: ["settings", "preferences", "config", "options"], group: "Account" },
