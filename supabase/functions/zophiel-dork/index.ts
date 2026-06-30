@@ -12,7 +12,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
-import { callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
+import { callByokJsonWithRetry, isValidByok, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
+
+const VENICE_FALLBACK: ZophielByokConfig = {
+  provider: "venice",
+  model: "mistral-31-24b",
+  apiKey: Deno.env.get("VENICE_API_KEY") || "",
+};
 
 interface DorkHit { title: string; url: string; snippet: string }
 interface DorkBucket { query: string; rationale: string; hits: DorkHit[] }
