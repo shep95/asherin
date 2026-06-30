@@ -59,7 +59,14 @@ async function callGeminiJson(apiKey: string, system: string, user: string): Pro
       }),
     },
   );
-  if (!r.ok) throw new Error(`gemini_${r.status}: ${(await r.text()).slice(0, 200)}`);
+  if (!r.ok) {
+    const body = (await r.text()).slice(0, 200);
+    const e: any = new Error(`gemini_${r.status}: ${body}`);
+    e.status = r.status;
+    // 400/401/403 = invalid/expired key → caller should switch providers, not retry.
+    e.authFailure = r.status === 400 || r.status === 401 || r.status === 403;
+    throw e;
+  }
   const d = await r.json();
   return d?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || "").join("") || "";
 }
@@ -77,9 +84,91 @@ async function callGeminiText(apiKey: string, system: string, user: string): Pro
       }),
     },
   );
-  if (!r.ok) throw new Error(`gemini_${r.status}: ${(await r.text()).slice(0, 200)}`);
+  if (!r.ok) {
+    const body = (await r.text()).slice(0, 200);
+    const e: any = new Error(`gemini_${r.status}: ${body}`);
+    e.status = r.status;
+    e.authFailure = r.status === 400 || r.status === 401 || r.status === 403;
+    throw e;
+  }
   const d = await r.json();
   return d?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || "").join("") || "";
+}
+
+/**
+ * Resilient JSON dork-plan call. Tries platform Gemini (admin mode) first.
+ * If that key is invalid/expired/rate-limited, falls back to:
+ *   (a) the caller's BYOK (if they provided one), then
+ *   (b) the platform Venice fallback (free-tier key).
+ * Prevents a single bad platform key from nuking the whole feature.
+ */
+async function planWithFallback(
+  primaryGeminiKey: string,
+  byok: unknown,
+  system: string,
+  user: string,
+): Promise<{ raw: string; via: string }> {
+  const errors: string[] = [];
+  if (primaryGeminiKey) {
+    try {
+      const raw = await callGeminiJson(primaryGeminiKey, system, user);
+      return { raw, via: "platform_gemini" };
+    } catch (e: any) {
+      errors.push(`platform_gemini: ${e.message}`);
+      console.error("[dork] platform gemini failed, trying fallbacks:", e.message);
+    }
+  }
+  if (isValidByok(byok)) {
+    try {
+      const raw = await callByokJsonWithRetry(byok as ZophielByokConfig, system, user, {
+        timeoutMs: 35_000, temperature: 0.5, maxOutputTokens: 4096, jsonMode: true, attempts: 2,
+      });
+      return { raw, via: "byok" };
+    } catch (e: any) {
+      errors.push(`byok: ${e.message}`);
+    }
+  }
+  if (VENICE_FALLBACK.apiKey) {
+    try {
+      const raw = await callByokJsonWithRetry(VENICE_FALLBACK, system, user, {
+        timeoutMs: 35_000, temperature: 0.5, maxOutputTokens: 4096, jsonMode: true, attempts: 2,
+      });
+      return { raw, via: "venice_fallback" };
+    } catch (e: any) {
+      errors.push(`venice: ${e.message}`);
+    }
+  }
+  const err: any = new Error(`all_providers_failed: ${errors.join(" | ")}`);
+  err.status = 502;
+  throw err;
+}
+
+async function briefWithFallback(
+  primaryGeminiKey: string,
+  byok: unknown,
+  system: string,
+  user: string,
+): Promise<string> {
+  if (primaryGeminiKey) {
+    try { return await callGeminiText(primaryGeminiKey, system, user); } catch (e: any) {
+      console.error("[dork] brief platform failed:", e.message);
+    }
+  }
+  if (isValidByok(byok)) {
+    try {
+      return await callByokJsonWithRetry(byok as ZophielByokConfig, system, user, {
+        timeoutMs: 45_000, temperature: 0.4, maxOutputTokens: 1800, jsonMode: false, attempts: 2,
+      });
+    } catch (e: any) { console.error("[dork] brief byok failed:", e.message); }
+  }
+  if (VENICE_FALLBACK.apiKey) {
+    try {
+      return await callByokJsonWithRetry(VENICE_FALLBACK, system, user, {
+        timeoutMs: 45_000, temperature: 0.4, maxOutputTokens: 1800, jsonMode: false, attempts: 2,
+      });
+    } catch (e: any) { console.error("[dork] brief venice failed:", e.message); }
+  }
+  return "_Brief generation failed — review the buckets manually._";
 }
 
 function decodeEntities(text: string): string {
