@@ -303,18 +303,22 @@ Generate the dork battery now.`;
         const top = b.hits.slice(0, 4).map((h) => `   - ${h.title} :: ${h.url}`).join("\n");
         return `[${i + 1}] ${b.query}\n   why: ${b.rationale}\n${top || "   (no hits)"}`;
       }).join("\n\n");
-      try {
-        const u = `Target: ${target}\nProfile: ${plan.profile || profile || "auto"}\n\nBuckets:\n${condensed}`;
-        brief = useByok
-          ? await callByokJsonWithRetry(byok as ZophielByokConfig, BRIEF_SYSTEM, u, {
-              timeoutMs: 45_000, temperature: 0.4, maxOutputTokens: 1800, jsonMode: false, attempts: 2,
-            })
-          : await callGeminiText(GEMINI_API_KEY, BRIEF_SYSTEM, u);
-      } catch (e) {
-        console.error("[dork] brief failed", e);
-        brief = "_Brief generation failed — review the buckets manually._";
-      }
+      const u = `Target: ${target}\nProfile: ${plan.profile || profile || "auto"}\n\nBuckets:\n${condensed}`;
+      brief = useByok
+        ? await briefWithFallback("", byok, BRIEF_SYSTEM, u)
+        : await briefWithFallback(GEMINI_API_KEY, byok, BRIEF_SYSTEM, u);
     }
+
+    return new Response(JSON.stringify({
+      success: true,
+      target,
+      profile: plan.profile || profile || "auto",
+      buckets,
+      totalHits,
+      brief,
+      via: planVia,
+      notice: "Open-web indexes only. Results are public artifacts already crawled by search engines.",
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     return new Response(JSON.stringify({
       success: true,
