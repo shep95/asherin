@@ -11,12 +11,12 @@ import { toast } from "sonner";
 
 type VaultSource = {
   id: string;
-  title: string;
-  kind: "text" | "file" | "api";
+  name: string;
+  source_type: "text" | "file" | "api";
   chunk_count: number | null;
   status: string;
   created_at: string;
-  metadata: Record<string, unknown> | null;
+  error_message: string | null;
 };
 
 export default function KnowledgeVaultView() {
@@ -24,12 +24,10 @@ export default function KnowledgeVaultView() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
-  // text input
-  const [textTitle, setTextTitle] = useState("");
+  const [textName, setTextName] = useState("");
   const [textBody, setTextBody] = useState("");
 
-  // api input
-  const [apiTitle, setApiTitle] = useState("");
+  const [apiName, setApiName] = useState("");
   const [apiUrl, setApiUrl] = useState("");
   const [apiHeaders, setApiHeaders] = useState("");
 
@@ -37,10 +35,10 @@ export default function KnowledgeVaultView() {
     setLoading(true);
     const { data, error } = await supabase
       .from("aureon_vault_sources")
-      .select("id,title,kind,chunk_count,status,created_at,metadata")
+      .select("id,name,source_type,chunk_count,status,created_at,error_message")
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
-    setSources((data as VaultSource[]) ?? []);
+    setSources(((data as unknown) as VaultSource[]) ?? []);
     setLoading(false);
   }, []);
 
@@ -51,8 +49,8 @@ export default function KnowledgeVaultView() {
     try {
       const { data, error } = await supabase.functions.invoke("vault-ingest", { body: payload });
       if (error) throw error;
-      const inserted = (data as { chunks?: number; title?: string } | null);
-      toast.success(`Indexed “${inserted?.title ?? "source"}” — ${inserted?.chunks ?? 0} chunks embedded`);
+      const r = data as { chunks?: number; name?: string } | null;
+      toast.success(`Indexed “${r?.name ?? "source"}” — ${r?.chunks ?? 0} chunks embedded`);
       await refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -63,24 +61,24 @@ export default function KnowledgeVaultView() {
   };
 
   const handleText = async () => {
-    if (!textTitle.trim() || !textBody.trim()) return toast.error("Title and content required");
-    await ingest({ kind: "text", title: textTitle.trim(), content: textBody });
-    setTextTitle(""); setTextBody("");
+    if (!textName.trim() || !textBody.trim()) return toast.error("Name and content required");
+    await ingest({ sourceType: "text", name: textName.trim(), content: textBody });
+    setTextName(""); setTextBody("");
   };
 
   const handleFile = async (file: File) => {
     const text = await file.text();
-    await ingest({ kind: "file", title: file.name, content: text, metadata: { size: file.size, type: file.type } });
+    await ingest({ sourceType: "file", name: file.name, content: text });
   };
 
   const handleApi = async () => {
-    if (!apiTitle.trim() || !apiUrl.trim()) return toast.error("Title and URL required");
-    let headers: Record<string, string> | undefined;
+    if (!apiName.trim() || !apiUrl.trim()) return toast.error("Name and URL required");
+    let apiHeadersObj: Record<string, string> | undefined;
     if (apiHeaders.trim()) {
-      try { headers = JSON.parse(apiHeaders); } catch { return toast.error("Headers must be valid JSON"); }
+      try { apiHeadersObj = JSON.parse(apiHeaders); } catch { return toast.error("Headers must be valid JSON"); }
     }
-    await ingest({ kind: "api", title: apiTitle.trim(), url: apiUrl.trim(), headers });
-    setApiTitle(""); setApiUrl(""); setApiHeaders("");
+    await ingest({ sourceType: "api", name: apiName.trim(), apiUrl: apiUrl.trim(), apiHeaders: apiHeadersObj });
+    setApiName(""); setApiUrl(""); setApiHeaders("");
   };
 
   const remove = async (id: string) => {
@@ -111,7 +109,7 @@ export default function KnowledgeVaultView() {
           </TabsList>
 
           <TabsContent value="text" className="space-y-3 pt-3">
-            <Input placeholder="Title" value={textTitle} onChange={(e) => setTextTitle(e.target.value)} />
+            <Input placeholder="Name" value={textName} onChange={(e) => setTextName(e.target.value)} />
             <Textarea placeholder="Paste any text — notes, transcripts, manuals…" rows={6} value={textBody} onChange={(e) => setTextBody(e.target.value)} />
             <Button onClick={handleText} disabled={busy}>
               {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
@@ -126,11 +124,11 @@ export default function KnowledgeVaultView() {
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
               disabled={busy}
             />
-            <p className="text-xs text-muted-foreground">Text-based formats only (.txt, .md, .csv, .json, .log, .html, .xml, .yaml).</p>
+            <p className="text-xs text-muted-foreground">Text-based formats (.txt, .md, .csv, .json, .log, .html, .xml, .yaml).</p>
           </TabsContent>
 
           <TabsContent value="api" className="space-y-3 pt-3">
-            <Input placeholder="Source title" value={apiTitle} onChange={(e) => setApiTitle(e.target.value)} />
+            <Input placeholder="Source name" value={apiName} onChange={(e) => setApiName(e.target.value)} />
             <Input placeholder="https://api.example.com/endpoint" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} />
             <Textarea placeholder='Optional headers as JSON, e.g. {"Authorization":"Bearer …"}' rows={3} value={apiHeaders} onChange={(e) => setApiHeaders(e.target.value)} />
             <Button onClick={handleApi} disabled={busy}>
@@ -154,11 +152,12 @@ export default function KnowledgeVaultView() {
           <div className="divide-y divide-border">
             {sources.map((s) => (
               <div key={s.id} className="py-3 flex items-center gap-3">
-                <Badge variant="outline" className="uppercase text-[10px]">{s.kind}</Badge>
+                <Badge variant="outline" className="uppercase text-[10px]">{s.source_type}</Badge>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{s.title}</div>
+                  <div className="font-medium truncate">{s.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    {s.chunk_count ?? 0} chunks · {s.status} · {new Date(s.created_at).toLocaleString()}
+                    {s.chunk_count ?? 0} chunks · {s.status}
+                    {s.error_message ? ` · ${s.error_message}` : ""} · {new Date(s.created_at).toLocaleString()}
                   </div>
                 </div>
                 <Button size="icon" variant="ghost" onClick={() => remove(s.id)}>
