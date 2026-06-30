@@ -319,16 +319,6 @@ Generate the dork battery now.`;
       via: planVia,
       notice: "Open-web indexes only. Results are public artifacts already crawled by search engines.",
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    return new Response(JSON.stringify({
-      success: true,
-      target,
-      profile: plan.profile || profile || "auto",
-      buckets,
-      totalHits,
-      brief,
-      notice: "Open-web indexes only. Results are public artifacts already crawled by search engines.",
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[dork] fatal", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "dork failed" }), {
