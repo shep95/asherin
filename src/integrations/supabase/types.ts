@@ -2392,6 +2392,98 @@ export type Database = {
           },
         ]
       }
+      aureon_vault_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          embedding: string
+          id: string
+          source_id: string
+          token_count: number
+          user_id: string
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string
+          embedding: string
+          id?: string
+          source_id: string
+          token_count?: number
+          user_id: string
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          embedding?: string
+          id?: string
+          source_id?: string
+          token_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aureon_vault_chunks_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "aureon_vault_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aureon_vault_sources: {
+        Row: {
+          api_headers: Json | null
+          api_url: string | null
+          byte_size: number
+          chunk_count: number
+          created_at: string
+          error_message: string | null
+          id: string
+          last_refresh_at: string | null
+          name: string
+          refresh_minutes: number | null
+          source_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_headers?: Json | null
+          api_url?: string | null
+          byte_size?: number
+          chunk_count?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_refresh_at?: string | null
+          name: string
+          refresh_minutes?: number | null
+          source_type: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_headers?: Json | null
+          api_url?: string | null
+          byte_size?: number
+          chunk_count?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_refresh_at?: string | null
+          name?: string
+          refresh_minutes?: number | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       automated_agents: {
         Row: {
           actions: Json
@@ -8880,6 +8972,19 @@ export type Database = {
           id: string
           language: string
           similarity: number
+        }[]
+      }
+      match_vault_chunks: {
+        Args: {
+          _user_id: string
+          match_count?: number
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          id: string
+          similarity: number
+          source_id: string
         }[]
       }
       move_to_dlq: {
