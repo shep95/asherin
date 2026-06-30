@@ -110,10 +110,10 @@ const Valuation = () => {
     };
 
     const description =
-      "Aureon (private company) software-asset valuation $800M–$1.1B as of 06/26/2026. Based on software value, not revenue — modeled like WhatsApp's $19B Meta acquisition. Comparable analysis vs Palantir, Recorded Future, Maltego, Anduril Lattice.";
+      "Aureon (private company) software-asset valuation $1.1B as of 06/26/2026. Based on software value, not revenue — modeled like WhatsApp's $19B Meta acquisition. Comparable analysis vs Palantir, Recorded Future, Maltego, Anduril Lattice.";
 
     upsertMeta('meta[name="description"]', { name: "description", content: description });
-    upsertMeta('meta[property="og:title"]', { property: "og:title", content: "Aureon Valuation · $800M–$1.1B" });
+    upsertMeta('meta[property="og:title"]', { property: "og:title", content: "Aureon Valuation · $1.1B" });
     upsertMeta('meta[property="og:description"]', { property: "og:description", content: description });
     upsertMeta('meta[property="og:url"]', { property: "og:url", content: "https://aureonai.app/valuation" });
     upsertMeta('meta[property="og:type"]', { property: "og:type", content: "article" });
