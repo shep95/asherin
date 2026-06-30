@@ -354,8 +354,14 @@ const AsherZahtenModule = () => {
     return [];
   })();
 
-  // Sync when switching agents
+  // Sync when switching agents — ABORT any in-flight mission first so the previous
+  // agent's stream cannot bleed tokens into the newly-selected agent's pass log.
   useEffect(() => {
+    if (abortRef.current) {
+      try { abortRef.current.abort(); } catch {}
+      abortRef.current = null;
+      setRunning(false);
+    }
     if (!activeAgent) return;
     setObjective(activeAgent.objective);
     setPasses(activeAgent.passes);
@@ -364,6 +370,12 @@ const AsherZahtenModule = () => {
     setLiveRuns(activeAgent.liveRuns || []);
     setFollowUp("");
   }, [activeAgentId]);
+
+  // Hard cleanup on unmount — prevent orphaned streams writing to dead state.
+  useEffect(() => () => {
+    try { abortRef.current?.abort(); } catch {}
+    if (liveTimerRef.current) { try { window.clearInterval(liveTimerRef.current); } catch {} }
+  }, []);
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [passes]);
 
