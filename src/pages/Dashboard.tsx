@@ -55,6 +55,7 @@ const BugReportsView = lazyWithRetry(() => import("@/components/dashboard/BugRep
 const EBookGeneratorView = lazyWithRetry(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
 const CrossView = lazyWithRetry(() => import("@/components/dashboard/cross/CrossView"));
 const GuardianVaultView = lazyWithRetry(() => import("@/components/dashboard/GuardianVaultView"));
+const KnowledgeVaultView = lazyWithRetry(() => import("@/components/dashboard/KnowledgeVaultView"));
 const ZeeionView = lazyWithRetry(() => import("@/components/dashboard/zeeion/ZeeionView"));
 const AxrlenView = lazyWithRetry(() => import("@/components/dashboard/axrlen/AxrlenView"));
 const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/ZerlalView"));
