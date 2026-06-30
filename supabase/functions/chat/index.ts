@@ -1406,7 +1406,90 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       console.error("memory load failed:", e);
     }
 
+    // ── AUREON VAULT (RAG) — Pro tier only ─────────────────────────────────
+    // For $399 monthly_pro / lifetime users, embed the latest user message and
+    // pull the top relevant chunks from their private knowledge vault.
+    let vaultContextStr = "";
+    try {
+      const authV = req.headers.get("Authorization");
+      const lastUserMsg = (messages || []).filter((m: any) => m.role === "user").slice(-1)[0]?.content;
+      if (authV && lastUserMsg && typeof lastUserMsg === "string" && lastUserMsg.trim().length > 3) {
+        const SUPABASE_URL_V = Deno.env.get("SUPABASE_URL") || "";
+        const SRK_V = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+        const ANON_V = Deno.env.get("SUPABASE_ANON_KEY") || "";
+        const LK = Deno.env.get("LOVABLE_API_KEY") || "";
+        if (LK && SUPABASE_URL_V && SRK_V) {
+          const { createClient: ccV } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const anonV = ccV(SUPABASE_URL_V, ANON_V);
+          const { data: { user: vUser } } = await anonV.auth.getUser(authV.replace("Bearer ", ""));
+          if (vUser) {
+            const adminV = ccV(SUPABASE_URL_V, SRK_V);
+            // Tier check via active subscription OR admin email.
+            const { isAdminEmail } = await import("../_shared/adminGate.ts");
+            const isAdminV = isAdminEmail(vUser.email);
+            let allowed = isAdminV;
+            if (!allowed) {
+              const { data: sub } = await adminV
+                .from("user_subscriptions")
+                .select("product_id,status")
+                .eq("user_id", vUser.id)
+                .eq("status", "active")
+                .maybeSingle();
+              const pid = String(sub?.product_id || "");
+              // Pro/Lifetime products.
+              const proIds = new Set(["prod_U1PuUztkmieRrE", "prod_UjaQFcAkQnTOm1", "prod_UTrNsrxIQGTBQR", "prod_aureon_algorithm"]);
+              allowed = proIds.has(pid) || /pro|lifetime/i.test(pid);
+            }
+            if (allowed) {
+              // Cheap fast path: only run if the user actually has vault content.
+              const { count } = await adminV
+                .from("aureon_vault_chunks")
+                .select("id", { count: "exact", head: true })
+                .eq("user_id", vUser.id);
+              if ((count ?? 0) > 0) {
+                const eR = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+                  method: "POST",
+                  headers: { "Authorization": `Bearer ${LK}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    model: "openai/text-embedding-3-small",
+                    input: lastUserMsg.slice(0, 4000),
+                    dimensions: 1536,
+                  }),
+                });
+                if (eR.ok) {
+                  const eJ = await eR.json();
+                  const qEmbed = eJ?.data?.[0]?.embedding;
+                  if (Array.isArray(qEmbed)) {
+                    const { data: matches } = await adminV.rpc("match_vault_chunks", {
+                      _user_id: vUser.id,
+                      query_embedding: qEmbed,
+                      match_count: 6,
+                    });
+                    if (Array.isArray(matches) && matches.length) {
+                      const ids = Array.from(new Set(matches.map((m: any) => m.source_id)));
+                      const { data: srcs } = await adminV.from("aureon_vault_sources")
+                        .select("id,name").in("id", ids);
+                      const nameById: Record<string, string> = {};
+                      for (const s of (srcs || [])) nameById[s.id] = s.name;
+                      const blocks = matches.map((m: any, i: number) => {
+                        const sim = typeof m.similarity === "number" ? m.similarity.toFixed(2) : "?";
+                        return `### [Vault ${i + 1} · ${nameById[m.source_id] || "source"} · sim=${sim}]\n${m.content}`;
+                      }).join("\n\n");
+                      vaultContextStr = `\n\n## AUREON VAULT (operator's private knowledge — RAG)\nThe operator has a private knowledge vault. The following chunks were retrieved as most relevant to the current question. Use them as authoritative source material — they are the operator's own files / API data. Cite them inline as [Vault N] when you rely on them. Do not echo unrelated chunks.\n\n${blocks}`;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("vault retrieval failed:", e);
+    }
+
     const responseDepth = depth || "standard";
+
 
     // ── Brain context injection ────────────────────────────────────────
     let brainContextStr = "";
