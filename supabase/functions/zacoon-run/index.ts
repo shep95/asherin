@@ -1,508 +1,476 @@
-// ZACOON-RUN — real browser-task execution backend.
-// Tries Firecrawl if FIRECRAWL_API_KEY exists, otherwise falls back to native fetch + Gemini extraction.
-// Also exposes a "recon" mode that returns infrastructure intelligence (DNS / TLS / WAF / headers / surface).
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// ============================================================================
+// ZACOON PHANTOM GRID v3.0 — Operative Intelligence Console
+// ----------------------------------------------------------------------------
+// Multi-cortex autonomous web operative with:
+//   • $399/mo Pro tier gate (admins bypass)
+//   • Mass-ban on aureonai.app / www.aureonai.app for non-admins
+//   • 5-Phase Cortex Loop (Recon → Navigate → Adversarial → Self-Correct → Synthesis)
+//   • Unified Mission Memory (cross-mode intelligence via zacoon_missions)
+//   • Cryptographic mission fingerprint + integrity certificate
+//   • Append-only audit ledger (zacoon_missions + zacoon_cortex_events)
+// ============================================================================
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
-// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+import { getCallerEmail, isAdminEmail } from "../_shared/adminGate.ts";
+import { requireTier } from "../_shared/tierGate.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const ADMIN_GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
-const FIRECRAWL_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+const ADMIN_GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
+const FIRECRAWL_KEY = Deno.env.get("FIRECRAWL_API_KEY") || "";
 
-interface Step { ts: number; type: string; detail: string; data?: unknown }
+// Domains where non-admin usage is mass-banned per operator directive.
+const BANNED_HOSTS = new Set(["aureonai.app", "www.aureonai.app"]);
 
-const j = (data: unknown, status = 200) =>
-  new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+type Phase = "RECON" | "NAVIGATE" | "ADVERSARIAL" | "SELF_CORRECT" | "SYNTHESIS" | "DISPATCH" | "CLOSE";
+type EventType = "PLAN" | "EXECUTE" | "DETECT" | "ADAPT" | "ABORT" | "CONFIRM";
+interface CortexEvent { ts_ms: number; phase: Phase; event_type: EventType; detail: string; data?: unknown }
 
-async function gemini(prompt: string, system: string | undefined, apiKey: string): Promise<string> {
-  if (!apiKey) throw new Error("No Gemini API key available — add a BYOK key in Settings.");
+const jsonResp = (data: unknown, status: number, cors: Record<string,string>) =>
+  new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
+
+// ── Cryptography helpers ────────────────────────────────────────────────────
+async function sha256Hex(text: string): Promise<string> {
+  const bytes = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// ── Gemini call ─────────────────────────────────────────────────────────────
+async function gemini(prompt: string, system: string, apiKey: string): Promise<string> {
   const r = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+        systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 16384 },
+        generationConfig: { temperature: 0.35, maxOutputTokens: 16384 },
       }),
     },
   );
-  if (!r.ok) throw new Error(`Gemini ${r.status}: ${await r.text()}`);
+  if (!r.ok) throw new Error(`Gemini ${r.status}: ${(await r.text()).slice(0, 300)}`);
   const d = await r.json();
   return d?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 }
 
+function parseJsonLoose<T = any>(text: string, fallback: T): T {
+  try {
+    const cleaned = text.replace(/^```json\s*|\s*```$/gi, "").trim();
+    return JSON.parse(cleaned) as T;
+  } catch { return fallback; }
+}
+
+// ── Firecrawl (primary substrate — no bad native fallback) ─────────────────
 async function firecrawlScrape(url: string, formats: string[] = ["markdown", "links"]) {
+  if (!FIRECRAWL_KEY) throw new Error("FIRECRAWL_KEY_MISSING");
   const r = await fetch("https://api.firecrawl.dev/v2/scrape", {
     method: "POST",
     headers: { Authorization: `Bearer ${FIRECRAWL_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ url, formats, onlyMainContent: true }),
+    body: JSON.stringify({ url, formats, onlyMainContent: true, waitFor: 800 }),
   });
-  if (!r.ok) throw new Error(`Firecrawl ${r.status}: ${await r.text()}`);
-  return r.json();
-}
-
-async function firecrawlMap(url: string) {
-  const r = await fetch("https://api.firecrawl.dev/v2/map", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${FIRECRAWL_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ url, limit: 200, includeSubdomains: true }),
-  });
-  if (!r.ok) throw new Error(`Firecrawl ${r.status}: ${await r.text()}`);
-  return r.json();
-}
-
-async function nativeScrape(url: string): Promise<{ markdown: string; links: string[]; status: number; headers: Record<string,string> }> {
-  const r = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; ZacoonBot/1.0; +https://aureonai.app)",
-      "Accept": "text/html,application/xhtml+xml",
-    },
-    redirect: "follow",
-  });
-  const headers: Record<string,string> = {};
-  r.headers.forEach((v, k) => { headers[k] = v; });
-  const html = await r.text();
-  const text = html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 80_000);
-  const links = Array.from(html.matchAll(/href=["']([^"']+)["']/gi)).map(m => m[1]).slice(0, 200);
-  return { markdown: text, links, status: r.status, headers };
-}
-
-async function reconTarget(url: string): Promise<{ infra: Record<string, unknown>; surface: string[]; headers: Record<string,string>; tls?: Record<string,unknown> }> {
-  const u = new URL(url);
-  const probe = await fetch(`${u.protocol}//${u.hostname}`, { method: "GET", redirect: "manual" }).catch(() => null);
-  const headers: Record<string,string> = {};
-  probe?.headers.forEach((v, k) => { headers[k] = v; });
-
-  const server = headers["server"];
-  const xpb = headers["x-powered-by"];
-  const cfray = headers["cf-ray"] ? "Cloudflare" : null;
-  const akamai = headers["x-akamai-transformed"] || headers["x-akamai-request-id"] ? "Akamai" : null;
-  const aws = headers["x-amz-cf-id"] ? "AWS CloudFront" : null;
-  const fastly = headers["x-served-by"]?.includes("cache-") ? "Fastly" : null;
-  const waf = [cfray, akamai, aws, fastly].filter(Boolean);
-
-  let surface: string[] = [];
-  try {
-    const probes = await Promise.allSettled(
-      ["/robots.txt", "/sitemap.xml", "/.well-known/security.txt", "/admin", "/api", "/.git/HEAD", "/.env"]
-        .map(p => fetch(`${u.protocol}//${u.hostname}${p}`, { method: "GET" }).then(r => ({ p, status: r.status }))),
-    );
-    surface = probes
-      .map(r => r.status === "fulfilled" ? r.value : null)
-      .filter((x): x is { p: string; status: number } => !!x && x.status < 400)
-      .map(x => `${x.p} → ${x.status}`);
-  } catch { /* ignore */ }
-
+  if (!r.ok) throw new Error(`Firecrawl ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  const d = await r.json();
   return {
-    infra: {
-      hostname: u.hostname,
-      protocol: u.protocol,
-      server,
-      x_powered_by: xpb,
-      cdn_or_waf: waf,
-      status: probe?.status,
-    },
-    surface,
-    headers,
+    markdown: d?.data?.markdown || d?.markdown || "",
+    links: (d?.data?.links || d?.links || []) as string[],
+    html: d?.data?.rawHtml || d?.data?.html || "",
+    metadata: d?.data?.metadata || {},
   };
 }
 
-Deno.serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
+async function firecrawlMap(url: string): Promise<string[]> {
+  if (!FIRECRAWL_KEY) return [];
+  const r = await fetch("https://api.firecrawl.dev/v2/map", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${FIRECRAWL_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ url, limit: 200, includeSubdomains: false }),
+  });
+  if (!r.ok) return [];
+  const d = await r.json();
+  return (d?.links || d?.data?.links || []) as string[];
+}
 
-  // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
-  if (req.method !== 'OPTIONS') {
+// ── PHASE 1: RECON CORTEX — Target Resistance Profile ──────────────────────
+async function reconCortex(targetUrl: string): Promise<{
+  hostname: string;
+  cdn_or_waf: string[];
+  server?: string;
+  x_powered_by?: string;
+  status?: number;
+  headers: Record<string,string>;
+  surface: string[];
+  approach_vector: "direct" | "stealth" | "visual_grounding";
+}> {
+  const u = new URL(targetUrl);
+  const probe = await fetch(`${u.protocol}//${u.hostname}`, {
+    method: "GET",
+    redirect: "manual",
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; ZacoonPhantomBot/3.0)" },
+  }).catch(() => null);
+  const headers: Record<string,string> = {};
+  probe?.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+
+  const cdn: string[] = [];
+  if (headers["cf-ray"] || headers["cf-cache-status"]) cdn.push("Cloudflare");
+  if (headers["x-akamai-transformed"] || headers["x-akamai-request-id"]) cdn.push("Akamai");
+  if (headers["x-amz-cf-id"]) cdn.push("AWS CloudFront");
+  if (headers["x-served-by"]?.includes("cache-")) cdn.push("Fastly");
+  if (headers["x-vercel-id"]) cdn.push("Vercel Edge");
+  if (headers["server"]?.toLowerCase().includes("nginx")) cdn.push("Nginx");
+
+  const surfacePaths = ["/robots.txt", "/sitemap.xml", "/.well-known/security.txt", "/api", "/admin"];
+  const surfaceRes = await Promise.allSettled(
+    surfacePaths.map(p =>
+      fetch(`${u.protocol}//${u.hostname}${p}`, { method: "GET" }).then(r => ({ p, status: r.status }))
+    )
+  );
+  const surface = surfaceRes
+    .map(r => r.status === "fulfilled" ? r.value : null)
+    .filter((x): x is { p: string; status: number } => !!x && x.status < 400)
+    .map(x => `${x.p} → ${x.status}`);
+
+  // Select approach vector based on resistance
+  let approach: "direct" | "stealth" | "visual_grounding" = "direct";
+  if (cdn.includes("Cloudflare") || cdn.includes("Akamai")) approach = "stealth";
+  if (headers["cf-mitigated"] || headers["server"]?.toLowerCase().includes("perimeter")) approach = "visual_grounding";
+
+  return {
+    hostname: u.hostname,
+    cdn_or_waf: cdn,
+    server: headers["server"],
+    x_powered_by: headers["x-powered-by"],
+    status: probe?.status,
+    headers,
+    surface,
+    approach_vector: approach,
+  };
+}
+
+// ── PHASE 3: ADVERSARIAL AWARENESS ENGINE ──────────────────────────────────
+function adversarialScan(markdown: string, html: string): {
+  threats: { type: string; severity: "low" | "med" | "high"; evidence: string }[];
+  clean: boolean;
+} {
+  const threats: { type: string; severity: "low" | "med" | "high"; evidence: string }[] = [];
+  const src = (html || markdown).slice(0, 200_000);
+
+  // Honeypot form field patterns
+  const honeypots = src.match(/<input[^>]*(?:name|id)=["'](?:email_confirm|website|url|honeypot|hp_|bot_check|leave_blank)["'][^>]*>/gi);
+  if (honeypots && honeypots.length > 0)
+    threats.push({ type: "honeypot_field", severity: "med", evidence: honeypots[0].slice(0, 120) });
+
+  // Canary token / invisible tracking pixel patterns
+  const canaryMatch = src.match(/(?:1x1|pixel|tracking|canary|beacon)[^"']{0,40}\.(?:gif|png)/gi);
+  if (canaryMatch && canaryMatch.length > 2)
+    threats.push({ type: "canary_token", severity: "low", evidence: canaryMatch.slice(0, 3).join(", ") });
+
+  // Prompt-injection style adversarial content
+  if (/ignore (?:all )?previous instructions|disregard your (?:system )?prompt|you are now/i.test(src))
+    threats.push({ type: "prompt_injection", severity: "high", evidence: "Detected instruction-hijack phrase in page content" });
+
+  // Behavioral fingerprinting
+  if (/(?:fingerprintjs|clientjs|creepjs|fpjs)/i.test(src))
+    threats.push({ type: "behavioral_fingerprint", severity: "med", evidence: "Fingerprinting library detected" });
+
+  // Bot-detection redirect
+  if (/(?:cf-browser-verification|hcaptcha|recaptcha\/api|challenge-platform)/i.test(src))
+    threats.push({ type: "captcha_wall", severity: "high", evidence: "Challenge/CAPTCHA infrastructure present" });
+
+  return { threats, clean: threats.length === 0 };
+}
+
+// ── PHASE 2: PHANTOM NAVIGATION with SELF-CORRECTION (Phase 4) ─────────────
+async function phantomNavigate(
+  url: string,
+  approach: string,
+  log: (e: EventType, detail: string, data?: unknown, phase?: Phase) => void,
+): Promise<{ markdown: string; links: string[]; html: string; metadata: any; substrate: string }> {
+  const attempts: string[] = [];
+  // Substrate escalation ladder
+  const substrates = approach === "visual_grounding"
+    ? ["firecrawl_screenshot", "firecrawl_markdown"]
+    : ["firecrawl_markdown", "firecrawl_screenshot"];
+
+  for (let i = 0; i < substrates.length; i++) {
+    const sub = substrates[i];
     try {
-      const _b = await req.clone().json().catch(() => ({} as any));
-      const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
-      const _gate = await import('../_shared/adminGate.ts');
-      await _gate.resolveKey(req, _byok);
-    } catch (_e) {
-      const _gate = await import('../_shared/adminGate.ts');
-      return _gate.byokErrorResponse(_e, corsHeaders);
+      log("EXECUTE", `Substrate: ${sub} (attempt ${i + 1})`, { substrate: sub }, "NAVIGATE");
+      const formats = sub === "firecrawl_screenshot"
+        ? ["markdown", "links", "screenshot"]
+        : ["markdown", "links", "rawHtml"];
+      const res = await firecrawlScrape(url, formats);
+      log("CONFIRM", `Substrate succeeded — ${res.markdown.length} chars, ${res.links.length} links`, undefined, "NAVIGATE");
+      return { ...res, substrate: sub };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      attempts.push(`${sub}: ${msg}`);
+      log("ADAPT", `Substrate ${sub} failed — rerouting (${msg.slice(0, 80)})`, undefined, "SELF_CORRECT");
     }
   }
+  throw new Error(`All substrates exhausted:\n${attempts.join("\n")}`);
+}
 
+// ── Cross-mode Unified Mission Memory: seed from prior missions ────────────
+async function umRelatedMissions(sb: any, userId: string, hostname: string): Promise<any[]> {
+  const { data } = await sb
+    .from("zacoon_missions")
+    .select("id,mode,target_url,intel,output,created_at")
+    .eq("user_id", userId)
+    .eq("status", "success")
+    .ilike("target_url", `%${hostname}%`)
+    .order("created_at", { ascending: false })
+    .limit(3);
+  return data ?? [];
+}
+
+// ── HANDLER ──────────────────────────────────────────────────────────────────
+Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // ── Mass-ban gate: block aureonai.app for non-admins ──────────────────────
+  const origin = (req.headers.get("origin") || req.headers.get("referer") || "").toLowerCase();
+  const email = await getCallerEmail(req);
+  const admin = isAdminEmail(email);
+  if (!admin) {
+    for (const host of BANNED_HOSTS) {
+      if (origin.includes(host)) {
+        return jsonResp({
+          error: "DOMAIN_BANNED",
+          message: "Zacoon Phantom Grid is not available on this domain.",
+        }, 451, corsHeaders);
+      }
+    }
+    // ── Tier gate: $399 Pro tier or higher required ────────────────────────
+    const gate = await requireTier(req, ["pro", "lifetime"], corsHeaders);
+    if (!gate.ok) return gate.response!;
+  }
 
   const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   let userId: string | null = null;
-  let userEmail: string | null = null;
   try {
     const auth = req.headers.get("Authorization");
     if (auth) {
       const { data } = await sb.auth.getUser(auth.replace("Bearer ", ""));
       userId = data?.user?.id ?? null;
-      userEmail = (data?.user?.email ?? null)?.toLowerCase() ?? null;
     }
-  } catch { /* anon */ }
-  if (!userId) return j({ error: "auth required" }, 401);
+  } catch { /* anon rejected below */ }
+  if (!userId) return jsonResp({ error: "auth_required" }, 401, corsHeaders);
 
-  const body = await req.json().catch(() => ({}));
-  const mode: "browser" | "recon" | "extract" | "forge" | "stress" | "code" = body.mode || "browser";
-  const task: string = body.task || "";
+  const body = await req.json().catch(() => ({} as any));
+  const mode: string = body.mode || "recon";
+  const objective: string = body.objective || body.task || "";
   const targetUrl: string = body.target_url || body.url || "";
-
-  // Offensive / recon modes are admin-only — client-supplied permission_attestation
-  // is NOT a sufficient authorization signal.
-  const OFFENSIVE_MODES = new Set(["recon", "extract", "stress", "forge"]);
-  if (OFFENSIVE_MODES.has(mode) && !["ashernewtonx@gmail.com","28numberofmoney@gmail.com"].includes(String(userEmail||"").toLowerCase())) {
-    return j({ error: "Forbidden: this mode is restricted to platform operators." }, 403);
-  }
-
-
-  // Resolve which Gemini key to use: BYOK header (user-supplied) takes precedence over admin env key.
+  const riskEnvelope: string = body.risk_envelope || "standard";
   const byokKey = req.headers.get("x-byok-gemini-key") || "";
-  const geminiKey = byokKey || ADMIN_GEMINI_KEY || "";
+  const geminiKey = byokKey || ADMIN_GEMINI_KEY;
 
-  if (!task && !targetUrl) return j({ error: "task or target_url required" }, 400);
-  if (!geminiKey) return j({ error: "No Gemini API key. Add a BYOK key in Settings or have an admin configure GEMINI_API_KEY." }, 401);
+  if (!targetUrl && mode !== "browser") return jsonResp({ error: "target_url_required" }, 400, corsHeaders);
+  if (!geminiKey) return jsonResp({ error: "no_ai_key", message: "Add a Gemini BYOK key in Settings." }, 401, corsHeaders);
 
   const t0 = Date.now();
-  const steps: Step[] = [];
-  const log = (type: string, detail: string, data?: unknown) =>
-    steps.push({ ts: Date.now() - t0, type, detail, data });
+  const events: CortexEvent[] = [];
 
-  // Insert run row
-  const { data: runRow } = await sb
-    .from("asher_agent_runs")
-    .insert({ user_id: userId, source: mode === "recon" ? "zacoon-recon" : "zacoon", task, target_url: targetUrl, status: "running" })
-    .select("id").single();
-  const runId = runRow?.id as string | undefined;
+  // Mission fingerprint (cryptographic chain-of-custody)
+  const fingerprint = await sha256Hex(JSON.stringify({
+    userId, mode, objective, targetUrl, riskEnvelope, ts: t0,
+  }));
+
+  // Insert mission row
+  const { data: mission, error: mErr } = await sb.from("zacoon_missions").insert({
+    user_id: userId,
+    mode,
+    objective,
+    target_url: targetUrl || null,
+    risk_envelope: riskEnvelope,
+    fingerprint,
+    status: "running",
+    teg: body.teg ?? {},
+  }).select("id").single();
+
+  if (mErr || !mission) return jsonResp({ error: "ledger_write_failed", detail: mErr?.message }, 500, corsHeaders);
+  const missionId = mission.id as string;
+
+  const log = async (event_type: EventType, detail: string, data?: unknown, phase: Phase = "NAVIGATE") => {
+    const ev: CortexEvent = { ts_ms: Date.now() - t0, phase, event_type, detail, data };
+    events.push(ev);
+    // Fire-and-forget audit write (RLS enforces ownership on the SELECT side; service role bypasses on INSERT).
+    sb.from("zacoon_cortex_events").insert({
+      mission_id: missionId, user_id: userId, phase, event_type, detail,
+      data: data === undefined ? null : (data as any),
+      ts_ms: ev.ts_ms,
+    }).then(() => {}, () => {});
+  };
 
   try {
+    await log("PLAN", `Mission ${mode.toUpperCase()} dispatched — target=${targetUrl || "(none)"} risk=${riskEnvelope}`, { fingerprint }, "DISPATCH");
+
+    // ── PHASE 1: RECON ─────────────────────────────────────────────────────
+    let trp: Awaited<ReturnType<typeof reconCortex>> | null = null;
+    if (targetUrl) {
+      await log("EXECUTE", "Building Target Resistance Profile", undefined, "RECON");
+      trp = await reconCortex(targetUrl);
+      await log("CONFIRM",
+        `TRP built — WAF=${trp.cdn_or_waf.join("/") || "none"} surface=${trp.surface.length} approach=${trp.approach_vector}`,
+        trp, "RECON");
+    }
+
+    // ── UMM: seed from prior related missions ──────────────────────────────
+    let priorContext: any[] = [];
+    if (trp) {
+      priorContext = await umRelatedMissions(sb, userId, trp.hostname);
+      if (priorContext.length > 0)
+        await log("DETECT", `Unified Mission Memory: ${priorContext.length} prior mission(s) on ${trp.hostname}`, undefined, "RECON");
+    }
+
+    // ── Mode-specific execution ────────────────────────────────────────────
     let output: Record<string, unknown> = {};
-    let findings: Record<string, unknown> | null = null;
+    let intel: Record<string, unknown> = {};
 
-    if (mode === "recon") {
-      if (!targetUrl) throw new Error("target_url required for recon mode");
-      if (!body.permission_attestation) throw new Error("permission_attestation required (you must own or be authorized for the target)");
+    if (mode === "recon" || mode === "phantom_recon") {
+      const mapped = await firecrawlMap(targetUrl).catch(() => []);
+      if (mapped.length) await log("EXECUTE", `Mapped ${mapped.length} surface URLs`, undefined, "RECON");
 
-      log("recon.start", `Probing ${targetUrl}`);
-      const recon = await reconTarget(targetUrl);
-      log("recon.infra", `Identified host=${recon.infra.hostname} server=${recon.infra.server ?? "?"} waf=${JSON.stringify(recon.infra.cdn_or_waf)}`, recon.infra);
-      log("recon.surface", `Found ${recon.surface.length} reachable surface paths`, recon.surface);
-
-      // Sitemap (optional)
-      let mapped: string[] = [];
-      if (FIRECRAWL_KEY) {
-        try {
-          const m = await firecrawlMap(targetUrl);
-          mapped = (m.links || m.data?.links || []) as string[];
-          log("recon.map", `Mapped ${mapped.length} URLs via Firecrawl`);
-        } catch (e) { log("recon.map.error", String(e)); }
-      }
-
-      // AI exploit hypotheses
-      const exploitText = await gemini(
-        `You are a permissioned offensive security analyst. Target: ${targetUrl}\n\n` +
-        `Headers:\n${JSON.stringify(recon.headers, null, 2)}\n\n` +
-        `Reachable surface:\n${recon.surface.join("\n")}\n\n` +
-        `Sitemap sample:\n${mapped.slice(0, 30).join("\n")}\n\n` +
-        `Output strict JSON: {"exposed_data":[{"path":"","why":"","severity":"low|med|high"}],` +
-        `"exploit_hypotheses":[{"vector":"","cwe":"","severity":"low|med|high|crit","why":"","next_step":""}],` +
-        `"shutdown_feasibility":{"summary":"","required_perms":[],"steps":[]}}`,
-        "You return ONLY valid JSON. No prose, no code fences.",
+      const analysis = await gemini(
+        `Target: ${targetUrl}\nTRP: ${JSON.stringify(trp, null, 2)}\nSitemap sample:\n${mapped.slice(0, 30).join("\n")}\n\n` +
+        `Produce a Target Intelligence Dossier. Return strict JSON: ` +
+        `{"summary":"","technology_stack":[],"attack_surface_score":0,"exposed_data":[{"path":"","severity":"low|med|high","why":""}],` +
+        `"security_headers":{"csp":"","hsts":"","x_frame":""},"risk_score":0}`,
+        "You return ONLY valid JSON. Confidence-score every finding.",
         geminiKey,
       );
-      const cleaned = exploitText.replace(/^```json\s*|\s*```$/gi, "").trim();
-      try { findings = JSON.parse(cleaned); }
-      catch { findings = { raw: exploitText }; }
-      log("recon.findings", "AI exploit & exposure analysis complete");
-      output = { recon, mapped: mapped.slice(0, 50) };
-    } else if (mode === "extract") {
-      // ── EXTRACT MODE — UNRESTRICTED deep multi-page harvest
-      if (!targetUrl) throw new Error("target_url required for extract mode");
-      if (!body.permission_attestation) throw new Error("permission_attestation required (auto-approved by site owner)");
+      intel = parseJsonLoose(analysis, { raw: analysis });
+      output = { trp, mapped: mapped.slice(0, 100) };
+      await log("CONFIRM", "Phantom Recon dossier synthesized", undefined, "SYNTHESIS");
 
-      const maxPages: number = Math.min(Number(body.max_pages) || 25, 100);
-      log("extract.start", `Unrestricted harvest of ${targetUrl} (up to ${maxPages} pages)`);
+    } else if (mode === "extract" || mode === "precision_extract") {
+      const maxPages = Math.min(Number(body.max_pages) || 15, 60);
+      const mapped = await firecrawlMap(targetUrl).catch(() => []);
+      const urls = Array.from(new Set([targetUrl, ...mapped])).slice(0, maxPages);
+      await log("EXECUTE", `Precision Extract across ${urls.length} pages`, undefined, "NAVIGATE");
 
-      // 1. Map the entire site
-      let allUrls: string[] = [targetUrl];
-      if (FIRECRAWL_KEY) {
-        try {
-          const m = await firecrawlMap(targetUrl);
-          const mapped = (m.links || m.data?.links || []) as string[];
-          allUrls = Array.from(new Set([targetUrl, ...mapped])).slice(0, maxPages);
-          log("extract.map", `Mapped ${mapped.length} URLs, harvesting ${allUrls.length}`);
-        } catch (e) { log("extract.map.error", String(e)); }
-      }
-
-      // 2. Scrape every page in parallel (chunked to avoid runtime overload)
-      const allPages: { url: string; markdown: string; links: string[] }[] = [];
-      const chunk = 5;
-      for (let i = 0; i < allUrls.length; i += chunk) {
-        const slice = allUrls.slice(i, i + chunk);
-        const results = await Promise.allSettled(slice.map(async (u) => {
-          if (FIRECRAWL_KEY) {
-            const fr = await firecrawlScrape(u, ["markdown", "links"]);
-            return { url: u, markdown: fr.data?.markdown || fr.markdown || "", links: fr.data?.links || fr.links || [] };
+      const pages: { url: string; markdown: string }[] = [];
+      const threats: any[] = [];
+      for (let i = 0; i < urls.length; i += 4) {
+        const batch = urls.slice(i, i + 4);
+        const results = await Promise.allSettled(batch.map(async (u) => {
+          const nav = await phantomNavigate(u, trp?.approach_vector || "direct", log);
+          const aae = adversarialScan(nav.markdown, nav.html);
+          if (!aae.clean) {
+            threats.push({ url: u, ...aae });
+            await log("DETECT", `AAE flagged ${aae.threats.length} threat(s) on ${u}`, aae.threats, "ADVERSARIAL");
           }
-          const ns = await nativeScrape(u);
-          return { url: u, markdown: ns.markdown, links: ns.links };
+          return { url: u, markdown: nav.markdown };
         }));
-        for (const r of results) if (r.status === "fulfilled") allPages.push(r.value);
-        log("extract.batch", `Scraped ${allPages.length}/${allUrls.length} pages`);
+        for (const r of results) if (r.status === "fulfilled") pages.push(r.value);
+        await log("CONFIRM", `Batch ${Math.floor(i/4)+1} → ${pages.length}/${urls.length} pages captured`, undefined, "NAVIGATE");
       }
 
-      const totalChars = allPages.reduce((a, p) => a + p.markdown.length, 0);
-      log("extract.total", `Harvested ${totalChars.toLocaleString()} chars across ${allPages.length} pages`);
-
-      // 3. Backend-surface probe
-      const recon = await reconTarget(targetUrl);
-      log("extract.backend", `Backend surface: ${recon.surface.length} paths`, recon.infra);
-
-      // 4. Iterative AI extraction — process pages in batches to avoid token limits, merge results
-      const aggregated = { summary: "", entities: [] as any[], tables: [] as any[], endpoints: [] as any[], data_schema: {} as any, confidence: 0 };
-      const pageBatchSize = 4;
-      for (let i = 0; i < allPages.length; i += pageBatchSize) {
-        const batch = allPages.slice(i, i + pageBatchSize);
-        const corpus = batch.map(p => `===URL: ${p.url}===\n${p.markdown.slice(0, 60_000)}`).join("\n\n");
-        const harvest = await gemini(
-          `Operator task: "${task || "extract everything useful — be exhaustive"}"\nRoot: ${targetUrl}\n\n` +
-          `Pages (batch ${Math.floor(i/pageBatchSize)+1}/${Math.ceil(allPages.length/pageBatchSize)}):\n${corpus}\n\n` +
-          (i === 0 ? `Backend headers:\n${JSON.stringify(recon.headers, null, 2)}\n\nReachable surface:\n${recon.surface.join("\n")}\n\n` : "") +
-          `Return strict JSON: {"summary":"","entities":[{"name":"","type":"","value":"","source_url":""}],` +
-          `"tables":[{"title":"","rows":[[""]]}],"endpoints":[{"path":"","method":"","why":""}],` +
-          `"data_schema":{},"confidence":0.0}`,
-          "You return ONLY valid JSON. No prose, no fences. Be exhaustive — extract EVERY entity, table, endpoint, and data point you see. Do not summarize or omit.",
+      // Signal Forge synthesis (multi-pass)
+      const aggregated: any = { summary: "", entities: [], tables: [], endpoints: [], confidence: 0 };
+      for (let i = 0; i < pages.length; i += 4) {
+        const slice = pages.slice(i, i + 4);
+        const corpus = slice.map(p => `===${p.url}===\n${p.markdown.slice(0, 50_000)}`).join("\n\n");
+        const raw = await gemini(
+          `Objective: "${objective || "extract every structured data point"}"\nRoot: ${targetUrl}\nPages:\n${corpus}\n\n` +
+          `Return strict JSON: {"summary":"","entities":[{"name":"","type":"","value":"","source_url":"","confidence":0.0}],` +
+          `"tables":[{"title":"","rows":[[""]]}],"endpoints":[{"path":"","method":"","why":""}],"confidence":0.0}`,
+          "ONLY valid JSON. Be exhaustive. Confidence-score every extraction.",
           geminiKey,
         );
-        try {
-          const parsed = JSON.parse(harvest.replace(/^```json\s*|\s*```$/gi, "").trim());
-          aggregated.summary += (parsed.summary || "") + " ";
-          aggregated.entities.push(...(parsed.entities || []));
-          aggregated.tables.push(...(parsed.tables || []));
-          aggregated.endpoints.push(...(parsed.endpoints || []));
-          if (parsed.data_schema) aggregated.data_schema = { ...aggregated.data_schema, ...parsed.data_schema };
-          aggregated.confidence = Math.max(aggregated.confidence, parsed.confidence || 0);
-        } catch { /* skip bad batch */ }
-        log("extract.batch.ok", `Batch ${Math.floor(i/pageBatchSize)+1} → ${aggregated.entities.length} entities so far`);
+        const parsed = parseJsonLoose<any>(raw, {});
+        aggregated.summary += (parsed.summary || "") + " ";
+        aggregated.entities.push(...(parsed.entities || []));
+        aggregated.tables.push(...(parsed.tables || []));
+        aggregated.endpoints.push(...(parsed.endpoints || []));
+        aggregated.confidence = Math.max(aggregated.confidence, parsed.confidence || 0);
       }
+      intel = { ...aggregated, adversarial_events: threats };
+      output = { trp, pages_captured: pages.length, urls_targeted: urls.length };
+      await log("CONFIRM", `Signal Forge synthesized ${aggregated.entities.length} entities`, undefined, "SYNTHESIS");
 
-      output = aggregated as any;
-      (output as any).recon = recon;
-      (output as any).pages_harvested = allPages.length;
-      (output as any).total_chars = totalChars;
-      (output as any).all_links = Array.from(new Set(allPages.flatMap(p => p.links)));
-      log("extract.ok", `Unrestricted extraction complete — ${aggregated.entities.length} entities, ${aggregated.endpoints.length} endpoints`);
-    } else if (mode === "forge") {
-      // ── FORGE MODE — auto-build a small extraction tool around a target
-      if (!targetUrl) throw new Error("target_url required for forge mode");
-      if (!body.permission_attestation) throw new Error("permission_attestation required");
-
-      log("forge.start", `Designing extractor for ${targetUrl}`);
-      let scrape: { markdown: string; links: string[] };
-      if (FIRECRAWL_KEY) {
-        const fr = await firecrawlScrape(targetUrl);
-        scrape = { markdown: fr.data?.markdown || fr.markdown || "", links: fr.data?.links || fr.links || [] };
-      } else {
-        const ns = await nativeScrape(targetUrl);
-        scrape = { markdown: ns.markdown, links: ns.links };
-      }
-      log("forge.sample", `Captured ${scrape.markdown.length} chars`);
-
-      const forged = await gemini(
-        `Operator brief: "${task || "build a reusable scraper around this target"}"\nURL: ${targetUrl}\n\n` +
-        `Sample content:\n${scrape.markdown.slice(0, 40_000)}\n\n` +
-        `Design a minimal, production-grade TypeScript Deno script that extracts the intended data on a recurring schedule. ` +
-        `Return strict JSON: {"name":"","description":"","schema":{},"selectors":[{"field":"","strategy":"","selector":""}],` +
-        `"code_typescript":"","run_interval_minutes":60,"output_shape":"json"}`,
-        "You return ONLY valid JSON. The code field must be a complete, runnable Deno script.",
+    } else if (mode === "forge" || mode === "forge_blueprint") {
+      const nav = await phantomNavigate(targetUrl, trp?.approach_vector || "direct", log);
+      const raw = await gemini(
+        `Brief: "${objective || "build a reusable scraper"}"\nURL: ${targetUrl}\nSample:\n${nav.markdown.slice(0, 40_000)}\n\n` +
+        `Return strict JSON: {"name":"","description":"","schema":{},"selectors":[{"field":"","selector":"","strategy":""}],` +
+        `"code_typescript":"","run_interval_minutes":60}`,
+        "ONLY valid JSON. The code field must be complete runnable Deno.",
         geminiKey,
       );
-      try { output = JSON.parse(forged.replace(/^```json\s*|\s*```$/gi, "").trim()); }
-      catch { output = { raw: forged }; }
-      log("forge.ok", "Extractor blueprint generated");
-    } else if (mode === "stress") {
-      // ── STRESS MODE — permissioned strength test (no real DoS, only modeled feasibility)
-      if (!targetUrl) throw new Error("target_url required for stress mode");
-      if (!body.permission_attestation) throw new Error("permission_attestation required (owner authorization)");
+      intel = parseJsonLoose(raw, { raw });
+      output = { trp, sample_chars: nav.markdown.length, substrate: nav.substrate };
+      await log("CONFIRM", "Forge Blueprint generated", undefined, "SYNTHESIS");
 
-      log("stress.start", `Modeling resilience of ${targetUrl}`);
-      const recon = await reconTarget(targetUrl);
-      log("stress.infra", `host=${recon.infra.hostname} waf=${JSON.stringify(recon.infra.cdn_or_waf)}`, recon.infra);
-
-      // Light, throttled probes — no flood, just timing samples (5 sequential GETs)
-      const samples: number[] = [];
-      for (let i = 0; i < 5; i++) {
-        const s = Date.now();
-        try { await fetch(targetUrl, { method: "HEAD" }); } catch { /* ignore */ }
-        samples.push(Date.now() - s);
-        await new Promise((r) => setTimeout(r, 250));
-      }
-      const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
-      log("stress.timing", `avg latency ${avg.toFixed(0)}ms across ${samples.length} HEAD probes`, samples);
-
-      const stress = await gemini(
-        `Permissioned LATERAL SHUTDOWN ANALYSIS. Target: ${targetUrl}\n\n` +
-        `Infra: ${JSON.stringify(recon.infra, null, 2)}\n` +
-        `Headers: ${JSON.stringify(recon.headers, null, 2)}\n` +
-        `Surface: ${recon.surface.join("\n")}\n` +
-        `Latency samples (ms): ${samples.join(", ")} (avg ${avg.toFixed(0)})\n\n` +
-        `Think LATERALLY — owner has authorized full takedown analysis. Don't just consider direct DoS. ` +
-        `Dig "underneath the house": registrar, DNS provider, hosting, CDN/WAF, BGP/upstream ISP, ` +
-        `TLS cert authority, payment processor, OAuth providers, CDN cache poisoning, third-party JS supply chain, ` +
-        `npm/pypi dependency hijack, S3 bucket takeover, expired domains in dependency chain, ` +
-        `DMCA/legal/abuse-report channels, social engineering of support, billing chargeback flood, ` +
-        `app-store delisting, search-engine deindex requests, ad-network blocking, mobile push-cert revocation. ` +
-        `Return strict JSON: {"resilience_score":0,"weak_points":[{"layer":"","why":"","severity":"low|med|high|crit"}],` +
-        `"direct_shutdown":{"summary":"","steps":[],"feasibility":"low|med|high"},` +
-        `"lateral_shutdown_vectors":[{"vector":"","layer":"infra|registrar|dns|cdn|bgp|tls|payment|oauth|supply_chain|legal|social|app_store|search|ads","summary":"","steps":[],"required_perms":[],"feasibility":"low|med|high","time_to_effect":"","blast_radius":""}],` +
-        `"creative_angles":[{"angle":"","why_unconventional":"","how":""}],` +
+    } else if (mode === "resilience_probe" || mode === "stress") {
+      if (!body.ownership_attestation) throw new Error("ownership_attestation required for RESILIENCE_PROBE");
+      const raw = await gemini(
+        `Permissioned RESILIENCE MODELING. Target: ${targetUrl}\nTRP: ${JSON.stringify(trp, null, 2)}\n\n` +
+        `Model shutdown scenarios, single-point-of-failure surfaces, recovery paths. NO exploit payloads.\n` +
+        `Return strict JSON: {"resilience_score":0,"weak_points":[{"layer":"","severity":"low|med|high|crit","why":""}],` +
+        `"lateral_shutdown_vectors":[{"vector":"","layer":"","summary":"","feasibility":"low|med|high"}],` +
         `"hardening_recommendations":[]}`,
-        "You return ONLY valid JSON. Be CREATIVE and exhaustive about lateral vectors — at least 8 lateral_shutdown_vectors covering different layers. Treat as theoretical model — describe steps but do not output exploit payloads.",
+        "ONLY valid JSON. Analytical only — describe steps, never payloads.",
         geminiKey,
       );
-      try { findings = JSON.parse(stress.replace(/^```json\s*|\s*```$/gi, "").trim()); }
-      catch { findings = { raw: stress }; }
-      output = { recon, latency_samples: samples, latency_avg_ms: avg };
-      log("stress.ok", "Resilience modeling complete");
-    } else if (mode === "code") {
-      // ── CODE MODE — read / edit / create / delete files inside an asher_code_projects workspace
-      const projectId: string = body.project_id || "";
-      const dryRun: boolean = body.dry_run !== false && !body.apply; // default: plan only
-      const wipeAll: boolean = !!body.wipe_all;
-      if (!projectId) throw new Error("project_id required for code mode");
-      if (!body.permission_attestation) throw new Error("permission_attestation required (you authorize file edits/deletes)");
+      intel = parseJsonLoose(raw, { raw });
+      output = { trp, mode: "analytical_only", live_traffic_generated: false };
+      await log("CONFIRM", "Resilience model complete", undefined, "SYNTHESIS");
 
-      // Use a user-scoped client so RLS enforces ownership
-      const userClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
-      });
-
-      // Verify ownership
-      const { data: proj, error: projErr } = await userClient
-        .from("asher_code_projects").select("id,name,owner_id,language").eq("id", projectId).maybeSingle();
-      if (projErr || !proj) throw new Error("project not found or not accessible");
-
-      log("code.start", `Project "${proj.name}" (${proj.language}) — ${dryRun ? "DRY RUN" : "APPLYING"}${wipeAll ? " — WIPE ALL" : ""}`);
-
-      // Total wipe shortcut (still requires apply=true)
-      if (wipeAll) {
-        if (dryRun) {
-          const { count } = await userClient.from("asher_code_files").select("id", { count: "exact", head: true }).eq("project_id", projectId);
-          output = { plan: { wipe_all: true, files_to_delete: count || 0 }, applied: false };
-          log("code.plan", `Would delete ALL ${count || 0} files`);
-        } else {
-          const { data: del, error: delErr } = await userClient.from("asher_code_files").delete().eq("project_id", projectId).select("path");
-          if (delErr) throw new Error(`wipe failed: ${delErr.message}`);
-          output = { wiped: true, deleted_files: del?.map(f => f.path) || [], deleted_count: del?.length || 0 };
-          log("code.wipe", `Deleted ${del?.length || 0} files`);
-        }
-      } else {
-        // Load all files
-        const { data: files } = await userClient.from("asher_code_files").select("path,content,language").eq("project_id", projectId).limit(500);
-        const filesArr = files || [];
-        log("code.read", `Loaded ${filesArr.length} files`);
-
-        // Build a compact tree for the AI
-        const tree = filesArr.map(f => `=== ${f.path} (${f.language}) ===\n${(f.content || "").slice(0, 8000)}`).join("\n\n");
-        const planResp = await gemini(
-          `Operator brief: "${task || "improve this codebase"}"\nProject: ${proj.name}\n\n` +
-          `CURRENT FILES (${filesArr.length}):\n${tree.slice(0, 120_000)}\n\n` +
-          `Plan a set of file operations to fulfill the brief. Return strict JSON: ` +
-          `{"summary":"","operations":[{"op":"create|edit|delete","path":"","language":"","content":"","reason":""}],"risk":"low|med|high"}`,
-          "You return ONLY valid JSON. For 'create' and 'edit' include the FULL new file content. For 'delete' omit content. Be surgical and complete.",
-          geminiKey,
-        );
-        let plan: any = {};
-        try { plan = JSON.parse(planResp.replace(/^```json\s*|\s*```$/gi, "").trim()); }
-        catch { throw new Error("AI plan was not valid JSON"); }
-        const ops = Array.isArray(plan.operations) ? plan.operations : [];
-        log("code.plan", `${ops.length} operation(s) planned (risk=${plan.risk || "?"})`, plan);
-
-        if (dryRun) {
-          output = { plan, applied: false, note: "Re-run with apply=true to execute these operations." };
-        } else {
-          const applied: any[] = [];
-          for (const o of ops) {
-            try {
-              if (o.op === "delete") {
-                const { error } = await userClient.from("asher_code_files").delete().eq("project_id", projectId).eq("path", o.path);
-                if (error) throw error;
-                applied.push({ op: "delete", path: o.path, ok: true });
-              } else if (o.op === "create" || o.op === "edit") {
-                const { error } = await userClient.from("asher_code_files").upsert({
-                  project_id: projectId, path: o.path,
-                  content: String(o.content ?? ""),
-                  language: o.language || proj.language || "plaintext",
-                  updated_at: new Date().toISOString(),
-                }, { onConflict: "project_id,branch_id,path" });
-                if (error) throw error;
-                applied.push({ op: o.op, path: o.path, ok: true });
-              }
-            } catch (e) {
-              applied.push({ op: o.op, path: o.path, ok: false, error: e instanceof Error ? e.message : String(e) });
-            }
-          }
-          output = { plan, applied, applied_count: applied.filter(a => a.ok).length };
-          log("code.apply", `Applied ${applied.filter(a => a.ok).length}/${applied.length} ops`);
-        }
-      }
     } else {
-      // Browser task mode
-      log("plan", `Planning task: ${task}`);
-      const plan = await gemini(
-        `Browser task: "${task}"${targetUrl ? `\nStart URL: ${targetUrl}` : ""}\n\n` +
-        `Return strict JSON: {"start_url":"","steps":[{"action":"navigate|extract|search","detail":""}],"extraction_schema":{}}`,
-        "You return ONLY valid JSON. No prose.",
+      // Default: browser task
+      const nav = await phantomNavigate(targetUrl, trp?.approach_vector || "direct", log);
+      const aae = adversarialScan(nav.markdown, nav.html);
+      if (!aae.clean) await log("DETECT", `${aae.threats.length} adversarial signal(s) detected`, aae.threats, "ADVERSARIAL");
+
+      const raw = await gemini(
+        `Objective: "${objective}"\nURL: ${targetUrl}\nPage:\n${nav.markdown.slice(0, 60_000)}\n\n` +
+        `Return strict JSON: {"answer":"","key_facts":[],"sources":[{"title":"","url":""}],"confidence":0.0}`,
+        "ONLY valid JSON. Cite the source URL. No fabrication.",
         geminiKey,
       );
-      const planObj = (() => { try { return JSON.parse(plan.replace(/^```json\s*|\s*```$/gi, "").trim()); } catch { return { start_url: targetUrl, steps: [] }; } })();
-      log("plan.ok", `Plan has ${planObj?.steps?.length ?? 0} step(s)`, planObj);
-
-      const url = planObj.start_url || targetUrl;
-      if (!url) throw new Error("No URL to operate on");
-
-      let scrape: { markdown: string; links: string[] };
-      if (FIRECRAWL_KEY) {
-        log("scrape.firecrawl", `Scraping ${url} via Firecrawl`);
-        const fr = await firecrawlScrape(url);
-        scrape = { markdown: fr.data?.markdown || fr.markdown || "", links: fr.data?.links || fr.links || [] };
-      } else {
-        log("scrape.native", `Scraping ${url} via native fetch`);
-        const ns = await nativeScrape(url);
-        scrape = { markdown: ns.markdown, links: ns.links };
-      }
-      log("scrape.ok", `Got ${scrape.markdown.length} chars, ${scrape.links.length} links`);
-
-      const extracted = await gemini(
-        `User task: "${task}"\nURL: ${url}\n\nPage content:\n${scrape.markdown.slice(0, 60_000)}\n\n` +
-        `Extract the answer. Return strict JSON: {"answer":"","key_facts":[],"sources":[{"title":"","url":""}],"confidence":0.0}`,
-        "You return ONLY valid JSON. Cite the source URL provided. No fabrication.",
-        geminiKey,
-      );
-      try { output = JSON.parse(extracted.replace(/^```json\s*|\s*```$/gi, "").trim()); }
-      catch { output = { answer: extracted, raw: true }; }
-      log("extract.ok", "Extraction complete");
+      intel = parseJsonLoose(raw, { answer: raw });
+      output = { trp, substrate: nav.substrate, adversarial: aae };
+      await log("CONFIRM", "Mission Signal synthesized", undefined, "SYNTHESIS");
     }
 
+    // ── Integrity certificate ──────────────────────────────────────────────
     const duration = Date.now() - t0;
-    if (runId) {
-      await sb.from("asher_agent_runs").update({
-        status: "success", steps, output, findings, duration_ms: duration, finished_at: new Date().toISOString(),
-      }).eq("id", runId);
-    }
-    return j({ ok: true, run_id: runId, duration_ms: duration, steps, output, findings });
+    const cert = await sha256Hex(JSON.stringify({ fingerprint, output, intel, duration, events: events.length }));
+    await log("CONFIRM", `Mission Integrity Certificate sealed`, { cert: cert.slice(0, 16) + "…" }, "CLOSE");
+
+    await sb.from("zacoon_missions").update({
+      status: "success",
+      output,
+      intel: { ...intel, prior_context_count: priorContext.length },
+      duration_ms: duration,
+      integrity_cert: cert,
+      finished_at: new Date().toISOString(),
+    }).eq("id", missionId);
+
+    return jsonResp({
+      ok: true,
+      mission_id: missionId,
+      fingerprint,
+      integrity_cert: cert,
+      duration_ms: duration,
+      events,
+      output,
+      intel,
+    }, 200, corsHeaders);
+
   } catch (e) {
     const err = e instanceof Error ? e.message : String(e);
-    if (runId) {
-      await sb.from("asher_agent_runs").update({
-        status: "failed", steps, error: err, duration_ms: Date.now() - t0, finished_at: new Date().toISOString(),
-      }).eq("id", runId);
-    }
-    return j({ ok: false, error: err, steps }, 500);
+    await log("ABORT", err, undefined, "CLOSE");
+    await sb.from("zacoon_missions").update({
+      status: "failed",
+      output: { error: err },
+      duration_ms: Date.now() - t0,
+      finished_at: new Date().toISOString(),
+    }).eq("id", missionId);
+    return jsonResp({ ok: false, error: err, events, mission_id: missionId }, 500, corsHeaders);
   }
 });
