@@ -181,23 +181,33 @@ const Header = () => {
         {mobileMenuOpen && (
           <>
             <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
-            <div className="absolute right-4 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] max-h-[80vh] overflow-y-auto rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl p-4 shadow-2xl lg:hidden animate-in slide-in-from-top-2 fade-in duration-200">
-              <div className="flex flex-col gap-2">
-                <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Founder</Link>
-                <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Pricing</Link>
-                <Link to="/updates" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Updates</Link>
-                <Link to="/houseofasher/theories" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">House of Asher · Theories</Link>
-                <div className="my-1 border-t border-border/20 mx-4" />
+            <div
+              className="absolute right-4 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] max-h-[80vh] overflow-y-auto rounded-2xl border border-border/30 p-4 shadow-2xl lg:hidden animate-in slide-in-from-top-2 fade-in duration-200 bg-cover bg-center"
+              style={{ backgroundImage: "url('/wallpapers/menu-abyss.webp')" }}
+            >
+              <div className="pointer-events-none absolute inset-0 rounded-2xl bg-black/85" aria-hidden="true" />
+              <div className="relative flex flex-col gap-2">
                 {!loading && user ? (
                   <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg bg-foreground px-4 py-3 min-h-[48px] flex items-center justify-center text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90">
                     Go to Dashboard
                   </Link>
                 ) : (
                   <>
-                    <button onClick={() => openAuth(true)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Log in</button>
                     <button onClick={() => openAuth(false)} className="rounded-lg bg-foreground px-4 py-3 min-h-[48px] flex items-center justify-center text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90">Sign up</button>
+                    <button onClick={() => openAuth(true)} className="rounded-lg border border-foreground/20 px-4 py-3 min-h-[48px] flex items-center justify-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Log in</button>
                   </>
                 )}
+                <div className="my-1 border-t border-border/20 mx-4" />
+                <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Founder</Link>
+                <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Pricing</Link>
+                <Link to="/benchmark" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Benchmark</Link>
+                <Link to="/software" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Software</Link>
+                <Link to="/whiteboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Whiteboard</Link>
+                <Link to="/blog" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Blog</Link>
+                <Link to="/updates" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Updates</Link>
+                <Link to="/houseofasher/theories" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">House of Asher · Theories</Link>
+                <Link to="/investors" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Investors</Link>
+                <Link to="/valuation" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Valuation</Link>
               </div>
             </div>
           </>
