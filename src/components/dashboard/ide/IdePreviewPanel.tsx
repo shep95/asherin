@@ -16,6 +16,14 @@ const VIEWPORT_MAP: Record<ViewportSize, { w: string; label: string }> = {
 
 type PreviewFile = IdeFile & { path: string };
 
+const PREVIEW_BABEL_CDN = "https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js";
+const PREVIEW_REACT_CDN = "https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js";
+const PREVIEW_REACT_DOM_CDN = "https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js";
+
+const PREVIEW_UTILITY_CSS = `
+*{box-sizing:border-box}html,body,#root,#app{min-height:100%;}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#030712;color:#f9fafb}.min-h-screen{min-height:100vh}.h-screen{height:100vh}.w-full{width:100%}.h-full{height:100%}.flex{display:flex}.grid{display:grid}.items-center{align-items:center}.justify-center{justify-content:center}.text-center{text-align:center}.flex-col{flex-direction:column}.gap-2{gap:.5rem}.gap-4{gap:1rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.p-8{padding:2rem}.px-4{padding-left:1rem;padding-right:1rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.rounded{border-radius:.25rem}.rounded-lg{border-radius:.5rem}.rounded-xl{border-radius:.75rem}.rounded-2xl{border-radius:1rem}.border{border:1px solid rgba(255,255,255,.12)}.shadow{box-shadow:0 10px 30px rgba(0,0,0,.25)}.shadow-xl{box-shadow:0 20px 60px rgba(0,0,0,.35)}.bg-gray-950{background:#030712}.bg-gray-900{background:#111827}.bg-gray-800{background:#1f2937}.bg-black{background:#000}.bg-white{background:#fff}.bg-blue-600{background:#2563eb}.bg-purple-600{background:#9333ea}.bg-amber-500{background:#f59e0b}.text-white{color:#fff}.text-black{color:#000}.text-gray-300{color:#d1d5db}.text-gray-400{color:#9ca3af}.text-blue-300{color:#93c5fd}.text-amber-300{color:#fcd34d}.text-sm{font-size:.875rem}.text-lg{font-size:1.125rem}.text-xl{font-size:1.25rem}.text-2xl{font-size:1.5rem}.text-3xl{font-size:1.875rem}.text-4xl{font-size:2.25rem}.text-5xl{font-size:3rem}.font-bold{font-weight:700}.font-semibold{font-weight:600}.font-medium{font-weight:500}.opacity-50{opacity:.5}.opacity-70{opacity:.7}.opacity-80{opacity:.8}.max-w-xl{max-width:36rem}.mx-auto{margin-left:auto;margin-right:auto}.mt-2{margin-top:.5rem}.mt-4{margin-top:1rem}.mb-2{margin-bottom:.5rem}.mb-4{margin-bottom:1rem}
+`;
+
 function flattenFiles(files: IdeFile[], basePath = ""): PreviewFile[] {
   const result: PreviewFile[] = [];
   for (const f of files) {
@@ -124,7 +132,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
         : `${content}${compiledScripts}`;
     }
     if (needsHtmlCompiler && !/babel\.min\.js/.test(content)) {
-      const runtime = `${needsHtmlReact ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script><script>try{var R=window.React||{};['useState','useEffect','useRef','useMemo','useCallback','useContext','useReducer','useLayoutEffect','createContext','forwardRef','memo','Fragment','Suspense','lazy','createElement'].forEach(function(k){if(R[k]&&typeof window[k]==='undefined')window[k]=R[k];});if(window.ReactDOM&&typeof window.createRoot==='undefined')window.createRoot=window.ReactDOM.createRoot;}catch(e){}</script>` : ""}<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`;
+      const runtime = `${needsHtmlReact ? `<script crossorigin src="${PREVIEW_REACT_CDN}"><\/script><script crossorigin src="${PREVIEW_REACT_DOM_CDN}"><\/script><script>try{var R=window.React||{};['useState','useEffect','useRef','useMemo','useCallback','useContext','useReducer','useLayoutEffect','createContext','forwardRef','memo','Fragment','Suspense','lazy','createElement'].forEach(function(k){if(R[k]&&typeof window[k]==='undefined')window[k]=R[k];});if(window.ReactDOM&&typeof window.createRoot==='undefined')window.createRoot=window.ReactDOM.createRoot;}catch(e){}</script>` : ""}<script src="${PREVIEW_BABEL_CDN}"><\/script>`;
       content = content.includes("</head>") ? content.replace("</head>", `${runtime}</head>`) : runtime + content;
     }
     return content;
@@ -133,7 +141,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
   const hasReact = jsxFiles.length > 0 || flat.some(f => /from ['"]react['"]/.test(f.content ?? ""));
 
   if (jsxFiles.length === 0 && jsFiles.length === 0 && allCss.length === 0) {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><script src="https://cdn.tailwindcss.com"><\/script></head><body style="background:#0a0a0a;color:#888;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:13px;opacity:0.5">Write code to see preview</body></html>`;
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${PREVIEW_UTILITY_CSS}</style></head><body style="background:#0a0a0a;color:#888;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:13px;opacity:0.5">Write code to see preview</body></html>`;
   }
 
   let mountTarget: string | null = null;
@@ -174,10 +182,10 @@ try {
 
   const needsBabel = hasReact || jsxFiles.length > 0 || jsFiles.length > 0;
   const reactCdn = hasReact
-    ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`
-    : (needsBabel ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>` : "");
+    ? `<script crossorigin src="${PREVIEW_REACT_CDN}"><\/script>
+<script crossorigin src="${PREVIEW_REACT_DOM_CDN}"><\/script>
+<script src="${PREVIEW_BABEL_CDN}"><\/script>`
+    : (needsBabel ? `<script src="${PREVIEW_BABEL_CDN}"><\/script>` : "");
 
   // Shim hooks + Next.js / common framework imports as globals so stripped
   // `import { useState } from 'react'` / `import { useRouter } from 'next/router'`
@@ -238,11 +246,11 @@ try {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Preview</title>
-  <script src="https://cdn.tailwindcss.com"><\/script>
   ${reactCdn}
   ${shim}
   <style>
     body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; }
+    ${PREVIEW_UTILITY_CSS}
     ${allCss}
   </style>
 </head>
