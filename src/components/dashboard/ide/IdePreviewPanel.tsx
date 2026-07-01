@@ -66,6 +66,11 @@ function stripModuleSyntax(src: string): { code: string; defaultExport: string |
   code = code.replace(/export\s+default\s+([A-Z][A-Za-z0-9_]*)\s*;?/g, "");
   code = code.replace(/export\s+(const|let|var|function|class)\s+/g, "$1 ");
   code = code.replace(/^\s*export\s+\{[^}]*\}\s*;?\s*$/gm, "");
+  // The live preview is a browser iframe, not a full Vite build. Remove common
+  // TypeScript-only tokens so Babel can execute normal TSX starter projects.
+  code = code.replace(/([\w\)\]])!([\.\)\]\[,;])/g, "$1$2");
+  code = code.replace(/\binterface\s+[A-Za-z_$][\w$]*\s*\{[^}]*\}\s*/g, "");
+  code = code.replace(/\btype\s+[A-Za-z_$][\w$]*\s*=\s*[^;]+;?/g, "");
   // Fallback: top-level component-like declarations
   const namedComponents: string[] = [];
   const rxFn = /(?:^|\n)\s*(?:export\s+)?(?:async\s+)?(?:function|const|let|var|class)\s+([A-Z][A-Za-z0-9_]*)/g;
@@ -87,7 +92,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
   const flat = flattenFiles(files);
   const compileScriptTag = (name: string, source: string) => {
     const { code } = stripModuleSyntax(source);
-    return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${name} */\n${code.replace(/<\/script/gi, "<\\/script")}\n<\/script>`;
+    return `<script type="text/babel" data-presets="env,react" data-plugins="transform-react-jsx">\n/* ${name} */\n${code.replace(/<\/script/gi, "<\\/script")}\n<\/script>`;
   };
 
   const htmlFile = flat.find(f => f.name.endsWith(".html"));
@@ -150,7 +155,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
     const { code, defaultExport, namedComponents } = stripModuleSyntax(raw);
     if (defaultExport) mountTarget = defaultExport;
     else if (namedComponents.length) mountTarget = namedComponents[namedComponents.length - 1];
-    return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${f.name} */\n${code}\n</script>`;
+    return `<script type="text/babel" data-presets="env,react" data-plugins="transform-react-jsx">\n/* ${f.name} */\n${code}\n</script>`;
   }).join("\n");
 
   const jsBlocks = jsFiles.map(f => compileScriptTag(f.name, f.content ?? "")).join("\n");
@@ -161,7 +166,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
   });
 
   const autoMount = (hasReact && mountTarget && !userMountsItself)
-    ? `<script type="text/babel" data-presets="env,react,typescript">
+    ? `<script type="text/babel" data-presets="env,react" data-plugins="transform-react-jsx">
 try {
   const __el = document.getElementById('root') || document.getElementById('app');
   if (__el && typeof ${mountTarget} !== 'undefined') {
