@@ -135,7 +135,7 @@ const DorkPanel = () => {
           <ShieldAlert className="h-5 w-5 text-muted-foreground/40 mx-auto mb-2" />
           <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground/60">No sweep yet</p>
           <p className="text-xs text-muted-foreground/70 mt-2 max-w-md mx-auto">
-            Example targets: <span className="text-foreground/80">"Asher Newton Cape Coral Florida"</span>,
+            Example targets: <span className="text-foreground/80">"John Doe, Austin TX"</span>,
             <span className="text-foreground/80"> "acme.com"</span>,
             <span className="text-foreground/80"> "Operation Mockingbird filetype:pdf"</span>.
           </p>
