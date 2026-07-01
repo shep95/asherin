@@ -1,5 +1,6 @@
 import { Heart } from "lucide-react";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
+import ManageSubscriptionCard from "@/components/dashboard/subscription/ManageSubscriptionCard";
 
 /**
  * Dashboard "Subscription" page.
