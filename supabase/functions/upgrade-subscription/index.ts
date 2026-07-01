@@ -63,13 +63,17 @@ serve(async (req) => {
       status: "active",
       limit: 5,
     });
-    // Also check trialing
     const trialingSubs = await stripe.subscriptions.list({
       customer: customerId,
       status: "trialing",
       limit: 5,
     });
-    const allSubs = [...subs.data, ...trialingSubs.data];
+    const pastDueSubs = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "past_due",
+      limit: 5,
+    });
+    const allSubs = [...subs.data, ...trialingSubs.data, ...pastDueSubs.data];
     
     if (action === "upgrade") {
       // ── PRORATED UPGRADE ──────────────────────────────────────────
