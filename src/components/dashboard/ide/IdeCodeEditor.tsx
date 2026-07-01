@@ -4,7 +4,7 @@ import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import type { editor as MonacoEditor } from "monaco-editor";
 import type { IdeFile } from "./IdeFileTree";
 import { getLanguage } from "./IdeFileTree";
-import { validateCode } from "@/lib/ide";
+import { validateCode, attachCursorFeatures } from "@/lib/ide";
 
 interface HoverFetcher {
   (args: { symbol: string; file_path: string; language: string; line_text: string; surrounding: string }): Promise<string>;
