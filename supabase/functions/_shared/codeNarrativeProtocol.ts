@@ -81,14 +81,10 @@ RULES:
   do not force the visible answer into the Step 6 numbered order.
 - If credentials, endpoints, or schemas are missing for a real fix,
   STOP and ask the user — never fabricate them.
+
+${THEME_ENGINE_DOCTRINE}
 `;
 
-// Append the Theme Engine Doctrine so every consumer (chat, IDE,
-// zophiel-code-audit, media-to-code, zerlal-scan, asher-ai) inherits
-// the UI neatness contract without needing to import it separately.
-// deno-lint-ignore no-explicit-any
-(globalThis as any).__THEME_ENGINE_DOCTRINE__ = THEME_ENGINE_DOCTRINE;
-export const CODE_NARRATIVE_PROTOCOL_WITH_THEME = `${CODE_NARRATIVE_PROTOCOL}\n\n${THEME_ENGINE_DOCTRINE}`;
 // Re-export the doctrine for callers that want it explicitly.
 export { THEME_ENGINE_DOCTRINE };
 
