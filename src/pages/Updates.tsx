@@ -14,6 +14,55 @@ interface Update {
 
 const UPDATES: Update[] = [
   {
+    date: "2026-07-01",
+    title: "Valuation — Corporate Reality Section",
+    body:
+      "Added a Corporate Reality section to /valuation explaining why the competitive analysis exists and why Aureon will not be walked into a corporate boardroom. Documents the extraction pattern (NDA valuation → reverse-spec → portfolio clone → government sale) with the vibe-coded Palantir-competitor case study, and Aureon's posture: no corporate valuation meetings, no strategic partnerships with incumbents who fund direct competitors, direct-to-operator distribution, and architecture opacity.",
+    icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Positioning",
+  },
+  {
+    date: "2026-07-01",
+    title: "Aureon Voice Stack — Blog + Theory 04",
+    body:
+      "Shipped /blog/how-we-make-aureon-sound-human with the full SEO stack (Article, Breadcrumb, and FAQ JSON-LD) documenting the five-layer voice architecture: Identity Anchor, Appraisal Loop, Restraint & Leakage, Social Presence, and Surgical Register. Added Theory 04 — The Aureon Voice Stack — to /theories with a Distress Override principle. Enough to explain why Aureon sounds human; not enough to clone the recipe.",
+    icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Aureon",
+  },
+  {
+    date: "2026-07-01",
+    title: "Asher IDE — GitHub Clone & Push Drawer",
+    body:
+      "Asher IDE now behaves like a real IDE for Git. Added a GitHub drawer that bridges Asher's flat file system to the existing Git panel — clone any repo by URL, review changes, and push commits or open PRs with a single button (or by telling Asher to push). Works across Aureon IDE and Asher Code Module.",
+    icon: <Code className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "IDE",
+  },
+  {
+    date: "2026-07-01",
+    title: "Cursor-Class IDE Shortcuts — ⌘K, Tab Ghost, ⌘L",
+    body:
+      "Aureon's IDE surfaces now match the muscle memory of Cursor and Claude Code. ⌘K performs inline edits on the current selection, Tab accepts ghost completions inline as you type, and ⌘L bridges the current file and selection into Aureon Chat for reasoning. Selection context is passed cleanly to the code AI so edits stay scoped.",
+    icon: <Code className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "IDE",
+  },
+  {
+    date: "2026-07-01",
+    title: "Quantum Orchestration Brain — Wired Into Every Code Function",
+    body:
+      "The Code-as-Narrative + Quantum Candidate Collapse loop is now the default orchestration path for every code-generating edge function — Asher AI, Asher Code AI, Aureon Chat, IDE Code Router, Media-to-Code, Zophiel Code Audit, and Zerlal Scan. Three candidate solutions are generated per request and collapsed to the highest-quality output, cutting patch iterations and regressions.",
+    icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Intelligence",
+  },
+  {
+    date: "2026-07-01",
+    title: "BYOK Resilience — Fingerprinted Rate-Limit Recovery",
+    body:
+      "User-provided API keys are now SHA-256 fingerprinted for per-key rate-limit tracking, and a new invokeWithByokRetry client helper automatically parks and resumes requests when a provider throttles. BYOK now flows cleanly through Aureon Chat, Asher, Zophiel, Zerlal, and every code function without silent drops.",
+    icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Reliability",
+  },
+  {
+
     date: "2026-06-30",
     title: "Knowledge Vault — Agentic Automation Layer",
     body:
