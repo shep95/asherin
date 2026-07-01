@@ -465,7 +465,7 @@ serve(async (req) => {
     }
 
     // Compose the full system prompt: identity → doctrine → brains → audit directive/schema
-    const FULL_SYSTEM_PROMPT = `${ZOPHIEL_IDENTITY}\n\n${AUREON_CODE_PERSONALITY}\n\n${NARRATIVE_FORGE_BRAIN}\n\n${BUTTERFLY_PROTOCOL_BRAIN}${brainsContext}\n\n${AUDIT_DIRECTIVE}`;
+    const FULL_SYSTEM_PROMPT = `${ZOPHIEL_IDENTITY}\n\n${AUREON_CODE_PERSONALITY}\n\n${NARRATIVE_FORGE_BRAIN}\n\n${BUTTERFLY_PROTOCOL_BRAIN}\n\n${CODE_NARRATIVE_PROTOCOL}\n\n${QUANTUM_ORCHESTRATION_BRAIN}${brainsContext}\n\n${AUDIT_DIRECTIVE}`;
 
     const userPrompt = `Filename: ${safeName}\n\n--- BEGIN CODE ---\n${code}\n--- END CODE ---\n\nReturn the JSON security blueprint now.`;
 
