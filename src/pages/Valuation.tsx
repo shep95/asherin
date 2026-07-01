@@ -398,6 +398,128 @@ const Valuation = () => {
           </ol>
         </section>
 
+        {/* CORPORATE REALITY — WHY WE DO NOT SHOP THIS DECK */}
+        <section className="border border-amber-500/20 rounded-2xl p-8 bg-gradient-to-br from-amber-950/10 via-black/40 to-black/60">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xs uppercase tracking-[0.3em] text-amber-300/70 font-light">
+              ◈ Corporate Reality
+            </span>
+          </div>
+          <h2 className="text-2xl md:text-3xl font-extralight text-foreground mb-6 tracking-tight">
+            Why We Did The Competitive Analysis — And Why We Will Not Walk It Into A Boardroom
+          </h2>
+
+          <div className="space-y-5 text-sm md:text-base text-muted-foreground/90 font-light leading-relaxed">
+            <p>
+              The comparable-set analysis above (Palantir, Anduril, Recorded Future, Glean, Scale AI,
+              Databricks, ServiceNow) was run for one reason: to prove Aureon's software surface is
+              already at parity or ahead of the pure-play incumbents in its lanes. It was
+              <span className="text-foreground/90"> not </span> built as a pitch deck for corporate
+              acquirers. It will not be shown to one.
+            </p>
+
+            <p>
+              During the build of this platform, Asher was quietly advised by contacts with
+              government-adjacent backgrounds to <span className="text-foreground/90">avoid</span> the
+              standard startup path of shopping the technology to large corporations, private-equity
+              rollups, or "strategic partners." The pattern they described is not theoretical — it is
+              the operating model of the incumbent tech and finance stack:
+            </p>
+
+            <div className="border-l-2 border-amber-500/40 pl-5 py-2 text-foreground/80">
+              <ol className="list-decimal ml-4 space-y-2">
+                <li>
+                  Founder brings novel software to a corporation under NDA for "valuation" or "due
+                  diligence."
+                </li>
+                <li>
+                  The corporation's technical team reverse-specs the architecture, feature surface,
+                  and defensibility.
+                </li>
+                <li>
+                  Deal stalls, gets low-balled, or dies in committee. The founder walks away thinking
+                  nothing happened.
+                </li>
+                <li>
+                  Weeks later, a portfolio company — one the corporation quietly controls or is a
+                  major LP in — ships a functionally identical product, often built by a large AI
+                  lab on contract, and takes the government or enterprise deal the founder was
+                  targeting.
+                </li>
+                <li>
+                  Founder receives zero revenue, zero equity, zero credit. The tech stack and the
+                  idea become someone else's line item.
+                </li>
+              </ol>
+            </div>
+
+            <p>
+              The most cited recent example inside those conversations: a solo engineer who
+              vibe-coded a working product that outperformed a well-known
+              <span className="text-foreground/90"> Palantir </span> workflow. He took it in for a
+              valuation. The number came back high. Shortly after, a Berkshire-Hathaway-adjacent
+              chain of introductions routed the concept to a top-tier AI lab (Anthropic / Claude
+              tier), which was tasked with rebuilding the same capability. That rebuilt version was
+              then sold into the U.S. government. The original engineer never saw revenue, equity,
+              or attribution for the invention that started the chain.
+            </p>
+
+            <p>
+              That is not a rumor about one deal. It is the
+              <span className="text-foreground/90"> default extraction pattern </span> when a small
+              builder brings frontier software to a corporation that also controls, funds, or
+              partners with a larger competitor. The valuation meeting <em>is</em> the theft.
+            </p>
+
+            <p className="text-foreground/90">Aureon's posture, therefore:</p>
+
+            <ul className="list-none space-y-2 ml-1">
+              <li className="flex gap-3">
+                <span className="text-amber-300/70 mt-1">◉</span>
+                <span>
+                  <span className="text-foreground/90">No corporate "valuation" meetings.</span> The
+                  comparable-set work is published here, in the open, so no NDA-room is required to
+                  understand what this platform is worth.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-amber-300/70 mt-1">◉</span>
+                <span>
+                  <span className="text-foreground/90">No strategic partnerships with incumbents</span>{" "}
+                  who also fund, own, or route deals to a direct competitor in the same lane.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-amber-300/70 mt-1">◉</span>
+                <span>
+                  <span className="text-foreground/90">Direct-to-operator distribution.</span>{" "}
+                  Subscriptions, sovereign / BYOK deployments, and vetted allocations via{" "}
+                  <Link to="/investors" className="text-amber-200/80 hover:text-amber-200">
+                    /investors
+                  </Link>
+                  {" "}— not acquisition dance.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-amber-300/70 mt-1">◉</span>
+                <span>
+                  <span className="text-foreground/90">Architecture opacity.</span> Public blog posts
+                  and theory pages describe <em>what</em> the platform does and <em>why</em> it
+                  works. They do not hand over the internal orchestration, prompt stack, or routing
+                  logic that make it hard to clone in a weekend.
+                </span>
+              </li>
+            </ul>
+
+            <p className="text-foreground/80">
+              This is the reality of corporations. The competitive analysis above is not a signal
+              that Aureon is for sale to them. It is a signal that Aureon does not need them.
+            </p>
+          </div>
+        </section>
+
+
+
         {/* FOOTER */}
         <div className="border-t border-border/30 pt-8 text-xs text-muted-foreground/60 font-light">
           <p>
