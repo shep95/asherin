@@ -1228,13 +1228,14 @@ serve(async (req) => {
           const anonSb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
           const { data: { user: reqUser } } = await anonSb.auth.getUser(token);
           if (reqUser) {
-            const { data: keyRow } = await adminSb
+            const { data: keyRow, error: keyErr } = await adminSb
               .from("user_api_keys")
               .select("api_key")
               .eq("user_id", reqUser.id)
               .eq("provider", byokProvider)
               .eq("is_active", true)
-              .single();
+              .maybeSingle();
+            if (keyErr) console.error("BYOK key lookup error:", keyErr.message);
             if (keyRow?.api_key) {
               userApiKey = keyRow.api_key;
               useByok = true;
