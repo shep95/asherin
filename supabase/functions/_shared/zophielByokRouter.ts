@@ -235,7 +235,7 @@ async function callOpenAICompat(
     });
     if (!r.ok) {
       const txt = await r.text();
-      throw makeRetryableError(r.status, `byok_${r.status}: ${txt.slice(0, 200)}`);
+      throw makeRetryableError(r.status, `byok_${r.status}: ${txt.slice(0, 200)}`, parseRetryAfterMs(r.headers, txt));
     }
     const d = await r.json();
     return d?.choices?.[0]?.message?.content || '';
