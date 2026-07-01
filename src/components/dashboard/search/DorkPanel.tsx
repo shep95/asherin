@@ -166,7 +166,12 @@ const DorkPanel = () => {
           )}
 
           <div className="space-y-3">
-            {data.buckets.map((b, i) => (
+            {data.buckets.map((b, i) => {
+              const encoded = encodeURIComponent(b.query);
+              const googleUrl = `https://www.google.com/search?q=${encoded}`;
+              const ddgUrl = `https://duckduckgo.com/?q=${encoded}`;
+              const bingUrl = `https://www.bing.com/search?q=${encoded}`;
+              return (
               <div key={i} className="rounded-xl border border-border/25 bg-card/30 backdrop-blur-md overflow-hidden">
                 <div className="px-4 py-3 border-b border-border/15 bg-background/30">
                   <div className="flex items-start justify-between gap-3">
@@ -179,6 +184,20 @@ const DorkPanel = () => {
                       {b.rationale && (
                         <p className="text-[11px] text-muted-foreground/70 mt-1 italic">{b.rationale}</p>
                       )}
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <a href={googleUrl} target="_blank" rel="noopener noreferrer"
+                           className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-accent/30 bg-accent/10 text-accent text-[10px] uppercase tracking-[0.15em] hover:bg-accent/20 transition">
+                          <ExternalLink className="h-3 w-3" /> Google
+                        </a>
+                        <a href={ddgUrl} target="_blank" rel="noopener noreferrer"
+                           className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-border/30 bg-background/40 text-foreground/80 text-[10px] uppercase tracking-[0.15em] hover:bg-foreground/5 transition">
+                          <ExternalLink className="h-3 w-3" /> DuckDuckGo
+                        </a>
+                        <a href={bingUrl} target="_blank" rel="noopener noreferrer"
+                           className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-border/30 bg-background/40 text-foreground/80 text-[10px] uppercase tracking-[0.15em] hover:bg-foreground/5 transition">
+                          <ExternalLink className="h-3 w-3" /> Bing
+                        </a>
+                      </div>
                     </div>
                     <button
                       onClick={() => copyQuery(b.query)}
@@ -191,11 +210,14 @@ const DorkPanel = () => {
                 </div>
                 {b.hits.length === 0 ? (
                   <div className="px-4 py-3 text-[11px] text-muted-foreground/50 italic">
-                    No public results returned for this dork.
+                    No public results returned. Open the query on Google / DuckDuckGo / Bing above to sweep it live.
                   </div>
                 ) : (
                   <ul className="divide-y divide-border/10">
-                    {b.hits.map((h, j) => (
+                    {b.hits.map((h, j) => {
+                      let host = "";
+                      try { host = new URL(h.url).hostname.replace(/^www\./, ""); } catch { host = h.url; }
+                      return (
                       <li key={j} className="px-4 py-3 hover:bg-foreground/5 transition">
                         <a
                           href={h.url}
@@ -206,10 +228,16 @@ const DorkPanel = () => {
                           <div className="flex items-start gap-2">
                             <ExternalLink className="h-3 w-3 text-muted-foreground/40 group-hover:text-accent mt-1 shrink-0" />
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs text-foreground group-hover:text-accent transition line-clamp-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] uppercase tracking-[0.15em] text-accent/80 shrink-0">{host}</span>
+                                <span className="text-[10px] text-muted-foreground/40">↗</span>
+                              </div>
+                              <p className="text-xs text-foreground group-hover:text-accent transition line-clamp-1 mt-0.5">
                                 {h.title || h.url}
                               </p>
-                              <p className="text-[10px] text-muted-foreground/50 truncate font-mono mt-0.5">{h.url}</p>
+                              <p className="text-[10px] text-muted-foreground/60 break-all font-mono mt-0.5 underline decoration-dotted underline-offset-2">
+                                {h.url}
+                              </p>
                               {h.snippet && (
                                 <p className="text-[11px] text-muted-foreground/80 mt-1 line-clamp-2 leading-relaxed">
                                   {h.snippet}
@@ -219,11 +247,13 @@ const DorkPanel = () => {
                           </div>
                         </a>
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
