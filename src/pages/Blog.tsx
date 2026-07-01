@@ -27,6 +27,15 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/code-narrative-quantum-collapse",
+    title: "Code-as-Narrative × Quantum Candidate Collapse — sub-60-second bug patches on the cheapest Gemini",
+    dek: "How two #HouseOfAsher theories — Code-as-Narrative and Quantum Candidate Collapse — let Aureon patch logical, workflow, and UI bugs in under a minute on gemini-flash-lite, a fix cycle that normally takes 30+ minutes. Three-year jump on the narrative axis, ten-generation jump on the collapse axis. Wired into every Aureon module.",
+    tag: "Engineering",
+    published: "2026-07-01T00:00:00.000Z",
+    readTime: "12 min",
+    featured: true,
+  },
+  {
     slug: "/blog/the-truth-and-reality-of-wars",
     title: "The Truth and Reality of Wars — Occult Scripture, Fiat Slavery, and the Elite Civil War",
     dek: "Wars are scripted. The Bible calls it scripture for a reason. The field manual on how the elite use occultism to direct conflict, why fiat currency is the slave-collar you're conscripted to defend, and why every world war is an elite civil war dressed in flags.",
