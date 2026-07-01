@@ -2187,7 +2187,25 @@ try {
                       language={activeFile.language}
                       value={activeContent}
                       onChange={(v) => setDirty(d => ({ ...d, [activeFile.id]: v ?? "" }))}
-                      onMount={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+                      onMount={(editor, monaco) => {
+                        editorRef.current = editor;
+                        monacoRef.current = monaco;
+                        const detach = attachCursorFeatures(editor, monaco, {
+                          getFile: () => {
+                            const f = activeFileRefAsher.current;
+                            return f ? { id: f.id, name: f.path, language: f.language, content: activeContentRefAsher.current } : null;
+                          },
+                          getByok: () => {
+                            try {
+                              const c = localStorage.getItem("aureon_byok_active");
+                              const p = c ? JSON.parse(c) : null;
+                              if (p?.provider && p.provider !== "default" && p?.model) return { provider: p.provider, model: p.model };
+                            } catch { /* noop */ }
+                            return { provider: "google", model: "gemini-2.5-flash" };
+                          },
+                        });
+                        editor.onDidDispose(() => { try { detach(); } catch { /* noop */ } });
+                      }}
                       options={{ fontSize: 13, minimap: { enabled: true }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 }, glyphMargin: true }}
                     />
                   </div>
