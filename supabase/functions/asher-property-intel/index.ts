@@ -252,15 +252,31 @@ serve(async (req) => {
       .slice(0, 6)
       .map((t) => t.toLowerCase());
 
+    // ── Jurisdiction-aware source targeting ──
+    // Prefer explicit country/state/county from the client (from reverse geocoding),
+    // otherwise parse them out of the address string.
+    const parsed = parseJurisdiction(String(baseTarget));
+    const country = String(ctryIn || parsed.country || "US").toUpperCase();
+    const state = String(stIn || parsed.state || "").toUpperCase();
+    const county = String(coIn || parsed.county || "").toUpperCase();
+    const src = sourcesFor(country, state, county);
+
+    const ownershipSites = siteFilter([...(src.ownership || [])]);
+    const taxSites       = siteFilter([...(src.tax || []), ...(src.ownership || [])]);
+    const permitSites    = siteFilter([...(src.permits || []), ...(src.ownership || [])]);
+    const listingSites   = siteFilter([...(src.listings || [])]);
+
     const q = (s: string) => `"${baseTarget}" ${s}`;
     const queries = {
-      ownership:   q(`owner OR "owned by" OR LLC OR "registered agent" OR deed`),
+      // Registry-scoped queries go FIRST so the top hits are authoritative.
+      ownership:   q(`${ownershipSites} (owner OR "owned by" OR LLC OR deed OR parcel)`),
       residents:   q(`resident OR occupant OR "lives at" OR voter`),
-      permits:     q(`permit OR construction OR renovation OR addition`),
-      financial:   q(`lien OR foreclosure OR "tax delinquent" OR bankruptcy OR mortgage OR "property tax"`),
-      listings:    q(`site:zillow.com OR site:redfin.com OR site:realtor.com OR site:trulia.com OR site:homes.com`),
-      history:     q(`sold OR "sale price" OR "deed transfer" OR history`),
-      assessor:    q(`site:*.gov OR site:*.us assessor OR parcel OR "property appraiser"`),
+      permits:     q(`${permitSites} (permit OR construction OR renovation OR addition)`),
+      financial:   q(`${taxSites} (lien OR foreclosure OR "tax delinquent" OR mortgage OR "property tax")`),
+      listings:    q(`${listingSites}`),
+      history:     q(`${ownershipSites} (sold OR "sale price" OR "deed transfer" OR history)`),
+      // Broad fallback (unscoped) in case registries are thin for this parcel.
+      assessor:    q(`assessor OR "property appraiser" OR parcel OR cadastre`),
     };
 
     const authHeader = req.headers.get("Authorization") ?? "";
