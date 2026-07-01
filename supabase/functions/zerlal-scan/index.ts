@@ -395,8 +395,8 @@ Deno.serve(async (req) => {
       }
     }
     if (!codeToAnalyze && github_url) {
-      console.log("[ZERLAL] Fetching code from GitHub:", github_url);
-      codeToAnalyze = await fetchGitHubContent(github_url);
+      console.log("[ZERLAL] Fetching code from Git host:", github_url);
+      codeToAnalyze = await fetchGitContent(github_url);
     }
 
     if (!codeToAnalyze || codeToAnalyze.trim().length < 10) {
