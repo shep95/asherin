@@ -24,6 +24,7 @@ import ScrollProgressBar from "@/components/landing/ScrollProgressBar";
 import CommandPaletteHint from "@/components/landing/CommandPaletteHint";
 import MagneticSpotlightButton from "@/components/landing/MagneticSpotlightButton";
 import CountUp from "@/components/landing/CountUp";
+import HeroSciFiOrb from "@/components/landing/HeroSciFiOrb";
 
 const StatusIcon = ({ type }: { type: string }) => {
   if (type === "check") return <Check className="h-4 w-4 text-emerald-400 inline" />;
