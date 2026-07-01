@@ -438,6 +438,7 @@ const IntelligenceMapModule = () => {
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
   const [show3D, setShow3D] = useState(false);
   const [showInside, setShowInside] = useState(false);
+  const [showDossier, setShowDossier] = useState(true);
   const [propertyIntel, setPropertyIntel] = useState<{
     loading: boolean;
     intel: any | null;
