@@ -174,6 +174,18 @@ serve(async (req) => {
 
       if (!mainSub) throw new Error("No active subscription found");
 
+      if (mainSub.cancel_at_period_end) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            already_scheduled: true,
+            message: `Cancellation is already scheduled for ${new Date(mainSub.current_period_end * 1000).toLocaleDateString()}.`,
+            cancel_date: new Date(mainSub.current_period_end * 1000).toISOString(),
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+
       logStep("Canceling at period end", { subscriptionId: mainSub.id });
 
       const updated = await stripe.subscriptions.update(mainSub.id, {
@@ -187,7 +199,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          message: `Subscription will cancel at the end of your billing period (${new Date(updated.current_period_end * 1000).toLocaleDateString()}). You'll keep access until then.`,
+          message: `Subscription will cancel at the end of your billing period (${new Date(updated.current_period_end * 1000).toLocaleDateString()}). You'll keep access until then. Any active add-ons continue billing separately.`,
           cancel_date: new Date(updated.current_period_end * 1000).toISOString(),
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
