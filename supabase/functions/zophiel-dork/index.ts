@@ -12,7 +12,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
-import { callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
+import { callByokJsonWithRetry, isValidByok, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
+
+const VENICE_FALLBACK: ZophielByokConfig = {
+  provider: "venice",
+  model: "mistral-31-24b",
+  apiKey: Deno.env.get("VENICE_API_KEY") || "",
+};
 
 interface DorkHit { title: string; url: string; snippet: string }
 interface DorkBucket { query: string; rationale: string; hits: DorkHit[] }
@@ -53,7 +59,14 @@ async function callGeminiJson(apiKey: string, system: string, user: string): Pro
       }),
     },
   );
-  if (!r.ok) throw new Error(`gemini_${r.status}: ${(await r.text()).slice(0, 200)}`);
+  if (!r.ok) {
+    const body = (await r.text()).slice(0, 200);
+    const e: any = new Error(`gemini_${r.status}: ${body}`);
+    e.status = r.status;
+    // 400/401/403 = invalid/expired key → caller should switch providers, not retry.
+    e.authFailure = r.status === 400 || r.status === 401 || r.status === 403;
+    throw e;
+  }
   const d = await r.json();
   return d?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || "").join("") || "";
 }
@@ -71,9 +84,91 @@ async function callGeminiText(apiKey: string, system: string, user: string): Pro
       }),
     },
   );
-  if (!r.ok) throw new Error(`gemini_${r.status}: ${(await r.text()).slice(0, 200)}`);
+  if (!r.ok) {
+    const body = (await r.text()).slice(0, 200);
+    const e: any = new Error(`gemini_${r.status}: ${body}`);
+    e.status = r.status;
+    e.authFailure = r.status === 400 || r.status === 401 || r.status === 403;
+    throw e;
+  }
   const d = await r.json();
   return d?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || "").join("") || "";
+}
+
+/**
+ * Resilient JSON dork-plan call. Tries platform Gemini (admin mode) first.
+ * If that key is invalid/expired/rate-limited, falls back to:
+ *   (a) the caller's BYOK (if they provided one), then
+ *   (b) the platform Venice fallback (free-tier key).
+ * Prevents a single bad platform key from nuking the whole feature.
+ */
+async function planWithFallback(
+  primaryGeminiKey: string,
+  byok: unknown,
+  system: string,
+  user: string,
+): Promise<{ raw: string; via: string }> {
+  const errors: string[] = [];
+  if (primaryGeminiKey) {
+    try {
+      const raw = await callGeminiJson(primaryGeminiKey, system, user);
+      return { raw, via: "platform_gemini" };
+    } catch (e: any) {
+      errors.push(`platform_gemini: ${e.message}`);
+      console.error("[dork] platform gemini failed, trying fallbacks:", e.message);
+    }
+  }
+  if (isValidByok(byok)) {
+    try {
+      const raw = await callByokJsonWithRetry(byok as ZophielByokConfig, system, user, {
+        timeoutMs: 35_000, temperature: 0.5, maxOutputTokens: 4096, jsonMode: true, attempts: 2,
+      });
+      return { raw, via: "byok" };
+    } catch (e: any) {
+      errors.push(`byok: ${e.message}`);
+    }
+  }
+  if (VENICE_FALLBACK.apiKey) {
+    try {
+      const raw = await callByokJsonWithRetry(VENICE_FALLBACK, system, user, {
+        timeoutMs: 35_000, temperature: 0.5, maxOutputTokens: 4096, jsonMode: true, attempts: 2,
+      });
+      return { raw, via: "venice_fallback" };
+    } catch (e: any) {
+      errors.push(`venice: ${e.message}`);
+    }
+  }
+  const err: any = new Error(`all_providers_failed: ${errors.join(" | ")}`);
+  err.status = 502;
+  throw err;
+}
+
+async function briefWithFallback(
+  primaryGeminiKey: string,
+  byok: unknown,
+  system: string,
+  user: string,
+): Promise<string> {
+  if (primaryGeminiKey) {
+    try { return await callGeminiText(primaryGeminiKey, system, user); } catch (e: any) {
+      console.error("[dork] brief platform failed:", e.message);
+    }
+  }
+  if (isValidByok(byok)) {
+    try {
+      return await callByokJsonWithRetry(byok as ZophielByokConfig, system, user, {
+        timeoutMs: 45_000, temperature: 0.4, maxOutputTokens: 1800, jsonMode: false, attempts: 2,
+      });
+    } catch (e: any) { console.error("[dork] brief byok failed:", e.message); }
+  }
+  if (VENICE_FALLBACK.apiKey) {
+    try {
+      return await callByokJsonWithRetry(VENICE_FALLBACK, system, user, {
+        timeoutMs: 45_000, temperature: 0.4, maxOutputTokens: 1800, jsonMode: false, attempts: 2,
+      });
+    } catch (e: any) { console.error("[dork] brief venice failed:", e.message); }
+  }
+  return "_Brief generation failed — review the buckets manually._";
 }
 
 function decodeEntities(text: string): string {
@@ -131,6 +226,7 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  console.log("[dork] v2-fallback-chain active");
   try {
     const { target, profile, byok, briefOnly } = await req.json();
     if (!target || typeof target !== "string" || target.trim().length < 2) {
@@ -152,13 +248,24 @@ Today: ${new Date().toISOString().slice(0, 10)}
 
 Generate the dork battery now.`;
 
+    // Try caller's BYOK first when in byok mode, otherwise platform Gemini.
+    // The fallback chain inside planWithFallback will rescue us if the
+    // primary key is invalid/expired/rate-limited.
     let planRaw = "";
-    if (useByok) {
-      planRaw = await callByokJsonWithRetry(byok as ZophielByokConfig, DORK_SYSTEM, planPrompt, {
-        timeoutMs: 35_000, temperature: 0.5, maxOutputTokens: 4096, jsonMode: true, attempts: 2,
-      });
-    } else {
-      planRaw = await callGeminiJson(GEMINI_API_KEY, DORK_SYSTEM, planPrompt);
+    let planVia = "";
+    try {
+      const result = useByok
+        ? await planWithFallback("", byok, DORK_SYSTEM, planPrompt)
+        : await planWithFallback(GEMINI_API_KEY, byok, DORK_SYSTEM, planPrompt);
+      planRaw = result.raw;
+      planVia = result.via;
+    } catch (e: any) {
+      console.error("[dork] plan all-providers failed:", e.message);
+      return new Response(JSON.stringify({
+        error: "ai_unavailable",
+        message: "All AI providers failed. Add a BYOK key in Settings → API Keys, or try again later.",
+        detail: e.message?.slice(0, 300),
+      }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     let plan: { profile?: string; queries?: { q: string; why: string }[] } = {};
@@ -197,17 +304,10 @@ Generate the dork battery now.`;
         const top = b.hits.slice(0, 4).map((h) => `   - ${h.title} :: ${h.url}`).join("\n");
         return `[${i + 1}] ${b.query}\n   why: ${b.rationale}\n${top || "   (no hits)"}`;
       }).join("\n\n");
-      try {
-        const u = `Target: ${target}\nProfile: ${plan.profile || profile || "auto"}\n\nBuckets:\n${condensed}`;
-        brief = useByok
-          ? await callByokJsonWithRetry(byok as ZophielByokConfig, BRIEF_SYSTEM, u, {
-              timeoutMs: 45_000, temperature: 0.4, maxOutputTokens: 1800, jsonMode: false, attempts: 2,
-            })
-          : await callGeminiText(GEMINI_API_KEY, BRIEF_SYSTEM, u);
-      } catch (e) {
-        console.error("[dork] brief failed", e);
-        brief = "_Brief generation failed — review the buckets manually._";
-      }
+      const u = `Target: ${target}\nProfile: ${plan.profile || profile || "auto"}\n\nBuckets:\n${condensed}`;
+      brief = useByok
+        ? await briefWithFallback("", byok, BRIEF_SYSTEM, u)
+        : await briefWithFallback(GEMINI_API_KEY, byok, BRIEF_SYSTEM, u);
     }
 
     return new Response(JSON.stringify({
@@ -217,6 +317,7 @@ Generate the dork battery now.`;
       buckets,
       totalHits,
       brief,
+      via: planVia,
       notice: "Open-web indexes only. Results are public artifacts already crawled by search engines.",
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

@@ -226,6 +226,16 @@ verify_jwt = false
 [functions.btc-settle-hourly]
 verify_jwt = false
 
+[functions.zophiel-dork]
+verify_jwt = false
+
+[functions.vault-ingest]
+verify_jwt = true
+
+[functions.vault-retrieve]
+verify_jwt = true
+
+
 
 
 
