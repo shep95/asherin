@@ -1905,16 +1905,31 @@ ${zophielCodingBrainContent}
     ];
 
     // Provider endpoint mapping
+    // BYOK provider → OpenAI-compatible chat endpoint. All providers listed in
+    // src/lib/aiProviders.ts that expose an OpenAI-compatible /chat/completions
+    // route must be wired here — otherwise a user saves a key, selects a model,
+    // and the request silently 403s. Non-OpenAI-shaped providers (Bedrock,
+    // Watsonx, native Baidu ERNIE, etc.) are intentionally omitted and get a
+    // clean unsupported-provider error below.
     const PROVIDER_ENDPOINTS: Record<string, { url: string; streamParam: boolean; transformResponse: boolean }> = {
-      openai: { url: "https://api.openai.com/v1/chat/completions", streamParam: true, transformResponse: false },
-      anthropic: { url: "https://api.anthropic.com/v1/messages", streamParam: true, transformResponse: true },
-      meta: { url: "https://api.together.xyz/v1/chat/completions", streamParam: true, transformResponse: false },
-      venice: { url: "https://api.venice.ai/api/v1/chat/completions", streamParam: true, transformResponse: false },
-      xai: { url: "https://api.x.ai/v1/chat/completions", streamParam: true, transformResponse: false },
-      mistral: { url: "https://api.mistral.ai/v1/chat/completions", streamParam: true, transformResponse: false },
-      deepseek: { url: "https://api.deepseek.com/chat/completions", streamParam: true, transformResponse: false },
-      perplexity: { url: "https://api.perplexity.ai/chat/completions", streamParam: true, transformResponse: false },
+      openai:     { url: "https://api.openai.com/v1/chat/completions",           streamParam: true, transformResponse: false },
+      anthropic:  { url: "https://api.anthropic.com/v1/messages",                streamParam: true, transformResponse: true  },
+      meta:       { url: "https://api.together.xyz/v1/chat/completions",         streamParam: true, transformResponse: false },
+      venice:     { url: "https://api.venice.ai/api/v1/chat/completions",        streamParam: true, transformResponse: false },
+      xai:        { url: "https://api.x.ai/v1/chat/completions",                 streamParam: true, transformResponse: false },
+      mistral:    { url: "https://api.mistral.ai/v1/chat/completions",           streamParam: true, transformResponse: false },
+      deepseek:   { url: "https://api.deepseek.com/chat/completions",            streamParam: true, transformResponse: false },
+      perplexity: { url: "https://api.perplexity.ai/chat/completions",           streamParam: true, transformResponse: false },
+      cohere:     { url: "https://api.cohere.ai/compatibility/v1/chat/completions", streamParam: true, transformResponse: false },
+      qwen:       { url: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions", streamParam: true, transformResponse: false },
+      zhipu:      { url: "https://open.bigmodel.cn/api/paas/v4/chat/completions", streamParam: true, transformResponse: false },
+      moonshot:   { url: "https://api.moonshot.cn/v1/chat/completions",          streamParam: true, transformResponse: false },
+      nvidia:     { url: "https://integrate.api.nvidia.com/v1/chat/completions", streamParam: true, transformResponse: false },
+      reka:       { url: "https://api.reka.ai/v1/chat/completions",              streamParam: true, transformResponse: false },
+      sarvam:     { url: "https://api.sarvam.ai/v1/chat/completions",            streamParam: true, transformResponse: false },
+      twoai:      { url: "https://api.two.ai/v2/chat/completions",               streamParam: true, transformResponse: false },
     };
+
 
     // Helper: call OpenAI-compatible API (OpenAI, xAI, Mistral, Venice, DeepSeek, Together/Meta)
     async function callOpenAICompatible(apiKey: string, endpoint: string, model: string) {
