@@ -16,6 +16,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { sourcesFor, siteFilter, parseJurisdiction } from "./jurisdictions.ts";
 
 function stripHtml(html: string): string {
   return html
@@ -205,7 +206,7 @@ serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({} as any));
-    const { address, lat, lng, entityName, byok, byokProvider } = body || {};
+    const { address, lat, lng, entityName, byok, byokProvider, country: ctryIn, state: stIn, county: coIn } = body || {};
     if (!address && !entityName) {
       return new Response(JSON.stringify({ error: "address or entityName required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -251,15 +252,31 @@ serve(async (req) => {
       .slice(0, 6)
       .map((t) => t.toLowerCase());
 
+    // ── Jurisdiction-aware source targeting ──
+    // Prefer explicit country/state/county from the client (from reverse geocoding),
+    // otherwise parse them out of the address string.
+    const parsed = parseJurisdiction(String(baseTarget));
+    const country = String(ctryIn || parsed.country || "US").toUpperCase();
+    const state = String(stIn || parsed.state || "").toUpperCase();
+    const county = String(coIn || parsed.county || "").toUpperCase();
+    const src = sourcesFor(country, state, county);
+
+    const ownershipSites = siteFilter([...(src.ownership || [])]);
+    const taxSites       = siteFilter([...(src.tax || []), ...(src.ownership || [])]);
+    const permitSites    = siteFilter([...(src.permits || []), ...(src.ownership || [])]);
+    const listingSites   = siteFilter([...(src.listings || [])]);
+
     const q = (s: string) => `"${baseTarget}" ${s}`;
     const queries = {
-      ownership:   q(`owner OR "owned by" OR LLC OR "registered agent" OR deed`),
+      // Registry-scoped queries go FIRST so the top hits are authoritative.
+      ownership:   q(`${ownershipSites} (owner OR "owned by" OR LLC OR deed OR parcel)`),
       residents:   q(`resident OR occupant OR "lives at" OR voter`),
-      permits:     q(`permit OR construction OR renovation OR addition`),
-      financial:   q(`lien OR foreclosure OR "tax delinquent" OR bankruptcy OR mortgage OR "property tax"`),
-      listings:    q(`site:zillow.com OR site:redfin.com OR site:realtor.com OR site:trulia.com OR site:homes.com`),
-      history:     q(`sold OR "sale price" OR "deed transfer" OR history`),
-      assessor:    q(`site:*.gov OR site:*.us assessor OR parcel OR "property appraiser"`),
+      permits:     q(`${permitSites} (permit OR construction OR renovation OR addition)`),
+      financial:   q(`${taxSites} (lien OR foreclosure OR "tax delinquent" OR mortgage OR "property tax")`),
+      listings:    q(`${listingSites}`),
+      history:     q(`${ownershipSites} (sold OR "sale price" OR "deed transfer" OR history)`),
+      // Broad fallback (unscoped) in case registries are thin for this parcel.
+      assessor:    q(`assessor OR "property appraiser" OR parcel OR cadastre`),
     };
 
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -446,7 +463,8 @@ Return STRICT JSON only with this exact schema:
     return new Response(JSON.stringify({
       success: true,
       intel,
-      sources: pages.map((p) => ({ title: p.title, url: p.url, snippet: p.snippet, channel: p.channel })),
+      sources: pages.map((p) => ({ title: p.title, url: p.url, snippet: p.snippet, channel: p.channel, relevant: p.relevant })),
+      jurisdiction: { country, state, county, registries: src },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {

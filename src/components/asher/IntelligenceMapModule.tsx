@@ -600,9 +600,17 @@ const IntelligenceMapModule = () => {
 
     setPropertyIntel({ loading: true, intel: null, sources: [], error: null });
     try {
+      // Extract jurisdiction from the reverse-geocode hit so the edge function
+      // scopes queries to the right registry (Florida parcels site for FL,
+      // ONLAND for Ontario, Land Registry for UK, etc.).
+      const addr: any = hit?.address || {};
+      const country = String(addr.country_code || "").toUpperCase();
+      const state = String(addr["ISO3166-2-lvl4"] || "").split("-").pop() || "";
+      const county = String(addr.county || "").replace(/\s+County$/i, "");
       const { data, error } = await supabase.functions.invoke("asher-property-intel", {
         body: {
           lat, lng, address: resolvedAddress, entityName,
+          country, state, county,
           byok: byok.apiKey,
           byokProvider: byok.provider,
           byokModel: byok.model,
