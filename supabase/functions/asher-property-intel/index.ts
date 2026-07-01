@@ -241,23 +241,36 @@ serve(async (req) => {
 
     // ─── Parallel OSINT sweep across 6 investigation vectors ───
     const baseTarget = address || entityName;
+    // Extract anchor tokens (street number, street name) so we can filter noise.
+    const numMatch = String(baseTarget).match(/\b\d{1,6}\b/);
+    const streetNumber = numMatch?.[0] || "";
+    const streetTokens = String(baseTarget)
+      .replace(/[",]/g, " ")
+      .split(/\s+/)
+      .filter((t) => t.length >= 3 && !/^(st|ave|rd|blvd|ln|dr|ct|way|pl|hwy|us|fl|ca|ny|tx)$/i.test(t))
+      .slice(0, 6)
+      .map((t) => t.toLowerCase());
+
+    const q = (s: string) => `"${baseTarget}" ${s}`;
     const queries = {
-      ownership:   `"${baseTarget}" owner OR "owned by" OR LLC OR "registered agent"`,
-      residents:   `"${baseTarget}" resident OR occupant OR "lives at" OR voter`,
-      permits:     `"${baseTarget}" permit OR construction OR renovation OR addition`,
-      financial:   `"${baseTarget}" lien OR foreclosure OR "tax delinquent" OR bankruptcy OR mortgage`,
-      listings:    `"${baseTarget}" site:zillow.com OR site:redfin.com OR site:realtor.com OR site:trulia.com`,
-      history:     `"${baseTarget}" sold OR "sale price" OR "deed transfer" OR history`,
+      ownership:   q(`owner OR "owned by" OR LLC OR "registered agent" OR deed`),
+      residents:   q(`resident OR occupant OR "lives at" OR voter`),
+      permits:     q(`permit OR construction OR renovation OR addition`),
+      financial:   q(`lien OR foreclosure OR "tax delinquent" OR bankruptcy OR mortgage OR "property tax"`),
+      listings:    q(`site:zillow.com OR site:redfin.com OR site:realtor.com OR site:trulia.com OR site:homes.com`),
+      history:     q(`sold OR "sale price" OR "deed transfer" OR history`),
+      assessor:    q(`site:*.gov OR site:*.us assessor OR parcel OR "property appraiser"`),
     };
 
     const authHeader = req.headers.get("Authorization") ?? "";
-    const [oHits, rHits, pHits, fHits, lHits, hHits] = await Promise.all([
+    const [oHits, rHits, pHits, fHits, lHits, hHits, aHits] = await Promise.all([
       multiSearch(queries.ownership, authHeader, 5),
       multiSearch(queries.residents, authHeader, 4),
       multiSearch(queries.permits, authHeader, 4),
       multiSearch(queries.financial, authHeader, 4),
       multiSearch(queries.listings, authHeader, 5),
       multiSearch(queries.history, authHeader, 4),
+      multiSearch(queries.assessor, authHeader, 4),
     ]);
 
     // Merge & dedupe for corpus
@@ -269,15 +282,33 @@ serve(async (req) => {
         seen.add(h.url); merged.push({ ...h, channel });
       }
     };
-    push(oHits, "ownership"); push(rHits, "residents"); push(pHits, "permits");
-    push(fHits, "financial"); push(lHits, "listings"); push(hHits, "history");
+    push(lHits, "listings"); push(aHits, "assessor"); push(oHits, "ownership");
+    push(hHits, "history"); push(fHits, "financial"); push(pHits, "permits");
+    push(rHits, "residents");
 
-    // Scrape top 10 in parallel — richer corpus = fewer "no info" dossiers.
-    const top = merged.slice(0, 10);
-    const pages = await Promise.all(top.map(async (h) => ({
+    // Score by relevance: does the snippet mention the street number or a street token?
+    const isRelevant = (text: string) => {
+      const t = (text || "").toLowerCase();
+      if (streetNumber && t.includes(streetNumber)) return true;
+      let matched = 0;
+      for (const tok of streetTokens) if (t.includes(tok)) matched++;
+      return matched >= 2;
+    };
+
+    // Scrape top 14 in parallel — richer corpus = fewer "no info" dossiers.
+    const top = merged.slice(0, 14);
+    const pagesRaw = await Promise.all(top.map(async (h) => ({
       channel: h.channel, url: h.url, title: h.title, snippet: h.snippet,
       body: (await fetchPage(h.url, 5500)).slice(0, 2400),
     })));
+
+    // Keep pages that mention the address in title/snippet/body; otherwise keep snippet-only
+    // signal if the search engine considered it relevant enough to surface.
+    const pages = pagesRaw.map((p) => {
+      const blob = `${p.title} ${p.snippet} ${p.body}`;
+      const relevant = isRelevant(blob);
+      return { ...p, relevant };
+    });
 
     // Harvest interior/property photos from listings (top 3 listing URLs)
     const listingUrls = lHits.slice(0, 3).map(h => h.url);
@@ -290,8 +321,13 @@ serve(async (req) => {
       }
     });
 
-    const corpus = pages
-      .map((p, i) => `### [${p.channel.toUpperCase()}] Source ${i + 1}: ${p.title}\nURL: ${p.url}\nSnippet: ${p.snippet}\nContent: ${p.body || "(empty)"}`)
+    // Build corpus: prefer scraped body, fall back to snippet, mark relevance.
+    const usable = pages.filter((p) => (p.body && p.body.length > 60) || (p.snippet && p.snippet.length > 20));
+    const corpus = usable
+      .map((p, i) => `### [${p.channel.toUpperCase()}] Source ${i + 1}${p.relevant ? " (address-matched)" : " (tangential)"}: ${p.title}
+URL: ${p.url}
+Snippet: ${p.snippet || "(no snippet)"}
+Content: ${p.body || "(no body — infer from snippet only)"}`)
       .join("\n\n");
 
     const prompt = `You are a geospatial intelligence analyst building a CINEMATIC DOSSIER on a property. Use ONLY facts present in the sources. When a field is not present, mark inferred=true and lower confidence. Never invent names, prices, or dates.
