@@ -190,7 +190,7 @@ async function callGemini(
     );
     if (!r.ok) {
       const txt = await r.text();
-      throw makeRetryableError(r.status, `gemini_${model}_${r.status}: ${txt.slice(0, 200)}`);
+      throw makeRetryableError(r.status, `gemini_${model}_${r.status}: ${txt.slice(0, 200)}`, parseRetryAfterMs(r.headers, txt));
     }
     const d = await r.json();
     return d?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || '').join('') || '';
