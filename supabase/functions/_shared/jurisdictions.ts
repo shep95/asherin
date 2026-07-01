@@ -1,94 +1,114 @@
-// jurisdictions.ts — authoritative property-record sources per jurisdiction.
-// Each region lists the sites we trust for OWNERSHIP / TAX / PERMITS / LISTINGS.
-// The engine builds `site:a OR site:b OR site:c` queries so the search engine
-// returns records from actual government / registry portals — not tangential
-// Canadian federal-geo pages when the parcel is in Florida.
+// jurisdictions.ts — SOVEREIGN SOURCE ATLAS
+// Authoritative record sources per jurisdiction (country → state/province → county).
+// Channels:
+//   ownership → land registry / title / deed / assessor
+//   tax       → assessor / tax collector / revenue
+//   permits   → building / planning / inspection
+//   listings  → real estate portals (secondary)
+//   entities  → corporate registries (directors, agents, PSC)
+//   courts    → civil/criminal/probate/bankruptcy filings
+//   people    → residential directories / electoral / people-search
+// The engine composes site:a OR site:b OR site:c restrictors from these lists.
+// NEVER include breach databases. Every source must be an authoritative or
+// public-records aggregator that pulls from authoritative sources.
 
 export type JurisdictionSources = {
-  ownership: string[];  // deed / owner / LLC records
-  tax: string[];        // assessor / tax collector
-  permits: string[];    // building department
-  listings: string[];   // real estate portals
+  ownership: string[];
+  tax: string[];
+  permits: string[];
+  listings: string[];
+  entities: string[];
+  courts: string[];
+  people: string[];
 };
 
-// Universal fallbacks — used everywhere as secondary channel.
+// Universal fallbacks used everywhere as tertiary layer.
 const GLOBAL_LISTINGS = ["zillow.com", "redfin.com", "realtor.com", "trulia.com", "homes.com"];
+const GLOBAL_ENTITIES = [
+  "opencorporates.com",
+  "offshoreleaks.icij.org",
+  "sec.gov", "sec.gov/edgar", "efts.sec.gov",
+  "linkedin.com/company",
+];
+const GLOBAL_PEOPLE_AGGREGATORS = [
+  "linkedin.com", "facebook.com", "instagram.com", "x.com", "twitter.com",
+];
+const GLOBAL_COURTS = ["justia.com", "courtlistener.com", "pacer.gov"];
 
 // ─── UNITED STATES ─────────────────────────────────────────────────────────
+const US_NATIONAL: Partial<JurisdictionSources> = {
+  entities: ["opencorporates.com", "sec.gov", "efts.sec.gov", "fec.gov", "uspto.gov", "linkedin.com/company"],
+  courts: ["pacer.gov", "courtlistener.com", "justia.com"],
+  people: ["truepeoplesearch.com", "whitepages.com", "spokeo.com", "beenverified.com", "fastpeoplesearch.com", "radaris.com", "thatsthem.com", "usphonebook.com", "voterrecords.com"],
+  listings: GLOBAL_LISTINGS,
+};
+
 const US_STATE: Record<string, Partial<JurisdictionSources>> = {
   FL: {
     ownership: ["floridaparcels.com", "sunbiz.org", "flrecords.com"],
     tax: ["floridarevenue.com", "floridaparcels.com"],
     permits: ["floridabuilding.org"],
+    entities: ["sunbiz.org"],
+    courts: ["myflcourtaccess.com", "flcourts.gov"],
   },
-  TX: {
-    ownership: ["texasfile.com", "sos.state.tx.us"],
-    tax: ["comptroller.texas.gov"],
-  },
-  CA: {
-    ownership: ["bizfileonline.sos.ca.gov"],
-    tax: ["boe.ca.gov"],
-  },
-  NY: {
-    ownership: ["apps.dos.ny.gov", "acris.nyc.gov"],
-    tax: ["tax.ny.gov"],
-  },
-  GA: { ownership: ["ecorp.sos.ga.gov"], tax: ["dor.georgia.gov"] },
-  NC: { ownership: ["sosnc.gov"] },
-  IL: { ownership: ["ilsos.gov"], tax: ["cookcountyassessor.com"] },
-  WA: { ownership: ["ccfs.sos.wa.gov"] },
-  AZ: { ownership: ["ecorp.azcc.gov"] },
-  CO: { ownership: ["coloradosos.gov"] },
-  NV: { ownership: ["esos.nv.gov"] },
-  MA: { ownership: ["corp.sec.state.ma.us"] },
-  OH: { ownership: ["businesssearch.ohiosos.gov"] },
-  MI: { ownership: ["cofs.lara.state.mi.us"] },
-  PA: { ownership: ["file.dos.pa.gov"] },
-  VA: { ownership: ["cis.scc.virginia.gov"] },
-  TN: { ownership: ["tnbear.tn.gov"] },
-  NJ: { ownership: ["nj.gov"] },
-  MD: { ownership: ["egov.maryland.gov"] },
-  OR: { ownership: ["sos.oregon.gov"] },
-  UT: { ownership: ["businessregistry.utah.gov"] },
-  MN: { ownership: ["mblsportal.sos.state.mn.us"] },
-  WI: { ownership: ["wdfi.org"] },
-  SC: { ownership: ["businessfilings.sc.gov"] },
-  AL: { ownership: ["arc-sos.state.al.us"] },
-  LA: { ownership: ["coraweb.sos.la.gov"] },
-  KY: { ownership: ["sos.ky.gov"] },
-  OK: { ownership: ["sos.ok.gov"] },
-  IN: { ownership: ["bsd.sos.in.gov"] },
-  MO: { ownership: ["bsd.sos.mo.gov"] },
-  IA: { ownership: ["sos.iowa.gov"] },
-  KS: { ownership: ["sos.ks.gov"] },
-  AR: { ownership: ["sos.arkansas.gov"] },
-  MS: { ownership: ["corp.sos.ms.gov"] },
-  NM: { ownership: ["portal.sos.state.nm.us"] },
-  ID: { ownership: ["sosbiz.idaho.gov"] },
-  MT: { ownership: ["biz.sosmt.gov"] },
-  ND: { ownership: ["firststop.sos.nd.gov"] },
-  SD: { ownership: ["sosenterprise.sd.gov"] },
-  NE: { ownership: ["sos.nebraska.gov"] },
-  WV: { ownership: ["apps.wv.gov"] },
-  ME: { ownership: ["maine.gov"] },
-  NH: { ownership: ["quickstart.sos.nh.gov"] },
-  VT: { ownership: ["bizfilings.vermont.gov"] },
-  RI: { ownership: ["business.sos.ri.gov"] },
-  DE: { ownership: ["icis.corp.delaware.gov"] },
-  AK: { ownership: ["commerce.alaska.gov"] },
-  HI: { ownership: ["hbe.ehawaii.gov"] },
-  WY: { ownership: ["wyobiz.wyo.gov"] },
-  DC: { ownership: ["corponline.dcra.dc.gov"] },
+  TX: { ownership: ["texasfile.com"], entities: ["direct.sos.state.tx.us"], tax: ["comptroller.texas.gov"], courts: ["efile.txcourts.gov"] },
+  CA: { ownership: ["bizfileonline.sos.ca.gov"], entities: ["businesssearch.sos.ca.gov", "bizfileonline.sos.ca.gov"], tax: ["boe.ca.gov"], courts: ["courts.ca.gov"] },
+  NY: { ownership: ["apps.dos.ny.gov", "acris.nyc.gov"], entities: ["apps.dos.ny.gov"], tax: ["tax.ny.gov"], courts: ["iapps.courts.state.ny.us"] },
+  GA: { entities: ["ecorp.sos.ga.gov"], tax: ["dor.georgia.gov"] },
+  NC: { entities: ["sosnc.gov"] },
+  IL: { entities: ["ilsos.gov"], tax: ["cookcountyassessor.com"] },
+  WA: { entities: ["ccfs.sos.wa.gov"] },
+  AZ: { entities: ["ecorp.azcc.gov"] },
+  CO: { entities: ["coloradosos.gov"] },
+  NV: { entities: ["esos.nv.gov"] },
+  MA: { entities: ["corp.sec.state.ma.us"] },
+  OH: { entities: ["businesssearch.ohiosos.gov"] },
+  MI: { entities: ["cofs.lara.state.mi.us"] },
+  PA: { entities: ["file.dos.pa.gov"] },
+  VA: { entities: ["cis.scc.virginia.gov"] },
+  TN: { entities: ["tnbear.tn.gov"] },
+  NJ: { entities: ["nj.gov"] },
+  MD: { entities: ["egov.maryland.gov"] },
+  OR: { entities: ["sos.oregon.gov"] },
+  UT: { entities: ["businessregistry.utah.gov"] },
+  MN: { entities: ["mblsportal.sos.state.mn.us"] },
+  WI: { entities: ["wdfi.org"] },
+  SC: { entities: ["businessfilings.sc.gov"] },
+  AL: { entities: ["arc-sos.state.al.us"] },
+  LA: { entities: ["coraweb.sos.la.gov"] },
+  KY: { entities: ["sos.ky.gov"] },
+  OK: { entities: ["sos.ok.gov"] },
+  IN: { entities: ["bsd.sos.in.gov"] },
+  MO: { entities: ["bsd.sos.mo.gov"] },
+  IA: { entities: ["sos.iowa.gov"] },
+  KS: { entities: ["sos.ks.gov"] },
+  AR: { entities: ["sos.arkansas.gov"] },
+  MS: { entities: ["corp.sos.ms.gov"] },
+  NM: { entities: ["portal.sos.state.nm.us"] },
+  ID: { entities: ["sosbiz.idaho.gov"] },
+  MT: { entities: ["biz.sosmt.gov"] },
+  ND: { entities: ["firststop.sos.nd.gov"] },
+  SD: { entities: ["sosenterprise.sd.gov"] },
+  NE: { entities: ["sos.nebraska.gov"] },
+  WV: { entities: ["apps.wv.gov"] },
+  ME: { entities: ["maine.gov"] },
+  NH: { entities: ["quickstart.sos.nh.gov"] },
+  VT: { entities: ["bizfilings.vermont.gov"] },
+  RI: { entities: ["business.sos.ri.gov"] },
+  DE: { entities: ["icis.corp.delaware.gov"] },
+  AK: { entities: ["commerce.alaska.gov"] },
+  HI: { entities: ["hbe.ehawaii.gov"] },
+  WY: { entities: ["wyobiz.wyo.gov"] },
+  DC: { entities: ["corponline.dcra.dc.gov"] },
 };
 
-// County overrides (highest fidelity — actual property appraisers / recorders).
 const US_COUNTY: Record<string, Partial<JurisdictionSources>> = {
   // Florida
-  "FL:LEE":         { ownership: ["leepa.org"], tax: ["leetc.com"], permits: ["leegov.com"] },
-  "FL:MIAMI-DADE":  { ownership: ["miamidade.gov"], tax: ["miamidade.gov"], permits: ["miamidade.gov"] },
+  "FL:LEE":         { ownership: ["leepa.org"], tax: ["leetc.com"], permits: ["leegov.com"], courts: ["leeclerk.org"] },
+  "FL:MIAMI-DADE":  { ownership: ["miamidade.gov"], tax: ["miamidade.gov"], permits: ["miamidade.gov"], courts: ["miami-dadeclerk.com"] },
   "FL:BROWARD":     { ownership: ["bcpa.net"], tax: ["broward.county-taxes.com"], permits: ["broward.org"] },
   "FL:PALM BEACH":  { ownership: ["pbcgov.com", "pbcpao.gov"] },
-  "FL:ORANGE":      { ownership: ["ocpaweb.ocpafl.org"], permits: ["orangecountyfl.net"] },
+  "FL:ORANGE":      { ownership: ["ocpaweb.ocpafl.org", "ocpafl.org"], permits: ["orangecountyfl.net"] },
   "FL:HILLSBOROUGH":{ ownership: ["hcpafl.org"] },
   "FL:PINELLAS":    { ownership: ["pcpao.gov"] },
   "FL:DUVAL":       { ownership: ["paopropertysearch.coj.net"] },
@@ -104,51 +124,96 @@ const US_COUNTY: Record<string, Partial<JurisdictionSources>> = {
   // California
   "CA:LOS ANGELES": { ownership: ["assessor.lacounty.gov"] },
   "CA:ORANGE":      { ownership: ["ocassessor.gov"] },
-  "CA:SAN DIEGO":   { ownership: ["sdttc.com", "arcc.sdcounty.ca.gov"] },
+  "CA:SAN DIEGO":   { ownership: ["sdttc.com", "arcc.sdcounty.ca.gov", "sdarcc.gov"] },
   "CA:SANTA CLARA": { ownership: ["sccassessor.org"] },
   "CA:ALAMEDA":     { ownership: ["acgov.org"] },
-  // New York
+  "CA:SAN FRANCISCO":{ ownership: ["sfassessor.org"] },
+  // NY
   "NY:NEW YORK":    { ownership: ["acris.nyc.gov"] },
   "NY:KINGS":       { ownership: ["acris.nyc.gov"] },
   "NY:QUEENS":      { ownership: ["acris.nyc.gov"] },
-  // Illinois
+  // IL
   "IL:COOK":        { ownership: ["cookcountyassessor.com", "cookcountyclerkil.gov"] },
 };
 
-// ─── COUNTRIES ─────────────────────────────────────────────────────────────
+// ─── AUSTRALIA ─────────────────────────────────────────────────────────────
+const AU_NATIONAL: Partial<JurisdictionSources> = {
+  entities: ["asic.gov.au", "abr.business.gov.au", "opencorporates.com"],
+  people: ["whitepages.com.au", "linkedin.com", "facebook.com"],
+  courts: ["austlii.edu.au", "fedcourt.gov.au"],
+  listings: ["realestate.com.au", "domain.com.au"],
+};
+const AU_STATE: Record<string, Partial<JurisdictionSources>> = {
+  NSW: { ownership: ["nswlrs.com.au"], courts: ["onlineregistry.lawlink.nsw.gov.au"] },
+  VIC: { ownership: ["landata.vic.gov.au"], courts: ["online.justice.vic.gov.au"] },
+  QLD: { ownership: ["titlesqld.com.au"], courts: ["justice.qld.gov.au"] },
+  WA:  { ownership: ["landgate.wa.gov.au"] },
+  SA:  { ownership: ["sailis.sa.gov.au"] },
+  TAS: { ownership: ["thelist.tas.gov.au"] },
+  ACT: { ownership: ["actmapi.act.gov.au"] },
+  NT:  { ownership: ["nt.gov.au"] },
+};
+
+// ─── CANADA ────────────────────────────────────────────────────────────────
+const CA_NATIONAL: Partial<JurisdictionSources> = {
+  entities: ["corporationscanada.ic.gc.ca", "opencorporates.com"],
+  people: ["canada411.ca", "linkedin.com"],
+  listings: ["realtor.ca", "royallepage.ca", "zolo.ca"],
+  tax: ["cra-arc.gc.ca"],
+};
+const CA_PROVINCE: Record<string, Partial<JurisdictionSources>> = {
+  ON: { ownership: ["onland.ca"], entities: ["ontario.ca/businessregistry"], courts: ["ontariocourts.ca"] },
+  BC: { ownership: ["ltsa.ca"], entities: ["bcregistryservices.gov.bc.ca"], courts: ["justice.gov.bc.ca"] },
+  AB: { ownership: ["spin2.alberta.ca", "spin2.gov.ab.ca"], entities: ["mycores.ca"] },
+  QC: { ownership: ["registrefoncier.gouv.qc.ca"], entities: ["registreentreprises.gouv.qc.ca"] },
+  SK: { ownership: ["isc.ca"] },
+  MB: { ownership: ["teranet-mb.ca"] },
+  NS: { ownership: ["novascotia.ca"] },
+  NB: { ownership: ["snb.ca"] },
+  PE: { ownership: ["princeedwardisland.ca"] },
+  NL: { ownership: ["gov.nl.ca"] },
+};
+
+// ─── UNITED KINGDOM ────────────────────────────────────────────────────────
+const GB_NATIONAL: Partial<JurisdictionSources> = {
+  ownership: ["search.find-my-landinfo.service.gov.uk", "landregistry.data.gov.uk", "gov.uk/search-property-information-land-registry"],
+  entities: ["find-and-update.company-information.service.gov.uk", "opencorporates.com"],
+  people: ["192.com", "linkedin.com"],
+  courts: ["find-case-information.service.gov.uk", "insolvency.service.gov.uk", "trustonline.org.uk"],
+  listings: ["rightmove.co.uk", "zoopla.co.uk", "onthemarket.com"],
+};
+const GB_REGION: Record<string, Partial<JurisdictionSources>> = {
+  SCT: { ownership: ["ros.gov.uk"] },       // Scotland
+  NIR: { ownership: ["lpsni.gov.uk"] },     // Northern Ireland
+};
+
+// ─── EU / OTHER COUNTRIES ──────────────────────────────────────────────────
 const COUNTRY: Record<string, Partial<JurisdictionSources>> = {
-  US: { listings: GLOBAL_LISTINGS },
-  CA: {
-    ownership: ["onland.ca", "ltsa.ca", "spin2.gov.ab.ca", "isc.ca"],
-    tax: ["cra-arc.gc.ca"],
-    listings: ["realtor.ca", "royallepage.ca", "zolo.ca"],
-  },
-  GB: {
-    ownership: ["gov.uk/search-property-information-land-registry", "landregistry.data.gov.uk", "find-and-update.company-information.service.gov.uk"],
-    listings: ["rightmove.co.uk", "zoopla.co.uk", "onthemarket.com"],
-  },
-  AU: {
-    ownership: ["nswlrs.com.au", "landata.vic.gov.au", "titlesqld.com.au"],
-    listings: ["realestate.com.au", "domain.com.au"],
-  },
-  NZ: { ownership: ["linz.govt.nz"], listings: ["realestate.co.nz", "trademe.co.nz"] },
-  DE: { ownership: ["grundbuch.de", "handelsregister.de"], listings: ["immobilienscout24.de", "immowelt.de"] },
-  FR: { ownership: ["cadastre.gouv.fr"], listings: ["seloger.com", "leboncoin.fr"] },
-  ES: { ownership: ["registradores.org", "sedecatastro.gob.es"], listings: ["idealista.com", "fotocasa.es"] },
-  IT: { ownership: ["agenziaentrate.gov.it"], listings: ["immobiliare.it", "casa.it"] },
-  NL: { ownership: ["kadaster.nl", "kvk.nl"], listings: ["funda.nl"] },
+  US: US_NATIONAL,
+  AU: AU_NATIONAL,
+  CA: CA_NATIONAL,
+  GB: GB_NATIONAL,
+  NZ: { ownership: ["linz.govt.nz"], listings: ["realestate.co.nz", "trademe.co.nz"], entities: ["companiesoffice.govt.nz"] },
+  DE: { ownership: ["grundbuch.de"], entities: ["handelsregister.de", "unternehmensregister.de"], listings: ["immobilienscout24.de", "immowelt.de"] },
+  FR: { ownership: ["cadastre.gouv.fr"], entities: ["infogreffe.fr", "societe.com"], listings: ["seloger.com", "leboncoin.fr"] },
+  ES: { ownership: ["registradores.org", "sedecatastro.gob.es"], entities: ["registradores.org"], listings: ["idealista.com", "fotocasa.es"] },
+  IT: { ownership: ["agenziaentrate.gov.it"], entities: ["registroimprese.it"], listings: ["immobiliare.it", "casa.it"] },
+  NL: { ownership: ["kadaster.nl"], entities: ["kvk.nl"], listings: ["funda.nl"] },
+  IE: { ownership: ["landdirect.ie"], entities: ["cro.ie"] },
   MX: { ownership: ["rppc.cdmx.gob.mx"], listings: ["inmuebles24.com", "vivanuncios.com.mx"] },
   BR: { ownership: ["registrodeimoveis.org.br"], listings: ["zapimoveis.com.br", "vivareal.com.br"] },
-  IN: { ownership: ["dolr.gov.in", "mca.gov.in"], listings: ["99acres.com", "magicbricks.com"] },
+  IN: { ownership: ["dolr.gov.in"], entities: ["mca.gov.in"], listings: ["99acres.com", "magicbricks.com"] },
   JP: { ownership: ["touki.moj.go.jp"], listings: ["suumo.jp", "homes.co.jp"] },
-  SG: { ownership: ["sla.gov.sg"], listings: ["propertyguru.com.sg"] },
+  SG: { ownership: ["sla.gov.sg"], entities: ["bizfile.gov.sg"], listings: ["propertyguru.com.sg"] },
   AE: { ownership: ["dubailand.gov.ae"], listings: ["bayut.com", "propertyfinder.ae"] },
   ZA: { ownership: ["deedsweb.dla.gov.za"], listings: ["property24.com", "privateproperty.co.za"] },
 };
 
-// Merge helper — county > state > country > global-listings-only.
+// Merge helper — county > state > country > global.
 function merge(...parts: Array<Partial<JurisdictionSources> | undefined>): JurisdictionSources {
-  const out: JurisdictionSources = { ownership: [], tax: [], permits: [], listings: [] };
+  const out: JurisdictionSources = {
+    ownership: [], tax: [], permits: [], listings: [], entities: [], courts: [], people: [],
+  };
   for (const p of parts) {
     if (!p) continue;
     for (const k of Object.keys(out) as (keyof JurisdictionSources)[]) {
@@ -160,9 +225,9 @@ function merge(...parts: Array<Partial<JurisdictionSources> | undefined>): Juris
 
 /**
  * Resolve authoritative record sources for a jurisdiction.
- * @param country  ISO-2 (e.g. "US", "CA", "GB")
- * @param state    US state code / province ("FL", "TX", "ON")
- * @param county   County name (upper-cased key, e.g. "LEE", "MIAMI-DADE")
+ * @param country  ISO-2 ("US", "CA", "GB", "AU", …)
+ * @param state    US state / AU state / CA province / GB region ("FL", "NSW", "ON", "SCT")
+ * @param county   County / borough (e.g. "LEE", "MIAMI-DADE")
  */
 export function sourcesFor(country?: string, state?: string, county?: string): JurisdictionSources {
   const c = (country || "").toUpperCase();
@@ -170,13 +235,16 @@ export function sourcesFor(country?: string, state?: string, county?: string): J
   const co = (county || "").toUpperCase().replace(/\s+COUNTY$/, "").trim();
   const countyKey = s && co ? `${s}:${co}` : "";
 
-  const merged = merge(
-    { listings: GLOBAL_LISTINGS },
+  const stateMap: Record<string, Partial<JurisdictionSources> | undefined> = {
+    US: US_STATE[s], AU: AU_STATE[s], CA: CA_PROVINCE[s], GB: GB_REGION[s],
+  };
+
+  return merge(
+    { listings: GLOBAL_LISTINGS, entities: GLOBAL_ENTITIES, people: GLOBAL_PEOPLE_AGGREGATORS, courts: GLOBAL_COURTS },
     COUNTRY[c],
-    c === "US" ? US_STATE[s] : undefined,
+    stateMap[c],
     c === "US" && countyKey ? US_COUNTY[countyKey] : undefined,
   );
-  return merged;
 }
 
 /** Build a `site:a OR site:b OR site:c` restrictor for the given domains. */
@@ -188,11 +256,8 @@ export function siteFilter(domains: string[], cap = 8): string {
 /** Best-effort parse of country/state/county from a free-form address string. */
 export function parseJurisdiction(address: string): { country: string; state: string; county: string } {
   const t = String(address || "");
-  // US ZIP → assume US
   const usZip = /\b\d{5}(?:-\d{4})?\b/.test(t);
-  // Canadian postal
   const caPostal = /\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b/i.test(t);
-  // UK postal
   const ukPostal = /\b[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}\b/i.test(t);
 
   let country = "";
@@ -202,12 +267,10 @@ export function parseJurisdiction(address: string): { country: string; state: st
   else if (/,\s*Australia\b/i.test(t)) country = "AU";
   else if (/,\s*Mexico\b/i.test(t)) country = "MX";
 
-  // US state (two-letter, before ZIP)
   let state = "";
   const st = t.match(/,\s*([A-Z]{2})\s+\d{5}/);
   if (st) state = st[1].toUpperCase();
 
-  // County — look for "X County" token
   let county = "";
   const co = t.match(/([A-Za-z\-\s]+?)\s+County/i);
   if (co) county = co[1].trim().toUpperCase();
