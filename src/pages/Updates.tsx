@@ -78,7 +78,7 @@ const UPDATES: Update[] = [
     tag: "Aureon Chat",
   },
   {
-    date: "2026-06-23",
+    date: "2026-06-26",
     title: "Valuation Page & Investors Portal",
     body:
       "Published /valuation with a $1.1B asset-based model, competitor comparisons, and visualizations. Launched /investors describing equity, royalties, and whitelist requirements.",
