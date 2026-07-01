@@ -72,6 +72,9 @@ const BlogHowAiPredictiveForecastingWorks = lazy(
 const BlogHowAureonUsesCseoResearch = lazy(
   () => import("./pages/blog/HowAureonUsesCseoResearch"),
 );
+const BlogHowWeMakeAureonSoundHuman = lazy(
+  () => import("./pages/blog/HowWeMakeAureonSoundHuman"),
+);
 const GlossaryZeroDayConfidenceScoring = lazy(
   () => import("./pages/glossary/ZeroDayConfidenceScoring"),
 );
@@ -187,6 +190,10 @@ const App = () => (
             <Route
               path="/blog/how-aureon-uses-c-seo-research"
               element={<BlogHowAureonUsesCseoResearch />}
+            />
+            <Route
+              path="/blog/how-we-make-aureon-sound-human"
+              element={<BlogHowWeMakeAureonSoundHuman />}
             />
             <Route
               path="/asher-dashboard"
