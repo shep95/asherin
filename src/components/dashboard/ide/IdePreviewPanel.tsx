@@ -47,6 +47,24 @@ function scriptReferenceRegex(file: PreviewFile): RegExp {
   return new RegExp(`<script([^>]*)src=["'](?:\\./|/)?${pattern}["']([^>]*)><\\/script>`, "g");
 }
 
+function safeScriptJson(value: string): string {
+  return JSON.stringify(value).replace(/<\/script/gi, "<\\/script");
+}
+
+function babelExecuteTag(name: string, source: string): string {
+  return `<script>
+(function(){
+  var __source = ${safeScriptJson(source)};
+  try {
+    var __code = window.Babel ? Babel.transform(__source, { presets: ['env'], plugins: [['transform-react-jsx', { runtime: 'classic' }]], filename: ${safeScriptJson(name)} }).code : __source;
+    (0, eval)(__code);
+  } catch (e) {
+    setTimeout(function(){ throw e; });
+  }
+})();
+<\/script>`;
+}
+
 function stripModuleSyntax(src: string): { code: string; defaultExport: string | null; namedComponents: string[] } {
   let code = src;
   // Remove ES module imports (Babel standalone can't resolve them in-browser)
@@ -92,7 +110,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
   const flat = flattenFiles(files);
   const compileScriptTag = (name: string, source: string) => {
     const { code } = stripModuleSyntax(source);
-    return `<script type="text/babel" data-presets="env" data-plugins="transform-react-jsx">\n/* ${name} */\n${code.replace(/<\/script/gi, "<\\/script")}\n<\/script>`;
+    return babelExecuteTag(name, `/* ${name} */\n${code}`);
   };
 
   const htmlFile = flat.find(f => f.name.endsWith(".html"));
@@ -155,7 +173,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
     const { code, defaultExport, namedComponents } = stripModuleSyntax(raw);
     if (defaultExport) mountTarget = defaultExport;
     else if (namedComponents.length) mountTarget = namedComponents[namedComponents.length - 1];
-    return `<script type="text/babel" data-presets="env" data-plugins="transform-react-jsx">\n/* ${f.name} */\n${code}\n</script>`;
+    return babelExecuteTag(f.name, `/* ${f.name} */\n${code}`);
   }).join("\n");
 
   const jsBlocks = jsFiles.map(f => compileScriptTag(f.name, f.content ?? "")).join("\n");
@@ -166,7 +184,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
   });
 
   const autoMount = (hasReact && mountTarget && !userMountsItself)
-    ? `<script type="text/babel" data-presets="env" data-plugins="transform-react-jsx">
+    ? `<script>
 try {
   const __el = document.getElementById('root') || document.getElementById('app');
   if (__el && typeof ${mountTarget} !== 'undefined') {
