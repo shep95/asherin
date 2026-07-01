@@ -83,6 +83,15 @@ RULES:
   STOP and ask the user — never fabricate them.
 `;
 
+// Append the Theme Engine Doctrine so every consumer (chat, IDE,
+// zophiel-code-audit, media-to-code, zerlal-scan, asher-ai) inherits
+// the UI neatness contract without needing to import it separately.
+// deno-lint-ignore no-explicit-any
+(globalThis as any).__THEME_ENGINE_DOCTRINE__ = THEME_ENGINE_DOCTRINE;
+export const CODE_NARRATIVE_PROTOCOL_WITH_THEME = `${CODE_NARRATIVE_PROTOCOL}\n\n${THEME_ENGINE_DOCTRINE}`;
+// Re-export the doctrine for callers that want it explicitly.
+export { THEME_ENGINE_DOCTRINE };
+
 // ────────────────────────────────────────────────────────────────────
 // Server-side helper: runs the loop programmatically against Gemini /
 // Lovable AI Gateway. Used by zerlal-scan and code-narrative-fix.
