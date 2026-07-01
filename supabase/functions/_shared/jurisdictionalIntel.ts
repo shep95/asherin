@@ -354,9 +354,13 @@ async function zophielQuery(query: string): Promise<IntelChannelHit[]> {
     });
     if (!resp.ok) return [];
     const data = await resp.json();
-    const raw = Array.isArray(data?.results) ? data.results : (Array.isArray(data?.hits) ? data.hits : []);
-    return raw.slice(0, 12).map((r: any) => {
-      const url = String(r.url || r.link || "");
+    let raw: any[] = Array.isArray(data?.results) ? data.results : (Array.isArray(data?.hits) ? data.hits : []);
+    // Fallback: flatten `grouped` (category → results[]) if `results` empty.
+    if (raw.length === 0 && data?.grouped && typeof data.grouped === "object") {
+      raw = Object.values(data.grouped).flat() as any[];
+    }
+    return raw.slice(0, 20).map((r: any) => {
+      const url = String(r.url || r.link || r.source_url || (r.source && !r.source.includes(" ") ? `https://${r.source}` : "") || "");
       let domain = "";
       try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
       return {
@@ -366,6 +370,7 @@ async function zophielQuery(query: string): Promise<IntelChannelHit[]> {
         domain,
       } as IntelChannelHit;
     }).filter((h: IntelChannelHit) => h.url && !isBlockedSource(h.domain));
+
   } catch (e) {
     console.error("[jurisdictionalIntel] zophiel query failed:", (e as Error).message);
     return [];
@@ -430,7 +435,19 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
 
   const subject = intent.subject;
   const subjectQuoted = /\s/.test(subject) ? `"${subject}"` : subject;
-  const locus = [intent.city, intent.county, intent.state].filter(Boolean).join(" ");
+  // Country name maps to the geo token when no finer locus is present, so
+  // Pass-1 web-tab parity actually includes "Australia" / "United Kingdom".
+  const COUNTRY_LABELS: Record<string, string> = {
+    US: "United States", CA: "Canada", UK: "United Kingdom", AU: "Australia",
+    NZ: "New Zealand", IE: "Ireland", DE: "Germany", FR: "France",
+    ES: "Spain", IT: "Italy", NL: "Netherlands", SE: "Sweden", NO: "Norway",
+    DK: "Denmark", FI: "Finland", CH: "Switzerland", AT: "Austria", BE: "Belgium",
+    IN: "India", SG: "Singapore", JP: "Japan", MX: "Mexico", BR: "Brazil",
+  };
+  const narrowLocus = [intent.city, intent.county, intent.state].filter(Boolean).join(" ");
+  const countryLabel = intent.country ? (COUNTRY_LABELS[intent.country] || intent.country) : "";
+  const locus = narrowLocus || countryLabel;
+
 
   // ── PASS 1 — WEB-TAB PARITY ─────────────────────────────────────────────
   // Unquoted, no site: restrictor. This is exactly what the Zophiel web tab runs.
