@@ -134,11 +134,47 @@ async function bingSearch(query: string, n = 6): Promise<Hit[]> {
   } catch { return []; }
 }
 
-async function multiSearch(query: string, n = 6): Promise<Hit[]> {
-  const [a, b, c] = await Promise.all([ddgLite(query, n), ddgHtml(query, n), bingSearch(query, n)]);
+// ── Primary channel: Zophiel search engine (30+ sources, credibility-ranked).
+//    We call it internally over HTTP so property intel inherits every upgrade
+//    Zophiel gets (SearXNG, Wayback, EDGAR, Wikipedia, Brave, etc.).
+async function zophielSearch(query: string, authHeader: string, n = 6): Promise<Hit[]> {
+  try {
+    const base = Deno.env.get("SUPABASE_URL");
+    if (!base) return [];
+    const r = await fetch(`${base}/functions/v1/zophiel-search`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": authHeader || `Bearer ${Deno.env.get("SUPABASE_ANON_KEY") ?? ""}`,
+        "apikey": Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      },
+      body: JSON.stringify({ query, page: 1, mode: "web" }),
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!r.ok) return [];
+    const j = await r.json().catch(() => null);
+    const rows = Array.isArray(j?.results) ? j.results : [];
+    const out: Hit[] = [];
+    for (const row of rows) {
+      if (!row?.url || row.onion) continue;
+      out.push({ url: row.url, title: row.title || row.url, snippet: row.snippet || "" });
+      if (out.length >= n) break;
+    }
+    return out;
+  } catch { return []; }
+}
+
+async function multiSearch(query: string, authHeader: string, n = 6): Promise<Hit[]> {
+  // Zophiel first (highest quality), then dumb-engine fallbacks for coverage.
+  const [z, a, b, c] = await Promise.all([
+    zophielSearch(query, authHeader, n),
+    ddgLite(query, n),
+    ddgHtml(query, n),
+    bingSearch(query, n),
+  ]);
   const seen = new Set<string>();
   const out: Hit[] = [];
-  for (const arr of [a, b, c]) {
+  for (const arr of [z, a, b, c]) {
     for (const h of arr) {
       if (!h.url || seen.has(h.url)) continue;
       seen.add(h.url);
@@ -214,13 +250,14 @@ serve(async (req) => {
       history:     `"${baseTarget}" sold OR "sale price" OR "deed transfer" OR history`,
     };
 
+    const authHeader = req.headers.get("Authorization") ?? "";
     const [oHits, rHits, pHits, fHits, lHits, hHits] = await Promise.all([
-      multiSearch(queries.ownership, 4),
-      multiSearch(queries.residents, 3),
-      multiSearch(queries.permits, 3),
-      multiSearch(queries.financial, 3),
-      multiSearch(queries.listings, 4),
-      multiSearch(queries.history, 3),
+      multiSearch(queries.ownership, authHeader, 5),
+      multiSearch(queries.residents, authHeader, 4),
+      multiSearch(queries.permits, authHeader, 4),
+      multiSearch(queries.financial, authHeader, 4),
+      multiSearch(queries.listings, authHeader, 5),
+      multiSearch(queries.history, authHeader, 4),
     ]);
 
     // Merge & dedupe for corpus
@@ -235,11 +272,11 @@ serve(async (req) => {
     push(oHits, "ownership"); push(rHits, "residents"); push(pHits, "permits");
     push(fHits, "financial"); push(lHits, "listings"); push(hHits, "history");
 
-    // Scrape top 5 in parallel for the AI corpus
-    const top = merged.slice(0, 5);
+    // Scrape top 10 in parallel — richer corpus = fewer "no info" dossiers.
+    const top = merged.slice(0, 10);
     const pages = await Promise.all(top.map(async (h) => ({
       channel: h.channel, url: h.url, title: h.title, snippet: h.snippet,
-      body: (await fetchPage(h.url, 4500)).slice(0, 2200),
+      body: (await fetchPage(h.url, 5500)).slice(0, 2400),
     })));
 
     // Harvest interior/property photos from listings (top 3 listing URLs)
