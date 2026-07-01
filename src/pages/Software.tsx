@@ -245,7 +245,7 @@ const Software = () => {
 
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="landing-perf min-h-screen bg-background text-foreground">
       <Header />
       <main className="pt-28 pb-16 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto space-y-16">
