@@ -188,6 +188,14 @@ export const BLOG_POSTS: Post[] = [
     readTime: "9 min",
   },
   {
+    slug: "/blog/how-we-make-aureon-sound-human",
+    title: "How we make Aureon sound so human — the voice stack",
+    dek: "A behind-the-scenes look at the layered persona architecture — appraisal, restraint, timing, leakage — that turns a generic model into a voice with weight.",
+    tag: "Voice Design",
+    published: "2026-07-01",
+    readTime: "9 min",
+  },
+  {
     slug: "/blog/how-aureon-uses-c-seo-research",
     title: "How Aureon uses C-SEO research — practicing what the paper recommends",
     dek: "The C-SEO Bench paper formalized the discipline of ranking inside AI search engines. This is how Aureon's llms.txt, structural markup, and crawler policy implement its findings.",
