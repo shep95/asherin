@@ -292,6 +292,7 @@ const Index = () => {
         />
 
         <div className="relative mx-auto w-full max-w-7xl">
+          <HeroSciFiOrb />
           {/* Top meta row */}
           <div className="flex items-center justify-between text-[9px] tracking-[0.4em] text-muted-foreground/50 uppercase font-mono mb-6">
             <span className="flex items-center gap-2">
