@@ -192,17 +192,10 @@ serve(async (req) => {
       return toolCallResponse("phone_intel", { phone });
     }
 
-    let leaksBlock = "";
-    try {
-      const userText = latestUserText(cleaned);
-      const { searchLibraryOfLeaks, formatLeaksContext, shouldQueryLeaks, extractLeakSubject } =
-        await import("../_shared/libraryOfLeaks.ts");
-      if (shouldQueryLeaks(userText)) {
-        const subject = extractLeakSubject(userText) || userText.slice(0, 60);
-        const hits = await searchLibraryOfLeaks(subject, { limit: 8 });
-        leaksBlock = formatLeaksContext(subject, hits);
-      }
-    } catch (e) { console.error("[asher-ai] leaks:", e); }
+    // Library of Leaks / breach aggregators are PERMANENTLY DISABLED.
+    // Sovereign Source Atlas policy: authoritative registries only.
+    const leaksBlock = "";
+
 
     let archiveBlock = "";
     try {

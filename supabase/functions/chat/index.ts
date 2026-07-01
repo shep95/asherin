@@ -1307,22 +1307,10 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }
     }
 
-    // ── Library of Leaks (DDoSecrets / Aleph) live grounding ───────────────
-    let leaksContext = "";
-    try {
-      const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
-      const userText = lastUser?.content || "";
-      const { searchLibraryOfLeaks, formatLeaksContext, shouldQueryLeaks, extractLeakSubject } =
-        await import("../_shared/libraryOfLeaks.ts");
-      if (shouldQueryLeaks(userText) || mode === "research") {
-        const subject = extractLeakSubject(userText) || userText.slice(0, 60);
-        console.log("[chat] Library of Leaks lookup:", subject);
-        const hits = await searchLibraryOfLeaks(subject, { limit: 8 });
-        leaksContext = formatLeaksContext(subject, hits);
-      }
-    } catch (e) {
-      console.error("[chat] Library of Leaks lookup failed:", e);
-    }
+    // Library of Leaks / breach aggregators are PERMANENTLY DISABLED.
+    // Sovereign Source Atlas policy: authoritative registries only.
+    const leaksContext = "";
+
 
     // ── Internet Archive (archive.org) live grounding ──────────────────────
     let archiveContext = "";
