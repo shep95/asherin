@@ -2021,6 +2021,10 @@ ${zophielCodingBrainContent}
           if (endpoint) {
             response = await callOpenAICompatible(userApiKey, endpoint.url, byokModel);
             isGeminiResponse = false;
+          } else {
+            byokFailed = true;
+            byokFailStatus = 400;
+            byokFailReason = `Provider "${byokProvider}" is saved but not yet wired for chat routing. Switch to Google, OpenAI, Anthropic, xAI, Meta, Mistral, DeepSeek, Perplexity, Venice, Cohere, Qwen, Zhipu, Moonshot, Nvidia, Reka, Sarvam, or Two AI in Settings → AI Keys.`;
           }
         }
 
