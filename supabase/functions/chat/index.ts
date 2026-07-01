@@ -1160,7 +1160,7 @@ serve(async (req) => {
 
       if (adminRouted) {
         _parsedBody.byokProvider = "google";
-        _parsedBody.byokModel = "gemini-2.0-flash-exp";
+        _parsedBody.byokModel = "gemini-2.5-flash";
         _injectedKey = resolved!.geminiKey!;
       } else {
         const storedByok = await resolveStoredByok(req, _hasAttachments);
@@ -1228,13 +1228,14 @@ serve(async (req) => {
           const anonSb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
           const { data: { user: reqUser } } = await anonSb.auth.getUser(token);
           if (reqUser) {
-            const { data: keyRow } = await adminSb
+            const { data: keyRow, error: keyErr } = await adminSb
               .from("user_api_keys")
               .select("api_key")
               .eq("user_id", reqUser.id)
               .eq("provider", byokProvider)
               .eq("is_active", true)
-              .single();
+              .maybeSingle();
+            if (keyErr) console.error("BYOK key lookup error:", keyErr.message);
             if (keyRow?.api_key) {
               userApiKey = keyRow.api_key;
               useByok = true;
@@ -1904,16 +1905,31 @@ ${zophielCodingBrainContent}
     ];
 
     // Provider endpoint mapping
+    // BYOK provider → OpenAI-compatible chat endpoint. All providers listed in
+    // src/lib/aiProviders.ts that expose an OpenAI-compatible /chat/completions
+    // route must be wired here — otherwise a user saves a key, selects a model,
+    // and the request silently 403s. Non-OpenAI-shaped providers (Bedrock,
+    // Watsonx, native Baidu ERNIE, etc.) are intentionally omitted and get a
+    // clean unsupported-provider error below.
     const PROVIDER_ENDPOINTS: Record<string, { url: string; streamParam: boolean; transformResponse: boolean }> = {
-      openai: { url: "https://api.openai.com/v1/chat/completions", streamParam: true, transformResponse: false },
-      anthropic: { url: "https://api.anthropic.com/v1/messages", streamParam: true, transformResponse: true },
-      meta: { url: "https://api.together.xyz/v1/chat/completions", streamParam: true, transformResponse: false },
-      venice: { url: "https://api.venice.ai/api/v1/chat/completions", streamParam: true, transformResponse: false },
-      xai: { url: "https://api.x.ai/v1/chat/completions", streamParam: true, transformResponse: false },
-      mistral: { url: "https://api.mistral.ai/v1/chat/completions", streamParam: true, transformResponse: false },
-      deepseek: { url: "https://api.deepseek.com/chat/completions", streamParam: true, transformResponse: false },
-      perplexity: { url: "https://api.perplexity.ai/chat/completions", streamParam: true, transformResponse: false },
+      openai:     { url: "https://api.openai.com/v1/chat/completions",           streamParam: true, transformResponse: false },
+      anthropic:  { url: "https://api.anthropic.com/v1/messages",                streamParam: true, transformResponse: true  },
+      meta:       { url: "https://api.together.xyz/v1/chat/completions",         streamParam: true, transformResponse: false },
+      venice:     { url: "https://api.venice.ai/api/v1/chat/completions",        streamParam: true, transformResponse: false },
+      xai:        { url: "https://api.x.ai/v1/chat/completions",                 streamParam: true, transformResponse: false },
+      mistral:    { url: "https://api.mistral.ai/v1/chat/completions",           streamParam: true, transformResponse: false },
+      deepseek:   { url: "https://api.deepseek.com/chat/completions",            streamParam: true, transformResponse: false },
+      perplexity: { url: "https://api.perplexity.ai/chat/completions",           streamParam: true, transformResponse: false },
+      cohere:     { url: "https://api.cohere.ai/compatibility/v1/chat/completions", streamParam: true, transformResponse: false },
+      qwen:       { url: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions", streamParam: true, transformResponse: false },
+      zhipu:      { url: "https://open.bigmodel.cn/api/paas/v4/chat/completions", streamParam: true, transformResponse: false },
+      moonshot:   { url: "https://api.moonshot.cn/v1/chat/completions",          streamParam: true, transformResponse: false },
+      nvidia:     { url: "https://integrate.api.nvidia.com/v1/chat/completions", streamParam: true, transformResponse: false },
+      reka:       { url: "https://api.reka.ai/v1/chat/completions",              streamParam: true, transformResponse: false },
+      sarvam:     { url: "https://api.sarvam.ai/v1/chat/completions",            streamParam: true, transformResponse: false },
+      twoai:      { url: "https://api.two.ai/v2/chat/completions",               streamParam: true, transformResponse: false },
     };
+
 
     // Helper: call OpenAI-compatible API (OpenAI, xAI, Mistral, Venice, DeepSeek, Together/Meta)
     async function callOpenAICompatible(apiKey: string, endpoint: string, model: string) {
@@ -2005,6 +2021,10 @@ ${zophielCodingBrainContent}
           if (endpoint) {
             response = await callOpenAICompatible(userApiKey, endpoint.url, byokModel);
             isGeminiResponse = false;
+          } else {
+            byokFailed = true;
+            byokFailStatus = 400;
+            byokFailReason = `Provider "${byokProvider}" is saved but not yet wired for chat routing. Switch to Google, OpenAI, Anthropic, xAI, Meta, Mistral, DeepSeek, Perplexity, Venice, Cohere, Qwen, Zhipu, Moonshot, Nvidia, Reka, Sarvam, or Two AI in Settings → AI Keys.`;
           }
         }
 
