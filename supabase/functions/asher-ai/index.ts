@@ -215,9 +215,27 @@ serve(async (req) => {
       }
     } catch (e) { console.error("[asher-ai] archive:", e); }
 
+    // ── Jurisdictional Intel Sweep (person/property/entity) ────────────────
+    let jurisdictionalBlock = "";
+    try {
+      const userText = latestUserText(cleaned);
+      const { classifyIntent, runJurisdictionalSearch, formatIntelContext, formatClarifyContext } =
+        await import("../_shared/jurisdictionalIntel.ts");
+      const intent = classifyIntent(userText);
+      if (intent.kind !== "none") {
+        console.log("[asher-ai] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
+        if (intent.needsClarification) {
+          jurisdictionalBlock = "\n\n" + formatClarifyContext(intent);
+        } else {
+          const bundle = await runJurisdictionalSearch(intent);
+          jurisdictionalBlock = "\n\n" + formatIntelContext(bundle);
+        }
+      }
+    } catch (e) { console.error("[asher-ai] jurisdictional intel:", (e as Error).message); }
+
     const { CODE_NARRATIVE_PROTOCOL } = await import("../_shared/codeNarrativeProtocol.ts");
     const { SYSTEM_TWO_FORCING_BRAIN } = await import("../_shared/systemTwoForcingBrain.ts");
-    const fullSystem = SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + EMOTIONAL_PERSONA_BRAIN + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + "\n\n" + GEOLOCATION_BRAIN + brainBlock + ctxBlock + leaksBlock + archiveBlock;
+    const fullSystem = SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + EMOTIONAL_PERSONA_BRAIN + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + "\n\n" + GEOLOCATION_BRAIN + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock;
 
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {
