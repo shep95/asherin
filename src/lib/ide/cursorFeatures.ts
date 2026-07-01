@@ -184,13 +184,7 @@ function installInlineEditWidget(
       openAt(pos);
     },
   });
-  disposers_push(action);
-
-  const disposers: IDisposable[] = [action];
-  return () => { close(); disposers.forEach(d => { try { d.dispose(); } catch { /* noop */ } }); };
-
-  // helper only used to satisfy TypeScript when reassigning `disposers` from the closure above
-  function disposers_push(_: IDisposable) { /* placeholder */ }
+  return () => { close(); try { action.dispose(); } catch { /* noop */ } };
 }
 
 async function applyInlineEdit(
