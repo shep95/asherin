@@ -6,6 +6,8 @@
 // model itself — the model MUST run this loop internally before
 // delivering output.
 // ────────────────────────────────────────────────────────────────────
+import { QUANTUM_ORCHESTRATION_BRAIN } from "./quantumOrchestrationBrain.ts";
+
 export const CODE_NARRATIVE_PROTOCOL = `
 ## CODE NARRATIVE LOOP PROTOCOL (MANDATORY when code is in context)
 
@@ -183,7 +185,11 @@ export async function runNarrativeLoop(opts: {
   let currentFiles = opts.files.map((f) => ({ ...f }));
 
   for (let i = 1; i <= maxIter; i++) {
-    const prompt = `You are running the CODE → NARRATIVE → FLAWS${opts.fix ? " → FIX" : ""} loop, iteration ${i} of ${maxIter}.
+    const prompt = `${CODE_NARRATIVE_PROTOCOL}
+
+${QUANTUM_ORCHESTRATION_BRAIN}
+
+You are running the CODE → NARRATIVE → FLAWS${opts.fix ? " → FIX" : ""} loop, iteration ${i} of ${maxIter}. Apply Quantum Candidate Collapse: internally generate 3 candidate fixes per flaw, collapse to the highest-fidelity one before emitting.
 
 USER INSTRUCTION: ${opts.instruction || "(none — perform full audit)"}
 
