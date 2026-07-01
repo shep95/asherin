@@ -15,6 +15,14 @@ interface Update {
 const UPDATES: Update[] = [
   {
     date: "2026-07-01",
+    title: "Theme Engine Doctrine — UI Neatness Contract",
+    body:
+      "Every UI Aureon generates now ships through the Theme Engine Doctrine — a three-layer discipline (Design DNA → Emotional Intent → Behavior/Motion Identity) enforced before any markup is emitted. Tokens are locked first, emotion is committed second, and a matching motion contract (easing, duration, signature interaction) is applied to every state. An Anti-Slop Verification pass blocks generic AI defaults — purple-on-white gradients, Inter-only stacks, hex literals inside components, stateless buttons, orphaned card grids — so themes behave as themes, not coats of paint. Applied across Aureon Chat, Asher, Aureon IDE, Zophiel Code Audit, Media-to-Code, and Zerlal.",
+    icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Design System",
+  },
+  {
+    date: "2026-07-01",
     title: "Valuation — Corporate Reality Section",
     body:
       "Added a Corporate Reality section to /valuation explaining why the competitive analysis exists and why Aureon will not be walked into a corporate boardroom. Documents the extraction pattern (NDA valuation → reverse-spec → portfolio clone → government sale) with the vibe-coded Palantir-competitor case study, and Aureon's posture: no corporate valuation meetings, no strategic partnerships with incumbents who fund direct competitors, direct-to-operator distribution, and architecture opacity.",
