@@ -26,6 +26,7 @@ const SubscriptionView = () => {
         </div>
       </div>
 
+      <ManageSubscriptionCard />
       <SubscriptionPlans />
     </div>
   );
