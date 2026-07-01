@@ -599,6 +599,7 @@ const IntelligenceMapModule = () => {
       const { data, error } = await supabase.functions.invoke("asher-property-intel", {
         body: {
           lat, lng, address, entityName,
+          lat, lng, address: resolvedAddress, entityName,
           byok: byok.apiKey,
           byokProvider: byok.provider,
           byokModel: byok.model,
