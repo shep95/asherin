@@ -306,123 +306,76 @@ const Index = () => {
           {/* HUD strip — full width */}
           <HudStatusBar />
 
-          {/* Hero grid: asymmetric 12-col */}
-          <div className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
-            {/* Left — headline + CTA */}
-            <div className="lg:col-span-7 flex flex-col">
-              <div className="inline-flex items-center gap-2 self-start rounded-full border border-foreground/15 bg-foreground/[0.03] backdrop-blur-md px-3 py-1 font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground/70">
-                <span className="h-1 w-1 rounded-full bg-emerald-400" />
-                v1.0 · INTELLIGENCE OS
-              </div>
-
-              <h1 className="font-display mt-6 text-6xl sm:text-7xl md:text-8xl lg:text-[7rem] xl:text-[8rem] font-light tracking-[-0.025em] leading-[0.92] text-foreground">
-                <span className="sr-only">Aureon — Uncensored AI Intelligence Platform: </span>
-                <span aria-hidden="true">See what</span>
-                <br />
-                <span className="zophiel-shimmer-text italic font-light" aria-hidden="true">others miss.</span>
-              </h1>
-
-              <p className="mt-7 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
-                While other AI tells you what it thinks you should know,
-                Aureon gives you the complete picture — unfiltered, sourced, and ready to act on.
-              </p>
-
-              {/* CTA cluster — Fitts (large primary), Hick (one dominant choice), Von Restorff (primary pops),
-                  Proximity (CTA + reassurance tightly grouped), Peak-End (first thing the user touches). */}
-              <div className="mt-9 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
-                {user ? (
-                  <MagneticSpotlightButton
-                    href="/dashboard"
-                    variant="primary"
-                    size="xl"
-                    ariaLabel="Go to your dashboard"
-                    className="!bg-amber-400 !text-black !border-amber-300 hover:!bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)] hover:shadow-[0_14px_50px_-8px_rgba(251,191,36,0.7)]"
-                  >
-                    Go to Dashboard <ArrowRight className="h-4 w-4" />
-                  </MagneticSpotlightButton>
-                ) : (
-                  <MagneticSpotlightButton
-                    onClick={() => { setAuthIsLogin(false); setShowAuth(true); }}
-                    variant="primary"
-                    size="xl"
-                    ariaLabel="Start a free intelligence search — primary action"
-                    className="!bg-amber-400 !text-black !border-amber-300 hover:!bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)] hover:shadow-[0_14px_50px_-8px_rgba(251,191,36,0.7)]"
-                  >
-                    Start Free — No Card <ArrowRight className="h-4 w-4" />
-                  </MagneticSpotlightButton>
-                )}
-                {user ? (
-                  <Link
-                    to="/dashboard"
-                    className="group inline-flex items-center gap-2 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 hover:text-foreground transition-colors min-h-[44px] px-1"
-                  >
-                    See it live
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                  </Link>
-                ) : (
-                  <button
-                    onClick={() => { setAuthIsLogin(false); setShowAuth(true); }}
-                    className="group inline-flex items-center gap-2 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 hover:text-foreground transition-colors min-h-[44px] px-1"
-                  >
-                    See it live
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                  </button>
-                )}
-              </div>
-              {/* Parkinson's-Law-style reassurance: shortens the perceived commitment. */}
-              <p className="mt-3 text-[11px] tracking-[0.18em] uppercase font-mono text-muted-foreground/55">
-                ◈ 30-second setup · No credit card · Cancel anytime
-              </p>
-
+          {/* Hero: headline + CTA */}
+          <div className="mt-10">
+            <div className="inline-flex items-center gap-2 self-start rounded-full border border-foreground/15 bg-foreground/[0.03] backdrop-blur-md px-3 py-1 font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground/70">
+              <span className="h-1 w-1 rounded-full bg-emerald-400" />
+              v1.0 · INTELLIGENCE OS
             </div>
 
-            {/* Right — live intel console */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative rounded-2xl border border-foreground/10 bg-foreground/[0.02] backdrop-blur-2xl overflow-hidden shadow-[0_0_60px_-20px_rgba(255,255,255,0.06)]">
-                {/* corner ticks */}
-                <span aria-hidden className="absolute top-2 left-2 h-2 w-2 border-t border-l border-foreground/40" />
-                <span aria-hidden className="absolute top-2 right-2 h-2 w-2 border-t border-r border-foreground/40" />
-                <span aria-hidden className="absolute bottom-2 left-2 h-2 w-2 border-b border-l border-foreground/40" />
-                <span aria-hidden className="absolute bottom-2 right-2 h-2 w-2 border-b border-r border-foreground/40" />
+            <h1 className="font-display mt-6 text-6xl sm:text-7xl md:text-8xl lg:text-[7rem] xl:text-[8rem] font-light tracking-[-0.025em] leading-[0.92] text-foreground">
+              <span className="sr-only">Aureon — Uncensored AI Intelligence Platform: </span>
+              <span aria-hidden="true">See what</span>
+              <br />
+              <span className="zophiel-shimmer-text italic font-light" aria-hidden="true">others miss.</span>
+            </h1>
 
-                {/* header */}
-                <div className="flex items-center justify-between border-b border-foreground/10 px-4 py-2.5 font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground/60">
-                  <span className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    INTEL FEED · LIVE
-                  </span>
-                  <span>30/30</span>
-                </div>
+            <p className="mt-7 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
+              While other AI tells you what it thinks you should know,
+              Aureon gives you the complete picture — unfiltered, sourced, and ready to act on.
+            </p>
 
-                {/* feed lines */}
-                <div className="px-4 py-4 space-y-2.5 font-mono text-[11px] text-muted-foreground/80 min-h-[260px]">
-                  {[
-                    { t: "0.02s", s: "ZOPHIEL", m: "30 intelligence lanes acquired", c: "text-emerald-300/90" },
-                    { t: "0.41s", s: "AXRLEN", m: "14-pass consensus engaged", c: "text-foreground" },
-                    { t: "1.07s", s: "ZERLAL", m: "Domain forensics resolved", c: "text-foreground" },
-                    { t: "1.62s", s: "NOMAD",  m: "Cross-validation · 0.91 veracity", c: "text-foreground" },
-                    { t: "2.08s", s: "AUREON", m: "Truth payload sealed · AES-256-GCM", c: "text-emerald-300/90" },
-                  ].map((row, i) => (
-                    <div key={i} className="flex items-baseline gap-3 animate-fade-in" style={{ animationDelay: `${i * 120}ms` }}>
-                      <span className="text-muted-foreground/40 tabular-nums w-12">{row.t}</span>
-                      <span className="text-foreground/60 w-16 tracking-[0.15em]">{row.s}</span>
-                      <span className={row.c + " flex-1 truncate"}>{row.m}</span>
-                    </div>
-                  ))}
-                </div>
+            {/* CTA cluster — Fitts (large primary), Hick (one dominant choice), Von Restorff (primary pops),
+                Proximity (CTA + reassurance tightly grouped), Peak-End (first thing the user touches). */}
+            <div className="mt-9 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
+              {user ? (
+                <MagneticSpotlightButton
+                  href="/dashboard"
+                  variant="primary"
+                  size="xl"
+                  ariaLabel="Go to your dashboard"
+                  className="!bg-amber-400 !text-black !border-amber-300 hover:!bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)] hover:shadow-[0_14px_50px_-8px_rgba(251,191,36,0.7)]"
+                >
+                  Go to Dashboard <ArrowRight className="h-4 w-4" />
+                </MagneticSpotlightButton>
+              ) : (
+                <MagneticSpotlightButton
+                  onClick={() => { setAuthIsLogin(false); setShowAuth(true); }}
+                  variant="primary"
+                  size="xl"
+                  ariaLabel="Start a free intelligence search — primary action"
+                  className="!bg-amber-400 !text-black !border-amber-300 hover:!bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)] hover:shadow-[0_14px_50px_-8px_rgba(251,191,36,0.7)]"
+                >
+                  Start Free — No Card <ArrowRight className="h-4 w-4" />
+                </MagneticSpotlightButton>
+              )}
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  className="group inline-flex items-center gap-2 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 hover:text-foreground transition-colors min-h-[44px] px-1"
+                >
+                  See it live
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              ) : (
+                <button
+                  onClick={() => { setAuthIsLogin(false); setShowAuth(true); }}
+                  className="group inline-flex items-center gap-2 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 hover:text-foreground transition-colors min-h-[44px] px-1"
+                >
+                  See it live
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </button>
+              )}
+            </div>
+            {/* Parkinson's-Law-style reassurance: shortens the perceived commitment. */}
+            <p className="mt-3 text-[11px] tracking-[0.18em] uppercase font-mono text-muted-foreground/55">
+              ◈ 30-second setup · No credit card · Cancel anytime
+            </p>
 
-                {/* footer ticker */}
-                <div className="border-t border-foreground/10 px-4 py-2 font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground/50 flex items-center justify-between">
-                  <span>UPLINK · SECURE</span>
-                  <span className="tabular-nums">LATENCY 42MS</span>
-                </div>
-              </div>
-
-              {/* Vertical scroll cue */}
-              <div className="mt-6 flex items-center gap-2 font-mono text-[9px] tracking-[0.4em] uppercase text-muted-foreground/40">
-                <span className="h-px flex-1 bg-foreground/15" />
-                SCROLL TO DEPLOY ↓
-              </div>
+            {/* Scroll cue */}
+            <div className="mt-8 flex items-center gap-2 font-mono text-[9px] tracking-[0.4em] uppercase text-muted-foreground/40 max-w-xl">
+              <span className="h-px flex-1 bg-foreground/15" />
+              SCROLL TO DEPLOY ↓
             </div>
           </div>
         </div>
