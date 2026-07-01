@@ -371,9 +371,9 @@ const SEO: Record<string, SeoEntry> = {
       "Generate live Vedic astrology charts, dashas, and yogas with precise astronomical computation.",
   },
   "/vedic": {
-    title: "Vedic Astrology — Live Jyotish Chart Engine | Aureon",
+    title: "Vedic Jyotish — Moon-Driven Transit Forecasts | Aureon",
     description:
-      "Generate live Vedic astrology charts, dashas, and yogas with precise astronomical computation.",
+      "Aureon Vedic: sidereal Moon transits, house ingresses, and dasha-aware forecasts computed to the minute in your local time.",
   },
   "/zophiel": {
     title: "Zophiel Free — Public OSINT & Truth Engine | Aureon",
