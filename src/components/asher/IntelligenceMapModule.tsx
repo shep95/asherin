@@ -122,10 +122,14 @@ async function nominatimSearch(q: string): Promise<SearchHit[]> {
 }
 
 async function reverseGeocode(lat: number, lon: number): Promise<SearchHit | null> {
-  const url = `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&lat=${lat}&lon=${lon}`;
-  const r = await fetch(url, { headers: { "Accept": "application/json" } });
-  if (!r.ok) return null;
-  return r.json();
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&lat=${lat}&lon=${lon}`;
+    const r = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
 }
 
 /* ─────────────── REST Countries (live country profile) ─────────────── */
