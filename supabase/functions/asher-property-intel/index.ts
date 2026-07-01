@@ -394,7 +394,9 @@ Return STRICT JSON only with this exact schema:
       });
     }
     const data = await resp.json();
-    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    const raw = usedGateway
+      ? (data?.choices?.[0]?.message?.content || "{}")
+      : (data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}");
     let intel: any = {};
     try { intel = JSON.parse(raw); } catch {
       const m = raw.match(/\{[\s\S]*\}/);
