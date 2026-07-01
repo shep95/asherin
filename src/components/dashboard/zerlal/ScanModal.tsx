@@ -19,16 +19,16 @@ interface ScanModalProps {
 
 type Step = 1 | 2 | 3;
 
-const sources = [
-  { id: "upload", label: "Upload ZIP/Files", icon: Upload, desc: "ZIP, TAR, or individual code files" },
+const sources: Array<{ id: string; label: string; icon: any; desc: string; comingSoon?: boolean }> = [
+  { id: "upload", label: "Upload ZIP/Files", icon: Upload, desc: "ZIP or individual code files" },
   { id: "github-url", label: "GitHub URL", icon: Github, desc: "Public repository link" },
   { id: "paste-code", label: "Paste Code", icon: Code, desc: "Direct code paste, instant scan" },
-  { id: "paste-url", label: "Any Git URL", icon: Link, desc: "GitLab, Bitbucket, any public repo" },
+  { id: "paste-url", label: "Any Git URL", icon: Link, desc: "GitLab, Bitbucket, GitHub — public repos" },
   { id: "dependency", label: "Dependency File", icon: FileCode, desc: "package.json, requirements.txt, etc." },
-  { id: "github", label: "GitHub OAuth", icon: Github, desc: "Connect private repos" },
-  { id: "api-endpoint", label: "API Endpoint", icon: Globe, desc: "Swagger/OpenAPI or live API URL" },
-  { id: "docker", label: "Docker Image", icon: Box, desc: "Container registry scan" },
-  { id: "binary", label: "Binary Upload", icon: Binary, desc: "Stripped binaries, reverse-engineer & scan" },
+  { id: "github", label: "GitHub OAuth", icon: Github, desc: "Connect private repos", comingSoon: true },
+  { id: "api-endpoint", label: "API Endpoint", icon: Globe, desc: "Swagger/OpenAPI or live API URL", comingSoon: true },
+  { id: "docker", label: "Docker Image", icon: Box, desc: "Container registry scan", comingSoon: true },
+  { id: "binary", label: "Binary Upload", icon: Binary, desc: "Reverse-engineer & scan", comingSoon: true },
 ];
 
 const scanProfiles = [
@@ -157,6 +157,41 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     }
   }, [handleFileSelect]);
 
+  // ── Shared BYOK resolver: returns byok config OR null. Sets scanError + triggers
+  // the friendly dialog when a non-admin is missing a key, so foreground and
+  // background paths give the same clear signal instead of a silent 403.
+  const resolveByokOrGate = async (): Promise<{ byok: any | null; blocked: boolean }> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) { setScanError("Sign in required"); return { byok: null, blocked: true }; }
+    let byok: any = null;
+    try {
+      const { data: pref } = await supabase
+        .from("user_model_preferences" as any)
+        .select("active_provider, active_model")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const ap = (pref as any)?.active_provider;
+      const am = (pref as any)?.active_model;
+      if (ap && ap !== "default" && am && am !== "default") {
+        const { data: keyRow } = await supabase
+          .from("user_api_keys" as any)
+          .select("api_key")
+          .eq("user_id", user.id)
+          .eq("provider", ap)
+          .eq("is_active", true)
+          .maybeSingle();
+        if ((keyRow as any)?.api_key) byok = { provider: ap, model: am, apiKey: (keyRow as any).api_key };
+      }
+    } catch { /* ignore */ }
+    const isAdmin = ADMIN_EMAILS.has((user.email || "").toLowerCase());
+    if (!byok && !isAdmin) {
+      triggerByokRequired({ source: "zerlal", reason: "Zerlal scans require your own AI key. Add one in Settings → AI Keys." });
+      setScanError("Add your AI key in Settings → AI Keys, then retry the scan.");
+      return { byok: null, blocked: true };
+    }
+    return { byok, blocked: false };
+  };
+
   const handleStartScan = async () => {
     setScanError(null);
     try {
@@ -182,6 +217,19 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         setScanError("Please upload files, paste code, or provide a repository URL");
         return;
       }
+
+      // Foreground payload guard — Supabase Edge caps request bodies well
+      // below 6MB when JSON-encoded. If the source is huge, push to background
+      // instead of hitting an opaque 413 mid-scan.
+      if (finalCode && finalCode.length > 3_500_000) {
+        setScanError("Source is large (>3.5MB). Use 'Run in background & email me' — it streams via storage and survives WiFi drops.");
+        return;
+      }
+
+      // Same BYOK gate as background — foreground previously fell through
+      // to the edge and users saw a raw 403 instead of the friendly dialog.
+      const { blocked } = await resolveByokOrGate();
+      if (blocked) return;
 
       const sourceType = selectedSource || "upload";
       const project = await createProject(projectName, sourceType, url || undefined);
@@ -239,34 +287,9 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) { setScanError("Sign in required"); return; }
 
-    // ── BYOK GATE FIRST — before any project creation or navigation ──
-    let byok: any = null;
-    try {
-      const { data: pref } = await supabase
-        .from("user_model_preferences" as any)
-        .select("active_provider, active_model")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      const ap = (pref as any)?.active_provider;
-      const am = (pref as any)?.active_model;
-      if (ap && ap !== "default" && am) {
-        const { data: keyRow } = await supabase
-          .from("user_api_keys" as any)
-          .select("api_key")
-          .eq("user_id", user.id)
-          .eq("provider", ap)
-          .eq("is_active", true)
-          .maybeSingle();
-        if ((keyRow as any)?.api_key) byok = { provider: ap, model: am, apiKey: (keyRow as any).api_key };
-      }
-    } catch { /* ignore */ }
-
-    const isAdmin = ADMIN_EMAILS.has((user.email || "").toLowerCase());
-    if (!byok && !isAdmin) {
-      triggerByokRequired({ source: "zerlal", reason: "Zerlal scans require your own AI key. Add one in Settings → AI Keys." });
-      setScanError("Add your AI key in Settings → AI Keys, then retry the scan.");
-      return;   // ← abort, no project row created, no navigation
-    }
+    // Shared gate — same behaviour as foreground path.
+    const { byok, blocked } = await resolveByokOrGate();
+    if (blocked) return;
 
     const sourceType = selectedSource || "upload";
     const project = await createProject(projectName, sourceType, url || undefined);
@@ -414,6 +437,25 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
   const isBusy = creating || scanning || isProcessing;
 
+  // Step-1 readiness: name + a selected source + a source-appropriate input,
+  // so users cannot click Next into a scan that will fail at Step 3.
+  const isStep1Ready = () => {
+    if (!projectName.trim() || !selectedSource) return false;
+    switch (selectedSource) {
+      case "upload":
+      case "dependency":
+        return files.length > 0;
+      case "paste-code":
+        return pastedCode.trim().length > 0;
+      case "github-url":
+        return /github\.com/i.test(url);
+      case "paste-url":
+        return /(github|gitlab|bitbucket)\.(com|org)/i.test(url);
+      default:
+        return false; // coming-soon sources
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-2xl border border-border/[0.08] bg-card/95 backdrop-blur-md shadow-2xl max-h-[85vh] flex flex-col">
@@ -452,13 +494,20 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
                   {sources.map((s) => (
                     <button
                       key={s.id}
-                      onClick={() => setSelectedSource(s.id)}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
-                        selectedSource === s.id
+                      onClick={() => !s.comingSoon && setSelectedSource(s.id)}
+                      disabled={!!s.comingSoon}
+                      title={s.comingSoon ? "Coming soon" : s.desc}
+                      className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                        s.comingSoon
+                          ? "border-border/[0.04] opacity-40 cursor-not-allowed"
+                          : selectedSource === s.id
                           ? "border-foreground/15 bg-foreground/[0.04]"
                           : "border-border/[0.06] hover:border-foreground/10 hover:bg-foreground/[0.02]"
                       }`}
                     >
+                      {s.comingSoon && (
+                        <span className="absolute top-1 right-1 text-[6px] px-1 py-0.5 rounded bg-foreground/[0.08] text-muted-foreground/50 uppercase tracking-wider">Soon</span>
+                      )}
                       <s.icon className="h-4 w-4 text-foreground/40" />
                       <span className="text-[8px] text-foreground/50 text-center leading-tight">{s.label}</span>
                       <span className="text-[7px] text-muted-foreground/25 text-center leading-tight">{s.desc}</span>
@@ -500,7 +549,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
                       ) : (
                         <div>
                           <p className="text-[10px] text-muted-foreground/30">Drop ZIP/TAR archives, code files, or dependency manifests</p>
-                          <p className="text-[8px] text-muted-foreground/20 mt-1">Up to 5GB • Archives extracted server-side • WiFi-drop resilient</p>
+                          <p className="text-[8px] text-muted-foreground/20 mt-1">Up to ~5MB text • 260 files max • archives extracted server-side</p>
                         </div>
                       )}
                     </div>
@@ -725,7 +774,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
                 if (step < 3) setStep((step + 1) as Step);
                 else handleStartScan();
               }}
-              disabled={(step === 1 && (!selectedSource || !projectName.trim())) || isBusy}
+              disabled={(step === 1 && !isStep1Ready()) || isBusy}
               className="px-4 py-1.5 rounded-lg bg-foreground/[0.08] text-[10px] text-foreground/60 hover:bg-foreground/[0.12] transition-colors disabled:opacity-30 flex items-center gap-1"
             >
               {isBusy ? (

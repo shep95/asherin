@@ -5,65 +5,115 @@ import { callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophie
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
-async function fetchGitHubContent(url: string): Promise<string> {
-  const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
-  if (!match) throw new Error("Invalid GitHub URL format. Use: https://github.com/owner/repo");
+const CODE_EXTS = [".ts",".tsx",".js",".jsx",".py",".go",".rs",".java",".c",".cpp",".h",".php",".rb",".swift",".kt",".cs",".sh",".sql",".yaml",".yml",".json",".toml",".tf",".dockerfile",".env",".vue",".svelte"];
+const SKIP_PATHS = ["node_modules/",".git/","dist/","build/","__pycache__/",".next/","vendor/","package-lock.json","yarn.lock","bun.lock",".min.js",".min.css"];
+const SEC_KEYWORDS = ["auth","login","password","token","session","crypto","encrypt","middleware","api","route","handler","config","env","secret","key"];
 
+function acceptFile(path: string, size?: number) {
+  if (!path) return false;
+  if (typeof size === "number" && size > 50000) return false;
+  if (SKIP_PATHS.some((s) => path.includes(s))) return false;
+  return CODE_EXTS.some((ext) => path.endsWith(ext));
+}
+function secScore(path: string) {
+  const p = path.toLowerCase();
+  return SEC_KEYWORDS.filter((s) => p.includes(s)).length;
+}
+async function assembleFiles(entries: { path: string; rawUrl: string }[]) {
+  entries.sort((a, b) => secScore(b.path) - secScore(a.path)).splice(40);
+  let out = "";
+  let fetched = 0;
+  for (const f of entries) {
+    try {
+      const r = await fetch(f.rawUrl);
+      if (r.ok) {
+        const text = await r.text();
+        out += `\n--- FILE: ${f.path} ---\n${text}\n`;
+        fetched++;
+      }
+    } catch { /* skip */ }
+    if (out.length > 60000) break;
+  }
+  console.log("[ZERLAL] Fetched", fetched, "files, size:", out.length);
+  if (!out) throw new Error("No readable code files in repository. Ensure it is public and contains source code.");
+  return out;
+}
+
+async function fetchGitHubContent(url: string): Promise<string> {
+  const match = url.match(/github\.com[:/]([^/]+)\/([^/#?]+)/i);
+  if (!match) throw new Error("Invalid GitHub URL. Use: https://github.com/owner/repo");
   const [, owner, repo] = match;
   const cleanRepo = repo.replace(/\.git$/, "");
-  
-  console.log("[ZERLAL] Fetching GitHub tree for", owner, "/", cleanRepo);
-  
   const treeResp = await fetch(`https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/HEAD?recursive=1`, {
     headers: { "Accept": "application/vnd.github.v3+json", "User-Agent": "ZERLAL-Scanner" },
   });
-
   if (!treeResp.ok) {
     const errText = await treeResp.text();
     if (treeResp.status === 404) throw new Error(`Repository not found: ${owner}/${cleanRepo}. Make sure it's public.`);
     if (treeResp.status === 403) throw new Error("GitHub API rate limit reached. Try again in a few minutes.");
     throw new Error(`GitHub API error (${treeResp.status}): ${errText.slice(0, 200)}`);
   }
-
   const treeData = await treeResp.json();
-  const codeExts = [".ts",".tsx",".js",".jsx",".py",".go",".rs",".java",".c",".cpp",".h",".php",".rb",".swift",".kt",".cs",".sh",".sql",".yaml",".yml",".json",".toml",".tf",".dockerfile",".env",".vue",".svelte"];
-  const skipPaths = ["node_modules/",".git/","dist/","build/","__pycache__/",".next/","vendor/","package-lock.json","yarn.lock","bun.lock",".min.js",".min.css"];
-
-  const codeFiles = (treeData.tree || [])
-    .filter((f: any) => {
-      if (f.type !== "blob" || f.size > 50000) return false;
-      if (skipPaths.some((skip: string) => f.path.includes(skip))) return false;
-      return codeExts.some((ext: string) => f.path.endsWith(ext));
-    })
-    .sort((a: any, b: any) => {
-      const secKeywords = ["auth","login","password","token","session","crypto","encrypt","middleware","api","route","handler","config","env","secret","key"];
-      const aScore = secKeywords.filter((s: string) => a.path.toLowerCase().includes(s)).length;
-      const bScore = secKeywords.filter((s: string) => b.path.toLowerCase().includes(s)).length;
-      return bScore - aScore;
-    })
-    .slice(0, 40);
-
-  console.log("[ZERLAL] Found", codeFiles.length, "code files to analyze");
-
-  let allContent = "";
-  let fetchedCount = 0;
-  for (const file of codeFiles) {
-    try {
-      const rawUrl = `https://raw.githubusercontent.com/${owner}/${cleanRepo}/HEAD/${file.path}`;
-      const fileResp = await fetch(rawUrl);
-      if (fileResp.ok) {
-        const text = await fileResp.text();
-        allContent += `\n--- FILE: ${file.path} ---\n${text}\n`;
-        fetchedCount++;
-      }
-    } catch { /* skip */ }
-    if (allContent.length > 60000) break;
-  }
-
-  console.log("[ZERLAL] Fetched", fetchedCount, "files, total size:", allContent.length);
-  if (!allContent) throw new Error("No code files found in repository. Make sure the repo is public and contains code.");
-  return allContent;
+  const entries = (treeData.tree || [])
+    .filter((f: any) => f.type === "blob" && acceptFile(f.path, f.size))
+    .map((f: any) => ({ path: f.path, rawUrl: `https://raw.githubusercontent.com/${owner}/${cleanRepo}/HEAD/${f.path}` }));
+  return assembleFiles(entries);
 }
+
+async function fetchGitLabContent(url: string): Promise<string> {
+  const match = url.match(/gitlab\.com[:/]([^#?]+?)(?:\.git)?(?:[/#?]|$)/i);
+  if (!match) throw new Error("Invalid GitLab URL. Use: https://gitlab.com/group/project");
+  const projectPath = match[1].replace(/\/+$/, "");
+  const encoded = encodeURIComponent(projectPath);
+  const treeResp = await fetch(`https://gitlab.com/api/v4/projects/${encoded}/repository/tree?recursive=true&per_page=100`, {
+    headers: { "User-Agent": "ZERLAL-Scanner" },
+  });
+  if (!treeResp.ok) {
+    if (treeResp.status === 404) throw new Error(`GitLab project not found or private: ${projectPath}`);
+    throw new Error(`GitLab API error (${treeResp.status})`);
+  }
+  const tree = await treeResp.json();
+  const entries = (Array.isArray(tree) ? tree : [])
+    .filter((f: any) => f.type === "blob" && acceptFile(f.path))
+    .map((f: any) => ({ path: f.path, rawUrl: `https://gitlab.com/${projectPath}/-/raw/HEAD/${f.path}` }));
+  return assembleFiles(entries);
+}
+
+async function fetchBitbucketContent(url: string): Promise<string> {
+  const match = url.match(/bitbucket\.org[:/]([^/]+)\/([^/#?]+)/i);
+  if (!match) throw new Error("Invalid Bitbucket URL. Use: https://bitbucket.org/workspace/repo");
+  const [, ws, repo] = match;
+  const cleanRepo = repo.replace(/\.git$/, "");
+  let next = `https://api.bitbucket.org/2.0/repositories/${ws}/${cleanRepo}/src/HEAD/?pagelen=100&max_depth=6`;
+  const entries: { path: string; rawUrl: string }[] = [];
+  for (let hops = 0; hops < 8 && next; hops++) {
+    const r = await fetch(next, { headers: { "User-Agent": "ZERLAL-Scanner" } });
+    if (!r.ok) {
+      if (r.status === 404) throw new Error(`Bitbucket repo not found or private: ${ws}/${cleanRepo}`);
+      throw new Error(`Bitbucket API error (${r.status})`);
+    }
+    const j: any = await r.json();
+    for (const it of j.values || []) {
+      if (it.type === "commit_file" && acceptFile(it.path, it.size)) {
+        entries.push({
+          path: it.path,
+          rawUrl: `https://bitbucket.org/${ws}/${cleanRepo}/raw/HEAD/${it.path}`,
+        });
+      }
+    }
+    next = j.next || "";
+  }
+  return assembleFiles(entries);
+}
+
+async function fetchGitContent(url: string): Promise<string> {
+  const u = url.trim();
+  if (/gitlab\.com/i.test(u)) return fetchGitLabContent(u);
+  if (/bitbucket\.org/i.test(u)) return fetchBitbucketContent(u);
+  if (/github\.com/i.test(u)) return fetchGitHubContent(u);
+  throw new Error("Unsupported Git host. Supported: github.com, gitlab.com, bitbucket.org.");
+}
+
 
 type ScanMode = "plan" | "section" | "finalize";
 
@@ -345,8 +395,8 @@ Deno.serve(async (req) => {
       }
     }
     if (!codeToAnalyze && github_url) {
-      console.log("[ZERLAL] Fetching code from GitHub:", github_url);
-      codeToAnalyze = await fetchGitHubContent(github_url);
+      console.log("[ZERLAL] Fetching code from Git host:", github_url);
+      codeToAnalyze = await fetchGitContent(github_url);
     }
 
     if (!codeToAnalyze || codeToAnalyze.trim().length < 10) {
