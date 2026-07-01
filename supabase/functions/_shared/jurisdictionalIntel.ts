@@ -285,7 +285,7 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
 
   const looksProperty = PROPERTY_STRICT.test(raw) || PROPERTY_HINTS.test(raw);
   const looksEntity = ENTITY_HINTS.test(raw);
-  const hasName = NAME_RE.test(raw);
+  const hasName = Boolean(matchName(raw));
 
   // Location scanner runs on the WHOLE message (no tail-splitting).
   const loc = scanLocation(raw);
