@@ -2515,6 +2515,23 @@ try {
         />
       )}
 
+      <AsherGitDrawer
+        open={showGit}
+        onClose={() => setShowGit(false)}
+        projectId={activeProject.id}
+        branchId={activeBranchId}
+        files={files}
+        dirty={dirty}
+        onImported={(created) => {
+          setFiles(fs => {
+            const map = new Map(fs.map(x => [x.id, x]));
+            for (const c of created) map.set(c.id, c);
+            return Array.from(map.values());
+          });
+        }}
+      />
+
+
       {showSettings && <BYOKSettings onClose={() => setShowSettings(false)} provider={provider} model={model} apiKey={apiKey} setProvider={setProvider} setModel={setModel} setApiKey={setApiKey} />}
       {showPublish && <PublishDialog onClose={() => setShowPublish(false)} onPublish={publishAsTab} defaultName={activeProject.name} />}
       {editPlan && (
