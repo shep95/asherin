@@ -107,6 +107,18 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
   const { subscribed, loading } = useSubscription();
   const { isAdmin } = useAccess();
 
+  // Cursor-style ⌘L bridge: editor sends selection here as an @-reference block.
+  useEffect(() => {
+    const onAdd = (e: Event) => {
+      const d = (e as CustomEvent).detail as { path: string; language: string; snippet: string; startLine: number; endLine: number } | null;
+      if (!d) return;
+      const block = `\n\n@${d.path}:${d.startLine}-${d.endLine}\n\`\`\`${d.language}\n${d.snippet}\n\`\`\`\n`;
+      setInput((prev) => (prev ? prev + block : block.trimStart()));
+    };
+    window.addEventListener("ide:add-to-chat", onAdd);
+    return () => window.removeEventListener("ide:add-to-chat", onAdd);
+  }, []);
+
   // Custom brain state
   const [customBrains, setCustomBrains] = useState<CustomBrain[]>(loadBrains);
   const [activeBrainId, setActiveBrainId] = useState<string | null>(null);

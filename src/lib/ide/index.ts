@@ -13,4 +13,5 @@ export * from "./fastApply";
 export * from "./checkpoints";
 export * from "./changedFiles";
 export * from "./completionLoop";
+export * from "./cursorFeatures";
 

@@ -39,7 +39,7 @@ import {
   type PlannedChange,
   type IdeCommand,
 } from "@/components/ide-shared";
-import { changedFiles } from "@/lib/ide";
+import { changedFiles, attachCursorFeatures } from "@/lib/ide";
 const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSave, getAutoSaveAge, startAutoSaveLoop, clearAutoSave, type IdeModelId, type AutoSaveSnapshot } from "@/lib/ide";
 import { toast } from "sonner";
@@ -562,6 +562,12 @@ export default function AsherCodeModule() {
 
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
+
+  // Refs so long-lived Monaco widgets (Cmd+K, ghost completions) always see the current file.
+  const activeFileRefAsher = useRef(activeFile);
+  const activeContentRefAsher = useRef(activeContent);
+  useEffect(() => { activeFileRefAsher.current = activeFile; }, [activeFile]);
+  useEffect(() => { activeContentRefAsher.current = activeContent; }, [activeContent]);
 
   function applyProjectFileContent(fileId: string, content: string, persist = false) {
     setDirty(d => {
@@ -2187,7 +2193,25 @@ try {
                       language={activeFile.language}
                       value={activeContent}
                       onChange={(v) => setDirty(d => ({ ...d, [activeFile.id]: v ?? "" }))}
-                      onMount={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+                      onMount={(editor, monaco) => {
+                        editorRef.current = editor;
+                        monacoRef.current = monaco;
+                        const detach = attachCursorFeatures(editor, monaco, {
+                          getFile: () => {
+                            const f = activeFileRefAsher.current;
+                            return f ? { id: f.id, name: f.path, language: f.language, content: activeContentRefAsher.current } : null;
+                          },
+                          getByok: () => {
+                            try {
+                              const c = localStorage.getItem("aureon_byok_active");
+                              const p = c ? JSON.parse(c) : null;
+                              if (p?.provider && p.provider !== "default" && p?.model) return { provider: p.provider, model: p.model };
+                            } catch { /* noop */ }
+                            return { provider: "google", model: "gemini-2.5-flash" };
+                          },
+                        });
+                        editor.onDidDispose(() => { try { detach(); } catch { /* noop */ } });
+                      }}
                       options={{ fontSize: 13, minimap: { enabled: true }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 }, glyphMargin: true }}
                     />
                   </div>
