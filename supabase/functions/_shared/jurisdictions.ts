@@ -22,12 +22,37 @@ export type JurisdictionSources = {
   people: string[];
 };
 
+// Hard blocklist — leak/breach aggregators are NEVER queried, regardless of channel.
+// Any domain matching (substring, case-insensitive) is stripped at query-assembly time.
+export const SOURCE_BLOCKLIST = [
+  "offshoreleaks.icij.org",
+  "icij.org",
+  "libraryofleaks",
+  "distributeddenialofsecrets",
+  "ddosecrets",
+  "wikileaks.org",
+  "haveibeenpwned",
+  "dehashed",
+  "leakcheck",
+  "intelx.io",
+  "snusbase",
+  "leak-lookup",
+];
+
+export function isBlockedSource(domain: string): boolean {
+  const d = String(domain || "").toLowerCase();
+  return SOURCE_BLOCKLIST.some((b) => d.includes(b));
+}
+
+export function stripBlocked(domains: string[]): string[] {
+  return domains.filter((d) => !isBlockedSource(d));
+}
+
 // Universal fallbacks used everywhere as tertiary layer.
 const GLOBAL_LISTINGS = ["zillow.com", "redfin.com", "realtor.com", "trulia.com", "homes.com"];
 const GLOBAL_ENTITIES = [
   "opencorporates.com",
-  "offshoreleaks.icij.org",
-  "sec.gov", "sec.gov/edgar", "efts.sec.gov",
+  "sec.gov", "efts.sec.gov",
   "linkedin.com/company",
 ];
 const GLOBAL_PEOPLE_AGGREGATORS = [
@@ -239,17 +264,23 @@ export function sourcesFor(country?: string, state?: string, county?: string): J
     US: US_STATE[s], AU: AU_STATE[s], CA: CA_PROVINCE[s], GB: GB_REGION[s],
   };
 
-  return merge(
+  const raw = merge(
     { listings: GLOBAL_LISTINGS, entities: GLOBAL_ENTITIES, people: GLOBAL_PEOPLE_AGGREGATORS, courts: GLOBAL_COURTS },
     COUNTRY[c],
     stateMap[c],
     c === "US" && countyKey ? US_COUNTY[countyKey] : undefined,
   );
+  // Final safety: strip any blocklisted domain that may have leaked into a jurisdiction map.
+  (Object.keys(raw) as (keyof JurisdictionSources)[]).forEach((k) => {
+    raw[k] = stripBlocked(raw[k]);
+  });
+  return raw;
 }
 
 /** Build a `site:a OR site:b OR site:c` restrictor for the given domains. */
 export function siteFilter(domains: string[], cap = 8): string {
-  const list = domains.slice(0, cap).map((d) => `site:${d}`).join(" OR ");
+  const clean = stripBlocked(domains).slice(0, cap);
+  const list = clean.map((d) => `site:${d}`).join(" OR ");
   return list ? `(${list})` : "";
 }
 
