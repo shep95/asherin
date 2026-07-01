@@ -274,7 +274,8 @@ export function sourcesFor(country?: string, state?: string, county?: string): J
 
 /** Build a `site:a OR site:b OR site:c` restrictor for the given domains. */
 export function siteFilter(domains: string[], cap = 8): string {
-  const list = domains.slice(0, cap).map((d) => `site:${d}`).join(" OR ");
+  const clean = stripBlocked(domains).slice(0, cap);
+  const list = clean.map((d) => `site:${d}`).join(" OR ");
   return list ? `(${list})` : "";
 }
 
