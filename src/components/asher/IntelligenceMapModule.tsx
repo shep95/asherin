@@ -1084,6 +1084,42 @@ const IntelligenceMapModule = () => {
           </button>
         )}
 
+        {/* CINEMATIC DOSSIER TOGGLE */}
+        {entity && (
+          <button
+            onClick={() => setShowDossier((v) => !v)}
+            className={`absolute bottom-3 left-[360px] z-[1001] flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-light tracking-[0.2em] uppercase backdrop-blur-md transition-colors ${
+              showDossier
+                ? "border-amber-400/40 bg-amber-400/10 text-amber-200"
+                : "border-border/30 bg-card/85 text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+            }`}
+            title="Cinematic Dossier — ownership, financial, social graph, prediction"
+          >
+            <span className="font-mono">◈</span>
+            Dossier
+          </button>
+        )}
+
+        {/* CINEMATIC DOSSIER PANEL */}
+        {entity && showDossier && (
+          <CinematicDossierPanel
+            address={
+              entity.hit?.display_name ||
+              `${entity.lat.toFixed(5)}, ${entity.lng.toFixed(5)}`
+            }
+            lat={entity.lat}
+            lng={entity.lng}
+            loading={propertyIntel.loading}
+            intel={propertyIntel.intel as any}
+            error={propertyIntel.error === "BYOK_REQUIRED"
+              ? "Property intel requires your own AI key. Open Settings → AI Keys."
+              : propertyIntel.error}
+            sources={propertyIntel.sources as any}
+            onClose={() => setShowDossier(false)}
+            onRescan={() => fetchPropertyIntel(entity.lat, entity.lng, entity.hit, entity.features)}
+          />
+        )}
+
         {/* LIVE FEEDS PANEL */}
         {entity && showLiveFeeds && (
           <LiveFeedsPanel
