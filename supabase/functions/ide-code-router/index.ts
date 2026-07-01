@@ -4,6 +4,8 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
+import { CODE_NARRATIVE_PROTOCOL } from "../_shared/codeNarrativeProtocol.ts";
+import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
 //
 // Body:
 //   {
