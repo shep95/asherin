@@ -132,6 +132,25 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
     editor.onDidChangeCursorPosition((e) => {
       setCursor({ line: e.position.lineNumber, col: e.position.column });
     });
+    // Cursor / Claude-Code moves: ⌘K inline edit, ⌘L send-to-chat, Tab ghost completions.
+    const detach = attachCursorFeatures(editor, monaco, {
+      getFile: () => {
+        const f = activeFileRef.current;
+        return f ? { id: f.id, name: f.name, language: languageRef.current, content: f.content } : null;
+      },
+      getByok: () => {
+        try {
+          const cached = localStorage.getItem("aureon_byok_active");
+          const parsed = cached ? JSON.parse(cached) : null;
+          if (parsed?.provider && parsed.provider !== "default" && parsed?.model) {
+            return { provider: parsed.provider, model: parsed.model };
+          }
+        } catch { /* ignore */ }
+        return { provider: "google", model: "gemini-2.5-flash" };
+      },
+    });
+    (editor as any).__aureonDetach = detach;
+    editor.onDidDispose(() => { try { detach(); } catch { /* noop */ } });
   }, []);
 
   // Register one AUREON RAG-grounded hover provider per Monaco language.
