@@ -8,6 +8,7 @@ import {
   History, Stethoscope, GitBranch, Download, ArrowDown, Network, GitCommit,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
+import AsherGitDrawer from "./AsherGitDrawer";
 import AsherWorkflowMap, { type WorkflowEvent, type FileWorkflowStat } from "./AsherWorkflowMap";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
