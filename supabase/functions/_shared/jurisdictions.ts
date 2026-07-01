@@ -22,12 +22,37 @@ export type JurisdictionSources = {
   people: string[];
 };
 
+// Hard blocklist — leak/breach aggregators are NEVER queried, regardless of channel.
+// Any domain matching (substring, case-insensitive) is stripped at query-assembly time.
+export const SOURCE_BLOCKLIST = [
+  "offshoreleaks.icij.org",
+  "icij.org",
+  "libraryofleaks",
+  "distributeddenialofsecrets",
+  "ddosecrets",
+  "wikileaks.org",
+  "haveibeenpwned",
+  "dehashed",
+  "leakcheck",
+  "intelx.io",
+  "snusbase",
+  "leak-lookup",
+];
+
+export function isBlockedSource(domain: string): boolean {
+  const d = String(domain || "").toLowerCase();
+  return SOURCE_BLOCKLIST.some((b) => d.includes(b));
+}
+
+export function stripBlocked(domains: string[]): string[] {
+  return domains.filter((d) => !isBlockedSource(d));
+}
+
 // Universal fallbacks used everywhere as tertiary layer.
 const GLOBAL_LISTINGS = ["zillow.com", "redfin.com", "realtor.com", "trulia.com", "homes.com"];
 const GLOBAL_ENTITIES = [
   "opencorporates.com",
-  "offshoreleaks.icij.org",
-  "sec.gov", "sec.gov/edgar", "efts.sec.gov",
+  "sec.gov", "efts.sec.gov",
   "linkedin.com/company",
 ];
 const GLOBAL_PEOPLE_AGGREGATORS = [
