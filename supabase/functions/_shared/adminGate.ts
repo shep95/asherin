@@ -108,8 +108,26 @@ export async function resolveKey(
   throw e;
 }
 
-/** Helper that converts a thrown KeyResolution error into a clean Response. */
+/** Helper that converts a thrown KeyResolution / BYOK error into a clean Response. */
 export function byokErrorResponse(e: any, corsHeaders: Record<string, string>) {
+  // Adaptive rate-limit surface: when the router (or any provider fetch)
+  // bubbles up a 429, we return a structured payload the client can use to
+  // *auto-resume* instead of dropping the user back at the start of their flow.
+  if (e?.status === 429 || e?.code === "RATE_LIMITED") {
+    const retryAfterMs = typeof e?.retryAfterMs === "number" ? e.retryAfterMs : 15_000;
+    return new Response(JSON.stringify({
+      error: "RATE_LIMITED",
+      message: "Your AI key hit its provider rate limit. Auto-resuming shortly.",
+      retryAfterMs,
+    }), {
+      status: 429,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "Retry-After": String(Math.ceil(retryAfterMs / 1000)),
+      },
+    });
+  }
   const status = typeof e?.status === "number" ? e.status : 500;
   const body =
     e?.code === "BYOK_REQUIRED"
