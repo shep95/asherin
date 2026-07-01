@@ -530,7 +530,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
                       ) : (
                         <div>
                           <p className="text-[10px] text-muted-foreground/30">Drop ZIP/TAR archives, code files, or dependency manifests</p>
-                          <p className="text-[8px] text-muted-foreground/20 mt-1">Up to 5GB • Archives extracted server-side • WiFi-drop resilient</p>
+                          <p className="text-[8px] text-muted-foreground/20 mt-1">Up to ~5MB text • 260 files max • archives extracted server-side</p>
                         </div>
                       )}
                     </div>
