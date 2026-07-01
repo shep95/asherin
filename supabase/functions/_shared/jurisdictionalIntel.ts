@@ -7,12 +7,14 @@
 //   • Location parsing is a WHOLE-MESSAGE SCANNER. Every country, state,
 //     province, region, and known city is detected; the most-specific token
 //     wins. No dependency on commas or the word "in".
-//   • Retrieval is TWO PASSES fused:
+//   • Retrieval is THREE PASSES fused:
 //        PASS 1 (web-tab parity) — wide Zophiel call, no site: restrictor,
 //        subject unquoted. Guarantees parity with what the Zophiel web tab
 //        would show.
 //        PASS 2 (jurisdiction enrich) — parallel site-scoped sweeps into
 //        authoritative registries.
+//        PASS 3 (body excerpts) — opportunistic only, never allowed to stall
+//        the chat answer.
 //   • Body-fetch on top URLs to extract more than the search snippet.
 //   • Report is fused into DOMAIN-CLASS BUCKETS (Authoritative, Corporate,
 //     Court/Legal, People, News, Wide Web Context) so nothing is dropped.
@@ -339,8 +341,10 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
 }
 
 // ── Zophiel retrieval ──────────────────────────────────────────────────────
-async function zophielQuery(query: string): Promise<IntelChannelHit[]> {
+async function zophielQuery(query: string, options: { timeoutMs?: number; limit?: number } = {}): Promise<IntelChannelHit[]> {
   if (!SUPABASE_URL || !SUPABASE_ANON) return [];
+  const timeoutMs = options.timeoutMs ?? 12000;
+  const limit = options.limit ?? 12;
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/zophiel-search`, {
       method: "POST",
@@ -350,7 +354,7 @@ async function zophielQuery(query: string): Promise<IntelChannelHit[]> {
         "apikey": SUPABASE_ANON,
       },
       body: JSON.stringify({ query, page: 1, mode: "web" }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!resp.ok) return [];
     const data = await resp.json();
@@ -359,7 +363,7 @@ async function zophielQuery(query: string): Promise<IntelChannelHit[]> {
     if (raw.length === 0 && data?.grouped && typeof data.grouped === "object") {
       raw = Object.values(data.grouped).flat() as any[];
     }
-    return raw.slice(0, 20).map((r: any) => {
+    return raw.slice(0, limit).map((r: any) => {
       const url = String(r.url || r.link || r.source_url || (r.source && !r.source.includes(" ") ? `https://${r.source}` : "") || "");
       let domain = "";
       try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
@@ -369,7 +373,7 @@ async function zophielQuery(query: string): Promise<IntelChannelHit[]> {
         snippet: String(r.snippet || r.description || r.summary || "").slice(0, 500),
         domain,
       } as IntelChannelHit;
-    }).filter((h: IntelChannelHit) => h.url && !isBlockedSource(h.domain));
+    }).filter((h: IntelChannelHit) => h.url && !isBlockedSource(h.domain) && !isBlockedSource(h.url));
 
   } catch (e) {
     console.error("[jurisdictionalIntel] zophiel query failed:", (e as Error).message);
@@ -391,14 +395,14 @@ function classifyDomain(domain: string): DomainBucket {
 }
 
 // ── Body fetch (optional deep pass) ────────────────────────────────────────
-async function fetchBody(url: string): Promise<string> {
+async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
   try {
     const resp = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; AureonIntel/2.0)",
         "Accept": "text/html,application/xhtml+xml",
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(timeoutMs),
       redirect: "follow",
     });
     if (!resp.ok) return "";
@@ -419,8 +423,32 @@ async function fetchBody(url: string): Promise<string> {
   }
 }
 
-// ── Two-pass sweep + fusion ────────────────────────────────────────────────
+function scoreEnrichQuery(intent: IntelIntent, label: string): number {
+  if (intent.kind === "person") {
+    if (label === "people") return 100;
+    if (label === "entities") return 85;
+    if (label === "news") return 70;
+    if (label === "courts") return intent.state || intent.city ? 65 : 35;
+    if (label === "ownership" || label === "tax" || label === "permits") return intent.state || intent.city ? 45 : 15;
+  }
+  if (intent.kind === "entity") {
+    if (label === "entities") return 100;
+    if (label === "courts") return 75;
+    if (label === "news") return 55;
+  }
+  if (intent.kind === "property") {
+    if (label === "ownership") return 100;
+    if (label === "tax") return 90;
+    if (label === "permits") return 80;
+    if (label === "listings") return 65;
+  }
+  return 10;
+}
+
+// ── Three-pass sweep + fusion ───────────────────────────────────────────────
 export async function runJurisdictionalSearch(intent: IntelIntent): Promise<IntelBundle> {
+  const startedAt = Date.now();
+  const deadlineMs = 24500;
   const src = sourcesFor(intent.country, intent.state, intent.county);
   const registries = Array.from(new Set([
     ...src.ownership, ...src.tax, ...src.permits, ...src.entities, ...src.courts, ...src.people,
@@ -438,7 +466,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   // Country name maps to the geo token when no finer locus is present, so
   // Pass-1 web-tab parity actually includes "Australia" / "United Kingdom".
   const COUNTRY_LABELS: Record<string, string> = {
-    US: "United States", CA: "Canada", UK: "United Kingdom", AU: "Australia",
+    US: "United States", CA: "Canada", GB: "United Kingdom", AU: "Australia",
     NZ: "New Zealand", IE: "Ireland", DE: "Germany", FR: "France",
     ES: "Spain", IT: "Italy", NL: "Netherlands", SE: "Sweden", NO: "Norway",
     DK: "Denmark", FI: "Finland", CH: "Switzerland", AT: "Austria", BE: "Belgium",
@@ -472,11 +500,26 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     enrichQueries.push({ label: "news", query: `${subjectQuoted} ${locus} ${siteFilter(NEWS_SITES)}` });
   }
 
-  const [pass1a, pass1b, ...pass2] = await Promise.all([
-    zophielQuery(pass1Queries[0]),
-    zophielQuery(pass1Queries[1]),
-    ...enrichQueries.map((q) => zophielQuery(q.query)),
-  ]);
+  // Pass 1 is deliberately first, not part of a large Promise fan-out. The
+  // Zophiel web tab succeeds on single wide calls; flooding it with 6+ nested
+  // calls caused chat-timeout failures while the web tab itself still worked.
+  const pass1a = await zophielQuery(pass1Queries[0], { timeoutMs: 18000, limit: 20 });
+  const pass1b = pass1a.length >= 8 || pass1Queries[1] === pass1Queries[0]
+    ? []
+    : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(5000, deadlineMs - (Date.now() - startedAt) - 3500), limit: 12 });
+
+  const countryOnlyPerson = intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
+  const maxEnrich = countryOnlyPerson ? 2 : 4;
+  const selectedEnrich = enrichQueries
+    .sort((a, b) => scoreEnrichQuery(intent, b.label) - scoreEnrichQuery(intent, a.label))
+    .slice(0, maxEnrich);
+
+  const pass2: IntelChannelHit[][] = [];
+  for (const q of selectedEnrich) {
+    const remaining = deadlineMs - (Date.now() - startedAt) - 3000;
+    if (remaining < 4500) break;
+    pass2.push(await zophielQuery(q.query, { timeoutMs: Math.min(9000, remaining), limit: 10 }));
+  }
 
   // ── FUSE — dedupe by URL, block-check every hit, classify into buckets ──
   const seen = new Set<string>();
@@ -493,18 +536,20 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     buckets[bucket].push(hit);
   }
 
-  // ── PASS 3 — BODY FETCH top 6 URLs (prioritize authoritative → corporate → court → people → news → social → web) ──
+  // ── PASS 3 — BODY FETCH top URLs (opportunistic; do not stall answer) ──
   const priority: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
   const fetchTargets: IntelChannelHit[] = [];
+  const remainingForBodies = deadlineMs - (Date.now() - startedAt);
+  const bodyLimit = remainingForBodies > 6500 ? 4 : remainingForBodies > 4200 ? 2 : 0;
   for (const b of priority) {
     for (const h of buckets[b]) {
-      if (fetchTargets.length >= 6) break;
+      if (fetchTargets.length >= bodyLimit) break;
       fetchTargets.push(h);
     }
-    if (fetchTargets.length >= 6) break;
+    if (fetchTargets.length >= bodyLimit) break;
   }
   await Promise.all(fetchTargets.map(async (h) => {
-    h.body = await fetchBody(h.url);
+    h.body = await fetchBody(h.url, Math.max(2200, Math.min(4500, deadlineMs - (Date.now() - startedAt) - 500)));
   }));
 
   const emptyBuckets = (Object.keys(buckets) as DomainBucket[]).filter((k) => buckets[k].length === 0);

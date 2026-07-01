@@ -2092,6 +2092,29 @@ ${zophielCodingBrainContent}
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
+    let writerClosed = false;
+
+    const safeWrite = async (payload: string) => {
+      if (writerClosed) return false;
+      try {
+        await writer.write(encoder.encode(payload));
+        return true;
+      } catch (e) {
+        writerClosed = true;
+        console.warn("stream client closed during write:", (e as Error)?.message || e);
+        return false;
+      }
+    };
+
+    const safeClose = async () => {
+      if (writerClosed) return;
+      writerClosed = true;
+      try {
+        await writer.close();
+      } catch (e) {
+        console.warn("stream close skipped:", (e as Error)?.message || e);
+      }
+    };
 
     (async () => {
       try {
@@ -2121,7 +2144,7 @@ ${zophielCodingBrainContent}
                 const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (text) {
                   const chunk = JSON.stringify({ choices: [{ delta: { content: text } }] });
-                  await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
                 }
               } catch { /* skip */ }
             } else if (isAnthropicResponse) {
@@ -2132,7 +2155,7 @@ ${zophielCodingBrainContent}
                 const parsed = JSON.parse(jsonStr);
                 if (parsed.type === "content_block_delta" && parsed.delta?.text) {
                   const chunk = JSON.stringify({ choices: [{ delta: { content: parsed.delta.text } }] });
-                  await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
                 }
               } catch { /* skip */ }
             } else if (isResponsesApi) {
@@ -2146,11 +2169,11 @@ ${zophielCodingBrainContent}
                 const parsed = JSON.parse(jsonStr);
                 if (parsed?.type === "response.output_text.delta" && typeof parsed.delta === "string" && parsed.delta) {
                   const chunk = JSON.stringify({ choices: [{ delta: { content: parsed.delta } }] });
-                  await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
                 } else if (parsed?.type === "error") {
                   const msg = parsed?.error?.message || parsed?.message || "upstream error";
                   const chunk = JSON.stringify({ choices: [{ delta: { content: `\n\n[error] ${msg}` } }] });
-                  await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
                 }
               } catch { /* skip */ }
             } else {
@@ -2165,17 +2188,17 @@ ${zophielCodingBrainContent}
                 const content = parsed.choices?.[0]?.delta?.content;
                 if (content) {
                   const chunk = JSON.stringify({ choices: [{ delta: { content } }] });
-                  await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
                 }
               } catch { /* skip */ }
             }
           }
         }
-        await writer.write(encoder.encode("data: [DONE]\n\n"));
+        await safeWrite("data: [DONE]\n\n");
       } catch (e) {
         console.error("stream transform error:", e);
       } finally {
-        await writer.close();
+        await safeClose();
       }
     })();
 
