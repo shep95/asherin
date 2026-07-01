@@ -267,6 +267,18 @@ export default function CinematicDossierPanel({
           </div>
         )}
 
+        {/* Empty — no loading, no error, no intel yet */}
+        {!loading && !error && !intel && (
+          <div className="rounded-lg border border-border/20 bg-background/40 p-3">
+            <p className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground/70 mb-1">
+              Standby
+            </p>
+            <p className="text-[11px] text-foreground/70 font-light leading-relaxed">
+              No dossier synthesized for this parcel yet. Tap <span className="text-amber-300/90">Re-Sweep</span> to run the OSINT sweep, or pick another point on the map.
+            </p>
+          </div>
+        )}
+
         {/* Intel */}
         {intel && !loading && (
           <>
