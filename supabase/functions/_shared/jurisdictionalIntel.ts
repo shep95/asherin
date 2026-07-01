@@ -269,8 +269,8 @@ function extractSubject(raw: string, jurisdictionTokens: string[]): string {
        .replace(/[,\.]+$/g, "")
        .trim();
 
-  const nameMatch = s.match(NAME_RE);
-  if (nameMatch) return nameMatch[0].trim();
+  const nameMatch = matchName(s);
+  if (nameMatch) return nameMatch;
   return s;
 }
 
