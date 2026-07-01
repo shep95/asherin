@@ -28,7 +28,7 @@ const PROFILES = [
 ] as const;
 
 const PLACEHOLDER_BY_PROFILE: Record<string, string> = {
-  auto:   "Asher Newton, Cape Coral Florida    —or—    example.com",
+  auto:   "John Doe    —or—    example.com",
   person: "Full name, city, employer (e.g. Jane Doe, Austin TX, Acme Corp)",
   domain: "example.com",
   topic:  "Topic / quoted phrase to dork across the open web",
