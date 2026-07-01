@@ -31,6 +31,12 @@ export default function KnowledgeVaultView() {
   const [apiUrl, setApiUrl] = useState("");
   const [apiHeaders, setApiHeaders] = useState("");
 
+  // Natural-language agent
+  type AgentTurn = { role: "user" | "aureon"; text: string; intent?: string; matches?: { sourceName: string; similarity: number; content: string }[] };
+  const [agentCmd, setAgentCmd] = useState("");
+  const [agentBusy, setAgentBusy] = useState(false);
+  const [agentLog, setAgentLog] = useState<AgentTurn[]>([]);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
