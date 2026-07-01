@@ -299,7 +299,34 @@ function buildPrompt(mode: string, payload: any): ChatMessage[] {
 
   switch (mode) {
     case "inline": {
-      // Copilot-style. Return ONLY the next code, no prose.
+      // Two sub-modes:
+      //  A) Cursor-style Cmd+K inline EDIT: instruction + code (the selection) are present.
+      //     Return ONLY the replacement text for the selection.
+      //  B) Copilot-style completion at caret: no instruction/code, use before/after.
+      if (payload.instruction && (payload.code ?? "").length > 0) {
+        return [
+          {
+            role: "user",
+            content:
+`You are an inline code editor. Rewrite ONLY the SELECTED code according to the user's instruction. Preserve surrounding indentation. Return raw code only — no explanation, no markdown fences.
+
+FILE: ${payload.path || "untitled"}
+LANGUAGE: ${payload.language || "javascript"}
+
+--- CONTEXT BEFORE SELECTION ---
+${(payload.before || "").slice(-1500)}
+--- SELECTED CODE (rewrite this) ---
+${payload.code}
+--- CONTEXT AFTER SELECTION ---
+${(payload.after || "").slice(0, 1500)}
+--- END ---
+
+INSTRUCTION: ${payload.instruction}
+
+Respond with ONLY the rewritten selection.`,
+          },
+        ];
+      }
       return [
         {
           role: "user",
@@ -317,6 +344,7 @@ Respond with only the completion text (1-5 lines, natural continuation).`,
         },
       ];
     }
+
     case "generate": {
       return [
         {
@@ -651,7 +679,9 @@ serve(async (req) => {
       });
     }
 
-    const maxTokens = mode === "inline" ? 256 : 4096;
+    const isInlineEdit = mode === "inline" && !!payload.instruction && !!payload.code;
+    const maxTokens = mode === "inline" ? (isInlineEdit ? 1024 : 256) : 4096;
+
     const runtimeSystem = buildSystemPrompt(payload);
 
     const { system: trimmedSystem, messages: trimmedMessages } = clampPayload(runtimeSystem, messages);
