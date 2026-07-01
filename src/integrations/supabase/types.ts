@@ -7733,6 +7733,104 @@ export type Database = {
           },
         ]
       }
+      zacoon_cortex_events: {
+        Row: {
+          created_at: string
+          data: Json | null
+          detail: string
+          event_type: string
+          id: number
+          mission_id: string
+          phase: string
+          ts_ms: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          detail?: string
+          event_type: string
+          id?: number
+          mission_id: string
+          phase: string
+          ts_ms?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          detail?: string
+          event_type?: string
+          id?: number
+          mission_id?: string
+          phase?: string
+          ts_ms?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zacoon_cortex_events_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "zacoon_missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zacoon_missions: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          fingerprint: string
+          finished_at: string | null
+          id: string
+          integrity_cert: string | null
+          intel: Json
+          mode: string
+          objective: string
+          output: Json
+          risk_envelope: string
+          status: string
+          target_url: string | null
+          teg: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          fingerprint: string
+          finished_at?: string | null
+          id?: string
+          integrity_cert?: string | null
+          intel?: Json
+          mode: string
+          objective?: string
+          output?: Json
+          risk_envelope?: string
+          status?: string
+          target_url?: string | null
+          teg?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          fingerprint?: string
+          finished_at?: string | null
+          id?: string
+          integrity_cert?: string | null
+          intel?: Json
+          mode?: string
+          objective?: string
+          output?: Json
+          risk_envelope?: string
+          status?: string
+          target_url?: string | null
+          teg?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       zali_components: {
         Row: {
           compatible_names: string[] | null
