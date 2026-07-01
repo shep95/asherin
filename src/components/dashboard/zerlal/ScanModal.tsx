@@ -157,6 +157,41 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     }
   }, [handleFileSelect]);
 
+  // ── Shared BYOK resolver: returns byok config OR null. Sets scanError + triggers
+  // the friendly dialog when a non-admin is missing a key, so foreground and
+  // background paths give the same clear signal instead of a silent 403.
+  const resolveByokOrGate = async (): Promise<{ byok: any | null; blocked: boolean }> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) { setScanError("Sign in required"); return { byok: null, blocked: true }; }
+    let byok: any = null;
+    try {
+      const { data: pref } = await supabase
+        .from("user_model_preferences" as any)
+        .select("active_provider, active_model")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const ap = (pref as any)?.active_provider;
+      const am = (pref as any)?.active_model;
+      if (ap && ap !== "default" && am && am !== "default") {
+        const { data: keyRow } = await supabase
+          .from("user_api_keys" as any)
+          .select("api_key")
+          .eq("user_id", user.id)
+          .eq("provider", ap)
+          .eq("is_active", true)
+          .maybeSingle();
+        if ((keyRow as any)?.api_key) byok = { provider: ap, model: am, apiKey: (keyRow as any).api_key };
+      }
+    } catch { /* ignore */ }
+    const isAdmin = ADMIN_EMAILS.has((user.email || "").toLowerCase());
+    if (!byok && !isAdmin) {
+      triggerByokRequired({ source: "zerlal", reason: "Zerlal scans require your own AI key. Add one in Settings → AI Keys." });
+      setScanError("Add your AI key in Settings → AI Keys, then retry the scan.");
+      return { byok: null, blocked: true };
+    }
+    return { byok, blocked: false };
+  };
+
   const handleStartScan = async () => {
     setScanError(null);
     try {
@@ -182,6 +217,19 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         setScanError("Please upload files, paste code, or provide a repository URL");
         return;
       }
+
+      // Foreground payload guard — Supabase Edge caps request bodies well
+      // below 6MB when JSON-encoded. If the source is huge, push to background
+      // instead of hitting an opaque 413 mid-scan.
+      if (finalCode && finalCode.length > 3_500_000) {
+        setScanError("Source is large (>3.5MB). Use 'Run in background & email me' — it streams via storage and survives WiFi drops.");
+        return;
+      }
+
+      // Same BYOK gate as background — foreground previously fell through
+      // to the edge and users saw a raw 403 instead of the friendly dialog.
+      const { blocked } = await resolveByokOrGate();
+      if (blocked) return;
 
       const sourceType = selectedSource || "upload";
       const project = await createProject(projectName, sourceType, url || undefined);
