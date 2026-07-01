@@ -161,14 +161,25 @@ serve(async (req) => {
     // ══════════════════════════════════════
     // CALL LOVABLE AI GATEWAY (Gemini, streaming)
     // ══════════════════════════════════════
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Prefer dedicated AXRLEN Gemini key via Gemini's OpenAI-compat endpoint
+    // (same SSE format as the Lovable AI Gateway, so the downstream stream
+    // reader below stays identical). Falls back to Lovable AI Gateway if the
+    // AXRLEN key isn't configured.
+    const useDirectGemini = !!AXRLEN_GEMINI_KEY;
+    const endpoint = useDirectGemini
+      ? "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+      : "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const authKey = useDirectGemini ? AXRLEN_GEMINI_KEY : LOVABLE_KEY;
+    const modelId = useDirectGemini ? "gemini-2.5-flash" : "google/gemini-3-flash-preview";
+
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${LOVABLE_KEY}`,
+        "Authorization": `Bearer ${authKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: modelId,
         messages: gatewayMessages,
         stream: true,
       }),
