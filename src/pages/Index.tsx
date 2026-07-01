@@ -26,6 +26,7 @@ import MagneticSpotlightButton from "@/components/landing/MagneticSpotlightButto
 import CountUp from "@/components/landing/CountUp";
 import HeroSciFiOrb from "@/components/landing/HeroSciFiOrb";
 
+
 const StatusIcon = ({ type }: { type: string }) => {
   if (type === "check") return <Check className="h-4 w-4 text-emerald-400 inline" />;
   if (type === "x") return <X className="h-4 w-4 text-destructive/70 inline" />;
