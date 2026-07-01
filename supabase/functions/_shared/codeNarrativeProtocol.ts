@@ -7,6 +7,7 @@
 // delivering output.
 // ────────────────────────────────────────────────────────────────────
 import { QUANTUM_ORCHESTRATION_BRAIN } from "./quantumOrchestrationBrain.ts";
+import { THEME_ENGINE_DOCTRINE } from "./themeEngineDoctrine.ts";
 
 export const CODE_NARRATIVE_PROTOCOL = `
 ## CODE NARRATIVE LOOP PROTOCOL (MANDATORY when code is in context)
@@ -80,7 +81,12 @@ RULES:
   do not force the visible answer into the Step 6 numbered order.
 - If credentials, endpoints, or schemas are missing for a real fix,
   STOP and ask the user — never fabricate them.
+
+${THEME_ENGINE_DOCTRINE}
 `;
+
+// Re-export the doctrine for callers that want it explicitly.
+export { THEME_ENGINE_DOCTRINE };
 
 // ────────────────────────────────────────────────────────────────────
 // Server-side helper: runs the loop programmatically against Gemini /
@@ -189,7 +195,9 @@ export async function runNarrativeLoop(opts: {
 
 ${QUANTUM_ORCHESTRATION_BRAIN}
 
-You are running the CODE → NARRATIVE → FLAWS${opts.fix ? " → FIX" : ""} loop, iteration ${i} of ${maxIter}. Apply Quantum Candidate Collapse: internally generate 3 candidate fixes per flaw, collapse to the highest-fidelity one before emitting.
+${THEME_ENGINE_DOCTRINE}
+
+You are running the CODE → NARRATIVE → FLAWS${opts.fix ? " → FIX" : ""} loop, iteration ${i} of ${maxIter}. Apply Quantum Candidate Collapse: internally generate 3 candidate fixes per flaw, collapse to the highest-fidelity one before emitting. For any UI/frontend file, additionally enforce the THEME ENGINE DOCTRINE (DNA → Intent → Behavior) and run the Anti-Slop Verification before accepting the fix.
 
 USER INSTRUCTION: ${opts.instruction || "(none — perform full audit)"}
 
