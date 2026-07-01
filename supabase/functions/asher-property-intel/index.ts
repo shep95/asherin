@@ -463,7 +463,8 @@ Return STRICT JSON only with this exact schema:
     return new Response(JSON.stringify({
       success: true,
       intel,
-      sources: pages.map((p) => ({ title: p.title, url: p.url, snippet: p.snippet, channel: p.channel })),
+      sources: pages.map((p) => ({ title: p.title, url: p.url, snippet: p.snippet, channel: p.channel, relevant: p.relevant })),
+      jurisdiction: { country, state, county, registries: src },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
