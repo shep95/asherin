@@ -64,7 +64,7 @@ const Founder = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="landing-perf min-h-screen bg-background text-foreground">
       <ScrollProgressBar />
       <FounderTOC />
 

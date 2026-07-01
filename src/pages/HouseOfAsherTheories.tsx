@@ -592,7 +592,7 @@ const HouseOfAsherTheories = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="landing-perf min-h-screen bg-background text-foreground">
       <Header />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-24 space-y-16">

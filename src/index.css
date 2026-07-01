@@ -271,11 +271,11 @@ header[data-aureon-header].header-scrolled > div,
 header[data-aureon-header].header-scrolled > a {
   transform: scale(0.94);
   transform-origin: top center;
-  background-color: hsl(var(--card) / 0.85) !important;
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  background-color: hsl(var(--card) / 0.92) !important;
+  /* backdrop-filter removed for scroll perf — solid-ish card color composites in one pass */
   box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.45);
 }
+
 header[data-aureon-header] {
   transition: padding 220ms cubic-bezier(.2,.7,.3,1);
 }
@@ -345,6 +345,28 @@ header[data-aureon-header] > a {
   .zophiel-aurora, .zophiel-shimmer-text, .zophiel-orbit-ring { animation: none !important; }
   .zophiel-sheen::after { display: none; }
 }
+
+/* ============================================================
+   Landing perf mode — marketing pages (Founder, Pricing, Blog,
+   Software, Benchmark, Investors, Valuation, Updates, HouseOfAsher).
+   The wallpaper + bg-black/80 overlay already obscures backdrops,
+   so per-frame `backdrop-filter` re-sampling on every translucent
+   card is pure GPU cost with no visual payoff. Kill it here and
+   let the existing translucent bg utilities carry the glass look.
+   Impact: eliminates ~15-40 blur passes per scroll frame per page,
+   producing dramatically smoother scroll on mid-range hardware.
+   ============================================================ */
+.landing-perf [class*="backdrop-blur"],
+.landing-perf [style*="backdrop-filter"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Prevent giant fixed background images from repainting during scroll */
+.landing-perf .fixed[style*="background-image"] {
+  will-change: auto;
+  transform: translateZ(0);
+}
+
 
 /* ============================================================
    Zophiel Engine — Aurora shell

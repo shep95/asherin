@@ -151,7 +151,7 @@ const Valuation = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="landing-perf min-h-screen bg-background text-foreground">
       <div className="max-w-6xl mx-auto px-6 py-16">
         {/* HERO */}
         <div className="mb-16">
