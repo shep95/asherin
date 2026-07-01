@@ -374,23 +374,6 @@ const Index = () => {
                 ◈ 30-second setup · No credit card · Cancel anytime
               </p>
 
-
-              {/* Telemetry bento — now with emotional labels, not raw integers */}
-              <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-px rounded-xl overflow-hidden border border-foreground/10 bg-foreground/[0.02] backdrop-blur-xl">
-                {[
-                  { v: 30, suf: "+", l: "Intelligence tools your competitors don't have" },
-                  { v: 14, suf: "", l: "Cross-validation passes per query" },
-                  { v: 30, suf: "+", l: "AI providers, your key, your choice" },
-                  { v: 0, suf: "", l: "Dollars. Free forever. No catch." },
-                ].map((s) => (
-                  <div key={s.l} className="bg-background/40 px-5 py-5">
-                    <div className="text-3xl font-extralight text-foreground font-mono tabular-nums">
-                      <CountUp to={s.v} suffix={s.suf} />
-                    </div>
-                    <div className="text-[10px] tracking-[0.22em] uppercase text-muted-foreground/70 mt-1.5 font-mono leading-snug">{s.l}</div>
-                  </div>
-                ))}
-              </div>
             </div>
 
             {/* Right — live intel console */}
