@@ -910,7 +910,7 @@ async function callScanAI(
   lovableKey: string | undefined,
   geminiKey: string | undefined,
   timeoutMs = 55_000,
-  systemPrompt = "You are ZERLAL. Always run the CODE → NARRATIVE → FLAWS → FIX loop internally (max 6 iterations) before responding: (1) convert every file into a plain-language narrative, (2) hunt logic/security/UI/workflow/bug flaws on the narrative, (3) when fixes are requested, regenerate code and re-narrate until zero medium+ flaws remain or 6 iterations are hit. Return ONLY valid JSON. No markdown."
+  systemPrompt = ZERLAL_SYSTEM_PROMPT
 ): Promise<any> {
   if (resolved.mode === "byok" && resolved.byok) {
     const text = await callByokJsonWithRetry(resolved.byok as ZophielByokConfig, systemPrompt, prompt, {
@@ -932,7 +932,7 @@ async function callAI(
   lovableKey: string | undefined,
   geminiKey: string | undefined,
   timeoutMs = 55_000,
-  systemPrompt = "You are ZERLAL. Always run the CODE → NARRATIVE → FLAWS → FIX loop internally (max 6 iterations) before responding: (1) convert every file into a plain-language narrative, (2) hunt logic/security/UI/workflow/bug flaws on the narrative, (3) when fixes are requested, regenerate code and re-narrate until zero medium+ flaws remain or 6 iterations are hit. Return ONLY valid JSON. No markdown."
+  systemPrompt = ZERLAL_SYSTEM_PROMPT
 ): Promise<any> {
   // Try Lovable AI Gateway first
   if (lovableKey) {
