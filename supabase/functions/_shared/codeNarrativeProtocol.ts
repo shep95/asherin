@@ -190,7 +190,9 @@ export async function runNarrativeLoop(opts: {
 
 ${QUANTUM_ORCHESTRATION_BRAIN}
 
-You are running the CODE → NARRATIVE → FLAWS${opts.fix ? " → FIX" : ""} loop, iteration ${i} of ${maxIter}. Apply Quantum Candidate Collapse: internally generate 3 candidate fixes per flaw, collapse to the highest-fidelity one before emitting.
+${THEME_ENGINE_DOCTRINE}
+
+You are running the CODE → NARRATIVE → FLAWS${opts.fix ? " → FIX" : ""} loop, iteration ${i} of ${maxIter}. Apply Quantum Candidate Collapse: internally generate 3 candidate fixes per flaw, collapse to the highest-fidelity one before emitting. For any UI/frontend file, additionally enforce the THEME ENGINE DOCTRINE (DNA → Intent → Behavior) and run the Anti-Slop Verification before accepting the fix.
 
 USER INSTRUCTION: ${opts.instruction || "(none — perform full audit)"}
 
