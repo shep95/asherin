@@ -47,6 +47,64 @@ interface JsonCallOptions {
   jsonMode?: boolean;
 }
 
+// ─────────────────────── Per-key adaptive rate-limit brain ───────────────────
+//
+// Edge invocations are short-lived, but a single invocation (e.g. Zerlal
+// iterating files, Cross running multi-step analysis) can fire many BYOK calls
+// in a row. When one hits 429, we now:
+//   1. Read the provider's Retry-After header / Gemini retryDelay body,
+//   2. Park that specific (provider, key-fingerprint) in a cooldown map so the
+//      next call in this invocation *waits* instead of blindly re-hitting the
+//      limit,
+//   3. Retry with a much longer, provider-informed backoff on 429/503,
+//   4. Surface a structured RATE_LIMITED error carrying `retryAfterMs` so the
+//      client can resume automatically instead of forcing the user to restart.
+//
+// Key fingerprint is a non-reversible hash prefix — never store or log the raw
+// API key.
+const cooldowns = new Map<string, number>(); // fingerprint → resume-at epoch ms
+const MAX_COOLDOWN_MS = 90_000;
+
+async function keyFingerprint(provider: string, apiKey: string): Promise<string> {
+  try {
+    const buf = new TextEncoder().encode(`${provider}:${apiKey}`);
+    const hash = await crypto.subtle.digest("SHA-256", buf);
+    const hex = Array.from(new Uint8Array(hash).slice(0, 8))
+      .map((b) => b.toString(16).padStart(2, "0")).join("");
+    return `${provider}:${hex}`;
+  } catch {
+    return `${provider}:${apiKey.slice(-6)}`;
+  }
+}
+
+function parseRetryAfterMs(headers: Headers, body: string): number | null {
+  const ra = headers.get("retry-after");
+  if (ra) {
+    const secs = Number(ra);
+    if (Number.isFinite(secs)) return Math.min(MAX_COOLDOWN_MS, Math.max(500, secs * 1000));
+    const date = Date.parse(ra);
+    if (!Number.isNaN(date)) return Math.min(MAX_COOLDOWN_MS, Math.max(500, date - Date.now()));
+  }
+  // Gemini embeds retry hints inside the JSON error body.
+  const m = body.match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/);
+  if (m) return Math.min(MAX_COOLDOWN_MS, Math.max(500, Math.round(parseFloat(m[1]) * 1000)));
+  return null;
+}
+
+async function respectCooldown(fp: string): Promise<void> {
+  const until = cooldowns.get(fp);
+  if (!until) return;
+  const wait = until - Date.now();
+  if (wait <= 0) { cooldowns.delete(fp); return; }
+  await new Promise((r) => setTimeout(r, Math.min(wait, MAX_COOLDOWN_MS)));
+  cooldowns.delete(fp);
+}
+
+function armCooldown(fp: string, ms: number) {
+  cooldowns.set(fp, Date.now() + Math.min(MAX_COOLDOWN_MS, ms));
+}
+
+
 /** Generic non-streaming JSON-mode AI call routed through the user's BYOK provider. */
 export async function callByokJson(
   cfg: ZophielByokConfig,
@@ -132,7 +190,7 @@ async function callGemini(
     );
     if (!r.ok) {
       const txt = await r.text();
-      throw makeRetryableError(r.status, `gemini_${model}_${r.status}: ${txt.slice(0, 200)}`);
+      throw makeRetryableError(r.status, `gemini_${model}_${r.status}: ${txt.slice(0, 200)}`, parseRetryAfterMs(r.headers, txt));
     }
     const d = await r.json();
     return d?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || '').join('') || '';
@@ -177,7 +235,7 @@ async function callOpenAICompat(
     });
     if (!r.ok) {
       const txt = await r.text();
-      throw makeRetryableError(r.status, `byok_${r.status}: ${txt.slice(0, 200)}`);
+      throw makeRetryableError(r.status, `byok_${r.status}: ${txt.slice(0, 200)}`, parseRetryAfterMs(r.headers, txt));
     }
     const d = await r.json();
     return d?.choices?.[0]?.message?.content || '';
@@ -214,7 +272,7 @@ async function callAnthropic(
     });
     if (!r.ok) {
       const txt = await r.text();
-      throw makeRetryableError(r.status, `anthropic_${r.status}: ${txt.slice(0, 200)}`);
+      throw makeRetryableError(r.status, `anthropic_${r.status}: ${txt.slice(0, 200)}`, parseRetryAfterMs(r.headers, txt));
     }
     const d = await r.json();
     const parts = Array.isArray(d?.content) ? d.content : [];
@@ -222,30 +280,55 @@ async function callAnthropic(
   } finally { clearTimeout(t); }
 }
 
-function makeRetryableError(status: number, message: string): Error & { retryable?: boolean; status?: number } {
-  const e: Error & { retryable?: boolean; status?: number } = new Error(message);
+function makeRetryableError(
+  status: number,
+  message: string,
+  retryAfterMs: number | null = null,
+): Error & { retryable?: boolean; status?: number; retryAfterMs?: number; code?: string } {
+  const e: Error & { retryable?: boolean; status?: number; retryAfterMs?: number; code?: string } = new Error(message);
   e.status = status;
   e.retryable = status === 429 || status === 503 || status >= 500;
+  if (status === 429) e.code = "RATE_LIMITED";
+  if (retryAfterMs != null) e.retryAfterMs = retryAfterMs;
   return e;
 }
 
-/** Run `callByokJson` with bounded retries on transient errors. */
+/**
+ * Run `callByokJson` with per-key adaptive retries.
+ * - Honors Retry-After / Gemini retryDelay hints.
+ * - Parks the specific API key in a shared cooldown map so the *next* call in
+ *   this invocation waits instead of blindly re-hitting the limit.
+ * - Retries 429/503/5xx up to `attempts` (default 5) with jittered backoff.
+ * - On terminal 429, throws an error carrying `code=RATE_LIMITED` and
+ *   `retryAfterMs` so the caller can render a resume-in-Ns state instead of
+ *   forcing the user to restart the whole flow.
+ */
 export async function callByokJsonWithRetry(
   cfg: ZophielByokConfig,
   systemPrompt: string,
   userPrompt: string,
   opts: JsonCallOptions & { attempts?: number } = {},
 ): Promise<string> {
-  const attempts = opts.attempts ?? 3;
+  const attempts = opts.attempts ?? 5;
+  const fp = await keyFingerprint(cfg.provider, cfg.apiKey);
   let lastErr: unknown = null;
   for (let i = 0; i < attempts; i++) {
+    // If the previous call from this invocation parked this key, wait it out
+    // before hammering the provider again.
+    await respectCooldown(fp);
     try {
       return await callByokJson(cfg, systemPrompt, userPrompt, opts);
     } catch (e) {
       lastErr = e;
-      const retryable = (e as { retryable?: boolean })?.retryable;
-      if (!retryable || i === attempts - 1) break;
-      const wait = 700 * Math.pow(2.1, i) + Math.random() * 300;
+      const err = e as { retryable?: boolean; status?: number; retryAfterMs?: number };
+      if (!err.retryable || i === attempts - 1) break;
+      // Prefer server hint; otherwise exponential backoff capped at 30s.
+      const backoff = Math.min(30_000, 900 * Math.pow(2, i) + Math.random() * 400);
+      const wait = err.retryAfterMs && err.retryAfterMs > 0 ? err.retryAfterMs : backoff;
+      // Park the key: no other in-flight call in this invocation should try
+      // sooner than this — that's what turns "keeps hitting the rate limit"
+      // into "waits once, resumes".
+      if (err.status === 429 || err.status === 503) armCooldown(fp, wait);
       await new Promise((r) => setTimeout(r, wait));
     }
   }
