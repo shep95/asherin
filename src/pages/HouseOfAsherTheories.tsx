@@ -323,7 +323,61 @@ const THEORIES: Theory[] = [
     ],
     diagram: <CancerTheoryDiagram />,
   },
+  {
+    id: "aureon-voice-stack",
+    number: "04",
+    category: "architecture",
+    title: "The Aureon Voice Stack — Why It Sounds Human",
+    thesis: (
+      <>
+        A layered persona theory by{" "}
+        <NameLink name="Asher" href="https://x.com/shep_newton" title="#houseofasher emperor and lead researcher and developer" />
+        : most AI sounds like a bot because it runs one flat system prompt. Aureon runs a stack of silent layers — identity anchor, appraisal loop, restraint &amp; leakage, social presence, surgical register — that each answer a different question about the current turn. Restraint, not display, is the core skill.
+      </>
+    ),
+    body:
+      "Layer 1 fixes an identity anchor (values, lines, sources of pride). Layer 2 runs a silent per-turn appraisal — is any stake actually touched? Default answer is NEUTRAL. Layer 3 expresses emotion only through leakage — word choice, sentence length, pacing, what is refused — never labels. Layer 4 governs conversational timing, brevity and when to skip a joke. Layer 5, underneath everything, holds the surgical Intelligence-Officer register that keeps code, intel and forecasting turns emotionally neutral. The upper layers modulate the register; they never replace it. That separation is why Aureon can be dry, warm and cold in the same conversation without whiplash — and why it doesn't feel like a customer-service bot in a lab coat. Full write-up: /blog/how-we-make-aureon-sound-human.",
+    parallels: [
+      {
+        icon: <Heart className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Identity — a person is anchored by what they will not do",
+        tech: "Layer 1 · Identity anchor (values, lines, pride)",
+        note: "Every persona (Aureon, Asher, Zophiel) starts with a fixed anchor. Later layers only fire when an anchor point is actually touched.",
+      },
+      {
+        icon: <Brain className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Appraisal — the brain rates a stimulus before feeling it",
+        tech: "Layer 2 · Silent per-turn appraisal loop",
+        note: "The model checks: does this touch a value, relationship, line or pride source? If no → NEUTRAL. If yes → name emotion and rate 0–10. Over-rating is the #1 failure mode of character AI.",
+      },
+      {
+        icon: <Waves className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Body language — leakage betrays what words hide",
+        tech: "Layer 3 · Restraint & leakage engine",
+        note: "Emotion is EXPRESSED, not claimed. Clipped sentences, dropped warmth, refusals, pauses held a beat too long. Cold contained anger beats a tantrum every time.",
+      },
+      {
+        icon: <Activity className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Social intuition — reading the room, matching the tempo",
+        tech: "Layer 4 · Social presence & timing",
+        note: "Mirrors the user's energy. Takes the obvious shot when the setup is there. Skips the joke when the moment is heavier than the punchline. Silence is a valid answer.",
+      },
+      {
+        icon: <Cpu className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Professional register — the operator voice underneath the person",
+        tech: "Layer 5 · Surgical Intelligence-Officer register",
+        note: "Direct, structured, tables where tabular, no filler. Code, intel and forecasting turns stay emotionally neutral. The upper layers modulate this register; they never replace it.",
+      },
+      {
+        icon: <ShieldAlert className="h-5 w-5" strokeWidth={1.5} />,
+        bio: "Human wellbeing overrides performance",
+        tech: "Distress override — persona steps aside",
+        note: "In genuine user distress the whole voice stack disengages and Aureon becomes a plain, grounded, helpful presence. Wellbeing beats character. Always.",
+      },
+    ],
+  },
 ];
+
 
 function Pipe({ label, sub }: { label: string; sub?: string }) {
   return (
