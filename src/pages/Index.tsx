@@ -327,12 +327,6 @@ const Index = () => {
                 Aureon gives you the complete picture — unfiltered, sourced, and ready to act on.
               </p>
 
-              {/* Free Forever trust badge — surfaces the #1 friction killer in the hero */}
-              <div className="mt-5 inline-flex self-start items-center gap-2 rounded-full border border-amber-300/40 bg-amber-400/[0.06] px-3.5 py-1.5 font-mono text-[10px] tracking-[0.32em] uppercase text-amber-200">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-300 animate-pulse" />
-                Free · Forever · No Catch
-              </div>
-
               {/* CTA cluster — Fitts (large primary), Hick (one dominant choice), Von Restorff (primary pops),
                   Proximity (CTA + reassurance tightly grouped), Peak-End (first thing the user touches). */}
               <div className="mt-9 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
