@@ -152,8 +152,21 @@ const PROPERTY_STRICT = /\b\d{1,6}\s+[A-Z][a-zA-Z0-9\.\-']+\s+(?:St|Street|Ave|A
 const PROPERTY_HINTS = /\b(parcel|deed|acreage|owner of|assessor)\b/i;
 const ENTITY_HINTS = /\b(llc|inc\.?|corp\.?|corporation|company|ltd\.?|holdings|group|trust|foundation|pty|gmbh|s\.?a\.?)\b/i;
 
-// Person indicator: two or more capitalized tokens that look like a name.
+// Person indicator: two or more name-like tokens.
+// Case-insensitive — we normalize casing before matching so lowercased
+// messages like "asher shepherd newton" are still recognized as a name.
 const NAME_RE = /\b([A-Z][a-z'’\-]{1,})(?:\s+([A-Z][a-z'’\-]{1,})){1,3}\b/;
+
+function titleCaseForName(s: string): string {
+  return s.replace(/\b([a-z])([a-z'’\-]*)/gi, (_m, a: string, b: string) => a.toUpperCase() + b.toLowerCase());
+}
+
+function matchName(s: string): string {
+  const direct = s.match(NAME_RE);
+  if (direct) return direct[0];
+  const tc = titleCaseForName(s).match(NAME_RE);
+  return tc ? tc[0] : "";
+}
 
 function stripTriggerVerbs(raw: string): string {
   return raw
