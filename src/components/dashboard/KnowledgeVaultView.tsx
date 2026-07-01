@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, FileText, Link as LinkIcon, Trash2, Database, Sparkles, Loader2 } from "lucide-react";
+import { Upload, FileText, Link as LinkIcon, Trash2, Database, Sparkles, Loader2, Wand2, Send } from "lucide-react";
 import { toast } from "sonner";
 
 type VaultSource = {
@@ -30,6 +30,12 @@ export default function KnowledgeVaultView() {
   const [apiName, setApiName] = useState("");
   const [apiUrl, setApiUrl] = useState("");
   const [apiHeaders, setApiHeaders] = useState("");
+
+  // Natural-language agent
+  type AgentTurn = { role: "user" | "aureon"; text: string; intent?: string; matches?: { sourceName: string; similarity: number; content: string }[] };
+  const [agentCmd, setAgentCmd] = useState("");
+  const [agentBusy, setAgentBusy] = useState(false);
+  const [agentLog, setAgentLog] = useState<AgentTurn[]>([]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -87,6 +93,28 @@ export default function KnowledgeVaultView() {
     else { toast.success("Source removed"); refresh(); }
   };
 
+  const runAgent = async () => {
+    const cmd = agentCmd.trim();
+    if (!cmd) return;
+    setAgentLog((l) => [...l, { role: "user", text: cmd }]);
+    setAgentCmd("");
+    setAgentBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("vault-agent", { body: { command: cmd } });
+      if (error) throw error;
+      const r = data as { intent?: string; message?: string; answer?: string; matches?: AgentTurn["matches"] };
+      const text = r?.intent === "QUERY" ? (r.answer ?? r.message ?? "") : (r?.message ?? "Done.");
+      setAgentLog((l) => [...l, { role: "aureon", text, intent: r?.intent, matches: r?.matches }]);
+      if (r?.intent === "WRITE" || r?.intent === "FETCH_WRITE") await refresh();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setAgentLog((l) => [...l, { role: "aureon", text: `Agent error: ${msg}` }]);
+      toast.error(msg);
+    } finally {
+      setAgentBusy(false);
+    }
+  };
+
   return (
     <div className="relative h-full overflow-y-auto">
       {/* Ambient glass wash — matches the app's dashboard aesthetic (grey → transparent) */}
@@ -107,6 +135,56 @@ export default function KnowledgeVaultView() {
           </div>
           <Badge variant="secondary" className="ml-auto bg-background/60 backdrop-blur border-border/40">Pro · $399/mo</Badge>
         </div>
+
+        {/* ─── Natural-language agent (WRITE / FETCH+WRITE / QUERY) ─── */}
+        <Card className="p-4 border-border/40 bg-background/30 backdrop-blur-xl shadow-[0_8px_32px_hsl(var(--background)/0.35)]">
+          <div className="flex items-center gap-2 mb-2">
+            <Wand2 className="h-4 w-4 text-primary" />
+            <h2 className="font-medium tracking-tight">Vault Agent</h2>
+            <Badge variant="outline" className="ml-2 text-[10px] border-border/40 bg-background/40 backdrop-blur">
+              Natural language · Auto-classifies write / fetch / query
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Try: <em>"Save this framework: …"</em> · <em>"Fetch the CoinGecko BTC price and add it"</em> · <em>"What does my trading framework say about risk?"</em>
+          </p>
+
+          {agentLog.length > 0 && (
+            <div className="mb-3 max-h-72 overflow-y-auto space-y-2 rounded-lg border border-border/40 bg-background/30 backdrop-blur p-3">
+              {agentLog.map((t, i) => (
+                <div key={i} className={t.role === "user" ? "text-sm" : "text-sm text-muted-foreground"}>
+                  <span className="font-medium text-foreground">{t.role === "user" ? "You" : "Aureon"}</span>
+                  {t.intent && <Badge variant="outline" className="ml-2 text-[9px] uppercase border-border/40">{t.intent}</Badge>}
+                  <div className="mt-1 whitespace-pre-wrap">{t.text}</div>
+                  {t.matches && t.matches.length > 0 && (
+                    <div className="mt-2 text-[11px] space-y-1">
+                      {t.matches.slice(0, 3).map((m, j) => (
+                        <div key={j} className="truncate">
+                          <span className="text-primary">[{m.sourceName}]</span> · sim {(m.similarity * 100).toFixed(0)}% · {m.content.slice(0, 140)}…
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Input
+              placeholder="Talk to the vault — Aureon decides whether to store, fetch, or answer."
+              value={agentCmd}
+              onChange={(e) => setAgentCmd(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !agentBusy) { e.preventDefault(); runAgent(); } }}
+              disabled={agentBusy}
+              className="bg-background/40 backdrop-blur border-border/40"
+            />
+            <Button onClick={runAgent} disabled={agentBusy || !agentCmd.trim()}>
+              {agentBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+          </div>
+        </Card>
+
 
         <Card className="p-4 border-border/40 bg-background/30 backdrop-blur-xl shadow-[0_8px_32px_hsl(var(--background)/0.35)]">
           <Tabs defaultValue="text">
