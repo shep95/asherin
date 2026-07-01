@@ -226,6 +226,7 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  console.log("[dork] v2-fallback-chain active");
   try {
     const { target, profile, byok, briefOnly } = await req.json();
     if (!target || typeof target !== "string" || target.trim().length < 2) {
