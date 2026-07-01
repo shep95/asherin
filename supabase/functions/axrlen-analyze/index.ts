@@ -252,9 +252,15 @@ serve(async (req) => {
       wikiEvents !== null,
     ].filter(Boolean).length;
 
-    const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
+    // AXRLEN admin key takes priority — dedicated Gemini key just for AXRLEN
+    // admins, so their traffic never touches Lovable AI credits or the shared
+    // platform Gemini key. Falls back to the platform keys if unset.
+    const GEMINI_KEY =
+      Deno.env.get("AXRLEN_GEMINI_API_KEY") ||
+      Deno.env.get("GEMINI_API_KEY") ||
+      Deno.env.get("GEMINI_API_KEY_APP");
     const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!GEMINI_KEY && !LOVABLE_KEY) throw new Error("No AI key configured (GEMINI_API_KEY or LOVABLE_API_KEY)");
+    if (!GEMINI_KEY && !LOVABLE_KEY) throw new Error("No AI key configured (AXRLEN_GEMINI_API_KEY / GEMINI_API_KEY / LOVABLE_API_KEY)");
 
     const systemPrompt = `You are AXRLEN — NEXUS-PRIME, the supreme cross-domain predictive intelligence engine. You operate within the AUREON platform and FUSE 30+ domains into a single unified prediction algorithm called the "Ghost Chain." Every domain cross-pollinates every other domain. No prediction uses fewer than 5 domains simultaneously.
 
