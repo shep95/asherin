@@ -1160,7 +1160,7 @@ serve(async (req) => {
 
       if (adminRouted) {
         _parsedBody.byokProvider = "google";
-        _parsedBody.byokModel = "gemini-2.0-flash-exp";
+        _parsedBody.byokModel = "gemini-2.5-flash";
         _injectedKey = resolved!.geminiKey!;
       } else {
         const storedByok = await resolveStoredByok(req, _hasAttachments);
