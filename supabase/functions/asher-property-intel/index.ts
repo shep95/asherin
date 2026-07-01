@@ -152,18 +152,6 @@ async function multiSearch(query: string, n = 6): Promise<Hit[]> {
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
-  if (req.method !== 'OPTIONS') {
-    try {
-      const _b = await req.clone().json().catch(() => ({} as any));
-      const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
-      const _gate = await import('../_shared/adminGate.ts');
-      await _gate.resolveKey(req, _byok);
-    } catch (_e) {
-      const _gate = await import('../_shared/adminGate.ts');
-      return _gate.byokErrorResponse(_e, corsHeaders);
-    }
-  }
-
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -180,20 +168,39 @@ serve(async (req) => {
       });
     }
 
-    const { address, lat, lng, entityName, byok } = await req.json();
+    const body = await req.json().catch(() => ({} as any));
+    const { address, lat, lng, entityName, byok, byokProvider } = body || {};
     if (!address && !entityName) {
       return new Response(JSON.stringify({ error: "address or entityName required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const isAdmin = ["ashernewtonx@gmail.com","shepherdnewtonx@gmail.com","28numberofmoney@gmail.com"].includes(String(user.email||"").toLowerCase());
-    const apiKey = (typeof byok === "string" && byok.trim())
-      || (isAdmin ? Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") : null);
+    // Resolve Gemini API key:
+    //  1. Admin (ashernewtonx / shepherdnewtonx / 28numberofmoney) → platform GEMINI_API_KEY.
+    //  2. BYOK string (frontend sends byok as raw string) → use as Gemini key when provider is gemini or unspecified.
+    //  3. BYOK object (shared shape) → pull .apiKey when provider === "gemini".
+    //  4. Otherwise 402 BYOK_REQUIRED (this engine is Gemini-only by design).
+    const isAdmin = ["ashernewtonx@gmail.com","shepherdnewtonx@gmail.com","28numberofmoney@gmail.com"]
+      .includes(String(user.email || "").toLowerCase());
+
+    let apiKey: string | null = null;
+    if (typeof byok === "string" && byok.trim()) {
+      const provider = String(byokProvider || "gemini").toLowerCase();
+      if (provider === "gemini") apiKey = byok.trim();
+    } else if (byok && typeof byok === "object") {
+      const provider = String((byok as any).provider || "gemini").toLowerCase();
+      const k = (byok as any).apiKey;
+      if (provider === "gemini" && typeof k === "string" && k.trim()) apiKey = k.trim();
+    }
+    if (!apiKey && isAdmin) {
+      apiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || null;
+    }
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Gemini API key required (BYOK or admin)" }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({
+        error: "BYOK_REQUIRED",
+        message: "Cinematic Dossier requires a Gemini API key. Open the Intelligence Map BYOK panel and add your Gemini key.",
+      }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ─── Parallel OSINT sweep across 6 investigation vectors ───
