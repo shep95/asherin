@@ -188,8 +188,13 @@ const Header = () => {
           <>
             <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
             <div
-              className="absolute right-4 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] max-h-[80vh] overflow-y-auto rounded-2xl border border-border/30 p-4 shadow-2xl lg:hidden animate-in slide-in-from-top-2 fade-in duration-200 bg-cover bg-center"
-              style={{ backgroundImage: "url('/wallpapers/menu-abyss.webp')" }}
+              className="absolute right-4 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] max-h-[80vh] overflow-y-auto rounded-2xl border border-border/30 p-4 shadow-2xl lg:hidden animate-in slide-in-from-top-2 fade-in duration-200"
+              style={{
+                backgroundImage:
+                  "url('/wallpapers/menu-abyss.webp'), url('/wallpapers/menu-abyss.thumb.webp')",
+                backgroundSize: "cover, cover",
+                backgroundPosition: "center, center",
+              }}
             >
               <div className="pointer-events-none absolute inset-0 rounded-2xl bg-black/85" aria-hidden="true" />
               <div className="relative flex flex-col gap-2">
