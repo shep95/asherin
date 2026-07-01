@@ -480,11 +480,6 @@ const AureonIdeView = () => {
   }, [isMobile, toast, user?.id]);
 
   const autoOpenedSessionRef = useRef(false);
-  useEffect(() => {
-    if (sessionsLoading || activeSessionId || autoOpenedSessionRef.current || sessions.length === 0) return;
-    autoOpenedSessionRef.current = true;
-    void loadSession(sessions[0].id);
-  }, [activeSessionId, loadSession, sessions, sessionsLoading]);
 
   const createSession = useCallback(async () => {
     if (!user) return;
