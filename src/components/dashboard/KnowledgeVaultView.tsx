@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, FileText, Link as LinkIcon, Trash2, Database, Sparkles, Loader2 } from "lucide-react";
+import { Upload, FileText, Link as LinkIcon, Trash2, Database, Sparkles, Loader2, Wand2, Send } from "lucide-react";
 import { toast } from "sonner";
 
 type VaultSource = {
