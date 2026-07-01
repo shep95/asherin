@@ -475,13 +475,20 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
                   {sources.map((s) => (
                     <button
                       key={s.id}
-                      onClick={() => setSelectedSource(s.id)}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
-                        selectedSource === s.id
+                      onClick={() => !s.comingSoon && setSelectedSource(s.id)}
+                      disabled={!!s.comingSoon}
+                      title={s.comingSoon ? "Coming soon" : s.desc}
+                      className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                        s.comingSoon
+                          ? "border-border/[0.04] opacity-40 cursor-not-allowed"
+                          : selectedSource === s.id
                           ? "border-foreground/15 bg-foreground/[0.04]"
                           : "border-border/[0.06] hover:border-foreground/10 hover:bg-foreground/[0.02]"
                       }`}
                     >
+                      {s.comingSoon && (
+                        <span className="absolute top-1 right-1 text-[6px] px-1 py-0.5 rounded bg-foreground/[0.08] text-muted-foreground/50 uppercase tracking-wider">Soon</span>
+                      )}
                       <s.icon className="h-4 w-4 text-foreground/40" />
                       <span className="text-[8px] text-foreground/50 text-center leading-tight">{s.label}</span>
                       <span className="text-[7px] text-muted-foreground/25 text-center leading-tight">{s.desc}</span>
