@@ -332,10 +332,11 @@ Return STRICT JSON only with this exact schema:
   "citations": [{"label":"string","url":"string","channel":"ownership|residents|permits|financial|listings|history"}]
 }`;
 
-    // Primary: direct Gemini (admin platform key or user BYOK). Fallback: Lovable AI Gateway.
-    const callDirectGemini = async (model: string) => {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const r = await fetch(url, {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    let resp: Response | null = null;
+    let lastErr = "";
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      resp = await fetch(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -343,30 +344,6 @@ Return STRICT JSON only with this exact schema:
           generationConfig: { temperature: 0.15, maxOutputTokens: 3000, responseMimeType: "application/json" },
         }),
       });
-      return r;
-    };
-
-    const callAiGateway = async () => {
-      const gwKey = Deno.env.get("LOVABLE_API_KEY");
-      if (!gwKey) return null;
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${gwKey}` },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: "Return ONLY valid JSON matching the requested schema. No prose." },
-            { role: "user", content: prompt },
-          ],
-        }),
-      });
-      return r;
-    };
-
-    let resp: Response | null = null;
-    let lastErr = "";
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      resp = await callDirectGemini("gemini-2.5-flash");
       if (resp.ok) break;
       lastErr = await resp.text();
       if (resp.status === 429 || resp.status === 503) {
@@ -375,28 +352,13 @@ Return STRICT JSON only with this exact schema:
       }
       break;
     }
-
-    // Fallback: if direct Gemini failed (invalid key, quota, model gate), route via AI Gateway.
-    let usedGateway = false;
     if (!resp || !resp.ok) {
-      const gw = await callAiGateway();
-      if (gw && gw.ok) {
-        resp = gw;
-        usedGateway = true;
-      } else if (gw) {
-        lastErr = `direct: ${lastErr.slice(0, 160)} | gateway: ${(await gw.text()).slice(0, 160)}`;
-      }
-    }
-
-    if (!resp || !resp.ok) {
-      return new Response(JSON.stringify({ error: `Intel synthesis failed: ${resp?.status || "no-response"} ${lastErr.slice(0, 240)}` }), {
+      return new Response(JSON.stringify({ error: `Gemini failed: ${resp?.status} ${lastErr.slice(0, 240)}` }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const data = await resp.json();
-    const raw = usedGateway
-      ? (data?.choices?.[0]?.message?.content || "{}")
-      : (data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}");
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     let intel: any = {};
     try { intel = JSON.parse(raw); } catch {
       const m = raw.match(/\{[\s\S]*\}/);
