@@ -14,13 +14,29 @@ const VIEWPORT_MAP: Record<ViewportSize, { w: string; label: string }> = {
   mobile: { w: "375px", label: "Mobile" },
 };
 
-function flattenFiles(files: IdeFile[]): IdeFile[] {
-  const result: IdeFile[] = [];
+type PreviewFile = IdeFile & { path: string };
+
+function flattenFiles(files: IdeFile[], basePath = ""): PreviewFile[] {
+  const result: PreviewFile[] = [];
   for (const f of files) {
-    if (f.type === "file") result.push(f);
-    if (f.children) result.push(...flattenFiles(f.children));
+    const path = `${basePath}${f.name}`;
+    if (f.type === "file") result.push({ ...f, path });
+    if (f.children) result.push(...flattenFiles(f.children, `${path}/`));
   }
   return result;
+}
+
+function normalizeAssetPath(path: string): string {
+  return path.replace(/^\.\//, "").replace(/^\//, "");
+}
+
+function scriptReferenceRegex(file: PreviewFile): RegExp {
+  const candidates = [file.path, file.name]
+    .map(normalizeAssetPath)
+    .filter(Boolean)
+    .map(path => path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const pattern = candidates.length ? `(?:${Array.from(new Set(candidates)).join("|")})` : file.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`<script([^>]*)src=["'](?:\\./|/)?${pattern}["']([^>]*)><\\/script>`, "g");
 }
 
 function stripModuleSyntax(src: string): { code: string; defaultExport: string | null; namedComponents: string[] } {
@@ -78,18 +94,34 @@ function buildPreviewHtml(files: IdeFile[]): string {
     let content = htmlFile.content.replace("</head>", `${injectedCss}</head>`);
     let needsHtmlCompiler = false;
     let needsHtmlReact = false;
+    const referencedScriptBlocks: string[] = [];
+    const referencedFileIds = new Set<string>();
     for (const f of flat) {
       if (f === htmlFile) continue;
       if (/\.(tsx?|jsx?|mjs)$/.test(f.name)) {
         const compiled = compileScriptTag(f.name, f.content ?? "");
-        const escapedName = f.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const scriptRef = new RegExp(`<script([^>]*)src=["'](?:\\./|/)?${escapedName}["']([^>]*)><\\/script>`, "g");
+        const scriptRef = scriptReferenceRegex(f);
         if (scriptRef.test(content)) {
-          content = content.replace(scriptRef, () => compiled);
+          content = content.replace(scriptRef, () => "");
+          referencedFileIds.add(f.id);
+          referencedScriptBlocks.push(compiled);
           needsHtmlCompiler = true;
           if (/\.(tsx|jsx|js)$/.test(f.name) || /from ['"]react['"]/.test(f.content ?? "") || /React/.test(f.content ?? "")) needsHtmlReact = true;
         }
       }
+    }
+    const unreferencedScriptBlocks = flat
+      .filter(f => f !== htmlFile && !referencedFileIds.has(f.id) && /\.(tsx?|jsx?|mjs)$/.test(f.name))
+      .map(f => {
+        if (/\.(tsx|jsx|js)$/.test(f.name) || /from ['"]react['"]/.test(f.content ?? "") || /React/.test(f.content ?? "")) needsHtmlReact = true;
+        needsHtmlCompiler = true;
+        return compileScriptTag(f.name, f.content ?? "");
+      });
+    const compiledScripts = [...unreferencedScriptBlocks, ...referencedScriptBlocks].join("\n");
+    if (compiledScripts) {
+      content = content.includes("</body>")
+        ? content.replace("</body>", `${compiledScripts}</body>`)
+        : `${content}${compiledScripts}`;
     }
     if (needsHtmlCompiler && !/babel\.min\.js/.test(content)) {
       const runtime = `${needsHtmlReact ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script><script>try{var R=window.React||{};['useState','useEffect','useRef','useMemo','useCallback','useContext','useReducer','useLayoutEffect','createContext','forwardRef','memo','Fragment','Suspense','lazy','createElement'].forEach(function(k){if(R[k]&&typeof window[k]==='undefined')window[k]=R[k];});if(window.ReactDOM&&typeof window.createRoot==='undefined')window.createRoot=window.ReactDOM.createRoot;}catch(e){}</script>` : ""}<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`;

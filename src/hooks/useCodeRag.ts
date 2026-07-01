@@ -4,7 +4,7 @@
 // - search: top-k semantic search of project code for a free-text query
 // - hover: AI-augmented hover explanation grounded in RAG context
 
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type RagMatch = {
@@ -89,5 +89,5 @@ export function useCodeRag(projectId: string | null) {
     try { await invoke("purge", { project_id: projectId }); } catch (e) { console.warn(e); }
   }, [projectId]);
 
-  return { indexFiles, indexFilesDebounced, search, hover, purge };
+  return useMemo(() => ({ indexFiles, indexFilesDebounced, search, hover, purge }), [indexFiles, indexFilesDebounced, search, hover, purge]);
 }
