@@ -73,7 +73,8 @@ const Header = () => {
                 sideOffset={12}
                 onMouseEnter={() => setPagesOpen(true)}
                 onMouseLeave={() => setPagesOpen(false)}
-                className="w-72 max-h-[70vh] overflow-y-auto bg-background/80 backdrop-blur-2xl border border-foreground/15 p-3 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] animate-fade-in"
+                style={{ backgroundImage: "url('/wallpapers/menu-abyss.webp')" }}
+                className="w-72 max-h-[70vh] overflow-y-auto bg-cover bg-center border border-foreground/15 p-3 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] animate-fade-in relative before:content-[''] before:absolute before:inset-0 before:rounded-2xl before:bg-black/85 before:pointer-events-none [&>*]:relative"
               >
                 <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Company</p>
                 <DropdownMenuItem asChild>
