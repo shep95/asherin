@@ -6,6 +6,8 @@
 // model itself — the model MUST run this loop internally before
 // delivering output.
 // ────────────────────────────────────────────────────────────────────
+import { QUANTUM_ORCHESTRATION_BRAIN } from "./quantumOrchestrationBrain.ts";
+
 export const CODE_NARRATIVE_PROTOCOL = `
 ## CODE NARRATIVE LOOP PROTOCOL (MANDATORY when code is in context)
 
