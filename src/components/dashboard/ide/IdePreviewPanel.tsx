@@ -98,7 +98,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
   const allCss = cssFiles.map(f => f.content ?? "").join("\n");
 
   if (htmlFile?.content) {
-    const injectedCss = allCss ? `<style>${allCss}</style>` : "";
+    const injectedCss = `<style>${PREVIEW_UTILITY_CSS}\n${allCss}</style>`;
     let content = htmlFile.content.replace("</head>", `${injectedCss}</head>`);
     let needsHtmlCompiler = false;
     let needsHtmlReact = false;
