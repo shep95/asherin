@@ -39,7 +39,7 @@ import {
   type PlannedChange,
   type IdeCommand,
 } from "@/components/ide-shared";
-import { changedFiles } from "@/lib/ide";
+import { changedFiles, attachCursorFeatures } from "@/lib/ide";
 const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSave, getAutoSaveAge, startAutoSaveLoop, clearAutoSave, type IdeModelId, type AutoSaveSnapshot } from "@/lib/ide";
 import { toast } from "sonner";
