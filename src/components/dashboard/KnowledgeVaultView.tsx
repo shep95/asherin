@@ -93,6 +93,28 @@ export default function KnowledgeVaultView() {
     else { toast.success("Source removed"); refresh(); }
   };
 
+  const runAgent = async () => {
+    const cmd = agentCmd.trim();
+    if (!cmd) return;
+    setAgentLog((l) => [...l, { role: "user", text: cmd }]);
+    setAgentCmd("");
+    setAgentBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("vault-agent", { body: { command: cmd } });
+      if (error) throw error;
+      const r = data as { intent?: string; message?: string; answer?: string; matches?: AgentTurn["matches"] };
+      const text = r?.intent === "QUERY" ? (r.answer ?? r.message ?? "") : (r?.message ?? "Done.");
+      setAgentLog((l) => [...l, { role: "aureon", text, intent: r?.intent, matches: r?.matches }]);
+      if (r?.intent === "WRITE" || r?.intent === "FETCH_WRITE") await refresh();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setAgentLog((l) => [...l, { role: "aureon", text: `Agent error: ${msg}` }]);
+      toast.error(msg);
+    } finally {
+      setAgentBusy(false);
+    }
+  };
+
   return (
     <div className="relative h-full overflow-y-auto">
       {/* Ambient glass wash — matches the app's dashboard aesthetic (grey → transparent) */}
