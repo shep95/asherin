@@ -206,7 +206,7 @@ serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({} as any));
-    const { address, lat, lng, entityName, byok, byokProvider } = body || {};
+    const { address, lat, lng, entityName, byok, byokProvider, country: ctryIn, state: stIn, county: coIn } = body || {};
     if (!address && !entityName) {
       return new Response(JSON.stringify({ error: "address or entityName required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
