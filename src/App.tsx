@@ -144,6 +144,7 @@ const App = () => (
             <Route path="/blog/btc-daily-predictions" element={<BlogPredictionBtcDaily />} />
             <Route path="/blog/the-truth-and-reality-of-wars" element={<BlogTheTruthAndRealityOfWars />} />
             <Route path="/blog/zaxin-tactical-ble-intelligence" element={<BlogZaxinTacticalBleIntelligence />} />
+            <Route path="/blog/code-narrative-quantum-collapse" element={<BlogCodeNarrativeQuantumCollapse />} />
             <Route path="/zaxin/theories" element={<ZaxinTheories />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/investors" element={<Investors />} />
