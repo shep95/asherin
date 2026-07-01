@@ -7,6 +7,7 @@
 // delivering output.
 // ────────────────────────────────────────────────────────────────────
 import { QUANTUM_ORCHESTRATION_BRAIN } from "./quantumOrchestrationBrain.ts";
+import { THEME_ENGINE_DOCTRINE } from "./themeEngineDoctrine.ts";
 
 export const CODE_NARRATIVE_PROTOCOL = `
 ## CODE NARRATIVE LOOP PROTOCOL (MANDATORY when code is in context)
