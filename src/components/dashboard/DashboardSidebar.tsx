@@ -78,6 +78,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   "axrlen": Brain,
   "zerlal": Shield,
   "zaxin": Layers,
+  "zacoon": Ghost,
   "reverse-engineer": Search,
   "file-scrapper": FileText,
   "cipher": Shield,
