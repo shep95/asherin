@@ -15,6 +15,14 @@ interface Update {
 const UPDATES: Update[] = [
   {
     date: "2026-06-30",
+    title: "Knowledge Vault — Agentic Automation Layer",
+    body:
+      "The Vault is now conversational. Type in plain English and Aureon classifies intent in real time — WRITE (chunk + embed content you paste), FETCH + WRITE (Aureon resolves the public endpoint, pulls the data, normalizes it, and ingests), or QUERY (semantic retrieval + cited answer). No manual uploads, no clicking through tabs. The vault becomes long-term memory that grows through natural language, and every stored chunk is automatically surfaced during future Aureon chats.",
+    icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Aureon Pro",
+  },
+  {
+    date: "2026-06-30",
     title: "Zophiel Dork — Direct Search Jump Links",
     body:
       "Every Zophiel Dork bucket now surfaces one-tap jump links to Google, DuckDuckGo, and Bing so you can pivot straight from a generated operator into a live SERP. Each hit also displays its source hostname alongside the clickable URL — full provenance without leaving the panel. Example targets were sanitized to generic personas so no operator identity leaks in shared screenshots.",
