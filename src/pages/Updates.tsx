@@ -14,7 +14,7 @@ interface Update {
 
 const UPDATES: Update[] = [
   {
-    date: "2026-07-01",
+    date: "2026-06-30",
     title: "Zophiel Dork — Direct Search Jump Links",
     body:
       "Every Zophiel Dork bucket now surfaces one-tap jump links to Google, DuckDuckGo, and Bing so you can pivot straight from a generated operator into a live SERP. Each hit also displays its source hostname alongside the clickable URL — full provenance without leaving the panel. Example targets were sanitized to generic personas so no operator identity leaks in shared screenshots.",
