@@ -563,6 +563,12 @@ export default function AsherCodeModule() {
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
 
+  // Refs so long-lived Monaco widgets (Cmd+K, ghost completions) always see the current file.
+  const activeFileRefAsher = useRef(activeFile);
+  const activeContentRefAsher = useRef(activeContent);
+  useEffect(() => { activeFileRefAsher.current = activeFile; }, [activeFile]);
+  useEffect(() => { activeContentRefAsher.current = activeContent; }, [activeContent]);
+
   function applyProjectFileContent(fileId: string, content: string, persist = false) {
     setDirty(d => {
       const next = { ...d, [fileId]: content };
