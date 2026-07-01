@@ -352,7 +352,7 @@ header[data-aureon-header] > a {
    The wallpaper + bg-black/80 overlay already obscures backdrops,
    so per-frame `backdrop-filter` re-sampling on every translucent
    card is pure GPU cost with no visual payoff. Kill it here and
-   let the existing bg-*/opacity classes carry the glass look.
+   let the existing translucent bg utilities carry the glass look.
    Impact: eliminates ~15-40 blur passes per scroll frame per page,
    producing dramatically smoother scroll on mid-range hardware.
    ============================================================ */
