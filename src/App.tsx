@@ -192,6 +192,10 @@ const App = () => (
               element={<BlogHowAureonUsesCseoResearch />}
             />
             <Route
+              path="/blog/how-we-make-aureon-sound-human"
+              element={<BlogHowWeMakeAureonSoundHuman />}
+            />
+            <Route
               path="/asher-dashboard"
               element={
                 <ProtectedRoute>
