@@ -250,13 +250,14 @@ serve(async (req) => {
       history:     `"${baseTarget}" sold OR "sale price" OR "deed transfer" OR history`,
     };
 
+    const authHeader = req.headers.get("Authorization") ?? "";
     const [oHits, rHits, pHits, fHits, lHits, hHits] = await Promise.all([
-      multiSearch(queries.ownership, 4),
-      multiSearch(queries.residents, 3),
-      multiSearch(queries.permits, 3),
-      multiSearch(queries.financial, 3),
-      multiSearch(queries.listings, 4),
-      multiSearch(queries.history, 3),
+      multiSearch(queries.ownership, authHeader, 5),
+      multiSearch(queries.residents, authHeader, 4),
+      multiSearch(queries.permits, authHeader, 4),
+      multiSearch(queries.financial, authHeader, 4),
+      multiSearch(queries.listings, authHeader, 5),
+      multiSearch(queries.history, authHeader, 4),
     ]);
 
     // Merge & dedupe for corpus
@@ -271,11 +272,11 @@ serve(async (req) => {
     push(oHits, "ownership"); push(rHits, "residents"); push(pHits, "permits");
     push(fHits, "financial"); push(lHits, "listings"); push(hHits, "history");
 
-    // Scrape top 5 in parallel for the AI corpus
-    const top = merged.slice(0, 5);
+    // Scrape top 10 in parallel — richer corpus = fewer "no info" dossiers.
+    const top = merged.slice(0, 10);
     const pages = await Promise.all(top.map(async (h) => ({
       channel: h.channel, url: h.url, title: h.title, snippet: h.snippet,
-      body: (await fetchPage(h.url, 4500)).slice(0, 2200),
+      body: (await fetchPage(h.url, 5500)).slice(0, 2400),
     })));
 
     // Harvest interior/property photos from listings (top 3 listing URLs)
