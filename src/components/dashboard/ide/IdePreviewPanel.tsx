@@ -260,7 +260,7 @@ const IdePreviewPanel = ({ files }: Props) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [viewport, setViewport] = useState<ViewportSize>("desktop");
   const [loading, setLoading] = useState(false);
-  const [url, setUrl] = useState("about:blank");
+  const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const memoizedHtml = useMemo(() => buildPreviewHtml(files), [files]);
@@ -269,10 +269,8 @@ const IdePreviewPanel = ({ files }: Props) => {
     setLoading(true);
     setError(null);
     try {
-      const blob = new Blob([memoizedHtml], { type: "text/html" });
-      const blobUrl = URL.createObjectURL(blob);
-      setUrl(blobUrl);
-      return () => URL.revokeObjectURL(blobUrl);
+      setRefreshKey(key => key + 1);
+      return undefined;
     } catch (e: any) {
       setError(e.message);
       setLoading(false);
@@ -354,8 +352,9 @@ const IdePreviewPanel = ({ files }: Props) => {
           }}
         >
           <iframe
+            key={refreshKey}
             ref={iframeRef}
-            src={url}
+            srcDoc={memoizedHtml}
             onLoad={handleIframeLoad}
             className="w-full h-full border-0"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
