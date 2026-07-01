@@ -4,6 +4,8 @@ import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from "../_
 import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
+import { CODE_NARRATIVE_PROTOCOL } from "../_shared/codeNarrativeProtocol.ts";
+import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
@@ -463,7 +465,7 @@ serve(async (req) => {
     }
 
     // Compose the full system prompt: identity → doctrine → brains → audit directive/schema
-    const FULL_SYSTEM_PROMPT = `${ZOPHIEL_IDENTITY}\n\n${AUREON_CODE_PERSONALITY}\n\n${NARRATIVE_FORGE_BRAIN}\n\n${BUTTERFLY_PROTOCOL_BRAIN}${brainsContext}\n\n${AUDIT_DIRECTIVE}`;
+    const FULL_SYSTEM_PROMPT = `${ZOPHIEL_IDENTITY}\n\n${AUREON_CODE_PERSONALITY}\n\n${NARRATIVE_FORGE_BRAIN}\n\n${BUTTERFLY_PROTOCOL_BRAIN}\n\n${CODE_NARRATIVE_PROTOCOL}\n\n${QUANTUM_ORCHESTRATION_BRAIN}${brainsContext}\n\n${AUDIT_DIRECTIVE}`;
 
     const userPrompt = `Filename: ${safeName}\n\n--- BEGIN CODE ---\n${code}\n--- END CODE ---\n\nReturn the JSON security blueprint now.`;
 

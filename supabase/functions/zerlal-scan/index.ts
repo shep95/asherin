@@ -1,6 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
 import { callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
+import { CODE_NARRATIVE_PROTOCOL } from "../_shared/codeNarrativeProtocol.ts";
+import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
+
+const ZERLAL_SYSTEM_PROMPT = `You are ZERLAL, an elite code-security and audit engine.
+
+${CODE_NARRATIVE_PROTOCOL}
+
+${QUANTUM_ORCHESTRATION_BRAIN}
+
+Return ONLY valid JSON. No markdown fences. No prose outside the JSON payload.`;
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
@@ -900,7 +910,7 @@ async function callScanAI(
   lovableKey: string | undefined,
   geminiKey: string | undefined,
   timeoutMs = 55_000,
-  systemPrompt = "You are ZERLAL. Always run the CODE → NARRATIVE → FLAWS → FIX loop internally (max 6 iterations) before responding: (1) convert every file into a plain-language narrative, (2) hunt logic/security/UI/workflow/bug flaws on the narrative, (3) when fixes are requested, regenerate code and re-narrate until zero medium+ flaws remain or 6 iterations are hit. Return ONLY valid JSON. No markdown."
+  systemPrompt = ZERLAL_SYSTEM_PROMPT
 ): Promise<any> {
   if (resolved.mode === "byok" && resolved.byok) {
     const text = await callByokJsonWithRetry(resolved.byok as ZophielByokConfig, systemPrompt, prompt, {
@@ -922,7 +932,7 @@ async function callAI(
   lovableKey: string | undefined,
   geminiKey: string | undefined,
   timeoutMs = 55_000,
-  systemPrompt = "You are ZERLAL. Always run the CODE → NARRATIVE → FLAWS → FIX loop internally (max 6 iterations) before responding: (1) convert every file into a plain-language narrative, (2) hunt logic/security/UI/workflow/bug flaws on the narrative, (3) when fixes are requested, regenerate code and re-narrate until zero medium+ flaws remain or 6 iterations are hit. Return ONLY valid JSON. No markdown."
+  systemPrompt = ZERLAL_SYSTEM_PROMPT
 ): Promise<any> {
   // Try Lovable AI Gateway first
   if (lovableKey) {

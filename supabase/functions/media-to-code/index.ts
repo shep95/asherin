@@ -4,6 +4,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { CODE_NARRATIVE_PROTOCOL } from "../_shared/codeNarrativeProtocol.ts";
+import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
 
 const SYSTEM_PROMPT = `You are MEDIA-TO-CODE, an elite front-end engineer specialized in rewriting
 HTML/CSS embed snippets for images and videos based on plain-English instructions.
@@ -19,7 +21,11 @@ CRITICAL RULES:
 7. If the instruction is ambiguous or destructive (e.g. "delete the video"), respond with:
    {"clarify":"short clarifying question","summary":""}
 8. Never invent external scripts, CDN imports, or tracking pixels.
-9. Honor previous edit history — additive changes should preserve earlier styling unless the user explicitly overrides it.`;
+9. Honor previous edit history — additive changes should preserve earlier styling unless the user explicitly overrides it.
+
+${CODE_NARRATIVE_PROTOCOL}
+
+${QUANTUM_ORCHESTRATION_BRAIN}`;
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
