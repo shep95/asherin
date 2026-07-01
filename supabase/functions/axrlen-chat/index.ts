@@ -51,10 +51,13 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_KEY) {
+    // Admin traffic prefers the dedicated AXRLEN Gemini key so it never spends
+    // Lovable AI credits. Falls back to Lovable AI Gateway if that key is unset.
+    const AXRLEN_GEMINI_KEY = Deno.env.get("AXRLEN_GEMINI_API_KEY") || "";
+    const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY") || "";
+    if (!AXRLEN_GEMINI_KEY && !LOVABLE_KEY) {
       return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
+        JSON.stringify({ error: "No AI key configured (AXRLEN_GEMINI_API_KEY or LOVABLE_API_KEY)" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
