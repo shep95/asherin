@@ -571,7 +571,11 @@ const IntelligenceMapModule = () => {
       primary?.tags?.["name:en"] ||
       primary?.tags?.operator ||
       undefined;
-    if (!address && !entityName) return;
+    // Coordinates alone are a valid target — fall back to a coord label so
+    // rural / unresolved parcels still trigger the dossier sweep instead of
+    // silently returning and leaving the panel blank.
+    const resolvedAddress =
+      address || `Unresolved parcel @ ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
     // BYOK GATE — property intel requires the user's own AI key.
     // Eliminates platform-key rate limits and the 4–15s queue wait.
