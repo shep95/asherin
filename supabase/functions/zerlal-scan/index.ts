@@ -1,6 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
 import { callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
+import { CODE_NARRATIVE_PROTOCOL } from "../_shared/codeNarrativeProtocol.ts";
+import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
+
+const ZERLAL_SYSTEM_PROMPT = `You are ZERLAL, an elite code-security and audit engine.
+
+${CODE_NARRATIVE_PROTOCOL}
+
+${QUANTUM_ORCHESTRATION_BRAIN}
+
+Return ONLY valid JSON. No markdown fences. No prose outside the JSON payload.`;
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
