@@ -330,15 +330,17 @@ Snippet: ${p.snippet || "(no snippet)"}
 Content: ${p.body || "(no body — infer from snippet only)"}`)
       .join("\n\n");
 
-    const prompt = `You are a geospatial intelligence analyst building a CINEMATIC DOSSIER on a property. Use ONLY facts present in the sources. When a field is not present, mark inferred=true and lower confidence. Never invent names, prices, or dates.
+    const prompt = `You are a geospatial intelligence analyst building a CINEMATIC DOSSIER on a property.
+Use ONLY facts present in the sources below. Snippets alone are valid facts — extract every value visible (price, beds, baths, year, owner names, permit numbers, tax amounts, sale dates). When a field is not present in ANY source, set it to null with confidence 0. Never invent names, prices, or dates.
+When sources are tangential (do not mention the exact address), you MAY still use them for neighborhood context, comparable sales, or municipal patterns — but flag them in citations.channel and lower the field's confidence accordingly. Do NOT return an empty dossier when snippets contain any usable signal.
 
 TARGET:
 - Address: ${address ?? "(unknown)"}
 - Coordinates: ${lat ?? "?"}, ${lng ?? "?"}
 - Entity: ${entityName ?? "(none)"}
 
-MULTI-CHANNEL OSINT CORPUS:
-${corpus || "(no sources scraped)"}
+MULTI-CHANNEL OSINT CORPUS (${usable.length} sources, ${pages.filter((p) => p.relevant).length} address-matched):
+${corpus || "(no sources scraped — return skeleton with confidence 0 and summary explaining that public records are limited for this parcel)"}
 
 Return STRICT JSON only with this exact schema:
 {
