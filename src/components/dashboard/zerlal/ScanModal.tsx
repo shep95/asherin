@@ -755,7 +755,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
                 if (step < 3) setStep((step + 1) as Step);
                 else handleStartScan();
               }}
-              disabled={(step === 1 && (!selectedSource || !projectName.trim())) || isBusy}
+              disabled={(step === 1 && !isStep1Ready()) || isBusy}
               className="px-4 py-1.5 rounded-lg bg-foreground/[0.08] text-[10px] text-foreground/60 hover:bg-foreground/[0.12] transition-colors disabled:opacity-30 flex items-center gap-1"
             >
               {isBusy ? (
