@@ -72,6 +72,9 @@ const BlogHowAiPredictiveForecastingWorks = lazy(
 const BlogHowAureonUsesCseoResearch = lazy(
   () => import("./pages/blog/HowAureonUsesCseoResearch"),
 );
+const BlogHowWeMakeAureonSoundHuman = lazy(
+  () => import("./pages/blog/HowWeMakeAureonSoundHuman"),
+);
 const GlossaryZeroDayConfidenceScoring = lazy(
   () => import("./pages/glossary/ZeroDayConfidenceScoring"),
 );
