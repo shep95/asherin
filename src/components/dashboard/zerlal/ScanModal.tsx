@@ -437,6 +437,25 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
 
   const isBusy = creating || scanning || isProcessing;
 
+  // Step-1 readiness: name + a selected source + a source-appropriate input,
+  // so users cannot click Next into a scan that will fail at Step 3.
+  const isStep1Ready = () => {
+    if (!projectName.trim() || !selectedSource) return false;
+    switch (selectedSource) {
+      case "upload":
+      case "dependency":
+        return files.length > 0;
+      case "paste-code":
+        return pastedCode.trim().length > 0;
+      case "github-url":
+        return /github\.com/i.test(url);
+      case "paste-url":
+        return /(github|gitlab|bitbucket)\.(com|org)/i.test(url);
+      default:
+        return false; // coming-soon sources
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-2xl border border-border/[0.08] bg-card/95 backdrop-blur-md shadow-2xl max-h-[85vh] flex flex-col">
