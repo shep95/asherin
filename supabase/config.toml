@@ -235,6 +235,9 @@ verify_jwt = true
 [functions.vault-retrieve]
 verify_jwt = true
 
+[functions.vault-agent]
+verify_jwt = true
+
 
 
 
