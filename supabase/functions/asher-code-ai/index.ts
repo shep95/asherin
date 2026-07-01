@@ -679,7 +679,9 @@ serve(async (req) => {
       });
     }
 
-    const maxTokens = mode === "inline" ? 256 : 4096;
+    const isInlineEdit = mode === "inline" && !!payload.instruction && !!payload.code;
+    const maxTokens = mode === "inline" ? (isInlineEdit ? 1024 : 256) : 4096;
+
     const runtimeSystem = buildSystemPrompt(payload);
 
     const { system: trimmedSystem, messages: trimmedMessages } = clampPayload(runtimeSystem, messages);
