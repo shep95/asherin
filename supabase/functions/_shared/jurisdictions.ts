@@ -264,12 +264,17 @@ export function sourcesFor(country?: string, state?: string, county?: string): J
     US: US_STATE[s], AU: AU_STATE[s], CA: CA_PROVINCE[s], GB: GB_REGION[s],
   };
 
-  return merge(
+  const raw = merge(
     { listings: GLOBAL_LISTINGS, entities: GLOBAL_ENTITIES, people: GLOBAL_PEOPLE_AGGREGATORS, courts: GLOBAL_COURTS },
     COUNTRY[c],
     stateMap[c],
     c === "US" && countyKey ? US_COUNTY[countyKey] : undefined,
   );
+  // Final safety: strip any blocklisted domain that may have leaked into a jurisdiction map.
+  (Object.keys(raw) as (keyof JurisdictionSources)[]).forEach((k) => {
+    raw[k] = stripBlocked(raw[k]);
+  });
+  return raw;
 }
 
 /** Build a `site:a OR site:b OR site:c` restrictor for the given domains. */
