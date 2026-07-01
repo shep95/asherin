@@ -60,6 +60,29 @@ async function aiChat(messages: any[]): Promise<string> {
   return j?.choices?.[0]?.message?.content ?? "";
 }
 
+async function ensureCodeProject(admin: any, projectId: string, userId: string): Promise<void> {
+  const { data: existing, error: selectError } = await admin
+    .from("asher_code_projects")
+    .select("id, owner_id")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (selectError) throw selectError;
+  if (existing) {
+    if (existing.owner_id !== userId) throw new Error("Project not found or not authorized");
+    return;
+  }
+
+  const { error: insertError } = await admin.from("asher_code_projects").insert({
+    id: projectId,
+    owner_id: userId,
+    name: "Aureon IDE Project",
+    language: "typescript",
+    template: "aureon-ide-session",
+    visibility: "private",
+  });
+  if (insertError && insertError.code !== "23505") throw insertError;
+}
+
 serve(async (req) => {
   const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -78,6 +101,7 @@ serve(async (req) => {
     if (!projectId) return new Response(JSON.stringify({ error: "project_id required" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    await ensureCodeProject(admin, projectId, user.id);
 
     // ---------- INDEX ----------
     if (action === "index") {

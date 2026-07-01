@@ -75,6 +75,8 @@ const STARTER_FILES: IdeFile[] = [
   { id: "indexhtml", name: "index.html", type: "file", content: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Aureon Project</title>\n</head>\n<body>\n  <div id="root"></div>\n  <script type="module" src="/src/main.tsx"></script>\n</body>\n</html>` },
 ];
 
+const EMPTY_PROJECT_FILES: IdeFile[] = [];
+
 function flattenFiles(files: IdeFile[]): IdeFile[] {
   const result: IdeFile[] = [];
   for (const f of files) {
@@ -115,12 +117,12 @@ const AureonIdeView = () => {
   const [saving, setSaving] = useState(false);
 
   // File state
-  const [files, setFiles] = useState<IdeFile[]>(STARTER_FILES);
-  const [openFileIds, setOpenFileIds] = useState<string[]>(["app"]);
-  const [activeFileId, setActiveFileId] = useState<string | null>("app");
+  const [files, setFiles] = useState<IdeFile[]>(EMPTY_PROJECT_FILES);
+  const [openFileIds, setOpenFileIds] = useState<string[]>([]);
+  const [activeFileId, setActiveFileId] = useState<string | null>(null);
 
   // Undo/Redo
-  const fileHistoryRef = useRef<IdeFile[][]>([STARTER_FILES]);
+  const fileHistoryRef = useRef<IdeFile[][]>([EMPTY_PROJECT_FILES]);
   const historyIndexRef = useRef(0);
   const skipHistoryRef = useRef(false);
 
@@ -411,9 +413,9 @@ const AureonIdeView = () => {
   );
 
   // Derived
-  const allFiles = flattenFiles(files);
-  const openFiles = openFileIds.map(id => allFiles.find(f => f.id === id)).filter(Boolean) as IdeFile[];
-  const activeFile = allFiles.find(f => f.id === activeFileId);
+  const allFiles = useMemo(() => flattenFiles(files), [files]);
+  const openFiles = useMemo(() => openFileIds.map(id => allFiles.find(f => f.id === id)).filter(Boolean) as IdeFile[], [allFiles, openFileIds]);
+  const activeFile = useMemo(() => allFiles.find(f => f.id === activeFileId), [activeFileId, allFiles]);
 
   // ── Phase 4: RAG codebase memory (pgvector-backed) ──
   // Re-uses the active session as the project scope so embeddings follow the user's project.
@@ -436,8 +438,13 @@ const AureonIdeView = () => {
   // ── Session CRUD ──
   const loadSessions = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from("ide_sessions").select("id, name, updated_at").eq("user_id", user.id).order("updated_at", { ascending: false });
-    setSessions((data as IdeSession[]) ?? []);
+    const { data, error } = await supabase.from("ide_sessions").select("id, name, updated_at").eq("user_id", user.id).order("updated_at", { ascending: false });
+    if (error) {
+      console.warn("[ide] failed to load sessions", error);
+      setSessions([]);
+    } else {
+      setSessions((data as IdeSession[]) ?? []);
+    }
     setSessionsLoading(false);
   }, [user]);
 
@@ -445,11 +452,23 @@ const AureonIdeView = () => {
 
   const loadSession = useCallback(async (id: string) => {
     if (!user?.id) return;
-    const { data } = await supabase.from("ide_sessions").select("*").eq("id", id).eq("user_id", user.id).single();
+    const { data, error } = await supabase.from("ide_sessions").select("*").eq("id", id).eq("user_id", user.id).single();
+    if (error) {
+      console.warn("[ide] failed to load session", error);
+      toast({ title: "Project failed to open", description: "The project data could not be loaded.", variant: "destructive" });
+      return;
+    }
     if (data) {
-      setFiles(data.files as unknown as IdeFile[]);
-      setOpenFileIds(data.open_file_ids ?? []);
-      setActiveFileId(data.active_file_id ?? null);
+      const loadedFiles = Array.isArray(data.files) ? data.files as unknown as IdeFile[] : STARTER_FILES;
+      const loadedFlat = flattenFiles(loadedFiles);
+      const nextActiveId = data.active_file_id && loadedFlat.some(f => f.id === data.active_file_id)
+        ? data.active_file_id
+        : loadedFlat[0]?.id ?? null;
+      setFiles(loadedFiles);
+      setOpenFileIds((data.open_file_ids ?? []).filter((id: string) => loadedFlat.some(f => f.id === id)));
+      setActiveFileId(nextActiveId);
+      fileHistoryRef.current = [JSON.parse(JSON.stringify(loadedFiles))];
+      historyIndexRef.current = 0;
       const cfg = data.panel_config as any;
       if (cfg && !isMobile) { setLeftOpen(cfg.leftOpen ?? true); setRightOpen(cfg.rightOpen ?? false); setBottomOpen(cfg.bottomOpen ?? false); }
       setActiveSessionId(id);
@@ -458,13 +477,33 @@ const AureonIdeView = () => {
       setLeftTab("files");
       if (isMobile) setMobilePanel("editor");
     }
-  }, [isMobile, user?.id]);
+  }, [isMobile, toast, user?.id]);
+
+  const autoOpenedSessionRef = useRef(false);
 
   const createSession = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from("ide_sessions").insert({ user_id: user.id, name: `Project ${sessions.length + 1}`, files: STARTER_FILES as any, open_file_ids: ["app"], active_file_id: "app" }).select("id, name, updated_at").single();
-    if (data) { setSessions(prev => [data as IdeSession, ...prev]); loadSession(data.id); }
-  }, [user, sessions.length, loadSession]);
+    const starterCopy = JSON.parse(JSON.stringify(STARTER_FILES)) as IdeFile[];
+    const { data, error } = await supabase.from("ide_sessions").insert({
+      user_id: user.id,
+      name: `Project ${sessions.length + 1}`,
+      files: starterCopy as any,
+      open_file_ids: ["app"],
+      active_file_id: "app",
+      panel_config: { leftOpen: true, rightOpen: false, bottomOpen: false, chatMessages: [] } as any,
+    }).select("id, name, updated_at").single();
+    if (error) {
+      console.warn("[ide] failed to create session", error);
+      toast({ title: "Project failed to create", description: "The IDE could not create a clean project workspace.", variant: "destructive" });
+      return;
+    }
+    if (data) {
+      autoOpenedSessionRef.current = true;
+      setSessions(prev => [data as IdeSession, ...prev]);
+      await loadSession(data.id);
+      setCenterTab("preview");
+    }
+  }, [user, sessions.length, loadSession, toast]);
 
   const deleteSession = useCallback(async (id: string) => {
     // Phase 5: Purge local IndexedDB checkpoints and localStorage autosave so
@@ -480,7 +519,7 @@ const AureonIdeView = () => {
     }
     await supabase.from("ide_sessions").delete().eq("id", id);
     setSessions(prev => prev.filter(s => s.id !== id));
-    if (activeSessionId === id) { setActiveSessionId(null); setFiles(STARTER_FILES); setOpenFileIds(["app"]); setActiveFileId("app"); }
+    if (activeSessionId === id) { setActiveSessionId(null); setFiles(EMPTY_PROJECT_FILES); setOpenFileIds([]); setActiveFileId(null); }
   }, [activeSessionId]);
 
   const renameSession = useCallback(async (id: string, name: string) => {
@@ -1063,14 +1102,13 @@ const AureonIdeView = () => {
             <span className="text-[10px] text-muted-foreground/50 bg-muted/10 rounded-full px-2.5 py-0.5 truncate max-w-[160px]">
               {sessions.find(s => s.id === activeSessionId)?.name ?? ""}
             </span>
-          ) : (
-            <button
-              onClick={createSession}
-              className="flex items-center gap-1.5 rounded-lg bg-accent/15 hover:bg-accent/25 px-3 py-1.5 text-[10px] font-light text-accent transition-colors"
-            >
-              <Plus className="h-3 w-3" /> New Project
-            </button>
-          )}
+          ) : null}
+          <button
+            onClick={createSession}
+            className="flex items-center gap-1.5 rounded-lg bg-accent/15 hover:bg-accent/25 px-3 py-1.5 text-[10px] font-light text-accent transition-colors"
+          >
+            <Plus className="h-3 w-3" /> New Project
+          </button>
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
@@ -1162,6 +1200,9 @@ const AureonIdeView = () => {
                 <Search className="h-3.5 w-3.5 mr-2" /> Search in Files
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={createSession}>
+                <Plus className="h-3.5 w-3.5 mr-2" /> New Project
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { setLeftTab("sessions"); setLeftOpen(true); }}>
                 <FolderKanban className="h-3.5 w-3.5 mr-2" /> Sessions
               </DropdownMenuItem>
