@@ -1,37 +1,31 @@
-// jurisdictionalIntel.ts — jurisdiction-aware person/property search brain.
+// jurisdictionalIntel.ts — SOVEREIGN INTELLIGENCE BRAIN
 //
-// Narrative: when a user says "search asher newton" the engine should NOT blindly
-// throw the name at a search engine. It should:
-//   1. Classify subject (person vs property vs entity).
-//   2. Extract location tokens (country → state → county → city).
-//   3. If location is missing/thin, return a CLARIFY packet so the LLM asks the
-//      user targeted questions (which state? which county/city? approx age?).
-//   4. If location is present, resolve authoritative registries for that
-//      jurisdiction (per jurisdictions.ts) and run site-scoped searches on
-//      those domains PLUS universal listings/OSINT as secondary channel.
-//   5. Return organized results grouped by channel (ownership/records, tax,
-//      permits, listings, people-search, news) with citations.
+// Narrative contract (Aureon + Asher chat):
+//   • Bare name, no jurisdiction  → CLARIFY. Do not search. Ask targeted intake
+//     questions (country, state/province, city, age, associates, context).
+//   • Name + country only         → run NATIONAL sweep (country-level registries
+//     + universal people/entity aggregators) AND ask for state/province in the
+//     same breath — it is an accelerator, not a wall.
+//   • Name + country + state      → drill into state/provincial registries.
+//   • Name + country + state + county/city → hit the ground-level authoritative
+//     record (Lee County appraiser, ACRIS, NSWLRS, ONLAND, Companies House…)
+//     and expand outward only if that source is thin.
+//   • Property queries follow the same cascade but skip the intake if the
+//     address itself carries jurisdiction.
+//   • NEVER touch breach/leak databases. NEVER fabricate a table of registries
+//     the engine did not query. Empty is honest — report exactly what came back
+//     and what lever would unlock the next layer.
 //
-// This is used by BOTH aureon chat and asher chat. Zophiel-search is the
-// retrieval engine; jurisdictions.ts supplies the domain lists.
+// Zophiel is the retrieval engine; jurisdictions.ts is the source atlas.
 
 import { sourcesFor, siteFilter, parseJurisdiction } from "./jurisdictions.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
-// ── People-search / OSINT universal channels (used for PERSON queries) ─────
-const PEOPLE_SITES = [
-  "truepeoplesearch.com", "spokeo.com", "beenverified.com", "whitepages.com",
-  "fastpeoplesearch.com", "radaris.com", "thatsthem.com", "peoplefinders.com",
-  "linkedin.com", "facebook.com", "instagram.com", "x.com", "twitter.com",
-  "voterrecords.com", "usphonebook.com",
-];
-
+// News aggregators — used as a secondary channel for PERSON queries only.
 const NEWS_SITES = [
-  "google.com/news", "news.google.com", "reuters.com", "apnews.com",
-  "local10.com", "wesh.com", "wftv.com", "clickorlando.com",
-  "nbc-2.com", "winknews.com", "wftx.com", "news-press.com",
+  "news.google.com", "reuters.com", "apnews.com", "bbc.com/news",
 ];
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -39,13 +33,14 @@ export type IntelKind = "person" | "property" | "entity" | "none";
 
 export interface IntelIntent {
   kind: IntelKind;
-  subject: string;             // e.g. "Asher Newton" or "123 Main St"
-  country: string;             // "US"
-  state: string;               // "FL"
-  county: string;              // "LEE" (upper, no "County")
-  city: string;                // "Cape Coral"
-  needsClarification: boolean; // true when subject is too vague to search well
-  clarifyQuestions: string[];  // targeted questions to ask user
+  subject: string;
+  country: string;
+  state: string;
+  county: string;
+  city: string;
+  needsClarification: boolean; // BLOCK-level clarify (no country at all)
+  clarifyQuestions: string[];
+  accelerators: string[];      // non-blocking follow-ups (e.g. "which state?")
 }
 
 export interface IntelChannelHit {
@@ -57,18 +52,18 @@ export interface IntelChannelHit {
 
 export interface IntelBundle {
   intent: IntelIntent;
-  channels: Record<string, IntelChannelHit[]>; // ownership | tax | permits | listings | people | news
-  registries: string[];        // domains actually queried
-  jurisdictionLabel: string;   // human-readable: "Lee County, Florida, US"
+  channels: Record<string, IntelChannelHit[]>;
+  registries: string[];
+  jurisdictionLabel: string;
+  emptyChannels: string[];
 }
 
 // ── Intent detection ───────────────────────────────────────────────────────
 const SEARCH_TRIGGERS = /\b(search|find|look ?up|research|dig ?up|osint|background(?: check)?|dossier|profile|who is|locate|track down|pull records? on|scan for)\b/i;
 const PROPERTY_HINTS = /\b(address|street|st\.?|ave\.?|avenue|blvd\.?|road|rd\.?|drive|dr\.?|lane|ln\.?|parcel|property|house|home|lot|apt|apartment|unit|zip|zipcode|zip code|owner of|deed|acreage)\b/i;
 const PROPERTY_STRICT = /\b\d{1,6}\s+[A-Z][a-zA-Z0-9\.\-']+\s+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place|Ter|Terrace|Cir|Circle|Hwy|Highway|Pkwy|Parkway)\b/i;
-const ENTITY_HINTS = /\b(llc|inc\.?|corp\.?|corporation|company|co\.?|ltd\.?|holdings|group|trust|foundation)\b/i;
+const ENTITY_HINTS = /\b(llc|inc\.?|corp\.?|corporation|company|co\.?|ltd\.?|holdings|group|trust|foundation|pty|gmbh|s\.?a\.?)\b/i;
 
-// US state map (name → 2-letter code + a few common abbreviations)
 const US_STATES: Record<string, string> = {
   alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
   colorado: "CO", connecticut: "CT", delaware: "DE", florida: "FL", georgia: "GA",
@@ -84,48 +79,86 @@ const US_STATES: Record<string, string> = {
   wyoming: "WY", "district of columbia": "DC",
 };
 
-// Well-known city → county hints for FL (extendable per jurisdiction).
-const CITY_TO_COUNTY: Record<string, { state: string; county: string }> = {
-  "cape coral":     { state: "FL", county: "LEE" },
-  "fort myers":     { state: "FL", county: "LEE" },
-  "naples":         { state: "FL", county: "COLLIER" },
-  "miami":          { state: "FL", county: "MIAMI-DADE" },
-  "miami beach":    { state: "FL", county: "MIAMI-DADE" },
-  "fort lauderdale":{ state: "FL", county: "BROWARD" },
-  "hollywood":      { state: "FL", county: "BROWARD" },
-  "west palm beach":{ state: "FL", county: "PALM BEACH" },
-  "orlando":        { state: "FL", county: "ORANGE" },
-  "tampa":          { state: "FL", county: "HILLSBOROUGH" },
-  "st petersburg":  { state: "FL", county: "PINELLAS" },
-  "st. petersburg": { state: "FL", county: "PINELLAS" },
-  "jacksonville":   { state: "FL", county: "DUVAL" },
-  "punta gorda":    { state: "FL", county: "CHARLOTTE" },
-  "sarasota":       { state: "FL", county: "SARASOTA" },
-  // TX
-  "houston":        { state: "TX", county: "HARRIS" },
-  "dallas":         { state: "TX", county: "DALLAS" },
-  "fort worth":     { state: "TX", county: "TARRANT" },
-  "san antonio":    { state: "TX", county: "BEXAR" },
-  "austin":         { state: "TX", county: "TRAVIS" },
-  // CA
-  "los angeles":    { state: "CA", county: "LOS ANGELES" },
-  "san diego":      { state: "CA", county: "SAN DIEGO" },
-  "san jose":       { state: "CA", county: "SANTA CLARA" },
-  "oakland":        { state: "CA", county: "ALAMEDA" },
-  // NY / IL
-  "new york":       { state: "NY", county: "NEW YORK" },
-  "brooklyn":       { state: "NY", county: "KINGS" },
-  "queens":         { state: "NY", county: "QUEENS" },
-  "chicago":        { state: "IL", county: "COOK" },
+const AU_STATES: Record<string, string> = {
+  "new south wales": "NSW", nsw: "NSW",
+  "victoria": "VIC", vic: "VIC",
+  "queensland": "QLD", qld: "QLD",
+  "western australia": "WA", wa: "WA",
+  "south australia": "SA", sa: "SA",
+  "tasmania": "TAS", tas: "TAS",
+  "australian capital territory": "ACT", act: "ACT",
+  "northern territory": "NT", nt: "NT",
 };
 
-// Extract "in <place>" or trailing ", <place>" from the tail of the query.
+const CA_PROVINCES: Record<string, string> = {
+  ontario: "ON", "british columbia": "BC", alberta: "AB", quebec: "QC",
+  saskatchewan: "SK", manitoba: "MB", "nova scotia": "NS", "new brunswick": "NB",
+  "prince edward island": "PE", "newfoundland": "NL", "newfoundland and labrador": "NL",
+};
+
+const CITY_TO_COUNTY: Record<string, { country: string; state: string; county: string }> = {
+  // FL
+  "cape coral":     { country: "US", state: "FL", county: "LEE" },
+  "fort myers":     { country: "US", state: "FL", county: "LEE" },
+  "naples":         { country: "US", state: "FL", county: "COLLIER" },
+  "miami":          { country: "US", state: "FL", county: "MIAMI-DADE" },
+  "miami beach":    { country: "US", state: "FL", county: "MIAMI-DADE" },
+  "fort lauderdale":{ country: "US", state: "FL", county: "BROWARD" },
+  "hollywood":      { country: "US", state: "FL", county: "BROWARD" },
+  "west palm beach":{ country: "US", state: "FL", county: "PALM BEACH" },
+  "orlando":        { country: "US", state: "FL", county: "ORANGE" },
+  "tampa":          { country: "US", state: "FL", county: "HILLSBOROUGH" },
+  "st petersburg":  { country: "US", state: "FL", county: "PINELLAS" },
+  "st. petersburg": { country: "US", state: "FL", county: "PINELLAS" },
+  "jacksonville":   { country: "US", state: "FL", county: "DUVAL" },
+  "punta gorda":    { country: "US", state: "FL", county: "CHARLOTTE" },
+  "sarasota":       { country: "US", state: "FL", county: "SARASOTA" },
+  // TX
+  "houston":        { country: "US", state: "TX", county: "HARRIS" },
+  "dallas":         { country: "US", state: "TX", county: "DALLAS" },
+  "fort worth":     { country: "US", state: "TX", county: "TARRANT" },
+  "san antonio":    { country: "US", state: "TX", county: "BEXAR" },
+  "austin":         { country: "US", state: "TX", county: "TRAVIS" },
+  // CA
+  "los angeles":    { country: "US", state: "CA", county: "LOS ANGELES" },
+  "san diego":      { country: "US", state: "CA", county: "SAN DIEGO" },
+  "san jose":       { country: "US", state: "CA", county: "SANTA CLARA" },
+  "oakland":        { country: "US", state: "CA", county: "ALAMEDA" },
+  "san francisco":  { country: "US", state: "CA", county: "SAN FRANCISCO" },
+  // NY / IL
+  "new york":       { country: "US", state: "NY", county: "NEW YORK" },
+  "manhattan":      { country: "US", state: "NY", county: "NEW YORK" },
+  "brooklyn":       { country: "US", state: "NY", county: "KINGS" },
+  "queens":         { country: "US", state: "NY", county: "QUEENS" },
+  "chicago":        { country: "US", state: "IL", county: "COOK" },
+  // AU cities
+  "sydney":         { country: "AU", state: "NSW", county: "" },
+  "melbourne":      { country: "AU", state: "VIC", county: "" },
+  "brisbane":       { country: "AU", state: "QLD", county: "" },
+  "perth":          { country: "AU", state: "WA",  county: "" },
+  "adelaide":       { country: "AU", state: "SA",  county: "" },
+  "hobart":         { country: "AU", state: "TAS", county: "" },
+  "canberra":       { country: "AU", state: "ACT", county: "" },
+  "darwin":         { country: "AU", state: "NT",  county: "" },
+  // CA cities
+  "toronto":        { country: "CA", state: "ON", county: "" },
+  "vancouver":      { country: "CA", state: "BC", county: "" },
+  "calgary":        { country: "CA", state: "AB", county: "" },
+  "edmonton":       { country: "CA", state: "AB", county: "" },
+  "montreal":       { country: "CA", state: "QC", county: "" },
+  "ottawa":         { country: "CA", state: "ON", county: "" },
+  // GB cities
+  "london":         { country: "GB", state: "",    county: "" },
+  "manchester":     { country: "GB", state: "",    county: "" },
+  "edinburgh":      { country: "GB", state: "SCT", county: "" },
+  "glasgow":        { country: "GB", state: "SCT", county: "" },
+  "belfast":        { country: "GB", state: "NIR", county: "" },
+};
+
 function extractLocationTail(raw: string): { subject: string; locus: string } {
   const t = raw.trim();
-  // "search X in Y"  → subject=X, locus=Y
-  const inMatch = t.match(/^(.*?)\s+in\s+(.+?)[\.\?!]?$/i);
+  const inMatch = t.match(/^(.*?)\s+(?:in|from|located in|lives? in|based in)\s+(.+?)[\.\?!]?$/i);
   if (inMatch) return { subject: inMatch[1].trim(), locus: inMatch[2].trim() };
-  // "search X, Y, Z"
   const commaIdx = t.indexOf(",");
   if (commaIdx > 0 && commaIdx < t.length - 2) {
     return { subject: t.slice(0, commaIdx).trim(), locus: t.slice(commaIdx + 1).trim() };
@@ -137,24 +170,30 @@ function stripTrigger(raw: string): string {
   return raw.replace(/^\s*(please\s+)?(can you\s+)?(search|find|look ?up|research|dig ?up|pull records? on|scan for|locate|track down|who is|osint on|background(?: check)? on|dossier on|profile of)\s+(for\s+)?/i, "").trim();
 }
 
-// Parse locus string like "Cape Coral Florida" or "Lee County, FL" or "London, UK"
 function parseLocus(locus: string): { country: string; state: string; county: string; city: string } {
   const low = locus.toLowerCase();
-  let country = "";
-  let state = "";
-  let county = "";
-  let city = "";
+  let country = "", state = "", county = "", city = "";
 
-  // Country hints
   if (/\b(usa|u\.s\.a\.|u\.s\.|united states|america)\b/.test(low)) country = "US";
   else if (/\b(canada|canadian)\b/.test(low)) country = "CA";
-  else if (/\b(uk|united kingdom|england|scotland|wales|britain)\b/.test(low)) country = "GB";
-  else if (/\b(australia|australian)\b/.test(low)) country = "AU";
+  else if (/\b(uk|united kingdom|england|scotland|wales|britain|british)\b/.test(low)) country = "GB";
+  else if (/\b(australia|australian|aussie)\b/.test(low)) country = "AU";
+  else if (/\bnew zealand\b/.test(low)) country = "NZ";
   else if (/\bmexico\b/.test(low)) country = "MX";
-  else if (/\bgermany|deutschland\b/.test(low)) country = "DE";
+  else if (/\b(germany|deutschland)\b/.test(low)) country = "DE";
   else if (/\bfrance\b/.test(low)) country = "FR";
+  else if (/\bspain\b/.test(low)) country = "ES";
+  else if (/\bitaly\b/.test(low)) country = "IT";
+  else if (/\bnetherlands\b/.test(low)) country = "NL";
+  else if (/\bireland\b/.test(low)) country = "IE";
+  else if (/\bjapan\b/.test(low)) country = "JP";
+  else if (/\bsingapore\b/.test(low)) country = "SG";
+  else if (/\b(uae|united arab emirates|dubai|abu dhabi)\b/.test(low)) country = "AE";
+  else if (/\b(south africa)\b/.test(low)) country = "ZA";
+  else if (/\bbrazil\b/.test(low)) country = "BR";
+  else if (/\bindia\b/.test(low)) country = "IN";
 
-  // US state name or code
+  // US state
   for (const [name, code] of Object.entries(US_STATES)) {
     if (new RegExp(`\\b${name}\\b`, "i").test(locus)) { state = code; if (!country) country = "US"; break; }
   }
@@ -162,18 +201,28 @@ function parseLocus(locus: string): { country: string; state: string; county: st
     const stCode = locus.match(/\b([A-Z]{2})\b/);
     if (stCode && Object.values(US_STATES).includes(stCode[1])) { state = stCode[1]; if (!country) country = "US"; }
   }
+  // AU state
+  if (!state && (country === "AU" || !country)) {
+    for (const [name, code] of Object.entries(AU_STATES)) {
+      if (new RegExp(`\\b${name}\\b`, "i").test(locus)) { state = code; country = "AU"; break; }
+    }
+  }
+  // CA province
+  if (!state && (country === "CA" || !country)) {
+    for (const [name, code] of Object.entries(CA_PROVINCES)) {
+      if (new RegExp(`\\b${name}\\b`, "i").test(locus)) { state = code; country = "CA"; break; }
+    }
+  }
 
-  // County explicit
   const co = locus.match(/([A-Za-z\-\.\s]+?)\s+County/i);
   if (co) county = co[1].trim().toUpperCase();
 
-  // City lookup (also fills county from CITY_TO_COUNTY)
   for (const [cityName, meta] of Object.entries(CITY_TO_COUNTY)) {
     if (new RegExp(`\\b${cityName.replace(/\./g, "\\.")}\\b`, "i").test(low)) {
       city = cityName.replace(/\b\w/g, (c) => c.toUpperCase());
       if (!state) state = meta.state;
       if (!county) county = meta.county;
-      if (!country) country = "US";
+      if (!country) country = meta.country;
       break;
     }
   }
@@ -185,20 +234,18 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
   const raw = String(rawUserMessage || "").trim();
   const empty: IntelIntent = {
     kind: "none", subject: "", country: "", state: "", county: "", city: "",
-    needsClarification: false, clarifyQuestions: [],
+    needsClarification: false, clarifyQuestions: [], accelerators: [],
   };
   if (!raw) return empty;
 
   const isTrigger = SEARCH_TRIGGERS.test(raw);
   const looksProperty = PROPERTY_STRICT.test(raw) || PROPERTY_HINTS.test(raw);
   const looksEntity = ENTITY_HINTS.test(raw);
-  if (!isTrigger && !looksProperty) return empty; // not an intel query
+  if (!isTrigger && !looksProperty) return empty;
 
   const stripped = stripTrigger(raw);
   const { subject: rawSubject, locus } = extractLocationTail(stripped);
   const loc = locus ? parseLocus(locus) : parseJurisdiction(raw);
-
-  // Also scan the whole message for city/state if tail parse missed them.
   const fullLoc = parseLocus(raw);
   const country = loc.country || fullLoc.country;
   const state = loc.state || fullLoc.state;
@@ -208,28 +255,41 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
   const kind: IntelKind = looksProperty ? "property" : looksEntity ? "entity" : "person";
   const subject = rawSubject || stripped || raw;
 
-  // Clarification logic — subject is a bare person name with no location.
-  const isBareName = kind === "person" && !country && !state && !county && !city
-    && /^[A-Z][a-z]+(?:\s+[A-Z][a-z\-']+){0,3}$/.test(subject);
-
+  // ── Clarification cascade ────────────────────────────────────────────────
+  // BLOCK when: person with zero jurisdiction, OR property with no locus at all.
   const clarifyQuestions: string[] = [];
-  if (isBareName) {
+  const accelerators: string[] = [];
+
+  if (kind === "person" && !country) {
     clarifyQuestions.push(
-      `Which state or country is ${subject} located in?`,
-      `Any city, county, or approximate age to narrow it down?`,
-      `Any known middle name, employer, or associates?`,
+      `Which country is ${subject} located in?`,
+      `Roughly what state, province, or region — and which city if you know it?`,
+      `Approximate age range, and any known middle name, employer, or associates?`,
+      `What context — property owner, business director, public figure, person of interest?`,
     );
-  } else if (kind === "property" && !state && !city) {
+  } else if (kind === "property" && !country && !state && !city) {
     clarifyQuestions.push(
-      `Which city and state (or country) is this property in?`,
-      `Do you have a ZIP/postal code or county name?`,
+      `Which country and state (or province) is this property in?`,
+      `City, county, and ZIP/postal code if you have them?`,
     );
+  }
+
+  // ACCELERATE (non-blocking) when country is known but state/province isn't.
+  if (kind === "person" && country && !state) {
+    if (country === "US") accelerators.push(`Which U.S. state? I can drill into that state's Secretary of State registry, county property appraiser, and court portal.`);
+    else if (country === "AU") accelerators.push(`Which Australian state (NSW, VIC, QLD, WA, SA, TAS, ACT, NT)? I can drill into that state's land registry and court records.`);
+    else if (country === "CA") accelerators.push(`Which Canadian province (ON, BC, AB, QC, …)? I can drill into that province's land title system and business registry.`);
+    else if (country === "GB") accelerators.push(`Which UK region — England/Wales, Scotland, or Northern Ireland? Each has its own land registry.`);
+    else accelerators.push(`Which region or city in that country? I can drill into the local land registry and court records.`);
+  }
+  if (kind === "person" && country && state && !city && !county) {
+    accelerators.push(`Any city or county to narrow the ground-level records?`);
   }
 
   return {
     kind, subject, country, state, county, city,
     needsClarification: clarifyQuestions.length > 0,
-    clarifyQuestions,
+    clarifyQuestions, accelerators,
   };
 }
 
@@ -266,18 +326,22 @@ async function zophielQuery(query: string, siteRestrictor: string): Promise<Inte
 /** Run the jurisdiction-aware sweep. Returns per-channel result bundle. */
 export async function runJurisdictionalSearch(intent: IntelIntent): Promise<IntelBundle> {
   const src = sourcesFor(intent.country, intent.state, intent.county);
-  const registries = Array.from(new Set([...src.ownership, ...src.tax, ...src.permits]));
+  const registries = Array.from(new Set([
+    ...src.ownership, ...src.tax, ...src.permits, ...src.entities, ...src.courts,
+  ]));
 
   const jurisdictionLabel = [
-    intent.city, intent.county ? `${intent.county} County` : "", intent.state, intent.country,
-  ].filter(Boolean).join(", ");
+    intent.city,
+    intent.county ? `${intent.county} County` : "",
+    intent.state,
+    intent.country,
+  ].filter(Boolean).join(", ") || "unspecified";
 
   const channels: Record<string, IntelChannelHit[]> = {};
   const subj = `"${intent.subject}"`;
   const locusStr = [intent.city, intent.county, intent.state].filter(Boolean).join(" ");
 
   if (intent.kind === "property") {
-    // Registry sweep (ownership/tax/permits) — site-scoped to authoritative domains.
     const [ownership, tax, permits, listings] = await Promise.all([
       src.ownership.length ? zophielQuery(`${subj} ${locusStr} owner deed`, siteFilter(src.ownership)) : Promise.resolve([]),
       src.tax.length       ? zophielQuery(`${subj} ${locusStr} assessed value tax`, siteFilter(src.tax)) : Promise.resolve([]),
@@ -289,37 +353,61 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     channels.permits = permits;
     channels.listings = listings;
   } else if (intent.kind === "entity") {
-    const [ownership, listings] = await Promise.all([
-      src.ownership.length ? zophielQuery(`${subj} ${locusStr}`, siteFilter(src.ownership)) : Promise.resolve([]),
-      zophielQuery(`${subj} ${locusStr}`, ""), // free-form
+    const [entities, courts, web] = await Promise.all([
+      src.entities.length ? zophielQuery(`${subj} ${locusStr} directors officers`, siteFilter(src.entities)) : Promise.resolve([]),
+      src.courts.length   ? zophielQuery(`${subj} ${locusStr} filing case`, siteFilter(src.courts)) : Promise.resolve([]),
+      zophielQuery(`${subj} ${locusStr}`, ""),
     ]);
-    channels.ownership = ownership;
-    channels.web = listings;
+    channels.entities = entities;
+    channels.courts = courts;
+    channels.web = web;
   } else {
-    // PERSON — people-search sites + local news + local registries where names appear.
-    const [people, news, registryHits, listings] = await Promise.all([
-      zophielQuery(`${subj} ${locusStr}`, siteFilter(PEOPLE_SITES)),
-      zophielQuery(`${subj} ${locusStr}`, siteFilter(NEWS_SITES)),
-      registries.length ? zophielQuery(`${subj} ${locusStr}`, siteFilter(registries)) : Promise.resolve([]),
-      zophielQuery(`${subj} ${locusStr} property owner`, siteFilter(src.listings)),
-    ]);
-    channels.people = people;
-    channels.news = news;
-    channels.records = registryHits;
-    channels.listings = listings;
+    // PERSON — layered: entities (directorships) → people-aggregators → courts → property/land → news.
+    const queries: Array<[string, Promise<IntelChannelHit[]>]> = [
+      ["entities",  src.entities.length ? zophielQuery(`${subj} ${locusStr} director officer`, siteFilter(src.entities)) : Promise.resolve([])],
+      ["people",    src.people.length   ? zophielQuery(`${subj} ${locusStr}`, siteFilter(src.people)) : Promise.resolve([])],
+      ["courts",    src.courts.length   ? zophielQuery(`${subj} ${locusStr} case filing judgment`, siteFilter(src.courts)) : Promise.resolve([])],
+      ["property",  src.ownership.length ? zophielQuery(`${subj} ${locusStr} owner property`, siteFilter(src.ownership)) : Promise.resolve([])],
+      ["news",      zophielQuery(`${subj} ${locusStr}`, siteFilter(NEWS_SITES))],
+    ];
+    const results = await Promise.all(queries.map(([, p]) => p));
+    queries.forEach(([name], i) => { channels[name] = results[i]; });
   }
 
-  return { intent, channels, registries, jurisdictionLabel };
+  const emptyChannels = Object.entries(channels).filter(([, v]) => !v.length).map(([k]) => k);
+  return { intent, channels, registries, jurisdictionLabel, emptyChannels };
 }
 
 /** Build the system-prompt injection the LLM will consume. */
 export function formatIntelContext(bundle: IntelBundle): string {
-  const { intent, channels, jurisdictionLabel } = bundle;
+  const { intent, channels, jurisdictionLabel, emptyChannels } = bundle;
   const anyHits = Object.values(channels).some((arr) => arr.length > 0);
-  const header = `## JURISDICTIONAL INTEL SWEEP — ${intent.kind.toUpperCase()}\nSubject: ${intent.subject}\nJurisdiction: ${jurisdictionLabel || "unspecified"}\nRegistries queried: ${bundle.registries.slice(0, 8).join(", ") || "(none for this jurisdiction)"}\n`;
+
+  const header = [
+    `## JURISDICTIONAL INTEL SWEEP — ${intent.kind.toUpperCase()}`,
+    `Subject: ${intent.subject}`,
+    `Jurisdiction: ${jurisdictionLabel}`,
+    `Authoritative registries queried: ${bundle.registries.slice(0, 10).join(", ") || "(none available for this jurisdiction — sweep ran national/universal only)"}`,
+  ].join("\n");
+
+  const acceleratorBlock = intent.accelerators.length
+    ? `\n### ACCELERATORS (ask the user, do not block)\n${intent.accelerators.map((a, i) => `${i + 1}. ${a}`).join("\n")}`
+    : "";
 
   if (!anyHits) {
-    return `${header}\nNo authoritative records surfaced. Instruct the user with concrete follow-up questions (state, county, city, ZIP, approx age, known associates) so the sweep can be re-run with tighter jurisdiction.`;
+    return [
+      header,
+      acceleratorBlock,
+      "",
+      "### RESULT: No public records surfaced in the queried sources.",
+      "REPORT HONESTLY. Do NOT fabricate a table. Do NOT dress up unrelated hits as records. State plainly:",
+      "  • what jurisdiction was searched,",
+      "  • which authoritative registries were queried,",
+      "  • that nothing surfaced, and",
+      "  • what would unlock the next layer (state/province confirmation, city/county, middle-name variant, approximate age, known associates, employer, or a previous address).",
+      "",
+      "Distinguish 'no public record found in queried sources' from 'this person does not exist' — they are not the same statement.",
+    ].join("\n");
   }
 
   const sections: string[] = [];
@@ -329,10 +417,39 @@ export function formatIntelContext(bundle: IntelBundle): string {
     sections.push(`### ${channel.toUpperCase()}\n${lines}`);
   }
 
-  return `${header}\n${sections.join("\n\n")}\n\nINSTRUCTIONS: Organize findings by channel. Cite every claim as [domain](url). If a channel is thin, tell the user what jurisdiction detail would tighten it (e.g., county, ZIP, middle name). Never fabricate an owner name, deed date, or price — quote only what appears in a snippet.`;
+  const emptyNote = emptyChannels.length
+    ? `\n\n### THIN CHANNELS: ${emptyChannels.join(", ")} — tell the user what jurisdiction detail would unlock them.`
+    : "";
+
+  return [
+    header,
+    acceleratorBlock,
+    "",
+    sections.join("\n\n"),
+    emptyNote,
+    "",
+    "INSTRUCTIONS:",
+    "  • Organize findings by channel exactly as returned.",
+    "  • Cite every claim inline as [domain](url).",
+    "  • NEVER touch breach/leak databases. NEVER fabricate an owner, DOB, address, or case number.",
+    "  • Quote only what appears in the snippets above.",
+    "  • Distinguish 'confirmed' from 'possible match — needs verification'.",
+    "  • End with the specific jurisdiction/data lever that would deepen the sweep.",
+  ].join("\n");
 }
 
-/** Build the clarify-only prompt when the subject is too vague. */
+/** Build the clarify-only prompt when the subject is too vague to search. */
 export function formatClarifyContext(intent: IntelIntent): string {
-  return `## JURISDICTIONAL INTEL — CLARIFICATION REQUIRED\nSubject: ${intent.subject}\nKind: ${intent.kind}\n\nThe subject is too vague to run a jurisdictional sweep. ASK THE USER these targeted questions before searching:\n${intent.clarifyQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}\n\nDo NOT guess. Do NOT run a generic web search. Ask, then wait for the user to reply.`;
+  return [
+    `## JURISDICTIONAL INTEL — CLARIFICATION REQUIRED`,
+    `Subject: ${intent.subject}`,
+    `Kind: ${intent.kind}`,
+    ``,
+    `The subject is too vague to run a responsible jurisdictional sweep. A less intelligent system would fire this name into a generic search bar and dress the results up as intelligence. This engine does not do that.`,
+    ``,
+    `ASK THE USER these targeted intake questions before searching. Do not run a search until at least a country is confirmed:`,
+    ...intent.clarifyQuestions.map((q, i) => `  ${i + 1}. ${q}`),
+    ``,
+    `Explain to the user — briefly — why the intake matters: every answer narrows the search from a planet to a city block. Then wait for the reply.`,
+  ].join("\n");
 }
