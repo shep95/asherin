@@ -19,16 +19,16 @@ interface ScanModalProps {
 
 type Step = 1 | 2 | 3;
 
-const sources = [
-  { id: "upload", label: "Upload ZIP/Files", icon: Upload, desc: "ZIP, TAR, or individual code files" },
+const sources: Array<{ id: string; label: string; icon: any; desc: string; comingSoon?: boolean }> = [
+  { id: "upload", label: "Upload ZIP/Files", icon: Upload, desc: "ZIP or individual code files" },
   { id: "github-url", label: "GitHub URL", icon: Github, desc: "Public repository link" },
   { id: "paste-code", label: "Paste Code", icon: Code, desc: "Direct code paste, instant scan" },
-  { id: "paste-url", label: "Any Git URL", icon: Link, desc: "GitLab, Bitbucket, any public repo" },
+  { id: "paste-url", label: "Any Git URL", icon: Link, desc: "GitLab, Bitbucket, GitHub — public repos" },
   { id: "dependency", label: "Dependency File", icon: FileCode, desc: "package.json, requirements.txt, etc." },
-  { id: "github", label: "GitHub OAuth", icon: Github, desc: "Connect private repos" },
-  { id: "api-endpoint", label: "API Endpoint", icon: Globe, desc: "Swagger/OpenAPI or live API URL" },
-  { id: "docker", label: "Docker Image", icon: Box, desc: "Container registry scan" },
-  { id: "binary", label: "Binary Upload", icon: Binary, desc: "Stripped binaries, reverse-engineer & scan" },
+  { id: "github", label: "GitHub OAuth", icon: Github, desc: "Connect private repos", comingSoon: true },
+  { id: "api-endpoint", label: "API Endpoint", icon: Globe, desc: "Swagger/OpenAPI or live API URL", comingSoon: true },
+  { id: "docker", label: "Docker Image", icon: Box, desc: "Container registry scan", comingSoon: true },
+  { id: "binary", label: "Binary Upload", icon: Binary, desc: "Reverse-engineer & scan", comingSoon: true },
 ];
 
 const scanProfiles = [
