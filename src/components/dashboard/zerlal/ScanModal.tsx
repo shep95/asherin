@@ -287,34 +287,9 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) { setScanError("Sign in required"); return; }
 
-    // ── BYOK GATE FIRST — before any project creation or navigation ──
-    let byok: any = null;
-    try {
-      const { data: pref } = await supabase
-        .from("user_model_preferences" as any)
-        .select("active_provider, active_model")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      const ap = (pref as any)?.active_provider;
-      const am = (pref as any)?.active_model;
-      if (ap && ap !== "default" && am) {
-        const { data: keyRow } = await supabase
-          .from("user_api_keys" as any)
-          .select("api_key")
-          .eq("user_id", user.id)
-          .eq("provider", ap)
-          .eq("is_active", true)
-          .maybeSingle();
-        if ((keyRow as any)?.api_key) byok = { provider: ap, model: am, apiKey: (keyRow as any).api_key };
-      }
-    } catch { /* ignore */ }
-
-    const isAdmin = ADMIN_EMAILS.has((user.email || "").toLowerCase());
-    if (!byok && !isAdmin) {
-      triggerByokRequired({ source: "zerlal", reason: "Zerlal scans require your own AI key. Add one in Settings → AI Keys." });
-      setScanError("Add your AI key in Settings → AI Keys, then retry the scan.");
-      return;   // ← abort, no project row created, no navigation
-    }
+    // Shared gate — same behaviour as foreground path.
+    const { byok, blocked } = await resolveByokOrGate();
+    if (blocked) return;
 
     const sourceType = selectedSource || "upload";
     const project = await createProject(projectName, sourceType, url || undefined);
