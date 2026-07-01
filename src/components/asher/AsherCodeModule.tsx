@@ -238,6 +238,7 @@ export default function AsherCodeModule() {
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
   const [orchResult, setOrchResult] = useState<CallAsherCodeResult | null>(null);
   const [showDevOps, setShowDevOps] = useState(false);
+  const [showGit, setShowGit] = useState(false);
   const [orchestrateMode, setOrchestrateMode] = useState(() => localStorage.getItem("asherCode.orchestrate") === "1");
   const [showFiles, setShowFiles] = useState(() => localStorage.getItem("asherCode.showFiles") !== "0");
   const [showPreview, setShowPreview] = useState(() => localStorage.getItem("asherCode.showPreview") !== "0");
