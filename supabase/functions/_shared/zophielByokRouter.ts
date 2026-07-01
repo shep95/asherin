@@ -272,7 +272,7 @@ async function callAnthropic(
     });
     if (!r.ok) {
       const txt = await r.text();
-      throw makeRetryableError(r.status, `anthropic_${r.status}: ${txt.slice(0, 200)}`);
+      throw makeRetryableError(r.status, `anthropic_${r.status}: ${txt.slice(0, 200)}`, parseRetryAfterMs(r.headers, txt));
     }
     const d = await r.json();
     const parts = Array.isArray(d?.content) ? d.content : [];
@@ -280,30 +280,55 @@ async function callAnthropic(
   } finally { clearTimeout(t); }
 }
 
-function makeRetryableError(status: number, message: string): Error & { retryable?: boolean; status?: number } {
-  const e: Error & { retryable?: boolean; status?: number } = new Error(message);
+function makeRetryableError(
+  status: number,
+  message: string,
+  retryAfterMs: number | null = null,
+): Error & { retryable?: boolean; status?: number; retryAfterMs?: number; code?: string } {
+  const e: Error & { retryable?: boolean; status?: number; retryAfterMs?: number; code?: string } = new Error(message);
   e.status = status;
   e.retryable = status === 429 || status === 503 || status >= 500;
+  if (status === 429) e.code = "RATE_LIMITED";
+  if (retryAfterMs != null) e.retryAfterMs = retryAfterMs;
   return e;
 }
 
-/** Run `callByokJson` with bounded retries on transient errors. */
+/**
+ * Run `callByokJson` with per-key adaptive retries.
+ * - Honors Retry-After / Gemini retryDelay hints.
+ * - Parks the specific API key in a shared cooldown map so the *next* call in
+ *   this invocation waits instead of blindly re-hitting the limit.
+ * - Retries 429/503/5xx up to `attempts` (default 5) with jittered backoff.
+ * - On terminal 429, throws an error carrying `code=RATE_LIMITED` and
+ *   `retryAfterMs` so the caller can render a resume-in-Ns state instead of
+ *   forcing the user to restart the whole flow.
+ */
 export async function callByokJsonWithRetry(
   cfg: ZophielByokConfig,
   systemPrompt: string,
   userPrompt: string,
   opts: JsonCallOptions & { attempts?: number } = {},
 ): Promise<string> {
-  const attempts = opts.attempts ?? 3;
+  const attempts = opts.attempts ?? 5;
+  const fp = await keyFingerprint(cfg.provider, cfg.apiKey);
   let lastErr: unknown = null;
   for (let i = 0; i < attempts; i++) {
+    // If the previous call from this invocation parked this key, wait it out
+    // before hammering the provider again.
+    await respectCooldown(fp);
     try {
       return await callByokJson(cfg, systemPrompt, userPrompt, opts);
     } catch (e) {
       lastErr = e;
-      const retryable = (e as { retryable?: boolean })?.retryable;
-      if (!retryable || i === attempts - 1) break;
-      const wait = 700 * Math.pow(2.1, i) + Math.random() * 300;
+      const err = e as { retryable?: boolean; status?: number; retryAfterMs?: number };
+      if (!err.retryable || i === attempts - 1) break;
+      // Prefer server hint; otherwise exponential backoff capped at 30s.
+      const backoff = Math.min(30_000, 900 * Math.pow(2, i) + Math.random() * 400);
+      const wait = err.retryAfterMs && err.retryAfterMs > 0 ? err.retryAfterMs : backoff;
+      // Park the key: no other in-flight call in this invocation should try
+      // sooner than this — that's what turns "keeps hitting the rate limit"
+      // into "waits once, resumes".
+      if (err.status === 429 || err.status === 503) armCooldown(fp, wait);
       await new Promise((r) => setTimeout(r, wait));
     }
   }
