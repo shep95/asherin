@@ -47,6 +47,7 @@ Aureon ships the operator stack for analysts, journalists, traders, security res
 - [Vulnerability chaining, explained](/blog/vulnerability-chaining-explained): the mechanism behind 2-4 link critical exploit paths.
 - [How AI predictive forecasting actually works](/blog/how-ai-predictive-forecasting-works): the four ingredients real forecasts need.
 - [How Aureon uses C-SEO research](/blog/how-aureon-uses-c-seo-research): the meta-article on AI-search optimization implementation.
+- [How we make Aureon sound so human](/blog/how-we-make-aureon-sound-human): the layered voice stack — appraisal, restraint, timing, leakage.
 
 ## Predictive intelligence reports
 
