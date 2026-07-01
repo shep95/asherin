@@ -8,6 +8,7 @@ import {
   History, Stethoscope, GitBranch, Download, ArrowDown, Network, GitCommit,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
+import AsherGitDrawer from "./AsherGitDrawer";
 import AsherWorkflowMap, { type WorkflowEvent, type FileWorkflowStat } from "./AsherWorkflowMap";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -237,6 +238,7 @@ export default function AsherCodeModule() {
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
   const [orchResult, setOrchResult] = useState<CallAsherCodeResult | null>(null);
   const [showDevOps, setShowDevOps] = useState(false);
+  const [showGit, setShowGit] = useState(false);
   const [orchestrateMode, setOrchestrateMode] = useState(() => localStorage.getItem("asherCode.orchestrate") === "1");
   const [showFiles, setShowFiles] = useState(() => localStorage.getItem("asherCode.showFiles") !== "0");
   const [showPreview, setShowPreview] = useState(() => localStorage.getItem("asherCode.showPreview") !== "0");
@@ -2019,6 +2021,7 @@ try {
           <button onClick={() => setShowPublish(true)} className="inline-flex items-center gap-1 rounded-md border border-foreground/20 bg-foreground/5 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-foreground/80 hover:bg-foreground/10"><Upload className="h-3 w-3" /> <span className="hidden sm:inline">Publish</span></button>
           <button onClick={downloadProjectZip} title="Download current branch as .zip" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30" aria-label="Download current branch as .zip"><Download className="h-3 w-3" /> <span className="hidden sm:inline">ZIP</span></button>
           <button onClick={() => setShowDevOps(s => !s)} className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase ${showDevOps ? "border-foreground/40 bg-foreground/15" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}><Wrench className="h-3 w-3" /> <span className="hidden md:inline">DevOps</span></button>
+          <button onClick={() => setShowGit(true)} title="Clone, commit & push to GitHub" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><GitBranch className="h-3 w-3" /> <span className="hidden md:inline">GitHub</span></button>
           <button onClick={() => setTemplateOpen(true)} title="Scaffold from natural language" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><Wand2 className="h-3 w-3" /></button>
           <button onClick={() => setFuzzyOpen(true)} title="Fuzzy file finder" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><FileText className="h-3 w-3" /></button>
           <button onClick={() => setHistoryOpen(true)} disabled={!activeFile} title="Version history" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30 disabled:opacity-40"><History className="h-3 w-3" /></button>
@@ -2511,6 +2514,23 @@ try {
           files={files.map(f => ({ path: f.path, content: dirty[f.id] ?? f.content }))}
         />
       )}
+
+      <AsherGitDrawer
+        open={showGit}
+        onClose={() => setShowGit(false)}
+        projectId={activeProject.id}
+        branchId={activeBranchId}
+        files={files}
+        dirty={dirty}
+        onImported={(created) => {
+          setFiles(fs => {
+            const map = new Map(fs.map(x => [x.id, x]));
+            for (const c of created) map.set(c.id, c);
+            return Array.from(map.values());
+          });
+        }}
+      />
+
 
       {showSettings && <BYOKSettings onClose={() => setShowSettings(false)} provider={provider} model={model} apiKey={apiKey} setProvider={setProvider} setModel={setModel} setApiKey={setApiKey} />}
       {showPublish && <PublishDialog onClose={() => setShowPublish(false)} onPublish={publishAsTab} defaultName={activeProject.name} />}
