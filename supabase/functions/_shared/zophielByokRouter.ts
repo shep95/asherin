@@ -47,6 +47,64 @@ interface JsonCallOptions {
   jsonMode?: boolean;
 }
 
+// ─────────────────────── Per-key adaptive rate-limit brain ───────────────────
+//
+// Edge invocations are short-lived, but a single invocation (e.g. Zerlal
+// iterating files, Cross running multi-step analysis) can fire many BYOK calls
+// in a row. When one hits 429, we now:
+//   1. Read the provider's Retry-After header / Gemini retryDelay body,
+//   2. Park that specific (provider, key-fingerprint) in a cooldown map so the
+//      next call in this invocation *waits* instead of blindly re-hitting the
+//      limit,
+//   3. Retry with a much longer, provider-informed backoff on 429/503,
+//   4. Surface a structured RATE_LIMITED error carrying `retryAfterMs` so the
+//      client can resume automatically instead of forcing the user to restart.
+//
+// Key fingerprint is a non-reversible hash prefix — never store or log the raw
+// API key.
+const cooldowns = new Map<string, number>(); // fingerprint → resume-at epoch ms
+const MAX_COOLDOWN_MS = 90_000;
+
+async function keyFingerprint(provider: string, apiKey: string): Promise<string> {
+  try {
+    const buf = new TextEncoder().encode(`${provider}:${apiKey}`);
+    const hash = await crypto.subtle.digest("SHA-256", buf);
+    const hex = Array.from(new Uint8Array(hash).slice(0, 8))
+      .map((b) => b.toString(16).padStart(2, "0")).join("");
+    return `${provider}:${hex}`;
+  } catch {
+    return `${provider}:${apiKey.slice(-6)}`;
+  }
+}
+
+function parseRetryAfterMs(headers: Headers, body: string): number | null {
+  const ra = headers.get("retry-after");
+  if (ra) {
+    const secs = Number(ra);
+    if (Number.isFinite(secs)) return Math.min(MAX_COOLDOWN_MS, Math.max(500, secs * 1000));
+    const date = Date.parse(ra);
+    if (!Number.isNaN(date)) return Math.min(MAX_COOLDOWN_MS, Math.max(500, date - Date.now()));
+  }
+  // Gemini embeds retry hints inside the JSON error body.
+  const m = body.match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/);
+  if (m) return Math.min(MAX_COOLDOWN_MS, Math.max(500, Math.round(parseFloat(m[1]) * 1000)));
+  return null;
+}
+
+async function respectCooldown(fp: string): Promise<void> {
+  const until = cooldowns.get(fp);
+  if (!until) return;
+  const wait = until - Date.now();
+  if (wait <= 0) { cooldowns.delete(fp); return; }
+  await new Promise((r) => setTimeout(r, Math.min(wait, MAX_COOLDOWN_MS)));
+  cooldowns.delete(fp);
+}
+
+function armCooldown(fp: string, ms: number) {
+  cooldowns.set(fp, Date.now() + Math.min(MAX_COOLDOWN_MS, ms));
+}
+
+
 /** Generic non-streaming JSON-mode AI call routed through the user's BYOK provider. */
 export async function callByokJson(
   cfg: ZophielByokConfig,
