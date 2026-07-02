@@ -110,11 +110,15 @@ Deno.serve(async (req) => {
     // Per-source timeout is 4.5s and failures are silently skipped, so this
     // never blocks the stream for long or breaks URL-only questions.
     const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content || "";
-    const [osint, property] = await Promise.all([
+    const [osint, property, domainPull] = await Promise.all([
       runOsintPipeline(lastUser).catch(() => ({ sources: [] as string[], context: "", errors: [] as string[] })),
       runPropertyPipeline(lastUser).catch(() => ({
         fired: false, addresses: [] as string[], evidence: "",
         attachments: { map: null, sources: [] as unknown[] }, errors: [] as string[],
+      })),
+      runDomainPipeline(lastUser).catch((e) => ({
+        fired: false, intent: null, evidence: "", attachment: null,
+        errors: [`domain_pipeline: ${String((e as Error)?.message || e)}`],
       })),
     ]);
 
