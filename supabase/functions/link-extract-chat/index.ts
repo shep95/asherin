@@ -108,7 +108,13 @@ Deno.serve(async (req) => {
     // Per-source timeout is 4.5s and failures are silently skipped, so this
     // never blocks the stream for long or breaks URL-only questions.
     const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content || "";
-    const osint = await runOsintPipeline(lastUser).catch(() => ({ sources: [] as string[], context: "", errors: [] as string[] }));
+    const [osint, property] = await Promise.all([
+      runOsintPipeline(lastUser).catch(() => ({ sources: [] as string[], context: "", errors: [] as string[] })),
+      runPropertyPipeline(lastUser).catch(() => ({
+        fired: false, addresses: [] as string[], evidence: "",
+        attachments: { map: null, sources: [] as unknown[] }, errors: [] as string[],
+      })),
+    ]);
 
     const sys = `You are an Aureon URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
 
@@ -123,10 +129,14 @@ You have access to:
    OpenFDA, UN Comtrade, FX, Overpass/OSM). When present, cite it inline like
    [GDELT] or [SEC] and prefer it over your training data for anything
    time-sensitive.
+5. LIVE PROPERTY EVIDENCE — when the user asks about a physical property or
+   address, cited scrapes from Zillow / Redfin / Realtor / assessor sites plus
+   a geocode. Cite each fact as [zillow.com] / [redfin.com] / [nyc.gov] etc.
+   Flag conflicts between sources explicitly.
 
-Answer the user's questions strictly grounded in the dossier, map, and live OSINT. When the user asks for "everything you can find" — list every entity in the map, group by type, and cross-reference with dossier evidence. Do NOT invent facts. If something is not in the dossier or OSINT pull, say so plainly.
+Answer the user's questions strictly grounded in the dossier, map, live OSINT, and property evidence. When the user asks for "everything you can find" — list every entity in the map, group by type, and cross-reference with dossier evidence. Do NOT invent facts. If something is not in the dossier or live evidence, say so plainly.
 
-${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}`;
+${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}${property.evidence}`;
 
     const stream = await callGeminiStream(apiKey, model, sys, messages);
 
