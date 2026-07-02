@@ -3,6 +3,8 @@ import { MessageSquare, Loader2, X, Send, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import ReactMarkdown from "react-markdown";
+import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboard/property/PropertyMapCard";
+import PropertySourcesStrip, { type PropertySourceCard } from "@/components/dashboard/property/PropertySourcesStrip";
 
 interface Props {
   targetUrl: string;
@@ -10,7 +12,30 @@ interface Props {
   intelMap?: unknown;
   onClose: () => void;
 }
-interface ChatMsg { role: "user" | "assistant"; content: string; }
+interface PropertyAttachments {
+  map: PropertyMapCardData | null;
+  sources: PropertySourceCard[];
+}
+interface ChatMsg {
+  role: "user" | "assistant";
+  content: string;
+  property?: PropertyAttachments | null;
+}
+
+// Server prefixes the assistant stream with a single-line [[AUREON_META]]…[[/AUREON_META]]
+// block encoding attachments (property map, sources). Extract it, keep it out of
+// the rendered text, and return both parts.
+const META_RE = /^\s*\[\[AUREON_META\]\](.*?)\[\[\/AUREON_META\]\]\s*\n?/s;
+function splitMeta(acc: string): { meta: PropertyAttachments | null; text: string } {
+  const m = acc.match(META_RE);
+  if (!m) return { meta: null, text: acc };
+  try {
+    const parsed = JSON.parse(m[1]);
+    return { meta: parsed?.property ?? null, text: acc.slice(m[0].length) };
+  } catch {
+    return { meta: null, text: acc.slice(m[0].length) };
+  }
+}
 
 const MIN_W = 320;
 const MIN_H = 280;
@@ -104,14 +129,19 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
       const reader = resp.body.getReader();
       const dec = new TextDecoder();
       let acc = "";
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null }]);
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         acc += dec.decode(value, { stream: true });
+        const { meta, text } = splitMeta(acc);
         setMessages((prev) => {
           const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: acc };
+          copy[copy.length - 1] = {
+            role: "assistant",
+            content: text,
+            property: meta && (meta.map || meta.sources?.length) ? meta : null,
+          };
           return copy;
         });
       }
@@ -171,14 +201,22 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
               </div>
             )}
             {messages.map((m, i) => (
-              <div key={i} className={`rounded-lg border px-2.5 py-1.5 text-[12px] font-light leading-relaxed ${
-                m.role === "user"
-                  ? "border-border/40 bg-background/60 text-foreground"
-                  : "border-border/30 bg-foreground/[0.03] text-foreground/90"
-              }`}>
-                {m.role === "assistant"
-                  ? <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-light"><ReactMarkdown>{m.content || "…"}</ReactMarkdown></div>
-                  : m.content}
+              <div key={i} className="space-y-1.5">
+                <div className={`rounded-lg border px-2.5 py-1.5 text-[12px] font-light leading-relaxed ${
+                  m.role === "user"
+                    ? "border-border/40 bg-background/60 text-foreground"
+                    : "border-border/30 bg-foreground/[0.03] text-foreground/90"
+                }`}>
+                  {m.role === "assistant"
+                    ? <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-light"><ReactMarkdown>{m.content || "…"}</ReactMarkdown></div>
+                    : m.content}
+                </div>
+                {m.role === "assistant" && m.property?.map && (
+                  <PropertyMapCard data={m.property.map} />
+                )}
+                {m.role === "assistant" && m.property?.sources && m.property.sources.length > 0 && (
+                  <PropertySourcesStrip sources={m.property.sources} />
+                )}
               </div>
             ))}
             {sending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
