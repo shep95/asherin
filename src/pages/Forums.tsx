@@ -149,7 +149,11 @@ const Forums = () => {
   const ActiveIcon = activeCat.icon;
 
   const displayedPosts = tab === "idea"
-    ? [...posts].sort((a, b) => (votes[b.id]?.score ?? 0) - (votes[a.id]?.score ?? 0))
+    ? [...posts].sort((a, b) => {
+        const diff = (votes[b.id]?.score ?? 0) - (votes[a.id]?.score ?? 0);
+        if (diff !== 0) return diff;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      })
     : posts;
 
   return (
