@@ -40,13 +40,20 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // ── ADMIN-ONLY GATE ──
-    const email = await getCallerEmail(req);
-    if (!isAdminEmail(email)) {
+    // ── ADMIN + AUREON PRO ($399/mo) GATE ──
+    // AXRLEN is now available to admins AND active Pro-tier subscribers
+    // (monthly_pro / pro / lifetime / algorithm). Everyone else is blocked
+    // with an upgrade nudge.
+    const access = await resolveAxrlenAccess(req);
+    const email = access.email;
+    if (!access.granted) {
       return new Response(
         JSON.stringify({
-          error: "ADMIN_ONLY",
-          message: "AXRLEN is currently restricted to admin users.",
+          error: access.reason === "anonymous" ? "AUTH_REQUIRED" : "PRO_REQUIRED",
+          message: access.reason === "anonymous"
+            ? "Sign in to use AXRLEN."
+            : "AXRLEN is available to Aureon Pro ($399/mo) subscribers. Upgrade at /pricing.",
+          upgradeUrl: "/pricing",
         }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
