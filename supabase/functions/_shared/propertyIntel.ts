@@ -55,9 +55,13 @@ export interface PropertyPull {
 
 // ─── Intent detection ───────────────────────────────────────────────────────
 
-// US street address:  123 Main St, 45B N Oak Avenue #12
-const US_ADDR_RE =
-  /\b\d{1,6}[A-Z]?\s+(?:[NSEW]\.?\s+)?(?:[A-Z][a-zA-Z'.-]+\s+){1,4}(?:Street|St|Avenue|Ave|Boulevard|Blvd|Road|Rd|Drive|Dr|Lane|Ln|Court|Ct|Circle|Cir|Place|Pl|Terrace|Ter|Way|Highway|Hwy|Parkway|Pkwy|Square|Sq)\b\.?(?:\s*(?:Apt|Unit|Suite|Ste|#)\s*\w+)?(?:,?\s+[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){0,3})?(?:,?\s+[A-Z]{2})?(?:\s+\d{5}(?:-\d{4})?)?/g;
+// US street address: allows both alpha names ("Main St") and numeric ordinal
+// names ("5th Ave", "42nd St", "1st Blvd"), with optional apt/unit + city/state/zip.
+const STREET_TOKEN = "(?:[A-Z][a-zA-Z'.-]+|\\d+(?:st|nd|rd|th))";
+const US_ADDR_RE = new RegExp(
+  `\\b\\d{1,6}[A-Z]?\\s+(?:[NSEW]\\.?\\s+)?(?:${STREET_TOKEN}\\s+){1,4}(?:Street|St|Avenue|Ave|Boulevard|Blvd|Road|Rd|Drive|Dr|Lane|Ln|Court|Ct|Circle|Cir|Place|Pl|Terrace|Ter|Way|Highway|Hwy|Parkway|Pkwy|Square|Sq)\\b\\.?(?:\\s*(?:Apt|Unit|Suite|Ste|#)\\s*\\w+)?(?:,?\\s+[A-Z][a-zA-Z]+(?:\\s+[A-Z][a-zA-Z]+){0,3})?(?:,?\\s+[A-Z]{2})?(?:\\s+\\d{5}(?:-\\d{4})?)?`,
+  "g",
+);
 
 // UK postcode (SW1A 1AA etc.)
 const UK_POSTCODE_RE = /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/g;
