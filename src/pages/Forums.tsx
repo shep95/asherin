@@ -35,7 +35,7 @@ const ALL_CATEGORIES: { id: Category; label: string; icon: typeof Lightbulb; des
   { id: "idea",   label: "Ideas",    icon: Lightbulb, desc: "Suggestions — upvote what you want built" },
   { id: "theory", label: "Theories", icon: Brain,     desc: "Open-source theories to advance AI for humanity" },
   { id: "leak",   label: "Leaks",    icon: Radio,     desc: "Insider intel & disclosures" },
-  { id: "bug",    label: "Bugs",     icon: Bug,       desc: "Admin-only review queue", adminOnly: true },
+  { id: "bug",    label: "Bugs",     icon: Bug,       desc: "Report privately — only admins see reports" },
 ];
 
 const Forums = () => {
