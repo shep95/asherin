@@ -329,6 +329,10 @@ function stitchContinuation(existing: string, continuation: string): string {
     if (idx !== -1) return existing + continuation.slice(idx + tail.length);
   }
 
+  if (looksLikeRestart(existing, continuation) && continuation.length > existing.length) {
+    return continuation;
+  }
+
   const tailLines = existing
     .split(/\r?\n/)
     .map((line) => line.trimEnd())
@@ -346,9 +350,7 @@ function stitchContinuation(existing: string, continuation: string): string {
   const overlap = longestSuffixPrefixOverlap(existing, continuation);
   if (overlap > 0) return existing + continuation.slice(overlap);
 
-  if (looksLikeRestart(existing, continuation)) {
-    return continuation.length > existing.length ? continuation : existing;
-  }
+  if (looksLikeRestart(existing, continuation)) return existing;
 
   return `${existing}${existing.endsWith("\n") || continuation.startsWith("\n") ? "" : "\n"}${continuation}`;
 }

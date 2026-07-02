@@ -62,6 +62,10 @@ export function stitchAiContinuation(existing: string, continuation: string): { 
     }
   }
 
+  if (looksLikeRestart(existing, continuation) && continuation.length > existing.length) {
+    return { text: continuation, delta: "", strategy: "restart-replace" };
+  }
+
   // Tail anchors can miss if the model reformats nearby whitespace. Fall back
   // to the last distinctive source line from the visible answer.
   const tailLines = existing
@@ -85,9 +89,6 @@ export function stitchAiContinuation(existing: string, continuation: string): { 
   }
 
   if (looksLikeRestart(existing, continuation)) {
-    if (continuation.length > existing.length) {
-      return { text: continuation, delta: "", strategy: "restart-replace" };
-    }
     return { text: existing, delta: "", strategy: "restart-no-progress" };
   }
 
