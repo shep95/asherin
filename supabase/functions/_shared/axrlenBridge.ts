@@ -38,6 +38,15 @@ export interface AxrlenBridgeArgs {
   /** Fallback API key if AXRLEN_GEMINI_API_KEY is not set. */
   fallbackGeminiKey?: string;
   fallbackModel?: string;
+  /**
+   * Access policy for this surface.
+   *   - 'pro' (default)         → admin OR $399 Aureon Pro subscribers only.
+   *   - 'authenticated'         → any signed-in user, regardless of tier.
+   * Aureon chat uses 'authenticated' so every subscription tier can invoke
+   * inline AXRLEN forecasting. Asher chat and the standalone AXRLEN endpoint
+   * keep the Pro gate.
+   */
+  accessMode?: "pro" | "authenticated";
 }
 
 export type AxrlenBridgeResult =
@@ -292,7 +301,13 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
   if (!intent.fired) return { kind: "not_fired" };
 
   const access = await resolveAxrlenAccess(args.req);
-  if (!access.granted) {
+  const mode = args.accessMode ?? "pro";
+  // In 'authenticated' mode, any signed-in caller (any subscription tier)
+  // is allowed. Only anonymous callers get a sign-in nudge.
+  const allowed = mode === "authenticated"
+    ? (access.granted || access.reason === "denied")   // signed-in but non-pro still allowed
+    : access.granted;
+  if (!allowed) {
     const msg = access.reason === "anonymous"
       ? "AXRLEN forecasting requires sign-in. Sign in and try again."
       : "AXRLEN forecasting is an Aureon Pro ($399/mo) capability. Upgrade at /pricing to unlock inline predictions in "
