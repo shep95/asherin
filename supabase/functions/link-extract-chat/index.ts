@@ -9,6 +9,7 @@ import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
 import { isValidByok, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 import { runOsintPipeline } from "../_shared/osintStack.ts";
 import { runPropertyPipeline } from "../_shared/propertyIntel.ts";
+import { runAxrlenBridge } from "../_shared/axrlenBridge.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
