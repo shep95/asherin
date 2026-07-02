@@ -301,7 +301,13 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
   if (!intent.fired) return { kind: "not_fired" };
 
   const access = await resolveAxrlenAccess(args.req);
-  if (!access.granted) {
+  const mode = args.accessMode ?? "pro";
+  // In 'authenticated' mode, any signed-in caller (any subscription tier)
+  // is allowed. Only anonymous callers get a sign-in nudge.
+  const allowed = mode === "authenticated"
+    ? (access.granted || access.reason === "denied")   // signed-in but non-pro still allowed
+    : access.granted;
+  if (!allowed) {
     const msg = access.reason === "anonymous"
       ? "AXRLEN forecasting requires sign-in. Sign in and try again."
       : "AXRLEN forecasting is an Aureon Pro ($399/mo) capability. Upgrade at /pricing to unlock inline predictions in "
