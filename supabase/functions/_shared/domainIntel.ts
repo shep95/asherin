@@ -236,22 +236,24 @@ interface RawMapResponse {
   origin?: string;
   totalUnique?: number;
   truncated?: boolean;
-  categories?: { totalUnique?: number; categories?: Array<{ segment: string; count: number; urls: string[] }> } | Array<{ segment: string; count: number; urls: string[] }>;
+  // domain-map returns categories as a top-level array of
+  // { category: string; count: number; urls: string[] }. Older shape used
+  // `segment`, so we accept either.
+  categories?: Array<{ category?: string; segment?: string; count: number; urls: string[] }>;
 }
 
 async function runMap(domain: string): Promise<DomainMapAttachment | null> {
   const res = await callFn<RawMapResponse>("domain-map", { domain }, 20000);
   if (!res?.success) return null;
-  // domain-map wraps categories inside a `categorized` object of shape
-  // { totalUnique, categories: [...] } — but we saw it flattened onto the
-  // top-level response, so normalize defensively.
-  const cats: Array<{ segment: string; count: number; urls: string[] }> = Array.isArray(res.categories)
-    ? res.categories
-    : (res.categories as { categories?: Array<{ segment: string; count: number; urls: string[] }> } | undefined)?.categories ?? [];
-  // Cap inline card to top 10 segments and top 20 urls each to keep the stream light.
+  const cats = Array.isArray(res.categories) ? res.categories : [];
   const trimmed = cats
+    .filter((c) => (c.category || c.segment) && Array.isArray(c.urls))
     .slice(0, 10)
-    .map((c) => ({ segment: c.segment, count: c.count, urls: (c.urls || []).slice(0, 20) }));
+    .map((c) => ({
+      segment: (c.category || c.segment)!,
+      count: c.count,
+      urls: (c.urls || []).slice(0, 20),
+    }));
   return {
     kind: "map",
     domain: res.domain || domain,
