@@ -28,14 +28,18 @@ interface ChatMsg {
 // block encoding attachments (property map, sources). Extract it, keep it out of
 // the rendered text, and return both parts.
 const META_RE = /^\s*\[\[AUREON_META\]\](.*?)\[\[\/AUREON_META\]\]\s*\n?/s;
-function splitMeta(acc: string): { meta: PropertyAttachments | null; text: string } {
+function splitMeta(acc: string): { property: PropertyAttachments | null; domain: DomainIntel | null; text: string } {
   const m = acc.match(META_RE);
-  if (!m) return { meta: null, text: acc };
+  if (!m) return { property: null, domain: null, text: acc };
   try {
     const parsed = JSON.parse(m[1]);
-    return { meta: parsed?.property ?? null, text: acc.slice(m[0].length) };
+    return {
+      property: parsed?.property ?? null,
+      domain: parsed?.domain ?? null,
+      text: acc.slice(m[0].length),
+    };
   } catch {
-    return { meta: null, text: acc.slice(m[0].length) };
+    return { property: null, domain: null, text: acc.slice(m[0].length) };
   }
 }
 
