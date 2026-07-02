@@ -141,6 +141,7 @@ Deno.serve(async (req) => {
       const meta = {
         osintSources: osint.sources,
         property: property.fired ? property.attachments : null,
+        domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null,
         axrlen: { fired: true, tier: axrlen.intent.tier, brainsLoaded: axrlen.brainsLoaded, reason: axrlen.access.reason },
       };
       const out = new ReadableStream({
