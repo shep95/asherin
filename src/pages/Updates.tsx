@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
-import { ArrowLeft, Zap, Globe, Code, Clock } from "lucide-react";
+import { ArrowLeft, Zap, Globe, Code, Clock, Layers } from "lucide-react";
 
 interface Update {
   date: string;
