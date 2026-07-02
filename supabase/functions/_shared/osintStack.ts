@@ -34,6 +34,7 @@ async function timedFetch(url: string, init: RequestInit = {}, timeoutMs = DEFAU
 }
 
 const clip = (s: string, n = 1500) => (s.length > n ? s.slice(0, n) + "…" : s);
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // ---------- Individual fetchers ----------
 
