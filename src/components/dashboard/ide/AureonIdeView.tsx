@@ -1037,7 +1037,7 @@ const AureonIdeView = () => {
       }
       setIsStreaming(false);
     }
-  }, [chatMessages, activeFile, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, zanoemMode, autopilotZanoem, activeSessionId, rag]);
+  }, [chatMessages, activeFile, allFiles, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, zanoemMode, autopilotZanoem, activeSessionId, rag, isMobile]);
 
   // Expose sendChatMessage to the offline queue worker as a stable ref.
   useEffect(() => { sendZanoemTurnRef.current = (p: string) => sendChatMessage(p, undefined, true); }, [sendChatMessage]);
