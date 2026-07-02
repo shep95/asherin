@@ -129,14 +129,19 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
       const reader = resp.body.getReader();
       const dec = new TextDecoder();
       let acc = "";
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null }]);
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         acc += dec.decode(value, { stream: true });
+        const { meta, text } = splitMeta(acc);
         setMessages((prev) => {
           const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: acc };
+          copy[copy.length - 1] = {
+            role: "assistant",
+            content: text,
+            property: meta && (meta.map || meta.sources?.length) ? meta : null,
+          };
           return copy;
         });
       }
