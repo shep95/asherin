@@ -289,7 +289,6 @@ function looksIncomplete(text: string, finishReason?: string | null): boolean {
   if (fenceCount % 2 === 1) return true;
   if (/```(?:json|code_output)/i.test(text) && !/```\s*$/m.test(text.slice(-1200))) return true;
   if (/"files"\s*:\s*\[/.test(text) && !/\]\s*}\s*```?\s*$/s.test(text.trim())) return true;
-  if (/STATUS:\s*REFINING/i.test(text)) return true;
   return false;
 }
 
