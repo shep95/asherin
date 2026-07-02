@@ -942,6 +942,14 @@ const AureonIdeView = () => {
             return [...prev, { id: assistantId, role: "assistant", content: assistantContent, timestamp: new Date() }];
           });
         },
+        onReplace: (content) => {
+          assistantContent = content;
+          setChatMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant" && last.id === assistantId) return prev.map((m, i) => i === prev.length - 1 ? { ...m, content } : m);
+            return [...prev, { id: assistantId, role: "assistant", content, timestamp: new Date() }];
+          });
+        },
         onDone: () => {
           setIsStreaming(false);
           fetchSuggestions(assistantContent).then(setSuggestions).catch(() => {});
