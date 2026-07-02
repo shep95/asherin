@@ -9,6 +9,7 @@ import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
 import { isValidByok, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 import { runOsintPipeline } from "../_shared/osintStack.ts";
 import { runPropertyPipeline } from "../_shared/propertyIntel.ts";
+import { runAxrlenBridge } from "../_shared/axrlenBridge.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
@@ -115,6 +116,62 @@ Deno.serve(async (req) => {
         attachments: { map: null, sources: [] as unknown[] }, errors: [] as string[],
       })),
     ]);
+
+    // ── AXRLEN INLINE FORECASTING ────────────────────────────────────────────
+    // If the user asks a forecast-shaped question AND they are admin or Aureon
+    // Pro ($399/mo), route the reply through the AXRLEN engine instead of the
+    // normal Aureon brains. Non-authorized callers receive a single clean
+    // upgrade line and normal chat is skipped for THIS turn only. This never
+    // double-bills — we either return AXRLEN's stream or the normal stream.
+    const axrlen = await runAxrlenBridge({
+      req,
+      messages: messages as any,
+      liveEvidence: (osint.context || "") + (property.evidence || ""),
+      surface: "aureon",
+      fallbackGeminiKey: apiKey,
+      fallbackModel: model,
+    }).catch((e) => ({ kind: "denied" as const, access: { granted: false, reason: "denied" as const, email: null, userId: null, tierType: null }, intent: { fired: true, tier: 2 as const, subject: "" }, message: `AXRLEN unavailable: ${String((e as any)?.message || e)}` }));
+
+    if (axrlen.kind === "stream") {
+      const encoder = new TextEncoder();
+      const meta = {
+        osintSources: osint.sources,
+        property: property.fired ? property.attachments : null,
+        axrlen: { fired: true, tier: axrlen.intent.tier, brainsLoaded: axrlen.brainsLoaded, reason: axrlen.access.reason },
+      };
+      const out = new ReadableStream({
+        async start(controller) {
+          controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
+          controller.enqueue(encoder.encode(`> **AXRLEN forecast** — tier ${axrlen.intent.tier} · ${axrlen.brainsLoaded} brains\n\n`));
+          const reader = axrlen.textStream.getReader();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              if (value) controller.enqueue(value);
+            }
+          } finally {
+            controller.close();
+          }
+        },
+      });
+      return new Response(out, {
+        headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
+    if (axrlen.kind === "denied" && axrlen.intent.fired) {
+      const encoder = new TextEncoder();
+      const meta = { osintSources: osint.sources, property: property.fired ? property.attachments : null, axrlen: { fired: true, denied: true, reason: axrlen.access.reason } };
+      const out = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
+          controller.enqueue(encoder.encode(axrlen.message));
+          controller.close();
+        },
+      });
+      return new Response(out, { headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+    }
+
 
     const sys = `You are an Aureon URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
 

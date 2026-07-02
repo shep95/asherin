@@ -21,6 +21,7 @@ import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchite
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { runAxrlenBridge, textStreamToOpenAiSse } from "../_shared/axrlenBridge.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const SYSTEM_PROMPT = `You are ASHER AI — the operator's tactical co-pilot embedded inside the Asher Intelligence Map.
@@ -186,6 +187,30 @@ serve(async (req) => {
     if (cleaned.length === 0) cleaned.push({ role: "user", content: "Hello" });
 
     const hasAttachments = cleaned.some((m) => Array.isArray(m.attachments) && m.attachments.length);
+
+    // ── AXRLEN INLINE FORECASTING (before any other routing) ──────────────
+    // Only text-only forecasting messages route through AXRLEN — attachments
+    // (vision/PDF) stay on the normal Gemini vision path.
+    if (!hasAttachments) {
+      try {
+        const axrlen = await runAxrlenBridge({
+          req,
+          messages: cleaned.map((m: any) => ({ role: String(m.role || "user"), content: typeof m.content === "string" ? m.content : "" })),
+          surface: "asher",
+          fallbackGeminiKey: apiKey,
+          fallbackModel: "gemini-2.5-flash",
+        });
+        if (axrlen.kind === "stream") {
+          const openai = textStreamToOpenAiSse(axrlen.textStream);
+          return new Response(openai, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+        }
+        if (axrlen.kind === "denied" && axrlen.intent.fired) {
+          const encoder = new TextEncoder();
+          const body = sse({ choices: [{ delta: { content: axrlen.message }, index: 0, finish_reason: null }] }) + sse("[DONE]");
+          return new Response(encoder.encode(body), { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+        }
+      } catch (e) { console.error("[asher-ai] axrlen bridge:", (e as Error).message); }
+    }
 
     const phone = extractPhoneLookup(latestUserText(cleaned));
     if (phone && !hasAttachments) {
