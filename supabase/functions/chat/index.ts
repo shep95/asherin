@@ -2155,6 +2155,11 @@ ${zophielCodingBrainContent}
                   const chunk = JSON.stringify({ choices: [{ delta: { content: text } }] });
                   if (!await safeWrite(`data: ${chunk}\n\n`)) return;
                 }
+                const finishReason = parsed.candidates?.[0]?.finishReason;
+                if (finishReason && /MAX_TOKENS|TOKEN|LENGTH/i.test(String(finishReason))) {
+                  const chunk = JSON.stringify({ choices: [{ delta: { content: "\n\n[GENERATION_INCOMPLETE: Gemini stopped at the output-token limit. Continue requested.]" } }] });
+                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
+                }
               } catch { /* skip */ }
             } else if (isAnthropicResponse) {
               // Anthropic SSE format
@@ -2164,6 +2169,9 @@ ${zophielCodingBrainContent}
                 const parsed = JSON.parse(jsonStr);
                 if (parsed.type === "content_block_delta" && parsed.delta?.text) {
                   const chunk = JSON.stringify({ choices: [{ delta: { content: parsed.delta.text } }] });
+                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
+                } else if (parsed.type === "message_delta" && /max_tokens|length/i.test(String(parsed.delta?.stop_reason || ""))) {
+                  const chunk = JSON.stringify({ choices: [{ delta: { content: "\n\n[GENERATION_INCOMPLETE: Anthropic stopped at the output-token limit. Continue requested.]" } }] });
                   if (!await safeWrite(`data: ${chunk}\n\n`)) return;
                 }
               } catch { /* skip */ }
@@ -2178,6 +2186,9 @@ ${zophielCodingBrainContent}
                 const parsed = JSON.parse(jsonStr);
                 if (parsed?.type === "response.output_text.delta" && typeof parsed.delta === "string" && parsed.delta) {
                   const chunk = JSON.stringify({ choices: [{ delta: { content: parsed.delta } }] });
+                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
+                } else if (parsed?.type === "response.completed" && /length|max_tokens|token/i.test(String(parsed.response?.incomplete_details?.reason || parsed.response?.status || ""))) {
+                  const chunk = JSON.stringify({ choices: [{ delta: { content: "\n\n[GENERATION_INCOMPLETE: provider stopped at the output-token limit. Continue requested.]" } }] });
                   if (!await safeWrite(`data: ${chunk}\n\n`)) return;
                 } else if (parsed?.type === "error") {
                   const msg = parsed?.error?.message || parsed?.message || "upstream error";
@@ -2197,6 +2208,11 @@ ${zophielCodingBrainContent}
                 const content = parsed.choices?.[0]?.delta?.content;
                 if (content) {
                   const chunk = JSON.stringify({ choices: [{ delta: { content } }] });
+                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
+                }
+                const finishReason = parsed.choices?.[0]?.finish_reason;
+                if (finishReason && /length|max_tokens|token/i.test(String(finishReason))) {
+                  const chunk = JSON.stringify({ choices: [{ delta: { content: "\n\n[GENERATION_INCOMPLETE: provider stopped at the output-token limit. Continue requested.]" } }] });
                   if (!await safeWrite(`data: ${chunk}\n\n`)) return;
                 }
               } catch { /* skip */ }
