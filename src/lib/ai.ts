@@ -9,6 +9,70 @@ const SUGGEST_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest`;
 
 type Msg = { role: "user" | "assistant"; content: string; attachments?: FileAttachment[] };
 
+const CONTINUATION_TAIL_CHARS = 2200;
+const MAX_STREAM_CONTINUATIONS = 5;
+
+function longestSuffixPrefixOverlap(left: string, right: string, max = 12000): number {
+  const a = left.slice(-max);
+  const b = right.slice(0, max);
+  const limit = Math.min(a.length, b.length);
+  for (let size = limit; size >= 40; size -= 1) {
+    if (a.slice(a.length - size) === b.slice(0, size)) return size;
+  }
+  return 0;
+}
+
+export function stitchAiContinuation(existing: string, continuation: string): { text: string; delta: string; strategy: "empty" | "contained" | "prefix" | "tail-anchor" | "overlap" | "append" } {
+  if (!continuation) return { text: existing, delta: "", strategy: "empty" };
+
+  if (existing.includes(continuation)) {
+    return { text: existing, delta: "", strategy: "contained" };
+  }
+
+  if (continuation.startsWith(existing)) {
+    const delta = continuation.slice(existing.length);
+    return { text: continuation, delta, strategy: "prefix" };
+  }
+
+  // When a provider restarts from the beginning, find the already-visible tail
+  // inside the new answer and append only the unseen suffix after that anchor.
+  for (const size of [5000, 3200, 2200, 1400, 900, 520, 280, 140, 80]) {
+    if (existing.length < size) continue;
+    const tail = existing.slice(-size);
+    const idx = continuation.indexOf(tail);
+    if (idx !== -1) {
+      const delta = continuation.slice(idx + tail.length);
+      return { text: existing + delta, delta, strategy: "tail-anchor" };
+    }
+  }
+
+  const overlap = longestSuffixPrefixOverlap(existing, continuation);
+  if (overlap > 0) {
+    const delta = continuation.slice(overlap);
+    return { text: existing + delta, delta, strategy: "overlap" };
+  }
+
+  const separator = existing.endsWith("\n") || continuation.startsWith("\n") ? "" : "\n";
+  const delta = separator + continuation;
+  return { text: existing + delta, delta, strategy: "append" };
+}
+
+function buildExactContinuationPrompt(accumulated: string): string {
+  const tail = accumulated.slice(-CONTINUATION_TAIL_CHARS);
+  return [
+    "The previous answer was cut off by the output limit.",
+    "Continue from the exact next character after the tail below.",
+    "Do NOT restart from the beginning. Do NOT repeat any completed code. Do NOT summarize.",
+    "If the tail ends inside a function, continue inside that function and finish the remaining collision logic, loop, render, exports, and closing fences.",
+    "Close every open code fence / JSON object / source file before ending.",
+    "",
+    "TAIL TO CONTINUE AFTER:",
+    "```text",
+    tail,
+    "```",
+  ].join("\n");
+}
+
 export interface UserProfile {
   tone_preference?: string;
   topics_of_interest?: string[];
@@ -156,7 +220,7 @@ export async function streamChat({
     return false;
   };
 
-  const fetchAndRead = async (requestMessages: typeof apiMessages) => {
+  const fetchAndRead = async (requestMessages: typeof apiMessages, onText?: (text: string) => void) => {
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
@@ -184,6 +248,17 @@ export async function streamChat({
     const decoder = new TextDecoder();
     let textBuffer = "";
     let streamDone = false;
+    let passText = "";
+    let passIncomplete = false;
+    const consumePassContent = (content: string) => {
+      const cleaned = content.replace(outputLimitMarker, () => {
+        passIncomplete = true;
+        return "";
+      });
+      if (!cleaned) return;
+      passText += cleaned;
+      onText?.(cleaned);
+    };
 
     while (!streamDone) {
       const { done, value } = await reader.read();
@@ -205,7 +280,7 @@ export async function streamChat({
         try {
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) consumeProviderContent(content);
+          if (content) consumePassContent(content);
         } catch {
           textBuffer = line + "\n" + textBuffer;
           break;
@@ -225,26 +300,33 @@ export async function streamChat({
         try {
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) consumeProviderContent(content);
+          if (content) consumePassContent(content);
         } catch { /* ignore */ }
       }
     }
+
+    return { text: passText, incompleteSignal: passIncomplete };
   };
 
   let requestMessages = apiMessages;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt <= MAX_STREAM_CONTINUATIONS; attempt++) {
     const before = assistantAccum.length;
     incompleteSignal = false;
-    await fetchAndRead(requestMessages);
+    const pass = await fetchAndRead(requestMessages, attempt === 0 ? wrappedDelta : undefined);
+    if (attempt > 0) {
+      const stitched = stitchAiContinuation(assistantAccum, pass.text);
+      assistantAccum = stitched.text;
+      if (stitched.delta) onDelta(stitched.delta);
+    }
     const latestChunk = assistantAccum.slice(before);
-    const mustContinue = incompleteSignal || looksIncomplete(assistantAccum, latestChunk);
+    const mustContinue = pass.incompleteSignal || incompleteSignal || looksIncomplete(assistantAccum, latestChunk);
     if (!mustContinue || assistantAccum.length === before) break;
     requestMessages = [
       ...apiMessages,
       { role: "assistant" as const, content: assistantAccum },
       {
         role: "user" as const,
-        content: "Continue exactly where you stopped. Do not restart, summarize, or omit code. Close all open code fences/JSON and finish the complete answer.",
+        content: buildExactContinuationPrompt(assistantAccum),
       },
     ];
   }
