@@ -72,32 +72,52 @@ const ZIP_HINT_RE = /\b\d{5}(?:-\d{4})?\b/;
 
 // Property vocabulary that turns a location-adjacent question into a property-search intent.
 const PROPERTY_KEYWORDS =
-  /\b(property|properties|address|addresses|listing|listings|for sale|sold|owner|owned by|assessor|parcel|apn|mls|zillow|redfin|realtor|trulia|square feet|sq\s?ft|square footage|acres|acreage|lot size|year built|beds?|bath(?:room)?s?|deed|title|tax record|home price|rent|rental|multifamily|single family|townhouse|condo|hoa|neighborhood|zip code|postcode|building at|house at|located at)\b/i;
+  /\b(propert(?:y|ies)|address(?:es)?|listing(?:s)?|for sale|sold|owns?|owner|owned by|assessor|parcel|apn|mls|zillow|redfin|realtor|trulia|square feet|sq\s?ft|square footage|acres|acreage|lot size|year built|beds?|bath(?:room)?s?|deed|title|tax record|home price|rent|rental|multifamily|single family|townhouse|condo|hoa|neighborhood|zip code|postcode|building at|house at|located at)\b/i;
 
 // Explicit ask verbs — "show me", "map of", "where is"
 const MAP_ASK_RE =
   /\b(map|satellite|aerial|street view|show me|where is|located at|pictures of|photos of)\b/i;
 
+// Tail extractor for named landmarks ("map of the Empire State Building",
+// "show me the Eiffel Tower"). Allows an optional article (the/a/an).
+const LANDMARK_TAIL_RE =
+  /\b(?:of|at|for|near|show me|map of|where is|about)\s+(?:the\s+|a\s+|an\s+)?([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+){0,5})\b/g;
+
+// Reset a global regex's lastIndex so `.test()` calls don't leak state
+// between invocations. Cheap safety net around any /g regex we reuse.
+function safeGlobalMatchAll(re: RegExp, s: string): RegExpMatchArray[] {
+  re.lastIndex = 0;
+  const out = [...s.matchAll(re)];
+  re.lastIndex = 0;
+  return out;
+}
+function safeGlobalTest(re: RegExp, s: string): boolean {
+  re.lastIndex = 0;
+  const ok = re.test(s);
+  re.lastIndex = 0;
+  return ok;
+}
+
 export function detectPropertyIntent(text: string): { addresses: string[]; fired: boolean } {
   const addrs = new Set<string>();
-  for (const m of text.matchAll(US_ADDR_RE)) addrs.add(m[0].replace(/\s+/g, " ").trim());
-  for (const m of text.matchAll(UK_POSTCODE_RE)) addrs.add(m[0].trim());
-  for (const m of text.matchAll(CA_POSTAL_RE)) addrs.add(m[0].trim());
+  for (const m of safeGlobalMatchAll(US_ADDR_RE, text)) addrs.add(m[0].replace(/\s+/g, " ").trim());
+  for (const m of safeGlobalMatchAll(UK_POSTCODE_RE, text)) addrs.add(m[0].trim());
+  for (const m of safeGlobalMatchAll(CA_POSTAL_RE, text)) addrs.add(m[0].trim());
 
   const hasKeyword = PROPERTY_KEYWORDS.test(text);
   const hasMapAsk = MAP_ASK_RE.test(text);
   const hasZipHint = ZIP_HINT_RE.test(text);
+  const hasStreetAddr = addrs.size > 0; // any address-shaped regex fired
 
   // No explicit address, but the user is clearly asking about a property with
   // a nameable landmark ("map of the Palantir HQ") — grab a Proper-noun tail.
-  if (addrs.size === 0 && (hasKeyword || hasMapAsk)) {
-    const tailMatches = [...text.matchAll(
-      /\b(?:of|at|for|near|show me|map of|where is)\s+([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+){0,5})\b/g,
-    )];
-    for (const m of tailMatches) addrs.add(m[1].trim());
+  if (!hasStreetAddr && (hasKeyword || hasMapAsk)) {
+    for (const m of safeGlobalMatchAll(LANDMARK_TAIL_RE, text)) addrs.add(m[1].trim());
   }
 
-  const fired = addrs.size > 0 && (hasKeyword || hasMapAsk || hasZipHint || US_ADDR_RE.test(text));
+  // Fired when we have a location AND context (an explicit address is context
+  // by itself; a landmark needs a keyword/map-ask/zip to confirm intent).
+  const fired = addrs.size > 0 && (hasStreetAddr || hasKeyword || hasMapAsk || hasZipHint);
   return { addresses: [...addrs].slice(0, 2), fired };
 }
 
