@@ -224,6 +224,9 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
                 {m.role === "assistant" && m.property?.sources && m.property.sources.length > 0 && (
                   <PropertySourcesStrip sources={m.property.sources} />
                 )}
+                {m.role === "assistant" && m.domain?.attachment && (
+                  <DomainIntelCard data={m.domain} />
+                )}
               </div>
             ))}
             {sending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
