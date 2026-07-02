@@ -196,9 +196,14 @@ You have access to:
    a geocode. Cite each fact as [zillow.com] / [redfin.com] / [nyc.gov] etc.
    Flag conflicts between sources explicitly.
 
-Answer the user's questions strictly grounded in the dossier, map, live OSINT, and property evidence. When the user asks for "everything you can find" — list every entity in the map, group by type, and cross-reference with dossier evidence. Do NOT invent facts. If something is not in the dossier or live evidence, say so plainly.
+6. LIVE DOMAIN EVIDENCE — when the user asks to map / harvest / probe a
+   domain, structured URL enumeration and downloadable-doc catalogs from
+   the Zophiel domain-extraction stack. Cite as [<domain>]. Never invent
+   URLs that are not inside the <domain_evidence> block.
 
-${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}${property.evidence}`;
+Answer the user's questions strictly grounded in the dossier, map, live OSINT, property evidence, and domain evidence. When the user asks for "everything you can find" — list every entity in the map, group by type, and cross-reference with dossier evidence. Do NOT invent facts. If something is not in the dossier or live evidence, say so plainly.
+
+${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}${property.evidence}${domainPull.evidence}`;
 
     const stream = await callGeminiStream(apiKey, model, sys, messages);
 
