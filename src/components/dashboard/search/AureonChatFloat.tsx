@@ -3,6 +3,8 @@ import { MessageSquare, Loader2, X, Send, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import ReactMarkdown from "react-markdown";
+import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboard/property/PropertyMapCard";
+import PropertySourcesStrip, { type PropertySourceCard } from "@/components/dashboard/property/PropertySourcesStrip";
 
 interface Props {
   targetUrl: string;
@@ -10,7 +12,30 @@ interface Props {
   intelMap?: unknown;
   onClose: () => void;
 }
-interface ChatMsg { role: "user" | "assistant"; content: string; }
+interface PropertyAttachments {
+  map: PropertyMapCardData | null;
+  sources: PropertySourceCard[];
+}
+interface ChatMsg {
+  role: "user" | "assistant";
+  content: string;
+  property?: PropertyAttachments | null;
+}
+
+// Server prefixes the assistant stream with a single-line [[AUREON_META]]…[[/AUREON_META]]
+// block encoding attachments (property map, sources). Extract it, keep it out of
+// the rendered text, and return both parts.
+const META_RE = /^\s*\[\[AUREON_META\]\](.*?)\[\[\/AUREON_META\]\]\s*\n?/s;
+function splitMeta(acc: string): { meta: PropertyAttachments | null; text: string } {
+  const m = acc.match(META_RE);
+  if (!m) return { meta: null, text: acc };
+  try {
+    const parsed = JSON.parse(m[1]);
+    return { meta: parsed?.property ?? null, text: acc.slice(m[0].length) };
+  } catch {
+    return { meta: null, text: acc.slice(m[0].length) };
+  }
+}
 
 const MIN_W = 320;
 const MIN_H = 280;
