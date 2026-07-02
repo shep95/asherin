@@ -129,79 +129,113 @@ export async function streamChat({
   const swarmInjection = swarmContext.swarmPrompt;
   const activeAgentId = swarmContext.activeAgent.id;
 
-  const resp = await fetch(CHAT_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`,
-    },
-    body: JSON.stringify({ messages: apiMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat: (() => { try { const m = JSON.parse(localStorage.getItem("aureon_numbered_format_off") || "{}"); return !(conversationId && m[conversationId] === true); } catch { return true; } })() }),
-    signal,
-  });
-
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({ error: "Unknown error" }));
-    if (resp.status === 503 || resp.status === 502 || /overload/i.test(err?.error || "")) {
-      try {
-        const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
-        triggerByokRequired({ source: "aureon-chat", reason: "AUREON LLM API is overloaded right now." });
-      } catch { /* noop */ }
-    }
-    throw new Error(err.error || `HTTP ${resp.status}`);
-  }
-
-  if (!resp.body) throw new Error("No response body");
-
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
-  let textBuffer = "";
-  let streamDone = false;
   let assistantAccum = "";
   const wrappedDelta = (t: string) => { assistantAccum += t; onDelta(t); };
 
-  while (!streamDone) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    textBuffer += decoder.decode(value, { stream: true });
+  const numberedFormat = (() => {
+    try {
+      const m = JSON.parse(localStorage.getItem("aureon_numbered_format_off") || "{}");
+      return !(conversationId && m[conversationId] === true);
+    } catch { return true; }
+  })();
 
-    let newlineIndex: number;
-    while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-      let line = textBuffer.slice(0, newlineIndex);
-      textBuffer = textBuffer.slice(newlineIndex + 1);
+  const looksIncomplete = (text: string) => {
+    if (!text) return false;
+    if (/GENERATION_INCOMPLETE|stopped at the output-token limit|finish_reason\s*[:=]\s*(?:length|max_tokens)/i.test(text)) return true;
+    if (((text.match(/```/g) || []).length % 2) === 1) return true;
+    if (/\{\s*"files"\s*:\s*\[/i.test(text) && !/\]\s*}\s*```?\s*$/s.test(text.trim())) return true;
+    return false;
+  };
 
-      if (line.endsWith("\r")) line = line.slice(0, -1);
-      if (line.startsWith(":") || line.trim() === "") continue;
-      if (!line.startsWith("data: ")) continue;
+  const fetchAndRead = async (requestMessages: typeof apiMessages) => {
+    const resp = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ messages: requestMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat }),
+      signal,
+    });
 
-      const jsonStr = line.slice(6).trim();
-      if (jsonStr === "[DONE]") { streamDone = true; break; }
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+      if (resp.status === 503 || resp.status === 502 || /overload/i.test(err?.error || "")) {
+        try {
+          const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
+          triggerByokRequired({ source: "aureon-chat", reason: "AUREON LLM API is overloaded right now." });
+        } catch { /* noop */ }
+      }
+      throw new Error(err.error || `HTTP ${resp.status}`);
+    }
 
-      try {
-        const parsed = JSON.parse(jsonStr);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) wrappedDelta(content);
-      } catch {
-        textBuffer = line + "\n" + textBuffer;
-        break;
+    if (!resp.body) throw new Error("No response body");
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let textBuffer = "";
+    let streamDone = false;
+
+    while (!streamDone) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      textBuffer += decoder.decode(value, { stream: true });
+
+      let newlineIndex: number;
+      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+        let line = textBuffer.slice(0, newlineIndex);
+        textBuffer = textBuffer.slice(newlineIndex + 1);
+
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") { streamDone = true; break; }
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) wrappedDelta(content);
+        } catch {
+          textBuffer = line + "\n" + textBuffer;
+          break;
+        }
       }
     }
-  }
 
-  // Final flush
-  if (textBuffer.trim()) {
-    for (let raw of textBuffer.split("\n")) {
-      if (!raw) continue;
-      if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-      if (raw.startsWith(":") || raw.trim() === "") continue;
-      if (!raw.startsWith("data: ")) continue;
-      const jsonStr = raw.slice(6).trim();
-      if (jsonStr === "[DONE]") continue;
-      try {
-        const parsed = JSON.parse(jsonStr);
-        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-        if (content) wrappedDelta(content);
-      } catch { /* ignore */ }
+    // Final flush
+    if (textBuffer.trim()) {
+      for (let raw of textBuffer.split("\n")) {
+        if (!raw) continue;
+        if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+        if (raw.startsWith(":") || raw.trim() === "") continue;
+        if (!raw.startsWith("data: ")) continue;
+        const jsonStr = raw.slice(6).trim();
+        if (jsonStr === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) wrappedDelta(content);
+        } catch { /* ignore */ }
+      }
     }
+  };
+
+  let requestMessages = apiMessages;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const before = assistantAccum.length;
+    await fetchAndRead(requestMessages);
+    if (!looksIncomplete(assistantAccum) || assistantAccum.length === before) break;
+    wrappedDelta("\n\n_Continuing automatically to finish the cut-off code…_\n\n");
+    requestMessages = [
+      ...apiMessages,
+      { role: "assistant" as const, content: assistantAccum },
+      {
+        role: "user" as const,
+        content: "Continue exactly where you stopped. Do not restart, summarize, or omit code. Close all open code fences/JSON and finish the complete answer.",
+      },
+    ];
   }
 
   onDone();
