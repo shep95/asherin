@@ -219,6 +219,7 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
         const meta = {
           osintSources: osint.sources,
           property: property.fired ? property.attachments : null,
+          domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null,
         };
         controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
 
@@ -232,6 +233,15 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
           controller.enqueue(encoder.encode(
             `> **Property evidence:** ${property.attachments.sources.map((s: any) => s.domain).join(" · ")}\n\n`
           ));
+        }
+        if (domainPull.fired && domainPull.attachment) {
+          const a = domainPull.attachment;
+          const label =
+            a.kind === "map" ? `mapped ${a.totalUnique} URLs on ${a.domain}`
+            : a.kind === "harvest" ? `harvested ${a.totalDocs} docs across ${a.pagesCrawled} pages on ${a.domain}`
+            : a.kind === "osint" ? `probed ${a.domain} (sitemap: ${a.sitemapCount} URLs)`
+            : `recon deferred — launch full scan in Zerlal`;
+          controller.enqueue(encoder.encode(`> **Domain intel:** ${label}\n\n`));
         }
         const reader = stream.getReader();
         let buf = "";
