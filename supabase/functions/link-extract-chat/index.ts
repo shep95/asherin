@@ -134,6 +134,13 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
     const decoder = new TextDecoder();
     const out = new ReadableStream({
       async start(controller) {
+        // Surface the live OSINT sources the model was grounded on before the
+        // model's own tokens start streaming. Markdown-safe, one-line footer.
+        if (osint.sources.length) {
+          controller.enqueue(encoder.encode(
+            `> **Live OSINT sources consulted:** ${osint.sources.join(" · ")}\n\n`
+          ));
+        }
         const reader = stream.getReader();
         let buf = "";
         try {
