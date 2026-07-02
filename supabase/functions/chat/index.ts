@@ -1942,19 +1942,28 @@ ${zophielCodingBrainContent}
 
 
     // Helper: call OpenAI-compatible API (OpenAI, xAI, Mistral, Venice, DeepSeek, Together/Meta)
+    const STREAM_OUTPUT_TOKEN_BUDGET = 16_384;
+
     async function callOpenAICompatible(apiKey: string, endpoint: string, model: string) {
+      const isNewOpenAI = /^(gpt-5|o1|o3|o4)/i.test(model);
+      const body: Record<string, unknown> = {
+        model,
+        messages: openaiMessages,
+        stream: true,
+      };
+      if (isNewOpenAI) {
+        body.max_completion_tokens = STREAM_OUTPUT_TOKEN_BUDGET;
+      } else {
+        body.max_tokens = STREAM_OUTPUT_TOKEN_BUDGET;
+        body.temperature = 0.7;
+      }
       return await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({
-          model,
-          messages: openaiMessages,
-          stream: true,
-          temperature: 0.7,
-        }),
+        body: JSON.stringify(body),
       });
     }
 
@@ -1969,7 +1978,7 @@ ${zophielCodingBrainContent}
         },
         body: JSON.stringify({
           model,
-          max_tokens: 8192,
+          max_tokens: STREAM_OUTPUT_TOKEN_BUDGET,
           system: systemParts,
           messages: prunedMessages.map((m: { role: string; content: string; attachments?: { name: string; type: string; base64: string }[] }) => ({
             role: m.role === "assistant" ? "assistant" : "user",
