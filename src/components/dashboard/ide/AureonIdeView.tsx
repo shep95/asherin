@@ -40,6 +40,7 @@ import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
 import { IDE_BUILD_CONTRACT, parseIdeBuildStatus, buildCritiqueContinuationReply } from "@/lib/ide/completionLoop";
 import ZanoemDecisionLog from "@/components/asher/ZanoemDecisionLog";
+import { extractZanoemCodeFiles, type ZanoemCodeFile } from "@/components/dashboard/zali/zanoemOutput";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -84,6 +85,99 @@ function flattenFiles(files: IdeFile[]): IdeFile[] {
     if (f.children) result.push(...flattenFiles(f.children));
   }
   return result;
+}
+
+function normalizeGeneratedFilePath(path: string): string | null {
+  const cleaned = String(path || "")
+    .replace(/[`'"<>]/g, "")
+    .replace(/^\s*(?:file|path|filename)\s*:\s*/i, "")
+    .replace(/^\.?\//, "")
+    .replace(/\\/g, "/")
+    .trim();
+  if (!cleaned || cleaned.includes("..") || cleaned.endsWith("/")) return null;
+  return cleaned;
+}
+
+function responseLooksCutOff(text: string): boolean {
+  if (!text) return false;
+  if (/GENERATION_INCOMPLETE|MAX_TOKENS|finish_reason\s*[:=]\s*(?:length|max_tokens)/i.test(text)) return true;
+  if (((text.match(/```/g) || []).length % 2) === 1) return true;
+  if (/\{\s*"files"\s*:\s*\[/i.test(text) && !/\]\s*}\s*```?\s*$/s.test(text.trim())) return true;
+  if (/\b(import|export|const|let|function|class|return)\b[^\n]*$/i.test(text.trim()) && !/[;})\]`.]\s*$/.test(text.trim())) return true;
+  return false;
+}
+
+function applyGeneratedFilesToTree(tree: IdeFile[], generated: ZanoemCodeFile[]): { next: IdeFile[]; primaryId: string | null; applied: number } {
+  const clone = JSON.parse(JSON.stringify(tree)) as IdeFile[];
+  let primaryId: string | null = null;
+  let applied = 0;
+
+  const collectByName = (nodes: IdeFile[], name: string, acc: IdeFile[] = []): IdeFile[] => {
+    for (const node of nodes) {
+      if (node.type === "file" && node.name === name) acc.push(node);
+      if (node.children) collectByName(node.children, name, acc);
+    }
+    return acc;
+  };
+
+  const updateById = (nodes: IdeFile[], id: string, content: string): boolean => {
+    for (const node of nodes) {
+      if (node.id === id && node.type === "file") {
+        node.content = content;
+        node.language = getLanguage(node.name);
+        return true;
+      }
+      if (node.children && updateById(node.children, id, content)) return true;
+    }
+    return false;
+  };
+
+  const upsertAtPath = (nodes: IdeFile[], parts: string[], content: string): string => {
+    const [head, ...rest] = parts;
+    if (!head) return "";
+    if (rest.length === 0) {
+      let file = nodes.find((n) => n.type === "file" && n.name === head);
+      if (!file) {
+        file = { id: crypto.randomUUID(), name: head, type: "file", language: getLanguage(head), content };
+        nodes.push(file);
+      } else {
+        file.content = content;
+        file.language = getLanguage(head);
+      }
+      return file.id;
+    }
+    let folder = nodes.find((n) => n.type === "folder" && n.name === head);
+    if (!folder) {
+      folder = { id: crypto.randomUUID(), name: head, type: "folder", children: [] };
+      nodes.push(folder);
+    }
+    folder.children ||= [];
+    return upsertAtPath(folder.children, rest, content);
+  };
+
+  for (const file of generated) {
+    const normalized = normalizeGeneratedFilePath(file.filename);
+    if (!normalized || !file.content?.trim()) continue;
+    const parts = normalized.split("/").filter(Boolean);
+    const basename = parts[parts.length - 1];
+    let id: string | null = null;
+
+    if (parts.length === 1) {
+      const existing = collectByName(clone, basename);
+      if (existing.length === 1) {
+        id = existing[0].id;
+        updateById(clone, id, file.content);
+      }
+    }
+
+    if (!id) id = upsertAtPath(clone, parts, file.content);
+    if (id) {
+      primaryId ||= id;
+      applied += 1;
+    }
+  }
+
+  return { next: clone, primaryId, applied };
 }
 
 // Credit system
