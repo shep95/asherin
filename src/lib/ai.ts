@@ -131,6 +131,15 @@ export async function streamChat({
 
   let assistantAccum = "";
   const wrappedDelta = (t: string) => { assistantAccum += t; onDelta(t); };
+  const outputLimitMarker = /\n?\n?\[GENERATION_INCOMPLETE:[^\]]+\]/gi;
+  let incompleteSignal = false;
+  const consumeProviderContent = (content: string) => {
+    const cleaned = content.replace(outputLimitMarker, () => {
+      incompleteSignal = true;
+      return "";
+    });
+    if (cleaned) wrappedDelta(cleaned);
+  };
 
   const numberedFormat = (() => {
     try {
@@ -196,7 +205,7 @@ export async function streamChat({
         try {
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) wrappedDelta(content);
+          if (content) consumeProviderContent(content);
         } catch {
           textBuffer = line + "\n" + textBuffer;
           break;
@@ -216,7 +225,7 @@ export async function streamChat({
         try {
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) wrappedDelta(content);
+          if (content) consumeProviderContent(content);
         } catch { /* ignore */ }
       }
     }
@@ -225,9 +234,11 @@ export async function streamChat({
   let requestMessages = apiMessages;
   for (let attempt = 0; attempt < 3; attempt++) {
     const before = assistantAccum.length;
+    incompleteSignal = false;
     await fetchAndRead(requestMessages);
     const latestChunk = assistantAccum.slice(before);
-    if (!looksIncomplete(assistantAccum, latestChunk) || assistantAccum.length === before) break;
+    const mustContinue = incompleteSignal || looksIncomplete(assistantAccum, latestChunk);
+    if (!mustContinue || assistantAccum.length === before) break;
     requestMessages = [
       ...apiMessages,
       { role: "assistant" as const, content: assistantAccum },
