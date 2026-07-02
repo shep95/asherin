@@ -7,6 +7,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
 import { isValidByok, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
+import { runOsintPipeline } from "../_shared/osintStack.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
