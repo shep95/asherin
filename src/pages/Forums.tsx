@@ -199,6 +199,13 @@ const Forums = () => {
             may read, cite, and build upon them to advance AI for humanity.
           </div>
         )}
+        {tab === "bug" && !isAdmin && (
+          <div className="mb-4 rounded-xl border border-foreground/15 bg-foreground/[0.03] p-3 text-[11px] font-light leading-relaxed text-muted-foreground">
+            <span className="tracking-[0.15em] uppercase text-foreground/70">Private Report —</span>{" "}
+            Bug reports are hidden from other users. Only admins can review them. Include the software name,
+            what happened, and steps to reproduce.
+          </div>
+        )}
         {tab === "bug" && isAdmin && (
           <div className="mb-4 rounded-xl border border-foreground/20 bg-foreground/[0.05] p-3 text-[11px] font-light leading-relaxed text-muted-foreground">
             <span className="tracking-[0.15em] uppercase text-foreground/70">Admin Queue —</span>{" "}
