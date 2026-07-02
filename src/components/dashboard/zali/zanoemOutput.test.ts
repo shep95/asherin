@@ -74,7 +74,7 @@ describe("stitchAiContinuation", () => {
 
   it("replaces the visible answer when the provider restarts with a longer complete copy but no safe overlap", () => {
     const first = "Here is the fixed file:\n```tsx\nexport default function Game(){\n  function moveSnake(){\n    const next = head";
-    const completeRestart = "Here is the fixed file:\n```tsx\nexport default function Game(){\n  function moveSnake(){\n    const next = head.next;\n    if (hitWall(next)) endGame();\n  }\n}\n```";
+    const completeRestart = "Here is the fixed file:\n```tsx\nexport default function Game(){\n  function moveSnake(){\n    const nextCell = head.next;\n    if (hitWall(nextCell)) endGame();\n  }\n}\n```";
 
     const stitched = stitchAiContinuation(first, completeRestart);
 
