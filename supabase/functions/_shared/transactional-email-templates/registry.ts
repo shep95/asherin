@@ -48,4 +48,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'zerlal-critical-alert': zerlalCriticalAlert,
   'subscription-welcome': subscriptionWelcome,
   'subscription-ending': subscriptionEnding,
+  'forum-daily-digest': forumDailyDigest,
 }
