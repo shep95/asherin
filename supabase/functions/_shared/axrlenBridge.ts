@@ -38,6 +38,15 @@ export interface AxrlenBridgeArgs {
   /** Fallback API key if AXRLEN_GEMINI_API_KEY is not set. */
   fallbackGeminiKey?: string;
   fallbackModel?: string;
+  /**
+   * Access policy for this surface.
+   *   - 'pro' (default)         → admin OR $399 Aureon Pro subscribers only.
+   *   - 'authenticated'         → any signed-in user, regardless of tier.
+   * Aureon chat uses 'authenticated' so every subscription tier can invoke
+   * inline AXRLEN forecasting. Asher chat and the standalone AXRLEN endpoint
+   * keep the Pro gate.
+   */
+  accessMode?: "pro" | "authenticated";
 }
 
 export type AxrlenBridgeResult =
