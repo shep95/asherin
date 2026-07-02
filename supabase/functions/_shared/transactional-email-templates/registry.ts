@@ -27,6 +27,7 @@ import { template as zerlalScanReport } from './zerlal-scan-report.tsx'
 import { template as zerlalCriticalAlert } from './zerlal-critical-alert.tsx'
 import { template as subscriptionWelcome } from './subscription-welcome.tsx'
 import { template as subscriptionEnding } from './subscription-ending.tsx'
+import { template as forumDailyDigest } from './forum-daily-digest.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   welcome,
@@ -47,4 +48,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'zerlal-critical-alert': zerlalCriticalAlert,
   'subscription-welcome': subscriptionWelcome,
   'subscription-ending': subscriptionEnding,
+  'forum-daily-digest': forumDailyDigest,
 }

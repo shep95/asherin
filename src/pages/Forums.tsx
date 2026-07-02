@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, MessageSquare, Lightbulb, Bug, Radio, Send, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, MessageSquare, Lightbulb, Bug, Radio, Send, Loader2, Plus, Brain, ArrowBigUp, ArrowBigDown, ShieldCheck } from "lucide-react";
 import LandingBackground from "@/components/LandingBackground";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { isAdminEmail } from "@/lib/adminEmail";
 
-type Category = "idea" | "leak" | "bug";
+type Category = "idea" | "leak" | "bug" | "theory";
 
 interface ForumPost {
   id: string;
@@ -28,17 +29,24 @@ interface ForumReply {
   created_at: string;
 }
 
-const CATEGORIES: { id: Category; label: string; icon: typeof Lightbulb; desc: string }[] = [
-  { id: "idea", label: "Ideas", icon: Lightbulb, desc: "Suggestions for what to build next" },
-  { id: "leak", label: "Leaks", icon: Radio,     desc: "Insider intel & disclosures" },
-  { id: "bug",  label: "Bugs",  icon: Bug,       desc: "Issues that need to be fixed" },
+interface VoteRow { post_id: string; user_id: string; value: number }
+
+const ALL_CATEGORIES: { id: Category; label: string; icon: typeof Lightbulb; desc: string; adminOnly?: boolean }[] = [
+  { id: "idea",   label: "Ideas",    icon: Lightbulb, desc: "Suggestions — upvote what you want built" },
+  { id: "theory", label: "Theories", icon: Brain,     desc: "Open-source theories to advance AI for humanity" },
+  { id: "leak",   label: "Leaks",    icon: Radio,     desc: "Insider intel & disclosures" },
+  { id: "bug",    label: "Bugs",     icon: Bug,       desc: "Report privately — only admins see reports" },
 ];
 
 const Forums = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isAdmin = isAdminEmail(user?.email);
+  const CATEGORIES = useMemo(() => ALL_CATEGORIES.filter(c => !c.adminOnly || isAdmin), [isAdmin]);
+
   const [tab, setTab] = useState<Category>("idea");
   const [posts, setPosts] = useState<ForumPost[]>([]);
+  const [votes, setVotes] = useState<Record<string, { score: number; mine: number }>>({});
   const [loading, setLoading] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -48,7 +56,6 @@ const Forums = () => {
   const [replies, setReplies] = useState<ForumReply[]>([]);
   const [replyBody, setReplyBody] = useState("");
 
-
   const loadPosts = async (cat: Category) => {
     setLoading(true);
     const { data } = await supabase
@@ -56,11 +63,30 @@ const Forums = () => {
       .eq("category", cat)
       .order("created_at", { ascending: false })
       .limit(200);
-    setPosts((data ?? []) as ForumPost[]);
+    const list = (data ?? []) as ForumPost[];
+    setPosts(list);
+    // Load votes only for ideas
+    if (cat === "idea" && list.length) {
+      const ids = list.map(p => p.id);
+      const { data: vs } = await supabase
+        .from("forum_post_votes").select("post_id, user_id, value")
+        .in("post_id", ids);
+      const rows = (vs ?? []) as VoteRow[];
+      const map: Record<string, { score: number; mine: number }> = {};
+      for (const id of ids) map[id] = { score: 0, mine: 0 };
+      for (const v of rows) {
+        if (!map[v.post_id]) map[v.post_id] = { score: 0, mine: 0 };
+        map[v.post_id].score += v.value;
+        if (user && v.user_id === user.id) map[v.post_id].mine = v.value;
+      }
+      setVotes(map);
+    } else {
+      setVotes({});
+    }
     setLoading(false);
   };
 
-  useEffect(() => { loadPosts(tab); }, [tab]);
+  useEffect(() => { loadPosts(tab); /* eslint-disable-next-line */ }, [tab, user?.id]);
 
   const submitPost = async () => {
     if (!user) { toast({ title: "Sign in required" }); return; }
@@ -75,6 +101,11 @@ const Forums = () => {
     setSubmitting(false);
     if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
     setTitle(""); setBody(""); setComposeOpen(false);
+    if (tab === "bug") {
+      toast({ title: "Bug report submitted", description: "Sent privately to the admin review queue." });
+    } else if (tab === "theory") {
+      toast({ title: "Theory submitted", description: "Declared open-source — anyone (incl. other AIs) may read & build on it." });
+    }
     loadPosts(tab);
   };
 
@@ -98,7 +129,28 @@ const Forums = () => {
     setReplyBody("");
   };
 
-  const ActiveIcon = CATEGORIES.find(c => c.id === tab)!.icon;
+  const castVote = async (postId: string, value: 1 | -1) => {
+    if (!user) { toast({ title: "Sign in to vote" }); return; }
+    const cur = votes[postId] ?? { score: 0, mine: 0 };
+    // Toggle off if clicking the same vote
+    if (cur.mine === value) {
+      await supabase.from("forum_post_votes").delete().eq("post_id", postId).eq("user_id", user.id);
+      setVotes(v => ({ ...v, [postId]: { score: cur.score - value, mine: 0 } }));
+      return;
+    }
+    const { error } = await supabase.from("forum_post_votes")
+      .upsert({ post_id: postId, user_id: user.id, value }, { onConflict: "post_id,user_id" });
+    if (error) { toast({ title: "Vote failed", description: error.message, variant: "destructive" }); return; }
+    const delta = value - cur.mine;
+    setVotes(v => ({ ...v, [postId]: { score: cur.score + delta, mine: value } }));
+  };
+
+  const activeCat = CATEGORIES.find(c => c.id === tab) ?? CATEGORIES[0];
+  const ActiveIcon = activeCat.icon;
+
+  const displayedPosts = tab === "idea"
+    ? [...posts].sort((a, b) => (votes[b.id]?.score ?? 0) - (votes[a.id]?.score ?? 0))
+    : posts;
 
   return (
     <LandingBackground>
@@ -114,12 +166,12 @@ const Forums = () => {
         </div>
         <h1 className="text-5xl sm:text-6xl font-extralight tracking-[0.1em] zophiel-shimmer-text mb-3">FORUMS</h1>
         <p className="max-w-xl text-sm font-extralight leading-relaxed text-muted-foreground/80 mb-10">
-          Share ideas, drop leaks, and report bugs that need to be fixed. Text only — no file uploads.
+          Share ideas, submit theories, drop leaks. Text only — no file uploads.
         </p>
 
         {/* Category tabs */}
-        <div className="grid grid-cols-3 gap-2 mb-6">
-          {CATEGORIES.map(({ id, label, icon: Icon, desc }) => (
+        <div className={`grid gap-2 mb-6 ${CATEGORIES.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
+          {CATEGORIES.map(({ id, label, icon: Icon, desc, adminOnly }) => (
             <button
               key={id}
               onClick={() => { setTab(id); setActivePost(null); }}
@@ -129,16 +181,41 @@ const Forums = () => {
                   : "border-border/15 bg-card/30 hover:border-border/40 hover:bg-card/50"
               }`}
             >
-              <Icon className="h-4 w-4 text-foreground/70 mb-2" strokeWidth={1.4} />
+              <div className="flex items-center gap-2 mb-2">
+                <Icon className="h-4 w-4 text-foreground/70" strokeWidth={1.4} />
+                {adminOnly && <ShieldCheck className="h-3 w-3 text-foreground/40" />}
+              </div>
               <p className="text-sm font-light tracking-wide text-foreground">{label}</p>
               <p className="text-[10px] font-light text-muted-foreground/60 mt-1 leading-relaxed">{desc}</p>
             </button>
           ))}
         </div>
 
+        {/* Category-specific disclaimers */}
+        {tab === "theory" && (
+          <div className="mb-4 rounded-xl border border-foreground/15 bg-foreground/[0.03] p-3 text-[11px] font-light leading-relaxed text-muted-foreground">
+            <span className="tracking-[0.15em] uppercase text-foreground/70">Open Source Notice —</span>{" "}
+            Theories submitted here are declared open-source. Anyone, including Aureon and other AI systems,
+            may read, cite, and build upon them to advance AI for humanity.
+          </div>
+        )}
+        {tab === "bug" && !isAdmin && (
+          <div className="mb-4 rounded-xl border border-foreground/15 bg-foreground/[0.03] p-3 text-[11px] font-light leading-relaxed text-muted-foreground">
+            <span className="tracking-[0.15em] uppercase text-foreground/70">Private Report —</span>{" "}
+            Bug reports are hidden from other users. Only admins can review them. Include the software name,
+            what happened, and steps to reproduce.
+          </div>
+        )}
+        {tab === "bug" && isAdmin && (
+          <div className="mb-4 rounded-xl border border-foreground/20 bg-foreground/[0.05] p-3 text-[11px] font-light leading-relaxed text-muted-foreground">
+            <span className="tracking-[0.15em] uppercase text-foreground/70">Admin Queue —</span>{" "}
+            Bug reports are hidden from users. Daily digest is emailed to shepherdnewtonx@gmail.com at 12:00 UTC.
+          </div>
+        )}
+
         {!activePost ? (
           <>
-            {/* Compose */}
+            {/* Compose — bugs visible to any signed-in user for reporting, but visibility is admin-only */}
             <div className="rounded-2xl border border-border/20 bg-card/40 backdrop-blur-md mb-6">
               {!composeOpen ? (
                 <button
@@ -146,7 +223,7 @@ const Forums = () => {
                   className="w-full flex items-center gap-3 px-5 py-4 text-left text-sm font-light text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Plus className="h-4 w-4" />
-                  Share a {tab}…
+                  {tab === "bug" ? "Report a bug (private to admins)…" : `Share a ${tab}…`}
                 </button>
               ) : (
                 <div className="p-5 space-y-3">
@@ -154,18 +231,18 @@ const Forums = () => {
                     <ActiveIcon className="h-3 w-3" /> New {tab}
                   </div>
                   <input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    maxLength={200}
-                    placeholder="Title"
+                    value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="Title"
                     className="w-full bg-transparent border-b border-border/20 pb-2 text-base font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/40 transition-colors"
                   />
                   <textarea
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    maxLength={8000}
-                    rows={6}
-                    placeholder={`Describe your ${tab} in detail. Text only — no file uploads.`}
+                    value={body} onChange={(e) => setBody(e.target.value)} maxLength={8000} rows={6}
+                    placeholder={
+                      tab === "bug"
+                        ? "Which software, what happened, steps to reproduce. Only admins can see this."
+                        : tab === "theory"
+                          ? "State your theory. Include reasoning, examples, and workflow. Open-source once posted."
+                          : `Describe your ${tab} in detail. Text only — no file uploads.`
+                    }
                     className="w-full bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none resize-none leading-relaxed"
                   />
                   <div className="flex items-center justify-between pt-2 border-t border-border/15">
@@ -173,8 +250,7 @@ const Forums = () => {
                     <div className="flex items-center gap-3">
                       <button onClick={() => { setComposeOpen(false); setTitle(""); setBody(""); }} className="text-[11px] font-light tracking-[0.2em] text-muted-foreground hover:text-foreground uppercase">Cancel</button>
                       <button
-                        onClick={submitPost}
-                        disabled={submitting}
+                        onClick={submitPost} disabled={submitting}
                         className="inline-flex items-center gap-2 rounded-lg border border-foreground/30 bg-foreground/10 px-4 py-1.5 text-[11px] font-light tracking-[0.2em] text-foreground hover:bg-foreground/20 transition-all uppercase disabled:opacity-50"
                       >
                         {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
@@ -186,38 +262,56 @@ const Forums = () => {
               )}
             </div>
 
-            {/* Posts list - scrollable */}
+            {/* Posts list */}
             <div className="space-y-3">
               {loading ? (
                 <div className="flex items-center justify-center py-20 text-muted-foreground/60">
                   <Loader2 className="h-5 w-5 animate-spin" />
                 </div>
-              ) : posts.length === 0 ? (
+              ) : displayedPosts.length === 0 ? (
                 <div className="rounded-2xl border border-border/15 bg-card/20 p-12 text-center">
                   <ActiveIcon className="h-6 w-6 text-muted-foreground/40 mx-auto mb-3" strokeWidth={1.2} />
-                  <p className="text-sm font-light text-muted-foreground/60 tracking-wide">No {tab}s yet. Be the first.</p>
+                  <p className="text-sm font-light text-muted-foreground/60 tracking-wide">
+                    {tab === "bug" && !isAdmin
+                      ? "Reports go directly to admins — you won't see them listed here."
+                      : `No ${tab}s yet. Be the first.`}
+                  </p>
                 </div>
-              ) : posts.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => openPost(p)}
-                  className="block w-full text-left rounded-2xl border border-border/15 bg-card/30 backdrop-blur-md hover:border-border/40 hover:bg-card/50 transition-all p-5 group"
-                >
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <h3 className="text-base font-light text-foreground tracking-wide group-hover:text-foreground">{p.title}</h3>
-                    <span className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase whitespace-nowrap pt-1">
-                      {new Date(p.created_at).toLocaleDateString()}
-                    </span>
+              ) : displayedPosts.map((p) => {
+                const v = votes[p.id] ?? { score: 0, mine: 0 };
+                return (
+                  <div key={p.id} className="flex items-stretch gap-3">
+                    {tab === "idea" && (
+                      <div className="flex flex-col items-center justify-center gap-0.5 rounded-2xl border border-border/15 bg-card/30 backdrop-blur-md px-2 py-3 min-w-[52px]">
+                        <button onClick={() => castVote(p.id, 1)} className={`p-1 rounded-md transition-colors ${v.mine === 1 ? 'text-foreground bg-foreground/10' : 'text-muted-foreground/60 hover:text-foreground'}`}>
+                          <ArrowBigUp className="h-4 w-4" strokeWidth={1.6} />
+                        </button>
+                        <span className={`text-xs font-light tabular-nums ${v.score > 0 ? 'text-foreground' : v.score < 0 ? 'text-muted-foreground/50' : 'text-muted-foreground/70'}`}>{v.score}</span>
+                        <button onClick={() => castVote(p.id, -1)} className={`p-1 rounded-md transition-colors ${v.mine === -1 ? 'text-foreground bg-foreground/10' : 'text-muted-foreground/60 hover:text-foreground'}`}>
+                          <ArrowBigDown className="h-4 w-4" strokeWidth={1.6} />
+                        </button>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => openPost(p)}
+                      className="flex-1 block text-left rounded-2xl border border-border/15 bg-card/30 backdrop-blur-md hover:border-border/40 hover:bg-card/50 transition-all p-5 group"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <h3 className="text-base font-light text-foreground tracking-wide group-hover:text-foreground">{p.title}</h3>
+                        <span className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase whitespace-nowrap pt-1">
+                          {new Date(p.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-xs font-light text-muted-foreground/80 line-clamp-2 leading-relaxed">{p.body}</p>
+                      <p className="mt-3 text-[10px] font-light tracking-[0.2em] text-muted-foreground/40 uppercase">— {p.author_name ?? "anon"}</p>
+                    </button>
                   </div>
-                  <p className="text-xs font-light text-muted-foreground/80 line-clamp-2 leading-relaxed">{p.body}</p>
-                  <p className="mt-3 text-[10px] font-light tracking-[0.2em] text-muted-foreground/40 uppercase">— {p.author_name ?? "anon"}</p>
-                </button>
-              ))}
+                );
+              })}
             </div>
           </>
         ) : (
           <>
-            {/* Post detail */}
             <button onClick={() => { setActivePost(null); setReplies([]); }} className="text-[11px] font-light tracking-[0.2em] text-muted-foreground hover:text-foreground uppercase mb-4 inline-flex items-center gap-2">
               <ArrowLeft className="h-3 w-3" /> Back to {tab}s
             </button>
@@ -243,10 +337,7 @@ const Forums = () => {
               {user ? (
                 <div className="flex items-end gap-3">
                   <textarea
-                    value={replyBody}
-                    onChange={(e) => setReplyBody(e.target.value)}
-                    maxLength={4000}
-                    rows={2}
+                    value={replyBody} onChange={(e) => setReplyBody(e.target.value)} maxLength={4000} rows={2}
                     placeholder="Write a reply…"
                     className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none resize-none"
                   />
