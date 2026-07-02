@@ -279,15 +279,28 @@ export function detectIntent(text: string): OsintIntent {
   const countries: string[] = [];
   const countriesIso3: string[] = [];
   for (const c of COUNTRY_LEX) {
-    if (c.names.some((n) => q.includes(n))) {
+    // Word-boundary match so "uk" doesn't fire inside "ukraine", "us" doesn't
+    // fire inside "used", etc. Handles multi-word names like "united states".
+    const hit = c.names.some((n) => new RegExp(`(?:^|[^a-z])${escapeRe(n)}(?:$|[^a-z])`, "i").test(q));
+    if (hit) {
       if (!countries.includes(c.iso2)) countries.push(c.iso2);
       if (!countriesIso3.includes(c.iso3)) countriesIso3.push(c.iso3);
     }
   }
 
-  const companyMatches = Array.from(text.matchAll(/\b([A-Z][A-Za-z0-9&.\-]{2,}(?:\s+[A-Z][A-Za-z0-9&.\-]{1,}){0,3})\b/g))
-    .map((m) => m[1])
-    .filter((s) => !/^(The|And|For|With|From|About|What|Who|Why|How|When|Where|Which|That|This|These|Those|USA|China|Russia|Aureon)$/.test(s))
+  // Company detection: capitalized tokens, filtering out sentence-initial
+  // interrogatives / prepositions / verbs / already-matched country names /
+  // known agencies. Only accept tokens with ≥1 lowercase char (so "SEC"/"USA"
+  // are dropped) and length ≥ 4.
+  const COMPANY_STOP = new Set([
+    "the","and","for","with","from","about","what","who","why","how","when","where","which","that","this","these","those",
+    "give","tell","show","find","list","need","want","help","make","take","said",
+    "usa","sec","fda","dod","cia","fbi","nasa","irs","imf","nato","opec","aureon","google","claude",
+    ...COUNTRY_LEX.flatMap((c) => c.names.map((n) => n.replace(/\s+/g, ""))),
+  ]);
+  const companyMatches = Array.from(text.matchAll(/\b([A-Z][a-z][A-Za-z0-9&.\-]{2,}(?:\s+[A-Z][A-Za-z0-9&.\-]{1,}){0,3})\b/g))
+    .map((m) => m[1].trim())
+    .filter((s) => s.length >= 4 && !COMPANY_STOP.has(s.toLowerCase().replace(/\s+/g, "")))
     .slice(0, 3);
 
   const wantFilings = /\b(sec|10-?[kq]|8-?k|filing|earnings|ticker|nasdaq|nyse|insider|ownership)\b/.test(q) || companyMatches.length > 0;
