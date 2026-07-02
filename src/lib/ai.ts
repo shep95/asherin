@@ -3,6 +3,7 @@ import type { ChatMode, FileAttachment } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import { detectRelevantSkills, buildSkillInjectionPrompt } from "@/lib/autoSkillInjection";
 import { buildSwarmContext } from "@/lib/swarmOrchestrator";
+import { buildExactContinuationPrompt, MAX_STREAM_CONTINUATIONS, stitchAiContinuation } from "@/lib/aiContinuation";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const SUGGEST_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest`;
@@ -31,6 +32,7 @@ export async function streamChat({
   conversationId,
   signal,
   onDelta,
+  onReplace,
   onDone,
 }: {
   messages: Msg[];
@@ -43,6 +45,7 @@ export async function streamChat({
   conversationId?: string | null;
   signal?: AbortSignal;
   onDelta: (text: string) => void;
+  onReplace?: (text: string) => void;
   onDone: () => void;
 }) {
   // Transform attachments for the backend
@@ -132,14 +135,6 @@ export async function streamChat({
   let assistantAccum = "";
   const wrappedDelta = (t: string) => { assistantAccum += t; onDelta(t); };
   const outputLimitMarker = /\n?\n?\[GENERATION_INCOMPLETE:[^\]]+\]/gi;
-  let incompleteSignal = false;
-  const consumeProviderContent = (content: string) => {
-    const cleaned = content.replace(outputLimitMarker, () => {
-      incompleteSignal = true;
-      return "";
-    });
-    if (cleaned) wrappedDelta(cleaned);
-  };
 
   const numberedFormat = (() => {
     try {
@@ -156,7 +151,7 @@ export async function streamChat({
     return false;
   };
 
-  const fetchAndRead = async (requestMessages: typeof apiMessages) => {
+  const fetchAndRead = async (requestMessages: typeof apiMessages, onText?: (text: string) => void) => {
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
@@ -184,6 +179,17 @@ export async function streamChat({
     const decoder = new TextDecoder();
     let textBuffer = "";
     let streamDone = false;
+    let passText = "";
+    let passIncomplete = false;
+    const consumePassContent = (content: string) => {
+      const cleaned = content.replace(outputLimitMarker, () => {
+        passIncomplete = true;
+        return "";
+      });
+      if (!cleaned) return;
+      passText += cleaned;
+      onText?.(cleaned);
+    };
 
     while (!streamDone) {
       const { done, value } = await reader.read();
@@ -205,7 +211,7 @@ export async function streamChat({
         try {
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) consumeProviderContent(content);
+          if (content) consumePassContent(content);
         } catch {
           textBuffer = line + "\n" + textBuffer;
           break;
@@ -225,26 +231,36 @@ export async function streamChat({
         try {
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) consumeProviderContent(content);
+          if (content) consumePassContent(content);
         } catch { /* ignore */ }
       }
     }
+
+    return { text: passText, incompleteSignal: passIncomplete };
   };
 
   let requestMessages = apiMessages;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt <= MAX_STREAM_CONTINUATIONS; attempt++) {
     const before = assistantAccum.length;
-    incompleteSignal = false;
-    await fetchAndRead(requestMessages);
+    const pass = await fetchAndRead(requestMessages, attempt === 0 ? wrappedDelta : undefined);
+    if (attempt > 0) {
+      const stitched = stitchAiContinuation(assistantAccum, pass.text);
+      assistantAccum = stitched.text;
+      if (stitched.strategy === "restart-replace" && onReplace) {
+        onReplace(stitched.text);
+      } else if (stitched.delta) {
+        onDelta(stitched.delta);
+      }
+    }
     const latestChunk = assistantAccum.slice(before);
-    const mustContinue = incompleteSignal || looksIncomplete(assistantAccum, latestChunk);
-    if (!mustContinue || assistantAccum.length === before) break;
+    const mustContinue = pass.incompleteSignal || looksIncomplete(assistantAccum, latestChunk);
+    if (!mustContinue || (assistantAccum.length === before && !pass.text)) break;
     requestMessages = [
       ...apiMessages,
       { role: "assistant" as const, content: assistantAccum },
       {
         role: "user" as const,
-        content: "Continue exactly where you stopped. Do not restart, summarize, or omit code. Close all open code fences/JSON and finish the complete answer.",
+        content: buildExactContinuationPrompt(assistantAccum),
       },
     ];
   }

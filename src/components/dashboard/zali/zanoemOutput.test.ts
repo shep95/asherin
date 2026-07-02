@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { stitchAiContinuation } from "@/lib/aiContinuation";
 import { extractZanoemCodeFiles } from "./zanoemOutput";
 
 describe("extractZanoemCodeFiles", () => {
@@ -39,5 +40,45 @@ describe("extractZanoemCodeFiles", () => {
 
     expect(files).toHaveLength(1);
     expect(files[0].filename).toBe("snippet-1.ts");
+  });
+});
+
+describe("stitchAiContinuation", () => {
+  it("continues after the cut point instead of duplicating a restarted answer", () => {
+    const first = [
+      "src/App.tsx",
+      "```tsx",
+      "export default function App() {",
+      "  function moveSnake() {",
+      "    const next = { x: head.x + dx, y: head.y + dy };",
+    ].join("\n");
+    const restarted = [
+      "src/App.tsx",
+      "```tsx",
+      "export default function App() {",
+      "  function moveSnake() {",
+      "    const next = { x: head.x + dx, y: head.y + dy };",
+      "    if (next.x < 0 || next.y < 0) return endGame();",
+      "    render();",
+      "  }",
+      "}",
+      "```",
+    ].join("\n");
+
+    const stitched = stitchAiContinuation(first, restarted);
+
+    expect(stitched.text.match(/src\/App\.tsx/g)).toHaveLength(1);
+    expect(stitched.text).toContain("return endGame");
+    expect(stitched.text.trim().endsWith("```")).toBe(true);
+  });
+
+  it("replaces the visible answer when the provider restarts with a longer complete copy but no safe overlap", () => {
+    const first = "Here is the fixed file:\n```tsx\nexport default function Game(){\n  function moveSnake(){\n    const next = head";
+    const completeRestart = "Here is the fixed file:\n```tsx\nexport default function Game(){\n  function moveSnake(){\n    const nextCell = head.next;\n    if (hitWall(nextCell)) endGame();\n  }\n}\n```";
+
+    const stitched = stitchAiContinuation(first, completeRestart);
+
+    expect(stitched.strategy).toBe("restart-replace");
+    expect(stitched.text).toBe(completeRestart);
   });
 });

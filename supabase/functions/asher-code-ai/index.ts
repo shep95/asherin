@@ -292,6 +292,85 @@ function looksIncomplete(text: string, finishReason?: string | null): boolean {
   return false;
 }
 
+function longestSuffixPrefixOverlap(left: string, right: string, max = 12000): number {
+  const a = left.slice(-max);
+  const b = right.slice(0, max);
+  const limit = Math.min(a.length, b.length);
+  for (let size = limit; size >= 40; size -= 1) {
+    if (a.slice(a.length - size) === b.slice(0, size)) return size;
+  }
+  return 0;
+}
+
+function firstMeaningfulLine(text: string): string {
+  return (text.split(/\r?\n/).find((line) => line.trim().length > 8) || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 220);
+}
+
+function looksLikeRestart(existing: string, continuation: string): boolean {
+  const left = firstMeaningfulLine(existing);
+  const right = firstMeaningfulLine(continuation);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  return left.length >= 40 && right.length >= 40 && (left.startsWith(right.slice(0, 40)) || right.startsWith(left.slice(0, 40)));
+}
+
+function stitchContinuation(existing: string, continuation: string): string {
+  if (!continuation) return existing;
+  if (existing.includes(continuation)) return existing;
+  if (continuation.startsWith(existing)) return continuation;
+
+  for (const size of [5000, 3200, 2200, 1400, 900, 520, 280, 140, 80]) {
+    if (existing.length < size) continue;
+    const tail = existing.slice(-size);
+    const idx = continuation.indexOf(tail);
+    if (idx !== -1) return existing + continuation.slice(idx + tail.length);
+  }
+
+  if (looksLikeRestart(existing, continuation) && continuation.length > existing.length) {
+    return continuation;
+  }
+
+  const tailLines = existing
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().length >= 24)
+    .slice(-80)
+    .reverse();
+  for (const line of tailLines) {
+    const idx = continuation.lastIndexOf(line);
+    if (idx !== -1) {
+      const suffix = continuation.slice(idx + line.length);
+      if (suffix) return existing + suffix;
+    }
+  }
+
+  const overlap = longestSuffixPrefixOverlap(existing, continuation);
+  if (overlap > 0) return existing + continuation.slice(overlap);
+
+  if (looksLikeRestart(existing, continuation)) return existing;
+
+  return `${existing}${existing.endsWith("\n") || continuation.startsWith("\n") ? "" : "\n"}${continuation}`;
+}
+
+function buildExactContinuationPrompt(accumulated: string): string {
+  const tail = accumulated.slice(-2200);
+  return [
+    "The previous answer was cut off by the output limit.",
+    "Continue from the exact next character after the tail below.",
+    "Do NOT restart from the beginning. Do NOT repeat any completed code. Do NOT summarize.",
+    "If the tail ends inside a function, continue inside that function and finish all remaining code, closing braces, exports, tests, and code fences.",
+    "Close every open code fence / JSON object / source file before ending.",
+    "",
+    "TAIL TO CONTINUE AFTER:",
+    "```text",
+    tail,
+    "```",
+  ].join("\n");
+}
+
 async function dispatchComplete(
   p: ProviderCall,
   messages: ChatMessage[],
@@ -305,7 +384,7 @@ async function dispatchComplete(
 
   for (let i = 0; i <= maxContinuations; i++) {
     const res = await dispatch(p, turnMessages, systemPrompt, maxTokens);
-    accumulated += res.text || "";
+    accumulated = i === 0 ? accumulated + (res.text || "") : stitchContinuation(accumulated, res.text || "");
     lastReason = res.finishReason;
     if (!looksIncomplete(accumulated, lastReason)) break;
 
@@ -314,9 +393,7 @@ async function dispatchComplete(
       { role: "assistant", content: accumulated },
       {
         role: "user",
-        content:
-          "Continue exactly where you stopped. Do not restart, summarize, or omit files. " +
-          "Close every open code fence, JSON object, and file. Finish the complete code now.",
+        content: buildExactContinuationPrompt(accumulated),
       },
     ];
   }
