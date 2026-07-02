@@ -5,6 +5,7 @@ import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import ReactMarkdown from "react-markdown";
 import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboard/property/PropertyMapCard";
 import PropertySourcesStrip, { type PropertySourceCard } from "@/components/dashboard/property/PropertySourcesStrip";
+import DomainIntelCard, { type DomainIntel } from "@/components/dashboard/domain/DomainIntelCard";
 
 interface Props {
   targetUrl: string;
@@ -20,6 +21,7 @@ interface ChatMsg {
   role: "user" | "assistant";
   content: string;
   property?: PropertyAttachments | null;
+  domain?: DomainIntel | null;
 }
 
 // Server prefixes the assistant stream with a single-line [[AUREON_META]]…[[/AUREON_META]]
