@@ -9,6 +9,7 @@ import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
 import { isValidByok, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 import { runOsintPipeline } from "../_shared/osintStack.ts";
 import { runPropertyPipeline } from "../_shared/propertyIntel.ts";
+import { runDomainPipeline } from "../_shared/domainIntel.ts";
 import { runAxrlenBridge } from "../_shared/axrlenBridge.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -109,11 +110,15 @@ Deno.serve(async (req) => {
     // Per-source timeout is 4.5s and failures are silently skipped, so this
     // never blocks the stream for long or breaks URL-only questions.
     const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content || "";
-    const [osint, property] = await Promise.all([
+    const [osint, property, domainPull] = await Promise.all([
       runOsintPipeline(lastUser).catch(() => ({ sources: [] as string[], context: "", errors: [] as string[] })),
       runPropertyPipeline(lastUser).catch(() => ({
         fired: false, addresses: [] as string[], evidence: "",
         attachments: { map: null, sources: [] as unknown[] }, errors: [] as string[],
+      })),
+      runDomainPipeline(lastUser).catch((e) => ({
+        fired: false, intent: null, evidence: "", attachment: null,
+        errors: [`domain_pipeline: ${String((e as Error)?.message || e)}`],
       })),
     ]);
 
@@ -124,7 +129,7 @@ Deno.serve(async (req) => {
     const axrlen = await runAxrlenBridge({
       req,
       messages: messages as any,
-      liveEvidence: (osint.context || "") + (property.evidence || ""),
+      liveEvidence: (osint.context || "") + (property.evidence || "") + (domainPull.evidence || ""),
       surface: "aureon",
       fallbackGeminiKey: apiKey,
       fallbackModel: model,
@@ -136,6 +141,7 @@ Deno.serve(async (req) => {
       const meta = {
         osintSources: osint.sources,
         property: property.fired ? property.attachments : null,
+        domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null,
         axrlen: { fired: true, tier: axrlen.intent.tier, brainsLoaded: axrlen.brainsLoaded, reason: axrlen.access.reason },
       };
       const out = new ReadableStream({
@@ -160,7 +166,7 @@ Deno.serve(async (req) => {
     }
     if (axrlen.kind === "denied" && axrlen.intent.fired) {
       const encoder = new TextEncoder();
-      const meta = { osintSources: osint.sources, property: property.fired ? property.attachments : null, axrlen: { fired: true, denied: true, reason: axrlen.access.reason } };
+      const meta = { osintSources: osint.sources, property: property.fired ? property.attachments : null, domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null, axrlen: { fired: true, denied: true, reason: axrlen.access.reason } };
       const out = new ReadableStream({
         start(controller) {
           controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
@@ -190,9 +196,14 @@ You have access to:
    a geocode. Cite each fact as [zillow.com] / [redfin.com] / [nyc.gov] etc.
    Flag conflicts between sources explicitly.
 
-Answer the user's questions strictly grounded in the dossier, map, live OSINT, and property evidence. When the user asks for "everything you can find" — list every entity in the map, group by type, and cross-reference with dossier evidence. Do NOT invent facts. If something is not in the dossier or live evidence, say so plainly.
+6. LIVE DOMAIN EVIDENCE — when the user asks to map / harvest / probe a
+   domain, structured URL enumeration and downloadable-doc catalogs from
+   the Zophiel domain-extraction stack. Cite as [<domain>]. Never invent
+   URLs that are not inside the <domain_evidence> block.
 
-${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}${property.evidence}`;
+Answer the user's questions strictly grounded in the dossier, map, live OSINT, property evidence, and domain evidence. When the user asks for "everything you can find" — list every entity in the map, group by type, and cross-reference with dossier evidence. Do NOT invent facts. If something is not in the dossier or live evidence, say so plainly.
+
+${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}${property.evidence}${domainPull.evidence}`;
 
     const stream = await callGeminiStream(apiKey, model, sys, messages);
 
@@ -208,6 +219,7 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
         const meta = {
           osintSources: osint.sources,
           property: property.fired ? property.attachments : null,
+          domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null,
         };
         controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
 
@@ -221,6 +233,15 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
           controller.enqueue(encoder.encode(
             `> **Property evidence:** ${property.attachments.sources.map((s: any) => s.domain).join(" · ")}\n\n`
           ));
+        }
+        if (domainPull.fired && domainPull.attachment) {
+          const a = domainPull.attachment;
+          const label =
+            a.kind === "map" ? `mapped ${a.totalUnique} URLs on ${a.domain}`
+            : a.kind === "harvest" ? `harvested ${a.totalDocs} docs across ${a.pagesCrawled} pages on ${a.domain}`
+            : a.kind === "osint" ? `probed ${a.domain} (sitemap: ${a.sitemapCount} URLs)`
+            : `recon deferred — launch full scan in Zerlal`;
+          controller.enqueue(encoder.encode(`> **Domain intel:** ${label}\n\n`));
         }
         const reader = stream.getReader();
         let buf = "";

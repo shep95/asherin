@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
-import { ArrowLeft, Zap, Globe, Code, Clock } from "lucide-react";
+import { ArrowLeft, Zap, Globe, Code, Clock, Layers } from "lucide-react";
 
 interface Update {
   date: string;
@@ -13,6 +13,14 @@ interface Update {
 }
 
 const UPDATES: Update[] = [
+  {
+    date: "2026-07-02",
+    title: "Zerlal + Zophiel Domain Extraction — Now Inline in Aureon Chat",
+    body:
+      "The domain-extraction stack from Zerlal and Zophiel (domain-map, domain-harvest, zerlal-domain-recon) is now callable directly from Aureon Chat via a shared _shared/domainIntel.ts bridge. A regex-based intent classifier routes forecast-shaped domain asks into one of four modes: MAP (\"map w3.org\", \"list all urls on shopify.com\", \"sitemap of nytimes.com\"), HARVEST (\"harvest all pdfs from stanford.edu\", \"download every doc on arxiv.org\", with optional extension filter), RECON (\"recon acme-corp.com\", \"@zerlal tesla.com\" — deferred to Zerlal via deep-link CTA because the deep scan writes to zerlal_projects and takes ~60s), and OSINT probe for bare-domain asks (\"stripe.com\", \"tell me about nasa.gov\" — title/meta/server/robots/sitemap count in under a second). Results stream back as an [[AUREON_META]] block that renders a monochrome DomainIntelCard beneath the assistant message (collapsible path segments, copy-URLs button, per-extension counts, deep-link to Zerlal). Open to every subscription tier per the Aureon Chat access rule. SSRF-hardened (IPs, localhost, .local/.internal/.onion rejected). Verified live: 20/20 intent detection cases pass, map returned 67 URLs across 36 segments on w3.org in 463ms, OSINT probe on stripe.com in 362ms, and a shape-mismatch bug (server returns `category`, normalizer expected `segment`) was caught via live test and fixed via the code-to-narrative loop.",
+    icon: <Layers className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Domain Intel",
+  },
   {
     date: "2026-07-02",
     title: "AXRLEN Goes Inline — Forecasting Inside Aureon & Asher Chat",

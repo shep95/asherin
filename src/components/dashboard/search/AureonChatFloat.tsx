@@ -5,6 +5,7 @@ import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import ReactMarkdown from "react-markdown";
 import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboard/property/PropertyMapCard";
 import PropertySourcesStrip, { type PropertySourceCard } from "@/components/dashboard/property/PropertySourcesStrip";
+import DomainIntelCard, { type DomainIntel } from "@/components/dashboard/domain/DomainIntelCard";
 
 interface Props {
   targetUrl: string;
@@ -20,20 +21,25 @@ interface ChatMsg {
   role: "user" | "assistant";
   content: string;
   property?: PropertyAttachments | null;
+  domain?: DomainIntel | null;
 }
 
 // Server prefixes the assistant stream with a single-line [[AUREON_META]]…[[/AUREON_META]]
 // block encoding attachments (property map, sources). Extract it, keep it out of
 // the rendered text, and return both parts.
 const META_RE = /^\s*\[\[AUREON_META\]\](.*?)\[\[\/AUREON_META\]\]\s*\n?/s;
-function splitMeta(acc: string): { meta: PropertyAttachments | null; text: string } {
+function splitMeta(acc: string): { property: PropertyAttachments | null; domain: DomainIntel | null; text: string } {
   const m = acc.match(META_RE);
-  if (!m) return { meta: null, text: acc };
+  if (!m) return { property: null, domain: null, text: acc };
   try {
     const parsed = JSON.parse(m[1]);
-    return { meta: parsed?.property ?? null, text: acc.slice(m[0].length) };
+    return {
+      property: parsed?.property ?? null,
+      domain: parsed?.domain ?? null,
+      text: acc.slice(m[0].length),
+    };
   } catch {
-    return { meta: null, text: acc.slice(m[0].length) };
+    return { property: null, domain: null, text: acc.slice(m[0].length) };
   }
 }
 
@@ -129,18 +135,19 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
       const reader = resp.body.getReader();
       const dec = new TextDecoder();
       let acc = "";
-      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null, domain: null }]);
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         acc += dec.decode(value, { stream: true });
-        const { meta, text } = splitMeta(acc);
+        const { property, domain, text } = splitMeta(acc);
         setMessages((prev) => {
           const copy = [...prev];
           copy[copy.length - 1] = {
             role: "assistant",
             content: text,
-            property: meta && (meta.map || meta.sources?.length) ? meta : null,
+            property: property && (property.map || property.sources?.length) ? property : null,
+            domain: domain && domain.attachment ? domain : null,
           };
           return copy;
         });
@@ -216,6 +223,9 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
                 )}
                 {m.role === "assistant" && m.property?.sources && m.property.sources.length > 0 && (
                   <PropertySourcesStrip sources={m.property.sources} />
+                )}
+                {m.role === "assistant" && m.domain?.attachment && (
+                  <DomainIntelCard data={m.domain} />
                 )}
               </div>
             ))}
