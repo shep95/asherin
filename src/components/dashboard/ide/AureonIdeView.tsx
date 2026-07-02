@@ -40,6 +40,7 @@ import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
 import { IDE_BUILD_CONTRACT, parseIdeBuildStatus, buildCritiqueContinuationReply } from "@/lib/ide/completionLoop";
 import ZanoemDecisionLog from "@/components/asher/ZanoemDecisionLog";
+import { extractZanoemCodeFiles, type ZanoemCodeFile } from "@/components/dashboard/zali/zanoemOutput";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -84,6 +85,99 @@ function flattenFiles(files: IdeFile[]): IdeFile[] {
     if (f.children) result.push(...flattenFiles(f.children));
   }
   return result;
+}
+
+function normalizeGeneratedFilePath(path: string): string | null {
+  const cleaned = String(path || "")
+    .replace(/[`'"<>]/g, "")
+    .replace(/^\s*(?:file|path|filename)\s*:\s*/i, "")
+    .replace(/^\.?\//, "")
+    .replace(/\\/g, "/")
+    .trim();
+  if (!cleaned || cleaned.includes("..") || cleaned.endsWith("/")) return null;
+  return cleaned;
+}
+
+function responseLooksCutOff(text: string): boolean {
+  if (!text) return false;
+  if (/GENERATION_INCOMPLETE|MAX_TOKENS|finish_reason\s*[:=]\s*(?:length|max_tokens)/i.test(text)) return true;
+  if (((text.match(/```/g) || []).length % 2) === 1) return true;
+  if (/\{\s*"files"\s*:\s*\[/i.test(text) && !/\]\s*}\s*```?\s*$/s.test(text.trim())) return true;
+  if (/\b(import|export|const|let|function|class|return)\b[^\n]*$/i.test(text.trim()) && !/[;})\]`.]\s*$/.test(text.trim())) return true;
+  return false;
+}
+
+function applyGeneratedFilesToTree(tree: IdeFile[], generated: ZanoemCodeFile[]): { next: IdeFile[]; primaryId: string | null; applied: number } {
+  const clone = JSON.parse(JSON.stringify(tree)) as IdeFile[];
+  let primaryId: string | null = null;
+  let applied = 0;
+
+  const collectByName = (nodes: IdeFile[], name: string, acc: IdeFile[] = []): IdeFile[] => {
+    for (const node of nodes) {
+      if (node.type === "file" && node.name === name) acc.push(node);
+      if (node.children) collectByName(node.children, name, acc);
+    }
+    return acc;
+  };
+
+  const updateById = (nodes: IdeFile[], id: string, content: string): boolean => {
+    for (const node of nodes) {
+      if (node.id === id && node.type === "file") {
+        node.content = content;
+        node.language = getLanguage(node.name);
+        return true;
+      }
+      if (node.children && updateById(node.children, id, content)) return true;
+    }
+    return false;
+  };
+
+  const upsertAtPath = (nodes: IdeFile[], parts: string[], content: string): string => {
+    const [head, ...rest] = parts;
+    if (!head) return "";
+    if (rest.length === 0) {
+      let file = nodes.find((n) => n.type === "file" && n.name === head);
+      if (!file) {
+        file = { id: crypto.randomUUID(), name: head, type: "file", language: getLanguage(head), content };
+        nodes.push(file);
+      } else {
+        file.content = content;
+        file.language = getLanguage(head);
+      }
+      return file.id;
+    }
+    let folder = nodes.find((n) => n.type === "folder" && n.name === head);
+    if (!folder) {
+      folder = { id: crypto.randomUUID(), name: head, type: "folder", children: [] };
+      nodes.push(folder);
+    }
+    folder.children ||= [];
+    return upsertAtPath(folder.children, rest, content);
+  };
+
+  for (const file of generated) {
+    const normalized = normalizeGeneratedFilePath(file.filename);
+    if (!normalized || !file.content?.trim()) continue;
+    const parts = normalized.split("/").filter(Boolean);
+    const basename = parts[parts.length - 1];
+    let id: string | null = null;
+
+    if (parts.length === 1) {
+      const existing = collectByName(clone, basename);
+      if (existing.length === 1) {
+        id = existing[0].id;
+        updateById(clone, id, file.content);
+      }
+    }
+
+    if (!id) id = upsertAtPath(clone, parts, file.content);
+    if (id) {
+      primaryId ||= id;
+      applied += 1;
+    }
+  }
+
+  return { next: clone, primaryId, applied };
 }
 
 // Credit system
@@ -793,7 +887,18 @@ const AureonIdeView = () => {
         "[ZANOEM MODE — Aureon IDE]",
         "You are ZANOEM, a first-principles software inventor. Design and ship production-grade code, never apologise, never ask for permission you can resolve yourself.",
         "Use BOLD section headers, prefer code blocks for any concrete change, and write self-documenting code with strict types and guard clauses.",
+        "When you create or update files, prefix EVERY code fence with the exact project path on its own line, for example: src/App.tsx then the fenced code block. This lets the IDE write the file into Explorer/Preview automatically.",
+        IDE_BUILD_CONTRACT,
       ].join("\n"));
+    } else if (/\b(code|build|create|make|app|component|file|fix|rewrite|implement|page)\b/i.test(content)) {
+      contextParts.push([
+        "[AUREON IDE FILE-WRITE CONTRACT]",
+        "If you output code, prefix each fenced code block with the exact file path on its own line.",
+        "Return complete files, not fragments or diffs. If the job is not done, end with STATUS: REFINING. If done, end with STATUS: MISSION_COMPLETE.",
+      ].join("\n"));
+    }
+    if (allFiles.length > 0) {
+      contextParts.push(`[Current project files]\n${allFiles.map((f) => `- ${f.name} (${getLanguage(f.name)})`).join("\n")}`);
     }
     if (activeFile?.content) {
       contextParts.push(`[IDE Context] Currently editing: ${activeFile.name}\n\`\`\`${getLanguage(activeFile.name)}\n${activeFile.content.slice(0, 4000)}\n\`\`\``);
@@ -845,13 +950,35 @@ const AureonIdeView = () => {
 
       lastAssistantRef.current = assistantContent;
 
+      const rawGenerated = extractZanoemCodeFiles(assistantContent);
+      const generatedFiles = rawGenerated.length === 1 && /^snippet-\d+\./i.test(rawGenerated[0].filename) && activeFile
+        ? [{ ...rawGenerated[0], filename: activeFile.name, language: getLanguage(activeFile.name) }]
+        : rawGenerated;
+      if (generatedFiles.length > 0) {
+        const result = applyGeneratedFilesToTree(filesRefAureon.current, generatedFiles);
+        if (result.applied > 0) {
+          setFiles(result.next);
+          filesRefAureon.current = result.next;
+          const flatNext = flattenFiles(result.next);
+          const primary = result.primaryId ? flatNext.find((f) => f.id === result.primaryId) : flatNext[0];
+          if (primary) {
+            setOpenFileIds((prev) => Array.from(new Set([...prev, primary.id])));
+            setActiveFileId(primary.id);
+            setCenterTab("preview");
+            if (isMobile) setMobilePanel("editor");
+          }
+          toast({ title: "Code applied to IDE", description: `${result.applied} file${result.applied === 1 ? "" : "s"} written to Explorer/Preview.` });
+        }
+      }
+
       // ── Autopilot loop (ZAHTEN-style: continue on question OR STATUS:REFINING) ──
       const buildStatus = parseIdeBuildStatus(assistantContent);
+      const cutOff = responseLooksCutOff(assistantContent);
       const shouldContinue =
         zanoemMode &&
         autopilotZanoem &&
         autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS &&
-        (zanoemNeedsDecision(assistantContent) || buildStatus === "refining");
+        (zanoemNeedsDecision(assistantContent) || buildStatus === "refining" || cutOff);
       if (shouldContinue) {
         if (isAutopilotTurn && autopilotTriggerRef.current) {
           void zanoemLogDecision({
@@ -865,7 +992,9 @@ const AureonIdeView = () => {
         }
         autopilotRoundsRef.current += 1;
         autopilotTriggerRef.current = assistantContent;
-        const autoReply = buildStatus === "refining"
+        const autoReply = cutOff
+          ? `[IDE BUILD AUTOPILOT — pass ${autopilotRoundsRef.current}/${AUTOPILOT_MAX_ROUNDS}]\n\nYour previous response was cut off or ended with an unclosed code block. Continue from the exact stopping point, finish every incomplete file, close every code fence, and then end with STATUS: REFINING or STATUS: MISSION_COMPLETE. Do not restart or summarize.`
+          : buildStatus === "refining"
           ? buildCritiqueContinuationReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS)
           : zanoemBuildReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
         setTimeout(() => { void sendChatMessage(autoReply, customBrainPrompt, true); }, 250);
@@ -908,7 +1037,7 @@ const AureonIdeView = () => {
       }
       setIsStreaming(false);
     }
-  }, [chatMessages, activeFile, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, zanoemMode, autopilotZanoem, activeSessionId, rag]);
+  }, [chatMessages, activeFile, allFiles, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, zanoemMode, autopilotZanoem, activeSessionId, rag, isMobile]);
 
   // Expose sendChatMessage to the offline queue worker as a stable ref.
   useEffect(() => { sendZanoemTurnRef.current = (p: string) => sendChatMessage(p, undefined, true); }, [sendChatMessage]);

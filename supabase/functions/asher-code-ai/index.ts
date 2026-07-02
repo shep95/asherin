@@ -68,6 +68,11 @@ interface ProviderCall {
   apiKey: string;
 }
 
+interface ProviderResult {
+  text: string;
+  finishReason?: string | null;
+}
+
 // ── Provider routing ──────────────────────────────────────────────
 // Hard token-budget guard. OpenAI gpt-5* TPM is ~400k tokens/min and a
 // SINGLE request must also stay under that ceiling. We budget ~70k input
@@ -155,7 +160,7 @@ async function callOpenAICompatible(
   messages: ChatMessage[],
   systemPrompt: string,
   maxTokens = 4096,
-): Promise<string> {
+): Promise<ProviderResult> {
   // Newer OpenAI models (gpt-5, o1, o3, etc.) require `max_completion_tokens` and reject custom `temperature`.
   const isNewOpenAI = /^(gpt-5|o1|o3|o4)/i.test(model);
   const body: Record<string, unknown> = {
@@ -190,10 +195,13 @@ async function callOpenAICompatible(
     }
   }
   const data = await resp.json();
-  return data.choices?.[0]?.message?.content || "(empty response)";
+  return {
+    text: data.choices?.[0]?.message?.content || "(empty response)",
+    finishReason: data.choices?.[0]?.finish_reason ?? null,
+  };
 }
 
-async function callGemini(apiKey: string, model: string, messages: ChatMessage[], systemPrompt: string, maxTokens = 4096): Promise<string> {
+async function callGemini(apiKey: string, model: string, messages: ChatMessage[], systemPrompt: string, maxTokens = 4096): Promise<ProviderResult> {
   const contents = messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
@@ -212,10 +220,13 @@ async function callGemini(apiKey: string, model: string, messages: ChatMessage[]
   );
   if (!resp.ok) throw new Error(`Gemini ${resp.status}: ${(await resp.text()).slice(0, 400)}`);
   const data = await resp.json();
-  return data.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "(empty)";
+  return {
+    text: data.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "(empty)",
+    finishReason: data.candidates?.[0]?.finishReason ?? null,
+  };
 }
 
-async function callAnthropic(apiKey: string, model: string, messages: ChatMessage[], systemPrompt: string, maxTokens = 4096): Promise<string> {
+async function callAnthropic(apiKey: string, model: string, messages: ChatMessage[], systemPrompt: string, maxTokens = 4096): Promise<ProviderResult> {
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -233,10 +244,13 @@ async function callAnthropic(apiKey: string, model: string, messages: ChatMessag
   });
   if (!resp.ok) throw new Error(`Anthropic ${resp.status}: ${(await resp.text()).slice(0, 400)}`);
   const data = await resp.json();
-  return data.content?.[0]?.text || "(empty)";
+  return {
+    text: data.content?.[0]?.text || "(empty)",
+    finishReason: data.stop_reason ?? null,
+  };
 }
 
-async function dispatch(p: ProviderCall, messages: ChatMessage[], systemPrompt: string, maxTokens = 4096): Promise<string> {
+async function dispatch(p: ProviderCall, messages: ChatMessage[], systemPrompt: string, maxTokens = 4096): Promise<ProviderResult> {
   switch (p.provider) {
     case "google":
       return callGemini(p.apiKey, p.model, messages, systemPrompt, maxTokens);
@@ -259,6 +273,58 @@ async function dispatch(p: ProviderCall, messages: ChatMessage[], systemPrompt: 
     default:
       throw new Error(`Unsupported provider: ${p.provider}`);
   }
+}
+
+function outputBudgetFor(mode: string, isInlineEdit = false): number {
+  if (mode === "inline") return isInlineEdit ? 2048 : 512;
+  if (mode === "edit_plan") return 24_576;
+  if (mode === "orchestrate") return 12_288;
+  return 16_384;
+}
+
+function looksIncomplete(text: string, finishReason?: string | null): boolean {
+  const reason = String(finishReason || "").toUpperCase();
+  if (/MAX_TOKENS|LENGTH|TOKEN/.test(reason)) return true;
+  const fenceCount = (text.match(/```/g) || []).length;
+  if (fenceCount % 2 === 1) return true;
+  if (/```(?:json|code_output)/i.test(text) && !/```\s*$/m.test(text.slice(-1200))) return true;
+  if (/"files"\s*:\s*\[/.test(text) && !/\]\s*}\s*```?\s*$/s.test(text.trim())) return true;
+  return false;
+}
+
+async function dispatchComplete(
+  p: ProviderCall,
+  messages: ChatMessage[],
+  systemPrompt: string,
+  maxTokens = 16_384,
+  maxContinuations = 2,
+): Promise<string> {
+  let accumulated = "";
+  let lastReason: string | null | undefined = null;
+  let turnMessages = messages;
+
+  for (let i = 0; i <= maxContinuations; i++) {
+    const res = await dispatch(p, turnMessages, systemPrompt, maxTokens);
+    accumulated += res.text || "";
+    lastReason = res.finishReason;
+    if (!looksIncomplete(accumulated, lastReason)) break;
+
+    turnMessages = [
+      ...messages,
+      { role: "assistant", content: accumulated },
+      {
+        role: "user",
+        content:
+          "Continue exactly where you stopped. Do not restart, summarize, or omit files. " +
+          "Close every open code fence, JSON object, and file. Finish the complete code now.",
+      },
+    ];
+  }
+
+  if (looksIncomplete(accumulated, lastReason)) {
+    accumulated += "\n\n[GENERATION_INCOMPLETE: provider stopped before a complete response. Retry with a smaller scope or a larger-output model.]";
+  }
+  return accumulated;
 }
 
 // ── Codebase relevance ranker (cheap keyword + path heuristic) ────
@@ -632,7 +698,7 @@ serve(async (req) => {
       const rawOrchSystem = buildSystemPrompt(payload);
       const { system: orchSystem, messages: orchMessages } = clampPayload(rawOrchSystem, rawOrchMessages);
       const t0 = Date.now();
-      const settled = await Promise.allSettled(calls.map((c) => dispatch(c, orchMessages, orchSystem, 4096)));
+      const settled = await Promise.allSettled(calls.map((c) => dispatchComplete(c, orchMessages, orchSystem, outputBudgetFor("orchestrate"), 1)));
       const responses = settled.map((s, i) => ({
         provider: calls[i].provider,
         model: calls[i].model,
@@ -651,7 +717,7 @@ serve(async (req) => {
             role: "user",
             content: `Rank these ${successful.length} code solutions by correctness, code quality, completeness, and adherence to the user request. Return ONLY a JSON array of indices from best to worst, e.g. [2,0,1]. No prose.\n\nUSER REQUEST:\n${payload.instruction || payload.description || (payload.messages?.[payload.messages.length - 1]?.content) || ""}\n\n${successful.map((r, i) => `=== SOLUTION ${i} (${r.provider}/${r.model}) ===\n${r.content.slice(0, 6000)}`).join("\n\n")}`,
           }];
-          const judgeReply = await dispatch(calls[responses.indexOf(successful[0])], judgePrompt, orchSystem, 256);
+          const judgeReply = await dispatchComplete(calls[responses.indexOf(successful[0])], judgePrompt, orchSystem, 512, 0);
           const m = judgeReply.match(/\[[\d,\s]+\]/);
           if (m) {
             const parsed = JSON.parse(m[0]);
@@ -680,14 +746,14 @@ serve(async (req) => {
     }
 
     const isInlineEdit = mode === "inline" && !!payload.instruction && !!payload.code;
-    const maxTokens = mode === "inline" ? (isInlineEdit ? 1024 : 256) : 4096;
+    const maxTokens = outputBudgetFor(mode, isInlineEdit);
 
     const runtimeSystem = buildSystemPrompt(payload);
 
     const { system: trimmedSystem, messages: trimmedMessages } = clampPayload(runtimeSystem, messages);
 
     try {
-      const reply = await dispatch(providerCall, trimmedMessages, trimmedSystem, maxTokens);
+      const reply = await dispatchComplete(providerCall, trimmedMessages, trimmedSystem, maxTokens, mode === "inline" ? 0 : 2);
       return new Response(
         JSON.stringify({
           reply,
