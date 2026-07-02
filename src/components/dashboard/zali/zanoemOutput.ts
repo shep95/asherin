@@ -72,8 +72,11 @@ export function extractZanoemCodeFiles(content: string): ZanoemCodeFile[] {
     if (CONTROL_FENCE_LANGS.has(lang)) continue;
     const code = match[2].trimEnd();
     if (!looksLikeCode(code)) continue;
+    const before = content.slice(Math.max(0, match.index - 220), match.index);
+    const pathMatch = before.match(/(?:^|\n)\s*(?:#{1,6}\s*)?(?:file|path|filename)?\s*[:`*\- ]*([\w@./-]+\.(?:tsx?|jsx?|css|html|json|md|sql|py|rs|go|vue|svelte|astro|yml|yaml|toml|sh))\s*[:`*\- ]*$/i);
     const ext = EXT_BY_LANGUAGE[lang] || lang || "txt";
-    files.push({ filename: `snippet-${index}.${ext}`, language: lang, content: code });
+    const filename = pathMatch?.[1] || `snippet-${index}.${ext}`;
+    files.push({ filename, language: lang, content: code });
     index += 1;
   }
 
