@@ -201,14 +201,22 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
               </div>
             )}
             {messages.map((m, i) => (
-              <div key={i} className={`rounded-lg border px-2.5 py-1.5 text-[12px] font-light leading-relaxed ${
-                m.role === "user"
-                  ? "border-border/40 bg-background/60 text-foreground"
-                  : "border-border/30 bg-foreground/[0.03] text-foreground/90"
-              }`}>
-                {m.role === "assistant"
-                  ? <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-light"><ReactMarkdown>{m.content || "…"}</ReactMarkdown></div>
-                  : m.content}
+              <div key={i} className="space-y-1.5">
+                <div className={`rounded-lg border px-2.5 py-1.5 text-[12px] font-light leading-relaxed ${
+                  m.role === "user"
+                    ? "border-border/40 bg-background/60 text-foreground"
+                    : "border-border/30 bg-foreground/[0.03] text-foreground/90"
+                }`}>
+                  {m.role === "assistant"
+                    ? <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-light"><ReactMarkdown>{m.content || "…"}</ReactMarkdown></div>
+                    : m.content}
+                </div>
+                {m.role === "assistant" && m.property?.map && (
+                  <PropertyMapCard data={m.property.map} />
+                )}
+                {m.role === "assistant" && m.property?.sources && m.property.sources.length > 0 && (
+                  <PropertySourcesStrip sources={m.property.sources} />
+                )}
               </div>
             ))}
             {sending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
