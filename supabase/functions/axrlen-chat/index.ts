@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getCallerEmail, isAdminEmail } from "../_shared/adminGate.ts";
+import { resolveAxrlenAccess } from "../_shared/proTierGate.ts";
 
 const BASE_IDENTITY = `Project: AXRLEN. You are my global prediction algorithm. You identify PATTERNS across history, data, and esoteric frameworks to forecast what comes next.
 
