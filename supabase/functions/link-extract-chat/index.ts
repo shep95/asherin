@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
     const axrlen = await runAxrlenBridge({
       req,
       messages: messages as any,
-      liveEvidence: (osint.context || "") + (property.evidence || ""),
+      liveEvidence: (osint.context || "") + (property.evidence || "") + (domainPull.evidence || ""),
       surface: "aureon",
       fallbackGeminiKey: apiKey,
       fallbackModel: model,
