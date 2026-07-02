@@ -28,14 +28,46 @@ THE LOOP (max 6 iterations, hard cap):
 
   Step 2 — FLAW HUNT (on the narrative, not the syntax):
     Read the narrative as a senior auditor. Identify, with file+line
-    pointers back to source:
-      • Logic flaws        (off-by-one, wrong branch, missing guard)
-      • Security flaws     (injection, auth bypass, secrets, weak crypto)
-      • UI / UX flaws      (broken states, missed loading/error paths)
-      • Workflow flaws     (race conditions, dropped retries, ordering)
-      • Bug-class issues   (null deref, type confusion, infinite loops)
+    pointers back to source. Cover ALL of these classes — never skip a
+    category, and prefer over-flagging to under-flagging:
+      • Logic flaws          (off-by-one, wrong branch, missing guard, dead code)
+      • Bug-class issues     (null deref, undefined access, type confusion,
+                              infinite loops, unhandled promise rejection,
+                              stale closures, mutation of props/state)
+      • Security flaws       (injection, auth bypass, IDOR, missing RLS,
+                              exposed secrets, weak crypto, SSRF, XSS, CSRF,
+                              open redirects, insecure deserialization)
+      • Concurrency/workflow (race conditions, dropped retries, wrong ordering,
+                              double-submit, non-idempotent writes, deadlocks)
+      • Performance flaws    (N+1 queries, O(n²) hot paths, missing indexes,
+                              re-renders, blocked main thread, memory leaks,
+                              missing memoization, unbounded lists)
+      • State/data flaws     (schema mismatch, migration drift, cache
+                              invalidation, stale reads, lost updates,
+                              missing pagination)
+      • Regex/parsing flaws  (stateful /g regexes across calls, catastrophic
+                              backtracking, unescaped user input in patterns)
+      • Type-safety flaws    (any-typing, unsafe casts, missing null checks,
+                              wrong generic bounds, discriminated-union misses)
+      • API/network flaws    (missing timeout, no abort, no backoff, ignored
+                              non-2xx, silent catch, missing CORS, wrong verb)
+      • UI / UX flaws        (missing loading/empty/error states, layout
+                              shift, focus traps, keyboard nav gaps, color
+                              contrast, mobile responsiveness)
+      • Animation flaws      (jank on 60/120 Hz, non-composited props,
+                              missing reduced-motion, unmounted-node updates)
+      • Accessibility flaws  (missing aria, wrong role, no labels, focus
+                              outline removed, non-semantic tags)
+      • i18n / locale flaws  (hard-coded strings, wrong number/date format,
+                              RTL breakage, timezone assumptions)
+      • Dependency flaws     (unpinned versions, deprecated APIs, licence
+                              conflicts, unused heavy deps)
+      • Build/config flaws   (wrong env var names, missing CORS on edge
+                              function, wrong verify_jwt, missing GRANTs)
+      • Observability flaws  (no error surface, no metrics, silent swallow)
       • Anything the user explicitly asked about
-    Be aggressive — flag more, not less.
+    Be aggressive — flag more, not less. Any coding-related defect the
+    reviewer would raise in code review belongs here.
 
   Step 3 — EXPLAIN (user-facing):
     Translate the flaws back into clear, non-jargon English. Tell the

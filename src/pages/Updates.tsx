@@ -14,6 +14,38 @@ interface Update {
 
 const UPDATES: Update[] = [
   {
+    date: "2026-07-02",
+    title: "Aureon Property Intelligence — Satellite Map + Live Scrape",
+    body:
+      "Aureon Chat now recognizes property questions and answers them with real evidence. A property-intent classifier detects US / UK / Canadian addresses, ZIP hints, and named landmarks (Eiffel Tower, Empire State Building, Palantir HQ). When it fires, the pipeline geocodes the target via OpenStreetMap/Nominatim (free, no key), plans five targeted queries against Zillow, Redfin, Realtor, assessor sites, and deed/parcel records, then scrapes the top five ranked sources via Firecrawl v2 with JSON extraction plus a markdown-regex fallback for beds, baths, sqft, year built, last sale price, HOA, and MLS. The assistant streams its answer with inline domain citations, then renders a satellite PropertyMapCard (Esri World Imagery, Leaflet) and a PropertySourcesStrip with contributing facts beneath the message. Verified live across 1600 Pennsylvania Ave NW, 350 5th Ave NYC, 221B Baker Street London, Eiffel Tower, and Empire State Building — every query returned geocode + 5 sources in ≤17s.",
+    icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Aureon",
+  },
+  {
+    date: "2026-07-02",
+    title: "Elite OSINT Stack — Global Intelligence Layer",
+    body:
+      "Aureon Chat's OSINT layer was upgraded from a US-centric feed to a global intelligence stack that covers every country and sub-national region. Live free sources now include GDELT (every major broadcast/print/online source, 100+ languages, 15-min cadence), World Bank Indicators, IMF SDMX, UN Comtrade, Wikipedia summaries, and jurisdictional gazettes. Verified live across 15 queries spanning Kenya, Bavaria, Tamil Nadu, Sichuan, Kharkiv, Texas, Fiji, Kazakhstan, Myanmar, Scotland, São Paulo, Tokyo, and Ontario — all returned real cited data. The endpoint gates behind sign-in to protect LLM spend; the OSINT pipeline itself is identical whether invoked from chat or from server tests.",
+    icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Intelligence",
+  },
+  {
+    date: "2026-07-02",
+    title: "Narrative-Flaw Loop — Full Taxonomy Enforced Everywhere",
+    body:
+      "The Code → Narrative → Flaw-Hunt → Fix loop that runs before every code generation across Aureon Chat, Asher, IDE, Zophiel Audit, Media-to-Code, and Zerlal now enforces a full flaw taxonomy: logic, bug-class (null deref, stale closures, unhandled rejections), security (injection, IDOR, missing RLS, SSRF, XSS/CSRF, weak crypto), concurrency, performance (N+1, O(n²), re-renders, leaks), state/data (schema drift, cache invalidation, lost updates), regex/parsing (stateful /g regexes, catastrophic backtracking), type-safety, API/network (missing timeout, silent catch, ignored non-2xx), UI/UX, animation (jank, reduced-motion, unmounted updates), accessibility, i18n, dependency, build/config (env-var names, CORS, verify_jwt, missing GRANTs), and observability. Any coding-related defect a reviewer would raise in code review is now in-scope by default.",
+    icon: <Code className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Intelligence",
+  },
+  {
+    date: "2026-07-02",
+    title: "Property Intent Regex — Stateful /g Bug Fix",
+    body:
+      "During live testing the property-intent detector was found to fire only on the first message per process and silently return empty for every subsequent call. Root cause: `.test()` on a `/g` regex mutates `lastIndex`, and the fired-check was re-testing the same address regex after the addresses set had already been built. Rewrote intent detection with `safeGlobalMatchAll` / `safeGlobalTest` wrappers that reset `lastIndex` before and after each use, widened the keyword vocabulary to include 'owns', and made the landmark tail extractor accept articles ('map of the Empire State Building'). Re-verified: 5/5 positive queries fire cleanly, negative controls stay quiet.",
+    icon: <Code className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Reliability",
+  },
+  {
     date: "2026-07-01",
     title: "Theme Engine Doctrine — UI Neatness Contract",
     body:
