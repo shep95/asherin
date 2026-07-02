@@ -118,11 +118,9 @@ Deno.serve(async (req) => {
     ]);
 
     // ── AXRLEN INLINE FORECASTING ────────────────────────────────────────────
-    // If the user asks a forecast-shaped question AND they are admin or Aureon
-    // Pro ($399/mo), route the reply through the AXRLEN engine instead of the
-    // normal Aureon brains. Non-authorized callers receive a single clean
-    // upgrade line and normal chat is skipped for THIS turn only. This never
-    // double-bills — we either return AXRLEN's stream or the normal stream.
+    // Aureon chat exposes every integrated feature to ALL subscription tiers,
+    // so AXRLEN inline forecasting is open to any signed-in user here. The
+    // standalone AXRLEN endpoint and Asher chat keep the Pro gate.
     const axrlen = await runAxrlenBridge({
       req,
       messages: messages as any,
@@ -130,6 +128,7 @@ Deno.serve(async (req) => {
       surface: "aureon",
       fallbackGeminiKey: apiKey,
       fallbackModel: model,
+      accessMode: "authenticated",
     }).catch((e) => ({ kind: "denied" as const, access: { granted: false, reason: "denied" as const, email: null, userId: null, tierType: null }, intent: { fired: true, tier: 2 as const, subject: "" }, message: `AXRLEN unavailable: ${String((e as any)?.message || e)}` }));
 
     if (axrlen.kind === "stream") {
