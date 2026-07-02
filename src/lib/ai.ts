@@ -228,7 +228,6 @@ export async function streamChat({
     await fetchAndRead(requestMessages);
     const latestChunk = assistantAccum.slice(before);
     if (!looksIncomplete(assistantAccum, latestChunk) || assistantAccum.length === before) break;
-    wrappedDelta("\n\n_Continuing automatically to finish the cut-off code…_\n\n");
     requestMessages = [
       ...apiMessages,
       { role: "assistant" as const, content: assistantAccum },
