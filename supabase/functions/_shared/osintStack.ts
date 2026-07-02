@@ -40,7 +40,7 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export async function fetchGDELT(query: string): Promise<string> {
   const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query)}&mode=ArtList&maxrecords=15&format=json&sort=DateDesc`;
-  const r = await timedFetch(url);
+  const r = await timedFetch(url, {}, 8000);
   if (!r.ok) throw new Error(`GDELT ${r.status}`);
   const j = await r.json();
   const arts = (j?.articles || []) as any[];
