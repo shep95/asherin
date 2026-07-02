@@ -21,6 +21,7 @@ import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchite
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { runAxrlenBridge, textStreamToOpenAiSse } from "../_shared/axrlenBridge.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const SYSTEM_PROMPT = `You are ASHER AI — the operator's tactical co-pilot embedded inside the Asher Intelligence Map.
