@@ -15,6 +15,22 @@ interface Update {
 const UPDATES: Update[] = [
   {
     date: "2026-07-02",
+    title: "AXRLEN Goes Inline — Forecasting Inside Aureon & Asher Chat",
+    body:
+      "The AXRLEN prediction engine now activates directly inside Aureon Chat and Asher Chat. A dedicated intent classifier recognizes forecast-shaped questions (\"who wins X vs Y\", \"forecast BTC 72h\", \"deep dive scenario on Taiwan 2027\", \"@axrlen give me a pick\", and asset+timeframe patterns) and routes the reply through AXRLEN's Vedic Global Prediction and Zophiel Supreme Architecture brains instead of the normal chat brains — no context switch, no separate tab. The bridge inherits Rule #1 (simple question → simple answer, no headers, no matrices), auto-tiers replies (Tier 1 one-line pick, Tier 2 focused forecast, Tier 3 full SCENARIO STRUCTURE with probability matrix and NEXUS VERDICT), and inherits Aureon's live OSINT + property evidence as sessionContext so predictions are grounded in fresh data. Brains cache for 60s to keep latency flat.",
+    icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "AXRLEN",
+  },
+  {
+    date: "2026-07-02",
+    title: "AXRLEN Access — Opened to Aureon Pro ($399/mo)",
+    body:
+      "AXRLEN was previously admin-only. It is now available to every active Aureon Pro subscriber ($399/mo — monthly_pro, pro, lifetime, and algorithm tiers) across the standalone /axrlen tab, the axrlen-chat API, and the new inline bridge in Aureon and Asher chat. A new server-side proTierGate reads the caller's user_subscriptions row (status='active' AND not expired) via the service role, so the gate is enforced identically on every entry point — no frontend-only checks. Anonymous callers get a sign-in nudge, authenticated non-Pro callers get a single-line upgrade prompt pointing to /pricing, admins retain their bypass. Verified end-to-end against the deployed link-extract-chat: anonymous forecast request returned {axrlen:{fired:true, denied:true, reason:'anonymous'}} + upgrade line, non-forecast requests continue to route through the normal Aureon flow.",
+    icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Access",
+  },
+  {
+    date: "2026-07-02",
     title: "Aureon Property Intelligence — Satellite Map + Live Scrape",
     body:
       "Aureon Chat now recognizes property questions and answers them with real evidence. A property-intent classifier detects US / UK / Canadian addresses, ZIP hints, and named landmarks (Eiffel Tower, Empire State Building, Palantir HQ). When it fires, the pipeline geocodes the target via OpenStreetMap/Nominatim (free, no key), plans five targeted queries against Zillow, Redfin, Realtor, assessor sites, and deed/parcel records, then scrapes the top five ranked sources via Firecrawl v2 with JSON extraction plus a markdown-regex fallback for beds, baths, sqft, year built, last sale price, HOA, and MLS. The assistant streams its answer with inline domain citations, then renders a satellite PropertyMapCard (Esri World Imagery, Leaflet) and a PropertySourcesStrip with contributing facts beneath the message. Verified live across 1600 Pennsylvania Ave NW, 350 5th Ave NYC, 221B Baker Street London, Eiffel Tower, and Empire State Building — every query returned geocode + 5 sources in ≤17s.",
