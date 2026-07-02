@@ -139,9 +139,9 @@ export async function streamChat({
     } catch { return true; }
   })();
 
-  const looksIncomplete = (text: string) => {
+  const looksIncomplete = (text: string, latestChunk = text) => {
     if (!text) return false;
-    if (/GENERATION_INCOMPLETE|stopped at the output-token limit|finish_reason\s*[:=]\s*(?:length|max_tokens)/i.test(text)) return true;
+    if (/GENERATION_INCOMPLETE|stopped at the output-token limit|finish_reason\s*[:=]\s*(?:length|max_tokens)/i.test(latestChunk)) return true;
     if (((text.match(/```/g) || []).length % 2) === 1) return true;
     if (/\{\s*"files"\s*:\s*\[/i.test(text) && !/\]\s*}\s*```?\s*$/s.test(text.trim())) return true;
     return false;
@@ -226,7 +226,8 @@ export async function streamChat({
   for (let attempt = 0; attempt < 3; attempt++) {
     const before = assistantAccum.length;
     await fetchAndRead(requestMessages);
-    if (!looksIncomplete(assistantAccum) || assistantAccum.length === before) break;
+    const latestChunk = assistantAccum.slice(before);
+    if (!looksIncomplete(assistantAccum, latestChunk) || assistantAccum.length === before) break;
     wrappedDelta("\n\n_Continuing automatically to finish the cut-off code…_\n\n");
     requestMessages = [
       ...apiMessages,
