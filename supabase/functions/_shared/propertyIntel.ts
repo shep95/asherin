@@ -216,6 +216,28 @@ async function firecrawlSearch(query: string): Promise<Array<{ url: string; titl
 const EXTRACTION_PROMPT =
   "Extract property facts as JSON with these OPTIONAL keys (only include what's present, omit others): full_address, owner_name, beds, baths, sqft, lot_size, year_built, last_sale_date, last_sale_price, tax_assessment, listing_status, listing_price, hoa_fee, property_type, mls_number.";
 
+// Fallback: pull common property fields directly from scraped markdown.
+// Runs when Firecrawl's JSON extraction returned nothing (some plans/pages).
+function factsFromMarkdown(md: string): Record<string, string> {
+  if (!md) return {};
+  const out: Record<string, string> = {};
+  const grab = (key: string, re: RegExp) => {
+    const m = md.match(re);
+    if (m && m[1]) out[key] = m[1].replace(/\s+/g, " ").trim().slice(0, 80);
+  };
+  grab("beds", /(\d+(?:\.\d+)?)\s*(?:beds?|bedrooms?)\b/i);
+  grab("baths", /(\d+(?:\.\d+)?)\s*(?:baths?|bathrooms?)\b/i);
+  grab("sqft", /([\d,]{3,7})\s*(?:sq\.?\s*ft|square feet|sqft)\b/i);
+  grab("year_built", /(?:built|year built)[:\s]+(\d{4})\b/i);
+  grab("lot_size", /(?:lot(?: size)?)[:\s]+([\d,.]+\s*(?:acres?|sq\.?\s*ft|sqft))/i);
+  grab("last_sale_price", /(?:sold|last sold|sale price)[:\s]+\$?([\d,]{4,})/i);
+  grab("listing_price", /(?:listed|for sale|price)[:\s]+\$?([\d,]{4,})/i);
+  grab("hoa_fee", /HOA[:\s]+\$?([\d,]+(?:\/\w+)?)/i);
+  grab("property_type", /(?:type|property type)[:\s]+([A-Za-z][A-Za-z\s-]{2,30})/i);
+  grab("mls_number", /MLS\s*(?:#|number)?[:\s]*([A-Z0-9-]{4,})/i);
+  return out;
+}
+
 async function firecrawlScrape(url: string): Promise<PropertySource | null> {
   const key = firecrawlKey();
   if (!key) return null;
@@ -235,10 +257,23 @@ async function firecrawlScrape(url: string): Promise<PropertySource | null> {
     );
     if (!r.ok) return null;
     const j = await r.json();
-    const doc = j?.data ?? j;
-    const extracted = (doc?.json ?? doc?.extract ?? {}) as Record<string, unknown>;
-    const md = typeof doc?.markdown === "string" ? doc.markdown : "";
-    const title = doc?.metadata?.title || domainOf(url);
+    const doc = (j?.data ?? j) as Record<string, unknown>;
+
+    // Firecrawl v2 nests JSON extraction under different keys depending on
+    // plan/response shape: doc.json | doc.extract | doc.llm_extraction |
+    // doc.data.json. Try them all, then fall back to markdown regex parsing.
+    const jsonExtracted =
+      (doc?.json as Record<string, unknown>) ??
+      (doc?.extract as Record<string, unknown>) ??
+      ((doc as { llm_extraction?: Record<string, unknown> })?.llm_extraction) ??
+      ((doc?.data as { json?: Record<string, unknown> })?.json) ??
+      null;
+    const md = typeof doc?.markdown === "string" ? (doc.markdown as string) : "";
+    const mdFacts = factsFromMarkdown(md);
+    const extracted: Record<string, unknown> = { ...mdFacts, ...(jsonExtracted || {}) };
+
+    const meta = (doc?.metadata as { title?: string } | undefined) ?? undefined;
+    const title = meta?.title || domainOf(url);
     const snippet = md.replace(/\s+/g, " ").slice(0, 220);
     return { url, domain: domainOf(url), title, snippet, extracted };
   } catch {
