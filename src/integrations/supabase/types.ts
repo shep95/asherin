@@ -4000,6 +4000,38 @@ export type Database = {
         }
         Relationships: []
       }
+      forum_post_votes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_post_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       forum_posts: {
         Row: {
           author_name: string | null
@@ -9156,7 +9188,7 @@ export type Database = {
         | "dept_admin"
         | "officer"
         | "analyst"
-      forum_category: "idea" | "leak" | "bug"
+      forum_category: "idea" | "leak" | "bug" | "theory"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -9312,7 +9344,7 @@ export const Constants = {
         "officer",
         "analyst",
       ],
-      forum_category: ["idea", "leak", "bug"],
+      forum_category: ["idea", "leak", "bug", "theory"],
     },
   },
 } as const
