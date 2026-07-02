@@ -340,7 +340,7 @@ const LiveDemoStrip = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-h-[440px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:min-h-[440px] [&>*]:min-h-[360px] md:[&>*]:min-h-0">
           <ZophielDemo />
           <CrossDemo />
           <WhiteboardDemo />
