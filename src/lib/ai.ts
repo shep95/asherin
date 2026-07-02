@@ -3,75 +3,12 @@ import type { ChatMode, FileAttachment } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import { detectRelevantSkills, buildSkillInjectionPrompt } from "@/lib/autoSkillInjection";
 import { buildSwarmContext } from "@/lib/swarmOrchestrator";
+import { buildExactContinuationPrompt, MAX_STREAM_CONTINUATIONS, stitchAiContinuation } from "@/lib/aiContinuation";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const SUGGEST_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest`;
 
 type Msg = { role: "user" | "assistant"; content: string; attachments?: FileAttachment[] };
-
-const CONTINUATION_TAIL_CHARS = 2200;
-const MAX_STREAM_CONTINUATIONS = 5;
-
-function longestSuffixPrefixOverlap(left: string, right: string, max = 12000): number {
-  const a = left.slice(-max);
-  const b = right.slice(0, max);
-  const limit = Math.min(a.length, b.length);
-  for (let size = limit; size >= 40; size -= 1) {
-    if (a.slice(a.length - size) === b.slice(0, size)) return size;
-  }
-  return 0;
-}
-
-export function stitchAiContinuation(existing: string, continuation: string): { text: string; delta: string; strategy: "empty" | "contained" | "prefix" | "tail-anchor" | "overlap" | "append" } {
-  if (!continuation) return { text: existing, delta: "", strategy: "empty" };
-
-  if (existing.includes(continuation)) {
-    return { text: existing, delta: "", strategy: "contained" };
-  }
-
-  if (continuation.startsWith(existing)) {
-    const delta = continuation.slice(existing.length);
-    return { text: continuation, delta, strategy: "prefix" };
-  }
-
-  // When a provider restarts from the beginning, find the already-visible tail
-  // inside the new answer and append only the unseen suffix after that anchor.
-  for (const size of [5000, 3200, 2200, 1400, 900, 520, 280, 140, 80]) {
-    if (existing.length < size) continue;
-    const tail = existing.slice(-size);
-    const idx = continuation.indexOf(tail);
-    if (idx !== -1) {
-      const delta = continuation.slice(idx + tail.length);
-      return { text: existing + delta, delta, strategy: "tail-anchor" };
-    }
-  }
-
-  const overlap = longestSuffixPrefixOverlap(existing, continuation);
-  if (overlap > 0) {
-    const delta = continuation.slice(overlap);
-    return { text: existing + delta, delta, strategy: "overlap" };
-  }
-
-  const separator = existing.endsWith("\n") || continuation.startsWith("\n") ? "" : "\n";
-  const delta = separator + continuation;
-  return { text: existing + delta, delta, strategy: "append" };
-}
-
-function buildExactContinuationPrompt(accumulated: string): string {
-  const tail = accumulated.slice(-CONTINUATION_TAIL_CHARS);
-  return [
-    "The previous answer was cut off by the output limit.",
-    "Continue from the exact next character after the tail below.",
-    "Do NOT restart from the beginning. Do NOT repeat any completed code. Do NOT summarize.",
-    "If the tail ends inside a function, continue inside that function and finish the remaining collision logic, loop, render, exports, and closing fences.",
-    "Close every open code fence / JSON object / source file before ending.",
-    "",
-    "TAIL TO CONTINUE AFTER:",
-    "```text",
-    tail,
-    "```",
-  ].join("\n");
-}
 
 export interface UserProfile {
   tone_preference?: string;
@@ -95,6 +32,7 @@ export async function streamChat({
   conversationId,
   signal,
   onDelta,
+  onReplace,
   onDone,
 }: {
   messages: Msg[];
@@ -107,6 +45,7 @@ export async function streamChat({
   conversationId?: string | null;
   signal?: AbortSignal;
   onDelta: (text: string) => void;
+  onReplace?: (text: string) => void;
   onDone: () => void;
 }) {
   // Transform attachments for the backend
@@ -196,14 +135,6 @@ export async function streamChat({
   let assistantAccum = "";
   const wrappedDelta = (t: string) => { assistantAccum += t; onDelta(t); };
   const outputLimitMarker = /\n?\n?\[GENERATION_INCOMPLETE:[^\]]+\]/gi;
-  let incompleteSignal = false;
-  const consumeProviderContent = (content: string) => {
-    const cleaned = content.replace(outputLimitMarker, () => {
-      incompleteSignal = true;
-      return "";
-    });
-    if (cleaned) wrappedDelta(cleaned);
-  };
 
   const numberedFormat = (() => {
     try {
@@ -311,16 +242,19 @@ export async function streamChat({
   let requestMessages = apiMessages;
   for (let attempt = 0; attempt <= MAX_STREAM_CONTINUATIONS; attempt++) {
     const before = assistantAccum.length;
-    incompleteSignal = false;
     const pass = await fetchAndRead(requestMessages, attempt === 0 ? wrappedDelta : undefined);
     if (attempt > 0) {
       const stitched = stitchAiContinuation(assistantAccum, pass.text);
       assistantAccum = stitched.text;
-      if (stitched.delta) onDelta(stitched.delta);
+      if (stitched.strategy === "restart-replace" && onReplace) {
+        onReplace(stitched.text);
+      } else if (stitched.delta) {
+        onDelta(stitched.delta);
+      }
     }
     const latestChunk = assistantAccum.slice(before);
-    const mustContinue = pass.incompleteSignal || incompleteSignal || looksIncomplete(assistantAccum, latestChunk);
-    if (!mustContinue || assistantAccum.length === before) break;
+    const mustContinue = pass.incompleteSignal || looksIncomplete(assistantAccum, latestChunk);
+    if (!mustContinue || (assistantAccum.length === before && !pass.text)) break;
     requestMessages = [
       ...apiMessages,
       { role: "assistant" as const, content: assistantAccum },
