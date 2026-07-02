@@ -887,7 +887,18 @@ const AureonIdeView = () => {
         "[ZANOEM MODE — Aureon IDE]",
         "You are ZANOEM, a first-principles software inventor. Design and ship production-grade code, never apologise, never ask for permission you can resolve yourself.",
         "Use BOLD section headers, prefer code blocks for any concrete change, and write self-documenting code with strict types and guard clauses.",
+        "When you create or update files, prefix EVERY code fence with the exact project path on its own line, for example: src/App.tsx then the fenced code block. This lets the IDE write the file into Explorer/Preview automatically.",
+        IDE_BUILD_CONTRACT,
       ].join("\n"));
+    } else if (/\b(code|build|create|make|app|component|file|fix|rewrite|implement|page)\b/i.test(content)) {
+      contextParts.push([
+        "[AUREON IDE FILE-WRITE CONTRACT]",
+        "If you output code, prefix each fenced code block with the exact file path on its own line.",
+        "Return complete files, not fragments or diffs. If the job is not done, end with STATUS: REFINING. If done, end with STATUS: MISSION_COMPLETE.",
+      ].join("\n"));
+    }
+    if (allFiles.length > 0) {
+      contextParts.push(`[Current project files]\n${allFiles.map((f) => `- ${f.name} (${getLanguage(f.name)})`).join("\n")}`);
     }
     if (activeFile?.content) {
       contextParts.push(`[IDE Context] Currently editing: ${activeFile.name}\n\`\`\`${getLanguage(activeFile.name)}\n${activeFile.content.slice(0, 4000)}\n\`\`\``);
@@ -939,13 +950,35 @@ const AureonIdeView = () => {
 
       lastAssistantRef.current = assistantContent;
 
+      const rawGenerated = extractZanoemCodeFiles(assistantContent);
+      const generatedFiles = rawGenerated.length === 1 && /^snippet-\d+\./i.test(rawGenerated[0].filename) && activeFile
+        ? [{ ...rawGenerated[0], filename: activeFile.name, language: getLanguage(activeFile.name) }]
+        : rawGenerated;
+      if (generatedFiles.length > 0) {
+        const result = applyGeneratedFilesToTree(filesRefAureon.current, generatedFiles);
+        if (result.applied > 0) {
+          setFiles(result.next);
+          filesRefAureon.current = result.next;
+          const flatNext = flattenFiles(result.next);
+          const primary = result.primaryId ? flatNext.find((f) => f.id === result.primaryId) : flatNext[0];
+          if (primary) {
+            setOpenFileIds((prev) => Array.from(new Set([...prev, primary.id])));
+            setActiveFileId(primary.id);
+            setCenterTab("preview");
+            if (isMobile) setMobilePanel("editor");
+          }
+          toast({ title: "Code applied to IDE", description: `${result.applied} file${result.applied === 1 ? "" : "s"} written to Explorer/Preview.` });
+        }
+      }
+
       // ── Autopilot loop (ZAHTEN-style: continue on question OR STATUS:REFINING) ──
       const buildStatus = parseIdeBuildStatus(assistantContent);
+      const cutOff = responseLooksCutOff(assistantContent);
       const shouldContinue =
         zanoemMode &&
         autopilotZanoem &&
         autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS &&
-        (zanoemNeedsDecision(assistantContent) || buildStatus === "refining");
+        (zanoemNeedsDecision(assistantContent) || buildStatus === "refining" || cutOff);
       if (shouldContinue) {
         if (isAutopilotTurn && autopilotTriggerRef.current) {
           void zanoemLogDecision({
@@ -959,7 +992,9 @@ const AureonIdeView = () => {
         }
         autopilotRoundsRef.current += 1;
         autopilotTriggerRef.current = assistantContent;
-        const autoReply = buildStatus === "refining"
+        const autoReply = cutOff
+          ? `[IDE BUILD AUTOPILOT — pass ${autopilotRoundsRef.current}/${AUTOPILOT_MAX_ROUNDS}]\n\nYour previous response was cut off or ended with an unclosed code block. Continue from the exact stopping point, finish every incomplete file, close every code fence, and then end with STATUS: REFINING or STATUS: MISSION_COMPLETE. Do not restart or summarize.`
+          : buildStatus === "refining"
           ? buildCritiqueContinuationReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS)
           : zanoemBuildReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
         setTimeout(() => { void sendChatMessage(autoReply, customBrainPrompt, true); }, 250);
