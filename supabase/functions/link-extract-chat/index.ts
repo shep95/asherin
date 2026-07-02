@@ -7,6 +7,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
 import { isValidByok, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
+import { runOsintPipeline } from "../_shared/osintStack.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
@@ -98,6 +99,16 @@ Deno.serve(async (req) => {
 
     const brainsCtx = await loadBrainsContext(brainIds);
 
+    // ── Live OSINT enrichment ────────────────────────────────────────────────
+    // Runs the free zero-key global intel stack (GDELT, SEC EDGAR, OpenSky,
+    // World Bank, IMF, Wikipedia, USASpending, OpenFDA, UN Comtrade, FX,
+    // Overpass/OSM) only when the last user message contains OSINT-shaped
+    // intent (country, company, ticker, currency, conflict, filings…).
+    // Per-source timeout is 4.5s and failures are silently skipped, so this
+    // never blocks the stream for long or breaks URL-only questions.
+    const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content || "";
+    const osint = await runOsintPipeline(lastUser).catch(() => ({ sources: [] as string[], context: "", errors: [] as string[] }));
+
     const sys = `You are an Aureon URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
 
 RESPONSE RULE: Simple question, simple answer.
@@ -106,10 +117,15 @@ You have access to:
 1. The forensic DOSSIER for the target URL (extraction payload).
 2. The INTEL MAP graph (entities + relationships) built from the dossier.
 3. Active Aureon BRAINS that shape your tone and domain bias.
+4. LIVE OSINT PULL — real-time evidence from free global intelligence APIs
+   (GDELT, SEC EDGAR, OpenSky, World Bank, IMF, Wikipedia, USASpending,
+   OpenFDA, UN Comtrade, FX, Overpass/OSM). When present, cite it inline like
+   [GDELT] or [SEC] and prefer it over your training data for anything
+   time-sensitive.
 
-Answer the user's questions strictly grounded in the dossier and map. When the user asks for "everything you can find" — list every entity in the map, group by type, and cross-reference with dossier evidence. Do NOT invent facts. If something is not in the dossier, say so plainly.
+Answer the user's questions strictly grounded in the dossier, map, and live OSINT. When the user asks for "everything you can find" — list every entity in the map, group by type, and cross-reference with dossier evidence. Do NOT invent facts. If something is not in the dossier or OSINT pull, say so plainly.
 
-${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}`;
+${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}`;
 
     const stream = await callGeminiStream(apiKey, model, sys, messages);
 
@@ -118,6 +134,13 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
     const decoder = new TextDecoder();
     const out = new ReadableStream({
       async start(controller) {
+        // Surface the live OSINT sources the model was grounded on before the
+        // model's own tokens start streaming. Markdown-safe, one-line footer.
+        if (osint.sources.length) {
+          controller.enqueue(encoder.encode(
+            `> **Live OSINT sources consulted:** ${osint.sources.join(" · ")}\n\n`
+          ));
+        }
         const reader = stream.getReader();
         let buf = "";
         try {
