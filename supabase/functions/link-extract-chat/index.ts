@@ -145,11 +145,25 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
     const decoder = new TextDecoder();
     const out = new ReadableStream({
       async start(controller) {
-        // Surface the live OSINT sources the model was grounded on before the
-        // model's own tokens start streaming. Markdown-safe, one-line footer.
+        // 1. Emit an [[AUREON_META]] JSON block so the client can render the
+        //    PropertyMapCard + PropertySourcesStrip beneath the assistant
+        //    message. Client strips this from displayed text. Always emitted
+        //    (empty attachments allowed) so parsing is deterministic.
+        const meta = {
+          osintSources: osint.sources,
+          property: property.fired ? property.attachments : null,
+        };
+        controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
+
+        // 2. Human-visible OSINT footer (unchanged).
         if (osint.sources.length) {
           controller.enqueue(encoder.encode(
             `> **Live OSINT sources consulted:** ${osint.sources.join(" · ")}\n\n`
+          ));
+        }
+        if (property.fired && property.attachments.sources.length) {
+          controller.enqueue(encoder.encode(
+            `> **Property evidence:** ${property.attachments.sources.map((s: any) => s.domain).join(" · ")}\n\n`
           ));
         }
         const reader = stream.getReader();
