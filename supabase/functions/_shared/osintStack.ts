@@ -137,8 +137,8 @@ export async function fetchUSASpending(recipient: string): Promise<string> {
       time_period: [{ start_date: dateNDaysAgo(365), end_date: today() }],
       award_type_codes: ["A", "B", "C", "D"], // contracts
     },
-    fields: ["Award ID", "Recipient Name", "Award Amount", "Awarding Agency", "Action Date"],
-    page: 1, limit: 10, sort: "Action Date", order: "desc",
+    fields: ["Award ID", "Recipient Name", "Award Amount", "Awarding Agency", "Last Modified Date"],
+    page: 1, limit: 10, sort: "Last Modified Date", order: "desc",
   };
   const r = await timedFetch("https://api.usaspending.gov/api/v2/search/spending_by_award/", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -148,7 +148,7 @@ export async function fetchUSASpending(recipient: string): Promise<string> {
   const rows = (j?.results || []) as any[];
   if (!rows.length) return `No US federal awards for "${recipient}" in last 365d.`;
   const lines = rows.map((a) =>
-    `- ${a["Action Date"] || ""} · $${Number(a["Award Amount"] || 0).toLocaleString()} · ${a["Awarding Agency"] || ""} → ${a["Recipient Name"] || ""}`
+    `- ${a["Last Modified Date"] || ""} · $${Number(a["Award Amount"] || 0).toLocaleString()} · ${a["Awarding Agency"] || ""} → ${a["Recipient Name"] || ""}`
   );
   return clip(`USASpending (federal awards last 365d, "${recipient}"):\n` + lines.join("\n"));
 }
