@@ -279,8 +279,6 @@ export function detectIntent(text: string): OsintIntent {
   const countries: string[] = [];
   const countriesIso3: string[] = [];
   for (const c of COUNTRY_LEX) {
-    // Word-boundary match so "uk" doesn't fire inside "ukraine", "us" doesn't
-    // fire inside "used", etc. Handles multi-word names like "united states".
     const hit = c.names.some((n) => new RegExp(`(?:^|[^a-z])${escapeRe(n)}(?:$|[^a-z])`, "i").test(q));
     if (hit) {
       if (!countries.includes(c.iso2)) countries.push(c.iso2);
@@ -288,19 +286,29 @@ export function detectIntent(text: string): OsintIntent {
     }
   }
 
-  // Company detection: capitalized tokens, filtering out sentence-initial
-  // interrogatives / prepositions / verbs / already-matched country names /
-  // known agencies. Only accept tokens with ≥1 lowercase char (so "SEC"/"USA"
-  // are dropped) and length ≥ 4.
+  // Company/entity detection is layered:
+  //   (a) Explicit "for X" / "about X" / "of X" / "on X" tails — trust these
+  //       most because the user placed the target after a preposition.
+  //   (b) Multi-word Proper Case phrases anywhere in the sentence (Lockheed
+  //       Martin, Palantir Technologies, Deutsche Bank) — high precision.
+  //   (c) Well-known ALL-CAPS acronyms (NATO, OPEC, WHO, IMF, UN, EU, NASA).
+  // We deliberately do NOT accept single sentence-initial Proper words
+  // ("Track", "Latest", "Federal", "Power") because they collide with English
+  // sentence starters.
   const COMPANY_STOP = new Set([
     "the","and","for","with","from","about","what","who","why","how","when","where","which","that","this","these","those",
-    "give","tell","show","find","list","need","want","help","make","take","said",
-    "usa","sec","fda","dod","cia","fbi","nasa","irs","imf","nato","opec","aureon","google","claude",
+    "give","tell","show","find","list","need","want","help","make","take","said","track","latest","federal","power","new",
+    "usa","sec","fda","dod","cia","fbi","irs","aureon","google","claude",
     ...COUNTRY_LEX.flatMap((c) => c.names.map((n) => n.replace(/\s+/g, ""))),
   ]);
-  const companyMatches = Array.from(text.matchAll(/\b([A-Z][a-z][A-Za-z0-9&.\-]{2,}(?:\s+[A-Z][A-Za-z0-9&.\-]{1,}){0,3})\b/g))
-    .map((m) => m[1].trim())
-    .filter((s) => s.length >= 4 && !COMPANY_STOP.has(s.toLowerCase().replace(/\s+/g, "")))
+  const KNOWN_ACRONYMS = new Set(["NATO","OPEC","WHO","IMF","UN","EU","NASA","OTAN","BRICS","G7","G20","ASEAN","AFRICOM","CENTCOM","NORAD","MOSSAD","GRU","FSB","MI6"]);
+
+  const tailMatches = Array.from(text.matchAll(/\b(?:for|about|of|on|regarding)\s+([A-Z][A-Za-z0-9&.\-]+(?:\s+[A-Z][A-Za-z0-9&.\-]+){0,3})\b/g)).map((m) => m[1].trim());
+  const multiWordMatches = Array.from(text.matchAll(/\b([A-Z][a-z][A-Za-z0-9&.\-]+\s+[A-Z][A-Za-z0-9&.\-]+(?:\s+[A-Z][A-Za-z0-9&.\-]+){0,2})\b/g)).map((m) => m[1].trim());
+  const acronymMatches = Array.from(text.matchAll(/\b([A-Z]{2,6})\b/g)).map((m) => m[1]).filter((a) => KNOWN_ACRONYMS.has(a));
+
+  const companyMatches = Array.from(new Set([...tailMatches, ...multiWordMatches, ...acronymMatches]))
+    .filter((s) => s.length >= 3 && !COMPANY_STOP.has(s.toLowerCase().replace(/\s+/g, "")))
     .slice(0, 3);
 
   const wantFilings = /\b(sec|10-?[kq]|8-?k|filing|earnings|ticker|nasdaq|nyse|insider|ownership)\b/.test(q) || companyMatches.length > 0;
