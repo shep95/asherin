@@ -271,7 +271,11 @@ const Forums = () => {
               ) : displayedPosts.length === 0 ? (
                 <div className="rounded-2xl border border-border/15 bg-card/20 p-12 text-center">
                   <ActiveIcon className="h-6 w-6 text-muted-foreground/40 mx-auto mb-3" strokeWidth={1.2} />
-                  <p className="text-sm font-light text-muted-foreground/60 tracking-wide">No {tab}s yet. Be the first.</p>
+                  <p className="text-sm font-light text-muted-foreground/60 tracking-wide">
+                    {tab === "bug" && !isAdmin
+                      ? "Reports go directly to admins — you won't see them listed here."
+                      : `No ${tab}s yet. Be the first.`}
+                  </p>
                 </div>
               ) : displayedPosts.map((p) => {
                 const v = votes[p.id] ?? { score: 0, mine: 0 };
