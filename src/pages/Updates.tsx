@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
-import { ArrowLeft, Zap, Globe, Code, Clock, Layers, Play, Fingerprint, Eye } from "lucide-react";
+import { ArrowLeft, Zap, Globe, Code, Clock, Layers, Play, Fingerprint, Eye, ChevronDown } from "lucide-react";
 
 interface Update {
   date: string;
@@ -393,6 +393,16 @@ const fmt = (iso: string) =>
     timeZone: "UTC",
   });
 
+const TRUNCATE_AT = 500;
+
+function truncateBody(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  const slice = text.slice(0, limit);
+  const lastSpace = slice.lastIndexOf(" ");
+  if (lastSpace > 0) return slice.slice(0, lastSpace) + "…";
+  return slice + "…";
+}
+
 const Updates = () => {
   useEffect(() => {
     const id = "updates-page-jsonld";
@@ -415,6 +425,17 @@ const Updates = () => {
       document.getElementById(id)?.remove();
     };
   }, []);
+
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+
+  const toggle = (idx: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
 
   return (
     <div className="landing-perf min-h-screen bg-background text-foreground">
@@ -469,9 +490,26 @@ const Updates = () => {
                   <h2 className="text-2xl sm:text-3xl font-extralight tracking-tight leading-[1.15] text-foreground">
                     {u.title}
                   </h2>
-                  <p className="text-base font-extralight text-muted-foreground leading-[1.75] max-w-3xl">
-                    {u.body}
-                  </p>
+                  <div className="space-y-3">
+                    <p className="text-base font-extralight text-muted-foreground leading-[1.75] max-w-3xl">
+                      {expanded.has(i) ? u.body : truncateBody(u.body, TRUNCATE_AT)}
+                    </p>
+                    {u.body.length > TRUNCATE_AT && (
+                      <button
+                        onClick={() => toggle(i)}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium tracking-[0.18em] uppercase text-foreground/70 hover:text-foreground transition-colors"
+                        aria-expanded={expanded.has(i)}
+                      >
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 transition-transform duration-300 ${
+                            expanded.has(i) ? "rotate-180" : ""
+                          }`}
+                          strokeWidth={1.5}
+                        />
+                        {expanded.has(i) ? "Show less" : "Show more"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </article>
