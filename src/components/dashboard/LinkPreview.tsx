@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ExternalLink, Globe, Crosshair, Loader2, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import ReactMarkdown from "react-markdown";
 
 interface LinkPreviewProps {
@@ -33,7 +32,7 @@ function formatBlueprintIntel(url: string, payload: any): string {
     const securityHeaders = ["strict-transport-security", "content-security-policy", "x-frame-options", "x-content-type-options", "referrer-policy", "permissions-policy"];
     const present = securityHeaders.filter((h) => headers[h]);
     const missing = securityHeaders.filter((h) => !headers[h]);
-    return `## AUREON LINK INTELLIGENCE REPORT\n\n**Target:** ${url}\n\n**Summary:** ${payload.summary}\n\n| Signal | Value |\n|---|---|\n| HTTP | ${payload?.http?.status ?? "unreachable"} → ${payload?.http?.finalUrl || "n/a"} |\n| DNS A | ${(payload?.dns?.A || []).join(", ") || "none observed"} |\n| Security Score | ${payload?.score?.security ?? "n/a"}/100 |\n| Tech Signals | ${(payload?.tech || []).join(", ") || "none fingerprinted"} |\n\n### Security Header Posture\n\n| Present | Missing |\n|---|---|\n| ${present.join(", ") || "none"} | ${missing.join(", ") || "none"} |\n\n### Findings\n\n| Finding | Severity | Evidence | Remediation |\n|---|---:|---|---|\n${rows}\n\n### Raw Live Evidence\n\n\`\`\`json\n${JSON.stringify(payload, null, 2).slice(0, 12000)}\n\`\`\``;
+    return `## AUREON LINK INTELLIGENCE REPORT\n\n**Target:** ${url}\n\n**Summary:** ${payload.summary}\n\n| Signal | Value |\n|---|---|\n| HTTP | ${payload?.http?.status ?? "unreachable"} → ${payload?.http?.finalUrl || "n/a"} |\n| DNS A | ${(payload?.dns?.A || []).join(", ") || "none observed"} |\n| Security Score | ${payload?.score?.security ?? "n/a"}/100 |\n| Tech Signals | ${(payload?.tech || []).join(", ") || "none fingerprinted"} |\n\n### Security Header Posture\n\n| Present | Missing |\n|---|---|\n| ${present.join(", ") || "none"} | ${missing.join(", ") || "none"} |\n\n### Findings\n\n| Finding | Severity | Evidence | Remediation |\n|---|---:|---|---|\n${rows}`;
   }
 
   const blueprint = payload?.blueprint || {};
@@ -129,7 +128,6 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
     setExtractError(null);
 
     try {
-      const byok = getActiveIntelMapByok();
       const { data, error } = await supabase.functions.invoke("link-security-audit", {
         body: {
           url,

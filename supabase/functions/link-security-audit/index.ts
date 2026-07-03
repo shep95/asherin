@@ -93,8 +93,25 @@ async function dnsQuery(host: string, type: string): Promise<string[]> {
 
 function headersToObject(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {};
+  const blocked = new Set(["set-cookie", "cf-ray", "x-deployment-id", "x-deno-execution-id", "server-timing"]);
   headers.forEach((value, key) => { out[key.toLowerCase()] = value; });
+  for (const key of blocked) delete out[key];
   return out;
+}
+
+function redactProviderInternals<T>(value: T): T {
+  if (typeof value === "string") {
+    return value.replace(/lovable\.dev/gi, "provider-redacted") as T;
+  }
+  if (Array.isArray(value)) return value.map((item) => redactProviderInternals(item)) as T;
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = redactProviderInternals(item);
+    }
+    return out as T;
+  }
+  return value;
 }
 
 function parseMeta(html: string) {
@@ -247,7 +264,7 @@ serve(async (req) => {
     const findings = [...headerFindings, ...emailFindings, ...exposedFindings].slice(0, 40);
     const securityScore = score(findings);
 
-    return new Response(JSON.stringify({
+    const payload = redactProviderInternals({
       success: true,
       target: target.toString(),
       finalUrl,
@@ -260,7 +277,9 @@ serve(async (req) => {
       tech,
       findings,
       summary: `Live defensive audit completed for ${target.hostname}. ${findings.length} finding(s) were derived from DNS, HTTP headers, page markup, and exposed-path probes.`,
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    });
+
+    return new Response(JSON.stringify(payload), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "audit failed" }), {
       status: 400,
