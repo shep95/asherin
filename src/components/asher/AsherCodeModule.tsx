@@ -1254,38 +1254,59 @@ export default function AsherCodeModule() {
     });
     const autoMount = (hasReact && mountTarget && !userMountsItself)
       ? `<script>
-try {
-  const __el = document.getElementById('root') || document.getElementById('app');
-  // Resolve mount target: prefer explicit name, then any PascalCase function/class on window
-  // that looks like a React component (covers cases where the strip/regex missed it).
-  function __resolveComponent(){
-    if (window.${mountTarget}) return window.${mountTarget};
-    try { if (typeof ${mountTarget} !== 'undefined') return ${mountTarget}; } catch(e){}
-    var keys = Object.keys(window).filter(function(k){
-      if (!/^[A-Z][A-Za-z0-9_]*$/.test(k)) return false;
-      var v = window[k];
-      if (typeof v !== 'function') return false;
-      // Skip built-ins and known globals
-      if (['React','ReactDOM','Babel','Object','Array','String','Number','Boolean','Function','Error','Date','RegExp','Map','Set','Promise','Symbol','Proxy','Reflect','JSON','Math','URL','URLSearchParams','FormData','Blob','File','FileReader','Image','Audio','Video','Worker','WebSocket','XMLHttpRequest','Event','CustomEvent','Element','HTMLElement','Node','Document','Window','Navigator','Location','History','Storage','Performance','PerformanceObserver','MutationObserver','IntersectionObserver','ResizeObserver','AbortController','AbortSignal','TextEncoder','TextDecoder','Intl','BigInt','WeakMap','WeakSet','DataView','ArrayBuffer','Int8Array','Uint8Array','Uint8ClampedArray','Int16Array','Uint16Array','Int32Array','Uint32Array','Float32Array','Float64Array','BigInt64Array','BigUint64Array','SharedArrayBuffer','Atomics','Crypto','SubtleCrypto','CryptoKey','Headers','Request','Response','ReadableStream','WritableStream','TransformStream','Fragment','Suspense'].indexOf(k) !== -1) return false;
-      return true;
-    });
-    return keys.length ? window[keys[keys.length-1]] : null;
+(function(){
+  function __appendErr(msg){
+    try {
+      var pre = document.createElement('pre');
+      pre.style.cssText='color:#f88;background:#1a0a0a;font-family:ui-monospace,monospace;padding:1rem;white-space:pre-wrap;font-size:12px;margin:0;border-top:1px solid #400';
+      pre.textContent = msg;
+      (document.body || document.documentElement).appendChild(pre);
+    } catch(_e) {}
   }
-  var __Comp = __resolveComponent();
-  if (__el && __Comp) {
-    if (ReactDOM.createRoot) { ReactDOM.createRoot(__el).render(React.createElement(__Comp)); }
-    else { ReactDOM.render(React.createElement(__Comp), __el); }
-  } else if (!__el) {
-    document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem">Auto-mount failed: no #root or #app element.</pre>';
-  } else {
-    document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem;white-space:pre-wrap">Auto-mount failed: component "${mountTarget}" is not defined at runtime.\\n\\nDeclared globals: ' + Object.keys(window).filter(function(k){return /^[A-Z][A-Za-z0-9_]*$/.test(k) && typeof window[k]==="function";}).slice(0,20).join(", ") + '</pre>';
+  function __report(kind, why, message){
+    // Silent path → parent listener enqueues an autofix job (no popup).
+    try { parent.postMessage({ __asherPreviewErrorSilent: true, kind: kind, why: why, message: message, source: 'auto-mount' }, '*'); } catch(e) {}
   }
-} catch (e) {
-  document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem;white-space:pre-wrap">Auto-mount error: ' + (e && e.message ? e.message : String(e)) + '</pre>';
-}
+  try {
+    var __el = document.getElementById('root') || document.getElementById('app');
+    function __resolveComponent(){
+      if (window.${mountTarget}) return window.${mountTarget};
+      try { if (typeof ${mountTarget} !== 'undefined') return ${mountTarget}; } catch(e){}
+      var keys = Object.keys(window).filter(function(k){
+        if (!/^[A-Z][A-Za-z0-9_]*$/.test(k)) return false;
+        var v = window[k];
+        if (typeof v !== 'function') return false;
+        if (['React','ReactDOM','Babel','Object','Array','String','Number','Boolean','Function','Error','Date','RegExp','Map','Set','Promise','Symbol','Proxy','Reflect','JSON','Math','URL','URLSearchParams','FormData','Blob','File','FileReader','Image','Audio','Video','Worker','WebSocket','XMLHttpRequest','Event','CustomEvent','Element','HTMLElement','Node','Document','Window','Navigator','Location','History','Storage','Performance','PerformanceObserver','MutationObserver','IntersectionObserver','ResizeObserver','AbortController','AbortSignal','TextEncoder','TextDecoder','Intl','BigInt','WeakMap','WeakSet','DataView','ArrayBuffer','Int8Array','Uint8Array','Uint8ClampedArray','Int16Array','Uint16Array','Int32Array','Uint32Array','Float32Array','Float64Array','BigInt64Array','BigUint64Array','SharedArrayBuffer','Atomics','Crypto','SubtleCrypto','CryptoKey','Headers','Request','Response','ReadableStream','WritableStream','TransformStream','Fragment','Suspense'].indexOf(k) !== -1) return false;
+        return true;
+      });
+      return keys.length ? window[keys[keys.length-1]] : null;
+    }
+    var __Comp = __resolveComponent();
+    if (__el && __Comp) {
+      try {
+        if (ReactDOM.createRoot) { ReactDOM.createRoot(__el).render(React.createElement(__Comp)); }
+        else { ReactDOM.render(React.createElement(__Comp), __el); }
+      } catch (renderErr) {
+        __appendErr('Auto-mount render error: ' + (renderErr && renderErr.stack || renderErr && renderErr.message || String(renderErr)));
+        __report('Render Error', 'Component "${mountTarget}" threw while rendering. Fix the runtime error inside its function body.', (renderErr && renderErr.message) || String(renderErr));
+      }
+    } else if (!__el) {
+      __appendErr('Auto-mount failed: no #root or #app element.');
+      __report('Missing Mount', 'index.html has no <div id="root"> or <div id="app">. Add one.', 'no #root or #app element');
+    } else {
+      var declared = Object.keys(window).filter(function(k){return /^[A-Z][A-Za-z0-9_]*$/.test(k) && typeof window[k]==="function";}).slice(0,20).join(", ");
+      var body = 'Auto-mount failed: component "${mountTarget}" is not defined at runtime.\\n\\nDeclared globals: ' + declared + '\\n\\nMost likely a compile/runtime error above prevented "${mountTarget}" from being registered. Scroll up for the real error, or Auto-Debug will patch it now.';
+      __appendErr(body);
+      __report('Component Undefined', 'The mount target "${mountTarget}" never reached window scope. Usually caused by a Babel compile error, a TypeScript syntax the classic-runtime preset rejects, or a reference to an unresolved import stripped by the module-syntax remover.', '${mountTarget} is not defined at runtime');
+    }
+  } catch (e) {
+    __appendErr('Auto-mount error: ' + (e && e.message ? e.message : String(e)));
+    __report('Auto-Mount Exception', 'The auto-mount bootstrap itself threw.', (e && e.message) || String(e));
+  }
+})();
 </script>`
       : (hasReact && !userMountsItself
-        ? `<script>document.body.insertAdjacentHTML('afterbegin','<pre style=\\'color:#888;font-family:monospace;padding:1rem\\'>No default export or top-level component detected. Add <code>export default MyComponent</code> to render in preview.</pre>')</script>`
+        ? `<script>(function(){var p=document.createElement('pre');p.style.cssText='color:#888;font-family:monospace;padding:1rem;margin:0';p.textContent='No default export or top-level component detected. Add "export default MyComponent" to render in preview.';document.body.appendChild(p);try{parent.postMessage({__asherPreviewErrorSilent:true,kind:'No Entry Component',why:'Preview needs a default export or a top-level PascalCase component to auto-mount.',message:'no default export found',source:'auto-mount'},'*');}catch(e){}})();</script>`
         : "");
     const needsBabel = hasReact || jsxFiles.length > 0 || jsFiles.length > 0;
     const reactCdn = hasReact
