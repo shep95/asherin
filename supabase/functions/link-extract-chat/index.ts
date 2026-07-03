@@ -83,8 +83,19 @@ async function callGeminiStream(
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: sys }] },
         contents,
+        // Aureon is a defensive OSINT/security tool. Disable Gemini's default
+        // safety blocks so it does not refuse legitimate security audits,
+        // vulnerability assessments, or forensic reviews of URLs/code.
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
+        ],
         generationConfig: { temperature: 0.5, maxOutputTokens: 4096 },
       }),
+
     },
   );
   if (!r.ok || !r.body) {
