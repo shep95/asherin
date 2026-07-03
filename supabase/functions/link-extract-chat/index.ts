@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
         fired: false, intent: null, evidence: "", attachment: null,
         errors: [`domain_pipeline: ${String((e as Error)?.message || e)}`],
       })),
-      runYouTubePipeline(lastUser).catch((e) => ({
+      runYouTubePipeline(lastUser, { hasByokGemini: resolved.mode === "byok" && resolved.byok?.provider === "google" || resolved.mode === "admin" }).catch((e) => ({
         fired: false, intent: null as any, evidence: "", attachment: null, fileUris: [] as string[],
         errors: [`youtube_pipeline: ${String((e as Error)?.message || e)}`],
       })),
