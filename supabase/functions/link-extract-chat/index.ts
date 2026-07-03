@@ -265,6 +265,7 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
           domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null,
           youtube: youtubePull.fired ? youtubePull.attachment : null,
           ghostTrace: ghostPull.fired ? ghostPull.attachment : null,
+          specterWeave: specterPull.fired ? specterPull.attachment : null,
         };
         controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
 
