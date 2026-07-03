@@ -390,8 +390,18 @@ const fmt = (iso: string) =>
     year: "numeric",
     month: "long",
     day: "numeric",
-    timeZone: "UTC",
+-    timeZone: "UTC",
   });
+
+const TRUNCATE_AT = 500;
+
+function truncateBody(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  const slice = text.slice(0, limit);
+  const lastSpace = slice.lastIndexOf(" ");
+  if (lastSpace > 0) return slice.slice(0, lastSpace) + "…";
+  return slice + "…";
+}
 
 const Updates = () => {
   useEffect(() => {
