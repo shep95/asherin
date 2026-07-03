@@ -14,6 +14,14 @@ interface Update {
 
 const UPDATES: Update[] = [
   {
+    date: "2026-07-03",
+    title: "Specter Weave — Subject Isolation Contract + Cross-User State Bleed Patched",
+    body:
+      "A live-fire bug was reported: profiling a friend's handle returned the operator's own real name (\"Asher Shepherd Newton\") on the friend's dossier. Ran the Code → Narrative → Flaws → Code loop and traced it to cross-user state bleed — the link-extract-chat orchestrator was concatenating the operator's prior Aureon dossier, Zophiel intel map, and active brains into the same system prompt as the Specter Weave evidence fence, and the LLM was using operator-side biographical strings as 'known context about the person we're discussing.' Fix ships in two layers. Layer 1 (supabase/functions/_shared/specterWeaveIntel.ts): a new SUBJECT ISOLATION CONTRACT is welded inside the <specter_weave_evidence> fence with seven explicit rules — DOSSIER / INTEL_MAP / BRAINS / prior conversation / the operator's own account are all forbidden as sources of biographical attribution for the target handle; the display name is treated as possibly a pseudonym unless a leak ≥0.7 confidence corroborates it; and a hard-stop rule requires the model to say 'real name: not established from public evidence for @handle' instead of cross-attributing. Layer 2 (supabase/functions/link-extract-chat/index.ts): a new referencesTarget() gate textually verifies whether the assembled DOSSIER / INTEL_MAP JSON actually mentions the Specter target handle — when it does not, that block is replaced in-fence with an explicit [REDACTED — different subject] note; ACTIVE BRAINS CONTEXT is dropped entirely whenever Specter fires; and a top-level isolationPreface is prepended to the system prompt itself so the rule fires before any evidence is even parsed. Net effect: the model is told three times, in escalating specificity, that operator identity ≠ target identity, and unrelated dossiers can no longer physically reach the reasoning surface. Typechecked cleanly.",
+    icon: <Eye className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Specter Weave",
+  },
+  {
     date: "2026-07-02",
     title: "Specter Weave — All-Tier Access + Post-URL Auto-Derivation Shipped",
     body:
