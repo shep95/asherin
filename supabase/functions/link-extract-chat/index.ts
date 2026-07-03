@@ -262,6 +262,12 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
             : `recon deferred — launch full scan in Zerlal`;
           controller.enqueue(encoder.encode(`> **Domain intel:** ${label}\n\n`));
         }
+        if (youtubePull.fired && youtubePull.attachment) {
+          const vids = youtubePull.attachment.videos;
+          controller.enqueue(encoder.encode(
+            `> **YouTube intel:** ${vids.length} video${vids.length === 1 ? "" : "s"} · ${vids.filter(v => v.transcriptSource === "timedtext").length} with transcripts\n\n`
+          ));
+        }
         const reader = stream.getReader();
         let buf = "";
         try {
