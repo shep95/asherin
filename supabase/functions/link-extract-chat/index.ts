@@ -261,9 +261,15 @@ The user is asking about the social handle @${specterPull.intent!.handle} on ${s
 
 ` : "";
 
+    // Code-audit protocol: only injected when the last user message actually
+    // carries code. Keeps the token budget clean for the 90% of URL-forensics
+    // turns that have nothing to do with source review.
+    const codeFired = hasCodePayload(lastUser);
+    const codeProtocol = codeFired ? `\n${CODE_NARRATIVE_PROTOCOL}\n\n${CODE_SCAN_CHECKLIST}\n` : "";
+
     const sys = `${temporal}
 
-${isolationPreface}You are an Aureon URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
+${isolationPreface}${codeProtocol}You are an Aureon URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
 
 RESPONSE RULE: Simple question, simple answer.
 
