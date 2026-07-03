@@ -490,9 +490,26 @@ const Updates = () => {
                   <h2 className="text-2xl sm:text-3xl font-extralight tracking-tight leading-[1.15] text-foreground">
                     {u.title}
                   </h2>
-                  <p className="text-base font-extralight text-muted-foreground leading-[1.75] max-w-3xl">
-                    {u.body}
-                  </p>
+                  <div className="space-y-3">
+                    <p className="text-base font-extralight text-muted-foreground leading-[1.75] max-w-3xl">
+                      {expanded.has(i) ? u.body : truncateBody(u.body, TRUNCATE_AT)}
+                    </p>
+                    {u.body.length > TRUNCATE_AT && (
+                      <button
+                        onClick={() => toggle(i)}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium tracking-[0.18em] uppercase text-foreground/70 hover:text-foreground transition-colors"
+                        aria-expanded={expanded.has(i)}
+                      >
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 transition-transform duration-300 ${
+                            expanded.has(i) ? "rotate-180" : ""
+                          }`}
+                          strokeWidth={1.5}
+                        />
+                        {expanded.has(i) ? "Show less" : "Show more"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </article>
