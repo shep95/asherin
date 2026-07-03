@@ -137,7 +137,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, mapContext, byokGeminiKey, brainContext, numberedFormat } = await req.json();
+    const { messages, mapContext, byokGeminiKey, brainContext, numberedFormat, timezone, locale } = await req.json();
     const numberedOff = numberedFormat === false;
     const numberedDirective = numberedOff
       ? "\n\n## NUMBERED-LIST BRAIN: DISABLED\nThe operator has turned OFF numbered-list answers for this session. Reply in natural prose, short paragraphs, or headers/bullets — only use 1., 2., 3. when the content is truly ordinal (procedural steps, ranked items the user asked for)."
@@ -251,9 +251,21 @@ serve(async (req) => {
       }
     } catch (e) { console.error("[asher-ai] jurisdictional intel:", (e as Error).message); }
 
+    // ── YouTube Intel (transcripts + metadata) ───────────────────────────
+    let youtubeBlock = "";
+    try {
+      const { runYouTubePipeline } = await import("../_shared/youtubeIntel.ts");
+      const yt = await runYouTubePipeline(latestUserText(cleaned));
+      if (yt.fired) youtubeBlock = yt.evidence;
+    } catch (e) { console.error("[asher-ai] youtube intel:", (e as Error).message); }
+
+    // ── Temporal context (day + timestamp awareness) ─────────────────────
+    const { getTemporalContext } = await import("../_shared/systemContext.ts");
+    const temporalBlock = "\n\n" + getTemporalContext({ timezone, locale });
+
     const { CODE_NARRATIVE_PROTOCOL } = await import("../_shared/codeNarrativeProtocol.ts");
     const { SYSTEM_TWO_FORCING_BRAIN } = await import("../_shared/systemTwoForcingBrain.ts");
-    const fullSystem = SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + EMOTIONAL_PERSONA_BRAIN + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + "\n\n" + GEOLOCATION_BRAIN + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock;
+    const fullSystem = temporalBlock + "\n\n" + SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + EMOTIONAL_PERSONA_BRAIN + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + "\n\n" + GEOLOCATION_BRAIN + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock + youtubeBlock;
 
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {
