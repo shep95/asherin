@@ -8,6 +8,7 @@ import PropertySourcesStrip, { type PropertySourceCard } from "@/components/dash
 import DomainIntelCard, { type DomainIntel } from "@/components/dashboard/domain/DomainIntelCard";
 import YouTubeEvidenceCard, { type YouTubeAttachment } from "@/components/dashboard/youtube/YouTubeEvidenceCard";
 import GhostTraceCard, { type GhostTraceAttachment } from "@/components/dashboard/ghostTrace/GhostTraceCard";
+import SpecterWeaveCard, { type SpecterAttachment } from "@/components/dashboard/specterWeave/SpecterWeaveCard";
 
 interface Props {
   targetUrl: string;
@@ -26,15 +27,16 @@ interface ChatMsg {
   domain?: DomainIntel | null;
   youtube?: YouTubeAttachment | null;
   ghostTrace?: GhostTraceAttachment | null;
+  specterWeave?: SpecterAttachment | null;
 }
 
 // Server prefixes the assistant stream with a single-line [[AUREON_META]]…[[/AUREON_META]]
-// block encoding attachments (property, domain, youtube, ghostTrace). Extract
+// block encoding attachments (property, domain, youtube, ghostTrace, specterWeave). Extract
 // it, keep it out of the rendered text, and return both parts.
 const META_RE = /^\s*\[\[AUREON_META\]\](.*?)\[\[\/AUREON_META\]\]\s*\n?/s;
-function splitMeta(acc: string): { property: PropertyAttachments | null; domain: DomainIntel | null; youtube: YouTubeAttachment | null; ghostTrace: GhostTraceAttachment | null; text: string } {
+function splitMeta(acc: string): { property: PropertyAttachments | null; domain: DomainIntel | null; youtube: YouTubeAttachment | null; ghostTrace: GhostTraceAttachment | null; specterWeave: SpecterAttachment | null; text: string } {
   const m = acc.match(META_RE);
-  if (!m) return { property: null, domain: null, youtube: null, ghostTrace: null, text: acc };
+  if (!m) return { property: null, domain: null, youtube: null, ghostTrace: null, specterWeave: null, text: acc };
   try {
     const parsed = JSON.parse(m[1]);
     return {
@@ -42,10 +44,11 @@ function splitMeta(acc: string): { property: PropertyAttachments | null; domain:
       domain: parsed?.domain ?? null,
       youtube: parsed?.youtube ?? null,
       ghostTrace: parsed?.ghostTrace ?? null,
+      specterWeave: parsed?.specterWeave ?? null,
       text: acc.slice(m[0].length),
     };
   } catch {
-    return { property: null, domain: null, youtube: null, ghostTrace: null, text: acc.slice(m[0].length) };
+    return { property: null, domain: null, youtube: null, ghostTrace: null, specterWeave: null, text: acc.slice(m[0].length) };
   }
 }
 
@@ -143,12 +146,12 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
       const reader = resp.body.getReader();
       const dec = new TextDecoder();
       let acc = "";
-      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null, domain: null, youtube: null, ghostTrace: null }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null, domain: null, youtube: null, ghostTrace: null, specterWeave: null }]);
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         acc += dec.decode(value, { stream: true });
-        const { property, domain, youtube, ghostTrace, text } = splitMeta(acc);
+        const { property, domain, youtube, ghostTrace, specterWeave, text } = splitMeta(acc);
         setMessages((prev) => {
           const copy = [...prev];
           copy[copy.length - 1] = {
@@ -158,6 +161,7 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
             domain: domain && domain.attachment ? domain : null,
             youtube: youtube && youtube.videos?.length ? youtube : null,
             ghostTrace: ghostTrace && ghostTrace.fired ? ghostTrace : null,
+            specterWeave: specterWeave && specterWeave.fired ? specterWeave : null,
           };
           return copy;
         });
@@ -242,6 +246,9 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
                 ) : null}
                 {m.role === "assistant" && m.ghostTrace?.fired ? (
                   <GhostTraceCard data={m.ghostTrace} />
+                ) : null}
+                {m.role === "assistant" && m.specterWeave?.fired ? (
+                  <SpecterWeaveCard data={m.specterWeave} />
                 ) : null}
               </div>
             ))}
