@@ -426,6 +426,33 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     tryScroll();
   }, [highlightedMsgId, branchMessages.length]);
 
+  // ── Inline property/address satellite maps ────────────────────────────────
+  // When a user message mentions a real-world address (case-insensitive), we
+  // geocode it against Nominatim on the client and render a PropertyMapCard
+  // beneath that user bubble. Independent of the LLM stream, so the map shows
+  // instantly and never depends on the backend model finishing.
+  const [propertyMaps, setPropertyMaps] = useState<Record<string, PropertyMapCardData>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for (const m of branchMessages) {
+        if (m.role !== "user" || !m.content) continue;
+        if (propertyMaps[m.id]) continue;
+        const [hit] = detectAddresses(m.content);
+        if (!hit) continue;
+        const g = await geocodeAddress(hit.raw);
+        if (cancelled || !g) continue;
+        setPropertyMaps((prev) =>
+          prev[m.id]
+            ? prev
+            : { ...prev, [m.id]: { address: hit.raw, formatted: g.formatted, lat: g.lat, lng: g.lng, category: g.category } },
+        );
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [branchMessages, propertyMaps]);
+
+
   // Listen for cross-component jump signals (e.g. from the sidebar hover preview)
   useEffect(() => {
     const handler = (e: Event) => {
