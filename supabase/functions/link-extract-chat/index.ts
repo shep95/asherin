@@ -12,6 +12,7 @@ import { runPropertyPipeline } from "../_shared/propertyIntel.ts";
 import { runDomainPipeline } from "../_shared/domainIntel.ts";
 import { runYouTubePipeline } from "../_shared/youtubeIntel.ts";
 import { runGhostTracePipeline } from "../_shared/ghostTraceIntel.ts";
+import { runSpecterWeavePipeline } from "../_shared/specterWeaveIntel.ts";
 import { runAxrlenBridge } from "../_shared/axrlenBridge.ts";
 import { getTemporalContext } from "../_shared/systemContext.ts";
 
