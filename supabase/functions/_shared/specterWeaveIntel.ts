@@ -625,12 +625,22 @@ export async function runSpecterWeavePipeline(userText: string, _opts: SpecterOp
 
   try {
     if (intent.platform === "x") {
-      const nd = await fetchXProfileTimeline(intent.handle);
+      // Fetch both sources in parallel: profile timeline (rich, but sometimes
+      // empty) and the single tweet referenced in the input (always rich for
+      // active accounts, gives us user.id_str for snowflake decoding).
+      const statusId = extractStatusId(userText);
+      const [nd, tweet] = await Promise.all([
+        fetchXProfileTimeline(intent.handle),
+        statusId ? fetchXTweetById(statusId) : Promise.resolve(null),
+      ]);
       if (!nd) errors.push("x_profile_timeline_unavailable");
-      // Extract author card
+      if (statusId && !tweet) errors.push("x_tweet_result_unavailable");
+
+      // Prefer nested `user` from profile timeline, then from tweet payload.
       const user = nd?.props?.pageProps?.contextProvider?.user
                 || nd?.props?.pageProps?.timeline?.user
                 || nd?.props?.pageProps?.headerProps?.user
+                || tweet?.user
                 || null;
       if (user) {
         attachment.author = {
@@ -644,7 +654,8 @@ export async function runSpecterWeavePipeline(userText: string, _opts: SpecterOp
           followingCount: user.friends_count ?? null,
           postCount: user.statuses_count ?? null,
         };
-        // Account genesis — snowflake decode
+        // Account genesis — snowflake decode is preferred (ms-precise, requires
+        // only the numeric user id which Twitter exposes in id_str).
         const uid = user.id_str || (user.id ? String(user.id) : null);
         if (uid) {
           const d = snowflakeToDate(uid);
@@ -663,7 +674,7 @@ export async function runSpecterWeavePipeline(userText: string, _opts: SpecterOp
             });
           }
         }
-        // Fallback: user.created_at
+        // Fallback: user.created_at (present when snowflake decode fails)
         if (!attachment.genesis.createdAt && user.created_at) {
           const d = new Date(user.created_at);
           if (!isNaN(d.getTime())) {
@@ -678,7 +689,34 @@ export async function runSpecterWeavePipeline(userText: string, _opts: SpecterOp
         }
       }
 
-      const posts = nd ? normalizeXTimeline(nd, intent.handle) : [];
+      // Assemble post sample: profile timeline entries first, then synthesize
+      // a 1-post pseudo-timeline from the referenced tweet so devices / leaks /
+      // media / linguistics still have something to chew on when the profile
+      // timeline is empty.
+      const posts: NormalizedPost[] = nd ? normalizeXTimeline(nd, intent.handle) : [];
+      if (posts.length === 0 && tweet && (tweet.text || tweet.full_text)) {
+        const created = tweet.created_at ? new Date(tweet.created_at) : null;
+        if (created && !isNaN(created.getTime())) {
+          const media = (tweet.mediaDetails || tweet.photos || []).map((m: any) => {
+            const mu = m.media_url_https || m.url || "";
+            let host: string | null = null;
+            try { host = mu ? new URL(mu).hostname : null; } catch { /* noop */ }
+            return { url: mu, cdnHost: host };
+          });
+          posts.push({
+            id: tweet.id_str || String(statusId),
+            text: tweet.full_text || tweet.text || "",
+            createdAt: created,
+            source: typeof tweet.source === "string" ? tweet.source.replace(/<[^>]+>/g, "").trim() : null,
+            lang: tweet.lang || null,
+            media,
+            inReplyTo: tweet.in_reply_to_screen_name || null,
+            mentions: ((tweet.entities?.user_mentions) || []).map((m: any) => m.screen_name).filter(Boolean),
+            url: `https://x.com/${intent.handle}/status/${tweet.id_str || statusId}`,
+          });
+        }
+      }
+
       if (posts.length) {
         attachment.cartography = analyzeCartography(posts);
         attachment.linguistics = analyzeLinguistics(posts);
@@ -689,8 +727,8 @@ export async function runSpecterWeavePipeline(userText: string, _opts: SpecterOp
         attachment.drift = analyzeDrift(posts);
 
         attachment.claims.push(
-          { key: "timeline_sample", value: posts.length, confidence: 0.99, source: "syndication" },
-          { key: "peak_utc_hour", value: attachment.cartography.peakUtcHour, confidence: 0.85, source: "cartography" },
+          { key: "timeline_sample", value: posts.length, confidence: posts.length >= 5 ? 0.95 : 0.55, source: posts.length >= 5 ? "syndication_profile_timeline" : "single_tweet_synthesis" },
+          { key: "peak_utc_hour", value: attachment.cartography.peakUtcHour, confidence: posts.length >= 8 ? 0.85 : 0.3, source: "cartography" },
           { key: "inferred_timezone", value: attachment.cartography.inferredTimezone, confidence: attachment.cartography.inferredTimezone?.confidence || 0, source: "cartography_silence_trough" },
           { key: "primary_client", value: attachment.devices.primary, confidence: 0.9, source: "post_source_field" },
           { key: "activity_trend", value: attachment.drift.activityTrend, confidence: 0.7, source: "monthly_drift" },
