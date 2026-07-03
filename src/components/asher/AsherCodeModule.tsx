@@ -104,6 +104,20 @@ async function loadAureonContext(): Promise<{
   return { personaSystemPrompt, brainContext };
 }
 
+function relTime(iso: string | null | undefined): string {
+  if (!iso) return "unknown";
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return "unknown";
+  const d = Date.now() - t;
+  if (d < 60_000) return "just now";
+  if (d < 3_600_000) return `${Math.floor(d / 60_000)}m ago`;
+  if (d < 86_400_000) return `${Math.floor(d / 3_600_000)}h ago`;
+  if (d < 604_800_000) return `${Math.floor(d / 86_400_000)}d ago`;
+  return `${Math.floor(d / 604_800_000)}w ago`;
+}
+
+
+
 export default function AsherCodeModule() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<AsherCodeProject[]>([]);
