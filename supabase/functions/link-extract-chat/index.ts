@@ -176,6 +176,7 @@ Deno.serve(async (req) => {
         domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null,
         youtube: youtubePull.fired ? youtubePull.attachment : null,
         ghostTrace: ghostPull.fired ? ghostPull.attachment : null,
+        specterWeave: specterPull.fired ? specterPull.attachment : null,
         axrlen: { fired: true, tier: axrlen.intent.tier, brainsLoaded: axrlen.brainsLoaded, reason: axrlen.access.reason },
       };
       const out = new ReadableStream({
