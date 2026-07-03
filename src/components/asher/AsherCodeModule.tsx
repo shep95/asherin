@@ -1994,6 +1994,11 @@ try {
       <div className="relative z-[80] flex items-center justify-between gap-2 border-b border-border/15 bg-card/20 px-2 sm:px-3 py-2 backdrop-blur-md flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
           <button onClick={() => { setActiveProject(null); setFiles([]); }} className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground whitespace-nowrap">← Projects</button>
+          <RecentProjectsMenu
+            projects={projects}
+            activeId={activeProject.id}
+            onSelect={(p) => openProject(p)}
+          />
           <span className="text-muted-foreground/30 hidden sm:inline">/</span>
           {renamingTitle ? (
             <input
