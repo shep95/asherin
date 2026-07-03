@@ -39,11 +39,24 @@ async function loadBrainsContext(brainIds: string[] | undefined): Promise<string
   } catch { return ""; }
 }
 
-async function callGeminiStream(apiKey: string, model: string, sys: string, msgs: ChatMessage[]) {
-  const contents = msgs.map((m) => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
+async function callGeminiStream(
+  apiKey: string,
+  model: string,
+  sys: string,
+  msgs: ChatMessage[],
+  fileUris: string[] = [],
+) {
+  const contents = msgs.map((m, i) => {
+    const parts: any[] = [{ text: m.content }];
+    // Attach any YouTube (or other) fileData URIs to the LAST user message
+    // so Gemini ingests the video natively (audio + frames + transcript).
+    if (i === msgs.length - 1 && m.role === "user" && fileUris.length) {
+      for (const uri of fileUris) {
+        parts.push({ fileData: { fileUri: uri, mimeType: "video/*" } });
+      }
+    }
+    return { role: m.role === "assistant" ? "model" : "user", parts };
+  });
   const r = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
