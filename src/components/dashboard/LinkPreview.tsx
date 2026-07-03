@@ -22,6 +22,7 @@ function extractDomain(url: string): string {
 }
 
 const previewCache = new Map<string, PreviewData | null>();
+const extractionCache = new Map<string, string>();
 
 function formatBlueprintIntel(url: string, payload: any): string {
   if (Array.isArray(payload?.findings) && payload?.http && payload?.dns) {
@@ -74,7 +75,7 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
 
   // Elion extraction state
   const [extracting, setExtracting] = useState(false);
-  const [extracted, setExtracted] = useState<string | null>(null);
+  const [extracted, setExtracted] = useState<string | null>(extractionCache.get(url) ?? null);
   const [extractExpanded, setExtractExpanded] = useState(true);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -144,6 +145,7 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
 
       const result = typeof data === "string" ? data : formatBlueprintIntel(url, data);
       if (!result || result === "No output generated.") throw new Error("Intelligence engine returned empty analysis");
+      extractionCache.set(url, result);
       setExtracted(result);
     } catch (err: any) {
       console.error("Elion extraction error:", err);
