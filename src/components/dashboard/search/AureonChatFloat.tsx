@@ -140,12 +140,12 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
       const reader = resp.body.getReader();
       const dec = new TextDecoder();
       let acc = "";
-      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null, domain: null }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null, domain: null, youtube: null }]);
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         acc += dec.decode(value, { stream: true });
-        const { property, domain, text } = splitMeta(acc);
+        const { property, domain, youtube, text } = splitMeta(acc);
         setMessages((prev) => {
           const copy = [...prev];
           copy[copy.length - 1] = {
@@ -153,6 +153,7 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
             content: text,
             property: property && (property.map || property.sources?.length) ? property : null,
             domain: domain && domain.attachment ? domain : null,
+            youtube: youtube && youtube.videos?.length ? youtube : null,
           };
           return copy;
         });
@@ -232,6 +233,9 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
                 {m.role === "assistant" && m.domain?.attachment && (
                   <DomainIntelCard data={m.domain} />
                 )}
+                {m.role === "assistant" && m.youtube?.videos?.length ? (
+                  <YouTubeEvidenceCard data={m.youtube} />
+                ) : null}
               </div>
             ))}
             {sending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
