@@ -295,6 +295,13 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
             `> **YouTube intel:** ${vids.length} video${vids.length === 1 ? "" : "s"} ingested by AI\n\n`
           ));
         }
+        if (specterPull.fired && specterPull.attachment) {
+          const a = specterPull.attachment;
+          const cx = a.crossPlatform.filter((h: any) => h.status === "found").length;
+          controller.enqueue(encoder.encode(
+            `> **Specter Weave:** @${a.handle} · ${a.cartography.sampleSize} posts · ${cx} cross-platform hits · ${a.leaks.length} leak signals\n\n`
+          ));
+        }
         const reader = stream.getReader();
         let buf = "";
         try {
