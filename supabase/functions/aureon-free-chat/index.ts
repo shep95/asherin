@@ -208,8 +208,10 @@ serve(async (req) => {
     }
 
     try {
-      // ── Internet Archive (archive.org) live grounding ──
-      let groundedMessages = messages;
+      // ── Temporal awareness — always first system message ──
+      const { getTemporalContext } = await import("../_shared/systemContext.ts");
+      const temporalCtx = getTemporalContext({ timezone, locale });
+      let groundedMessages: ChatMessage[] = [{ role: "system", content: temporalCtx }, ...messages];
       try {
         const lastUser = [...messages].reverse().find((m) => m.role === "user");
         const userText = lastUser?.content || "";

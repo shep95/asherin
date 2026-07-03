@@ -69,7 +69,7 @@ serve(async (req) => {
       );
     }
 
-    const { messages, sessionContext } = await req.json();
+    const { messages, sessionContext, timezone, locale } = await req.json();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -155,7 +155,9 @@ serve(async (req) => {
       sessionBlock = `\n\nACTIVE SESSION: ${sessionContext.title} | Region: ${sessionContext.region || "Global"} | Confidence: ${sessionContext.confidenceScore || "N/A"}%`;
     }
 
-    const systemPrompt = BASE_IDENTITY + "\n" + primaryBrains + secondaryBrains + sessionBlock;
+    const { getTemporalContext } = await import("../_shared/systemContext.ts");
+    const _tCtx = getTemporalContext({ timezone, locale });
+    const systemPrompt = _tCtx + "\n\n" + BASE_IDENTITY + "\n" + primaryBrains + secondaryBrains + sessionBlock;
 
     const gatewayMessages = [
       { role: "system", content: systemPrompt },
