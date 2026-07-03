@@ -8,6 +8,7 @@ import PropertySourcesStrip, { type PropertySourceCard } from "@/components/dash
 import DomainIntelCard, { type DomainIntel } from "@/components/dashboard/domain/DomainIntelCard";
 import YouTubeEvidenceCard, { type YouTubeAttachment } from "@/components/dashboard/youtube/YouTubeEvidenceCard";
 import GhostTraceCard, { type GhostTraceAttachment } from "@/components/dashboard/ghostTrace/GhostTraceCard";
+import SpecterWeaveCard, { type SpecterAttachment } from "@/components/dashboard/specterWeave/SpecterWeaveCard";
 
 interface Props {
   targetUrl: string;
