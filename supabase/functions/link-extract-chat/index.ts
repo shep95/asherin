@@ -11,6 +11,7 @@ import { runOsintPipeline } from "../_shared/osintStack.ts";
 import { runPropertyPipeline } from "../_shared/propertyIntel.ts";
 import { runDomainPipeline } from "../_shared/domainIntel.ts";
 import { runYouTubePipeline } from "../_shared/youtubeIntel.ts";
+import { runGhostTracePipeline } from "../_shared/ghostTraceIntel.ts";
 import { runAxrlenBridge } from "../_shared/axrlenBridge.ts";
 import { getTemporalContext } from "../_shared/systemContext.ts";
 
@@ -127,7 +128,7 @@ Deno.serve(async (req) => {
     // Per-source timeout is 4.5s and failures are silently skipped, so this
     // never blocks the stream for long or breaks URL-only questions.
     const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content || "";
-    const [osint, property, domainPull, youtubePull] = await Promise.all([
+    const [osint, property, domainPull, youtubePull, ghostPull] = await Promise.all([
       runOsintPipeline(lastUser).catch(() => ({ sources: [] as string[], context: "", errors: [] as string[] })),
       runPropertyPipeline(lastUser).catch(() => ({
         fired: false, addresses: [] as string[], evidence: "",
@@ -141,6 +142,10 @@ Deno.serve(async (req) => {
         fired: false, intent: null as any, evidence: "", attachment: null, fileUris: [] as string[],
         errors: [`youtube_pipeline: ${String((e as Error)?.message || e)}`],
       })),
+      runGhostTracePipeline(lastUser, { hasByokGemini: resolved.mode === "byok" && resolved.byok?.provider === "google" || resolved.mode === "admin" }).catch((e) => ({
+        fired: false, intent: null as any, evidence: "", attachment: null,
+        errors: [`ghost_trace_pipeline: ${String((e as Error)?.message || e)}`],
+      })),
     ]);
     const temporal = getTemporalContext({ timezone, locale });
 
@@ -151,7 +156,7 @@ Deno.serve(async (req) => {
     const axrlen = await runAxrlenBridge({
       req,
       messages: messages as any,
-      liveEvidence: (osint.context || "") + (property.evidence || "") + (domainPull.evidence || "") + (youtubePull.evidence || ""),
+      liveEvidence: (osint.context || "") + (property.evidence || "") + (domainPull.evidence || "") + (youtubePull.evidence || "") + (ghostPull.evidence || ""),
       surface: "aureon",
       fallbackGeminiKey: apiKey,
       fallbackModel: model,
@@ -165,6 +170,7 @@ Deno.serve(async (req) => {
         property: property.fired ? property.attachments : null,
         domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null,
         youtube: youtubePull.fired ? youtubePull.attachment : null,
+        ghostTrace: ghostPull.fired ? ghostPull.attachment : null,
         axrlen: { fired: true, tier: axrlen.intent.tier, brainsLoaded: axrlen.brainsLoaded, reason: axrlen.access.reason },
       };
       const out = new ReadableStream({
@@ -189,7 +195,7 @@ Deno.serve(async (req) => {
     }
     if (axrlen.kind === "denied" && axrlen.intent.fired) {
       const encoder = new TextEncoder();
-      const meta = { osintSources: osint.sources, property: property.fired ? property.attachments : null, domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null, youtube: youtubePull.fired ? youtubePull.attachment : null, axrlen: { fired: true, denied: true, reason: axrlen.access.reason } };
+      const meta = { osintSources: osint.sources, property: property.fired ? property.attachments : null, domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null, youtube: youtubePull.fired ? youtubePull.attachment : null, ghostTrace: ghostPull.fired ? ghostPull.attachment : null, axrlen: { fired: true, denied: true, reason: axrlen.access.reason } };
       const out = new ReadableStream({
         start(controller) {
           controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
@@ -234,7 +240,7 @@ You have access to:
 
 Answer the user's questions strictly grounded in the dossier, map, live OSINT, property evidence, domain evidence, and YouTube evidence. When the user asks for "everything you can find" — list every entity in the map, group by type, and cross-reference with dossier evidence. Do NOT invent facts. If something is not in the dossier or live evidence, say so plainly.
 
-${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}${property.evidence}${domainPull.evidence}${youtubePull.evidence}`;
+${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}${property.evidence}${domainPull.evidence}${youtubePull.evidence}${ghostPull.evidence}`;
 
     const stream = await callGeminiStream(apiKey, model, sys, messages, youtubePull.fileUris || []);
 
@@ -252,6 +258,7 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
           property: property.fired ? property.attachments : null,
           domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null,
           youtube: youtubePull.fired ? youtubePull.attachment : null,
+          ghostTrace: ghostPull.fired ? ghostPull.attachment : null,
         };
         controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
 

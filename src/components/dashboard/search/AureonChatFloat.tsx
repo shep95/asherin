@@ -7,6 +7,7 @@ import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboar
 import PropertySourcesStrip, { type PropertySourceCard } from "@/components/dashboard/property/PropertySourcesStrip";
 import DomainIntelCard, { type DomainIntel } from "@/components/dashboard/domain/DomainIntelCard";
 import YouTubeEvidenceCard, { type YouTubeAttachment } from "@/components/dashboard/youtube/YouTubeEvidenceCard";
+import GhostTraceCard, { type GhostTraceAttachment } from "@/components/dashboard/ghostTrace/GhostTraceCard";
 
 interface Props {
   targetUrl: string;
@@ -24,25 +25,27 @@ interface ChatMsg {
   property?: PropertyAttachments | null;
   domain?: DomainIntel | null;
   youtube?: YouTubeAttachment | null;
+  ghostTrace?: GhostTraceAttachment | null;
 }
 
 // Server prefixes the assistant stream with a single-line [[AUREON_META]]…[[/AUREON_META]]
-// block encoding attachments (property map, sources, domain, youtube). Extract
+// block encoding attachments (property, domain, youtube, ghostTrace). Extract
 // it, keep it out of the rendered text, and return both parts.
 const META_RE = /^\s*\[\[AUREON_META\]\](.*?)\[\[\/AUREON_META\]\]\s*\n?/s;
-function splitMeta(acc: string): { property: PropertyAttachments | null; domain: DomainIntel | null; youtube: YouTubeAttachment | null; text: string } {
+function splitMeta(acc: string): { property: PropertyAttachments | null; domain: DomainIntel | null; youtube: YouTubeAttachment | null; ghostTrace: GhostTraceAttachment | null; text: string } {
   const m = acc.match(META_RE);
-  if (!m) return { property: null, domain: null, youtube: null, text: acc };
+  if (!m) return { property: null, domain: null, youtube: null, ghostTrace: null, text: acc };
   try {
     const parsed = JSON.parse(m[1]);
     return {
       property: parsed?.property ?? null,
       domain: parsed?.domain ?? null,
       youtube: parsed?.youtube ?? null,
+      ghostTrace: parsed?.ghostTrace ?? null,
       text: acc.slice(m[0].length),
     };
   } catch {
-    return { property: null, domain: null, youtube: null, text: acc.slice(m[0].length) };
+    return { property: null, domain: null, youtube: null, ghostTrace: null, text: acc.slice(m[0].length) };
   }
 }
 
@@ -140,12 +143,12 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
       const reader = resp.body.getReader();
       const dec = new TextDecoder();
       let acc = "";
-      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null, domain: null, youtube: null }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null, domain: null, youtube: null, ghostTrace: null }]);
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         acc += dec.decode(value, { stream: true });
-        const { property, domain, youtube, text } = splitMeta(acc);
+        const { property, domain, youtube, ghostTrace, text } = splitMeta(acc);
         setMessages((prev) => {
           const copy = [...prev];
           copy[copy.length - 1] = {
@@ -154,6 +157,7 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
             property: property && (property.map || property.sources?.length) ? property : null,
             domain: domain && domain.attachment ? domain : null,
             youtube: youtube && youtube.videos?.length ? youtube : null,
+            ghostTrace: ghostTrace && ghostTrace.fired ? ghostTrace : null,
           };
           return copy;
         });
@@ -235,6 +239,9 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
                 )}
                 {m.role === "assistant" && m.youtube?.videos?.length ? (
                   <YouTubeEvidenceCard data={m.youtube} />
+                ) : null}
+                {m.role === "assistant" && m.ghostTrace?.fired ? (
+                  <GhostTraceCard data={m.ghostTrace} />
                 ) : null}
               </div>
             ))}

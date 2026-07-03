@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
-import { ArrowLeft, Zap, Globe, Code, Clock, Layers, Play } from "lucide-react";
+import { ArrowLeft, Zap, Globe, Code, Clock, Layers, Play, Fingerprint } from "lucide-react";
 
 interface Update {
   date: string;
@@ -13,6 +13,14 @@ interface Update {
 }
 
 const UPDATES: Update[] = [
+  {
+    date: "2026-07-03",
+    title: "Ghost Trace — Social Post → Author, Device & Locus Reconstruction Live in Aureon Chat",
+    body:
+      "Aureon Chat now dissects any pasted social-post URL as a native reflex — no button, no mode switch, no separate tool. A new supabase/functions/_shared/ghostTraceIntel.ts bridge fires the moment the last user message contains a URL matching one of eight platforms (X, Instagram, Facebook, TikTok, Threads, Bluesky, Reddit, YouTube Shorts) and slots into the existing Promise.all next to OSINT, property, domain, and YouTube pipelines. For X specifically it uses the reverse-engineered cdn.syndication.twimg.com endpoint with a deterministic id-derived token to pull full authorship (handle, display name, blue-verified flag, avatar), the untruncated post text, precise UTC timestamp, language, edit history (all prior tweet IDs before the current version), and every media URL with original dimensions. The pipeline then autopsies the first photo server-side with a hand-rolled JPEG APP1/TIFF parser that extracts Make, Model, Software, DateTimeOriginal, and GPS lat/lng — no npm dep, allow-listed CDN hosts only (SSRF-hardened). Every claim ships with a numeric confidence score; when EXIF is scrubbed by the platform (the norm on X and Instagram) the pipeline reports that fact rather than pretending — and refuses to hallucinate a location when there is no geo signal. Live-tested end-to-end on https://x.com/shep_newton/status/2072812595040694565: correctly returned author=shep_newton (verified), posted_at=2026-07-02T22:40:08Z, lang=en, 2-edit history, 1494×1052 photo on pbs.twimg.com, EXIF fully scrubbed (0.97 confidence), no locus signal (refused to guess). Renders as a GhostTraceCard beneath the assistant reply — author strip, EXIF drawer, reasoning trail drawer with per-claim confidence pills, and an OSINT ethics footer. Visual geolocation via Gemini multimodal is BYOK-gated exactly like YouTube — metadata + EXIF + CDN forensics for everyone, deep visual inference only on the caller's own Gemini key. No new endpoints, no new tables, no login-walled scraping.",
+    icon: <Fingerprint className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Ghost Trace",
+  },
   {
     date: "2026-07-03",
     title: "YouTube Transcript Intel — BYOK-Gated with Cultural Expert Routing",
