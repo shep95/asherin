@@ -405,7 +405,10 @@ export default function AsherCodeModule() {
           setBugDoctorMsg(composed);
           setBugDoctorOpen(true);
         }
-        if (d.__asherPreviewErrorSilent && autoDebugRef.current && activeProjectRef.current) {
+        // Hard auto-mount failures always trigger the swarm autofix, regardless of the
+        // Auto Debug toggle — the whole point is the user shouldn't have to press "Fix".
+        const isHardMountFailure = /Component Undefined|Missing Mount|Auto-Mount Exception|Render Error|No Entry Component/i.test(String(d.kind || ""));
+        if (d.__asherPreviewErrorSilent && (isHardMountFailure || autoDebugRef.current) && activeProjectRef.current) {
           void zqEnqueue({
             kind: "autofix",
             payload: { projectRef: activeProjectRef.current.id },
@@ -413,6 +416,9 @@ export default function AsherCodeModule() {
             projectRef: activeProjectRef.current.id,
             ownerUserId: user?.id,
           });
+          if (isHardMountFailure) {
+            toast.message("◈ Auto-Debug engaged", { description: `${d.kind} — patching automatically` });
+          }
         }
       }
     }
