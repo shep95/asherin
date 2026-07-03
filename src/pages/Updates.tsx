@@ -426,6 +426,17 @@ const Updates = () => {
     };
   }, []);
 
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+
+  const toggle = (idx: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
   return (
     <div className="landing-perf min-h-screen bg-background text-foreground">
       <Header />
