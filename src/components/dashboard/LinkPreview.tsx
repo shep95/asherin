@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ExternalLink, Globe, Crosshair, Loader2, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import ReactMarkdown from "react-markdown";
 
 interface LinkPreviewProps {
@@ -22,6 +23,39 @@ function extractDomain(url: string): string {
 }
 
 const previewCache = new Map<string, PreviewData | null>();
+
+function formatBlueprintIntel(url: string, payload: any): string {
+  const blueprint = payload?.blueprint || {};
+  const recon = payload?.recon || {};
+  const forensics = payload?.forensics || {};
+  const secrets = payload?.secrets || {};
+  const security = forensics?.security_audit;
+  const email = forensics?.email_infra;
+  const exposed = Array.isArray(forensics?.exposed) ? forensics.exposed : [];
+  const branches = Array.isArray(blueprint?.branches) ? blueprint.branches : [];
+  const findings = Array.isArray(blueprint?.findings) ? blueprint.findings : [];
+  const threatFindings = branches.flatMap((b: any) => Array.isArray(b?.leaves) ? b.leaves.map((leaf: any) => ({ branch: b.label || b.id, ...leaf })) : []);
+  const weaknessRows = [
+    ...(security?.weaknesses || []).map((w: string) => ({ finding: w, severity: /critical/i.test(w) ? "Critical" : /cors|cookie|csp|clickjacking|hsts/i.test(w) ? "High" : "Medium", evidence: "Live header/cookie audit" })),
+    ...(email?.weaknesses || []).map((w: string) => ({ finding: w, severity: /No DMARC|No SPF/i.test(w) ? "High" : "Medium", evidence: "Live DNS email records" })),
+    ...exposed.map((e: any) => ({ finding: `Exposed path: ${e.path}`, severity: e.risk === "critical" ? "Critical" : e.risk === "warn" ? "High" : "Info", evidence: `HTTP ${e.status}, ${e.size || 0} bytes` })),
+    ...(secrets?.secrets || []).map((s: any) => ({ finding: `Client-side secret pattern: ${s.label}`, severity: String(s.severity || "high").replace(/^./, (c) => c.toUpperCase()), evidence: s.source || "JS/inline scan" })),
+    ...findings.slice(0, 8).map((f: any) => ({ finding: f.finding || f.label || "Blueprint finding", severity: f.severity || "Medium", evidence: f.branch || "AI blueprint grounded in live recon" })),
+    ...threatFindings.slice(0, 8).map((f: any) => ({ finding: f.label || f.finding || f.value || "Observed branch signal", severity: f.severity || f.tone || "Info", evidence: f.branch || "Blueprint branch" })),
+  ].slice(0, 18);
+
+  const score = blueprint?.score || {};
+  const headers = recon?.http?.headers || {};
+  const dns = recon?.dns || {};
+  const securityHeaders = ["strict-transport-security", "content-security-policy", "x-frame-options", "x-content-type-options", "referrer-policy", "permissions-policy"];
+  const present = securityHeaders.filter((h) => headers[h]);
+  const missing = securityHeaders.filter((h) => !headers[h]);
+  const rows = weaknessRows.length
+    ? weaknessRows.map((r) => `| ${r.finding} | ${r.severity} | ${r.evidence} | Patch config/header/code path and retest |`).join("\n")
+    : "| No high-confidence surface flaw from current unauthenticated scan | Info | Live scan completed | Run authenticated crawl / DAST for deeper coverage |";
+
+  return `## AUREON LINK INTELLIGENCE REPORT\n\n**Target:** ${url}\n\n**Summary:** ${blueprint?.summary || "Live defensive URL intelligence completed from observable public surface."}\n\n| Signal | Value |\n|---|---|\n| HTTP | ${recon?.http?.status ?? "unreachable"} → ${recon?.http?.finalUrl || "n/a"} |\n| DNS A | ${(dns?.A || []).join(", ") || "none observed"} |\n| Security Score | ${score.security ?? "n/a"}/100 |\n| Performance Score | ${score.performance ?? "n/a"}/100 |\n| JS Bundles Scanned | ${secrets?.bundles_scanned ?? 0} |\n| Subdomains Found | ${(recon?.subdomains || []).length} |\n\n### Security Header Posture\n\n| Present | Missing |\n|---|---|\n| ${present.join(", ") || "none"} | ${missing.join(", ") || "none"} |\n\n### Findings\n\n| Finding | Severity | Evidence | Remediation |\n|---|---:|---|---|\n${rows}\n\n### Raw Live Evidence\n\n\`\`\`json\n${JSON.stringify({ recon, forensics, secrets }, null, 2).slice(0, 12000)}\n\`\`\``;
+}
 
 const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
   const [preview, setPreview] = useState<PreviewData | null>(previewCache.get(url) ?? null);
@@ -84,14 +118,11 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
     setExtractError(null);
 
     try {
-      // Use Elion's deepdive web recon module for URL intelligence
-      const { data, error } = await supabase.functions.invoke("elion-execute", {
+      const byok = getActiveIntelMapByok();
+      const { data, error } = await supabase.functions.invoke("zophiel-blueprint-extract", {
         body: {
-          moduleId: "deepdive-8",
-          moduleName: "Blueprint Extract",
-          category: "deepdive",
-          query: url,
-          ghostMode: false,
+          url,
+          byok,
         },
       });
 
@@ -102,8 +133,8 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
 
       if (!data) throw new Error("No response from intelligence engine");
       if (data.error) throw new Error(data.error);
-      
-      const result = typeof data === "string" ? data : data?.output || data?.result || JSON.stringify(data, null, 2);
+
+      const result = typeof data === "string" ? data : formatBlueprintIntel(url, data);
       if (!result || result === "No output generated.") throw new Error("Intelligence engine returned empty analysis");
       setExtracted(result);
     } catch (err: any) {
@@ -227,7 +258,7 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
         <div className="border-t border-border/10 px-3 py-2 max-h-[400px] overflow-y-auto">
           <div className="text-[10px] font-semibold tracking-widest text-accent/60 uppercase mb-1.5 flex items-center gap-1.5">
             <Crosshair className="h-3 w-3" />
-            ELION INTELLIGENCE REPORT
+              AUREON INTELLIGENCE REPORT
           </div>
           <div className="prose prose-sm prose-invert max-w-none text-[11px] leading-relaxed [&_p]:mb-1.5 [&_p]:last:mb-0 [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[10px] [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:p-2 [&_pre]:text-[10px] [&_ul]:space-y-0.5 [&_li]:text-[11px] [&_h1]:text-xs [&_h2]:text-[11px] [&_h3]:text-[11px] [&_table]:text-[10px] [&_th]:px-2 [&_th]:py-1 [&_td]:px-2 [&_td]:py-1 [&_table]:border-border/20 [&_th]:border-border/20 [&_td]:border-border/20 [&_hr]:border-border/20">
             <ReactMarkdown>{extracted}</ReactMarkdown>

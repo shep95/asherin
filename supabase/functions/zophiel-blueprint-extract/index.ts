@@ -1424,17 +1424,6 @@ serve(async (req) => {
       });
     }
 
-    // Hard block — restricted target
-    try {
-      const _h = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).hostname.replace(/^www\./, "").toLowerCase();
-      if (_h === "arvor.xyz" || _h.endsWith(".arvor.xyz")) {
-        return new Response(JSON.stringify({ error: "This target is restricted and cannot be analyzed by the Link Extractor." }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } catch { /* ignore */ }
-
     const isSubdomainMode = mode === "subdomain";
     const activeSystemPrompt = isSubdomainMode ? SUBDOMAIN_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
@@ -1500,6 +1489,13 @@ serve(async (req) => {
       const body = JSON.stringify({
         systemInstruction: { parts: [{ text: activeSystemPrompt }] },
         contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
+        ],
         generationConfig: {
           responseMimeType: "application/json",
           temperature: 0.3,

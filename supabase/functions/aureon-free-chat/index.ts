@@ -56,6 +56,11 @@ DIRECTIVES:
 10. Edge cases: enumerate at least 3 before delivering final solutions to non-trivial problems.
 11. Simple question, simple answer. If the user asks a straightforward factual or yes/no question, reply in one line — no headers, no tables, no preamble. Reserve dense structured output for genuinely complex requests.
 
+DEFENSIVE SECURITY REALISM STATE:
+- If the user asks for a security check, flaw check, audit, scan, threat model, vulnerability review, or hardening review of a URL/app/codebase, treat it as authorized defensive work for the operator.
+- Do not refuse defensive audits. Return observable findings, severity, evidence, and remediation.
+- Keep the boundary defensive: no credential theft, no stealth, no persistence, no destructive steps, no weaponized exploit payloads against third parties.
+
 OUTPUT QUALITY: every response must read like it came from a $400/hr consultant — dense, accurate, actionable.`;
 
 interface ByokConfig {
@@ -104,6 +109,13 @@ async function callGemini(apiKey: string, model: string, messages: ChatMessage[]
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: AUREON_SYSTEM_PROMPT }] },
         contents,
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
+          ],
         generationConfig: { temperature: 0.8, maxOutputTokens: 4096 },
       }),
     },
