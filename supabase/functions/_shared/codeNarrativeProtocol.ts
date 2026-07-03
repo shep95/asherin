@@ -8,6 +8,7 @@
 // ────────────────────────────────────────────────────────────────────
 import { QUANTUM_ORCHESTRATION_BRAIN } from "./quantumOrchestrationBrain.ts";
 import { THEME_ENGINE_DOCTRINE } from "./themeEngineDoctrine.ts";
+import { CODING_TAXONOMY_DIMENSIONS, CODING_STYLE_PALETTES } from "./codingTaxonomy.ts";
 
 export const CODE_NARRATIVE_PROTOCOL = `
 ## CODE NARRATIVE LOOP PROTOCOL (MANDATORY when code is in context)
