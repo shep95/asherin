@@ -48,6 +48,8 @@ import ScrollIntelligence from "./ScrollIntelligence";
 import StickyQuestionHeader from "./StickyQuestionHeader";
 import SmartSelectionMenu from "./SmartSelectionMenu";
 import TypingIndicator from "./TypingIndicator";
+import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboard/property/PropertyMapCard";
+import { detectAddresses, geocodeAddress } from "@/lib/propertyIntent";
 import { renderLinkPreviews } from "./LinkPreview";
 const MessageDiagramPanel = lazyWithRetry(() => import("./MessageDiagramPanel"));
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
