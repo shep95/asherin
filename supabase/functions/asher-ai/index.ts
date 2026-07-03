@@ -251,11 +251,16 @@ serve(async (req) => {
       }
     } catch (e) { console.error("[asher-ai] jurisdictional intel:", (e as Error).message); }
 
-    // ── YouTube Intel (transcripts + metadata) ───────────────────────────
+    // ── YouTube Intel (transcripts + metadata) — BYOK-gated ─────────────
+    // Only fires when caller supplied their own Gemini key (or is admin
+    // routed through platform Gemini). Native video ingestion runs on
+    // their quota, not ours.
     let youtubeBlock = "";
     try {
+      const userBroughtGemini = !!(headerKey || byokGeminiKey);
+      const isAdminPath = !!adminKey && !userBroughtGemini && apiKey === adminKey;
       const { runYouTubePipeline } = await import("../_shared/youtubeIntel.ts");
-      const yt = await runYouTubePipeline(latestUserText(cleaned));
+      const yt = await runYouTubePipeline(latestUserText(cleaned), { hasByokGemini: userBroughtGemini || isAdminPath });
       if (yt.fired) youtubeBlock = yt.evidence;
     } catch (e) { console.error("[asher-ai] youtube intel:", (e as Error).message); }
 
