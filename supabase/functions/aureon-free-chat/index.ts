@@ -166,7 +166,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { messages, byok, fp } = body as {
+    const { messages, byok, fp, timezone, locale } = body as {
       messages: ChatMessage[];
       byok?: ByokConfig;
       fp?: string;

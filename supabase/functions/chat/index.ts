@@ -1206,7 +1206,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat } = _parsedBody;
+    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat, timezone, locale } = _parsedBody;
     const NUMBERED_BRAIN_ON = numberedFormat !== false; // default ON
 
     // ── BYOK: Use platform-injected key (admin/Venice) or load user's own ──
@@ -1791,7 +1791,10 @@ ${zophielCodingBrainContent}
     //   4. USER-CONTROLLED OVERRIDES LAST (custom Brain, vault, swarm, numbered-off)
     //      → models attend most to nearby/recent tokens; user signals MUST dominate
     //      static brains, otherwise their custom Brain silently gets ignored.
+    const { getTemporalContext: _getTemporalContext } = await import("../_shared/systemContext.ts");
+    const _temporalBlock = _getTemporalContext({ timezone, locale });
     const systemParts = [
+      _temporalBlock,
       AUREON_CORE_IDENTITY,
       SYSTEM_TWO_FORCING_BRAIN,
       CODE_NARRATIVE_PROTOCOL,
