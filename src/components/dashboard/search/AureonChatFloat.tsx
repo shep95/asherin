@@ -25,25 +25,27 @@ interface ChatMsg {
   property?: PropertyAttachments | null;
   domain?: DomainIntel | null;
   youtube?: YouTubeAttachment | null;
+  ghostTrace?: GhostTraceAttachment | null;
 }
 
 // Server prefixes the assistant stream with a single-line [[AUREON_META]]…[[/AUREON_META]]
-// block encoding attachments (property map, sources, domain, youtube). Extract
+// block encoding attachments (property, domain, youtube, ghostTrace). Extract
 // it, keep it out of the rendered text, and return both parts.
 const META_RE = /^\s*\[\[AUREON_META\]\](.*?)\[\[\/AUREON_META\]\]\s*\n?/s;
-function splitMeta(acc: string): { property: PropertyAttachments | null; domain: DomainIntel | null; youtube: YouTubeAttachment | null; text: string } {
+function splitMeta(acc: string): { property: PropertyAttachments | null; domain: DomainIntel | null; youtube: YouTubeAttachment | null; ghostTrace: GhostTraceAttachment | null; text: string } {
   const m = acc.match(META_RE);
-  if (!m) return { property: null, domain: null, youtube: null, text: acc };
+  if (!m) return { property: null, domain: null, youtube: null, ghostTrace: null, text: acc };
   try {
     const parsed = JSON.parse(m[1]);
     return {
       property: parsed?.property ?? null,
       domain: parsed?.domain ?? null,
       youtube: parsed?.youtube ?? null,
+      ghostTrace: parsed?.ghostTrace ?? null,
       text: acc.slice(m[0].length),
     };
   } catch {
-    return { property: null, domain: null, youtube: null, text: acc.slice(m[0].length) };
+    return { property: null, domain: null, youtube: null, ghostTrace: null, text: acc.slice(m[0].length) };
   }
 }
 
