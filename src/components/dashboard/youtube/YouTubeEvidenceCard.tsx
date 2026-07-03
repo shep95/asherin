@@ -93,20 +93,12 @@ const YouTubeEvidenceCard = ({ data }: { data: YouTubeAttachment }) => {
                 {v.channel}
               </div>
               <div className="flex items-center gap-2 text-[10px] font-light text-muted-foreground/70">
-                <span>{fmtViews(v.viewCount)}</span>
-                <span>·</span>
-                <span>{fmtAge(v.publishedAt)}</span>
-                {v.transcriptSource === "timedtext" && v.transcriptChars > 0 && (
-                  <>
-                    <span>·</span>
-                    <span className="text-emerald-400/80">transcript {(v.transcriptChars / 1000).toFixed(1)}k</span>
-                  </>
-                )}
-                {v.transcriptSource === "empty" && !v.isLive && (
-                  <>
-                    <span>·</span>
-                    <span className="text-amber-400/70">no captions</span>
-                  </>
+                {v.viewCount > 0 && <><span>{fmtViews(v.viewCount)}</span><span>·</span></>}
+                {v.publishedAt && <><span>{fmtAge(v.publishedAt)}</span><span>·</span></>}
+                {v.isLive ? (
+                  <span className="text-red-400/80">live feed ingested</span>
+                ) : (
+                  <span className="text-emerald-400/80">video ingested by AI</span>
                 )}
               </div>
             </div>

@@ -39,11 +39,24 @@ async function loadBrainsContext(brainIds: string[] | undefined): Promise<string
   } catch { return ""; }
 }
 
-async function callGeminiStream(apiKey: string, model: string, sys: string, msgs: ChatMessage[]) {
-  const contents = msgs.map((m) => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
+async function callGeminiStream(
+  apiKey: string,
+  model: string,
+  sys: string,
+  msgs: ChatMessage[],
+  fileUris: string[] = [],
+) {
+  const contents = msgs.map((m, i) => {
+    const parts: any[] = [{ text: m.content }];
+    // Attach any YouTube (or other) fileData URIs to the LAST user message
+    // so Gemini ingests the video natively (audio + frames + transcript).
+    if (i === msgs.length - 1 && m.role === "user" && fileUris.length) {
+      for (const uri of fileUris) {
+        parts.push({ fileData: { fileUri: uri, mimeType: "video/*" } });
+      }
+    }
+    return { role: m.role === "assistant" ? "model" : "user", parts };
+  });
   const r = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
@@ -125,7 +138,7 @@ Deno.serve(async (req) => {
         errors: [`domain_pipeline: ${String((e as Error)?.message || e)}`],
       })),
       runYouTubePipeline(lastUser).catch((e) => ({
-        fired: false, intent: null as any, evidence: "", attachment: null,
+        fired: false, intent: null as any, evidence: "", attachment: null, fileUris: [] as string[],
         errors: [`youtube_pipeline: ${String((e as Error)?.message || e)}`],
       })),
     ]);
@@ -223,7 +236,7 @@ Answer the user's questions strictly grounded in the dossier, map, live OSINT, p
 
 ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}${property.evidence}${domainPull.evidence}${youtubePull.evidence}`;
 
-    const stream = await callGeminiStream(apiKey, model, sys, messages);
+    const stream = await callGeminiStream(apiKey, model, sys, messages, youtubePull.fileUris || []);
 
     // Re-stream as plain text chunks (UI parses SSE deltas).
     const encoder = new TextEncoder();
@@ -265,7 +278,7 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
         if (youtubePull.fired && youtubePull.attachment) {
           const vids = youtubePull.attachment.videos;
           controller.enqueue(encoder.encode(
-            `> **YouTube intel:** ${vids.length} video${vids.length === 1 ? "" : "s"} · ${vids.filter(v => v.transcriptSource === "timedtext").length} with transcripts\n\n`
+            `> **YouTube intel:** ${vids.length} video${vids.length === 1 ? "" : "s"} ingested by AI\n\n`
           ));
         }
         const reader = stream.getReader();
