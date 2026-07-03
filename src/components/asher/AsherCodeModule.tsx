@@ -116,6 +116,87 @@ function relTime(iso: string | null | undefined): string {
   return `${Math.floor(d / 604_800_000)}w ago`;
 }
 
+/**
+ * Compact recent-projects switcher shown in the Asher IDE top bar when a
+ * project is open. Lists the last 8 projects by updated_at; clicking one
+ * calls onSelect. Closes on outside click and on Escape.
+ */
+function RecentProjectsMenu({
+  projects, activeId, onSelect,
+}: {
+  projects: AsherCodeProject[];
+  activeId: string;
+  onSelect: (p: AsherCodeProject) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  const recent = projects.slice(0, 8);
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        title="Switch to a recent project"
+        className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground hover:border-foreground/30"
+      >
+        <Clock className="h-3 w-3" /> Recent <ChevronDown className={`h-2.5 w-2.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-[100] w-72 rounded-lg border border-border/30 bg-card/95 backdrop-blur-md shadow-2xl overflow-hidden">
+          <div className="px-3 py-2 border-b border-border/20 text-[9px] font-mono uppercase tracking-wider text-muted-foreground/60">
+            Recent Projects · {recent.length}
+          </div>
+          <ul className="max-h-72 overflow-y-auto py-1">
+            {recent.length === 0 && (
+              <li className="px-3 py-4 text-[10px] text-muted-foreground/60 text-center">No previous projects.</li>
+            )}
+            {recent.map(p => {
+              const active = p.id === activeId;
+              return (
+                <li key={p.id}>
+                  <button
+                    disabled={active}
+                    onClick={() => { setOpen(false); if (!active) onSelect(p); }}
+                    className={`w-full text-left px-3 py-2 flex items-center gap-2 border-l-2 ${
+                      active
+                        ? "border-foreground/50 bg-foreground/5 cursor-default"
+                        : "border-transparent hover:bg-card/60 hover:border-foreground/30"
+                    }`}
+                  >
+                    <FileText className="h-3 w-3 text-foreground/50 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-light truncate">{p.name}</div>
+                      <div className="text-[9px] text-muted-foreground/50 truncate">
+                        {p.language} · updated {relTime(p.updated_at)}
+                      </div>
+                    </div>
+                    {active && <span className="text-[8px] font-mono uppercase tracking-wider text-foreground/60">open</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
 
 
 export default function AsherCodeModule() {
