@@ -15,6 +15,21 @@ import { runGhostTracePipeline } from "../_shared/ghostTraceIntel.ts";
 import { runSpecterWeavePipeline } from "../_shared/specterWeaveIntel.ts";
 import { runAxrlenBridge } from "../_shared/axrlenBridge.ts";
 import { getTemporalContext } from "../_shared/systemContext.ts";
+import { CODE_NARRATIVE_PROTOCOL } from "../_shared/codeNarrativeProtocol.ts";
+import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
+
+// Detect code payload in a user message: fenced ```blocks```, obvious code
+// verbs paired with syntax tokens, or a large syntax-token density that
+// indicates pasted source. Kept conservative to avoid spurious activation.
+function hasCodePayload(text: string): boolean {
+  if (!text) return false;
+  if (/```[\s\S]*?```/.test(text)) return true;
+  const verbs = /\b(review|audit|debug|fix|refactor|scan|analyze|explain|why (is|does)|bug|error|stack ?trace|regression)\b/i;
+  const syntax = /(=>|::|;\s*\n|\bfunction\b|\bclass\b|\bdef\b|\bimport\s+\w|\brequire\(|\bconst\s+\w+\s*=|\blet\s+\w+\s*=|\bawait\s+\w+\()/;
+  if (verbs.test(text) && syntax.test(text)) return true;
+  const tokenHits = (text.match(/[{};=<>()[\]]/g) || []).length;
+  return text.length > 400 && tokenHits / text.length > 0.06;
+}
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
@@ -246,9 +261,15 @@ The user is asking about the social handle @${specterPull.intent!.handle} on ${s
 
 ` : "";
 
+    // Code-audit protocol: only injected when the last user message actually
+    // carries code. Keeps the token budget clean for the 90% of URL-forensics
+    // turns that have nothing to do with source review.
+    const codeFired = hasCodePayload(lastUser);
+    const codeProtocol = codeFired ? `\n${CODE_NARRATIVE_PROTOCOL}\n\n${CODE_SCAN_CHECKLIST}\n` : "";
+
     const sys = `${temporal}
 
-${isolationPreface}You are an Aureon URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
+${isolationPreface}${codeProtocol}You are an Aureon URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
 
 RESPONSE RULE: Simple question, simple answer.
 
