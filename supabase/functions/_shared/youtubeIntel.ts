@@ -86,6 +86,8 @@ export interface YouTubePull {
   intent: YouTubeIntent;
   evidence: string;
   attachment: YouTubeAttachment | null;
+  /** URLs the caller MUST attach as Gemini `fileData` parts for full video comprehension. */
+  fileUris: string[];
   errors: string[];
 }
 
