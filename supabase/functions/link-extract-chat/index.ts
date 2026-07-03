@@ -278,7 +278,7 @@ ${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${J
         if (youtubePull.fired && youtubePull.attachment) {
           const vids = youtubePull.attachment.videos;
           controller.enqueue(encoder.encode(
-            `> **YouTube intel:** ${vids.length} video${vids.length === 1 ? "" : "s"} · ${vids.filter(v => v.transcriptSource === "timedtext").length} with transcripts\n\n`
+            `> **YouTube intel:** ${vids.length} video${vids.length === 1 ? "" : "s"} ingested by AI\n\n`
           ));
         }
         const reader = stream.getReader();
