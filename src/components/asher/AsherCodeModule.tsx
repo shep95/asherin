@@ -5,7 +5,7 @@ import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap, Columns2,
-  History, Stethoscope, GitBranch, Download, ArrowDown, Network, GitCommit,
+  History, Stethoscope, GitBranch, Download, ArrowDown, Network, GitCommit, Clock, ChevronDown,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import AsherGitDrawer from "./AsherGitDrawer";
@@ -103,6 +103,101 @@ async function loadAureonContext(): Promise<{
   } catch (e) { console.error("Asher Code: failed to load Aureon brain context:", e); }
   return { personaSystemPrompt, brainContext };
 }
+
+function relTime(iso: string | null | undefined): string {
+  if (!iso) return "unknown";
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return "unknown";
+  const d = Date.now() - t;
+  if (d < 60_000) return "just now";
+  if (d < 3_600_000) return `${Math.floor(d / 60_000)}m ago`;
+  if (d < 86_400_000) return `${Math.floor(d / 3_600_000)}h ago`;
+  if (d < 604_800_000) return `${Math.floor(d / 86_400_000)}d ago`;
+  return `${Math.floor(d / 604_800_000)}w ago`;
+}
+
+/**
+ * Compact recent-projects switcher shown in the Asher IDE top bar when a
+ * project is open. Lists the last 8 projects by updated_at; clicking one
+ * calls onSelect. Closes on outside click and on Escape.
+ */
+function RecentProjectsMenu({
+  projects, activeId, onSelect,
+}: {
+  projects: AsherCodeProject[];
+  activeId: string;
+  onSelect: (p: AsherCodeProject) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  const recent = projects.slice(0, 8);
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        title="Switch to a recent project"
+        className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground hover:border-foreground/30"
+      >
+        <Clock className="h-3 w-3" /> Recent <ChevronDown className={`h-2.5 w-2.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-[100] w-72 rounded-lg border border-border/30 bg-card/95 backdrop-blur-md shadow-2xl overflow-hidden">
+          <div className="px-3 py-2 border-b border-border/20 text-[9px] font-mono uppercase tracking-wider text-muted-foreground/60">
+            Recent Projects · {recent.length}
+          </div>
+          <ul className="max-h-72 overflow-y-auto py-1">
+            {recent.length === 0 && (
+              <li className="px-3 py-4 text-[10px] text-muted-foreground/60 text-center">No previous projects.</li>
+            )}
+            {recent.map(p => {
+              const active = p.id === activeId;
+              return (
+                <li key={p.id}>
+                  <button
+                    disabled={active}
+                    onClick={() => { setOpen(false); if (!active) onSelect(p); }}
+                    className={`w-full text-left px-3 py-2 flex items-center gap-2 border-l-2 ${
+                      active
+                        ? "border-foreground/50 bg-foreground/5 cursor-default"
+                        : "border-transparent hover:bg-card/60 hover:border-foreground/30"
+                    }`}
+                  >
+                    <FileText className="h-3 w-3 text-foreground/50 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-light truncate">{p.name}</div>
+                      <div className="text-[9px] text-muted-foreground/50 truncate">
+                        {p.language} · updated {relTime(p.updated_at)}
+                      </div>
+                    </div>
+                    {active && <span className="text-[8px] font-mono uppercase tracking-wider text-foreground/60">open</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
+
 
 export default function AsherCodeModule() {
   const { user } = useAuth();
@@ -1955,10 +2050,11 @@ try {
               {projects.map(p => (
                 <div key={p.id} className="rounded-xl border border-border/15 bg-card/20 p-4 backdrop-blur-md hover:border-foreground/30 transition group">
                   <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-foreground/60" /><h3 className="text-sm font-light tracking-wide">{p.name}</h3></div>
-                    <button onClick={() => deleteProject(p)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                    <div className="flex items-center gap-2 min-w-0"><FileText className="h-3.5 w-3.5 text-foreground/60 flex-shrink-0" /><h3 className="text-sm font-light tracking-wide truncate">{p.name}</h3></div>
+                    <button onClick={() => deleteProject(p)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive flex-shrink-0"><Trash2 className="h-3 w-3" /></button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-3">{p.language} · {p.visibility}</p>
+                  <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-1">{p.language} · {p.visibility}</p>
+                  <p className="text-[9px] text-muted-foreground/50 flex items-center gap-1 mb-3"><Clock className="h-2.5 w-2.5" /> updated {relTime(p.updated_at)}</p>
                   <button onClick={() => openProject(p)} className="w-full rounded-md border border-border/20 bg-card/40 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase hover:bg-foreground/10">Open</button>
                 </div>
               ))}
@@ -1979,6 +2075,11 @@ try {
       <div className="relative z-[80] flex items-center justify-between gap-2 border-b border-border/15 bg-card/20 px-2 sm:px-3 py-2 backdrop-blur-md flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
           <button onClick={() => { setActiveProject(null); setFiles([]); }} className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground whitespace-nowrap">← Projects</button>
+          <RecentProjectsMenu
+            projects={projects}
+            activeId={activeProject.id}
+            onSelect={(p) => openProject(p)}
+          />
           <span className="text-muted-foreground/30 hidden sm:inline">/</span>
           {renamingTitle ? (
             <input
