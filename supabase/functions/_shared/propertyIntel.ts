@@ -58,9 +58,14 @@ export interface PropertyPull {
 // US street address: allows both alpha names ("Main St") and numeric ordinal
 // names ("5th Ave", "42nd St", "1st Blvd"), with optional apt/unit + city/state/zip.
 const STREET_TOKEN = "(?:[A-Z][a-zA-Z'.-]+|\\d+(?:st|nd|rd|th))";
+// NOTE: case-INSENSITIVE. Users type addresses in mixed/lowercase far more often
+// than perfectly capitalized ("2004 sw 23rd ct cape coral florida 33991"). The
+// original `g`-only flag silently dropped every lowercase address and no map card
+// ever rendered. Keep street tokens broad enough to accept mixed-case city/state
+// tails (`[a-zA-Z]` in STREET_TOKEN already permits it with the /i flag).
 const US_ADDR_RE = new RegExp(
   `\\b\\d{1,6}[A-Z]?\\s+(?:[NSEW]\\.?\\s+)?(?:${STREET_TOKEN}\\s+){1,4}(?:Street|St|Avenue|Ave|Boulevard|Blvd|Road|Rd|Drive|Dr|Lane|Ln|Court|Ct|Circle|Cir|Place|Pl|Terrace|Ter|Way|Highway|Hwy|Parkway|Pkwy|Square|Sq)\\b\\.?(?:\\s*(?:Apt|Unit|Suite|Ste|#)\\s*\\w+)?(?:,?\\s+[A-Z][a-zA-Z]+(?:\\s+[A-Z][a-zA-Z]+){0,3})?(?:,?\\s+[A-Z]{2})?(?:\\s+\\d{5}(?:-\\d{4})?)?`,
-  "g",
+  "gi",
 );
 
 // UK postcode (SW1A 1AA etc.)

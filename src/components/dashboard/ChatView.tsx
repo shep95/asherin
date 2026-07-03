@@ -48,6 +48,8 @@ import ScrollIntelligence from "./ScrollIntelligence";
 import StickyQuestionHeader from "./StickyQuestionHeader";
 import SmartSelectionMenu from "./SmartSelectionMenu";
 import TypingIndicator from "./TypingIndicator";
+import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboard/property/PropertyMapCard";
+import { detectAddresses, geocodeAddress } from "@/lib/propertyIntent";
 import { renderLinkPreviews } from "./LinkPreview";
 const MessageDiagramPanel = lazyWithRetry(() => import("./MessageDiagramPanel"));
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
@@ -423,6 +425,33 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     };
     tryScroll();
   }, [highlightedMsgId, branchMessages.length]);
+
+  // ── Inline property/address satellite maps ────────────────────────────────
+  // When a user message mentions a real-world address (case-insensitive), we
+  // geocode it against Nominatim on the client and render a PropertyMapCard
+  // beneath that user bubble. Independent of the LLM stream, so the map shows
+  // instantly and never depends on the backend model finishing.
+  const [propertyMaps, setPropertyMaps] = useState<Record<string, PropertyMapCardData>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for (const m of branchMessages) {
+        if (m.role !== "user" || !m.content) continue;
+        if (propertyMaps[m.id]) continue;
+        const [hit] = detectAddresses(m.content);
+        if (!hit) continue;
+        const g = await geocodeAddress(hit.raw);
+        if (cancelled || !g) continue;
+        setPropertyMaps((prev) =>
+          prev[m.id]
+            ? prev
+            : { ...prev, [m.id]: { address: hit.raw, formatted: g.formatted, lat: g.lat, lng: g.lng, category: g.category } },
+        );
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [branchMessages, propertyMaps]);
+
 
   // Listen for cross-component jump signals (e.g. from the sidebar hover preview)
   useEffect(() => {
@@ -881,6 +910,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       </>
                     )}
                   </div>
+                  {/* Inline satellite map for any address in the message */}
+                  {propertyMaps[msg.id] && (
+                    <div className="mt-2 max-w-[560px]">
+                      <PropertyMapCard data={propertyMaps[msg.id]} />
+                    </div>
+                  )}
                   {/* Timestamp */}
                   {msg.timestamp && (
                     <div className={`text-[9px] font-extralight text-muted-foreground/40 mt-1 px-1 ${msg.role === "user" ? "text-right" : "text-left"}`}>

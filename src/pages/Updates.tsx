@@ -14,6 +14,14 @@ interface Update {
 
 const UPDATES: Update[] = [
   {
+    date: "2026-07-03",
+    title: "Inline Satellite Maps — Now Working in Aureon & Asher Dashboard Chat",
+    body:
+      "Two flaws were caught with the Code → Narrative → Flaws → Code loop and shipped in one pass. First, the property-intent regex in _shared/propertyIntel.ts was compiled with the `g` flag only, so any address typed in mixed or lowercase (e.g. \"2004 sw 23rd ct cape coral florida 33991\") silently failed to match and the PropertyMapCard never rendered. The regex is now case-insensitive (`gi`), verified against the exact address the user reported plus the existing capitalized fixtures. Second, the shared property pipeline was wired only into the AureonChatFloat popover — the main Aureon dashboard chat (which streams through /functions/v1/chat and dozens of BYOK provider endpoints) had no attachment channel, so the map never appeared inline. A new client-side src/lib/propertyIntent.ts mirrors the server intent rules, geocodes the detected address against Nominatim in parallel with the LLM stream (with an in-memory cache), and ChatView renders a PropertyMapCard (Esri World Imagery, Leaflet, zoom 18) directly beneath the user bubble the instant the geocode returns — independent of the model finishing. Verified live against the reported address: Nominatim resolves it to 26.6152, -82.0222 (Cape Coral, Lee County, FL 33991) in under 500ms.",
+    icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Aureon",
+  },
+  {
     date: "2026-07-02",
     title: "Zerlal + Zophiel Domain Extraction — Now Inline in Aureon Chat",
     body:
