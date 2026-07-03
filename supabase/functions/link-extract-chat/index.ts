@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
     }
     if (axrlen.kind === "denied" && axrlen.intent.fired) {
       const encoder = new TextEncoder();
-      const meta = { osintSources: osint.sources, property: property.fired ? property.attachments : null, domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null, youtube: youtubePull.fired ? youtubePull.attachment : null, ghostTrace: ghostPull.fired ? ghostPull.attachment : null, axrlen: { fired: true, denied: true, reason: axrlen.access.reason } };
+      const meta = { osintSources: osint.sources, property: property.fired ? property.attachments : null, domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null, youtube: youtubePull.fired ? youtubePull.attachment : null, ghostTrace: ghostPull.fired ? ghostPull.attachment : null, specterWeave: specterPull.fired ? specterPull.attachment : null, axrlen: { fired: true, denied: true, reason: axrlen.access.reason } };
       const out = new ReadableStream({
         start(controller) {
           controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
