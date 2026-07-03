@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
         errors: [`domain_pipeline: ${String((e as Error)?.message || e)}`],
       })),
       runYouTubePipeline(lastUser).catch((e) => ({
-        fired: false, intent: null as any, evidence: "", attachment: null,
+        fired: false, intent: null as any, evidence: "", attachment: null, fileUris: [] as string[],
         errors: [`youtube_pipeline: ${String((e as Error)?.message || e)}`],
       })),
     ]);
