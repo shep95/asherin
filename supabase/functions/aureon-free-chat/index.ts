@@ -220,7 +220,7 @@ serve(async (req) => {
         if (shouldQueryArchive(userText)) {
           const hits = await searchArchive(userText.slice(0, 200), { limit: 8, deepRead: 2 });
           const ctx = formatArchiveContext(userText.slice(0, 80), hits);
-          if (ctx) groundedMessages = [{ role: "system", content: ctx }, ...messages];
+          if (ctx) groundedMessages = [{ role: "system", content: temporalCtx }, { role: "system", content: ctx }, ...messages];
         }
       } catch (e) { console.error("[aureon-free] archive lookup failed", e); }
 
