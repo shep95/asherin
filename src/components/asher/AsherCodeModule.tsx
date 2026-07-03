@@ -5,7 +5,7 @@ import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap, Columns2,
-  History, Stethoscope, GitBranch, Download, ArrowDown, Network, GitCommit,
+  History, Stethoscope, GitBranch, Download, ArrowDown, Network, GitCommit, Clock, ChevronDown,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import AsherGitDrawer from "./AsherGitDrawer";
