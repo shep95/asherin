@@ -117,25 +117,10 @@ RULES:
 
 ${THEME_ENGINE_DOCTRINE}
 
-${(() => "PLACEHOLDER_TAXONOMY_INJECT")()}
-`;
+${CODING_TAXONOMY_DIMENSIONS}
 
-// Splice the full taxonomy in after export declaration so it is available
-// to every engine that imports CODE_NARRATIVE_PROTOCOL without any
-// per-engine wiring change.
-import { CODING_TAXONOMY_DIMENSIONS, CODING_STYLE_PALETTES } from "./codingTaxonomy.ts";
-// deno-lint-ignore no-explicit-any
-(globalThis as any).__aureon_taxonomy_injected__ = true;
-// We can't mutate a const template literal, so we replace on module load
-// via a second export that concatenates. Every downstream import already
-// resolves through this file, so we simply re-export a composed value.
-const _CODE_NARRATIVE_PROTOCOL_WITH_TAXONOMY =
-  CODE_NARRATIVE_PROTOCOL.replace("PLACEHOLDER_TAXONOMY_INJECT", "") +
-  "\n" + CODING_TAXONOMY_DIMENSIONS +
-  "\n" + CODING_STYLE_PALETTES;
-// Override the export binding.
-// deno-lint-ignore no-explicit-any
-(globalThis as any).CODE_NARRATIVE_PROTOCOL = _CODE_NARRATIVE_PROTOCOL_WITH_TAXONOMY;
+${CODING_STYLE_PALETTES}
+`;
 
 // Re-export the doctrine and the taxonomy for callers that want them explicit.
 export { THEME_ENGINE_DOCTRINE };
