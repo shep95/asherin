@@ -170,6 +170,8 @@ serve(async (req) => {
       messages: ChatMessage[];
       byok?: ByokConfig;
       fp?: string;
+      timezone?: string | null;
+      locale?: string | null;
     };
 
     if (!Array.isArray(messages) || messages.length === 0) {
