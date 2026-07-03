@@ -14,6 +14,30 @@ interface Update {
 
 const UPDATES: Update[] = [
   {
+    date: "2026-07-02",
+    title: "Specter Weave — All-Tier Access + Post-URL Auto-Derivation Shipped",
+    body:
+      "The Full-Account Reconstruction Reflex is now live for every authenticated subscription tier — no admin gate, no BYOK requirement for the base eleven lattices. The specterWeaveIntel bridge now auto-derives an author profile from any pasted post URL (not just profile URLs), so dropping a single tweet link into Aureon or Asher chat now triggers the entire eleven-lattice sweep: snowflake-decoded account genesis, 24×7 posting cartography with silence-trough timezone inference, linguistic fingerprint, social-graph inner-ring detection, thirteen-pattern leak harvester with source-post citations, device/client stack tally, media-CDN edge cluster, temporal behavioral drift, and parallel cross-platform handle enumeration across GitHub, Instagram, TikTok, Reddit, Threads, Bluesky, YouTube, and Mastodon. Live-tested end-to-end against https://x.com/shep_newton/status/2072812595040694565 from a non-admin session: profile auto-derived, all lattices returned, SpecterWeaveCard rendered beneath the assistant reply with per-claim confidence pills and OSINT ethics footer. Prompt-injection hardened (bio + leaks fenced as untrusted_content), SSRF-hardened (allow-listed hosts only).",
+    icon: <Eye className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Specter Weave",
+  },
+  {
+    date: "2026-07-02",
+    title: "Ghost Trace — Multi-Platform Post Autopsy Reflex Integrated Into Aureon & Asher",
+    body:
+      "Ghost Trace is now a native chat reflex — no button, no mode switch. Paste any URL from X, Instagram, Facebook, TikTok, Threads, Bluesky, Reddit, or YouTube Shorts and the pipeline autopsies the post server-side in the same turn: authorship (handle, display name, verified flag, avatar), untruncated post text, precise UTC timestamp, language, full edit history, every media URL with original dimensions, and a hand-rolled JPEG APP1/TIFF EXIF parser that pulls Make, Model, Software, DateTimeOriginal, and GPS lat/lng (SSRF-hardened, allow-listed CDN hosts only, zero npm deps). Every claim ships with a numeric confidence; when platforms scrub EXIF the pipeline reports that fact instead of hallucinating a location. Deep visual geolocation via Gemini multimodal is BYOK-gated — metadata + EXIF + CDN forensics run for everyone, deep visual inference only on the caller's own key. Renders as the monochrome GhostTraceCard with author strip, EXIF drawer, and reasoning-trail drawer.",
+    icon: <Fingerprint className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Ghost Trace",
+  },
+  {
+    date: "2026-07-02",
+    title: "YouTube Transcript Intel — BYOK-Gated with Cultural Expert Routing",
+    body:
+      "YouTube video ingestion in Aureon and Asher is now strictly gated to operators who have brought their own Gemini API key — native fileData ingestion (audio + frames + transcript) runs on the caller's Gemini quota. Non-BYOK operators get a plain-English message explaining how to connect a key. Paired with a new Expertise Routing narrative layer: eight culturally-anchored domains (Vedic Astrology → Indian jyotishis, TCM → licensed Chinese practitioners, Ayurveda → BAMS-credentialed vaidyas, Kabbalah → rabbinic teachers, Sufism → tariqa shaykhs, Flamenco → Andalusian cantaores, Capoeira → titled Brazilian mestres, Chinese Martial Arts → lineage sifus) are codified so the pipeline appends culturally-appropriate modifiers to the YouTube query and injects an EXPERTISE ROUTING sentence into the evidence fence — the assistant answers grounded in what those authorities actually teach, with clickable timestamped citations.",
+    icon: <Play className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "YouTube",
+  },
+  {
     date: "2026-07-03",
     title: "Specter Weave — Full-Account Reconstruction Reflex Live in Aureon Chat (All Tiers)",
     body:
