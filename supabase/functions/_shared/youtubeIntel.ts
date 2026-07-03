@@ -263,13 +263,19 @@ async function extractCaptionTracks(videoId: string): Promise<WatchCaptionTrack[
   );
   if (!r.ok) return [];
   const html = await r.text();
-  const m = /ytInitialPlayerResponse\s*=\s*(\{[\s\S]*?\})\s*;\s*(?:var|<\/script>)/.exec(html);
+  // The watch page inlines a huge ytInitialPlayerResponse JSON blob. Naively
+  // balancing its braces is fragile; extract the captionTracks array with a
+  // targeted regex instead. The array contains no un-escaped brackets so
+  // this is safe.
+  const m = /"captionTracks"\s*:\s*(\[.*?\])\s*,\s*"audioTracks"/.exec(html)
+         || /"captionTracks"\s*:\s*(\[.*?\])/s.exec(html);
   if (!m) return [];
-  let parsed: any;
-  try { parsed = JSON.parse(m[1]); } catch { return []; }
-  const tracks = parsed?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-  if (!Array.isArray(tracks)) return [];
-  return tracks
+  let arr: any[];
+  try {
+    // JSON in the page uses \u0026 for '&' — JSON.parse handles it natively.
+    arr = JSON.parse(m[1]);
+  } catch { return []; }
+  return arr
     .filter((t: any) => typeof t?.baseUrl === "string")
     .map((t: any) => ({
       baseUrl: String(t.baseUrl),
