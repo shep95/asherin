@@ -390,7 +390,7 @@ const fmt = (iso: string) =>
     year: "numeric",
     month: "long",
     day: "numeric",
--    timeZone: "UTC",
+    timeZone: "UTC",
   });
 
 const TRUNCATE_AT = 500;
