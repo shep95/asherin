@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
     // Per-source timeout is 4.5s and failures are silently skipped, so this
     // never blocks the stream for long or breaks URL-only questions.
     const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content || "";
-    const [osint, property, domainPull, youtubePull] = await Promise.all([
+    const [osint, property, domainPull, youtubePull, ghostPull] = await Promise.all([
       runOsintPipeline(lastUser).catch(() => ({ sources: [] as string[], context: "", errors: [] as string[] })),
       runPropertyPipeline(lastUser).catch(() => ({
         fired: false, addresses: [] as string[], evidence: "",
@@ -141,6 +141,10 @@ Deno.serve(async (req) => {
       runYouTubePipeline(lastUser, { hasByokGemini: resolved.mode === "byok" && resolved.byok?.provider === "google" || resolved.mode === "admin" }).catch((e) => ({
         fired: false, intent: null as any, evidence: "", attachment: null, fileUris: [] as string[],
         errors: [`youtube_pipeline: ${String((e as Error)?.message || e)}`],
+      })),
+      runGhostTracePipeline(lastUser, { hasByokGemini: resolved.mode === "byok" && resolved.byok?.provider === "google" || resolved.mode === "admin" }).catch((e) => ({
+        fired: false, intent: null as any, evidence: "", attachment: null,
+        errors: [`ghost_trace_pipeline: ${String((e as Error)?.message || e)}`],
       })),
     ]);
     const temporal = getTemporalContext({ timezone, locale });
