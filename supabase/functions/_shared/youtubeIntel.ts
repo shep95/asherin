@@ -239,23 +239,43 @@ async function fetchVideoMeta(key: string, ids: string[]): Promise<YouTubeVideoM
   return out;
 }
 
-// ─── Transcript (timedtext) ────────────────────────────────────────────────
+// ─── Transcript ────────────────────────────────────────────────────────────
+// YouTube deprecated the anonymous /timedtext?type=list endpoint in 2024.
+// The reliable modern path is: (1) fetch the watch page HTML with a real
+// browser UA, (2) extract ytInitialPlayerResponse (~250KB JSON) from an
+// inline <script>, (3) read captions.playerCaptionsTracklistRenderer
+// .captionTracks[].baseUrl, (4) fetch that URL for the XML timedtext.
+// This works keyless and requires no cookies.
 
-interface CaptionTrack { lang: string; kind: string; }
+interface WatchCaptionTrack { baseUrl: string; lang: string; kind?: string; }
 
-async function listCaptionTracks(videoId: string): Promise<CaptionTrack[]> {
-  const url = `https://video.google.com/timedtext?type=list&v=${videoId}`;
+async function extractCaptionTracks(videoId: string): Promise<WatchCaptionTrack[]> {
+  const url = `https://www.youtube.com/watch?v=${videoId}&hl=en`;
   const r = await withTimeout(
-    fetch(url, { headers: { "User-Agent": "AureonAI-YouTubeIntel/1.0" } }),
-    4500, "yt_track_list",
+    fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+    }),
+    7000, "yt_watch_html",
   );
   if (!r.ok) return [];
-  const xml = await r.text();
-  const tracks: CaptionTrack[] = [];
-  const re = /<track[^>]*lang_code="([^"]+)"[^>]*(?:kind="([^"]*)")?[^>]*\/>/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(xml)) !== null) tracks.push({ lang: m[1], kind: m[2] || "" });
-  return tracks;
+  const html = await r.text();
+  const m = /ytInitialPlayerResponse\s*=\s*(\{[\s\S]*?\})\s*;\s*(?:var|<\/script>)/.exec(html);
+  if (!m) return [];
+  let parsed: any;
+  try { parsed = JSON.parse(m[1]); } catch { return []; }
+  const tracks = parsed?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+  if (!Array.isArray(tracks)) return [];
+  return tracks
+    .filter((t: any) => typeof t?.baseUrl === "string")
+    .map((t: any) => ({
+      baseUrl: String(t.baseUrl),
+      lang: String(t?.languageCode || ""),
+      kind: t?.kind ? String(t.kind) : undefined,
+    }));
 }
 
 function decodeXmlEntities(s: string): string {
@@ -267,22 +287,19 @@ function decodeXmlEntities(s: string): string {
 }
 
 async function fetchTimedtext(videoId: string): Promise<YouTubeTranscriptSegment[]> {
-  // Try user-uploaded English first, then auto-generated English, then any track.
-  const tracks = await listCaptionTracks(videoId).catch(() => [] as CaptionTrack[]);
-  const attempts: Array<{ lang: string; asr: boolean }> = [];
-  const en = tracks.find((t) => t.lang.toLowerCase().startsWith("en") && !t.kind);
-  if (en) attempts.push({ lang: en.lang, asr: false });
-  attempts.push({ lang: "en", asr: false }, { lang: "en", asr: true });
-  const first = tracks[0];
-  if (first) attempts.push({ lang: first.lang, asr: first.kind === "asr" });
-
-  for (const a of attempts) {
-    const params = new URLSearchParams({ v: videoId, lang: a.lang });
-    if (a.asr) params.set("kind", "asr");
-    const url = `https://video.google.com/timedtext?${params.toString()}`;
+  const tracks = await extractCaptionTracks(videoId).catch(() => [] as WatchCaptionTrack[]);
+  if (!tracks.length) return [];
+  // Priority: user-uploaded EN → any EN → any user-uploaded → first available.
+  const enManual = tracks.find((t) => t.lang.toLowerCase().startsWith("en") && !t.kind);
+  const enAny = tracks.find((t) => t.lang.toLowerCase().startsWith("en"));
+  const anyManual = tracks.find((t) => !t.kind);
+  const ordered = [enManual, enAny, anyManual, tracks[0]].filter(
+    (t, i, a): t is WatchCaptionTrack => !!t && a.indexOf(t) === i,
+  );
+  for (const t of ordered) {
     try {
       const r = await withTimeout(
-        fetch(url, { headers: { "User-Agent": "AureonAI-YouTubeIntel/1.0" } }),
+        fetch(t.baseUrl, { headers: { "User-Agent": "Mozilla/5.0 AureonAI-YouTubeIntel/1.0" } }),
         5000, "yt_timedtext",
       );
       if (!r.ok) continue;
@@ -297,10 +314,11 @@ async function fetchTimedtext(videoId: string): Promise<YouTubeTranscriptSegment
         segs.push({ offset: Math.floor(parseFloat(m[1])), text });
       }
       if (segs.length) return segs;
-    } catch { /* try next */ }
+    } catch { /* try next track */ }
   }
   return [];
 }
+
 
 function condenseTranscript(segs: YouTubeTranscriptSegment[], maxChars: number): { text: string; truncated: boolean } {
   if (!segs.length) return { text: "", truncated: false };
