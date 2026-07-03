@@ -181,6 +181,32 @@ async function searchVideos(key: string, query: string, max: number): Promise<st
   return ids;
 }
 
+// oEmbed — zero quota, no key. Returns title, author_name, thumbnail. Used
+// for the keyless path when the operator only pasted a video URL.
+async function fetchOEmbedMeta(ids: string[]): Promise<YouTubeVideoMeta[]> {
+  if (!ids.length) return [];
+  const out = await Promise.all(ids.map(async (id): Promise<YouTubeVideoMeta | null> => {
+    try {
+      const r = await withTimeout(
+        fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`, {
+          headers: { "User-Agent": "AureonAI-YouTubeIntel/1.0" },
+        }),
+        4500, "yt_oembed",
+      );
+      if (!r.ok) return null;
+      const j = await r.json();
+      return {
+        videoId: id, title: j?.title || "(untitled)", channel: j?.author_name || "",
+        channelId: "", publishedAt: "", durationIso: "", durationSeconds: 0,
+        viewCount: 0, likeCount: 0,
+        thumbnail: j?.thumbnail_url || `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
+        url: `https://www.youtube.com/watch?v=${id}`, isLive: false,
+      };
+    } catch { return null; }
+  }));
+  return out.filter((v): v is YouTubeVideoMeta => v !== null);
+}
+
 async function fetchVideoMeta(key: string, ids: string[]): Promise<YouTubeVideoMeta[]> {
   if (!ids.length) return [];
   const url = `${YT_API}/videos?part=snippet,contentDetails,statistics,liveStreamingDetails&id=${ids.join(",")}&key=${key}`;
