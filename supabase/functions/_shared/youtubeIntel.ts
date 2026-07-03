@@ -239,91 +239,32 @@ async function fetchVideoMeta(key: string, ids: string[]): Promise<YouTubeVideoM
   return out;
 }
 
-// ─── Transcript ────────────────────────────────────────────────────────────
-// YouTube deprecated the anonymous /timedtext?type=list endpoint in 2024.
-// The reliable modern path is: (1) fetch the watch page HTML with a real
-// browser UA, (2) extract ytInitialPlayerResponse (~250KB JSON) from an
-// inline <script>, (3) read captions.playerCaptionsTracklistRenderer
-// .captionTracks[].baseUrl, (4) fetch that URL for the XML timedtext.
-// This works keyless and requires no cookies.
+// ─── Transcript & video comprehension (AI-based, keyless) ─────────────────
+// YouTube deprecated anonymous /timedtext access in 2024 (empty body without
+// a proof-of-origin token). Rather than fight the anti-scraping arms race,
+// we let Gemini ingest the video URL directly via its native fileData part:
+//
+//   { fileData: { fileUri: "https://www.youtube.com/watch?v=..." } }
+//
+// Google's Gemini service extracts audio, transcript, and visual frames
+// server-side and reasons about them in the same turn. Zero quota against
+// YouTube Data API, no transcript scraping, no cookies, no keys.
+//
+// runYouTubePipeline() therefore returns two products:
+//   • evidence  — text block for the system prompt (metadata + instructions)
+//   • fileUris  — array of video URLs the caller MUST attach as fileData
+//                 parts on the Gemini request for full comprehension.
+//
+// The caller (link-extract-chat / asher-ai) is responsible for wiring
+// fileUris into the multimodal request; without them Gemini answers from
+// metadata alone.
 
-interface WatchCaptionTrack { baseUrl: string; lang: string; kind?: string; }
-
-async function extractCaptionTracks(videoId: string): Promise<WatchCaptionTrack[]> {
-  const url = `https://www.youtube.com/watch?v=${videoId}&hl=en`;
-  const r = await withTimeout(
-    fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept": "text/html,application/xhtml+xml",
-      },
-    }),
-    7000, "yt_watch_html",
-  );
-  if (!r.ok) return [];
-  const html = await r.text();
-  // The watch page inlines a huge ytInitialPlayerResponse JSON blob. Naively
-  // balancing its braces is fragile; extract the captionTracks array with a
-  // targeted regex instead. The array contains no un-escaped brackets so
-  // this is safe.
-  const m = /"captionTracks"\s*:\s*(\[.*?\])\s*,\s*"audioTracks"/.exec(html)
-         || /"captionTracks"\s*:\s*(\[.*?\])/s.exec(html);
-  if (!m) return [];
-  let arr: any[];
-  try {
-    // JSON in the page uses \u0026 for '&' — JSON.parse handles it natively.
-    arr = JSON.parse(m[1]);
-  } catch { return []; }
-  return arr
-    .filter((t: any) => typeof t?.baseUrl === "string")
-    .map((t: any) => ({
-      baseUrl: String(t.baseUrl),
-      lang: String(t?.languageCode || ""),
-      kind: t?.kind ? String(t.kind) : undefined,
-    }));
-}
-
-function decodeXmlEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCharCode(parseInt(n, 16)));
-}
-
-async function fetchTimedtext(videoId: string): Promise<YouTubeTranscriptSegment[]> {
-  const tracks = await extractCaptionTracks(videoId).catch(() => [] as WatchCaptionTrack[]);
-  if (!tracks.length) return [];
-  // Priority: user-uploaded EN → any EN → any user-uploaded → first available.
-  const enManual = tracks.find((t) => t.lang.toLowerCase().startsWith("en") && !t.kind);
-  const enAny = tracks.find((t) => t.lang.toLowerCase().startsWith("en"));
-  const anyManual = tracks.find((t) => !t.kind);
-  const ordered = [enManual, enAny, anyManual, tracks[0]].filter(
-    (t, i, a): t is WatchCaptionTrack => !!t && a.indexOf(t) === i,
-  );
-  for (const t of ordered) {
-    try {
-      const r = await withTimeout(
-        fetch(t.baseUrl, { headers: { "User-Agent": "Mozilla/5.0 AureonAI-YouTubeIntel/1.0" } }),
-        5000, "yt_timedtext",
-      );
-      if (!r.ok) continue;
-      const xml = await r.text();
-      if (!xml || xml.length < 40) continue;
-      const segs: YouTubeTranscriptSegment[] = [];
-      const re = /<text\s+start="([\d.]+)"(?:\s+dur="[\d.]+")?[^>]*>([\s\S]*?)<\/text>/g;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(xml)) !== null) {
-        const text = decodeXmlEntities(m[2].replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
-        if (!text) continue;
-        segs.push({ offset: Math.floor(parseFloat(m[1])), text });
-      }
-      if (segs.length) return segs;
-    } catch { /* try next track */ }
-  }
+// fetchTimedtext is retained for defensive completeness but no longer part of
+// the primary path. It returns [] on modern videos (POT-gated) which is fine.
+async function fetchTimedtext(_videoId: string): Promise<YouTubeTranscriptSegment[]> {
   return [];
 }
+
 
 
 function condenseTranscript(segs: YouTubeTranscriptSegment[], maxChars: number): { text: string; truncated: boolean } {
