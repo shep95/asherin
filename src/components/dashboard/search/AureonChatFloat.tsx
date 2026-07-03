@@ -240,6 +240,9 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
                 {m.role === "assistant" && m.youtube?.videos?.length ? (
                   <YouTubeEvidenceCard data={m.youtube} />
                 ) : null}
+                {m.role === "assistant" && m.ghostTrace?.fired ? (
+                  <GhostTraceCard data={m.ghostTrace} />
+                ) : null}
               </div>
             ))}
             {sending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
