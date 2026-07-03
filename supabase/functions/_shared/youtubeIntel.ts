@@ -355,22 +355,25 @@ export async function runYouTubePipeline(userText: string): Promise<YouTubePull>
   }
 
   const key = apiKey();
-  if (!key) {
-    return {
-      fired: true, intent,
-      evidence:
-        "\n\n<youtube_evidence>\nYouTube intent detected but no YOUTUBE_API_KEY / GEMINI_API_KEY is configured on the server, so metadata lookup is unavailable. Tell the user briefly.\n</youtube_evidence>\n",
-      attachment: null,
-      errors: ["missing_api_key"],
-    };
-  }
 
+  // ── Resolve video IDs ──────────────────────────────────────────────────
   let videoIds: string[] = [];
   try {
     if (intent.mode === "video" && intent.videoId) {
       videoIds = [intent.videoId];
     } else if (intent.mode === "search" && intent.query) {
-      videoIds = await searchVideos(key, intent.query, intent.maxResults);
+      if (key) {
+        videoIds = await searchVideos(key, intent.query, intent.maxResults);
+      } else {
+        // Keyless search fallback — LLM answers from training + we point the
+        // operator to launch a search themselves. Zero external calls.
+        return {
+          fired: true, intent,
+          evidence:
+            `\n\n<youtube_evidence>\nYouTube topical search intent detected ("${intent.query}") but topical search requires a YouTube Data API key (YOUTUBE_API_KEY). Tell the operator you can pull metadata + transcripts for any specific YouTube URL they paste, and offer a direct search link: https://www.youtube.com/results?search_query=${encodeURIComponent(intent.query)}\n</youtube_evidence>\n`,
+          attachment: null, errors: ["search_requires_key"],
+        };
+      }
     }
   } catch (e) {
     errors.push(`yt_intent_lookup: ${String((e as Error)?.message || e)}`);
@@ -383,16 +386,26 @@ export async function runYouTubePipeline(userText: string): Promise<YouTubePull>
     };
   }
 
+  // ── Fetch metadata (prefer Data API v3 when key present; else oEmbed) ──
   let metas: YouTubeVideoMeta[] = [];
-  try { metas = await fetchVideoMeta(key, videoIds); }
-  catch (e) { errors.push(`yt_meta: ${String((e as Error)?.message || e)}`); }
-  if (!metas.length) {
-    return {
-      fired: true, intent,
-      evidence: `\n\n<youtube_evidence>\nYouTube API returned no metadata for the resolved IDs. Tell the user briefly.\n</youtube_evidence>\n`,
-      attachment: null, errors,
-    };
+  if (key) {
+    try { metas = await fetchVideoMeta(key, videoIds); }
+    catch (e) { errors.push(`yt_meta_api: ${String((e as Error)?.message || e)}`); }
   }
+  if (!metas.length) {
+    try { metas = await fetchOEmbedMeta(videoIds); }
+    catch (e) { errors.push(`yt_meta_oembed: ${String((e as Error)?.message || e)}`); }
+  }
+  if (!metas.length) {
+    // Last-ditch: synthesize minimal metadata so the transcript still flows.
+    metas = videoIds.map((id) => ({
+      videoId: id, title: `YouTube video ${id}`, channel: "", channelId: "",
+      publishedAt: "", durationIso: "", durationSeconds: 0, viewCount: 0, likeCount: 0,
+      thumbnail: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
+      url: `https://www.youtube.com/watch?v=${id}`, isLive: false,
+    }));
+  }
+
 
   // Fetch transcripts in parallel, skipping live streams.
   const evidences: YouTubeEvidence[] = await Promise.all(metas.map(async (v): Promise<YouTubeEvidence> => {
