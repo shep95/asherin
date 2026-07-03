@@ -225,9 +225,39 @@ function snowflakeToDate(id: string): Date | null {
   } catch { return null; }
 }
 
+// Deterministic token for cdn.syndication.twimg.com/tweet-result (matches
+// what x.com's own embed.js sends — reverse engineered).
+function twitterSyndicationToken(id: string): string {
+  const n = Number(id) / 1e15 * Math.PI;
+  return n.toString().replace(/0+/g, "").replace(".", "");
+}
+
+// Extract the first status ID present in the input text (any x/twitter URL).
+function extractStatusId(text: string): string | null {
+  const m = /https?:\/\/(?:(?:www|mobile|m)\.)?(?:x|twitter)\.com\/[A-Za-z0-9_]{1,15}\/status(?:es)?\/(\d{5,25})/i.exec(text || "");
+  return m ? m[1] : null;
+}
+
+// Fetch a single tweet payload — used to enrich the author card when the
+// profile-timeline endpoint returns empty (private replies-only accounts,
+// low-post accounts, transient outages).
+async function fetchXTweetById(id: string): Promise<any | null> {
+  const token = twitterSyndicationToken(id);
+  const url = `https://cdn.syndication.twimg.com/tweet-result?id=${id}&token=${token}`;
+  try {
+    const r = await withTimeout(fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; AureonSpecterWeave/1.0; +https://aureonai.app)" },
+    }), 5000, "x_tweet_result");
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
 // ─── X: profile timeline via syndication (public, no auth) ────────────────
 // Endpoint: https://syndication.twitter.com/srv/timeline-profile/screen-name/{h}
-// Returns HTML with embedded __NEXT_DATA__ JSON containing the last ~20 tweets.
+// Returns HTML with embedded __NEXT_DATA__ JSON. Some accounts (private
+// replies, extremely low-post) return empty entries — the pipeline gracefully
+// falls back to single-tweet enrichment via fetchXTweetById.
 async function fetchXProfileTimeline(handle: string): Promise<any | null> {
   const url = `https://syndication.twitter.com/srv/timeline-profile/screen-name/${encodeURIComponent(handle)}?showHeader=true&hideBorder=true`;
   try {
