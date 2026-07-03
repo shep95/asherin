@@ -910,6 +910,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       </>
                     )}
                   </div>
+                  {/* Inline satellite map for any address in the message */}
+                  {propertyMaps[msg.id] && (
+                    <div className="mt-2 max-w-[560px]">
+                      <PropertyMapCard data={propertyMaps[msg.id]} />
+                    </div>
+                  )}
                   {/* Timestamp */}
                   {msg.timestamp && (
                     <div className={`text-[9px] font-extralight text-muted-foreground/40 mt-1 px-1 ${msg.role === "user" ? "text-right" : "text-left"}`}>
