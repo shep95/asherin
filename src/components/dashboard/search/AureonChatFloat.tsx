@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboard/property/PropertyMapCard";
 import PropertySourcesStrip, { type PropertySourceCard } from "@/components/dashboard/property/PropertySourcesStrip";
 import DomainIntelCard, { type DomainIntel } from "@/components/dashboard/domain/DomainIntelCard";
+import YouTubeEvidenceCard, { type YouTubeAttachment } from "@/components/dashboard/youtube/YouTubeEvidenceCard";
 
 interface Props {
   targetUrl: string;
@@ -22,24 +23,26 @@ interface ChatMsg {
   content: string;
   property?: PropertyAttachments | null;
   domain?: DomainIntel | null;
+  youtube?: YouTubeAttachment | null;
 }
 
 // Server prefixes the assistant stream with a single-line [[AUREON_META]]…[[/AUREON_META]]
-// block encoding attachments (property map, sources). Extract it, keep it out of
-// the rendered text, and return both parts.
+// block encoding attachments (property map, sources, domain, youtube). Extract
+// it, keep it out of the rendered text, and return both parts.
 const META_RE = /^\s*\[\[AUREON_META\]\](.*?)\[\[\/AUREON_META\]\]\s*\n?/s;
-function splitMeta(acc: string): { property: PropertyAttachments | null; domain: DomainIntel | null; text: string } {
+function splitMeta(acc: string): { property: PropertyAttachments | null; domain: DomainIntel | null; youtube: YouTubeAttachment | null; text: string } {
   const m = acc.match(META_RE);
-  if (!m) return { property: null, domain: null, text: acc };
+  if (!m) return { property: null, domain: null, youtube: null, text: acc };
   try {
     const parsed = JSON.parse(m[1]);
     return {
       property: parsed?.property ?? null,
       domain: parsed?.domain ?? null,
+      youtube: parsed?.youtube ?? null,
       text: acc.slice(m[0].length),
     };
   } catch {
-    return { property: null, domain: null, text: acc.slice(m[0].length) };
+    return { property: null, domain: null, youtube: null, text: acc.slice(m[0].length) };
   }
 }
 
@@ -126,6 +129,8 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
           intelMap,
           brainIds: [],
           byok,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          locale: navigator.language || "en-US",
         }),
       });
       if (!resp.ok || !resp.body) {
@@ -135,12 +140,12 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
       const reader = resp.body.getReader();
       const dec = new TextDecoder();
       let acc = "";
-      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null, domain: null }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null, domain: null, youtube: null }]);
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         acc += dec.decode(value, { stream: true });
-        const { property, domain, text } = splitMeta(acc);
+        const { property, domain, youtube, text } = splitMeta(acc);
         setMessages((prev) => {
           const copy = [...prev];
           copy[copy.length - 1] = {
@@ -148,6 +153,7 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
             content: text,
             property: property && (property.map || property.sources?.length) ? property : null,
             domain: domain && domain.attachment ? domain : null,
+            youtube: youtube && youtube.videos?.length ? youtube : null,
           };
           return copy;
         });
@@ -227,6 +233,9 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
                 {m.role === "assistant" && m.domain?.attachment && (
                   <DomainIntelCard data={m.domain} />
                 )}
+                {m.role === "assistant" && m.youtube?.videos?.length ? (
+                  <YouTubeEvidenceCard data={m.youtube} />
+                ) : null}
               </div>
             ))}
             {sending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}

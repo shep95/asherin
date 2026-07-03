@@ -166,10 +166,12 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { messages, byok, fp } = body as {
+    const { messages, byok, fp, timezone, locale } = body as {
       messages: ChatMessage[];
       byok?: ByokConfig;
       fp?: string;
+      timezone?: string | null;
+      locale?: string | null;
     };
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -206,8 +208,10 @@ serve(async (req) => {
     }
 
     try {
-      // ── Internet Archive (archive.org) live grounding ──
-      let groundedMessages = messages;
+      // ── Temporal awareness — always first system message ──
+      const { getTemporalContext } = await import("../_shared/systemContext.ts");
+      const temporalCtx = getTemporalContext({ timezone, locale });
+      let groundedMessages: ChatMessage[] = [{ role: "system", content: temporalCtx }, ...messages];
       try {
         const lastUser = [...messages].reverse().find((m) => m.role === "user");
         const userText = lastUser?.content || "";
@@ -216,7 +220,7 @@ serve(async (req) => {
         if (shouldQueryArchive(userText)) {
           const hits = await searchArchive(userText.slice(0, 200), { limit: 8, deepRead: 2 });
           const ctx = formatArchiveContext(userText.slice(0, 80), hits);
-          if (ctx) groundedMessages = [{ role: "system", content: ctx }, ...messages];
+          if (ctx) groundedMessages = [{ role: "system", content: temporalCtx }, { role: "system", content: ctx }, ...messages];
         }
       } catch (e) { console.error("[aureon-free] archive lookup failed", e); }
 
