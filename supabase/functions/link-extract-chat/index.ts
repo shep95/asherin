@@ -10,7 +10,9 @@ import { isValidByok, type ZophielByokConfig } from "../_shared/zophielByokRoute
 import { runOsintPipeline } from "../_shared/osintStack.ts";
 import { runPropertyPipeline } from "../_shared/propertyIntel.ts";
 import { runDomainPipeline } from "../_shared/domainIntel.ts";
+import { runYouTubePipeline } from "../_shared/youtubeIntel.ts";
 import { runAxrlenBridge } from "../_shared/axrlenBridge.ts";
+import { getTemporalContext } from "../_shared/systemContext.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
@@ -66,12 +68,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, dossier, intelMap, brainIds, byok = null } = await req.json() as {
+    const { messages, dossier, intelMap, brainIds, byok = null, timezone = null, locale = null } = await req.json() as {
       messages: ChatMessage[];
       dossier?: unknown;
       intelMap?: unknown;
       brainIds?: string[];
       byok?: ZophielByokConfig | null;
+      timezone?: string | null;
+      locale?: string | null;
     };
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -110,7 +114,7 @@ Deno.serve(async (req) => {
     // Per-source timeout is 4.5s and failures are silently skipped, so this
     // never blocks the stream for long or breaks URL-only questions.
     const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content || "";
-    const [osint, property, domainPull] = await Promise.all([
+    const [osint, property, domainPull, youtubePull] = await Promise.all([
       runOsintPipeline(lastUser).catch(() => ({ sources: [] as string[], context: "", errors: [] as string[] })),
       runPropertyPipeline(lastUser).catch(() => ({
         fired: false, addresses: [] as string[], evidence: "",
@@ -120,7 +124,12 @@ Deno.serve(async (req) => {
         fired: false, intent: null, evidence: "", attachment: null,
         errors: [`domain_pipeline: ${String((e as Error)?.message || e)}`],
       })),
+      runYouTubePipeline(lastUser).catch((e) => ({
+        fired: false, intent: null as any, evidence: "", attachment: null,
+        errors: [`youtube_pipeline: ${String((e as Error)?.message || e)}`],
+      })),
     ]);
+    const temporal = getTemporalContext({ timezone, locale });
 
     // ── AXRLEN INLINE FORECASTING ────────────────────────────────────────────
     // Aureon chat exposes every integrated feature to ALL subscription tiers,
