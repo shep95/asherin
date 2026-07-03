@@ -7,6 +7,7 @@ import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboar
 import PropertySourcesStrip, { type PropertySourceCard } from "@/components/dashboard/property/PropertySourcesStrip";
 import DomainIntelCard, { type DomainIntel } from "@/components/dashboard/domain/DomainIntelCard";
 import YouTubeEvidenceCard, { type YouTubeAttachment } from "@/components/dashboard/youtube/YouTubeEvidenceCard";
+import GhostTraceCard, { type GhostTraceAttachment } from "@/components/dashboard/ghostTrace/GhostTraceCard";
 
 interface Props {
   targetUrl: string;
