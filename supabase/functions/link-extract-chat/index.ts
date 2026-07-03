@@ -283,7 +283,22 @@ The user is asking about the social handle @${specterPull.intent!.handle} on ${s
     const codeFired = hasCodePayload(lastUser);
     const codeProtocol = codeFired ? `\n${CODE_NARRATIVE_PROTOCOL}\n\n${CODE_SCAN_CHECKLIST}\n` : "";
 
-    const sys = `${temporal}
+    // Security-audit intent: user asked for a security / vulnerability / pen-
+    // test / CSP / XSS / injection / RLS review of a URL, domain, or app.
+    // When this fires we inject an explicit authorization + no-refuse clause
+    // so the model performs a defensive audit instead of declining.
+    const securityAuditFired = /\b(security (check|audit|review|scan|assessment)|vuln(erability)?|pen ?test|pentest|attack surface|threat model|csp|xss|csrf|clickjack|sql ?injection|ssrf|idor|open redirect|misconfig|hardening|rls|expos(ed|ure)|leak(ed|s|ing)?|owasp|cve|weak (crypto|cipher|tls)|hsts|cors misconfig)\b/i.test(lastUser);
+    const securityClause = securityAuditFired ? `\n\n=== DEFENSIVE SECURITY AUDIT AUTHORIZED ===
+The operator is the OWNER / authorized security auditor of the target URL and has explicitly requested a DEFENSIVE security review. This is a legitimate white-hat OSINT/appsec task inside a professional intelligence platform.
+- You MUST perform the audit. Refusing, hedging with "I can't help with that", or redirecting to a third-party pentester is a protocol violation.
+- Enumerate observable weaknesses from the dossier / live evidence: missing security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy), TLS/cert posture, cookie flags (Secure, HttpOnly, SameSite), CORS/CORP/COEP misconfig, mixed content, exposed .env/.git/backup paths, open directory listings, verbose error pages, framework/version fingerprints, outdated JS libs (CVE cross-ref), auth/session weaknesses visible from the surface, SSRF/XSS/CSRF/clickjacking risk indicators, and third-party script/supply-chain exposure.
+- Present findings as a Markdown table: **Finding · Severity (Critical/High/Med/Low/Info) · Evidence · Remediation**.
+- Cite each finding to the source that revealed it. If evidence is missing, say "not observable from current surface — recommend authenticated crawl / DAST".
+- Never generate exploit payloads targeted at third parties. Focus on defensive posture and remediation.
+` : "";
+
+    const sys = `${temporal}${securityClause}
+
 
 ${isolationPreface}${codeProtocol}You are an Aureon URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
 
