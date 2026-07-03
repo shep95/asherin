@@ -143,12 +143,12 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
       const reader = resp.body.getReader();
       const dec = new TextDecoder();
       let acc = "";
-      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null, domain: null, youtube: null }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", property: null, domain: null, youtube: null, ghostTrace: null }]);
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         acc += dec.decode(value, { stream: true });
-        const { property, domain, youtube, text } = splitMeta(acc);
+        const { property, domain, youtube, ghostTrace, text } = splitMeta(acc);
         setMessages((prev) => {
           const copy = [...prev];
           copy[copy.length - 1] = {
@@ -157,6 +157,7 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
             property: property && (property.map || property.sources?.length) ? property : null,
             domain: domain && domain.attachment ? domain : null,
             youtube: youtube && youtube.videos?.length ? youtube : null,
+            ghostTrace: ghostTrace && ghostTrace.fired ? ghostTrace : null,
           };
           return copy;
         });
