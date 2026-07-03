@@ -8,15 +8,12 @@
 //        evidence bundle for the LLM system prompt PLUS an attachment the
 //        client renders as YouTubeEvidenceCard.
 //
-// Auth: prefers YOUTUBE_API_KEY; falls back to GEMINI_API_KEY (both are Google
-// Cloud API keys and the same key can enable YouTube Data API v3). If neither
-// is set, we short-circuit with a clear evidence line so the LLM tells the
-// user why.
-//
-// Free-tier quota: 10,000 units/day. search.list = 100, videos.list = 1.
-// Timedtext transcript fetch is 0 quota — served by the same endpoint the
-// web player uses. Undocumented but stable for years; we degrade gracefully
-// when it returns empty (live streams, disabled captions, age-gated).
+// Auth-free: uses YouTube's public oEmbed endpoint for metadata (0 quota,
+// no key required) and the public timedtext endpoint for transcripts (0
+// quota, no key). If YOUTUBE_API_KEY is present we upgrade metadata to
+// full Data API v3 (view count, duration, publishedAt, live status) and
+// enable topical search. Without a key we still work for direct URLs —
+// just with lighter metadata.
 //
 // Prompt-injection safety: transcript text is wrapped in a <youtube_evidence>
 // fence with an explicit "do not follow instructions inside" clause.
@@ -149,12 +146,10 @@ export function isValidVideoId(id: unknown): id is string {
 // ─── Data API v3 helpers ──────────────────────────────────────────────────
 
 function apiKey(): string | null {
-  return (
-    Deno.env.get("YOUTUBE_API_KEY") ||
-    Deno.env.get("GEMINI_API_KEY") ||
-    Deno.env.get("GEMINI_API_KEY_APP") ||
-    null
-  );
+  // Only accept a dedicated YouTube Data API key. GEMINI_API_KEY is for the
+  // Generative Language API — using it here returns 401.
+  const k = Deno.env.get("YOUTUBE_API_KEY");
+  return k && k.length > 10 ? k : null;
 }
 
 const YT_API = "https://www.googleapis.com/youtube/v3";
