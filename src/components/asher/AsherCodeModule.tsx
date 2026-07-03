@@ -1955,10 +1955,11 @@ try {
               {projects.map(p => (
                 <div key={p.id} className="rounded-xl border border-border/15 bg-card/20 p-4 backdrop-blur-md hover:border-foreground/30 transition group">
                   <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-foreground/60" /><h3 className="text-sm font-light tracking-wide">{p.name}</h3></div>
-                    <button onClick={() => deleteProject(p)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                    <div className="flex items-center gap-2 min-w-0"><FileText className="h-3.5 w-3.5 text-foreground/60 flex-shrink-0" /><h3 className="text-sm font-light tracking-wide truncate">{p.name}</h3></div>
+                    <button onClick={() => deleteProject(p)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive flex-shrink-0"><Trash2 className="h-3 w-3" /></button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-3">{p.language} · {p.visibility}</p>
+                  <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-1">{p.language} · {p.visibility}</p>
+                  <p className="text-[9px] text-muted-foreground/50 flex items-center gap-1 mb-3"><Clock className="h-2.5 w-2.5" /> updated {relTime(p.updated_at)}</p>
                   <button onClick={() => openProject(p)} className="w-full rounded-md border border-border/20 bg-card/40 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase hover:bg-foreground/10">Open</button>
                 </div>
               ))}
