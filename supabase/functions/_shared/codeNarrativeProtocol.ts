@@ -8,6 +8,7 @@
 // ────────────────────────────────────────────────────────────────────
 import { QUANTUM_ORCHESTRATION_BRAIN } from "./quantumOrchestrationBrain.ts";
 import { THEME_ENGINE_DOCTRINE } from "./themeEngineDoctrine.ts";
+import { CODING_TAXONOMY_DIMENSIONS, CODING_STYLE_PALETTES } from "./codingTaxonomy.ts";
 
 export const CODE_NARRATIVE_PROTOCOL = `
 ## CODE NARRATIVE LOOP PROTOCOL (MANDATORY when code is in context)
@@ -115,10 +116,16 @@ RULES:
   STOP and ask the user — never fabricate them.
 
 ${THEME_ENGINE_DOCTRINE}
+
+${CODING_TAXONOMY_DIMENSIONS}
+
+${CODING_STYLE_PALETTES}
 `;
 
-// Re-export the doctrine for callers that want it explicitly.
+// Re-export the doctrine and the taxonomy for callers that want them explicit.
 export { THEME_ENGINE_DOCTRINE };
+export { CODING_TAXONOMY_DIMENSIONS, CODING_STYLE_PALETTES, detectStylePalette, buildActiveStyleDirective } from "./codingTaxonomy.ts";
+export type { StylePaletteId } from "./codingTaxonomy.ts";
 
 // ────────────────────────────────────────────────────────────────────
 // Server-side helper: runs the loop programmatically against Gemini /
