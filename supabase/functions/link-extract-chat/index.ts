@@ -213,9 +213,42 @@ Deno.serve(async (req) => {
     }
 
 
+    // ── SUBJECT ISOLATION when Specter Weave fires ───────────────────────────
+    // When we're profiling a specific handle, prior DOSSIER / INTEL_MAP /
+    // BRAINS / conversation history are common sources of identity cross-
+    // contamination (the model has attributed the OPERATOR's own name to the
+    // target handle in past incidents). We scope those payloads to the
+    // subject: if they don't textually reference the target handle, we
+    // replace them with an explicit REDACTED note so the model cannot use
+    // them for biographical attribution.
+    const specterFired = specterPull.fired && specterPull.intent?.handle;
+    const targetHandle = specterFired ? String(specterPull.intent!.handle).toLowerCase() : null;
+    const referencesTarget = (payload: unknown): boolean => {
+      if (!targetHandle) return true;
+      try {
+        const s = JSON.stringify(payload || {}).toLowerCase();
+        return s.includes(targetHandle);
+      } catch { return false; }
+    };
+    const dossierStr = specterFired && !referencesTarget(dossier)
+      ? "[REDACTED — dossier is from a different subject than the current Specter Weave target; withheld to prevent identity cross-contamination]"
+      : JSON.stringify(dossier || {}).slice(0, 8000);
+    const intelMapStr = specterFired && !referencesTarget(intelMap)
+      ? "[REDACTED — intel map is from a different subject than the current Specter Weave target; withheld to prevent identity cross-contamination]"
+      : JSON.stringify(intelMap || {}).slice(0, 6000);
+    const brainsBlock = specterFired
+      ? ""  // Personal brains often contain the operator's own identity — do not inject when profiling a handle.
+      : (brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : "");
+
+    const isolationPreface = specterFired ? `
+=== TOP-LEVEL SUBJECT ISOLATION (Specter Weave active) ===
+The user is asking about the social handle @${specterPull.intent!.handle} on ${specterPull.intent!.platform}. This handle is the ONE AND ONLY SUBJECT of biographical questions in this turn. Any real name, city, employer, family, or identifier you attribute to this handle MUST come from the <specter_weave_evidence> fence. You are FORBIDDEN from using the DOSSIER, INTEL MAP, any prior conversation turn, or the operator's own account/name to attribute biographical facts to this handle. If the evidence fence does not establish a fact, say so — do not fabricate, do not cross-reference from unrelated context.
+
+` : "";
+
     const sys = `${temporal}
 
-You are an Aureon URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
+${isolationPreface}You are an Aureon URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
 
 RESPONSE RULE: Simple question, simple answer.
 
@@ -246,7 +279,7 @@ You have access to:
 
 Answer the user's questions strictly grounded in the dossier, map, live OSINT, property evidence, domain evidence, and YouTube evidence. When the user asks for "everything you can find" — list every entity in the map, group by type, and cross-reference with dossier evidence. Do NOT invent facts. If something is not in the dossier or live evidence, say so plainly.
 
-${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}${property.evidence}${domainPull.evidence}${youtubePull.evidence}${ghostPull.evidence}${specterPull.evidence}`;
+${brainsBlock}DOSSIER:\n${dossierStr}\n\nINTEL MAP:\n${intelMapStr}${osint.context}${property.evidence}${domainPull.evidence}${youtubePull.evidence}${ghostPull.evidence}${specterPull.evidence}`;
 
     const stream = await callGeminiStream(apiKey, model, sys, messages, youtubePull.fileUris || []);
 
