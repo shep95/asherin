@@ -318,7 +318,7 @@ export async function runYouTubePipeline(userText: string): Promise<YouTubePull>
   const intent = detectYouTubeIntent(userText);
   const errors: string[] = [];
   if (!intent.fired) {
-    return { fired: false, intent, evidence: "", attachment: null, errors };
+    return { fired: false, intent, evidence: "", attachment: null, fileUris: [], errors };
   }
 
   const key = apiKey();
@@ -338,7 +338,7 @@ export async function runYouTubePipeline(userText: string): Promise<YouTubePull>
           fired: true, intent,
           evidence:
             `\n\n<youtube_evidence>\nYouTube topical search intent detected ("${intent.query}") but topical search requires a YouTube Data API key (YOUTUBE_API_KEY). Tell the operator you can pull metadata + transcripts for any specific YouTube URL they paste, and offer a direct search link: https://www.youtube.com/results?search_query=${encodeURIComponent(intent.query)}\n</youtube_evidence>\n`,
-          attachment: null, errors: ["search_requires_key"],
+          attachment: null, fileUris: [], errors: ["search_requires_key"],
         };
       }
     }
@@ -349,7 +349,7 @@ export async function runYouTubePipeline(userText: string): Promise<YouTubePull>
     return {
       fired: true, intent,
       evidence: `\n\n<youtube_evidence>\nYouTube intent detected (${intent.mode}${intent.query ? `: "${intent.query}"` : ""}) but no videos resolved. Tell the user plainly.\n</youtube_evidence>\n`,
-      attachment: null, errors,
+      attachment: null, fileUris: [], errors,
     };
   }
 
