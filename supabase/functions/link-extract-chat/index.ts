@@ -246,7 +246,7 @@ You have access to:
 
 Answer the user's questions strictly grounded in the dossier, map, live OSINT, property evidence, domain evidence, and YouTube evidence. When the user asks for "everything you can find" — list every entity in the map, group by type, and cross-reference with dossier evidence. Do NOT invent facts. If something is not in the dossier or live evidence, say so plainly.
 
-${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}${property.evidence}${domainPull.evidence}${youtubePull.evidence}${ghostPull.evidence}`;
+${brainsCtx ? "ACTIVE BRAINS CONTEXT:\n" + brainsCtx + "\n\n" : ""}DOSSIER:\n${JSON.stringify(dossier || {}).slice(0, 8000)}\n\nINTEL MAP:\n${JSON.stringify(intelMap || {}).slice(0, 6000)}${osint.context}${property.evidence}${domainPull.evidence}${youtubePull.evidence}${ghostPull.evidence}${specterPull.evidence}`;
 
     const stream = await callGeminiStream(apiKey, model, sys, messages, youtubePull.fileUris || []);
 
