@@ -1,10 +1,21 @@
 // Dispatch layer for the Card Protocol. Given a parsed CardSegment, renders
 // the correct card component. Central registry so adding a new card type is
-// a one-line addition here + one entry in parseChatCards.KNOWN.
+// one entry here + one entry in parseChatCards.KNOWN.
 
 import GematriaResultCard from "@/components/gematria/GematriaResultCard";
 import GematriaCompareCard from "@/components/chatCards/GematriaCompareCard";
 import NumberLookupCard from "@/components/chatCards/NumberLookupCard";
+import {
+  InfoCard,
+  EntityCard,
+  TimelineCard,
+  ComparisonCard,
+  StatCard,
+  QuoteCard,
+  SourcesCard,
+  ListCard,
+  WarningCard,
+} from "@/components/chatCards/UniversalCards";
 import type { CardSegment, UnknownCardSegment } from "@/lib/chatCards/parseChatCards";
 import { AlertCircle } from "lucide-react";
 
@@ -25,14 +36,17 @@ export default function ChatCardRenderer({ segment, source }: Props) {
     );
   }
 
+  const { payload } = segment;
+
   switch (segment.cardType) {
+    // ── gematria family ──────────────────────────────
     case "gematria": {
-      const phrase = String(segment.payload.phrase ?? "").slice(0, 200);
+      const phrase = String(payload.phrase ?? "").slice(0, 200);
       if (!phrase.trim()) return null;
       return <GematriaResultCard phrase={phrase} source={source} />;
     }
     case "gematria-compare": {
-      const raw = segment.payload.phrases;
+      const raw = payload.phrases;
       const phrases = Array.isArray(raw)
         ? raw.map((p) => String(p ?? "").slice(0, 200)).filter((p) => p.trim())
         : [];
@@ -40,14 +54,24 @@ export default function ChatCardRenderer({ segment, source }: Props) {
       return <GematriaCompareCard phrases={phrases.slice(0, 4)} source={source} />;
     }
     case "number-lookup": {
-      const value = Number(segment.payload.value);
-      const cipherRaw = String(segment.payload.cipher ?? "ordinal");
+      const value = Number(payload.value);
+      const cipherRaw = String(payload.cipher ?? "ordinal");
       const cipher = ["ordinal", "reduction", "reverse", "chaldean"].includes(cipherRaw)
         ? (cipherRaw as "ordinal" | "reduction" | "reverse" | "chaldean")
         : "ordinal";
       if (!Number.isFinite(value) || value <= 0 || value > 10000) return null;
       return <NumberLookupCard value={value} cipher={cipher} source={source} />;
     }
+    // ── universal shape cards ────────────────────────
+    case "info":       return <InfoCard payload={payload} source={source} />;
+    case "entity":     return <EntityCard payload={payload} source={source} />;
+    case "timeline":   return <TimelineCard payload={payload} source={source} />;
+    case "comparison": return <ComparisonCard payload={payload} source={source} />;
+    case "stat":       return <StatCard payload={payload} source={source} />;
+    case "quote":      return <QuoteCard payload={payload} source={source} />;
+    case "sources":    return <SourcesCard payload={payload} source={source} />;
+    case "list":       return <ListCard payload={payload} source={source} />;
+    case "warning":    return <WarningCard payload={payload} source={source} />;
     default:
       return null;
   }
