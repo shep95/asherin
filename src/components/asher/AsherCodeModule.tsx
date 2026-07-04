@@ -1159,6 +1159,141 @@ export default function AsherCodeModule() {
     await switchBranch((br as any).id);
   }
 
+  async function persistZipEntriesToBranch(session: ZipImportSession, branchId: string | null, baseFiles: AsherCodeFile[]) {
+    if (!activeProject) return { files: baseFiles, changedIds: [] as string[] };
+    const nextByPath = new Map(baseFiles.map((file) => [file.path, file]));
+    const changedIds: string[] = [];
+    const importable = session.entries.filter((entry) => entry.action === "create" || entry.action === "overwrite");
+
+    for (const entry of importable) {
+      const existing = nextByPath.get(entry.path);
+      if (existing && entry.action === "overwrite") {
+        const { data, error } = await supabase
+          .from("asher_code_files")
+          .update({ content: entry.content, language: entry.language })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (error || !data) throw new Error(error?.message || `Failed to overwrite ${entry.path}`);
+        const updated = data as AsherCodeFile;
+        nextByPath.set(entry.path, updated);
+        changedIds.push(updated.id);
+      } else if (!existing && entry.action === "create") {
+        const { data, error } = await supabase
+          .from("asher_code_files")
+          .insert({ project_id: activeProject.id, branch_id: branchId, path: entry.path, content: entry.content, language: entry.language })
+          .select()
+          .single();
+        if (error || !data) throw new Error(error?.message || `Failed to create ${entry.path}`);
+        const created = data as AsherCodeFile;
+        nextByPath.set(entry.path, created);
+        changedIds.push(created.id);
+      } else if (existing && entry.action === "create") {
+        const { data, error } = await supabase
+          .from("asher_code_files")
+          .update({ content: entry.content, language: entry.language })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (error || !data) throw new Error(error?.message || `Failed to update ${entry.path}`);
+        const updated = data as AsherCodeFile;
+        nextByPath.set(entry.path, updated);
+        changedIds.push(updated.id);
+      }
+    }
+
+    return {
+      files: Array.from(nextByPath.values()).sort((a, b) => a.path.localeCompare(b.path)),
+      changedIds,
+    };
+  }
+
+  async function importZipToCurrentBranch() {
+    if (!activeProject || !zipImportSession) return;
+    const importable = zipImportSession.entries.filter((entry) => entry.action === "create" || entry.action === "overwrite");
+    if (!importable.length) { toast.error("No files selected for import"); return; }
+    const dirtyCollisions = importable.filter((entry) => {
+      const existing = files.find((file) => file.path === entry.path);
+      return existing && existing.id in dirty;
+    });
+    if (dirtyCollisions.length && !confirm(`${dirtyCollisions.length} unsaved file(s) will be overwritten by the ZIP import. Continue?`)) return;
+    setZipImporting(true);
+    try {
+      const result = await persistZipEntriesToBranch(zipImportSession, activeBranchId, files);
+      setFiles(result.files);
+      setDirty((current) => {
+        const next = { ...current };
+        for (const id of result.changedIds) delete next[id];
+        return next;
+      });
+      if (result.changedIds.length) {
+        setOpenTabs((tabs) => Array.from(new Set([...tabs, result.changedIds[0]])));
+        setActiveFileId(result.changedIds[0]);
+      }
+      setPreviewKey((key) => key + 1);
+      setZipImportSession(null);
+      const branchName = activeBranchId ? branches.find((branch) => branch.id === activeBranchId)?.name || "branch" : "main";
+      toast.success(`Imported ${result.changedIds.length} file${result.changedIds.length === 1 ? "" : "s"} into ${branchName}`);
+    } catch (err: any) {
+      toast.error(err?.message || "ZIP import failed");
+    } finally {
+      setZipImporting(false);
+    }
+  }
+
+  async function importZipToNewBranch() {
+    if (!activeProject || !zipImportSession) return;
+    const importable = zipImportSession.entries.filter((entry) => entry.action === "create" || entry.action === "overwrite");
+    if (!importable.length) { toast.error("No files selected for import"); return; }
+    const archiveStem = zipImportSession.archiveName.replace(/\.zip$/i, "").replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 36) || "archive";
+    const name = prompt("New branch name for this ZIP import", `import/${archiveStem}`)?.trim();
+    if (!name) return;
+    if (!isValidBranchName(name)) {
+      toast.error("Branch names can use letters, numbers, dots, dashes, underscores, and slashes only");
+      return;
+    }
+    setZipImporting(true);
+    try {
+      const { data: br, error } = await supabase
+        .from("asher_code_branches")
+        .insert({ project_id: activeProject.id, name, parent_branch_id: activeBranchId })
+        .select()
+        .single();
+      if (error || !br) throw new Error(error?.message || "Branch creation failed");
+      const branchId = (br as any).id as string;
+      const snapshot = files.map((file) => ({
+        project_id: activeProject.id,
+        branch_id: branchId,
+        path: file.path,
+        content: dirty[file.id] ?? file.content,
+        language: file.language,
+      }));
+      let branchFiles: AsherCodeFile[] = [];
+      if (snapshot.length) {
+        const { data, error: snapshotError } = await supabase
+          .from("asher_code_files")
+          .insert(snapshot)
+          .select();
+        if (snapshotError) throw new Error(snapshotError.message);
+        branchFiles = (data || []) as AsherCodeFile[];
+      }
+      const result = await persistZipEntriesToBranch(zipImportSession, branchId, branchFiles);
+      setBranches((current) => [...current, br as any]);
+      setFiles(result.files);
+      setDirty({});
+      setActiveBranchId(branchId);
+      setOpenTabs(result.changedIds.length ? [result.changedIds[0]] : result.files[0]?.id ? [result.files[0].id] : []);
+      setActiveFileId(result.changedIds[0] || result.files[0]?.id || null);
+      setPreviewKey((key) => key + 1);
+      setZipImportSession(null);
+      toast.success(`Created ${name} and imported ${result.changedIds.length} file${result.changedIds.length === 1 ? "" : "s"}`);
+    } catch (err: any) {
+      toast.error(err?.message || "ZIP branch import failed");
+    } finally {
+      setZipImporting(false);
+    }
+  }
+
   async function deleteBranch(id: string) {
     if (!confirm("Delete this branch and all its files?")) return;
     const { error } = await supabase.from("asher_code_branches").delete().eq("id", id);
