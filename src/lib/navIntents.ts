@@ -58,7 +58,7 @@ export const NAV_INTENTS: NavIntent[] = [
   { view: "cipher", label: "Cipher & Crypto Toolkit", codename: "Cipher", blurb: "Encoding, hashing, encryption — client-side", keywords: ["cipher", "encode", "decode", "hash", "encrypt", "base64", "rot13"], group: "Investigate", access: "search" },
   { view: "briefing", label: "Daily Intel Briefings", codename: "Briefings", blurb: "Competitor, regulatory, market signals", keywords: ["briefing", "daily", "news", "feed", "digest"], group: "Investigate" },
   { view: "cross", label: "Live Screen Intelligence", codename: "Cross", blurb: "Real-time screen analysis with alerts", keywords: ["screen", "live", "share screen", "monitor"], group: "Investigate", access: "pro", adminOnly: true },
-  { view: "zosma", label: "Living Cryptanalytic Organism", codename: "ZOSMA", blurb: "AUREON-VOID LCO — quantum fabric, Bayesian sting, biological vault", keywords: ["zosma", "rsa", "crypt", "quantum", "shor", "prime", "dna", "lco", "aureon-void", "bayesian"], group: "Investigate", adminOnly: true },
+  
 
   // BUILD
   { view: "ide", label: "Code IDE", codename: "Aureon IDE", blurb: "Browser IDE with project files and BYOK AI", keywords: ["ide", "code", "editor", "develop", "monaco", "programming"], group: "Build" },

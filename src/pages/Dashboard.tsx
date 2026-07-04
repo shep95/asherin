@@ -61,7 +61,7 @@ const AxrlenView = lazyWithRetry(() => import("@/components/dashboard/axrlen/Axr
 const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/ZerlalView"));
 const ZaxinView = lazyWithRetry(() => import("@/components/dashboard/zaxin/ZaxinView"));
 const ZacoonPhantomView = lazyWithRetry(() => import("@/components/dashboard/ZacoonPhantomView"));
-const ZosmaView = lazyWithRetry(() => import("@/components/dashboard/zosma/ZosmaView"));
+
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
 const MediaToCodeView = lazyWithRetry(() => import("@/components/asher/AsherMediaToCodeModule"));
 
@@ -149,7 +149,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","api-keys","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","zaxin","zacoon","zosma","file-scrapper","cipher","vedic-astrology","zahten","media2code"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","api-keys","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","zaxin","zacoon","file-scrapper","cipher","vedic-astrology","zahten","media2code"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -1044,87 +1044,6 @@ const Dashboard = () => {
 
     // Algorithm mode removed — all chat runs through BYOK only.
 
-    // ── ZOSMA cryptanalytic trigger (admin-gated) ─────────────────────
-    // Detects natural-language directives like "zosma this: N=…" or "run LCO at 64-bit"
-    // and short-circuits the AI backend to run the real BigInt pipeline in-browser.
-    // Non-admin sessions never see this branch — same posture as the dashboard tab.
-    if (isAdminUser) {
-      try {
-        const { detectZosmaIntent } = await import("@/lib/zosma/detectIntent");
-        const intent = detectZosmaIntent(content);
-        if (intent) {
-          const { runZosmaCycle } = await import("@/lib/zosma/engine");
-          const { formatZosmaResult } = await import("@/lib/zosma/formatResult");
-
-          let body: string;
-
-          // ── Weak-key batch branch: "zosma weak-key scan a.com b.com …"
-          if (intent.hosts && intent.hosts.length > 0) {
-            const { formatWeakKeyDossier } = await import("@/lib/zosma/formatWeakKeyDossier");
-            const { data: wkReport, error: wkErr } = await supabase.functions.invoke("zosma-weak-key-scan", { body: { hosts: intent.hosts } });
-            if (wkErr || !wkReport) {
-              body = `## ◈ ZOSMA — Weak-Key Sweep\n\n**Targets:** \`${intent.hosts.join(", ")}\`\n\n**Verdict:** scanner unavailable.\n\n\`${wkErr?.message ?? "no report returned"}\``;
-            } else {
-              body = formatWeakKeyDossier(wkReport);
-            }
-          }
-          // ── URL branch: fetch peer cert via edge fn, then decide tractability.
-          else if (intent.url) {
-            const { formatZosmaCertDossier, ZOSMA_TRACTABLE_BITS } = await import("@/lib/zosma/formatCertDossier");
-            const { data: certReport, error: certErr } = await supabase.functions.invoke("zosma-cert-inspect", { body: { url: intent.url } });
-            if (certErr || !certReport) {
-              body = `## ◈ ZOSMA — TLS Certificate Dossier\n\n**Target:** \`${intent.url}\`\n\n**Verdict:** cert inspector unavailable.\n\n\`${certErr?.message ?? "no report returned"}\``;
-            } else {
-              const dossier = formatZosmaCertDossier(certReport, intent.url);
-              // Only attempt the cycle when the cert is RSA and within the browser window.
-              if (certReport.ok && certReport.pubkey_algo === "RSA" && certReport.modulus_hex && certReport.bit_length && certReport.bit_length <= ZOSMA_TRACTABLE_BITS) {
-                try {
-                  const N = BigInt("0x" + certReport.modulus_hex);
-                  const cycle = await runZosmaCycle({ modulus: N, signal: controller.signal });
-                  body = `${dossier}\n\n---\n\n${formatZosmaResult(cycle)}`;
-                } catch (e) {
-                  body = `${dossier}\n\n---\n\n**Cycle failed:** \`${e instanceof Error ? e.message : String(e)}\``;
-                }
-              } else {
-                body = dossier;
-              }
-            }
-          } else {
-            // ── Original branch: synthesized or operator-pasted modulus.
-            const result = await runZosmaCycle({
-              modulus: intent.modulus,
-              primeBits: intent.primeBits,
-              signal: controller.signal,
-            });
-            body = formatZosmaResult(result);
-          }
-
-          setConversations((prev) =>
-            prev.map((c) =>
-              c.id === convId
-                ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content: body } : m) }
-                : c
-            )
-          );
-          setIsStreaming(false);
-          isStreamingRef.current = false;
-          try {
-            const encryptedAssistant = await encryptText(body, user.id);
-            await supabase.from("messages").insert({
-              id: assistantId,
-              conversation_id: convId,
-              user_id: user.id,
-              role: "assistant",
-              content: encryptedAssistant,
-            });
-          } catch (e) { console.error("[zosma] persist failed", e); }
-          return;
-        }
-
-      } catch (e) {
-        console.error("[zosma] trigger failed, falling through to AI backend:", e);
-      }
-    }
 
     // ── CONSENSUS MODE ──────────────────────────────────────────────
 
@@ -1541,7 +1460,7 @@ const Dashboard = () => {
       case "zerlal": return gatedView("zerlal", ZerlalView, "ZERLAL — Cyber Recon", "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.");
       case "zaxin": return gatedView("zaxin", ZaxinView, "Zaxin — Tactical BLE Intelligence", "AR vision, BLE radar, and tactical intelligence overlay. Available on Pro plans.");
       case "zacoon": return gatedView("zacoon", ZacoonPhantomView, "Zacoon Phantom Grid v3.0", "Multi-cortex autonomous web operative — adversarial awareness, self-correction, cryptographic audit ledger. Available on the $399/mo Pro plan.");
-      case "zosma": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><ZosmaView /></Suspense></ErrorBoundary>;
+      
       
       // case "imagine-intelligence" removed
       case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Aureon and above.");
