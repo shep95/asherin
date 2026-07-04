@@ -487,7 +487,10 @@ export default function AsherCodeModule() {
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
   const [animateInsertion, setAnimateInsertion] = useState(() => localStorage.getItem("asherCode.animate") !== "0");
   const [pendingUploads, setPendingUploads] = useState<{ name: string; preview?: string; content: string; kind: "image" | "zip" | "text" }[]>([]);
+  const [zipImportSession, setZipImportSession] = useState<ZipImportSession | null>(null);
+  const [zipImporting, setZipImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const zipImportInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLIFrameElement>(null);
 
   // BYOK config — provider/model persisted (non-secret); apiKey is SESSION-ONLY
@@ -767,6 +770,42 @@ export default function AsherCodeModule() {
       }
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleZipImportSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (zipImportInputRef.current) zipImportInputRef.current.value = "";
+    if (!file) return;
+    if (!activeProject) { toast.error("Open a project first"); return; }
+    if (!file.name.toLowerCase().endsWith(".zip") && file.type !== "application/zip") {
+      toast.error("Select a .zip archive");
+      return;
+    }
+    setZipImporting(true);
+    try {
+      const session = await parseZipImport(file, files);
+      const importable = session.entries.filter((entry) => entry.action === "create" || entry.action === "overwrite").length;
+      setZipImportSession(session);
+      if (importable > 0) toast.success(`ZIP staged: ${importable} file${importable === 1 ? "" : "s"} ready`);
+      else toast.warning("ZIP parsed, but no importable text files passed safety checks");
+    } catch (err: any) {
+      toast.error(err?.message || `Failed to inspect ${file.name}`);
+    } finally {
+      setZipImporting(false);
+    }
+  }
+
+  function updateZipImportAction(path: string, action: ZipImportAction) {
+    setZipImportSession((session) => {
+      if (!session) return session;
+      return {
+        ...session,
+        entries: session.entries.map((entry) => {
+          if (entry.path !== path || entry.action === "reject") return entry;
+          return { ...entry, action };
+        }),
+      };
+    });
   }
   useEffect(() => {
     const onResize = () => {
