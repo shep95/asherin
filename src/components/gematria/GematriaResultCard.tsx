@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Calculator, Check, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { computeAll, CIPHER_LABEL, normalize, type CipherKey } from "@/lib/gematria";
+import { findBundledMatches } from "@/lib/gematriaCorpus";
 import { useGematria } from "@/hooks/useGematria";
 
 const CIPHERS: CipherKey[] = ["ordinal", "reduction", "reverse", "chaldean"];
@@ -78,17 +79,21 @@ export default function GematriaResultCard({ phrase, source }: Props) {
         <tbody>
           {CIPHERS.map((c) => {
             const r = results[c];
-            const matches = matchesFor(c, r.sum, normalized);
+            const personal = matchesFor(c, r.sum, normalized);
+            const bundled = findBundledMatches(c, r.sum, normalized, 20);
+            const combined = [
+              ...bundled.map((b) => `${b.phrase} (${b.category})`),
+              ...personal.map((p) => p.phrase),
+            ];
+            const total = combined.length;
             return (
               <tr key={c} className="border-t border-border/15">
                 <td className="px-3 py-1.5 text-xs">{CIPHER_LABEL[c]}</td>
                 <td className="px-3 py-1.5 text-right font-mono text-sm">{r.sum}</td>
                 <td className="px-3 py-1.5 text-right font-mono text-xs text-muted-foreground">{r.reduced}</td>
                 <td className="px-3 py-1.5 text-right font-mono text-xs text-muted-foreground">
-                  {matches.length > 0 ? (
-                    <span title={matches.slice(0, 6).map((m) => m.phrase).join(", ")}>
-                      {matches.length}
-                    </span>
+                  {total > 0 ? (
+                    <span title={combined.slice(0, 12).join(", ")}>{total}</span>
                   ) : "—"}
                 </td>
               </tr>
@@ -108,10 +113,11 @@ export default function GematriaResultCard({ phrase, source }: Props) {
         <div className="px-3 py-2 border-t border-border/15 space-y-2">
           {CIPHERS.map((c) => {
             const r = results[c];
+            const bundled = findBundledMatches(c, r.sum, normalized, 20);
             return (
               <div key={c}>
                 <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
-                  {CIPHER_LABEL[c]}
+                  {CIPHER_LABEL[c]} · {r.sum}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {r.letters.map((l, i) => (
@@ -124,6 +130,19 @@ export default function GematriaResultCard({ phrase, source }: Props) {
                     </span>
                   ))}
                 </div>
+                {bundled.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {bundled.slice(0, 12).map((b, i) => (
+                      <span
+                        key={i}
+                        className="rounded border border-border/25 bg-background px-1.5 py-0.5 text-[10px]"
+                        title={b.category}
+                      >
+                        {b.phrase}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
