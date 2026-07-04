@@ -110,7 +110,7 @@ function bigSqrt(n: bigint): bigint {
   return x;
 }
 
-// Cryptographically real [0,1) sample — replaces Math.random() so even
+// Cryptographically real [0,1) sample — replaces cryptoUnit() so even
 // visualization noise is drawn from crypto.getRandomValues, not a PRNG.
 function cryptoUnit(): number {
   const b = new Uint32Array(1);
@@ -222,7 +222,7 @@ function useLCO() {
           id: `qubit-${node.nodeId}-${idx++}`,
           nodeId: node.nodeId,
           status: "entangled",
-          coherenceTimeRemainingMs: 5000 + Math.random() * 5000,
+          coherenceTimeRemainingMs: 5000 + cryptoUnit() * 5000,
         });
         setQubits([...acquired]);
         setPhaseProgress((s) => ({ ...s, fabric: (acquired.length / required) * 100 }));
@@ -238,11 +238,11 @@ function useLCO() {
     emit("info", "Homeostasis", "AI immune system engaged. Predicting decoherence pressure across fabric.");
     for (let tick = 0; tick < 10; tick++) {
       if (abortRef.current) { setPhase("aborted"); return; }
-      const at_risk = acquired.filter(() => Math.random() < 0.12);
+      const at_risk = acquired.filter(() => cryptoUnit() < 0.12);
       for (const q of at_risk) {
         q.coherenceTimeRemainingMs += 800; // AI stabilization
       }
-      const decohered = acquired.filter(() => Math.random() < 0.02);
+      const decohered = acquired.filter(() => cryptoUnit() < 0.02);
       for (const q of decohered) q.status = "decohered";
       setQubits([...acquired]);
       setPhaseProgress((s) => ({ ...s, pulse: ((tick + 1) / 10) * 100 }));
@@ -261,7 +261,7 @@ function useLCO() {
       await new Promise((r) => setTimeout(r, 180));
       setPhaseProgress((s) => ({ ...s, sting: ((step + 1) / 8) * 100 }));
       emit("info", "BayesianSting",
-        `Round ${step + 1}: measurement basis rotated; stochastic-resonance amplification ${(Math.random()*0.6+0.4).toFixed(2)}σ.`);
+        `Round ${step + 1}: measurement basis rotated; stochastic-resonance amplification ${(cryptoUnit()*0.6+0.4).toFixed(2)}σ.`);
     }
     // Ground truth: real factors we synthesized above.
     const found: RSAFactors = [bigMin(p, q), bigMax(p, q)];
