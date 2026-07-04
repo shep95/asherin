@@ -29,8 +29,8 @@ import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useAccess } from "@/hooks/useAccess";
 import type { FileAttachment } from "./types";
 import ReactMarkdown from "react-markdown";
-import { parseChatGematria } from "@/lib/gematria/parseChatGematria";
-import GematriaResultCard from "@/components/gematria/GematriaResultCard";
+import { parseChatCards } from "@/lib/chatCards/parseChatCards";
+import ChatCardRenderer from "@/components/chatCards/ChatCardRenderer";
 import { useNavigate } from "react-router-dom";
 import type { Conversation, ChatMode, Message } from "./types";
 import MessageStatusIndicator from "./MessageStatusIndicator";
@@ -878,9 +878,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       </Suspense>
                     ) : msg.role === "assistant" ? (
                       <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
-                        {parseChatGematria(msg.content).map((seg, i) =>
-                          seg.type === "gematria" ? (
-                            <GematriaResultCard key={`g-${i}`} phrase={seg.phrase} source="chat:aureon" />
+                        {parseChatCards(msg.content).map((seg, i) =>
+                          seg.type === "card" || seg.type === "card-unknown" ? (
+                            <ChatCardRenderer key={`c-${i}`} segment={seg} source="chat:aureon" />
                           ) : (
                             <ReactMarkdown key={`t-${i}`} components={markdownComponents}>{seg.value}</ReactMarkdown>
                           )
