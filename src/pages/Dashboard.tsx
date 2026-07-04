@@ -66,6 +66,7 @@ const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scra
 const MediaToCodeView = lazyWithRetry(() => import("@/components/asher/AsherMediaToCodeModule"));
 
 const CipherView = lazyWithRetry(() => import("@/components/dashboard/cipher/CipherToolkit"));
+const GematriaView = lazyWithRetry(() => import("@/components/gematria/GematriaTab"));
 const AsherZahtenModule = lazyWithRetry(() => import("@/components/asher/AsherZahtenModule"));
 const AsherPublishedTabRenderer = lazyWithRetry(() => import("@/components/asher/AsherPublishedTabRenderer"));
 const CommandPalette = lazyWithRetry(() => import("@/components/dashboard/CommandPalette"));
