@@ -17,6 +17,7 @@ import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchite
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
 import { SYSTEM_TWO_FORCING_BRAIN } from "../_shared/systemTwoForcingBrain.ts";
 import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
+import { GEMATRIA_CHAT_DIRECTIVE } from "../_shared/gematriaChatDirective.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1837,6 +1838,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       AUREON_ADVANCED_PROTOCOLS,
       AUREON_VISUAL_DOMINANCE,
       CONTEXT_INTELLIGENCE_PROMPT,
+      GEMATRIA_CHAT_DIRECTIVE,
       mode && MODE_PROMPTS[mode] ? MODE_PROMPTS[mode] : MODE_PROMPTS.chat,
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
       personaId && PERSONA_PROMPTS[personaId] ? PERSONA_PROMPTS[personaId] : (personaSystemPrompt ? `PERSONA OVERRIDE: ${personaSystemPrompt}` : ""),

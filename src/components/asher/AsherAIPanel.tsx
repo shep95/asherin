@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { Brain, Send, Loader2, ChevronRight, ChevronLeft, Sparkles, Image as ImageIcon, Crosshair, MapPin, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { parseChatGematria } from "@/lib/gematria/parseChatGematria";
+import GematriaResultCard from "@/components/gematria/GematriaResultCard";
 import { supabase } from "@/integrations/supabase/client";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
@@ -436,24 +438,31 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
               {m.role === "user" ? "Operator" : "Asher AI"}
             </div>
             <div className="prose prose-invert prose-xs max-w-none [&_*]:text-foreground/85 [&_strong]:text-foreground">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  a: ({ href, children, ...props }) => (
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-accent underline underline-offset-2 decoration-accent/60 hover:decoration-accent break-all"
-                      {...props}
-                    >
-                      {children}
-                    </a>
-                  ),
-                }}
-              >
-                {m.content || "…"}
-              </ReactMarkdown>
+              {parseChatGematria(m.content || "").map((seg, i) =>
+                seg.type === "gematria" ? (
+                  <GematriaResultCard key={`g-${i}`} phrase={seg.phrase} source="chat:asher" />
+                ) : (
+                  <ReactMarkdown
+                    key={`t-${i}`}
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      a: ({ href, children, ...props }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-accent underline underline-offset-2 decoration-accent/60 hover:decoration-accent break-all"
+                          {...props}
+                        >
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {seg.value || (i === 0 && !m.content ? "…" : "")}
+                  </ReactMarkdown>
+                )
+              )}
             </div>
             {m.image && (
               <img src={m.image} alt="Imagine result" className="mt-2 rounded-lg border border-border/20 max-w-full" />

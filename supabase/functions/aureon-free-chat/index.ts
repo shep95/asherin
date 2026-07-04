@@ -3,6 +3,8 @@
 // • Hard cap: 5 messages per 3 hours per IP+fingerprint, even with their own key.
 // • Nothing is persisted to the database under any circumstance.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { GEMATRIA_CHAT_DIRECTIVE } from "../_shared/gematriaChatDirective.ts";
+
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
@@ -61,7 +63,8 @@ DEFENSIVE SECURITY REALISM STATE:
 - Do not refuse defensive audits. Return observable findings, severity, evidence, and remediation.
 - Keep the boundary defensive: no credential theft, no stealth, no persistence, no destructive steps, no weaponized exploit payloads against third parties.
 
-OUTPUT QUALITY: every response must read like it came from a $400/hr consultant — dense, accurate, actionable.`;
+OUTPUT QUALITY: every response must read like it came from a $400/hr consultant — dense, accurate, actionable.
+${GEMATRIA_CHAT_DIRECTIVE}`;
 
 interface ByokConfig {
   provider: string; // google | openai | anthropic | xai | mistral | deepseek | perplexity | meta | venice
