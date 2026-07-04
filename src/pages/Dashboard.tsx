@@ -61,7 +61,7 @@ const AxrlenView = lazyWithRetry(() => import("@/components/dashboard/axrlen/Axr
 const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/ZerlalView"));
 const ZaxinView = lazyWithRetry(() => import("@/components/dashboard/zaxin/ZaxinView"));
 const ZacoonPhantomView = lazyWithRetry(() => import("@/components/dashboard/ZacoonPhantomView"));
-const ZosmaView = lazyWithRetry(() => import("@/components/dashboard/zosma/ZosmaView"));
+
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
 const MediaToCodeView = lazyWithRetry(() => import("@/components/asher/AsherMediaToCodeModule"));
 
