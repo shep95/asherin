@@ -22,12 +22,11 @@ export function ordinalOf(ch: string): number {
   return c >= 1 && c <= 26 ? c : 0;
 }
 
-// a=1..i=9, j=1..r=9, s=1..z=8 (Pythagorean / Full Reduction)
+// Pythagorean Full Reduction: a=1..i=9, j=1..r=9, s=1..z=8.
 export function reductionOf(ch: string): number {
   const o = ordinalOf(ch);
   if (!o) return 0;
-  const r = o % 9;
-  return r === 0 ? 9 : r === 8 && o > 18 ? 8 : r; // simple digital root
+  return ((o - 1) % 9) + 1;
 }
 
 // a=26..z=1
