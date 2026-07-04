@@ -157,7 +157,12 @@ export default function GematriaTab() {
                 <tbody>
                   {CIPHERS.filter((c) => activeCiphers[c]).map((c) => {
                     const r = results[c];
-                    const matches = matchesFor(c, r.sum, submittedNormalized);
+                    const personal = matchesFor(c, r.sum, submittedNormalized);
+                    const bundled = findBundledMatches(c, r.sum, submittedNormalized, 60);
+                    const worldPayload = world.byCipher[c];
+                    const worldHits = worldPayload?.matches ?? [];
+                    const worldLoading = !!world.loading[c];
+                    const totalMatches = personal.length + bundled.length + worldHits.length;
                     return (
                       <>
                         <tr key={c} className="border-t border-border/20">
@@ -165,7 +170,7 @@ export default function GematriaTab() {
                           <td className="px-4 py-2 text-right font-mono">{r.sum}</td>
                           <td className="px-4 py-2 text-right font-mono text-muted-foreground">{r.reduced}</td>
                           <td className="px-4 py-2 text-right font-mono text-muted-foreground">
-                            {matches.length}
+                            {totalMatches}{worldLoading ? "…" : ""}
                           </td>
                           <td className="px-2 py-2 text-right">
                             <button
@@ -178,7 +183,10 @@ export default function GematriaTab() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setExpanded((s) => ({ ...s, [c]: !s[c] }))}
+                              onClick={() => {
+                                setExpanded((s) => ({ ...s, [c]: !s[c] }));
+                                if (!worldPayload && !worldLoading) world.fetchFor(c, r.sum);
+                              }}
                               className="ml-1 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
                             >
                               {expanded[c] ? "Hide" : "Detail"}
@@ -187,7 +195,7 @@ export default function GematriaTab() {
                         </tr>
                         {expanded[c] && (
                           <tr className="bg-foreground/[0.015]">
-                            <td colSpan={5} className="px-4 py-3">
+                            <td colSpan={5} className="px-4 py-3 space-y-3">
                               <div className="flex flex-wrap gap-1.5">
                                 {r.letters.map((l, i) => (
                                   <span
@@ -199,13 +207,57 @@ export default function GematriaTab() {
                                   </span>
                                 ))}
                               </div>
-                              {matches.length > 0 && (
-                                <div className="mt-3">
+
+                              {bundled.length > 0 && (
+                                <div>
                                   <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
-                                    Corpus matches ({matches.length})
+                                    Bundled corpus ({bundled.length}) · {CORPUS_SIZE} phrases indexed
                                   </p>
                                   <div className="flex flex-wrap gap-1.5">
-                                    {matches.slice(0, 40).map((m) => (
+                                    {bundled.slice(0, 60).map((m, i) => (
+                                      <span
+                                        key={`b-${i}`}
+                                        className="rounded border border-border/30 bg-background px-2 py-0.5 text-xs"
+                                        title={m.category}
+                                      >
+                                        {m.phrase}
+                                        <span className="ml-1 text-[9px] text-muted-foreground/60">{m.category}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div>
+                                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1 flex items-center gap-1">
+                                  <Globe className="h-3 w-3" strokeWidth={1.5} />
+                                  World matches (Wikipedia + Datamuse) {worldLoading ? "· searching…" : `(${worldHits.length})`}
+                                </p>
+                                {worldHits.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {worldHits.slice(0, 80).map((m, i) => (
+                                      <span
+                                        key={`w-${i}`}
+                                        className="rounded border border-border/30 bg-background px-2 py-0.5 text-xs"
+                                        title={m.source}
+                                      >
+                                        {m.phrase}
+                                        <span className="ml-1 text-[9px] text-muted-foreground/60">{m.source}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : !worldLoading && worldPayload ? (
+                                  <p className="text-[10px] text-muted-foreground/70">No same-cipher matches found in scanned candidates ({worldPayload.counts.candidates}).</p>
+                                ) : null}
+                              </div>
+
+                              {personal.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
+                                    Your saved corpus ({personal.length})
+                                  </p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {personal.slice(0, 40).map((m) => (
                                       <span
                                         key={m.id}
                                         className="rounded border border-border/30 bg-background px-2 py-0.5 text-xs"
