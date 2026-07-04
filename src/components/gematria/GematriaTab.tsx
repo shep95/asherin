@@ -18,7 +18,6 @@ export default function GematriaTab() {
   const [submitted, setSubmitted] = useState("");
   const world = useGematriaWorldMatches(submitted);
   const [text, setText] = useState("");
-  const [submitted, setSubmitted] = useState("");
   const [activeCiphers, setActiveCiphers] = useState<Record<CipherKey, boolean>>({
     ordinal: true, reduction: true, reverse: true, chaldean: true,
   });
