@@ -81,7 +81,16 @@ export function computeCipher(input: string, cipher: CipherKey): CipherResult {
     letters.push({ letter: ch, value: v });
     sum += v;
   }
-  return { cipher, sum, reduced: recursiveReduce(sum), letters };
+  return { cipher, sum, step: digitSum(sum), reduced: recursiveReduce(sum), letters };
+}
+
+/** Single-pass digit sum: 299 → 20, 20 → 2. Does NOT recurse. */
+export function digitSum(n: number): number {
+  let x = Math.abs(n);
+  if (x <= 9) return x;
+  let s = 0;
+  while (x > 0) { s += x % 10; x = Math.floor(x / 10); }
+  return s;
 }
 
 export function computeAll(input: string): Record<CipherKey, CipherResult> {
