@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { Brain, Send, Loader2, ChevronRight, ChevronLeft, Sparkles, Image as ImageIcon, Crosshair, MapPin, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { parseChatGematria } from "@/lib/gematria/parseChatGematria";
+import GematriaResultCard from "@/components/gematria/GematriaResultCard";
 import { supabase } from "@/integrations/supabase/client";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
