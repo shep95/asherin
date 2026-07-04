@@ -5,9 +5,16 @@
 export interface ZosmaIntent {
   modulus?: bigint;
   primeBits?: number;
-  url?: string;   // NEW — "zosma url https://example.com" branches to cert inspector.
+  url?: string;   // "zosma url https://example.com" branches to cert inspector.
+  hosts?: string[]; // "zosma weak-key scan a.com b.com" branches to weak-key scanner.
   raw: string;
 }
+
+// SSRF-safe host filter (mirrors edge-side guardHost so bad targets never leave the browser).
+const PRIVATE_HOST_RE =
+  /^(?:localhost|.*\.local|.*\.internal|0\.0\.0\.0|127\.|10\.|192\.168\.|169\.254\.|172\.(?:1[6-9]|2\d|3[01])\.|::1|fe80:|fc00:|metadata\.google\.internal)/i;
+const HOSTNAME_RE = /\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\b/gi;
+const WEAK_KEY_RE = /\bweak[-\s]?key(?:s)?\b/i;
 
 
 // Verbs that indicate the user is directing ZOSMA (not just mentioning it).
