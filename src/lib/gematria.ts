@@ -64,6 +64,9 @@ export interface LetterBreakdown {
 export interface CipherResult {
   cipher: CipherKey;
   sum: number;
+  /** One-pass digit sum of `sum` (may still be multi-digit, e.g. 299 → 20). */
+  step: number;
+  /** Fully reduced single-digit (honoring master numbers 11/22/33). */
   reduced: number;
   letters: LetterBreakdown[];
 }
