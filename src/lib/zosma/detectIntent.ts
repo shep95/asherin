@@ -5,9 +5,16 @@
 export interface ZosmaIntent {
   modulus?: bigint;
   primeBits?: number;
-  url?: string;   // NEW — "zosma url https://example.com" branches to cert inspector.
+  url?: string;   // "zosma url https://example.com" branches to cert inspector.
+  hosts?: string[]; // "zosma weak-key scan a.com b.com" branches to weak-key scanner.
   raw: string;
 }
+
+// SSRF-safe host filter (mirrors edge-side guardHost so bad targets never leave the browser).
+const PRIVATE_HOST_RE =
+  /^(?:localhost|.*\.local|.*\.internal|0\.0\.0\.0|127\.|10\.|192\.168\.|169\.254\.|172\.(?:1[6-9]|2\d|3[01])\.|::1|fe80:|fc00:|metadata\.google\.internal)/i;
+const HOSTNAME_RE = /\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\b/gi;
+const WEAK_KEY_RE = /\bweak[-\s]?key(?:s)?\b/i;
 
 
 // Verbs that indicate the user is directing ZOSMA (not just mentioning it).
@@ -66,6 +73,22 @@ export function detectZosmaIntent(text: string): ZosmaIntent | null {
     if (n >= 16 && n <= 64) primeBits = n;
   }
 
-  return { modulus, primeBits, url, raw: text.trim() };
+  // Weak-key batch directive — "zosma weak-key scan a.com b.com …" (≤50 hosts).
+  let hosts: string[] | undefined;
+  if (WEAK_KEY_RE.test(stripped)) {
+    const found = new Set<string>();
+    // Pull hostnames from bare tokens and from any URLs already parsed.
+    const urlHosts = Array.from(stripped.matchAll(/\bhttps?:\/\/([^\s/<>"')]+)/gi)).map(m => m[1]);
+    for (const h of urlHosts) found.add(h.toLowerCase());
+    const bare = stripped.match(HOSTNAME_RE) ?? [];
+    for (const h of bare) found.add(h.toLowerCase());
+    hosts = Array.from(found)
+      .filter(h => !PRIVATE_HOST_RE.test(h))
+      .filter(h => /^[a-z0-9.\-]+$/i.test(h))
+      .slice(0, 50);
+    if (hosts.length === 0) hosts = undefined;
+  }
+
+  return { modulus, primeBits, url, hosts, raw: text.trim() };
 }
 
