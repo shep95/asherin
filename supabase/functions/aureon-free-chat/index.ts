@@ -3,6 +3,8 @@
 // • Hard cap: 5 messages per 3 hours per IP+fingerprint, even with their own key.
 // • Nothing is persisted to the database under any circumstance.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { GEMATRIA_CHAT_DIRECTIVE } from "../_shared/gematriaChatDirective.ts";
+
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
