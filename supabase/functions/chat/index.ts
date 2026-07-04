@@ -17,6 +17,7 @@ import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchite
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
 import { SYSTEM_TWO_FORCING_BRAIN } from "../_shared/systemTwoForcingBrain.ts";
 import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
+import { GEMATRIA_CHAT_DIRECTIVE } from "../_shared/gematriaChatDirective.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ══════════════════════════════════════════════════════════════════════════════
