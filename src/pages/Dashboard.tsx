@@ -1044,7 +1044,51 @@ const Dashboard = () => {
 
     // Algorithm mode removed — all chat runs through BYOK only.
 
+    // ── ZOSMA cryptanalytic trigger (admin-gated) ─────────────────────
+    // Detects natural-language directives like "zosma this: N=…" or "run LCO at 64-bit"
+    // and short-circuits the AI backend to run the real BigInt pipeline in-browser.
+    // Non-admin sessions never see this branch — same posture as the dashboard tab.
+    if (isAdminUser) {
+      try {
+        const { detectZosmaIntent } = await import("@/lib/zosma/detectIntent");
+        const intent = detectZosmaIntent(content);
+        if (intent) {
+          const { runZosmaCycle } = await import("@/lib/zosma/engine");
+          const { formatZosmaResult } = await import("@/lib/zosma/formatResult");
+          const result = await runZosmaCycle({
+            modulus: intent.modulus,
+            primeBits: intent.primeBits,
+            signal: controller.signal,
+          });
+          const body = formatZosmaResult(result);
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === convId
+                ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content: body } : m) }
+                : c
+            )
+          );
+          setIsStreaming(false);
+          isStreamingRef.current = false;
+          try {
+            const encryptedAssistant = await encryptText(body, user.id);
+            await supabase.from("messages").insert({
+              id: assistantId,
+              conversation_id: convId,
+              user_id: user.id,
+              role: "assistant",
+              content: encryptedAssistant,
+            });
+          } catch (e) { console.error("[zosma] persist failed", e); }
+          return;
+        }
+      } catch (e) {
+        console.error("[zosma] trigger failed, falling through to AI backend:", e);
+      }
+    }
+
     // ── CONSENSUS MODE ──────────────────────────────────────────────
+
     if (consensusEnabled && consensusModels.length >= 2) {
       try {
         const result = await fetchConsensus({
