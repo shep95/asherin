@@ -44,6 +44,9 @@ export default function GematriaTab() {
     setBusy(true);
     await save(trimmed);
     setBusy(false);
+    // Kick off same-cipher world lookups for every active cipher.
+    const all = computeAll(trimmed);
+    CIPHERS.forEach((c) => { if (activeCiphers[c]) world.fetchFor(c, all[c].sum); });
   };
 
   const copy = (v: number) => {
