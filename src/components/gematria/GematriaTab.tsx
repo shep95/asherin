@@ -149,7 +149,8 @@ export default function GematriaTab() {
                   <tr>
                     <th className="text-left px-4 py-2 font-normal">Cipher</th>
                     <th className="text-right px-4 py-2 font-normal">Sum</th>
-                    <th className="text-right px-4 py-2 font-normal">Reduced</th>
+                    <th className="text-right px-4 py-2 font-normal" title="One-pass digit sum (not fully reduced)">Step</th>
+                    <th className="text-right px-4 py-2 font-normal" title="Recursively reduced to single digit / master number">Reduced</th>
                     <th className="text-right px-4 py-2 font-normal">Matches</th>
                     <th className="px-2 py-2" />
                   </tr>
