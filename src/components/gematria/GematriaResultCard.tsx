@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Calculator, Check, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { computeAll, CIPHER_LABEL, normalize, type CipherKey } from "@/lib/gematria";
+import { findBundledMatches } from "@/lib/gematriaCorpus";
 import { useGematria } from "@/hooks/useGematria";
 
 const CIPHERS: CipherKey[] = ["ordinal", "reduction", "reverse", "chaldean"];
