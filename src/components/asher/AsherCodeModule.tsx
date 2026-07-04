@@ -3125,6 +3125,125 @@ export default function AsherCodeModule() {
 }
 
 // ── Sub-components ──────────────────────────────────────────────
+function ZipImportReviewDialog({
+  session,
+  currentBranchName,
+  importing,
+  onClose,
+  onActionChange,
+  onImportCurrent,
+  onImportNewBranch,
+}: {
+  session: ZipImportSession;
+  currentBranchName: string;
+  importing: boolean;
+  onClose: () => void;
+  onActionChange: (path: string, action: ZipImportAction) => void;
+  onImportCurrent: () => void;
+  onImportNewBranch: () => void;
+}) {
+  const createCount = session.entries.filter((entry) => entry.action === "create").length;
+  const overwriteCount = session.entries.filter((entry) => entry.action === "overwrite").length;
+  const skipCount = session.entries.filter((entry) => entry.action === "skip").length;
+  const rejectedCount = session.entries.filter((entry) => entry.action === "reject").length;
+  const importableCount = createCount + overwriteCount;
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-background/80 p-4 backdrop-blur-md">
+      <div className="flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border/20 bg-card/80 shadow-2xl backdrop-blur-xl">
+        <div className="flex items-start justify-between gap-4 border-b border-border/20 px-4 py-3">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-[10px] font-light uppercase tracking-[0.28em] text-muted-foreground/70">
+              <ShieldCheck className="h-3 w-3" /> ZIP Import Review
+            </p>
+            <h3 className="mt-1 truncate text-sm font-light tracking-wide text-foreground">{session.archiveName}</h3>
+          </div>
+          <button onClick={onClose} disabled={importing} className="text-muted-foreground hover:text-foreground disabled:opacity-40" aria-label="Close ZIP import review">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-px border-b border-border/20 bg-border/20 sm:grid-cols-5">
+          {[
+            ["Scanned", session.totalEntries],
+            ["Create", createCount],
+            ["Overwrite", overwriteCount],
+            ["Skipped", skipCount],
+            ["Rejected", rejectedCount],
+          ].map(([label, value]) => (
+            <div key={String(label)} className="bg-card/70 px-3 py-2">
+              <p className="text-[8px] font-light uppercase tracking-[0.22em] text-muted-foreground/60">{label}</p>
+              <p className="mt-1 text-sm font-extralight text-foreground">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-b border-border/20 px-4 py-2 text-[10px] font-light leading-relaxed text-muted-foreground/75">
+          Branch target: <span className="text-foreground/80">{currentBranchName}</span> · Text staged: {(session.acceptedBytes / 1024).toFixed(1)} KB · blocked paths, binary assets, secrets, oversized files, and traversal attempts stay out.
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <table className="w-full text-left text-[10px]">
+            <thead className="sticky top-0 bg-card/95 text-[8px] uppercase tracking-[0.2em] text-muted-foreground/60 backdrop-blur-md">
+              <tr className="border-b border-border/20">
+                <th className="px-3 py-2 font-light">Action</th>
+                <th className="px-3 py-2 font-light">Path</th>
+                <th className="hidden px-3 py-2 font-light sm:table-cell">Lang</th>
+                <th className="hidden px-3 py-2 font-light md:table-cell">Size</th>
+                <th className="px-3 py-2 font-light">Signal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {session.entries.map((entry, index) => {
+                const locked = entry.action === "reject";
+                return (
+                  <tr key={`${entry.path}-${index}`} className="border-b border-border/10 hover:bg-foreground/5">
+                    <td className="px-3 py-2 align-top">
+                      {locked ? (
+                        <span className="rounded border border-destructive/25 bg-destructive/10 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.16em] text-destructive/90">Reject</span>
+                      ) : (
+                        <select
+                          value={entry.action}
+                          onChange={(event) => onActionChange(entry.path, event.target.value as ZipImportAction)}
+                          disabled={importing}
+                          className="rounded border border-border/20 bg-background/70 px-1.5 py-1 text-[9px] uppercase tracking-[0.12em] text-foreground outline-none focus:border-foreground/40 disabled:opacity-40"
+                        >
+                          <option value="create">Create</option>
+                          <option value="overwrite">Overwrite</option>
+                          <option value="skip">Skip</option>
+                        </select>
+                      )}
+                    </td>
+                    <td className="max-w-[280px] break-all px-3 py-2 align-top font-mono text-foreground/85">{entry.path}</td>
+                    <td className="hidden px-3 py-2 align-top text-muted-foreground/70 sm:table-cell">{entry.language}</td>
+                    <td className="hidden px-3 py-2 align-top text-muted-foreground/70 md:table-cell">{entry.bytes ? `${(entry.bytes / 1024).toFixed(1)} KB` : "—"}</td>
+                    <td className="px-3 py-2 align-top text-muted-foreground/70">{entry.reason || entry.action}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex flex-col gap-2 border-t border-border/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[9px] font-light uppercase tracking-[0.18em] text-muted-foreground/60">
+            {importableCount} file{importableCount === 1 ? "" : "s"} armed for import
+          </p>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button onClick={onClose} disabled={importing} className="rounded-md border border-border/20 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] hover:bg-foreground/5 disabled:opacity-40">Cancel</button>
+            <button onClick={onImportCurrent} disabled={importing || importableCount === 0} className="inline-flex items-center gap-1.5 rounded-md border border-border/30 bg-card/50 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] hover:border-foreground/40 disabled:opacity-40">
+              {importing && <Loader2 className="h-3 w-3 animate-spin" />} Import Here
+            </button>
+            <button onClick={onImportNewBranch} disabled={importing || importableCount === 0} className="inline-flex items-center gap-1.5 rounded-md border border-foreground/25 bg-foreground/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-foreground hover:bg-foreground/15 disabled:opacity-40">
+              <GitBranch className="h-3 w-3" /> New Branch
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NewProjectDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string) => void }) {
   const [name, setName] = useState("");
   return (
