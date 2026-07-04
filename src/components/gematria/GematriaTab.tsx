@@ -388,8 +388,10 @@ export default function GematriaTab() {
                           </button>
                         </td>
                       </tr>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
+
                 </tbody>
               </table>
             </div>
