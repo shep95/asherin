@@ -29,6 +29,8 @@ import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useAccess } from "@/hooks/useAccess";
 import type { FileAttachment } from "./types";
 import ReactMarkdown from "react-markdown";
+import { parseChatGematria } from "@/lib/gematria/parseChatGematria";
+import GematriaResultCard from "@/components/gematria/GematriaResultCard";
 import { useNavigate } from "react-router-dom";
 import type { Conversation, ChatMode, Message } from "./types";
 import MessageStatusIndicator from "./MessageStatusIndicator";
