@@ -169,6 +169,12 @@ export default function GematriaTab() {
                         <tr key={c} className="border-t border-border/20">
                           <td className="px-4 py-2">{CIPHER_LABEL[c]}</td>
                           <td className="px-4 py-2 text-right font-mono">{r.sum}</td>
+                          <td
+                            className="px-4 py-2 text-right font-mono text-muted-foreground"
+                            title={r.sum > 9 ? `${String(r.sum).split("").join(" + ")} = ${r.step}` : "Already single digit"}
+                          >
+                            {r.step}
+                          </td>
                           <td className="px-4 py-2 text-right font-mono text-muted-foreground">{r.reduced}</td>
                           <td className="px-4 py-2 text-right font-mono text-muted-foreground">
                             {totalMatches}{worldLoading ? "…" : ""}
