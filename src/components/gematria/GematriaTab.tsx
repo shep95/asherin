@@ -149,7 +149,8 @@ export default function GematriaTab() {
                   <tr>
                     <th className="text-left px-4 py-2 font-normal">Cipher</th>
                     <th className="text-right px-4 py-2 font-normal">Sum</th>
-                    <th className="text-right px-4 py-2 font-normal">Reduced</th>
+                    <th className="text-right px-4 py-2 font-normal" title="One-pass digit sum (not fully reduced)">Step</th>
+                    <th className="text-right px-4 py-2 font-normal" title="Recursively reduced to single digit / master number">Reduced</th>
                     <th className="text-right px-4 py-2 font-normal">Matches</th>
                     <th className="px-2 py-2" />
                   </tr>
@@ -168,6 +169,12 @@ export default function GematriaTab() {
                         <tr key={c} className="border-t border-border/20">
                           <td className="px-4 py-2">{CIPHER_LABEL[c]}</td>
                           <td className="px-4 py-2 text-right font-mono">{r.sum}</td>
+                          <td
+                            className="px-4 py-2 text-right font-mono text-muted-foreground"
+                            title={r.sum > 9 ? `${String(r.sum).split("").join(" + ")} = ${r.step}` : "Already single digit"}
+                          >
+                            {r.step}
+                          </td>
                           <td className="px-4 py-2 text-right font-mono text-muted-foreground">{r.reduced}</td>
                           <td className="px-4 py-2 text-right font-mono text-muted-foreground">
                             {totalMatches}{worldLoading ? "…" : ""}
@@ -195,7 +202,7 @@ export default function GematriaTab() {
                         </tr>
                         {expanded[c] && (
                           <tr className="bg-foreground/[0.015]">
-                            <td colSpan={5} className="px-4 py-3 space-y-3">
+                            <td colSpan={6} className="px-4 py-3 space-y-3">
                               <div className="flex flex-wrap gap-1.5">
                                 {r.letters.map((l, i) => (
                                   <span
