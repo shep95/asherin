@@ -1,13 +1,15 @@
 // Compact inline gematria card rendered inside chat assistant bubbles.
 // Runs computeAll() locally, auto-persists via useGematria, and shows
-// cross-corpus matches. Save failures surface a retry affordance so the
-// chat never blocks on the DB.
+// cross-corpus matches from three sources: bundled seed corpus, operator's
+// personal corpus, and live world matches (Wikipedia + Datamuse). Save
+// failures surface a retry affordance so the chat never blocks on the DB.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Calculator, Check, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { Calculator, Check, AlertTriangle, ChevronDown, ChevronUp, Globe, BookMarked, User } from "lucide-react";
 import { computeAll, CIPHER_LABEL, normalize, type CipherKey } from "@/lib/gematria";
 import { findBundledMatches } from "@/lib/gematriaCorpus";
 import { useGematria } from "@/hooks/useGematria";
+import { useGematriaWorldMatches } from "@/hooks/useGematriaWorldMatches";
 
 const CIPHERS: CipherKey[] = ["ordinal", "reduction", "reverse", "chaldean"];
 
@@ -23,8 +25,9 @@ export default function GematriaResultCard({ phrase, source }: Props) {
   const normalized = useMemo(() => normalize(clean), [clean]);
   const results = useMemo(() => (normalized ? computeAll(clean) : null), [clean, normalized]);
   const { save, matchesFor } = useGematria();
+  const world = useGematriaWorldMatches(clean);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "ok" | "error">("idle");
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const savedRef = useRef<string>("");
 
   useEffect(() => {
@@ -35,6 +38,16 @@ export default function GematriaResultCard({ phrase, source }: Props) {
       setSaveState(row ? "ok" : "error");
     }).catch(() => setSaveState("error"));
   }, [normalized, clean, save]);
+
+  // Kick off same-cipher world lookups for every cipher once results exist.
+  useEffect(() => {
+    if (!results) return;
+    for (const c of CIPHERS) {
+      const v = results[c].sum;
+      if (v > 0) world.fetchFor(c, v);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalized]);
 
   if (!normalized || !results) return null;
 
@@ -81,19 +94,19 @@ export default function GematriaResultCard({ phrase, source }: Props) {
             const r = results[c];
             const personal = matchesFor(c, r.sum, normalized);
             const bundled = findBundledMatches(c, r.sum, normalized, 20);
-            const combined = [
-              ...bundled.map((b) => `${b.phrase} (${b.category})`),
-              ...personal.map((p) => p.phrase),
-            ];
-            const total = combined.length;
+            const worldMatches = world.byCipher[c]?.matches ?? [];
+            const total = bundled.length + personal.length + worldMatches.length;
+            const isLoading = world.loading[c];
             return (
               <tr key={c} className="border-t border-border/15">
                 <td className="px-3 py-1.5 text-xs">{CIPHER_LABEL[c]}</td>
                 <td className="px-3 py-1.5 text-right font-mono text-sm">{r.sum}</td>
                 <td className="px-3 py-1.5 text-right font-mono text-xs text-muted-foreground">{r.reduced}</td>
                 <td className="px-3 py-1.5 text-right font-mono text-xs text-muted-foreground">
-                  {total > 0 ? (
-                    <span title={combined.slice(0, 12).join(", ")}>{total}</span>
+                  {isLoading && total === 0 ? (
+                    <span className="text-muted-foreground/60">…</span>
+                  ) : total > 0 ? (
+                    <span className="text-amber-400/90">{total}</span>
                   ) : "—"}
                 </td>
               </tr>
@@ -107,17 +120,24 @@ export default function GematriaResultCard({ phrase, source }: Props) {
         className="w-full flex items-center justify-center gap-1 px-3 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground border-t border-border/15"
       >
         {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-        {expanded ? "Hide breakdown" : "Per-letter breakdown"}
+        {expanded ? "Hide matches & breakdown" : "Show matches & breakdown"}
       </button>
       {expanded && (
-        <div className="px-3 py-2 border-t border-border/15 space-y-2">
+        <div className="px-3 py-2 border-t border-border/15 space-y-3">
           {CIPHERS.map((c) => {
             const r = results[c];
-            const bundled = findBundledMatches(c, r.sum, normalized, 20);
+            const bundled = findBundledMatches(c, r.sum, normalized, 40);
+            const personal = matchesFor(c, r.sum, normalized);
+            const worldMatches = world.byCipher[c]?.matches ?? [];
+            const isLoading = world.loading[c];
+            const hasAny = bundled.length + personal.length + worldMatches.length > 0;
             return (
-              <div key={c}>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">
-                  {CIPHER_LABEL[c]} · {r.sum}
+              <div key={c} className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                    {CIPHER_LABEL[c]} · <span className="font-mono text-foreground">{r.sum}</span>
+                  </div>
+                  {isLoading && <span className="text-[9px] text-muted-foreground/60">world lookup…</span>}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {r.letters.map((l, i) => (
@@ -131,16 +151,61 @@ export default function GematriaResultCard({ phrase, source }: Props) {
                   ))}
                 </div>
                 {bundled.length > 0 && (
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {bundled.slice(0, 12).map((b, i) => (
-                      <span
-                        key={i}
-                        className="rounded border border-border/25 bg-background px-1.5 py-0.5 text-[10px]"
-                        title={b.category}
-                      >
-                        {b.phrase}
-                      </span>
-                    ))}
+                  <div>
+                    <div className="flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 mb-1">
+                      <BookMarked className="h-2.5 w-2.5" strokeWidth={1.5} /> Bundled ({bundled.length})
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {bundled.slice(0, 20).map((b, i) => (
+                        <span
+                          key={i}
+                          className="rounded border border-amber-400/30 bg-amber-400/[0.06] px-1.5 py-0.5 text-[10px] text-amber-300/90"
+                          title={b.category}
+                        >
+                          {b.phrase}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {worldMatches.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 mb-1">
+                      <Globe className="h-2.5 w-2.5" strokeWidth={1.5} /> World ({worldMatches.length})
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {worldMatches.slice(0, 30).map((w, i) => (
+                        <span
+                          key={i}
+                          className="rounded border border-sky-400/25 bg-sky-400/[0.05] px-1.5 py-0.5 text-[10px] text-sky-200/90"
+                          title={w.source}
+                        >
+                          {w.phrase}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {personal.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70 mb-1">
+                      <User className="h-2.5 w-2.5" strokeWidth={1.5} /> Your Corpus ({personal.length})
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {personal.slice(0, 20).map((p, i) => (
+                        <span
+                          key={i}
+                          className="rounded border border-emerald-400/25 bg-emerald-400/[0.05] px-1.5 py-0.5 text-[10px] text-emerald-200/90"
+                        >
+                          {p.phrase}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {!hasAny && !isLoading && (
+                  <div className="text-[10px] text-muted-foreground/60 italic">
+                    No same-cipher matches found in bundled, world, or personal corpus.
                   </div>
                 )}
               </div>
