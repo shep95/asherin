@@ -324,19 +324,41 @@ export default function GematriaTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCorpus.map((e) => {
-                    // Same-cipher match against the currently submitted phrase.
-                    // Highlight the whole row in gold when ANY active cipher value
-                    // agrees, and gild the specific cell(s) that matched.
-                    const hits = results ? CIPHERS.filter(
-                      (c) => activeCiphers[c] &&
-                        e.normalized !== submittedNormalized &&
-                        (e[COLUMN_FOR[c]] as number) === results[c].sum,
-                    ) : [];
-                    const isMatch = hits.length > 0;
-                    const cellGold = (c: CipherKey) =>
-                      hits.includes(c) ? "text-amber-300 font-medium" : "";
-                    return (
+                  {(() => {
+                    // Build per-cipher value → count index across the entire saved corpus.
+                    // Any value appearing on 2+ rows is a "shared value" and both rows
+                    // should be gilded. Also fold in the currently-submitted phrase's
+                    // values so a fresh calculation immediately gilds its twins.
+                    const valueCount: Record<CipherKey, Map<number, number>> = {
+                      ordinal: new Map(), reduction: new Map(),
+                      reverse: new Map(), chaldean: new Map(),
+                    };
+                    const bump = (c: CipherKey, v: number) =>
+                      valueCount[c].set(v, (valueCount[c].get(v) ?? 0) + 1);
+                    for (const row of entries) {
+                      bump("ordinal", row.ordinal);
+                      bump("reduction", row.reduction);
+                      bump("reverse", row.reverse_ordinal);
+                      bump("chaldean", row.chaldean);
+                    }
+                    if (results) {
+                      // Submitted phrase already appears in entries (auto-save),
+                      // so don't double-count it.
+                    }
+                    return filteredCorpus.map((e) => {
+                      const hits = CIPHERS.filter((c) => {
+                        if (!activeCiphers[c]) return false;
+                        const col = COLUMN_FOR[c];
+                        const v = e[col] as number;
+                        // Match if another corpus row shares this value…
+                        if ((valueCount[c].get(v) ?? 0) > 1) return true;
+                        // …or if it matches the currently-submitted phrase.
+                        if (results && e.normalized !== submittedNormalized && results[c].sum === v) return true;
+                        return false;
+                      });
+                      const isMatch = hits.length > 0;
+                      const gold = (c: CipherKey) => hits.includes(c) ? "text-amber-300 font-medium" : "text-muted-foreground";
+                      return (
                       <tr
                         key={e.id}
                         className={
@@ -350,10 +372,11 @@ export default function GematriaTab() {
                           {isMatch && <span className="mr-1 text-amber-300">◈</span>}
                           <span className={isMatch ? "text-amber-100" : ""}>{e.phrase}</span>
                         </td>
-                        <td className={`px-3 py-2 text-right font-mono ${cellGold("ordinal")}`}>{e.ordinal}</td>
-                        <td className={`px-3 py-2 text-right font-mono ${hits.includes("reduction") ? "text-amber-300 font-medium" : "text-muted-foreground"}`}>{e.reduction}</td>
-                        <td className={`px-3 py-2 text-right font-mono ${hits.includes("reverse") ? "text-amber-300 font-medium" : "text-muted-foreground"}`}>{e.reverse_ordinal}</td>
-                        <td className={`px-3 py-2 text-right font-mono ${hits.includes("chaldean") ? "text-amber-300 font-medium" : "text-muted-foreground"}`}>{e.chaldean}</td>
+                        <td className={`px-3 py-2 text-right font-mono ${gold("ordinal")}`}>{e.ordinal}</td>
+                        <td className={`px-3 py-2 text-right font-mono ${gold("reduction")}`}>{e.reduction}</td>
+                        <td className={`px-3 py-2 text-right font-mono ${gold("reverse")}`}>{e.reverse_ordinal}</td>
+                        <td className={`px-3 py-2 text-right font-mono ${gold("chaldean")}`}>{e.chaldean}</td>
+
                         <td className="px-2 py-2 text-right">
                           <button
                             type="button"
@@ -365,8 +388,10 @@ export default function GematriaTab() {
                           </button>
                         </td>
                       </tr>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
+
                 </tbody>
               </table>
             </div>
