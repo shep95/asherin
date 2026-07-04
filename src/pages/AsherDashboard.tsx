@@ -250,6 +250,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "zali",      label: "ZANOEM Design",     icon: Wrench,   sub: "Live" },
     { id: "whiteboard",label: "Whiteboard",      icon: PenSquare, sub: "Live" },
     { id: "notebooks", label: "Notebooks",       icon: NotebookPen, sub: "Live" },
+    { id: "gematria",  label: "Gematria",        icon: Calculator, sub: "Live" },
     { id: "vedic",     label: "Vedic Strategy",  icon: Moon,      sub: "Sidereal" },
     { id: "__automation" as AsherTab, label: "Automation", icon: Package, children: [
       { id: "zahten",  label: "Zahten Agents",   icon: Workflow,  sub: "Builder" },
