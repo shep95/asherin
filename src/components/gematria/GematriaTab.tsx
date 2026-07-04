@@ -324,25 +324,49 @@ export default function GematriaTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCorpus.map((e) => (
-                    <tr key={e.id} className="border-t border-border/20 hover:bg-foreground/[0.02]">
-                      <td className="px-3 py-2 truncate max-w-[280px]" title={e.phrase}>{e.phrase}</td>
-                      <td className="px-3 py-2 text-right font-mono">{e.ordinal}</td>
-                      <td className="px-3 py-2 text-right font-mono text-muted-foreground">{e.reduction}</td>
-                      <td className="px-3 py-2 text-right font-mono text-muted-foreground">{e.reverse_ordinal}</td>
-                      <td className="px-3 py-2 text-right font-mono text-muted-foreground">{e.chaldean}</td>
-                      <td className="px-2 py-2 text-right">
-                        <button
-                          type="button"
-                          onClick={() => remove(e.id)}
-                          className="p-1 text-muted-foreground hover:text-red-400"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredCorpus.map((e) => {
+                    // Same-cipher match against the currently submitted phrase.
+                    // Highlight the whole row in gold when ANY active cipher value
+                    // agrees, and gild the specific cell(s) that matched.
+                    const hits = results ? CIPHERS.filter(
+                      (c) => activeCiphers[c] &&
+                        e.normalized !== submittedNormalized &&
+                        (e[COLUMN_FOR[c]] as number) === results[c].sum,
+                    ) : [];
+                    const isMatch = hits.length > 0;
+                    const cellGold = (c: CipherKey) =>
+                      hits.includes(c) ? "text-amber-300 font-medium" : "";
+                    return (
+                      <tr
+                        key={e.id}
+                        className={
+                          isMatch
+                            ? "border-t border-amber-400/40 bg-amber-400/[0.08] hover:bg-amber-400/[0.12]"
+                            : "border-t border-border/20 hover:bg-foreground/[0.02]"
+                        }
+                        title={isMatch ? `Same-cipher match: ${hits.map((c) => CIPHER_LABEL[c]).join(", ")}` : undefined}
+                      >
+                        <td className="px-3 py-2 truncate max-w-[280px]" title={e.phrase}>
+                          {isMatch && <span className="mr-1 text-amber-300">◈</span>}
+                          <span className={isMatch ? "text-amber-100" : ""}>{e.phrase}</span>
+                        </td>
+                        <td className={`px-3 py-2 text-right font-mono ${cellGold("ordinal")}`}>{e.ordinal}</td>
+                        <td className={`px-3 py-2 text-right font-mono ${hits.includes("reduction") ? "text-amber-300 font-medium" : "text-muted-foreground"}`}>{e.reduction}</td>
+                        <td className={`px-3 py-2 text-right font-mono ${hits.includes("reverse") ? "text-amber-300 font-medium" : "text-muted-foreground"}`}>{e.reverse_ordinal}</td>
+                        <td className={`px-3 py-2 text-right font-mono ${hits.includes("chaldean") ? "text-amber-300 font-medium" : "text-muted-foreground"}`}>{e.chaldean}</td>
+                        <td className="px-2 py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => remove(e.id)}
+                            className="p-1 text-muted-foreground hover:text-red-400"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
