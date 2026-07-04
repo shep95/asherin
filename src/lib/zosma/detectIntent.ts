@@ -73,6 +73,22 @@ export function detectZosmaIntent(text: string): ZosmaIntent | null {
     if (n >= 16 && n <= 64) primeBits = n;
   }
 
-  return { modulus, primeBits, url, raw: text.trim() };
+  // Weak-key batch directive — "zosma weak-key scan a.com b.com …" (≤50 hosts).
+  let hosts: string[] | undefined;
+  if (WEAK_KEY_RE.test(stripped)) {
+    const found = new Set<string>();
+    // Pull hostnames from bare tokens and from any URLs already parsed.
+    const urlHosts = Array.from(stripped.matchAll(/\bhttps?:\/\/([^\s/<>"')]+)/gi)).map(m => m[1]);
+    for (const h of urlHosts) found.add(h.toLowerCase());
+    const bare = stripped.match(HOSTNAME_RE) ?? [];
+    for (const h of bare) found.add(h.toLowerCase());
+    hosts = Array.from(found)
+      .filter(h => !PRIVATE_HOST_RE.test(h))
+      .filter(h => /^[a-z0-9.\-]+$/i.test(h))
+      .slice(0, 50);
+    if (hosts.length === 0) hosts = undefined;
+  }
+
+  return { modulus, primeBits, url, hosts, raw: text.trim() };
 }
 
