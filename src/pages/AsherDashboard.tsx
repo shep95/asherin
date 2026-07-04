@@ -6,7 +6,7 @@ import {
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
   Building2, Wrench, PenSquare, Activity, NotebookPen, Code2, Package, Moon,
-  BrainCircuit, BarChart3, Workflow, Bot, Loader2,
+  BrainCircuit, BarChart3, Workflow, Bot, Loader2, Calculator,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,7 @@ const AsherBrainsModule       = lazy(() => import("@/components/asher/AsherBrain
 const AsherAureonDataModule   = lazy(() => import("@/components/asher/AsherAureonDataModule"));
 const AsherZahtenModule       = lazy(() => import("@/components/asher/AsherZahtenModule"));
 const AsherZacoonModule       = lazy(() => import("@/components/asher/AsherZacoonModule"));
+const GematriaTab             = lazy(() => import("@/components/gematria/GematriaTab"));
 
 
 import { isSuperOwner } from "@/lib/asherOrgs";
@@ -218,7 +219,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 type AsherTab =
   | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "axrlen" | "notebooks" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
-  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains" | "aureondata"
+  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains" | "aureondata" | "gematria"
   | string; // allow dynamic published-tab ids: `pub:<uuid>`
 
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string; children?: NavItem[] }
@@ -249,6 +250,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "zali",      label: "ZANOEM Design",     icon: Wrench,   sub: "Live" },
     { id: "whiteboard",label: "Whiteboard",      icon: PenSquare, sub: "Live" },
     { id: "notebooks", label: "Notebooks",       icon: NotebookPen, sub: "Live" },
+    { id: "gematria",  label: "Gematria",        icon: Calculator, sub: "Live" },
     { id: "vedic",     label: "Vedic Strategy",  icon: Moon,      sub: "Sidereal" },
     { id: "__automation" as AsherTab, label: "Automation", icon: Package, children: [
       { id: "zahten",  label: "Zahten Agents",   icon: Workflow,  sub: "Builder" },
@@ -508,6 +510,7 @@ const AsherDashboard = () => {
             {/* Vedic Strategy renders as a popout dialog below */}
             {active === "zahten"    && <AsherZahtenModule />}
             {active === "zacoon"    && <AsherZacoonModule />}
+            {active === "gematria"  && <GematriaTab />}
 
             {active === "targets"   && <AsherSavedTargets />}
             {active === "comms"     && <AsherCommsModule />}

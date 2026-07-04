@@ -4103,6 +4103,42 @@ export type Database = {
           },
         ]
       }
+      gematria_entries: {
+        Row: {
+          chaldean: number
+          created_at: string
+          id: string
+          normalized: string
+          ordinal: number
+          phrase: string
+          reduction: number
+          reverse_ordinal: number
+          user_id: string
+        }
+        Insert: {
+          chaldean: number
+          created_at?: string
+          id?: string
+          normalized: string
+          ordinal: number
+          phrase: string
+          reduction: number
+          reverse_ordinal: number
+          user_id: string
+        }
+        Update: {
+          chaldean?: number
+          created_at?: string
+          id?: string
+          normalized?: string
+          ordinal?: number
+          phrase?: string
+          reduction?: number
+          reverse_ordinal?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       gift_purchases: {
         Row: {
           addons: Json | null
