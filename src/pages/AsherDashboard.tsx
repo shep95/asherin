@@ -37,6 +37,7 @@ const AsherBrainsModule       = lazy(() => import("@/components/asher/AsherBrain
 const AsherAureonDataModule   = lazy(() => import("@/components/asher/AsherAureonDataModule"));
 const AsherZahtenModule       = lazy(() => import("@/components/asher/AsherZahtenModule"));
 const AsherZacoonModule       = lazy(() => import("@/components/asher/AsherZacoonModule"));
+const GematriaTab             = lazy(() => import("@/components/gematria/GematriaTab"));
 
 
 import { isSuperOwner } from "@/lib/asherOrgs";
