@@ -2461,6 +2461,10 @@ export default function AsherCodeModule() {
           <button onClick={runPreview} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Play className="h-3 w-3" /> <span className="hidden sm:inline">Run</span></button>
           <button onClick={() => setShowPublish(true)} className="inline-flex items-center gap-1 rounded-md border border-foreground/20 bg-foreground/5 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-foreground/80 hover:bg-foreground/10"><Upload className="h-3 w-3" /> <span className="hidden sm:inline">Publish</span></button>
           <button onClick={downloadProjectZip} title="Download current branch as .zip" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30" aria-label="Download current branch as .zip"><Download className="h-3 w-3" /> <span className="hidden sm:inline">ZIP</span></button>
+          <input ref={zipImportInputRef} type="file" accept=".zip,application/zip" onChange={handleZipImportSelect} className="hidden" />
+          <button onClick={() => zipImportInputRef.current?.click()} disabled={zipImporting} title="Import a ZIP into the current branch or stage it as a new branch" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40" aria-label="Import ZIP into branch">
+            {zipImporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileArchive className="h-3 w-3" />} <span className="hidden md:inline">Import</span>
+          </button>
           <button onClick={() => setShowDevOps(s => !s)} className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase ${showDevOps ? "border-foreground/40 bg-foreground/15" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}><Wrench className="h-3 w-3" /> <span className="hidden md:inline">DevOps</span></button>
           <button onClick={() => setShowGit(true)} title="Clone, commit & push to GitHub" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><GitBranch className="h-3 w-3" /> <span className="hidden md:inline">GitHub</span></button>
           <button onClick={() => setTemplateOpen(true)} title="Scaffold from natural language" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><Wand2 className="h-3 w-3" /></button>
@@ -2973,6 +2977,17 @@ export default function AsherCodeModule() {
       />
 
 
+      {zipImportSession && (
+        <ZipImportReviewDialog
+          session={zipImportSession}
+          currentBranchName={activeBranchId ? branches.find((branch) => branch.id === activeBranchId)?.name || "branch" : "main"}
+          importing={zipImporting}
+          onClose={() => setZipImportSession(null)}
+          onActionChange={updateZipImportAction}
+          onImportCurrent={importZipToCurrentBranch}
+          onImportNewBranch={importZipToNewBranch}
+        />
+      )}
       {showSettings && <BYOKSettings onClose={() => setShowSettings(false)} provider={provider} model={model} apiKey={apiKey} setProvider={setProvider} setModel={setModel} setApiKey={setApiKey} />}
       {showPublish && <PublishDialog onClose={() => setShowPublish(false)} onPublish={publishAsTab} defaultName={activeProject.name} />}
       {editPlan && (
