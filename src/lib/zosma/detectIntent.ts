@@ -33,6 +33,16 @@ export function detectZosmaIntent(text: string): ZosmaIntent | null {
   if (!ANCHOR_RE.test(stripped)) return null;
   if (!VERB_RE.test(stripped)) return null;
 
+  // URL directive — "zosma url https://…" or any https URL alongside a zosma verb.
+  let url: string | undefined;
+  const urlMatch = stripped.match(/\bhttps?:\/\/[^\s<>"')]+/i);
+  if (urlMatch) {
+    try {
+      const u = new URL(urlMatch[0]);
+      if (u.protocol === "https:" || u.protocol === "http:") url = u.toString();
+    } catch { /* ignore */ }
+  }
+
   let modulus: bigint | undefined;
   const hex = stripped.match(HEX_MODULUS_RE);
   if (hex) {
@@ -56,5 +66,6 @@ export function detectZosmaIntent(text: string): ZosmaIntent | null {
     if (n >= 16 && n <= 64) primeBits = n;
   }
 
-  return { modulus, primeBits, raw: text.trim() };
+  return { modulus, primeBits, url, raw: text.trim() };
 }
+
