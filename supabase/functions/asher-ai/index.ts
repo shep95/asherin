@@ -37,6 +37,7 @@ CAPABILITIES (call tools — do not describe them as text):
 - temporal_recon(area, criteria, landmark?, radiusKm?, startYear?, endYear?, stride?): MULTI-YEAR scan. Pulls historical satellite imagery for several years (Esri Wayback 2014+, NASA GIBS Landsat for older years) and runs Gemini vision on each. Returns per-year frames + clustered TRACKS with first_seen / last_seen / years_present so the operator can see WHEN a feature appeared, persisted, or disappeared. Use this whenever the operator asks about history, "since when", "how long has X been there", change detection, or wants a TIMELINE of a place. Defaults: startYear=2014, endYear=now, stride=2.
 - generate_image(prompt): render a tactical visualization or sketch
 - set_base_layer(layer): switch base map ("street" | "satellite" | "topo" | "dark")
+- gematria_calculate(phrase, note?): compute the four-cipher gematria (Ordinal, Full Reduction, Reverse Ordinal, Chaldean) for a word/phrase and auto-save to the operator's corpus. CALL THIS whenever the operator asks for the gematria / numeric value / ordinal / reduced value of a word or phrase, or asks you to compare/match phrases numerically. Never compute cipher values in prose — always call this tool. Emit one call per phrase.
 
 When the operator asks anything about a property/site/building/owner/history/tenants/value, ALWAYS call property_intel first to ground your answer in live scraped sources before responding.
 
