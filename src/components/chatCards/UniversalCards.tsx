@@ -68,7 +68,7 @@ function normSources(v: unknown): Citation[] {
 // ────────────────────────────── shell ──────────────────────────────
 
 interface ShellProps {
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  icon: React.ComponentType<any>;
   label: string;
   title?: string;
   sources?: Citation[];
