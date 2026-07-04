@@ -219,7 +219,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 type AsherTab =
   | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "axrlen" | "notebooks" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
-  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains" | "aureondata"
+  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains" | "aureondata" | "gematria"
   | string; // allow dynamic published-tab ids: `pub:<uuid>`
 
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string; children?: NavItem[] }
