@@ -17,7 +17,21 @@
 //  - Max payload size guard (8 KB) blocks accidental prompt-injection of huge
 //    blobs into the render layer.
 
-export type CardType = "gematria" | "gematria-compare" | "number-lookup";
+export type CardType =
+  // Gematria family (domain-specific)
+  | "gematria"
+  | "gematria-compare"
+  | "number-lookup"
+  // Universal shape-based cards
+  | "info"
+  | "entity"
+  | "timeline"
+  | "comparison"
+  | "stat"
+  | "quote"
+  | "sources"
+  | "list"
+  | "warning";
 
 export interface CardSegment {
   type: "card";
@@ -35,11 +49,22 @@ export interface TextSegment {
 
 export type ChatSegment = TextSegment | CardSegment | UnknownCardSegment;
 
-const MAX_PAYLOAD_BYTES = 8 * 1024;
+// Payload guard is generous: universal cards may carry markdown descriptions
+// and long timelines, so raise the ceiling from 8 KB → 32 KB.
+const MAX_PAYLOAD_BYTES = 32 * 1024;
 const KNOWN: ReadonlySet<CardType> = new Set([
   "gematria",
   "gematria-compare",
   "number-lookup",
+  "info",
+  "entity",
+  "timeline",
+  "comparison",
+  "stat",
+  "quote",
+  "sources",
+  "list",
+  "warning",
 ]);
 
 /** Split assistant `content` into ordered text / card segments. */
