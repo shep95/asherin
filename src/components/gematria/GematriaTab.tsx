@@ -1,7 +1,9 @@
-import { useMemo, useState, type FormEvent } from "react";
-import { Calculator, Trash2, Copy, Download, Info } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Calculator, Trash2, Copy, Download, Info, Globe } from "lucide-react";
 import { computeAll, CIPHER_LABEL, normalize, type CipherKey } from "@/lib/gematria";
+import { findBundledMatches, CORPUS_SIZE } from "@/lib/gematriaCorpus";
 import { useGematria, type GematriaEntry } from "@/hooks/useGematria";
+import { useGematriaWorldMatches } from "@/hooks/useGematriaWorldMatches";
 
 const CIPHERS: CipherKey[] = ["ordinal", "reduction", "reverse", "chaldean"];
 const COLUMN_FOR: Record<CipherKey, keyof GematriaEntry> = {
@@ -13,6 +15,8 @@ const COLUMN_FOR: Record<CipherKey, keyof GematriaEntry> = {
 
 export default function GematriaTab() {
   const { entries, loading, error, save, remove, matchesFor } = useGematria();
+  const [submitted, setSubmitted] = useState("");
+  const world = useGematriaWorldMatches(submitted);
   const [text, setText] = useState("");
   const [submitted, setSubmitted] = useState("");
   const [activeCiphers, setActiveCiphers] = useState<Record<CipherKey, boolean>>({
