@@ -1055,12 +1055,40 @@ const Dashboard = () => {
         if (intent) {
           const { runZosmaCycle } = await import("@/lib/zosma/engine");
           const { formatZosmaResult } = await import("@/lib/zosma/formatResult");
-          const result = await runZosmaCycle({
-            modulus: intent.modulus,
-            primeBits: intent.primeBits,
-            signal: controller.signal,
-          });
-          const body = formatZosmaResult(result);
+
+          let body: string;
+
+          // ── URL branch: fetch peer cert via edge fn, then decide tractability.
+          if (intent.url) {
+            const { formatZosmaCertDossier, ZOSMA_TRACTABLE_BITS } = await import("@/lib/zosma/formatCertDossier");
+            const { data: certReport, error: certErr } = await supabase.functions.invoke("zosma-cert-inspect", { body: { url: intent.url } });
+            if (certErr || !certReport) {
+              body = `## ◈ ZOSMA — TLS Certificate Dossier\n\n**Target:** \`${intent.url}\`\n\n**Verdict:** cert inspector unavailable.\n\n\`${certErr?.message ?? "no report returned"}\``;
+            } else {
+              const dossier = formatZosmaCertDossier(certReport, intent.url);
+              // Only attempt the cycle when the cert is RSA and within the browser window.
+              if (certReport.ok && certReport.pubkey_algo === "RSA" && certReport.modulus_hex && certReport.bit_length && certReport.bit_length <= ZOSMA_TRACTABLE_BITS) {
+                try {
+                  const N = BigInt("0x" + certReport.modulus_hex);
+                  const cycle = await runZosmaCycle({ modulus: N, signal: controller.signal });
+                  body = `${dossier}\n\n---\n\n${formatZosmaResult(cycle)}`;
+                } catch (e) {
+                  body = `${dossier}\n\n---\n\n**Cycle failed:** \`${e instanceof Error ? e.message : String(e)}\``;
+                }
+              } else {
+                body = dossier;
+              }
+            }
+          } else {
+            // ── Original branch: synthesized or operator-pasted modulus.
+            const result = await runZosmaCycle({
+              modulus: intent.modulus,
+              primeBits: intent.primeBits,
+              signal: controller.signal,
+            });
+            body = formatZosmaResult(result);
+          }
+
           setConversations((prev) =>
             prev.map((c) =>
               c.id === convId
@@ -1082,6 +1110,7 @@ const Dashboard = () => {
           } catch (e) { console.error("[zosma] persist failed", e); }
           return;
         }
+
       } catch (e) {
         console.error("[zosma] trigger failed, falling through to AI backend:", e);
       }
