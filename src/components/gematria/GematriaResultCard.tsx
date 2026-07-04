@@ -79,17 +79,21 @@ export default function GematriaResultCard({ phrase, source }: Props) {
         <tbody>
           {CIPHERS.map((c) => {
             const r = results[c];
-            const matches = matchesFor(c, r.sum, normalized);
+            const personal = matchesFor(c, r.sum, normalized);
+            const bundled = findBundledMatches(c, r.sum, normalized, 20);
+            const combined = [
+              ...bundled.map((b) => `${b.phrase} (${b.category})`),
+              ...personal.map((p) => p.phrase),
+            ];
+            const total = combined.length;
             return (
               <tr key={c} className="border-t border-border/15">
                 <td className="px-3 py-1.5 text-xs">{CIPHER_LABEL[c]}</td>
                 <td className="px-3 py-1.5 text-right font-mono text-sm">{r.sum}</td>
                 <td className="px-3 py-1.5 text-right font-mono text-xs text-muted-foreground">{r.reduced}</td>
                 <td className="px-3 py-1.5 text-right font-mono text-xs text-muted-foreground">
-                  {matches.length > 0 ? (
-                    <span title={matches.slice(0, 6).map((m) => m.phrase).join(", ")}>
-                      {matches.length}
-                    </span>
+                  {total > 0 ? (
+                    <span title={combined.slice(0, 12).join(", ")}>{total}</span>
                   ) : "—"}
                 </td>
               </tr>
