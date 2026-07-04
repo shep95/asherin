@@ -5,7 +5,7 @@ import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap, Columns2,
-  History, Stethoscope, GitBranch, Download, ArrowDown, Network, GitCommit, Clock, ChevronDown,
+  History, Stethoscope, GitBranch, Download, ArrowDown, Network, GitCommit, Clock, ChevronDown, ShieldCheck,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import AsherGitDrawer from "./AsherGitDrawer";
@@ -53,6 +53,145 @@ import { enqueue as zqEnqueue, registerHandler as zqRegister, startQueueWorker a
 import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
+
+type ZipImportAction = "create" | "overwrite" | "skip" | "reject";
+type ZipImportEntry = {
+  path: string;
+  content: string;
+  language: string;
+  bytes: number;
+  action: ZipImportAction;
+  reason?: string;
+};
+type ZipImportSession = {
+  archiveName: string;
+  entries: ZipImportEntry[];
+  totalEntries: number;
+  acceptedBytes: number;
+};
+
+const ZIP_IMPORT_MAX_ARCHIVE_BYTES = 20 * 1024 * 1024;
+const ZIP_IMPORT_MAX_FILES = 150;
+const ZIP_IMPORT_MAX_ENTRY_BYTES = 512 * 1024;
+const ZIP_IMPORT_MAX_TOTAL_TEXT_BYTES = 3 * 1024 * 1024;
+const ZIP_IMPORT_BLOCKED_DIRS = new Set([".git", "node_modules", "dist", "build", ".next", ".cache", "coverage"]);
+const ZIP_IMPORT_BLOCKED_FILES = new Set([".env", ".env.local", ".env.production", ".npmrc", ".yarnrc", "id_rsa", "id_dsa"]);
+const ZIP_IMPORT_BINARY_EXTENSIONS = new Set([
+  "png", "jpg", "jpeg", "gif", "webp", "ico", "bmp", "avif", "heic", "pdf", "zip", "rar", "7z", "tar", "gz", "bz2",
+  "exe", "dll", "so", "dylib", "bin", "class", "jar", "wasm", "mp3", "mp4", "mov", "avi", "wav", "ogg", "ttf", "otf", "woff", "woff2",
+]);
+
+function languageForPath(path: string): string {
+  const ext = path.split(".").pop()?.toLowerCase() || "";
+  return ({
+    js: "javascript", mjs: "javascript", cjs: "javascript", jsx: "javascript",
+    ts: "typescript", tsx: "typescript", py: "python", html: "html", htm: "html",
+    css: "css", scss: "scss", json: "json", md: "markdown", mdx: "markdown",
+    sh: "shell", bash: "shell", yml: "yaml", yaml: "yaml", toml: "toml",
+    sql: "sql", go: "go", rs: "rust", java: "java", rb: "ruby", php: "php",
+    txt: "plaintext", gitignore: "plaintext",
+  } as Record<string, string>)[ext] || "plaintext";
+}
+
+function sanitizeZipPath(rawName: string): { path: string | null; reason?: string } {
+  const normalized = rawName.replace(/\\/g, "/").replace(/^\/+/, "").replace(/^\.\//, "").trim();
+  if (!normalized) return { path: null, reason: "empty path" };
+  if (normalized.length > 220) return { path: null, reason: "path too long" };
+  if (normalized.includes("\0") || /[\u0000-\u001f]/.test(normalized)) return { path: null, reason: "control character" };
+  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith("~")) return { path: null, reason: "absolute path" };
+  const parts = normalized.split("/").filter(Boolean);
+  if (parts.some((part) => part === ".." || part === ".")) return { path: null, reason: "path traversal" };
+  if (parts.some((part) => ZIP_IMPORT_BLOCKED_DIRS.has(part))) return { path: null, reason: "blocked system folder" };
+  const fileName = parts[parts.length - 1]?.toLowerCase();
+  if (!fileName) return { path: null, reason: "folder entry" };
+  if (ZIP_IMPORT_BLOCKED_FILES.has(fileName) || fileName.startsWith(".env.")) return { path: null, reason: "secret file blocked" };
+  const ext = fileName.split(".").pop() || "";
+  if (ZIP_IMPORT_BINARY_EXTENSIONS.has(ext)) return { path: null, reason: "binary asset skipped" };
+  return { path: parts.join("/") };
+}
+
+function isValidBranchName(name: string): boolean {
+  return /^(?!\/)(?!.*\.\.)(?!.*\/\/)[A-Za-z0-9._/-]{1,80}$/.test(name) && !name.endsWith("/") && !name.endsWith(".lock");
+}
+
+async function parseZipImport(file: File, currentFiles: AsherCodeFile[]): Promise<ZipImportSession> {
+  if (file.size > ZIP_IMPORT_MAX_ARCHIVE_BYTES) {
+    throw new Error(`${file.name} exceeds the 20MB ZIP import limit`);
+  }
+  const zip = await JSZip.loadAsync(file);
+  const zipEntries = Object.values(zip.files);
+  const existingPaths = new Set(currentFiles.map((f) => f.path));
+  const seenPaths = new Set<string>();
+  const entries: ZipImportEntry[] = [];
+  let acceptedBytes = 0;
+
+  for (const entry of zipEntries) {
+    if (entry.dir) continue;
+    const { path, reason } = sanitizeZipPath(entry.name);
+    if (!path) {
+      entries.push({ path: entry.name, content: "", language: "plaintext", bytes: 0, action: "reject", reason });
+      continue;
+    }
+    const declaredSize = Number((entry as any)?._data?.uncompressedSize || 0);
+    if (declaredSize > ZIP_IMPORT_MAX_ENTRY_BYTES) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: declaredSize, action: "reject", reason: "file too large" });
+      continue;
+    }
+    if (seenPaths.has(path)) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: 0, action: "skip", reason: "duplicate path" });
+      continue;
+    }
+    if (entries.filter((e) => e.action === "create" || e.action === "overwrite").length >= ZIP_IMPORT_MAX_FILES) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: declaredSize, action: "reject", reason: "file count limit" });
+      continue;
+    }
+
+    let bytes: Uint8Array;
+    try {
+      bytes = await entry.async("uint8array");
+    } catch {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: declaredSize, action: "reject", reason: "read failed" });
+      continue;
+    }
+    if (bytes.byteLength > ZIP_IMPORT_MAX_ENTRY_BYTES) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: bytes.byteLength, action: "reject", reason: "file too large" });
+      continue;
+    }
+    if (acceptedBytes + bytes.byteLength > ZIP_IMPORT_MAX_TOTAL_TEXT_BYTES) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: bytes.byteLength, action: "reject", reason: "archive text limit" });
+      continue;
+    }
+    if (bytes.includes(0)) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: bytes.byteLength, action: "reject", reason: "binary content" });
+      continue;
+    }
+
+    let content = "";
+    try {
+      content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: bytes.byteLength, action: "reject", reason: "non-utf8 text" });
+      continue;
+    }
+
+    seenPaths.add(path);
+    acceptedBytes += bytes.byteLength;
+    entries.push({
+      path,
+      content,
+      language: languageForPath(path),
+      bytes: bytes.byteLength,
+      action: existingPaths.has(path) ? "overwrite" : "create",
+    });
+  }
+
+  entries.sort((a, b) => {
+    const weight = (entry: ZipImportEntry) => entry.action === "reject" ? 2 : entry.action === "skip" ? 1 : 0;
+    return weight(a) - weight(b) || a.path.localeCompare(b.path);
+  });
+
+  return { archiveName: file.name, entries, totalEntries: zipEntries.length, acceptedBytes };
+}
 
 // Load active Aureon persona + brain (mirrors Aureon Chat / ZALI). Result is spread into every
 // asher-code-ai call so Asher IDE inherits the same coding brain stack as the rest of the dashboard.
