@@ -5,8 +5,10 @@
 export interface ZosmaIntent {
   modulus?: bigint;
   primeBits?: number;
+  url?: string;   // NEW — "zosma url https://example.com" branches to cert inspector.
   raw: string;
 }
+
 
 // Verbs that indicate the user is directing ZOSMA (not just mentioning it).
 const VERB_RE = /\b(zosma|lco|aureon[-\s]?void|crack|factor(?:ize)?|shor'?s?|break|attack)\b/i;
