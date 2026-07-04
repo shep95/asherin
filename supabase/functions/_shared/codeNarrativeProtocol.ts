@@ -9,6 +9,7 @@
 import { QUANTUM_ORCHESTRATION_BRAIN } from "./quantumOrchestrationBrain.ts";
 import { THEME_ENGINE_DOCTRINE } from "./themeEngineDoctrine.ts";
 import { CODING_TAXONOMY_DIMENSIONS, CODING_STYLE_PALETTES } from "./codingTaxonomy.ts";
+import { HYPOTHETICAL_REALISM_DOCTRINE } from "./hypotheticalRealismDoctrine.ts";
 
 export const CODE_NARRATIVE_PROTOCOL = `
 ## CODE NARRATIVE LOOP PROTOCOL (MANDATORY when code is in context)
@@ -230,7 +231,9 @@ export async function runNarrativeLoop(opts: {
   let currentFiles = opts.files.map((f) => ({ ...f }));
 
   for (let i = 1; i <= maxIter; i++) {
-    const prompt = `${CODE_NARRATIVE_PROTOCOL}
+    const prompt = `${HYPOTHETICAL_REALISM_DOCTRINE}
+
+${CODE_NARRATIVE_PROTOCOL}
 
 ${QUANTUM_ORCHESTRATION_BRAIN}
 
