@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { Brain, Send, Loader2, ChevronRight, ChevronLeft, Sparkles, Image as ImageIcon, Crosshair, MapPin, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { parseChatGematria } from "@/lib/gematria/parseChatGematria";
-import GematriaResultCard from "@/components/gematria/GematriaResultCard";
+import { parseChatCards } from "@/lib/chatCards/parseChatCards";
+import ChatCardRenderer from "@/components/chatCards/ChatCardRenderer";
 import { supabase } from "@/integrations/supabase/client";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
@@ -438,9 +438,9 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
               {m.role === "user" ? "Operator" : "Asher AI"}
             </div>
             <div className="prose prose-invert prose-xs max-w-none [&_*]:text-foreground/85 [&_strong]:text-foreground">
-              {parseChatGematria(m.content || "").map((seg, i) =>
-                seg.type === "gematria" ? (
-                  <GematriaResultCard key={`g-${i}`} phrase={seg.phrase} source="chat:asher" />
+              {parseChatCards(m.content || "").map((seg, i) =>
+                seg.type === "card" || seg.type === "card-unknown" ? (
+                  <ChatCardRenderer key={`c-${i}`} segment={seg} source="chat:asher" />
                 ) : (
                   <ReactMarkdown
                     key={`t-${i}`}
