@@ -1471,6 +1471,7 @@ const Dashboard = () => {
       case "guardian-vault": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GuardianVaultView /></Suspense></ErrorBoundary>;
       case "knowledge-vault": return gatedView("knowledge-vault", KnowledgeVaultView, "Knowledge Vault (RAG)", "Private retrieval-augmented memory — upload files or connect APIs and Aureon will cite them automatically in every chat. Available on the $399/mo Pro plan.");
       case "cipher": return gatedView("cipher", CipherView, "Cipher — Data Operations", "Intelligence-grade data toolkit — encoding, hashing, encryption, format conversion, and recipe chaining. All operations run client-side. Available on Aureon and above.");
+      case "gematria": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GematriaView /></Suspense></ErrorBoundary>;
       // Always-accessible views
       case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;
       case "snippets": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense></ErrorBoundary>;
