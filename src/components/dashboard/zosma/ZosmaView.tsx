@@ -110,6 +110,15 @@ function bigSqrt(n: bigint): bigint {
   return x;
 }
 
+// Cryptographically real [0,1) sample — replaces Math.random() so even
+// visualization noise is drawn from crypto.getRandomValues, not a PRNG.
+function cryptoUnit(): number {
+  const b = new Uint32Array(1);
+  crypto.getRandomValues(b);
+  return b[0] / 0x1_0000_0000;
+}
+
+
 // ─────────────────── LCO orchestrator ───────────────────
 function useLCO() {
   const [phase, setPhase] = useState<Phase>("idle");
