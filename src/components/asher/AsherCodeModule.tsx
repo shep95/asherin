@@ -5,7 +5,7 @@ import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap, Columns2,
-  History, Stethoscope, GitBranch, Download, ArrowDown, Network, GitCommit, Clock, ChevronDown,
+  History, Stethoscope, GitBranch, Download, ArrowDown, Network, GitCommit, Clock, ChevronDown, ShieldCheck,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import AsherGitDrawer from "./AsherGitDrawer";
@@ -53,6 +53,145 @@ import { enqueue as zqEnqueue, registerHandler as zqRegister, startQueueWorker a
 import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
+
+type ZipImportAction = "create" | "overwrite" | "skip" | "reject";
+type ZipImportEntry = {
+  path: string;
+  content: string;
+  language: string;
+  bytes: number;
+  action: ZipImportAction;
+  reason?: string;
+};
+type ZipImportSession = {
+  archiveName: string;
+  entries: ZipImportEntry[];
+  totalEntries: number;
+  acceptedBytes: number;
+};
+
+const ZIP_IMPORT_MAX_ARCHIVE_BYTES = 20 * 1024 * 1024;
+const ZIP_IMPORT_MAX_FILES = 150;
+const ZIP_IMPORT_MAX_ENTRY_BYTES = 512 * 1024;
+const ZIP_IMPORT_MAX_TOTAL_TEXT_BYTES = 3 * 1024 * 1024;
+const ZIP_IMPORT_BLOCKED_DIRS = new Set([".git", "node_modules", "dist", "build", ".next", ".cache", "coverage"]);
+const ZIP_IMPORT_BLOCKED_FILES = new Set([".env", ".env.local", ".env.production", ".npmrc", ".yarnrc", "id_rsa", "id_dsa"]);
+const ZIP_IMPORT_BINARY_EXTENSIONS = new Set([
+  "png", "jpg", "jpeg", "gif", "webp", "ico", "bmp", "avif", "heic", "pdf", "zip", "rar", "7z", "tar", "gz", "bz2",
+  "exe", "dll", "so", "dylib", "bin", "class", "jar", "wasm", "mp3", "mp4", "mov", "avi", "wav", "ogg", "ttf", "otf", "woff", "woff2",
+]);
+
+function languageForPath(path: string): string {
+  const ext = path.split(".").pop()?.toLowerCase() || "";
+  return ({
+    js: "javascript", mjs: "javascript", cjs: "javascript", jsx: "javascript",
+    ts: "typescript", tsx: "typescript", py: "python", html: "html", htm: "html",
+    css: "css", scss: "scss", json: "json", md: "markdown", mdx: "markdown",
+    sh: "shell", bash: "shell", yml: "yaml", yaml: "yaml", toml: "toml",
+    sql: "sql", go: "go", rs: "rust", java: "java", rb: "ruby", php: "php",
+    txt: "plaintext", gitignore: "plaintext",
+  } as Record<string, string>)[ext] || "plaintext";
+}
+
+function sanitizeZipPath(rawName: string): { path: string | null; reason?: string } {
+  const normalized = rawName.replace(/\\/g, "/").replace(/^\/+/, "").replace(/^\.\//, "").trim();
+  if (!normalized) return { path: null, reason: "empty path" };
+  if (normalized.length > 220) return { path: null, reason: "path too long" };
+  if (normalized.includes("\0") || /[\u0000-\u001f]/.test(normalized)) return { path: null, reason: "control character" };
+  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith("~")) return { path: null, reason: "absolute path" };
+  const parts = normalized.split("/").filter(Boolean);
+  if (parts.some((part) => part === ".." || part === ".")) return { path: null, reason: "path traversal" };
+  if (parts.some((part) => ZIP_IMPORT_BLOCKED_DIRS.has(part))) return { path: null, reason: "blocked system folder" };
+  const fileName = parts[parts.length - 1]?.toLowerCase();
+  if (!fileName) return { path: null, reason: "folder entry" };
+  if (ZIP_IMPORT_BLOCKED_FILES.has(fileName) || fileName.startsWith(".env.")) return { path: null, reason: "secret file blocked" };
+  const ext = fileName.split(".").pop() || "";
+  if (ZIP_IMPORT_BINARY_EXTENSIONS.has(ext)) return { path: null, reason: "binary asset skipped" };
+  return { path: parts.join("/") };
+}
+
+function isValidBranchName(name: string): boolean {
+  return /^(?!\/)(?!.*\.\.)(?!.*\/\/)[A-Za-z0-9._/-]{1,80}$/.test(name) && !name.endsWith("/") && !name.endsWith(".lock");
+}
+
+async function parseZipImport(file: File, currentFiles: AsherCodeFile[]): Promise<ZipImportSession> {
+  if (file.size > ZIP_IMPORT_MAX_ARCHIVE_BYTES) {
+    throw new Error(`${file.name} exceeds the 20MB ZIP import limit`);
+  }
+  const zip = await JSZip.loadAsync(file);
+  const zipEntries = Object.values(zip.files);
+  const existingPaths = new Set(currentFiles.map((f) => f.path));
+  const seenPaths = new Set<string>();
+  const entries: ZipImportEntry[] = [];
+  let acceptedBytes = 0;
+
+  for (const entry of zipEntries) {
+    if (entry.dir) continue;
+    const { path, reason } = sanitizeZipPath(entry.name);
+    if (!path) {
+      entries.push({ path: entry.name, content: "", language: "plaintext", bytes: 0, action: "reject", reason });
+      continue;
+    }
+    const declaredSize = Number((entry as any)?._data?.uncompressedSize || 0);
+    if (declaredSize > ZIP_IMPORT_MAX_ENTRY_BYTES) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: declaredSize, action: "reject", reason: "file too large" });
+      continue;
+    }
+    if (seenPaths.has(path)) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: 0, action: "skip", reason: "duplicate path" });
+      continue;
+    }
+    if (entries.filter((e) => e.action === "create" || e.action === "overwrite").length >= ZIP_IMPORT_MAX_FILES) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: declaredSize, action: "reject", reason: "file count limit" });
+      continue;
+    }
+
+    let bytes: Uint8Array;
+    try {
+      bytes = await entry.async("uint8array");
+    } catch {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: declaredSize, action: "reject", reason: "read failed" });
+      continue;
+    }
+    if (bytes.byteLength > ZIP_IMPORT_MAX_ENTRY_BYTES) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: bytes.byteLength, action: "reject", reason: "file too large" });
+      continue;
+    }
+    if (acceptedBytes + bytes.byteLength > ZIP_IMPORT_MAX_TOTAL_TEXT_BYTES) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: bytes.byteLength, action: "reject", reason: "archive text limit" });
+      continue;
+    }
+    if (bytes.includes(0)) {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: bytes.byteLength, action: "reject", reason: "binary content" });
+      continue;
+    }
+
+    let content = "";
+    try {
+      content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      entries.push({ path, content: "", language: languageForPath(path), bytes: bytes.byteLength, action: "reject", reason: "non-utf8 text" });
+      continue;
+    }
+
+    seenPaths.add(path);
+    acceptedBytes += bytes.byteLength;
+    entries.push({
+      path,
+      content,
+      language: languageForPath(path),
+      bytes: bytes.byteLength,
+      action: existingPaths.has(path) ? "overwrite" : "create",
+    });
+  }
+
+  entries.sort((a, b) => {
+    const weight = (entry: ZipImportEntry) => entry.action === "reject" ? 2 : entry.action === "skip" ? 1 : 0;
+    return weight(a) - weight(b) || a.path.localeCompare(b.path);
+  });
+
+  return { archiveName: file.name, entries, totalEntries: zipEntries.length, acceptedBytes };
+}
 
 // Load active Aureon persona + brain (mirrors Aureon Chat / ZALI). Result is spread into every
 // asher-code-ai call so Asher IDE inherits the same coding brain stack as the rest of the dashboard.
@@ -348,7 +487,10 @@ export default function AsherCodeModule() {
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
   const [animateInsertion, setAnimateInsertion] = useState(() => localStorage.getItem("asherCode.animate") !== "0");
   const [pendingUploads, setPendingUploads] = useState<{ name: string; preview?: string; content: string; kind: "image" | "zip" | "text" }[]>([]);
+  const [zipImportSession, setZipImportSession] = useState<ZipImportSession | null>(null);
+  const [zipImporting, setZipImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const zipImportInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLIFrameElement>(null);
 
   // BYOK config — provider/model persisted (non-secret); apiKey is SESSION-ONLY
@@ -628,6 +770,42 @@ export default function AsherCodeModule() {
       }
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleZipImportSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (zipImportInputRef.current) zipImportInputRef.current.value = "";
+    if (!file) return;
+    if (!activeProject) { toast.error("Open a project first"); return; }
+    if (!file.name.toLowerCase().endsWith(".zip") && file.type !== "application/zip") {
+      toast.error("Select a .zip archive");
+      return;
+    }
+    setZipImporting(true);
+    try {
+      const session = await parseZipImport(file, files);
+      const importable = session.entries.filter((entry) => entry.action === "create" || entry.action === "overwrite").length;
+      setZipImportSession(session);
+      if (importable > 0) toast.success(`ZIP staged: ${importable} file${importable === 1 ? "" : "s"} ready`);
+      else toast.warning("ZIP parsed, but no importable text files passed safety checks");
+    } catch (err: any) {
+      toast.error(err?.message || `Failed to inspect ${file.name}`);
+    } finally {
+      setZipImporting(false);
+    }
+  }
+
+  function updateZipImportAction(path: string, action: ZipImportAction) {
+    setZipImportSession((session) => {
+      if (!session) return session;
+      return {
+        ...session,
+        entries: session.entries.map((entry) => {
+          if (entry.path !== path || entry.action === "reject") return entry;
+          return { ...entry, action };
+        }),
+      };
+    });
   }
   useEffect(() => {
     const onResize = () => {
@@ -979,6 +1157,141 @@ export default function AsherCodeModule() {
     setBranches(b => [...b, br as any]);
     toast.success(`Branch "${name}" created from ${activeBranchId ? branches.find(b => b.id === activeBranchId)?.name : "main"}`);
     await switchBranch((br as any).id);
+  }
+
+  async function persistZipEntriesToBranch(session: ZipImportSession, branchId: string | null, baseFiles: AsherCodeFile[]) {
+    if (!activeProject) return { files: baseFiles, changedIds: [] as string[] };
+    const nextByPath = new Map(baseFiles.map((file) => [file.path, file]));
+    const changedIds: string[] = [];
+    const importable = session.entries.filter((entry) => entry.action === "create" || entry.action === "overwrite");
+
+    for (const entry of importable) {
+      const existing = nextByPath.get(entry.path);
+      if (existing && entry.action === "overwrite") {
+        const { data, error } = await supabase
+          .from("asher_code_files")
+          .update({ content: entry.content, language: entry.language })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (error || !data) throw new Error(error?.message || `Failed to overwrite ${entry.path}`);
+        const updated = data as AsherCodeFile;
+        nextByPath.set(entry.path, updated);
+        changedIds.push(updated.id);
+      } else if (!existing && entry.action === "create") {
+        const { data, error } = await supabase
+          .from("asher_code_files")
+          .insert({ project_id: activeProject.id, branch_id: branchId, path: entry.path, content: entry.content, language: entry.language })
+          .select()
+          .single();
+        if (error || !data) throw new Error(error?.message || `Failed to create ${entry.path}`);
+        const created = data as AsherCodeFile;
+        nextByPath.set(entry.path, created);
+        changedIds.push(created.id);
+      } else if (existing && entry.action === "create") {
+        const { data, error } = await supabase
+          .from("asher_code_files")
+          .update({ content: entry.content, language: entry.language })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (error || !data) throw new Error(error?.message || `Failed to update ${entry.path}`);
+        const updated = data as AsherCodeFile;
+        nextByPath.set(entry.path, updated);
+        changedIds.push(updated.id);
+      }
+    }
+
+    return {
+      files: Array.from(nextByPath.values()).sort((a, b) => a.path.localeCompare(b.path)),
+      changedIds,
+    };
+  }
+
+  async function importZipToCurrentBranch() {
+    if (!activeProject || !zipImportSession) return;
+    const importable = zipImportSession.entries.filter((entry) => entry.action === "create" || entry.action === "overwrite");
+    if (!importable.length) { toast.error("No files selected for import"); return; }
+    const dirtyCollisions = importable.filter((entry) => {
+      const existing = files.find((file) => file.path === entry.path);
+      return existing && existing.id in dirty;
+    });
+    if (dirtyCollisions.length && !confirm(`${dirtyCollisions.length} unsaved file(s) will be overwritten by the ZIP import. Continue?`)) return;
+    setZipImporting(true);
+    try {
+      const result = await persistZipEntriesToBranch(zipImportSession, activeBranchId, files);
+      setFiles(result.files);
+      setDirty((current) => {
+        const next = { ...current };
+        for (const id of result.changedIds) delete next[id];
+        return next;
+      });
+      if (result.changedIds.length) {
+        setOpenTabs((tabs) => Array.from(new Set([...tabs, result.changedIds[0]])));
+        setActiveFileId(result.changedIds[0]);
+      }
+      setPreviewKey((key) => key + 1);
+      setZipImportSession(null);
+      const branchName = activeBranchId ? branches.find((branch) => branch.id === activeBranchId)?.name || "branch" : "main";
+      toast.success(`Imported ${result.changedIds.length} file${result.changedIds.length === 1 ? "" : "s"} into ${branchName}`);
+    } catch (err: any) {
+      toast.error(err?.message || "ZIP import failed");
+    } finally {
+      setZipImporting(false);
+    }
+  }
+
+  async function importZipToNewBranch() {
+    if (!activeProject || !zipImportSession) return;
+    const importable = zipImportSession.entries.filter((entry) => entry.action === "create" || entry.action === "overwrite");
+    if (!importable.length) { toast.error("No files selected for import"); return; }
+    const archiveStem = zipImportSession.archiveName.replace(/\.zip$/i, "").replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 36) || "archive";
+    const name = prompt("New branch name for this ZIP import", `import/${archiveStem}`)?.trim();
+    if (!name) return;
+    if (!isValidBranchName(name)) {
+      toast.error("Branch names can use letters, numbers, dots, dashes, underscores, and slashes only");
+      return;
+    }
+    setZipImporting(true);
+    try {
+      const { data: br, error } = await supabase
+        .from("asher_code_branches")
+        .insert({ project_id: activeProject.id, name, parent_branch_id: activeBranchId })
+        .select()
+        .single();
+      if (error || !br) throw new Error(error?.message || "Branch creation failed");
+      const branchId = (br as any).id as string;
+      const snapshot = files.map((file) => ({
+        project_id: activeProject.id,
+        branch_id: branchId,
+        path: file.path,
+        content: dirty[file.id] ?? file.content,
+        language: file.language,
+      }));
+      let branchFiles: AsherCodeFile[] = [];
+      if (snapshot.length) {
+        const { data, error: snapshotError } = await supabase
+          .from("asher_code_files")
+          .insert(snapshot)
+          .select();
+        if (snapshotError) throw new Error(snapshotError.message);
+        branchFiles = (data || []) as AsherCodeFile[];
+      }
+      const result = await persistZipEntriesToBranch(zipImportSession, branchId, branchFiles);
+      setBranches((current) => [...current, br as any]);
+      setFiles(result.files);
+      setDirty({});
+      setActiveBranchId(branchId);
+      setOpenTabs(result.changedIds.length ? [result.changedIds[0]] : result.files[0]?.id ? [result.files[0].id] : []);
+      setActiveFileId(result.changedIds[0] || result.files[0]?.id || null);
+      setPreviewKey((key) => key + 1);
+      setZipImportSession(null);
+      toast.success(`Created ${name} and imported ${result.changedIds.length} file${result.changedIds.length === 1 ? "" : "s"}`);
+    } catch (err: any) {
+      toast.error(err?.message || "ZIP branch import failed");
+    } finally {
+      setZipImporting(false);
+    }
   }
 
   async function deleteBranch(id: string) {
@@ -2148,6 +2461,10 @@ export default function AsherCodeModule() {
           <button onClick={runPreview} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Play className="h-3 w-3" /> <span className="hidden sm:inline">Run</span></button>
           <button onClick={() => setShowPublish(true)} className="inline-flex items-center gap-1 rounded-md border border-foreground/20 bg-foreground/5 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-foreground/80 hover:bg-foreground/10"><Upload className="h-3 w-3" /> <span className="hidden sm:inline">Publish</span></button>
           <button onClick={downloadProjectZip} title="Download current branch as .zip" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30" aria-label="Download current branch as .zip"><Download className="h-3 w-3" /> <span className="hidden sm:inline">ZIP</span></button>
+          <input ref={zipImportInputRef} type="file" accept=".zip,application/zip" onChange={handleZipImportSelect} className="hidden" />
+          <button onClick={() => zipImportInputRef.current?.click()} disabled={zipImporting} title="Import a ZIP into the current branch or stage it as a new branch" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40" aria-label="Import ZIP into branch">
+            {zipImporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileArchive className="h-3 w-3" />} <span className="hidden md:inline">Import</span>
+          </button>
           <button onClick={() => setShowDevOps(s => !s)} className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase ${showDevOps ? "border-foreground/40 bg-foreground/15" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}><Wrench className="h-3 w-3" /> <span className="hidden md:inline">DevOps</span></button>
           <button onClick={() => setShowGit(true)} title="Clone, commit & push to GitHub" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><GitBranch className="h-3 w-3" /> <span className="hidden md:inline">GitHub</span></button>
           <button onClick={() => setTemplateOpen(true)} title="Scaffold from natural language" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><Wand2 className="h-3 w-3" /></button>
@@ -2660,6 +2977,17 @@ export default function AsherCodeModule() {
       />
 
 
+      {zipImportSession && (
+        <ZipImportReviewDialog
+          session={zipImportSession}
+          currentBranchName={activeBranchId ? branches.find((branch) => branch.id === activeBranchId)?.name || "branch" : "main"}
+          importing={zipImporting}
+          onClose={() => setZipImportSession(null)}
+          onActionChange={updateZipImportAction}
+          onImportCurrent={importZipToCurrentBranch}
+          onImportNewBranch={importZipToNewBranch}
+        />
+      )}
       {showSettings && <BYOKSettings onClose={() => setShowSettings(false)} provider={provider} model={model} apiKey={apiKey} setProvider={setProvider} setModel={setModel} setApiKey={setApiKey} />}
       {showPublish && <PublishDialog onClose={() => setShowPublish(false)} onPublish={publishAsTab} defaultName={activeProject.name} />}
       {editPlan && (
@@ -2797,6 +3125,125 @@ export default function AsherCodeModule() {
 }
 
 // ── Sub-components ──────────────────────────────────────────────
+function ZipImportReviewDialog({
+  session,
+  currentBranchName,
+  importing,
+  onClose,
+  onActionChange,
+  onImportCurrent,
+  onImportNewBranch,
+}: {
+  session: ZipImportSession;
+  currentBranchName: string;
+  importing: boolean;
+  onClose: () => void;
+  onActionChange: (path: string, action: ZipImportAction) => void;
+  onImportCurrent: () => void;
+  onImportNewBranch: () => void;
+}) {
+  const createCount = session.entries.filter((entry) => entry.action === "create").length;
+  const overwriteCount = session.entries.filter((entry) => entry.action === "overwrite").length;
+  const skipCount = session.entries.filter((entry) => entry.action === "skip").length;
+  const rejectedCount = session.entries.filter((entry) => entry.action === "reject").length;
+  const importableCount = createCount + overwriteCount;
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-background/80 p-4 backdrop-blur-md">
+      <div className="flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border/20 bg-card/80 shadow-2xl backdrop-blur-xl">
+        <div className="flex items-start justify-between gap-4 border-b border-border/20 px-4 py-3">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-[10px] font-light uppercase tracking-[0.28em] text-muted-foreground/70">
+              <ShieldCheck className="h-3 w-3" /> ZIP Import Review
+            </p>
+            <h3 className="mt-1 truncate text-sm font-light tracking-wide text-foreground">{session.archiveName}</h3>
+          </div>
+          <button onClick={onClose} disabled={importing} className="text-muted-foreground hover:text-foreground disabled:opacity-40" aria-label="Close ZIP import review">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-px border-b border-border/20 bg-border/20 sm:grid-cols-5">
+          {[
+            ["Scanned", session.totalEntries],
+            ["Create", createCount],
+            ["Overwrite", overwriteCount],
+            ["Skipped", skipCount],
+            ["Rejected", rejectedCount],
+          ].map(([label, value]) => (
+            <div key={String(label)} className="bg-card/70 px-3 py-2">
+              <p className="text-[8px] font-light uppercase tracking-[0.22em] text-muted-foreground/60">{label}</p>
+              <p className="mt-1 text-sm font-extralight text-foreground">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-b border-border/20 px-4 py-2 text-[10px] font-light leading-relaxed text-muted-foreground/75">
+          Branch target: <span className="text-foreground/80">{currentBranchName}</span> · Text staged: {(session.acceptedBytes / 1024).toFixed(1)} KB · blocked paths, binary assets, secrets, oversized files, and traversal attempts stay out.
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <table className="w-full text-left text-[10px]">
+            <thead className="sticky top-0 bg-card/95 text-[8px] uppercase tracking-[0.2em] text-muted-foreground/60 backdrop-blur-md">
+              <tr className="border-b border-border/20">
+                <th className="px-3 py-2 font-light">Action</th>
+                <th className="px-3 py-2 font-light">Path</th>
+                <th className="hidden px-3 py-2 font-light sm:table-cell">Lang</th>
+                <th className="hidden px-3 py-2 font-light md:table-cell">Size</th>
+                <th className="px-3 py-2 font-light">Signal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {session.entries.map((entry, index) => {
+                const locked = entry.action === "reject";
+                return (
+                  <tr key={`${entry.path}-${index}`} className="border-b border-border/10 hover:bg-foreground/5">
+                    <td className="px-3 py-2 align-top">
+                      {locked ? (
+                        <span className="rounded border border-destructive/25 bg-destructive/10 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.16em] text-destructive/90">Reject</span>
+                      ) : (
+                        <select
+                          value={entry.action}
+                          onChange={(event) => onActionChange(entry.path, event.target.value as ZipImportAction)}
+                          disabled={importing}
+                          className="rounded border border-border/20 bg-background/70 px-1.5 py-1 text-[9px] uppercase tracking-[0.12em] text-foreground outline-none focus:border-foreground/40 disabled:opacity-40"
+                        >
+                          <option value="create">Create</option>
+                          <option value="overwrite">Overwrite</option>
+                          <option value="skip">Skip</option>
+                        </select>
+                      )}
+                    </td>
+                    <td className="max-w-[280px] break-all px-3 py-2 align-top font-mono text-foreground/85">{entry.path}</td>
+                    <td className="hidden px-3 py-2 align-top text-muted-foreground/70 sm:table-cell">{entry.language}</td>
+                    <td className="hidden px-3 py-2 align-top text-muted-foreground/70 md:table-cell">{entry.bytes ? `${(entry.bytes / 1024).toFixed(1)} KB` : "—"}</td>
+                    <td className="px-3 py-2 align-top text-muted-foreground/70">{entry.reason || entry.action}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex flex-col gap-2 border-t border-border/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[9px] font-light uppercase tracking-[0.18em] text-muted-foreground/60">
+            {importableCount} file{importableCount === 1 ? "" : "s"} armed for import
+          </p>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button onClick={onClose} disabled={importing} className="rounded-md border border-border/20 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] hover:bg-foreground/5 disabled:opacity-40">Cancel</button>
+            <button onClick={onImportCurrent} disabled={importing || importableCount === 0} className="inline-flex items-center gap-1.5 rounded-md border border-border/30 bg-card/50 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] hover:border-foreground/40 disabled:opacity-40">
+              {importing && <Loader2 className="h-3 w-3 animate-spin" />} Import Here
+            </button>
+            <button onClick={onImportNewBranch} disabled={importing || importableCount === 0} className="inline-flex items-center gap-1.5 rounded-md border border-foreground/25 bg-foreground/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-foreground hover:bg-foreground/15 disabled:opacity-40">
+              <GitBranch className="h-3 w-3" /> New Branch
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NewProjectDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string) => void }) {
   const [name, setName] = useState("");
   return (

@@ -18,6 +18,7 @@ export interface AsherCodeProject {
 export interface AsherCodeFile {
   id: string;
   project_id: string;
+  branch_id: string | null;
   path: string;
   content: string;
   language: string;
