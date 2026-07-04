@@ -220,6 +220,20 @@ serve(async (req) => {
     }
 
     try {
+      // ── Multi-agent orchestrator trigger (/agents, /orchestrate, "run agents:") ──
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+      const { detectOrchestratorTrigger, runOrchestrator } = await import("../_shared/multiAgentOrchestrator.ts");
+      const orchestratorGoal = detectOrchestratorTrigger(lastUserMsg?.content || "");
+      if (orchestratorGoal) {
+        const callLLM = async (msgs: { role: "system" | "user" | "assistant"; content: string }[]) =>
+          routeByok(byok, msgs as ChatMessage[]);
+        const result = await runOrchestrator({ goal: orchestratorGoal, callLLM });
+        return new Response(
+          JSON.stringify({ reply: result.transcript, mode: "orchestrator", remaining: gate.remaining, resetAt: gate.resetAt }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       // ── Temporal awareness — always first system message ──
       const { getTemporalContext } = await import("../_shared/systemContext.ts");
       const temporalCtx = getTemporalContext({ timezone, locale });
@@ -241,6 +255,7 @@ serve(async (req) => {
         JSON.stringify({ reply, mode: "byok", remaining: gate.remaining, resetAt: gate.resetAt }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+
     } catch (e) {
       return new Response(
         JSON.stringify({ error: e instanceof Error ? e.message : "BYOK call failed" }),

@@ -188,6 +188,44 @@ serve(async (req) => {
 
     const hasAttachments = cleaned.some((m) => Array.isArray(m.attachments) && m.attachments.length);
 
+    // ── Multi-agent orchestrator trigger (/agents, /orchestrate, "run agents:") ──
+    // Runs planner→executor→critic→synthesizer over the operator's goal using Gemini.
+    if (!hasAttachments && apiKey) {
+      try {
+        const lastUser = latestUserText(cleaned);
+        const { detectOrchestratorTrigger, runOrchestrator, stringToOpenAiSse } =
+          await import("../_shared/multiAgentOrchestrator.ts");
+        const goal = detectOrchestratorTrigger(lastUser);
+        if (goal) {
+          const callLLM = async (msgs: { role: "system" | "user" | "assistant"; content: string }[]) => {
+            const sys = msgs.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
+            const contents = msgs
+              .filter((m) => m.role !== "system")
+              .map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+            const resp = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                systemInstruction: sys ? { parts: [{ text: sys }] } : undefined,
+                contents,
+                generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
+              }),
+            });
+            if (!resp.ok) throw new Error(`Gemini ${resp.status}`);
+            const data = await resp.json();
+            return data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
+          };
+          const result = await runOrchestrator({ goal, callLLM });
+          const stream = stringToOpenAiSse(result.transcript);
+          return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+        }
+      } catch (e) {
+        console.error("[asher-ai] orchestrator failed", e);
+      }
+    }
+
+
     // ── AXRLEN INLINE FORECASTING (before any other routing) ──────────────
     // Only text-only forecasting messages route through AXRLEN — attachments
     // (vision/PDF) stay on the normal Gemini vision path.
