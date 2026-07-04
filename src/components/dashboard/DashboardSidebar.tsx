@@ -83,6 +83,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   "reverse-engineer": Search,
   "file-scrapper": FileText,
   "cipher": Shield,
+  "gematria": Calculator,
   "briefing": Newspaper,
   "cross": Crosshair,
   "ide": Terminal,
