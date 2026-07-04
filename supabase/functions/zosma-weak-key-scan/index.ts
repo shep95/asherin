@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
   for (const h of hosts) {
     const bad = guardHost(h);
     if (bad) { rows.push({ host: h, ok: false, grade: "ERR", issues: [bad], pubkey_algo: null, bit_length: null, spki_sha1: null, spki_sha256: null, roca_vulnerable: null, small_factor_hit: null, low_entropy: false, known_weak_hit: false, error: bad }); continue; }
-    rows.push(await scan(h));
+    rows.push(await scan(h, 443, 6000, weak));
   }
 
   const summary = {
