@@ -202,7 +202,7 @@ export default function GematriaTab() {
                         </tr>
                         {expanded[c] && (
                           <tr className="bg-foreground/[0.015]">
-                            <td colSpan={5} className="px-4 py-3 space-y-3">
+                            <td colSpan={6} className="px-4 py-3 space-y-3">
                               <div className="flex flex-wrap gap-1.5">
                                 {r.letters.map((l, i) => (
                                   <span
