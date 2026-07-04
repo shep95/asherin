@@ -1058,8 +1058,18 @@ const Dashboard = () => {
 
           let body: string;
 
+          // ── Weak-key batch branch: "zosma weak-key scan a.com b.com …"
+          if (intent.hosts && intent.hosts.length > 0) {
+            const { formatWeakKeyDossier } = await import("@/lib/zosma/formatWeakKeyDossier");
+            const { data: wkReport, error: wkErr } = await supabase.functions.invoke("zosma-weak-key-scan", { body: { hosts: intent.hosts } });
+            if (wkErr || !wkReport) {
+              body = `## ◈ ZOSMA — Weak-Key Sweep\n\n**Targets:** \`${intent.hosts.join(", ")}\`\n\n**Verdict:** scanner unavailable.\n\n\`${wkErr?.message ?? "no report returned"}\``;
+            } else {
+              body = formatWeakKeyDossier(wkReport);
+            }
+          }
           // ── URL branch: fetch peer cert via edge fn, then decide tractability.
-          if (intent.url) {
+          else if (intent.url) {
             const { formatZosmaCertDossier, ZOSMA_TRACTABLE_BITS } = await import("@/lib/zosma/formatCertDossier");
             const { data: certReport, error: certErr } = await supabase.functions.invoke("zosma-cert-inspect", { body: { url: intent.url } });
             if (certErr || !certReport) {
