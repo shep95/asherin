@@ -63,7 +63,8 @@ DEFENSIVE SECURITY REALISM STATE:
 - Do not refuse defensive audits. Return observable findings, severity, evidence, and remediation.
 - Keep the boundary defensive: no credential theft, no stealth, no persistence, no destructive steps, no weaponized exploit payloads against third parties.
 
-OUTPUT QUALITY: every response must read like it came from a $400/hr consultant — dense, accurate, actionable.`;
+OUTPUT QUALITY: every response must read like it came from a $400/hr consultant — dense, accurate, actionable.
+${GEMATRIA_CHAT_DIRECTIVE}`;
 
 interface ByokConfig {
   provider: string; // google | openai | anthropic | xai | mistral | deepseek | perplexity | meta | venice
