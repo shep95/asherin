@@ -510,6 +510,7 @@ const AsherDashboard = () => {
             {/* Vedic Strategy renders as a popout dialog below */}
             {active === "zahten"    && <AsherZahtenModule />}
             {active === "zacoon"    && <AsherZacoonModule />}
+            {active === "gematria"  && <GematriaTab />}
 
             {active === "targets"   && <AsherSavedTargets />}
             {active === "comms"     && <AsherCommsModule />}
