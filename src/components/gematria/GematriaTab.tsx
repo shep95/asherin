@@ -4,6 +4,7 @@ import { computeAll, CIPHER_LABEL, normalize, type CipherKey } from "@/lib/gemat
 import { findBundledMatches, CORPUS_SIZE } from "@/lib/gematriaCorpus";
 import { useGematria, type GematriaEntry } from "@/hooks/useGematria";
 import { useGematriaWorldMatches } from "@/hooks/useGematriaWorldMatches";
+import ResonancePanel from "./ResonancePanel";
 
 const CIPHERS: CipherKey[] = ["ordinal", "reduction", "reverse", "chaldean"];
 const COLUMN_FOR: Record<CipherKey, keyof GematriaEntry> = {
