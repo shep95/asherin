@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import React, { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Calculator, Trash2, Copy, Download, Info, Globe } from "lucide-react";
 import { computeAll, CIPHER_LABEL, normalize, type CipherKey } from "@/lib/gematria";
 import { findBundledMatches, CORPUS_SIZE } from "@/lib/gematriaCorpus";
 import { useGematria, type GematriaEntry } from "@/hooks/useGematria";
 import { useGematriaWorldMatches } from "@/hooks/useGematriaWorldMatches";
+import ResonancePanel from "./ResonancePanel";
 
 const CIPHERS: CipherKey[] = ["ordinal", "reduction", "reverse", "chaldean"];
 const COLUMN_FOR: Record<CipherKey, keyof GematriaEntry> = {
@@ -165,8 +166,8 @@ export default function GematriaTab() {
                     const worldLoading = !!world.loading[c];
                     const totalMatches = personal.length + bundled.length + worldHits.length;
                     return (
-                      <>
-                        <tr key={c} className="border-t border-border/20">
+                      <React.Fragment key={c}>
+                        <tr className="border-t border-border/20">
                           <td className="px-4 py-2">{CIPHER_LABEL[c]}</td>
                           <td className="px-4 py-2 text-right font-mono">{r.sum}</td>
                           <td
@@ -279,7 +280,7 @@ export default function GematriaTab() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
@@ -287,6 +288,8 @@ export default function GematriaTab() {
             </div>
           </section>
         )}
+
+        {submitted && <ResonancePanel phrase={submitted} />}
 
         <section className="space-y-3">
           <div className="flex items-center gap-2">
