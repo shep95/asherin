@@ -343,7 +343,9 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
 // ── Zophiel retrieval ──────────────────────────────────────────────────────
 async function zophielQuery(query: string, options: { timeoutMs?: number; limit?: number } = {}): Promise<IntelChannelHit[]> {
   if (!SUPABASE_URL || !SUPABASE_ANON) return [];
-  const timeoutMs = options.timeoutMs ?? 12000;
+  // Hard-cap any per-call timeout at 10s so a slow/degraded zophiel-search
+  // cannot chain into pushing the outer /chat request past the 150s edge limit.
+  const timeoutMs = Math.min(options.timeoutMs ?? 10000, 10000);
   const limit = options.limit ?? 12;
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/zophiel-search`, {
@@ -448,7 +450,9 @@ function scoreEnrichQuery(intent: IntelIntent, label: string): number {
 // ── Three-pass sweep + fusion ───────────────────────────────────────────────
 export async function runJurisdictionalSearch(intent: IntelIntent): Promise<IntelBundle> {
   const startedAt = Date.now();
-  const deadlineMs = 24500;
+  // Tightened from 24.5s → 20s so the sweep leaves comfortable headroom
+  // inside the 150s /chat budget even when zophiel-search runs slow.
+  const deadlineMs = 20000;
   const src = sourcesFor(intent.country, intent.state, intent.county);
   const registries = Array.from(new Set([
     ...src.ownership, ...src.tax, ...src.permits, ...src.entities, ...src.courts, ...src.people,
@@ -503,10 +507,10 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   // Pass 1 is deliberately first, not part of a large Promise fan-out. The
   // Zophiel web tab succeeds on single wide calls; flooding it with 6+ nested
   // calls caused chat-timeout failures while the web tab itself still worked.
-  const pass1a = await zophielQuery(pass1Queries[0], { timeoutMs: 18000, limit: 20 });
+  const pass1a = await zophielQuery(pass1Queries[0], { timeoutMs: 10000, limit: 20 });
   const pass1b = pass1a.length >= 8 || pass1Queries[1] === pass1Queries[0]
     ? []
-    : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(5000, deadlineMs - (Date.now() - startedAt) - 3500), limit: 12 });
+    : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(4000, Math.min(8000, deadlineMs - (Date.now() - startedAt) - 3500)), limit: 12 });
 
   const countryOnlyPerson = intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
   const maxEnrich = countryOnlyPerson ? 2 : 4;
@@ -518,7 +522,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   for (const q of selectedEnrich) {
     const remaining = deadlineMs - (Date.now() - startedAt) - 3000;
     if (remaining < 4500) break;
-    pass2.push(await zophielQuery(q.query, { timeoutMs: Math.min(9000, remaining), limit: 10 }));
+    pass2.push(await zophielQuery(q.query, { timeoutMs: Math.min(7000, remaining), limit: 10 }));
   }
 
   // ── FUSE — dedupe by URL, block-check every hit, classify into buckets ──
