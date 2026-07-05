@@ -81,7 +81,7 @@ export default function GematriaTab() {
   };
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-background text-foreground">
+    <div className="h-full w-full overflow-y-auto text-foreground">
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
         <header className="space-y-2">
           <div className="flex items-center gap-2 text-[10px] tracking-[0.3em] uppercase text-muted-foreground/60">
