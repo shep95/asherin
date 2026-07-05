@@ -38,7 +38,7 @@ export async function deriveKey(passphrase: string, saltB64: string): Promise<Cr
     ["deriveKey"]
   );
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: b64ToBytes(saltB64), iterations: PBKDF2_ITERS, hash: "SHA-512" },
+    { name: "PBKDF2", salt: b64ToBytes(saltB64) as BufferSource, iterations: PBKDF2_ITERS, hash: "SHA-512" },
     baseKey,
     { name: "AES-GCM", length: 256 },
     false,
@@ -48,27 +48,27 @@ export async function deriveKey(passphrase: string, saltB64: string): Promise<Cr
 
 export async function encryptText(key: CryptoKey, plaintext: string, aad?: string) {
   const iv = randomIV();
-  const params: AesGcmParams = { name: "AES-GCM", iv };
-  if (aad) params.additionalData = ENC.encode(aad);
-  const ct = await crypto.subtle.encrypt(params, key, ENC.encode(plaintext));
+  const params: AesGcmParams = { name: "AES-GCM", iv: iv as BufferSource };
+  if (aad) params.additionalData = ENC.encode(aad) as BufferSource;
+  const ct = await crypto.subtle.encrypt(params, key, ENC.encode(plaintext) as BufferSource);
   return { ciphertext: bytesToB64(new Uint8Array(ct)), iv: bytesToB64(iv) };
 }
 
 export async function decryptText(key: CryptoKey, ciphertextB64: string, ivB64: string, aad?: string): Promise<string> {
-  const params: AesGcmParams = { name: "AES-GCM", iv: b64ToBytes(ivB64) };
-  if (aad) params.additionalData = ENC.encode(aad);
-  const pt = await crypto.subtle.decrypt(params, key, b64ToBytes(ciphertextB64));
+  const params: AesGcmParams = { name: "AES-GCM", iv: b64ToBytes(ivB64) as BufferSource };
+  if (aad) params.additionalData = ENC.encode(aad) as BufferSource;
+  const pt = await crypto.subtle.decrypt(params, key, b64ToBytes(ciphertextB64) as BufferSource);
   return DEC.decode(pt);
 }
 
 export async function encryptBytes(key: CryptoKey, bytes: Uint8Array): Promise<{ blob: Uint8Array; iv: string }> {
   const iv = randomIV();
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, bytes);
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv as BufferSource }, key, bytes as BufferSource);
   return { blob: new Uint8Array(ct), iv: bytesToB64(iv) };
 }
 
 export async function decryptBytes(key: CryptoKey, cipher: Uint8Array, ivB64: string): Promise<Uint8Array> {
-  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64ToBytes(ivB64) }, key, cipher);
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64ToBytes(ivB64) as BufferSource }, key, cipher as BufferSource);
   return new Uint8Array(pt);
 }
 
