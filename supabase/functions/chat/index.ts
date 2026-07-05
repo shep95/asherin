@@ -1343,8 +1343,12 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         if (intent.needsClarification) {
           jurisdictionalContext = formatClarifyContext(intent);
         } else {
-          const bundle = await runJurisdictionalSearch(intent);
-          jurisdictionalContext = formatIntelContext(bundle);
+          // Wall-clock ceiling: never let jurisdictional intel push /chat past the 150s edge limit.
+          const bundle = await Promise.race([
+            runJurisdictionalSearch(intent),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 25000)),
+          ]);
+          jurisdictionalContext = bundle ? formatIntelContext(bundle) : "";
         }
       }
     } catch (e) {

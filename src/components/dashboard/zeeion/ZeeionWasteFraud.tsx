@@ -333,6 +333,7 @@ const ZeeionWasteFraud = () => {
         messages: [{ role: "user", content: `Generate a detailed step-by-step remediation plan for this government waste item:\n\nType: ${item.type}\nDescription: ${item.description}\nAnnual Impact: ${fmtUsd(item.annualImpact)}\nSeverity: ${item.severity}\nEvidence: ${item.evidence || "N/A"}\n\nReturn a JSON object with this structure (no markdown):\n{\n  "phases": [\n    {"name": "Investigation", "duration": "1-2 weeks", "steps": [{"action": "step desc", "responsible": "team", "timeline": "3 days", "status": "pending"}]},\n    {"name": "Solution Design", "duration": "1-2 weeks", "steps": [...]},\n    {"name": "Implementation", "duration": "4-8 weeks", "steps": [...]},\n    {"name": "Monitoring", "duration": "90 days", "steps": [...]}\n  ],\n  "totalCost": 50000,\n  "expectedSavings": ${item.annualImpact},\n  "roi": 500,\n  "paybackPeriod": "3 months",\n  "budgetRedirection": [\n    {"destination": "Debt Reduction", "amount": ${item.annualImpact * 0.3}, "percentage": 30, "rationale": "reason"},\n    {"destination": "Infrastructure", "amount": ${item.annualImpact * 0.25}, "percentage": 25, "rationale": "reason"},\n    {"destination": "Education/Healthcare", "amount": ${item.annualImpact * 0.25}, "percentage": 25, "rationale": "reason"},\n    {"destination": "Innovation Fund", "amount": ${item.annualImpact * 0.1}, "percentage": 10, "rationale": "reason"},\n    {"destination": "Emergency Reserve", "amount": ${item.annualImpact * 0.1}, "percentage": 10, "rationale": "reason"}\n  ]\n}` }],
         mode: "research",
         onDelta: (chunk) => { planContent += chunk; },
+        onReplace: (text) => { planContent = text; },
         onDone: () => {},
       });
       const jsonMatch = planContent.match(/\{[\s\S]*\}/);
@@ -398,6 +399,7 @@ const ZeeionWasteFraud = () => {
         mode: "research",
         depth: "expert",
         onDelta: (chunk) => { aiContent += chunk; },
+        onReplace: (text) => { aiContent = text; },
         onDone: () => {},
       });
 
@@ -460,6 +462,7 @@ const ZeeionWasteFraud = () => {
         mode: "research",
         depth: "expert",
         onDelta: (chunk) => { aiContent += chunk; },
+        onReplace: (text) => { aiContent = text; },
         onDone: () => {},
       });
 
@@ -501,6 +504,7 @@ const ZeeionWasteFraud = () => {
         }],
         mode: "research",
         onDelta: (chunk) => { aiResp += chunk; },
+        onReplace: (text) => { aiResp = text; },
         onDone: () => {},
       });
       setChatMsgs(p => [...p, { role: "assistant", content: aiResp || "Analysis complete." }]);

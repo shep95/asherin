@@ -315,6 +315,12 @@ ${allRawText}`,
           if (result.length > 2000) setProgress("Writing chapter content…");
           if (result.length > 5000) setProgress("Refining and polishing…");
         },
+        onReplace: (text) => {
+          result = text;
+          if (result.length > 500) setProgress("Organizing chapters…");
+          if (result.length > 2000) setProgress("Writing chapter content…");
+          if (result.length > 5000) setProgress("Refining and polishing…");
+        },
         onDone: () => {
           try {
             // Try full JSON array first
@@ -433,6 +439,12 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
         mode: "chat",
         onDelta: (chunk) => {
           result += chunk;
+          if (result.length > 500) setProgress("Correcting grammar…");
+          if (result.length > 3000) setProgress("Polishing sentences…");
+          if (result.length > 8000) setProgress("Final review…");
+        },
+        onReplace: (text) => {
+          result = text;
           if (result.length > 500) setProgress("Correcting grammar…");
           if (result.length > 3000) setProgress("Polishing sentences…");
           if (result.length > 8000) setProgress("Final review…");

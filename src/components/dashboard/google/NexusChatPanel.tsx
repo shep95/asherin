@@ -97,6 +97,16 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
             return updated;
           });
         },
+        onReplace: (fullText) => {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last.role === "assistant") {
+              updated[updated.length - 1] = { ...last, content: fullText };
+            }
+            return updated;
+          });
+        },
         onDone: () => setIsStreaming(false),
       });
     } catch (err: any) {

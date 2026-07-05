@@ -86,6 +86,7 @@ Return ONLY the JSON array, no markdown wrapping.`
         }],
         mode: "chat",
         onDelta: (chunk) => { result += chunk; },
+        onReplace: (text) => { result = text; },
         onDone: () => {
           try {
             const jsonMatch = result.match(/\[[\s\S]*\]/);
