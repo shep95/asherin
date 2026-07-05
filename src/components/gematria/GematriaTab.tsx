@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import React, { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Calculator, Trash2, Copy, Download, Info, Globe } from "lucide-react";
 import { computeAll, CIPHER_LABEL, normalize, type CipherKey } from "@/lib/gematria";
 import { findBundledMatches, CORPUS_SIZE } from "@/lib/gematriaCorpus";
