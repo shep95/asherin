@@ -108,6 +108,7 @@ Return ONLY the JSON array.`;
         messages: [{ role: "user", content: prompt }],
         mode: "research",
         onDelta: (chunk) => { result += chunk; },
+        onReplace: (text) => { result = text; },
         onDone: () => {
           try {
             const jsonMatch = result.match(/\[[\s\S]*\]/);

@@ -90,6 +90,7 @@ const ZeeionJobOptimization = () => {
         ],
         mode: "research",
         onDelta: (chunk) => { aiContent += chunk; },
+        onReplace: (text) => { aiContent = text; },
         onDone: () => {},
       });
 
@@ -120,6 +121,14 @@ const ZeeionJobOptimization = () => {
         mode: "research",
         onDelta: (chunk) => {
           content += chunk;
+          setChatMsgs(p => {
+            const last = p[p.length - 1];
+            if (last?.role === "assistant") return p.map((m, i) => i === p.length - 1 ? { ...m, content } : m);
+            return [...p, { role: "assistant", content }];
+          });
+        },
+        onReplace: (text) => {
+          content = text;
           setChatMsgs(p => {
             const last = p[p.length - 1];
             if (last?.role === "assistant") return p.map((m, i) => i === p.length - 1 ? { ...m, content } : m);
