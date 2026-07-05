@@ -434,7 +434,7 @@ const ZaxinView = () => {
   const peerCount = Object.keys(snap.peers).length;
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col">
       {/* top bar */}
       <div className="shrink-0 border-b border-border/[0.06] px-4 sm:px-5 py-2.5 flex items-center justify-between backdrop-blur-md bg-background/40">
         <div className="flex items-center gap-2.5 min-w-0">
