@@ -166,7 +166,7 @@ export default function GematriaTab() {
                     const worldLoading = !!world.loading[c];
                     const totalMatches = personal.length + bundled.length + worldHits.length;
                     return (
-                      <>
+                      <React.Fragment key={c}>
                         <tr className="border-t border-border/20">
                           <td className="px-4 py-2">{CIPHER_LABEL[c]}</td>
                           <td className="px-4 py-2 text-right font-mono">{r.sum}</td>
