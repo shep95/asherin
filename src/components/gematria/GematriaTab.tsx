@@ -280,7 +280,7 @@ export default function GematriaTab() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
