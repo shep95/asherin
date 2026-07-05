@@ -289,6 +289,8 @@ export default function GematriaTab() {
           </section>
         )}
 
+        {submitted && <ResonancePanel phrase={submitted} />}
+
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <h2 className="text-xs tracking-[0.2em] uppercase text-muted-foreground flex-1">
