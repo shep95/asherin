@@ -113,7 +113,8 @@ export default function GateScreen({ onUnlocked }: { onUnlocked: () => void }) {
     try {
       const { data, error: rErr } = await supabase.rpc("ziaassets_verify_phrase" as never, { _phrase: phrase } as never);
       if (rErr) throw rErr;
-      const row = (Array.isArray(data) ? data[0] : (data as unknown)) as { ok: boolean; key_salt: string; member_rank: string; duress: boolean; locked_until: string | null } | null;
+      const arr = data as unknown as Array<{ ok: boolean; key_salt: string; member_rank: string; duress: boolean; locked_until: string | null }> | null;
+      const row = arr && Array.isArray(arr) ? arr[0] : (data as unknown as { ok: boolean; key_salt: string; member_rank: string; duress: boolean; locked_until: string | null } | null);
       if (!row?.ok) {
         if (row?.locked_until) setError(`Locked until ${new Date(row.locked_until).toLocaleTimeString()}.`);
         else setError("Passphrase rejected.");
