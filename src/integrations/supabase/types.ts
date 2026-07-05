@@ -8988,6 +8988,370 @@ export type Database = {
         }
         Relationships: []
       }
+      ziaassets_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          ip: string | null
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      ziaassets_channels: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_archived: boolean
+          kind: Database["public"]["Enums"]["ziaassets_channel_kind"]
+          min_rank: Database["public"]["Enums"]["ziaassets_rank"]
+          name: string
+          slug: string
+          topic: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_archived?: boolean
+          kind?: Database["public"]["Enums"]["ziaassets_channel_kind"]
+          min_rank?: Database["public"]["Enums"]["ziaassets_rank"]
+          name: string
+          slug: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_archived?: boolean
+          kind?: Database["public"]["Enums"]["ziaassets_channel_kind"]
+          min_rank?: Database["public"]["Enums"]["ziaassets_rank"]
+          name?: string
+          slug?: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ziaassets_gate_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string | null
+          reason: string | null
+          success: boolean
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          reason?: string | null
+          success?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          reason?: string | null
+          success?: boolean
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ziaassets_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          codename: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          rank: Database["public"]["Enums"]["ziaassets_rank"]
+          revoked_at: string | null
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          codename?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          rank?: Database["public"]["Enums"]["ziaassets_rank"]
+          revoked_at?: string | null
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          codename?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          rank?: Database["public"]["Enums"]["ziaassets_rank"]
+          revoked_at?: string | null
+          token?: string
+        }
+        Relationships: []
+      }
+      ziaassets_members: {
+        Row: {
+          codename: string
+          created_at: string
+          duress_hash: string | null
+          failed_attempts: number
+          full_name: string | null
+          id: string
+          invited_by: string | null
+          joined_at: string
+          key_salt: string | null
+          last_seen_at: string | null
+          locked_until: string | null
+          mfa_enrolled: boolean
+          phrase_hash: string | null
+          rank: Database["public"]["Enums"]["ziaassets_rank"]
+          status: Database["public"]["Enums"]["ziaassets_member_status"]
+          totp_secret: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          codename: string
+          created_at?: string
+          duress_hash?: string | null
+          failed_attempts?: number
+          full_name?: string | null
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          key_salt?: string | null
+          last_seen_at?: string | null
+          locked_until?: string | null
+          mfa_enrolled?: boolean
+          phrase_hash?: string | null
+          rank?: Database["public"]["Enums"]["ziaassets_rank"]
+          status?: Database["public"]["Enums"]["ziaassets_member_status"]
+          totp_secret?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          codename?: string
+          created_at?: string
+          duress_hash?: string | null
+          failed_attempts?: number
+          full_name?: string | null
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          key_salt?: string | null
+          last_seen_at?: string | null
+          locked_until?: string | null
+          mfa_enrolled?: boolean
+          phrase_hash?: string | null
+          rank?: Database["public"]["Enums"]["ziaassets_rank"]
+          status?: Database["public"]["Enums"]["ziaassets_member_status"]
+          totp_secret?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ziaassets_messages: {
+        Row: {
+          aad: string | null
+          channel_id: string
+          ciphertext: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          iv: string
+          kind: string
+          reply_to: string | null
+          sender_id: string
+        }
+        Insert: {
+          aad?: string | null
+          channel_id: string
+          ciphertext: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          iv: string
+          kind?: string
+          reply_to?: string | null
+          sender_id: string
+        }
+        Update: {
+          aad?: string | null
+          channel_id?: string
+          ciphertext?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          iv?: string
+          kind?: string
+          reply_to?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ziaassets_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "ziaassets_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ziaassets_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "ziaassets_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ziaassets_vault_files: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          filename_ct: string
+          filename_iv: string
+          folder_id: string | null
+          id: string
+          iv: string
+          mime: string | null
+          min_rank: Database["public"]["Enums"]["ziaassets_rank"]
+          sha256: string | null
+          size_bytes: number | null
+          storage_path: string
+          tags: string[] | null
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          filename_ct: string
+          filename_iv: string
+          folder_id?: string | null
+          id?: string
+          iv: string
+          mime?: string | null
+          min_rank?: Database["public"]["Enums"]["ziaassets_rank"]
+          sha256?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          tags?: string[] | null
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          filename_ct?: string
+          filename_iv?: string
+          folder_id?: string | null
+          id?: string
+          iv?: string
+          mime?: string | null
+          min_rank?: Database["public"]["Enums"]["ziaassets_rank"]
+          sha256?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          tags?: string[] | null
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ziaassets_vault_files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "ziaassets_vault_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ziaassets_vault_folders: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          min_rank: Database["public"]["Enums"]["ziaassets_rank"]
+          name: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          min_rank?: Database["public"]["Enums"]["ziaassets_rank"]
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          min_rank?: Database["public"]["Enums"]["ziaassets_rank"]
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ziaassets_vault_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ziaassets_vault_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -9197,6 +9561,30 @@ export type Database = {
           running_count: number
         }[]
       }
+      ziaassets_bootstrap_emperor: { Args: never; Returns: string }
+      ziaassets_has_min_rank: {
+        Args: {
+          _min: Database["public"]["Enums"]["ziaassets_rank"]
+          _uid: string
+        }
+        Returns: boolean
+      }
+      ziaassets_is_active_member: { Args: { _uid: string }; Returns: boolean }
+      ziaassets_is_emperor: { Args: { _uid: string }; Returns: boolean }
+      ziaassets_set_phrase: {
+        Args: { _duress_phrase?: string; _key_salt: string; _phrase: string }
+        Returns: undefined
+      }
+      ziaassets_verify_phrase: {
+        Args: { _phrase: string }
+        Returns: {
+          duress: boolean
+          key_salt: string
+          locked_until: string
+          member_rank: Database["public"]["Enums"]["ziaassets_rank"]
+          ok: boolean
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
@@ -9225,6 +9613,20 @@ export type Database = {
         | "officer"
         | "analyst"
       forum_category: "idea" | "leak" | "bug" | "theory"
+      ziaassets_channel_kind:
+        | "chamber"
+        | "direct"
+        | "broadcast"
+        | "vault-thread"
+      ziaassets_member_status: "active" | "suspended" | "revoked" | "pending"
+      ziaassets_rank:
+        | "emperor"
+        | "hand"
+        | "admin"
+        | "officer"
+        | "researcher"
+        | "worker"
+        | "initiate"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -9381,6 +9783,22 @@ export const Constants = {
         "analyst",
       ],
       forum_category: ["idea", "leak", "bug", "theory"],
+      ziaassets_channel_kind: [
+        "chamber",
+        "direct",
+        "broadcast",
+        "vault-thread",
+      ],
+      ziaassets_member_status: ["active", "suspended", "revoked", "pending"],
+      ziaassets_rank: [
+        "emperor",
+        "hand",
+        "admin",
+        "officer",
+        "researcher",
+        "worker",
+        "initiate",
+      ],
     },
   },
 } as const
