@@ -167,7 +167,7 @@ export default function GematriaTab() {
                     const totalMatches = personal.length + bundled.length + worldHits.length;
                     return (
                       <>
-                        <tr key={c} className="border-t border-border/20">
+                        <tr className="border-t border-border/20">
                           <td className="px-4 py-2">{CIPHER_LABEL[c]}</td>
                           <td className="px-4 py-2 text-right font-mono">{r.sum}</td>
                           <td
