@@ -289,8 +289,12 @@ serve(async (req) => {
         if (intent.needsClarification) {
           jurisdictionalBlock = "\n\n" + formatClarifyContext(intent);
         } else {
-          const bundle = await runJurisdictionalSearch(intent);
-          jurisdictionalBlock = "\n\n" + formatIntelContext(bundle);
+          // Wall-clock ceiling: never let jurisdictional intel push asher-ai past the 150s edge limit.
+          const bundle = await Promise.race([
+            runJurisdictionalSearch(intent),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 25000)),
+          ]);
+          jurisdictionalBlock = bundle ? "\n\n" + formatIntelContext(bundle) : "";
         }
       }
     } catch (e) { console.error("[asher-ai] jurisdictional intel:", (e as Error).message); }
