@@ -217,9 +217,13 @@ const ZaliView = () => {
     loadMessages();
   }, [activeProject, user]);
 
-  // Realtime subscription for messages
+  // Realtime subscription for messages.
+  // Ignore INSERTs authored by the current session — those are already
+  // in local state via the optimistic write in sendMessage, and the
+  // realtime echo was clobbering the in-flight streaming bubble.
   useEffect(() => {
-    if (!activeProject) return;
+    if (!activeProject || !user) return;
+    const myUid = user.id;
     const channel = supabase
       .channel(`zali-msgs-${activeProject.id}`)
       .on("postgres_changes", {
@@ -229,6 +233,7 @@ const ZaliView = () => {
         filter: `project_id=eq.${activeProject.id}`,
       }, (payload) => {
         const m = payload.new as any;
+        if (m?.user_id === myUid) return; // our own write — ignore echo
         setMessages((prev) => {
           if (prev.some((msg) => msg.id === m.id)) return prev;
           return [...prev, {
@@ -243,7 +248,7 @@ const ZaliView = () => {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [activeProject]);
+  }, [activeProject, user]);
 
   const createProject = useCallback(async (name: string, designType: string) => {
     if (!user) return;
