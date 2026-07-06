@@ -36,8 +36,11 @@ const DEVICE_LABELS = new Set<string>([
   "refrigerator", "sink",
 ]);
 const PERSON_LABEL = "person";
+const VEHICLE_LABELS = new Set<string>([
+  "car", "truck", "bus", "motorcycle", "bicycle", "train", "boat", "airplane",
+]);
 
-export type OpticalKind = "device" | "person";
+export type OpticalKind = "device" | "person" | "vehicle";
 
 export interface OpticalContact {
   /** Soft-stable id (label + 12x12 grid cell) — sticky enough for reticles. */
@@ -112,6 +115,7 @@ async function getDetector(): Promise<any> {
 }
 
 function tagKind(label: string): OpticalKind | null {
+  if (VEHICLE_LABELS.has(label)) return "vehicle";
   if (DEVICE_LABELS.has(label)) return "device";
   if (label === PERSON_LABEL) return "person";
   return null;
