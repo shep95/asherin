@@ -19,17 +19,34 @@ export interface BodyMetrics {
   /** 0..1 — how confident the estimate is (full body visible, vertical pose). */
   confidence: number;
   /** how the estimate was anchored, for the HUD. */
-  anchor: "shoulder-breadth" | "frame-fill";
+  anchor: "shoulder+head" | "shoulder-breadth" | "head-width" | "frame-fill" | "unstable";
+  /** rough distance from the camera in meters (inter-ocular baseline, 60° FoV). */
+  distanceFromCameraM?: number;
+  /** torso tilt from vertical in degrees — >30° means "not standing upright." */
+  torsoTiltDeg?: number;
+  /** true when the two anchors (shoulder vs head) disagreed by >2× and we clamped. */
+  unstable?: boolean;
+}
+
+export type WearableZoneKind = "wrist-L" | "wrist-R" | "ear-L" | "ear-R";
+export interface WearableZone {
+  kind: WearableZoneKind;
+  /** normalized center + radius, video coords (0..1). */
+  cx: number; cy: number; r: number;
+  /** landmark visibility 0..1 — hide the zone below ~0.4. */
+  visibility: number;
 }
 
 export interface PoseHit {
   kind: "body" | "face" | "left-hand" | "right-hand";
   /** normalized bbox of this region (0..1, video coords) */
   bbox: { x: number; y: number; w: number; h: number };
-  /** raw landmark list in normalized video coords */
-  points: Array<{ x: number; y: number }>;
+  /** raw landmark list in normalized video coords, with per-point visibility */
+  points: Array<{ x: number; y: number; v?: number }>;
   /** body-only: anthropometric estimate, when full body keypoints are visible. */
   metrics?: BodyMetrics;
+  /** body-only: wearable-device candidate zones (wrists, ears). */
+  wearableZones?: WearableZone[];
 }
 
 export interface BodyFrame {
@@ -105,69 +122,181 @@ function bboxOf(points: Array<{ x: number; y: number }>) {
   return { x: x1, y: y1, w: Math.max(0, x2 - x1), h: Math.max(0, y2 - y1) };
 }
 
+// BlazePose 33-pt landmark indices we care about.
+const NOSE = 0, L_EYE = 2, R_EYE = 5, L_EAR = 7, R_EAR = 8;
+const L_SH = 11, R_SH = 12, L_ELB = 13, R_ELB = 14, L_WR = 15, R_WR = 16;
+const L_HIP = 23, R_HIP = 24, L_AN = 27, R_AN = 28;
+
+/** Rough horizontal FoV of a phone rear camera; used to convert inter-ocular
+ *  pixel distance into a metric range. Real value varies 55°–75°; 60° is the
+ *  honest midpoint and we surface the number as a *rough* distance. */
+const CAMERA_HFOV_DEG = 60;
+/** Real-world adult inter-pupillary distance (m). */
+const IPD_M = 0.063;
+/** Real-world mean adult biacromial (shoulder) breadth — averaged M/F. */
+const SHOULDER_BREADTH_M = 0.38;
+/** Real-world mean adult ear-to-ear head width. */
+const HEAD_WIDTH_M = 0.155;
+/** Landmark visibility below this is treated as "not seen." */
+const V_MIN = 0.5;
+
+function vis(p: any): number {
+  const v = typeof p?.visibility === "number" ? p.visibility : (typeof p?.v === "number" ? p.v : 1);
+  return Number.isFinite(v) ? v : 0;
+}
+
 function estimateBodyMetrics(
-  pts: Array<{ x: number; y: number }>,
-  aspect: number, // videoWidth / videoHeight
+  pts: Array<{ x: number; y: number; v?: number }>,
+  aspect: number,           // videoWidth / videoHeight
+  videoWidth: number,
 ): BodyMetrics | undefined {
-  // BlazePose 33-pt indices we rely on.
-  const NOSE = 0, L_SH = 11, R_SH = 12, L_HIP = 23, R_HIP = 24, L_AN = 27, R_AN = 28;
   const need = [NOSE, L_SH, R_SH, L_HIP, R_HIP, L_AN, R_AN];
   if (need.some((i) => !pts[i])) return undefined;
 
-  // Normalize so x is "real" by multiplying by aspect (square space → wide).
+  // Visibility gate — reject if any critical vertical landmark is unreliable.
+  const critVis = Math.min(vis(pts[NOSE]), vis(pts[L_AN]), vis(pts[R_AN]));
+  if (critVis < V_MIN) return undefined;
+  const shoulderVis = Math.min(vis(pts[L_SH]), vis(pts[R_SH]));
+  const earVis = pts[L_EAR] && pts[R_EAR]
+    ? Math.min(vis(pts[L_EAR]), vis(pts[R_EAR])) : 0;
+
+  // "Square" x-space so pixel distances in x and y have the same meaning.
   const P = (i: number) => ({ x: pts[i].x * aspect, y: pts[i].y });
-  const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+  const d = (a: { x: number; y: number }, b: { x: number; y: number }) =>
     Math.hypot(a.x - b.x, a.y - b.y);
 
-  const shoulderBreadth = dist(P(L_SH), P(R_SH));
-  const head = P(NOSE);
+  const midSh  = { x: (P(L_SH).x + P(R_SH).x) / 2,  y: (P(L_SH).y + P(R_SH).y) / 2  };
+  const midHip = { x: (P(L_HIP).x + P(R_HIP).x) / 2, y: (P(L_HIP).y + P(R_HIP).y) / 2 };
   const ankleY = Math.max(pts[L_AN].y, pts[R_AN].y);
-  const headToAnkle = ankleY - head.y;            // pure-vertical span (normalized)
-  const torsoLen = ((P(L_HIP).y + P(R_HIP).y) / 2) - ((P(L_SH).y + P(R_SH).y) / 2);
-
-  // Reject crouching / partial frames.
+  const headToAnkle = ankleY - P(NOSE).y;
   if (headToAnkle < 0.25) return undefined;
-  if (torsoLen <= 0) return undefined;
 
-  // Anchor strategy.
-  // Adult mean biacromial (shoulder) breadth ≈ 0.40 m.
-  // Anchor 1 (preferred): use shoulder breadth in normalized-square to back out a
-  // "meters per normalized unit", then multiply head→ankle by it.
-  // Anchor 2 (fallback): assume the subject fills ~85 % of the frame and a 1.70 m
-  // adult stands at that fill ratio.
+  // Verticality — angle between shoulders→hips vector and world-down (+y).
+  const torsoDx = midHip.x - midSh.x;
+  const torsoDy = midHip.y - midSh.y;
+  if (torsoDy <= 0) return undefined;
+  const torsoTiltDeg = Math.abs((Math.atan2(torsoDx, torsoDy) * 180) / Math.PI);
+
+  // Two independent metric anchors.
+  const shoulderBreadth = d(P(L_SH), P(R_SH));               // in videoHeight units
+  const headWidth = earVis >= V_MIN ? d(P(L_EAR), P(R_EAR)) : 0;
+  const anchors: Array<{ mpu: number; w: number }> = [];
+  if (shoulderBreadth > 0.03 && shoulderVis >= V_MIN) {
+    anchors.push({ mpu: SHOULDER_BREADTH_M / shoulderBreadth, w: shoulderVis });
+  }
+  if (headWidth > 0.02) {
+    anchors.push({ mpu: HEAD_WIDTH_M / headWidth, w: earVis });
+  }
+
   let heightM: number;
   let anchor: BodyMetrics["anchor"];
   let confidence: number;
-  if (shoulderBreadth > 0.05) {
-    const metersPerUnit = 0.40 / shoulderBreadth;
-    heightM = headToAnkle * metersPerUnit;
-    anchor = "shoulder-breadth";
-    confidence = 0.55;
+  let unstable = false;
+
+  if (anchors.length >= 2) {
+    // Cross-check: if anchors disagree by >2×, distrust both.
+    const [a, b] = anchors;
+    const ratio = Math.max(a.mpu, b.mpu) / Math.min(a.mpu, b.mpu);
+    const wSum = a.w + b.w;
+    const mpu = (a.mpu * a.w + b.mpu * b.w) / wSum;
+    heightM = headToAnkle * mpu;
+    if (ratio > 2) {
+      unstable = true;
+      anchor = "unstable";
+      confidence = 0.15;
+    } else {
+      anchor = "shoulder+head";
+      // High confidence when anchors agree (ratio→1) and both visible.
+      confidence = Math.max(0.35, Math.min(0.9, (1.05 - (ratio - 1)) * 0.55 * ((a.w + b.w) / 2)));
+    }
+  } else if (anchors.length === 1) {
+    heightM = headToAnkle * anchors[0].mpu;
+    anchor = shoulderBreadth > 0 ? "shoulder-breadth" : "head-width";
+    confidence = 0.4 * anchors[0].w;
   } else {
     heightM = (headToAnkle / 0.85) * 1.70;
     anchor = "frame-fill";
-    confidence = 0.3;
+    confidence = 0.2;
   }
 
-  // Clamp to physically plausible adult/child range so a partial detection
-  // never reports "12 m tall".
-  heightM = Math.min(2.3, Math.max(0.9, heightM));
+  // Verticality gate: >30° from vertical means the "vertical span" isn't vertical.
+  if (torsoTiltDeg > 30) {
+    unstable = true;
+    confidence *= Math.max(0.15, 1 - (torsoTiltDeg - 30) / 45);
+  }
 
-  // Frontal-pose bonus: shoulder-to-torso ratio should sit in a sane band.
-  const shoulderToTorso = shoulderBreadth / torsoLen;
-  if (shoulderToTorso > 0.8 && shoulderToTorso < 2.4) confidence += 0.2;
+  // Physical clamp — humans, not skyscrapers.
+  heightM = Math.min(2.3, Math.max(0.6, heightM));
 
-  // BMI=22 → weight = 22 × h² (kg). Tag slight build-factor from shoulder ratio.
+  // Distance from camera via inter-ocular baseline (rough, single-camera).
+  let distanceFromCameraM: number | undefined;
+  if (
+    pts[L_EYE] && pts[R_EYE] &&
+    vis(pts[L_EYE]) >= V_MIN && vis(pts[R_EYE]) >= V_MIN &&
+    videoWidth > 0
+  ) {
+    const eyePx = Math.hypot(
+      (pts[L_EYE].x - pts[R_EYE].x) * videoWidth,
+      (pts[L_EYE].y - pts[R_EYE].y) * videoWidth, // y in same px scale via square
+    );
+    if (eyePx > 2) {
+      const focalPx = (videoWidth / 2) / Math.tan((CAMERA_HFOV_DEG * Math.PI) / 360);
+      distanceFromCameraM = (IPD_M * focalPx) / eyePx;
+      // Clamp to indoor / short outdoor range.
+      distanceFromCameraM = Math.max(0.2, Math.min(20, distanceFromCameraM));
+    }
+  }
+
+  // Weight from BMI 22 (median healthy adult) with a mild build adjustment
+  // from shoulder-to-torso ratio when we have shoulders. Toddlers/children
+  // get a softer BMI floor via the smaller height clamp.
+  const torsoLen = midHip.y - midSh.y;
+  const shoulderToTorso = shoulderBreadth > 0 && torsoLen > 0 ? shoulderBreadth / torsoLen : 1.45;
   const buildAdj = Math.min(1.15, Math.max(0.85, shoulderToTorso / 1.45));
   const weightKg = Math.round(22 * heightM * heightM * buildAdj);
 
   return {
     heightM: Math.round(heightM * 100) / 100,
     weightKg,
-    confidence: Math.min(1, confidence),
+    confidence: Math.max(0, Math.min(1, confidence)),
     anchor,
+    distanceFromCameraM: distanceFromCameraM
+      ? Math.round(distanceFromCameraM * 10) / 10
+      : undefined,
+    torsoTiltDeg: Math.round(torsoTiltDeg),
+    unstable,
   };
 }
+
+/** Wearable-device candidate zones synthesised from body pose landmarks.
+ *  Rationale: COCO has no smartwatch/earbud class, and Web Bluetooth cannot
+ *  passively see radio. So we mark the pixels where a wearable *would* sit
+ *  (wrists, ears) and let the operator tap-to-bond a paired BLE id there. */
+function computeWearableZones(
+  pts: Array<{ x: number; y: number; v?: number }>,
+  aspect: number,
+): WearableZone[] {
+  const zones: WearableZone[] = [];
+  const push = (kind: WearableZoneKind, i: number, refI: number, scale: number) => {
+    const p = pts[i], ref = pts[refI];
+    if (!p || !ref) return;
+    const v = vis(p);
+    if (v < 0.4) return;
+    // Reticle radius: scaled off the neighbouring segment length so it stays
+    // proportional to how big the person is in the frame.
+    const seg = Math.hypot((p.x - ref.x) * aspect, p.y - ref.y);
+    const r = Math.max(0.015, Math.min(0.08, seg * scale));
+    zones.push({ kind, cx: p.x, cy: p.y, r, visibility: v });
+  };
+  // Wrist zones ~ half the forearm length.
+  push("wrist-L", L_WR, L_ELB, 0.45);
+  push("wrist-R", R_WR, R_ELB, 0.45);
+  // Ear zones ~ a third of the ear-to-nose distance.
+  push("ear-L", L_EAR, NOSE, 0.35);
+  push("ear-R", R_EAR, NOSE, 0.35);
+  return zones;
+}
+
 
 export interface BodyVisionHandle {
   stop: () => void;
@@ -202,12 +331,13 @@ export async function startBodyVision(
         const r = models.pose.detectForVideo(video, ts);
         const lm = r?.landmarks?.[0];
         if (lm?.length) {
-          const pts = lm.map((p: any) => ({ x: p.x, y: p.y }));
+          const pts = lm.map((p: any) => ({ x: p.x, y: p.y, v: p.visibility }));
           hits.push({
             kind: "body",
             points: pts,
             bbox: bboxOf(pts),
-            metrics: estimateBodyMetrics(pts, aspect),
+            metrics: estimateBodyMetrics(pts, aspect, video.videoWidth),
+            wearableZones: computeWearableZones(pts, aspect),
           });
         }
       }
