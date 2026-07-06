@@ -491,42 +491,40 @@ const ZaliView = () => {
       // Validated design_output → apply. Rejects hallucinated shapes,
       // enforces size cap, whitelists enums (fixes S3 + L5).
       const designResult = extractDesignOutput(fullContent);
-      if (designResult && "ok" in designResult) {
-        if (designResult.ok) {
-          const designData = designResult.data;
-          const updatePayload: Record<string, unknown> = {};
-          if (designData.phase) updatePayload.phase = designData.phase;
-          if (designData.design_type) updatePayload.design_type = designData.design_type;
-          if (designData.specifications) updatePayload.specifications = designData.specifications;
-          if (designData.cost_analysis) updatePayload.cost_analysis = designData.cost_analysis;
-          if (designData.manufacturing) updatePayload.manufacturing = designData.manufacturing;
-          if (designData.simulation_results) updatePayload.simulation_results = designData.simulation_results;
-          if (Object.keys(updatePayload).length > 0) {
-            await supabase.from("zali_projects").update(updatePayload).eq("id", activeProject.id);
-            setActiveProject((prev) => prev ? {
-              ...prev,
-              phase: designData.phase ?? prev.phase,
-              designType: designData.design_type ?? prev.designType,
-              specifications: designData.specifications ?? prev.specifications,
-              costAnalysis: designData.cost_analysis ?? prev.costAnalysis,
-              manufacturing: designData.manufacturing ?? prev.manufacturing,
-              simulationResults: designData.simulation_results ?? prev.simulationResults,
-            } : prev);
-            setProjects((prev) => prev.map((p) => p.id === activeProject.id ? {
-              ...p,
-              phase: designData.phase ?? p.phase,
-              designType: designData.design_type ?? p.designType,
-              specifications: designData.specifications ?? p.specifications,
-              costAnalysis: designData.cost_analysis ?? p.costAnalysis,
-              manufacturing: designData.manufacturing ?? p.manufacturing,
-              simulationResults: designData.simulation_results ?? p.simulationResults,
-            } : p));
-            setAutoBuildModel(true);
-            setActiveTab((cur) => (cur === "workspace" || cur === "specs") ? cur : "workspace");
-          }
-        } else {
-          console.warn("[zanoem] rejected design_output:", designResult.reason);
-          toast({ title: "Design update ignored", description: designResult.reason });
+      if (designResult && !designResult.ok) {
+        console.warn("[zanoem] rejected design_output:", designResult.reason);
+        toast({ title: "Design update ignored", description: designResult.reason });
+      } else if (designResult && designResult.ok) {
+        const designData = designResult.data;
+        const updatePayload: Record<string, unknown> = {};
+        if (designData.phase) updatePayload.phase = designData.phase;
+        if (designData.design_type) updatePayload.design_type = designData.design_type;
+        if (designData.specifications) updatePayload.specifications = designData.specifications;
+        if (designData.cost_analysis) updatePayload.cost_analysis = designData.cost_analysis;
+        if (designData.manufacturing) updatePayload.manufacturing = designData.manufacturing;
+        if (designData.simulation_results) updatePayload.simulation_results = designData.simulation_results;
+        if (Object.keys(updatePayload).length > 0) {
+          await supabase.from("zali_projects").update(updatePayload).eq("id", activeProject.id);
+          setActiveProject((prev) => prev ? {
+            ...prev,
+            phase: designData.phase ?? prev.phase,
+            designType: designData.design_type ?? prev.designType,
+            specifications: designData.specifications ?? prev.specifications,
+            costAnalysis: designData.cost_analysis ?? prev.costAnalysis,
+            manufacturing: designData.manufacturing ?? prev.manufacturing,
+            simulationResults: designData.simulation_results ?? prev.simulationResults,
+          } : prev);
+          setProjects((prev) => prev.map((p) => p.id === activeProject.id ? {
+            ...p,
+            phase: designData.phase ?? p.phase,
+            designType: designData.design_type ?? p.designType,
+            specifications: designData.specifications ?? p.specifications,
+            costAnalysis: designData.cost_analysis ?? p.costAnalysis,
+            manufacturing: designData.manufacturing ?? p.manufacturing,
+            simulationResults: designData.simulation_results ?? p.simulationResults,
+          } : p));
+          setAutoBuildModel(true);
+          setActiveTab((cur) => (cur === "workspace" || cur === "specs") ? cur : "workspace");
         }
       }
 
