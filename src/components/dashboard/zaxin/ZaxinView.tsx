@@ -1688,7 +1688,7 @@ function drawFrame(
         const by = (hit.bbox.y + hit.bbox.h) * H + 4;
         const lines: Array<[string, string]> = [
           [`${fm.ageBand.toUpperCase()} · ~${fm.ageYears}y`, `${fm.sexHint.replace("-", " ")}`],
-          [`H ~${fm.heightM.toFixed(2)}m`, `W ~${fm.weightKg}kg · ${fm.bmiBand}`],
+          [`H ~${fm.heightM.toFixed(2)}m`, `W ~${formatWeightKg(fm.weightKg)} · ${fm.bmiBand}`],
           [`ETH ${fm.ethnicity.label}`, `${(fm.ethnicity.probs[fm.ethnicity.top] * 100).toFixed(0)}%`],
           [`GAZE ${fm.gaze.label}`, `emo ${fm.emotion}`],
           [`blink ${fm.blink.ratePerMin}/m`, `sym ${(fm.symmetry * 100).toFixed(0)}% · stress ${(fm.stress * 100).toFixed(0)}%`],
