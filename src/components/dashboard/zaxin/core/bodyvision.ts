@@ -19,15 +19,30 @@ export interface BodyMetrics {
   /** 0..1 — how confident the estimate is (full body visible, vertical pose). */
   confidence: number;
   /** how the estimate was anchored, for the HUD. */
-  anchor: "shoulder-breadth" | "frame-fill";
+  anchor: "shoulder+head" | "shoulder-breadth" | "head-width" | "frame-fill" | "unstable";
+  /** rough distance from the camera in meters (inter-ocular baseline, 60° FoV). */
+  distanceFromCameraM?: number;
+  /** torso tilt from vertical in degrees — >30° means "not standing upright." */
+  torsoTiltDeg?: number;
+  /** true when the two anchors (shoulder vs head) disagreed by >2× and we clamped. */
+  unstable?: boolean;
+}
+
+export type WearableZoneKind = "wrist-L" | "wrist-R" | "ear-L" | "ear-R";
+export interface WearableZone {
+  kind: WearableZoneKind;
+  /** normalized center + radius, video coords (0..1). */
+  cx: number; cy: number; r: number;
+  /** landmark visibility 0..1 — hide the zone below ~0.4. */
+  visibility: number;
 }
 
 export interface PoseHit {
   kind: "body" | "face" | "left-hand" | "right-hand";
   /** normalized bbox of this region (0..1, video coords) */
   bbox: { x: number; y: number; w: number; h: number };
-  /** raw landmark list in normalized video coords */
-  points: Array<{ x: number; y: number }>;
+  /** raw landmark list in normalized video coords, with per-point visibility */
+  points: Array<{ x: number; y: number; v?: number }>;
   /** body-only: anthropometric estimate, when full body keypoints are visible. */
   metrics?: BodyMetrics;
 }
