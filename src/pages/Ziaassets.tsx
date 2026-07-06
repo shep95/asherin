@@ -108,7 +108,14 @@ export default function Ziaassets() {
     );
   }
 
-  if (!key) {
+  // Show GateScreen when:
+  //  - the sovereign key hasn't been sealed yet, OR
+  //  - the member row is still pending/revoked (RLS would return empty
+  //    results and make the deck look broken).  GateScreen already renders
+  //    the correct "Awaiting Emperor Approval" / "Access revoked" message
+  //    based on the same member row.
+  const gateActive = !key || memberStatus === "pending" || memberStatus === "revoked" || memberStatus === "unknown";
+  if (gateActive) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-black p-4">
         <div className="max-w-6xl mx-auto pt-8">
@@ -119,7 +126,7 @@ export default function Ziaassets() {
               <LogOut className="w-4 h-4 mr-1" /> Sign out
             </Button>
           </div>
-          <GateScreen onUnlocked={() => { /* rerender via store */ }} />
+          <GateScreen onUnlocked={() => { /* rerender via store; deck stays gated until member.status === active */ }} />
         </div>
       </div>
     );
