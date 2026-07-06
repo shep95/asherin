@@ -40,13 +40,16 @@ const DECISION_CUES = [
   "next steps?", "proceed?", "continue?", "ready to proceed",
 ];
 
-/** True if the assistant text is asking the human to make a choice/confirm/recommend. */
+/** True if the assistant text is asking the human to make a choice/confirm/recommend.
+ *  Only inspects the TAIL of the message (last ~800 chars, after any code fences)
+ *  so a `?` buried in an explanation paragraph does not falsely trigger autopilot. */
 export function needsHumanDecision(text: string): boolean {
   if (!text) return false;
   const stripped = text.replace(/```[\s\S]*?```/g, "").trim();
   if (!stripped) return false;
-  if (/\?\s*$/m.test(stripped)) return true;
-  const lower = stripped.toLowerCase();
+  const tail = stripped.slice(-800);
+  if (/\?\s*$/m.test(tail)) return true;
+  const lower = tail.toLowerCase();
   return DECISION_CUES.some((c) => lower.includes(c));
 }
 
