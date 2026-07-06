@@ -194,5 +194,7 @@ export async function verifyUiMatchesIntent({ intent, recentAssistant, iframe }:
   } catch (e) {
     console.warn("[zanoem-vision] verify failed", e);
     return { ...EMPTY_OK, screenshotDataUrl: png };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
