@@ -1271,6 +1271,60 @@ function ArTab(props: {
           });
         })()}
 
+        {/* VEHICLE OVERLAY — turn any optical "car/truck/bus/motorcycle/…" bbox
+            into a live speed / range / bearing readout. Distance uses the real
+            vehicle width as a scale bar (car=1.82m, truck=2.55m, bus=2.90m,
+            moto=0.82m); speed is a smoothed derivative of that distance plus
+            lateral bbox motion. Nothing renders until we have enough temporal
+            evidence — no fake "0 mph" flicker. */}
+        {props.arOn && opticalOn && (() => {
+          const v = props.videoRef.current;
+          const vw = v?.videoWidth || 0;
+          const vh = v?.videoHeight || 0;
+          if (!vw || !vh) return null;
+          const tracks = updateVehicleTracks(optical, vw, vh, props.heading);
+          return tracks.map((t) => {
+            const p = projectBbox({ x: t.x, y: t.y, w: t.w, h: t.h });
+            if (!p) return null;
+            const closing = t.rangeRateMS < -0.4;
+            const receding = t.rangeRateMS > 0.4;
+            const stroke = closing ? "rgba(248,113,113,0.95)" :
+                           receding ? "rgba(125,211,252,0.95)" :
+                                      "rgba(232,198,132,0.95)";
+            const mph = (Math.abs(t.speedMS) * 2.23694);
+            const speedLabel = t.speedConfidence < 0.35
+              ? "measuring…"
+              : `${mph.toFixed(mph < 10 ? 1 : 0)} mph`;
+            const arrow = closing ? "↓" : receding ? "↑" : "→";
+            const brgLabel = t.bearingDeg != null
+              ? `${String(t.bearingDeg).padStart(3, "0")}°`
+              : "brg —";
+            return (
+              <div
+                key={`veh-${t.id}`}
+                className="absolute rounded-md pointer-events-none transition-[left,top,width,height] duration-150 ease-out"
+                style={{
+                  left: `${p.leftPct}%`, top: `${p.topPct}%`,
+                  width: `${p.widthPct}%`, height: `${p.heightPct}%`,
+                  border: `2px dashed ${stroke}`, zIndex: 4,
+                }}
+              >
+                <div
+                  className="absolute -top-[34px] left-0 text-[9px] font-mono tracking-[0.12em] px-1.5 py-0.5 rounded-sm bg-black/80 leading-tight max-w-[220px] whitespace-normal"
+                  style={{ color: stroke }}
+                >
+                  {t.label.toUpperCase()} · {t.distanceM}m · {speedLabel} {arrow}
+                </div>
+                <div className="absolute -bottom-[18px] left-0 text-[8px] font-mono tracking-[0.14em] px-1 py-0.5 rounded-sm bg-black/70 text-foreground/70">
+                  {brgLabel} · conf {(t.speedConfidence * 100).toFixed(0)}%
+                </div>
+              </div>
+            );
+          });
+        })()}
+
+
+
 
         {/* AI-ONLY IDENT BOXES — top 5 only, with confidence + wrapping labels. */}
         {props.arOn && visionIdents
