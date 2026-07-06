@@ -114,7 +114,7 @@ export default function Ziaassets() {
   //    results and make the deck look broken).  GateScreen already renders
   //    the correct "Awaiting Emperor Approval" / "Access revoked" message
   //    based on the same member row.
-  const gateActive = !key || memberStatus === "pending" || memberStatus === "revoked" || memberStatus === "unknown";
+  const gateActive = !key || memberStatus === "pending" || memberStatus === "revoked";
   if (gateActive) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-black p-4">
