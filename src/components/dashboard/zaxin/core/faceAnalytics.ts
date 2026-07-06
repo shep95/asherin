@@ -106,6 +106,8 @@ const CAMERA_HFOV_DEG = 60;
 // Blink history (per-face module singleton — we render one face)
 const _blinkHistory: number[] = []; // timestamps (ms) of blink onsets
 let _lastClosed = false;
+let _closedStateL = false;
+let _closedStateR = false;
 
 type Pt = { x: number; y: number; v?: number };
 function d2(a: Pt, b: Pt) { return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -352,21 +354,21 @@ export function analyzeFace(
   ];
   let dev = 0, n = 0;
   for (const [a, b] of pairs) {
-    const pa = P(a), pb = P(b);
+    const pa = Ppx(a), pb = Ppx(b);
     if (!pa || !pb) continue;
     const mirroredA = { x: 2 * axisX - pa.x, y: pa.y };
     dev += d2(mirroredA, pb);
     n++;
   }
   const meanDev = n ? dev / n : 0;
-  const symmetry = Math.max(0, Math.min(1, 1 - meanDev / Math.max(0.05, faceHeightSquare * 0.4)));
+  const symmetry = Math.max(0, Math.min(1, 1 - meanDev / Math.max(1, faceHeightPx * 0.4)));
 
   // Emotion / stress — mouth curvature + brow position.
-  const lipUp = P(IDX.LIP_UP)!, lipDn = P(IDX.LIP_DN)!;
+  const lipUp = Ppx(IDX.LIP_UP)!, lipDn = Ppx(IDX.LIP_DN)!;
   const mouthCenterY = (lipUp.y + lipDn.y) / 2;
   const mouthCorners = mouthL && mouthR ? (mouthL.y + mouthR.y) / 2 : mouthCenterY;
-  const smileScore = (mouthCenterY - mouthCorners) / Math.max(0.001, faceHeightSquare); // + = smile
-  const mouthOpen = Math.abs(lipUp.y - lipDn.y) / Math.max(0.001, faceHeightSquare);
+  const smileScore = (mouthCenterY - mouthCorners) / Math.max(1, faceHeightPx); // + = smile
+  const mouthOpen = Math.abs(lipUp.y - lipDn.y) / Math.max(1, faceHeightPx);
   const browRaise = 1 - Math.min(1, browRatio / 0.10);
   const stress = Math.max(0, Math.min(1, browRaise * 0.6 + (mouthOpen > 0.06 ? 0.25 : 0) + (Math.abs(smileScore) < 0.005 ? 0.15 : 0)));
   const emotion: FaceMetrics["emotion"] =
