@@ -45,6 +45,8 @@ export interface PoseHit {
   points: Array<{ x: number; y: number; v?: number }>;
   /** body-only: anthropometric estimate, when full body keypoints are visible. */
   metrics?: BodyMetrics;
+  /** body-only: wearable-device candidate zones (wrists, ears). */
+  wearableZones?: WearableZone[];
 }
 
 export interface BodyFrame {
