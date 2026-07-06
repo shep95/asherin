@@ -139,7 +139,7 @@ export function parseDecisionMarker(text: string): { chosen: string | null; rati
   // Accept quoted OR unquoted values; non-greedy; no strict end anchor.
   const quoted = /ZANOEM_DECISION:\s*"([^"\n]{1,300})"\s*(?:[—\-:]\s*([^\n]{1,400}))?/i.exec(text);
   if (quoted) return { chosen: quoted[1].trim(), rationale: (quoted[2] || "").trim() || null };
-  const unquoted = /ZANOEM_DECISION:\s*([^\n"][^\n]{0,299})\s*(?:[—\-:]\s*([^\n]{1,400}))?/i.exec(text);
+  const unquoted = /ZANOEM_DECISION:\s*([^\n"—:]{1,300}?)\s*(?:[—:]\s+([^\n]{1,400}))?\s*(?:\n|$)/i.exec(text);
   if (!unquoted) return { chosen: null, rationale: null };
   return { chosen: unquoted[1].trim(), rationale: (unquoted[2] || "").trim() || null };
 }
