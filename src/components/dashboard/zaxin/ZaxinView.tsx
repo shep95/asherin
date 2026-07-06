@@ -1597,6 +1597,46 @@ function drawFrame(
     }
     // (No bare bounding-box stroke when unbound — keeps the camera view clean.)
 
+    // Wearable-zone reticles — synthesised from body pose because COCO can't
+    // classify smartwatches/earbuds and Web Bluetooth can't see radio passively.
+    // Tap a ring to bond it to a paired BLE contact (or open the chooser).
+    if (hit.kind === "body" && hit.wearableZones?.length) {
+      for (const z of hit.wearableZones) {
+        const cx = z.cx * W, cy = z.cy * H;
+        const r = Math.max(10, z.r * H);
+        const key = `wearable:${z.kind}`;
+        const bound = bindings[key];
+        const c = bound ? contacts.find((x) => x.id === bound) : null;
+        ctx.save();
+        ctx.setLineDash(bound ? [] : [3, 3]);
+        ctx.lineWidth = bound ? 1.8 : 1.2;
+        ctx.strokeStyle = bound
+          ? "rgba(74,222,128,0.95)"                    // bonded → green
+          : "rgba(232,198,132,0.85)";                  // available → gold
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        // Cross-hair
+        ctx.beginPath();
+        ctx.moveTo(cx - r - 3, cy); ctx.lineTo(cx - 2, cy);
+        ctx.moveTo(cx + 2, cy);     ctx.lineTo(cx + r + 3, cy);
+        ctx.moveTo(cx, cy - r - 3); ctx.lineTo(cx, cy - 2);
+        ctx.moveTo(cx, cy + 2);     ctx.lineTo(cx, cy + r + 3);
+        ctx.stroke();
+        ctx.restore();
+
+        const zlabel = bound
+          ? (c?.displayName ?? bound.slice(0, 10))
+          : z.kind.replace("-", " ") + " · tap to bond";
+        ctx.font = "9px ui-monospace, monospace";
+        const tw = ctx.measureText(zlabel).width + 8;
+        ctx.fillStyle = bound ? "rgba(16,185,129,0.92)" : "rgba(0,0,0,0.7)";
+        ctx.fillRect(cx - tw / 2, cy + r + 4, tw, 12);
+        ctx.fillStyle = bound ? "#000" : "rgba(232,198,132,0.95)";
+        ctx.fillText(zlabel, cx - tw / 2 + 4, cy + r + 13);
+      }
+    }
+
     // Anthropometric estimate readout for body hits.
     if (hit.kind === "body" && hit.metrics) {
       const m = hit.metrics;
@@ -1604,27 +1644,36 @@ function drawFrame(
       const feet = Math.floor(ft);
       const inch = Math.round((ft - feet) * 12);
       const lbs = Math.round(m.weightKg * 2.20462);
+      const distLine = m.distanceFromCameraM != null
+        ? `D ~${m.distanceFromCameraM.toFixed(1)}m · tilt ${m.torsoTiltDeg ?? 0}°`
+        : `tilt ${m.torsoTiltDeg ?? 0}°`;
       const line1 = `H ${m.heightM.toFixed(2)}m · ${feet}'${inch}"`;
       const line2 = `W ~${m.weightKg}kg · ${lbs}lb`;
-      const line3 = `${Math.round(m.confidence * 100)}% · ${m.anchor}`;
+      const line3 = distLine;
+      const stability = m.unstable ? "unstable" : m.anchor;
+      const line4 = `${Math.round(m.confidence * 100)}% · ${stability}`;
       ctx.font = "10px ui-monospace, monospace";
       const tw = Math.max(
         ctx.measureText(line1).width,
         ctx.measureText(line2).width,
         ctx.measureText(line3).width,
+        ctx.measureText(line4).width,
       ) + 10;
       const bx = hit.bbox.x * W;
       const by = (hit.bbox.y + hit.bbox.h) * H + 4;
-      ctx.fillStyle = "rgba(0,0,0,0.6)";
-      ctx.fillRect(bx, by, tw, 44);
-      ctx.strokeStyle = "rgba(74,222,128,0.4)";
+      const boxH = 57;
+      ctx.fillStyle = "rgba(0,0,0,0.65)";
+      ctx.fillRect(bx, by, tw, boxH);
+      ctx.strokeStyle = m.unstable ? "rgba(248,113,113,0.55)" : "rgba(74,222,128,0.4)";
       ctx.lineWidth = 1;
-      ctx.strokeRect(bx, by, tw, 44);
+      ctx.strokeRect(bx, by, tw, boxH);
       ctx.fillStyle = "rgba(167,243,208,0.95)";
       ctx.fillText(line1, bx + 5, by + 12);
       ctx.fillText(line2, bx + 5, by + 25);
-      ctx.fillStyle = "rgba(125,211,252,0.85)";
+      ctx.fillStyle = "rgba(232,198,132,0.9)";
       ctx.fillText(line3, bx + 5, by + 38);
+      ctx.fillStyle = m.unstable ? "rgba(252,165,165,0.95)" : "rgba(125,211,252,0.85)";
+      ctx.fillText(line4, bx + 5, by + 51);
     }
   }
 }
