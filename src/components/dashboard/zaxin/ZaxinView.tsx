@@ -1251,6 +1251,17 @@ function ArTab(props: {
                       ⚠ {ai.person.threat}
                     </div>
                   ) : null}
+                </div>
+                {(isPerson && personChips.length) || sub ? (
+                  <div className="absolute -bottom-[20px] left-0 text-[8px] font-mono tracking-[0.12em] px-1.5 py-0.5 rounded-sm bg-black/70 text-foreground/80 max-w-[200px] whitespace-normal leading-tight">
+                    {isPerson && personChips.length ? personChips.join(" · ") : sub}
+                  </div>
+                ) : null}
+              </div>
+            );
+          });
+        })()}
+
 
         {/* AI-ONLY IDENT BOXES — top 5 only, with confidence + wrapping labels. */}
         {props.arOn && visionIdents
