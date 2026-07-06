@@ -279,14 +279,31 @@ const ZaliView = () => {
     }
   }, [user, toast]);
 
-  const deleteProject = useCallback(async (id: string) => {
-    await supabase.from("zali_projects").delete().eq("id", id);
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-    if (activeProject?.id === id) {
-      const remaining = projects.filter((p) => p.id !== id);
-      setActiveProject(remaining[0] || null);
+  // Two-step delete: the selector calls deleteProject → we open the
+  // confirm dialog → confirmDeleteProject actually deletes. Fixes the
+  // "one misclick nukes a project" UX flaw.
+  const deleteProject = useCallback((id: string) => {
+    const target = projects.find((p) => p.id === id);
+    if (!target) return;
+    setDeleteTarget({ id: target.id, name: target.name });
+  }, [projects]);
+
+  const confirmDeleteProject = useCallback(async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
+    const { error } = await supabase.from("zali_projects").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
     }
-  }, [activeProject, projects]);
+    setProjects((prev) => {
+      const remaining = prev.filter((p) => p.id !== id);
+      if (activeProject?.id === id) setActiveProject(remaining[0] || null);
+      return remaining;
+    });
+    toast({ title: "Project deleted" });
+  }, [deleteTarget, activeProject, toast]);
 
   const renameProject = useCallback(async (id: string, name: string) => {
     await supabase.from("zali_projects").update({ name }).eq("id", id);
