@@ -106,6 +106,8 @@ const CAMERA_HFOV_DEG = 60;
 // Blink history (per-face module singleton — we render one face)
 const _blinkHistory: number[] = []; // timestamps (ms) of blink onsets
 let _lastClosed = false;
+let _closedStateL = false;
+let _closedStateR = false;
 
 type Pt = { x: number; y: number; v?: number };
 function d2(a: Pt, b: Pt) { return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -198,51 +200,69 @@ const ETH_LABELS: Record<EthnicityKey, string> = {
 export function analyzeFace(
   pts: Pt[],
   video: HTMLVideoElement,
-  aspect: number,           // videoWidth / videoHeight
+  aspect: number,           // videoWidth / videoHeight (kept for existing callers)
 ): FaceMetrics | null {
   if (!pts || pts.length < 400) return null;
-  const P = (i: number) => (pts[i] ? { x: pts[i].x * aspect, y: pts[i].y } : null);
-  const need = [IDX.L_EYE_OUT, IDX.R_EYE_OUT, IDX.ZYG_L, IDX.ZYG_R, IDX.CHIN, IDX.FHEAD, IDX.NOSE_TIP];
-  if (need.some((i) => !P(i))) return null;
 
-  const lEye = P(IDX.L_EYE_OUT)!, rEye = P(IDX.R_EYE_OUT)!;
-  const zL = P(IDX.ZYG_L)!, zR = P(IDX.ZYG_R)!;
-  const chin = P(IDX.CHIN)!, fhead = P(IDX.FHEAD)!;
+  // NARRATIVE FIX — units.
+  // Previously we mixed y (0..1 normalized) with x scaled by aspect. That
+  // silently broke EAR (blink never released) and shrank the "face-height"
+  // divisor so weight drifted every time the operator moved closer or farther.
+  // We now work entirely in the source video's pixel frame — one consistent
+  // metric — and derive a single px→metre scale bar from the inter-pupillary
+  // distance (IPD ≈ 63 mm) so estimates are invariant to distance/framing.
+  const vw = video.videoWidth || 1;
+  const vh = video.videoHeight || 1;
+  const Ppx = (i: number): Pt | null =>
+    pts[i] ? { x: pts[i].x * vw, y: pts[i].y * vh, v: pts[i].v } : null;
 
-  // Distance via IPD.
-  const ipdSquare = d2(lEye, rEye);
-  const videoW = video.videoWidth || 1;
-  const ipdPx = ipdSquare * videoW;
-  const focalPx = (videoW / 2) / Math.tan((CAMERA_HFOV_DEG * Math.PI) / 360);
+  const need = [IDX.L_EYE_OUT, IDX.R_EYE_OUT, IDX.L_EYE_IN, IDX.R_EYE_IN,
+                IDX.L_LID_UP, IDX.L_LID_DN, IDX.R_LID_UP, IDX.R_LID_DN,
+                IDX.ZYG_L, IDX.ZYG_R, IDX.CHIN, IDX.FHEAD, IDX.NOSE_TIP];
+  if (need.some((i) => !Ppx(i))) return null;
+
+  const lEye = Ppx(IDX.L_EYE_OUT)!, rEye = Ppx(IDX.R_EYE_OUT)!;
+  const lEyeIn = Ppx(IDX.L_EYE_IN)!, rEyeIn = Ppx(IDX.R_EYE_IN)!;
+  const zL = Ppx(IDX.ZYG_L)!, zR = Ppx(IDX.ZYG_R)!;
+  const chin = Ppx(IDX.CHIN)!, fhead = Ppx(IDX.FHEAD)!;
+  const lidLUp = Ppx(IDX.L_LID_UP)!, lidLDn = Ppx(IDX.L_LID_DN)!;
+  const lidRUp = Ppx(IDX.R_LID_UP)!, lidRDn = Ppx(IDX.R_LID_DN)!;
+
+  // IPD in pixels = distance between the two eye centres (outer-to-outer approx).
+  const ipdPx = d2(lEye, rEye);
+  const focalPx = (vw / 2) / Math.tan((CAMERA_HFOV_DEG * Math.PI) / 360);
   const distanceFromCameraM = Math.max(0.15, Math.min(15, (IPD_M * focalPx) / Math.max(2, ipdPx)));
 
-  // Head width (bizygomatic) — anchored via ratio to IPD (canonical ~2.2×).
-  const zygSquare = d2(zL, zR);
-  const headWidthM = BIZYGOMATIC_M * (zygSquare / (ipdSquare * 2.2));
-  const headWidthClamped = Math.max(0.10, Math.min(0.20, headWidthM));
+  // ONE scale bar: pixels-per-metre, anchored on IPD.
+  const pxPerM = ipdPx / IPD_M;
 
-  // Face height (forehead → chin), then extrapolate to standing height via head:body 1:7.5 canon.
-  const faceHeightSquare = Math.abs(chin.y - fhead.y);
-  const faceHeightM = faceHeightSquare * (headWidthClamped / Math.max(0.01, zygSquare));
-  const heightM = Math.max(0.60, Math.min(2.30, faceHeightM * 7.5));
+  // Head width (bizygomatic) in metres — direct, not ratio-of-ratio.
+  const zygPx = d2(zL, zR);
+  const headWidthMraw = zygPx / pxPerM;
+  const headWidthClamped = Math.max(0.10, Math.min(0.20, headWidthMraw));
 
-  // Jaw-width chubbiness modifier for weight — wider jaw at same face-height → higher mass.
-  const jawL = P(IDX.JAW_L), jawR = P(IDX.JAW_R);
-  const jawWidth = jawL && jawR ? d2(jawL, jawR) : zygSquare * 0.78;
-  const chubIdx = jawWidth / Math.max(0.01, faceHeightSquare);
-  const chubAdj = Math.min(1.28, Math.max(0.82, chubIdx / 0.78));
+  // Face height (forehead → chin) in metres, from the same scale bar.
+  const faceHeightPx = Math.abs(chin.y - fhead.y);
+  const faceHeightM = faceHeightPx / pxPerM;
+  // Standing height ≈ 7.5 × head-height (head-height ≈ face-height × 1.12).
+  const heightM = Math.max(1.20, Math.min(2.20, faceHeightM * 1.12 * 7.5));
+
+  // Jaw width / face height — a scale-invariant "chubbiness" index.
+  const jawL = Ppx(IDX.JAW_L), jawR = Ppx(IDX.JAW_R);
+  const jawPx = jawL && jawR ? d2(jawL, jawR) : zygPx * 0.78;
+  const chubIdx = jawPx / Math.max(1, faceHeightPx); // typical ~0.78 for BMI 22
+  const chubAdj = Math.min(1.30, Math.max(0.82, chubIdx / 0.78));
   const weightKg = Math.round(22 * heightM * heightM * chubAdj);
   const bmi = weightKg / (heightM * heightM);
   const bmiBand: FaceMetrics["bmiBand"] =
     bmi < 18.5 ? "underweight" : bmi < 25 ? "normal" : bmi < 30 ? "overweight" : "obese";
 
-  // Age — proportion of eye-to-brow gap vs face height (children have proportionally larger eyes / lower brow).
-  const bL = P(IDX.BROW_L), bR = P(IDX.BROW_R);
+  // Age proxy — brow-to-eye gap / face height.
+  const bL = Ppx(IDX.BROW_L), bR = Ppx(IDX.BROW_R);
   const eyeBrowGap = bL && bR
     ? Math.abs(((bL.y + bR.y) / 2) - ((lEye.y + rEye.y) / 2))
-    : faceHeightSquare * 0.08;
-  const browRatio = eyeBrowGap / Math.max(0.01, faceHeightSquare);
-  // Higher browRatio → older (brow moves up relative to face over time).
+    : faceHeightPx * 0.08;
+  const browRatio = eyeBrowGap / Math.max(1, faceHeightPx);
   let ageYears: number;
   if (browRatio < 0.055) ageYears = 8;
   else if (browRatio < 0.07) ageYears = 15;
@@ -254,23 +274,20 @@ export function analyzeFace(
     ageYears < 13 ? "child" : ageYears < 20 ? "teen" : ageYears < 30 ? "young-adult" :
     ageYears < 45 ? "adult" : ageYears < 60 ? "mature" : "senior";
 
-  // Sex hint — bizygomatic:face-height ratio (male mean ~0.72, female ~0.66).
-  const zygRatio = zygSquare / Math.max(0.01, faceHeightSquare);
+  const zygRatio = zygPx / Math.max(1, faceHeightPx);
   const sexHint: FaceMetrics["sexHint"] =
     zygRatio > 0.72 ? "male-leaning" : zygRatio < 0.66 ? "female-leaning" : "androgynous";
 
-  // Ethnicity — anthropometric ratios only. Never a headline label < 0.55.
-  const noseL = P(IDX.NOSE_L), noseR = P(IDX.NOSE_R), noseTip = P(IDX.NOSE_TIP);
-  const nasalW = noseL && noseR ? d2(noseL, noseR) : zygSquare * 0.25;
-  const nasalH = noseTip ? Math.abs(noseTip.y - ((lEye.y + rEye.y) / 2)) : faceHeightSquare * 0.25;
-  const nasalIndex = nasalW / Math.max(0.01, nasalH);
-  const mouthL = P(IDX.MOUTH_L), mouthR = P(IDX.MOUTH_R);
-  const mouthW = mouthL && mouthR ? d2(mouthL, mouthR) : zygSquare * 0.42;
-  const lipIndex = mouthW / Math.max(0.01, zygSquare);
-  // Eye slant (up = positive) — hedged epicanthic proxy.
-  const eyeSlant = (lEye.y - P(IDX.L_EYE_IN)!.y) + (rEye.y - P(IDX.R_EYE_IN)!.y);
+  // Ethnicity ratios — all pixel-space, all scale-invariant.
+  const noseL = Ppx(IDX.NOSE_L), noseR = Ppx(IDX.NOSE_R), noseTip = Ppx(IDX.NOSE_TIP);
+  const nasalW = noseL && noseR ? d2(noseL, noseR) : zygPx * 0.25;
+  const nasalH = noseTip ? Math.abs(noseTip.y - ((lEye.y + rEye.y) / 2)) : faceHeightPx * 0.25;
+  const nasalIndex = nasalW / Math.max(1, nasalH);
+  const mouthL = Ppx(IDX.MOUTH_L), mouthR = Ppx(IDX.MOUTH_R);
+  const mouthW = mouthL && mouthR ? d2(mouthL, mouthR) : zygPx * 0.42;
+  const lipIndex = mouthW / Math.max(1, zygPx);
+  const eyeSlant = ((lEye.y - lEyeIn.y) + (rEye.y - rEyeIn.y)) / Math.max(1, ipdPx);
 
-  // Very rough logit weights — hand-tuned, not learned. Purposely conservative.
   const logits: Record<EthnicityKey, number> = {
     "east-asian":       (eyeSlant > 0 ? 1.1 : -0.4) + (nasalIndex < 0.90 ? 0.4 : -0.2),
     "southeast-asian":  (eyeSlant > 0 ? 0.6 : -0.3) + (nasalIndex > 0.95 ? 0.4 : 0),
@@ -279,37 +296,44 @@ export function analyzeFace(
     "middle-eastern":   (nasalIndex < 0.85 ? 0.4 : 0) + (lipIndex > 0.40 ? 0.3 : 0) + (zygRatio > 0.70 ? 0.2 : 0),
     "african":          (nasalIndex > 1.05 ? 0.9 : -0.4) + (lipIndex > 0.46 ? 0.5 : -0.2),
     "latino":           (nasalIndex > 0.92 && nasalIndex < 1.10 ? 0.4 : 0) + (zygRatio > 0.68 ? 0.2 : 0),
-    "mixed":            0.15, // baseline
+    "mixed":            0.15,
   };
   const probs = softmax(logits) as Record<EthnicityKey, number>;
   const top = (Object.keys(probs) as EthnicityKey[]).sort((a, b) => probs[b] - probs[a])[0];
   const finalTop: EthnicityKey = probs[top] >= 0.55 ? top : "mixed";
 
-  // Iris colour (sample real pixels).
+  // Iris color — samples from *pixel* coords, so we pass back normalized x/y
+  // for the sampler (it multiplies again).
   const irisL = pts[IDX.L_IRIS] ?? pts[IDX.L_EYE_IN];
   const irisR = pts[IDX.R_IRIS] ?? pts[IDX.R_EYE_IN];
   const irisRadiusPx = Math.max(2, Math.round(ipdPx * 0.03));
   const eyeL = classifyIris(irisL ? samplePixel(video, irisL.x, irisL.y, irisRadiusPx) : null);
   const eyeR = classifyIris(irisR ? samplePixel(video, irisR.x, irisR.y, irisRadiusPx) : null);
 
-  // Gaze — iris centre offset from eye-socket midpoint, normalized to socket width.
-  const lidLUp = P(IDX.L_LID_UP)!, lidLDn = P(IDX.L_LID_DN)!;
-  const lidRUp = P(IDX.R_LID_UP)!, lidRDn = P(IDX.R_LID_DN)!;
-  const socketMidL = { x: (lEye.x + P(IDX.L_EYE_IN)!.x) / 2, y: (lidLUp.y + lidLDn.y) / 2 };
-  const socketMidR = { x: (rEye.x + P(IDX.R_EYE_IN)!.x) / 2, y: (lidRUp.y + lidRDn.y) / 2 };
-  const socketWidth = Math.max(d2(lEye, P(IDX.L_EYE_IN)!), 0.01);
-  const irisLp = irisL ? { x: irisL.x * aspect, y: irisL.y } : socketMidL;
-  const irisRp = irisR ? { x: irisR.x * aspect, y: irisR.y } : socketMidR;
+  // Gaze — pixel-space.
+  const socketMidL = { x: (lEye.x + lEyeIn.x) / 2, y: (lidLUp.y + lidLDn.y) / 2 };
+  const socketMidR = { x: (rEye.x + rEyeIn.x) / 2, y: (lidRUp.y + lidRDn.y) / 2 };
+  const socketWidth = Math.max(d2(lEye, lEyeIn), 1);
+  const irisLp = irisL ? { x: irisL.x * vw, y: irisL.y * vh } : socketMidL;
+  const irisRp = irisR ? { x: irisR.x * vw, y: irisR.y * vh } : socketMidR;
   const gazeX = ((irisLp.x - socketMidL.x) + (irisRp.x - socketMidR.x)) / (2 * socketWidth);
   const gazeY = ((irisLp.y - socketMidL.y) + (irisRp.y - socketMidR.y)) / (2 * socketWidth);
   let gazeLabel: FaceMetrics["gaze"]["label"] = "center";
   if (Math.abs(gazeX) > Math.abs(gazeY) && Math.abs(gazeX) > 0.18) gazeLabel = gazeX < 0 ? "left" : "right";
   else if (Math.abs(gazeY) > 0.18) gazeLabel = gazeY < 0 ? "up" : "down";
 
-  // Blink — eye aspect ratio (EAR) with rolling rate.
-  const earL = Math.abs(lidLUp.y - lidLDn.y) / Math.max(0.001, d2(lEye, P(IDX.L_EYE_IN)!));
-  const earR = Math.abs(lidRUp.y - lidRDn.y) / Math.max(0.001, d2(rEye, P(IDX.R_EYE_IN)!));
-  const closedL = earL < 0.18, closedR = earR < 0.18;
+  // BLINK FIX — EAR must be dimensionless. Numerator and denominator now use
+  // the same pixel frame. Hysteresis: CLOSE < 0.19, OPEN > 0.26, so a single
+  // borderline frame can't wedge the state closed forever (the old bug).
+  const eyeWidthL = Math.max(1, d2(lEye, lEyeIn));
+  const eyeWidthR = Math.max(1, d2(rEye, rEyeIn));
+  const earL = Math.abs(lidLUp.y - lidLDn.y) / eyeWidthL;
+  const earR = Math.abs(lidRUp.y - lidRDn.y) / eyeWidthR;
+  const CLOSE = 0.19, OPEN = 0.26;
+  let closedL = _closedStateL, closedR = _closedStateR;
+  if (earL < CLOSE) closedL = true; else if (earL > OPEN) closedL = false;
+  if (earR < CLOSE) closedR = true; else if (earR > OPEN) closedR = false;
+  _closedStateL = closedL; _closedStateR = closedR;
   const closedBoth = closedL && closedR;
   const now = Date.now();
   if (closedBoth && !_lastClosed) _blinkHistory.push(now);
@@ -317,6 +341,7 @@ export function analyzeFace(
   const oneMinAgo = now - 60_000;
   while (_blinkHistory.length && _blinkHistory[0] < oneMinAgo) _blinkHistory.shift();
   const ratePerMin = _blinkHistory.length;
+
 
   // Symmetry — reflect right half over vertical face axis and compare to left.
   const axisX = (fhead.x + chin.x) / 2;
@@ -329,21 +354,21 @@ export function analyzeFace(
   ];
   let dev = 0, n = 0;
   for (const [a, b] of pairs) {
-    const pa = P(a), pb = P(b);
+    const pa = Ppx(a), pb = Ppx(b);
     if (!pa || !pb) continue;
     const mirroredA = { x: 2 * axisX - pa.x, y: pa.y };
     dev += d2(mirroredA, pb);
     n++;
   }
   const meanDev = n ? dev / n : 0;
-  const symmetry = Math.max(0, Math.min(1, 1 - meanDev / Math.max(0.05, faceHeightSquare * 0.4)));
+  const symmetry = Math.max(0, Math.min(1, 1 - meanDev / Math.max(1, faceHeightPx * 0.4)));
 
   // Emotion / stress — mouth curvature + brow position.
-  const lipUp = P(IDX.LIP_UP)!, lipDn = P(IDX.LIP_DN)!;
+  const lipUp = Ppx(IDX.LIP_UP)!, lipDn = Ppx(IDX.LIP_DN)!;
   const mouthCenterY = (lipUp.y + lipDn.y) / 2;
   const mouthCorners = mouthL && mouthR ? (mouthL.y + mouthR.y) / 2 : mouthCenterY;
-  const smileScore = (mouthCenterY - mouthCorners) / Math.max(0.001, faceHeightSquare); // + = smile
-  const mouthOpen = Math.abs(lipUp.y - lipDn.y) / Math.max(0.001, faceHeightSquare);
+  const smileScore = (mouthCenterY - mouthCorners) / Math.max(1, faceHeightPx); // + = smile
+  const mouthOpen = Math.abs(lipUp.y - lipDn.y) / Math.max(1, faceHeightPx);
   const browRaise = 1 - Math.min(1, browRatio / 0.10);
   const stress = Math.max(0, Math.min(1, browRaise * 0.6 + (mouthOpen > 0.06 ? 0.25 : 0) + (Math.abs(smileScore) < 0.005 ? 0.15 : 0)));
   const emotion: FaceMetrics["emotion"] =
