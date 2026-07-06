@@ -1967,9 +1967,9 @@ export default function AsherCodeModule() {
       // ── HAND-OFF: when ZANOEM finishes a build round (files created and
       // no further human decision needed), auto-switch the chat into the
       // Asher IDE Coder (BYOK) so it can finish wiring + auto-debug.
+      const autopilotStillActive = autopilotZanoem && (needsHumanDecision(assistantText) || buildStatus === "refining");
       const zanoemBuildFinished =
-        created > 0 && !needsHumanDecision(assistantText) &&
-        (!autopilotZanoem || autopilotRoundsRef.current === 0);
+        created > 0 && !needsHumanDecision(assistantText) && !autopilotStillActive;
       if (zanoemBuildFinished && zanoemMode) {
         setZanoemMode(false);
         if (!autoDebug) setAutoDebug(true);

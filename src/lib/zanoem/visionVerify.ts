@@ -97,14 +97,24 @@ export async function verifyUiMatchesIntent({ intent, recentAssistant, iframe }:
     "Now look at the attached screenshot of the rendered preview and decide.",
   ].join("\n");
 
+  // 30s wall-clock timeout — vision audit must never wedge the IDE.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
   try {
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zali-chat`;
     const { data: sess } = await supabase.auth.getSession();
+    const accessToken = sess?.session?.access_token;
+    if (!accessToken) {
+      // No session → do NOT fall back to the anon key. Silently skip.
+      clearTimeout(timeoutId);
+      return { ...EMPTY_OK, screenshotDataUrl: png };
+    }
     const resp = await fetch(url, {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${sess?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${accessToken}`,
         apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({
@@ -122,7 +132,7 @@ export async function verifyUiMatchesIntent({ intent, recentAssistant, iframe }:
         projectContext: { name: "ZANOEM Vision Audit", designType: "ui-audit", phase: "verification" },
       }),
     });
-    if (!resp.ok || !resp.body) return { ...EMPTY_OK, screenshotDataUrl: png };
+    if (!resp.ok || !resp.body) { clearTimeout(timeoutId); return { ...EMPTY_OK, screenshotDataUrl: png }; }
 
     // Drain SSE stream into a single text blob.
     const reader = resp.body.getReader();
@@ -184,5 +194,7 @@ export async function verifyUiMatchesIntent({ intent, recentAssistant, iframe }:
   } catch (e) {
     console.warn("[zanoem-vision] verify failed", e);
     return { ...EMPTY_OK, screenshotDataUrl: png };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

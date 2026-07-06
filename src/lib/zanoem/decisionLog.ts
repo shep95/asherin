@@ -40,13 +40,16 @@ const DECISION_CUES = [
   "next steps?", "proceed?", "continue?", "ready to proceed",
 ];
 
-/** True if the assistant text is asking the human to make a choice/confirm/recommend. */
+/** True if the assistant text is asking the human to make a choice/confirm/recommend.
+ *  Only inspects the TAIL of the message (last ~800 chars, after any code fences)
+ *  so a `?` buried in an explanation paragraph does not falsely trigger autopilot. */
 export function needsHumanDecision(text: string): boolean {
   if (!text) return false;
   const stripped = text.replace(/```[\s\S]*?```/g, "").trim();
   if (!stripped) return false;
-  if (/\?\s*$/m.test(stripped)) return true;
-  const lower = stripped.toLowerCase();
+  const tail = stripped.slice(-800);
+  if (/\?\s*$/m.test(tail)) return true;
+  const lower = tail.toLowerCase();
   return DECISION_CUES.some((c) => lower.includes(c));
 }
 
@@ -77,11 +80,19 @@ export function extractOptions(text: string): ZanoemOption[] {
   if (opts.length >= 2) return opts.slice(0, 8);
   opts.length = 0;
 
-  // Pass 2: numbered list "1. ..."
+  // Pass 2: numbered list "1. ..." — but only when a decision heading is
+  // nearby (within 5 lines above), so ordinary numbered plans don't get
+  // treated as options for the user to pick.
   const numRe = /^\s*(\d+)[.)]\s+(.+)$/;
+  const headingRe = /^\s*(?:\*\*)?\s*(options|recommendations|choices|alternatives|which|pick one|decide)\b/i;
   for (let i = 0; i < lines.length; i++) {
     const m = numRe.exec(lines[i]);
-    if (m) opts.push({ label: m[2].trim().slice(0, 240) });
+    if (!m) continue;
+    let hasHeading = false;
+    for (let j = Math.max(0, i - 5); j < i; j++) {
+      if (headingRe.test(lines[j])) { hasHeading = true; break; }
+    }
+    if (hasHeading) opts.push({ label: m[2].trim().slice(0, 240) });
   }
   if (opts.length >= 2) return opts.slice(0, 8);
   opts.length = 0;
@@ -125,9 +136,12 @@ export function buildAutopilotReply(round: number, max: number): string {
  */
 export function parseDecisionMarker(text: string): { chosen: string | null; rationale: string | null } {
   if (!text) return { chosen: null, rationale: null };
-  const m = /ZANOEM_DECISION:\s*"([^"]{1,300})"\s*(?:[—\-:]\s*(.{1,400}?))?\s*$/im.exec(text);
-  if (!m) return { chosen: null, rationale: null };
-  return { chosen: m[1].trim(), rationale: (m[2] || "").trim() || null };
+  // Accept quoted OR unquoted values; non-greedy; no strict end anchor.
+  const quoted = /ZANOEM_DECISION:\s*"([^"\n]{1,300})"\s*(?:[—\-:]\s*([^\n]{1,400}))?/i.exec(text);
+  if (quoted) return { chosen: quoted[1].trim(), rationale: (quoted[2] || "").trim() || null };
+  const unquoted = /ZANOEM_DECISION:\s*([^\n"—:]{1,300}?)\s*(?:[—:]\s+([^\n]{1,400}))?\s*(?:\n|$)/i.exec(text);
+  if (!unquoted) return { chosen: null, rationale: null };
+  return { chosen: unquoted[1].trim(), rationale: (unquoted[2] || "").trim() || null };
 }
 
 export interface LogDecisionInput {
