@@ -50,6 +50,8 @@ export interface PoseHit {
   metrics?: BodyMetrics;
   /** body-only: wearable-device candidate zones (wrists, ears). */
   wearableZones?: WearableZone[];
+  /** face-only: assistive readout (age, ethnicity, iris colour, gaze, stress). */
+  faceMetrics?: FaceMetrics;
 }
 
 export interface BodyFrame {
