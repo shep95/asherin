@@ -15,6 +15,9 @@ import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame,
 import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
 import { correlateOptical, type Suggestion } from "./core/deviceCorrelation";
+import DossierRail from "./DossierRail";
+import SonarSweep from "./SonarSweep";
+import { Waves } from "lucide-react";
 import { rssiToDistance } from "./core/bleRanging";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 import { useResolvedZaxinByok } from "@/lib/zaxin/resolveByok";
@@ -706,6 +709,7 @@ function ArTab(props: {
   const [bvReady, setBvReady] = useState(false);
   const [modes, setModes] = useState<Set<BodyMode>>(() => new Set<BodyMode>(["full", "face", "fingers"]));
   const [bindings, setBindings] = useState<Record<string, string>>({});
+  const [sonarOn, setSonarOn] = useState(true);
 
   const toggleMode = (m: BodyMode) => {
     setModes((prev) => {
@@ -1418,6 +1422,30 @@ function ArTab(props: {
             {chirpErr}
           </div>
         )}
+
+        {/* SONAR SWEEP — Splinter Cell / Ghost Recon pulse overlay */}
+        <SonarSweep contacts={smoothedContacts} heading={props.heading} fov={FOV} arOn={props.arOn} active={sonarOn} />
+
+        {/* DOSSIER RAIL — Terminator/Iron Man priority-contact readout with IFF tags */}
+        <DossierRail contacts={smoothedContacts} arOn={props.arOn} />
+
+        {/* SONAR toggle pill */}
+        {props.arOn && (
+          <button
+            onClick={() => setSonarOn((v) => !v)}
+            style={{ zIndex: 5 }}
+            className={`absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-mono tracking-[0.14em] border transition ${
+              sonarOn
+                ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60 shadow-[0_0_10px_rgba(232,198,132,0.45)]"
+                : "bg-black/45 text-foreground/60 border-white/[0.08]"
+            }`}
+            title="Radial sonar pulse — spokes brighten as the pulse crosses each contact bearing."
+          >
+            <Waves className="h-3 w-3" />
+            <span>{sonarOn ? "SONAR" : "SONAR OFF"}</span>
+          </button>
+        )}
+
 
         {/* OPTICAL pill — pairing-free contact source */}
         {props.arOn && (
