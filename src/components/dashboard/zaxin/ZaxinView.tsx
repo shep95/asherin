@@ -1192,7 +1192,7 @@ function ArTab(props: {
               const pp = ai.person;
               if (pp.age_years != null) personChips.push(`~${pp.age_years}y`);
               if (pp.height_cm != null) personChips.push(`${pp.height_cm}cm`);
-              if (pp.weight_kg != null) personChips.push(`${pp.weight_kg}kg`);
+              if (pp.weight_kg != null) personChips.push(formatWeightKg(pp.weight_kg));
               if (pp.gender) personChips.push(pp.gender);
               if (pp.ethnicity) personChips.push(pp.ethnicity);
               if (pp.build) personChips.push(pp.build);
