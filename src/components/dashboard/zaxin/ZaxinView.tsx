@@ -15,7 +15,6 @@ import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame,
 import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
 import { correlateOptical, type Suggestion } from "./core/deviceCorrelation";
-import DossierRail from "./DossierRail";
 import RadarIntelPack from "./RadarIntelPack";
 import SonarSweep from "./SonarSweep";
 import { Waves } from "lucide-react";
@@ -1432,8 +1431,7 @@ function ArTab(props: {
         {/* SONAR SWEEP — Splinter Cell / Ghost Recon pulse overlay */}
         <SonarSweep contacts={smoothedContacts} heading={props.heading} fov={FOV} arOn={props.arOn} active={sonarOn} />
 
-        {/* DOSSIER RAIL — Terminator/Iron Man priority-contact readout with IFF tags */}
-        <DossierRail contacts={smoothedContacts} arOn={props.arOn} />
+        {/* JARVIS/Iron Man dossier rail removed per operator request — the SonarSweep + reticles carry contact identity now. */}
 
         {/* SONAR toggle pill */}
         {props.arOn && (
