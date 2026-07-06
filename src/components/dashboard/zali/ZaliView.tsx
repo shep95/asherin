@@ -491,10 +491,10 @@ const ZaliView = () => {
       // Validated design_output → apply. Rejects hallucinated shapes,
       // enforces size cap, whitelists enums (fixes S3 + L5).
       const designResult = extractDesignOutput(fullContent);
-      if (designResult && !designResult.ok) {
+      if (designResult !== null && designResult.ok === false) {
         console.warn("[zanoem] rejected design_output:", designResult.reason);
         toast({ title: "Design update ignored", description: designResult.reason });
-      } else if (designResult && designResult.ok) {
+      } else if (designResult !== null && designResult.ok === true) {
         const designData = designResult.data;
         const updatePayload: Record<string, unknown> = {};
         if (designData.phase) updatePayload.phase = designData.phase;
