@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { GripVertical, Download, Shield } from "lucide-react";
-import { Atom, AlertTriangle, MessageCircle, X } from "lucide-react";
+import { Atom, AlertTriangle, MessageCircle, X, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,13 @@ import GodModePanel from "./GodModePanel";
 import EncryptionBadge from "../EncryptionBadge";
 import React from "react";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { redact } from "@/lib/zanoem/redact";
+import { readOpenAiSseStream } from "@/lib/zanoem/sseParse";
+import { extractDesignOutput } from "@/lib/zanoem/designOutputSchema";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Error boundary for ZALI panels
 class ZaliErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
