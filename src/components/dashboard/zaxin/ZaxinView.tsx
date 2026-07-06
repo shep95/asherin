@@ -1558,6 +1558,49 @@ function drawFrame(
         const p = pts[i];
         ctx.fillRect(p.x * W, p.y * H, 1, 1);
       }
+      // Face-only assistive HUD — surfaces when body isn't in frame or as a
+      // complement when it is. Two-column dossier with iris swatches.
+      const fm = hit.faceMetrics;
+      if (fm) {
+        const bx = hit.bbox.x * W;
+        const by = (hit.bbox.y + hit.bbox.h) * H + 4;
+        const lines: Array<[string, string]> = [
+          [`${fm.ageBand.toUpperCase()} · ~${fm.ageYears}y`, `${fm.sexHint.replace("-", " ")}`],
+          [`H ~${fm.heightM.toFixed(2)}m`, `W ~${fm.weightKg}kg · ${fm.bmiBand}`],
+          [`ETH ${fm.ethnicity.label}`, `${(fm.ethnicity.probs[fm.ethnicity.top] * 100).toFixed(0)}%`],
+          [`GAZE ${fm.gaze.label}`, `emo ${fm.emotion}`],
+          [`blink ${fm.blink.ratePerMin}/m`, `sym ${(fm.symmetry * 100).toFixed(0)}% · stress ${(fm.stress * 100).toFixed(0)}%`],
+          [`D ~${fm.distanceFromCameraM}m`, `conf ${(fm.confidence * 100).toFixed(0)}%`],
+        ];
+        ctx.font = "10px ui-monospace, monospace";
+        const maxW = Math.max(...lines.map(([l, r]) => ctx.measureText(l + "   " + r).width)) + 34;
+        const boxH = lines.length * 12 + 18;
+        ctx.fillStyle = "rgba(0,0,0,0.72)";
+        ctx.fillRect(bx, by, maxW, boxH);
+        ctx.strokeStyle = "rgba(125,211,252,0.35)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bx, by, maxW, boxH);
+        // header
+        ctx.fillStyle = "rgba(125,211,252,0.95)";
+        ctx.fillText("FACE ASSIST", bx + 6, by + 12);
+        // iris colour swatches
+        ctx.fillStyle = fm.eye.hexL;
+        ctx.fillRect(bx + maxW - 26, by + 4, 10, 10);
+        ctx.fillStyle = fm.eye.hexR;
+        ctx.fillRect(bx + maxW - 14, by + 4, 10, 10);
+        ctx.strokeStyle = "rgba(255,255,255,0.4)";
+        ctx.strokeRect(bx + maxW - 26.5, by + 3.5, 10, 10);
+        ctx.strokeRect(bx + maxW - 14.5, by + 3.5, 10, 10);
+        // body lines
+        for (let i = 0; i < lines.length; i++) {
+          const [l, r] = lines[i];
+          ctx.fillStyle = "rgba(240,213,154,0.9)";
+          ctx.fillText(l, bx + 6, by + 26 + i * 12);
+          ctx.fillStyle = "rgba(167,243,208,0.85)";
+          const rw = ctx.measureText(r).width;
+          ctx.fillText(r, bx + maxW - 6 - rw, by + 26 + i * 12);
+        }
+      }
     } else if (isHand) {
       // Joints: small dim dots; fingertips: bright big caps.
       for (let i = 0; i < pts.length; i++) {
