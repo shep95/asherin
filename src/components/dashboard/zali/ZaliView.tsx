@@ -314,6 +314,18 @@ const ZaliView = () => {
   const sendMessage = useCallback(async (content: string) => {
     if (!activeProject || !user || isStreaming) return;
 
+    // Require a live session — the previous anon-key fallback led to a
+    // silent 401 that the user only saw as "HTTP 401" in the toast.
+    const { data: sess } = await supabase.auth.getSession();
+    const accessToken = sess?.session?.access_token;
+    if (!accessToken) {
+      toast({ title: "Sign in required", description: "Please sign in again to continue.", variant: "destructive" });
+      return;
+    }
+
+    lastUserPromptRef.current = content;
+    setLastTurnFailedAt(null);
+
     const userMsgId = crypto.randomUUID();
     const userMsg: ZaliMessage = {
       id: userMsgId, projectId: activeProject.id, role: "user",
@@ -334,11 +346,16 @@ const ZaliView = () => {
     };
     setMessages((prev) => [...prev, assistantMsg]);
 
+    // Two-headed abort: user Stop button OR 60s wall-clock. Either one
+    // tears the fetch AND the SSE reader down (see readOpenAiSseStream).
     const controller = new AbortController();
     abortRef.current = controller;
+    const timeoutId = window.setTimeout(() => controller.abort(new DOMException("timeout", "AbortError")), 60_000);
 
     try {
-      const history = [...messages, userMsg].map((m) => ({
+      // Read history from ref so streaming re-renders can't create a
+      // stale snapshot mid-turn (fixes L1).
+      const history = [...messagesRef.current, userMsg].map((m) => ({
         role: m.role, content: m.content,
       }));
 
@@ -360,15 +377,35 @@ const ZaliView = () => {
             if (brain.file_ids?.length) {
               const { data: files } = await supabase.from("library_files").select("file_name, storage_path, file_type").in("id", brain.file_ids);
               if (files) {
-                for (const f of files) {
-                  const isText = !f.file_type.startsWith("image/") && !f.file_type.startsWith("video/") && !f.file_type.startsWith("audio/");
-                  if (!isText) continue;
-                  const { data: blob } = await supabase.storage.from("library").download(f.storage_path);
-                  if (blob) fileContents.push({ name: f.file_name, content: (await blob.text()).slice(0, 80000) });
+                // Parallel download instead of the previous 6× serial round-trip.
+                // Cap each file at 40 KB and the total budget at 200 KB so a
+                // huge brain can't blow the prompt window or the fetch payload.
+                const textFiles = files.filter((f) => !f.file_type.startsWith("image/")
+                  && !f.file_type.startsWith("video/") && !f.file_type.startsWith("audio/"));
+                const downloaded = await Promise.all(textFiles.map(async (f) => {
+                  try {
+                    const { data: blob } = await supabase.storage.from("library").download(f.storage_path);
+                    if (!blob) return null;
+                    return { name: f.file_name, raw: (await blob.text()).slice(0, 40_000) };
+                  } catch { return null; }
+                }));
+                let totalBudget = 200_000;
+                let scrubHits = 0;
+                for (const d of downloaded) {
+                  if (!d || totalBudget <= 0) continue;
+                  const { text, hits } = redact(d.raw);
+                  scrubHits += hits;
+                  const slice = text.slice(0, totalBudget);
+                  totalBudget -= slice.length;
+                  fileContents.push({ name: d.name, content: slice });
+                }
+                if (scrubHits > 0) {
+                  console.info(`[zanoem] scrubbed ${scrubHits} potential secret(s) from brain files`);
                 }
               }
             }
-            brainContext = { prompt: brain.system_prompt || "", fileContents };
+            const scrubbedPrompt = redact(brain.system_prompt || "").text;
+            brainContext = { prompt: scrubbedPrompt, fileContents };
           }
         } catch (e) { console.error("Failed to load ZANOEM brain context:", e); }
       }
@@ -379,7 +416,7 @@ const ZaliView = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${accessToken}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
@@ -399,58 +436,64 @@ const ZaliView = () => {
         }
       );
 
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      if (!resp.ok) {
+        // Enumerate the failure classes so users see a useful message,
+        // and honour Retry-After when the edge function is rate-limited.
+        if (resp.status === 429) {
+          const wait = Number(resp.headers.get("Retry-After") || "0");
+          throw new Error(wait > 0 ? `Rate limited — try again in ${wait}s` : "Rate limited — try again shortly");
+        }
+        if (resp.status === 401 || resp.status === 403) throw new Error("Auth expired — please refresh and sign in again.");
+        throw new Error(`Chat backend error (HTTP ${resp.status})`);
+      }
       if (!resp.body) throw new Error("No response body");
 
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
+      // Batch token appends into one setState per animation frame — the
+      // previous per-token setState caused thousands of O(N) reconciliations
+      // on long replies (fixes P3).
       let fullContent = "";
-      let buffer = "";
+      let pending = "";
+      let rafId = 0;
+      const flushToState = () => {
+        rafId = 0;
+        if (!pending) return;
+        fullContent += pending;
+        pending = "";
+        const snapshot = fullContent;
+        setMessages((prev) => prev.map((m) => m.id === assistantId ? { ...m, content: snapshot } : m));
+      };
+      const scheduleFlush = () => {
+        if (rafId) return;
+        rafId = window.requestAnimationFrame(flushToState);
+      };
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let newlineIdx: number;
-        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, newlineIdx);
-          buffer = buffer.slice(newlineIdx + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const text = parsed.choices?.[0]?.delta?.content;
-            if (text) {
-              fullContent += text;
-              setMessages((prev) =>
-                prev.map((m) => m.id === assistantId ? { ...m, content: fullContent } : m)
-              );
-            }
-          } catch { /* skip */ }
-        }
-      }
+      await readOpenAiSseStream(resp.body, {
+        signal: controller.signal,
+        onToken: (delta) => { pending += delta; scheduleFlush(); },
+      });
+      if (rafId) { window.cancelAnimationFrame(rafId); flushToState(); }
+      else if (pending) flushToState();
 
       await supabase.from("zali_messages").insert({
         id: assistantId, project_id: activeProject.id, user_id: user.id,
         role: "assistant", content: fullContent,
       });
 
-      // Code output always routes into the workspace, never the chat bubble.
+      // Code output → workspace, but ONLY switch tabs when the user is on
+      // a tab that has no direct output surface. Fixes the "get yanked to
+      // Workspace mid-read" UX flaw.
       const allFiles = extractZanoemCodeFiles(fullContent);
       if (allFiles.length > 0) {
         setCodeFiles(allFiles);
-        setActiveTab("workspace");
+        setActiveTab((cur) => (cur === "workspace" || cur === "specs" || cur === "research") ? cur : "workspace");
       }
 
-
-      // Parse design_output blocks and update project
-      const designOutputMatch = fullContent.match(/```design_output\n([\s\S]*?)```/);
-      if (designOutputMatch) {
-        try {
-          const designData = JSON.parse(designOutputMatch[1]);
+      // Validated design_output → apply. Rejects hallucinated shapes,
+      // enforces size cap, whitelists enums (fixes S3 + L5).
+      const designResult = extractDesignOutput(fullContent);
+      if (designResult && "ok" in designResult) {
+        if (designResult.ok) {
+          const designData = designResult.data;
           const updatePayload: Record<string, unknown> = {};
           if (designData.phase) updatePayload.phase = designData.phase;
           if (designData.design_type) updatePayload.design_type = designData.design_type;
@@ -458,94 +501,94 @@ const ZaliView = () => {
           if (designData.cost_analysis) updatePayload.cost_analysis = designData.cost_analysis;
           if (designData.manufacturing) updatePayload.manufacturing = designData.manufacturing;
           if (designData.simulation_results) updatePayload.simulation_results = designData.simulation_results;
-
           if (Object.keys(updatePayload).length > 0) {
             await supabase.from("zali_projects").update(updatePayload).eq("id", activeProject.id);
-            setActiveProject((prev) => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                phase: (designData.phase as ZaliProject["phase"]) || prev.phase,
-                designType: designData.design_type || prev.designType,
-                specifications: designData.specifications || prev.specifications,
-                costAnalysis: designData.cost_analysis || prev.costAnalysis,
-                manufacturing: designData.manufacturing || prev.manufacturing,
-                simulationResults: designData.simulation_results || prev.simulationResults,
-              };
-            });
+            setActiveProject((prev) => prev ? {
+              ...prev,
+              phase: designData.phase ?? prev.phase,
+              designType: designData.design_type ?? prev.designType,
+              specifications: designData.specifications ?? prev.specifications,
+              costAnalysis: designData.cost_analysis ?? prev.costAnalysis,
+              manufacturing: designData.manufacturing ?? prev.manufacturing,
+              simulationResults: designData.simulation_results ?? prev.simulationResults,
+            } : prev);
             setProjects((prev) => prev.map((p) => p.id === activeProject.id ? {
               ...p,
-              phase: (designData.phase as ZaliProject["phase"]) || p.phase,
-              designType: designData.design_type || p.designType,
-              specifications: designData.specifications || p.specifications,
-              costAnalysis: designData.cost_analysis || p.costAnalysis,
-              manufacturing: designData.manufacturing || p.manufacturing,
-              simulationResults: designData.simulation_results || p.simulationResults,
+              phase: designData.phase ?? p.phase,
+              designType: designData.design_type ?? p.designType,
+              specifications: designData.specifications ?? p.specifications,
+              costAnalysis: designData.cost_analysis ?? p.costAnalysis,
+              manufacturing: designData.manufacturing ?? p.manufacturing,
+              simulationResults: designData.simulation_results ?? p.simulationResults,
             } : p));
-
-            // Auto-trigger 3D model build and switch to workspace
             setAutoBuildModel(true);
-            setActiveTab("workspace");
+            setActiveTab((cur) => (cur === "workspace" || cur === "specs") ? cur : "workspace");
           }
-        } catch (e) {
-          console.error("Failed to parse design_output:", e);
+        } else {
+          console.warn("[zanoem] rejected design_output:", designResult.reason);
+          toast({ title: "Design update ignored", description: designResult.reason });
         }
       }
 
-      // Detect user build commands to auto-trigger model
+      // Detect user build commands — auto-trigger the 3D build.
       const buildCommandRegex = /\b(build|generate|create|show|render|visualize)\b.*\b(3d|model|design|prototype|viewport)\b/i;
       const lastUserContent = content.toLowerCase();
       if (buildCommandRegex.test(lastUserContent)) {
         setAutoBuildModel(true);
-        setActiveTab("workspace");
+        setActiveTab((cur) => (cur === "workspace" || cur === "specs") ? cur : "workspace");
       }
 
-      // Detect model description commands
+      // "Make it / design it …" description — apply once, then clear so a
+      // stale directive from turn 3 doesn't keep re-driving the model on
+      // unrelated later turns (fixes L2 + B3).
       const describeMatch = lastUserContent.match(/(?:make it|design it|style it|model should be|i want it to look)\s+(.+)/i);
       if (describeMatch) {
         setModelPrompt(describeMatch[1].trim());
+        window.setTimeout(() => setModelPrompt(""), 4000);
       }
 
+      // Research-tag scan. Regexes are built fresh each turn — the previous
+      // module-level /gi patterns kept `lastIndex` state across calls and
+      // silently missed matches on the second use (fixes L3).
       const researchPatterns = [
-        { regex: /\[RESEARCH[:\s]*(.*?)\]/gi, domain: "general" },
-        { regex: /\[OPTIMUS\]/gi, domain: "physics" },
-        { regex: /\[CHEMIX\]/gi, domain: "chemistry" },
-        { regex: /\[BIOX\]/gi, domain: "biology" },
-        { regex: /\[SYNTHIA\]/gi, domain: "manufacturing" },
-        { regex: /\[ECONIA\]/gi, domain: "economics" },
-        { regex: /\[ETHICA\]/gi, domain: "safety" },
+        { source: "\\[RESEARCH[:\\s][^\\]]*\\]", domain: "general" },
+        { source: "\\[OPTIMUS\\]", domain: "physics" },
+        { source: "\\[CHEMIX\\]", domain: "chemistry" },
+        { source: "\\[BIOX\\]", domain: "biology" },
+        { source: "\\[SYNTHIA\\]", domain: "manufacturing" },
+        { source: "\\[ECONIA\\]", domain: "economics" },
+        { source: "\\[ETHICA\\]", domain: "safety" },
       ];
-
-      for (const pattern of researchPatterns) {
-        if (pattern.regex.test(fullContent)) {
-          const finding = {
-            domain: pattern.domain,
-            title: `${pattern.domain} analysis from conversation`,
-            confidence: 0.8,
-          };
-          setFindings((prev) => [...prev, finding]);
-
-          await supabase.from("zali_research").insert({
-            project_id: activeProject.id,
-            user_id: user.id,
-            domain: pattern.domain,
-            title: finding.title,
-            confidence: finding.confidence,
-          });
-        }
+      for (const p of researchPatterns) {
+        const re = new RegExp(p.source, "i");
+        if (!re.test(fullContent)) continue;
+        const finding = { domain: p.domain, title: `${p.domain} analysis from conversation`, confidence: 0.8 };
+        setFindings((prev) => [...prev, finding]);
+        await supabase.from("zali_research").insert({
+          project_id: activeProject.id, user_id: user.id,
+          domain: p.domain, title: finding.title, confidence: finding.confidence,
+        });
       }
-
     } catch (err: any) {
       if (err.name !== "AbortError") {
         console.error("ZALI chat error:", err);
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        toast({ title: "Turn failed", description: err.message, variant: "destructive" });
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+        setLastTurnFailedAt(Date.now());
       }
     } finally {
+      window.clearTimeout(timeoutId);
       setIsStreaming(false);
       abortRef.current = null;
     }
-  }, [activeProject, user, messages, isStreaming, toast]);
+  }, [activeProject, user, isStreaming, toast, chatMode, chatDepth]);
+
+  const retryLastTurn = useCallback(() => {
+    const last = lastUserPromptRef.current;
+    if (!last || isStreaming) return;
+    setLastTurnFailedAt(null);
+    void sendMessage(last);
+  }, [sendMessage, isStreaming]);
 
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort();
