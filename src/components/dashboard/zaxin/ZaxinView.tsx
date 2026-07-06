@@ -768,6 +768,39 @@ function ArTab(props: {
       : { x: (e as React.MouseEvent).clientX - rect.left, y: (e as React.MouseEvent).clientY - rect.top };
     const nx = pt.x / rect.width, ny = pt.y / rect.height;
     const hits = frameRef.current.hits;
+
+    // 1) Wearable-zone tap has priority (smaller, deliberate targets).
+    // COCO has no smartwatch/earbud class and Web Bluetooth can't see radio
+    // passively, so we let the operator pair-and-bond a wrist/ear directly.
+    const aspect = cvs.width / Math.max(1, cvs.height);
+    for (const h of hits) {
+      if (h.kind !== "body" || !h.wearableZones) continue;
+      for (const z of h.wearableZones) {
+        // Zones are given in "square" x-space; convert back for hit-test in
+        // normalized video coords the tap arrives in.
+        const dx = (nx - z.cx) * aspect;
+        const dy = ny - z.cy;
+        if (Math.hypot(dx, dy) <= z.r * 1.5) {
+          const key = `wearable:${z.kind}`;
+          const linked = new Set(Object.values(bindings));
+          const candidate = [...props.contacts]
+            .filter((c) => !linked.has(c.id))
+            .sort((a, b) => (b.rssi ?? -999) - (a.rssi ?? -999))[0];
+          if (!candidate) {
+            // No paired BLE contact yet — open the OS chooser so operator can
+            // bond the actual wearable. The next unbound candidate will latch here.
+            setBvErr("No paired BLE device to bond. Opening chooser — pick your wearable.");
+            props.onPick();
+            return;
+          }
+          setBvErr(null);
+          setBindings((prev) => ({ ...prev, [key]: candidate.id }));
+          return;
+        }
+      }
+    }
+
+    // 2) Fallback: tap on a whole-person / face / hand bbox.
     let chosen: PoseHit | null = null;
     for (const h of hits) {
       const b = h.bbox;
@@ -781,7 +814,7 @@ function ArTab(props: {
       .filter((c) => !linked.has(c.id))
       .sort((a, b) => (b.rssi ?? -999) - (a.rssi ?? -999))[0];
     if (!candidate) {
-      setBvErr("No unlinked Bluetooth contacts to bind. Start a sweep first.");
+      setBvErr("No unlinked Bluetooth contacts. Tap the BLE icon to pair a device first.");
       return;
     }
     setBvErr(null);
