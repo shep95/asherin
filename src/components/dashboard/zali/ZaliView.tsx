@@ -102,6 +102,17 @@ const ZaliView = () => {
   // and the associated memory leak).
   useEffect(() => () => { abortRef.current?.abort(); }, []);
 
+  // Escape closes the mobile chat overlay + delete-confirm dialog.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (deleteTarget) { setDeleteTarget(null); return; }
+      if (showMobileChat) setShowMobileChat(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showMobileChat, deleteTarget]);
+
   // codeFiles is now derived exclusively from the post-stream branch;
   // the previous message-scan useEffect was removed because it raced
   // with the fresh stream write.
