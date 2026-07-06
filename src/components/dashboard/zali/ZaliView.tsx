@@ -525,7 +525,7 @@ const ZaliView = () => {
             setActiveTab((cur) => (cur === "workspace" || cur === "specs") ? cur : "workspace");
           }
         } else {
-          const reason = designResult.reason;
+          const reason = (designResult as { ok: false; reason: string }).reason;
           console.warn("[zanoem] rejected design_output:", reason);
           toast({ title: "Design update ignored", description: reason });
         }
