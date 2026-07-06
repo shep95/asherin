@@ -331,12 +331,13 @@ export async function startBodyVision(
         const r = models.pose.detectForVideo(video, ts);
         const lm = r?.landmarks?.[0];
         if (lm?.length) {
-          const pts = lm.map((p: any) => ({ x: p.x, y: p.y }));
+          const pts = lm.map((p: any) => ({ x: p.x, y: p.y, v: p.visibility }));
           hits.push({
             kind: "body",
             points: pts,
             bbox: bboxOf(pts),
-            metrics: estimateBodyMetrics(pts, aspect),
+            metrics: estimateBodyMetrics(pts, aspect, video.videoWidth),
+            wearableZones: computeWearableZones(pts, aspect),
           });
         }
       }
