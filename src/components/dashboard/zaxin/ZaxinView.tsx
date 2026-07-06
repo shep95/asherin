@@ -1220,21 +1220,37 @@ function ArTab(props: {
                   {ai?.has_bluetooth ? (
                     <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">BLE</div>
                   ) : null}
+                  {(() => {
+                    const sug = suggestions.get(o.id);
+                    if (!sug || bindings[`optical:${o.id}`]) return null;
+                    return (
+                      <div
+                        className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-sky-500/25 text-sky-100 border border-sky-300/50 cursor-pointer pointer-events-auto animate-pulse"
+                        title={`Suggested BLE bond · ${sug.reason} · est ${sug.estRangeM}m`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBindings((prev) => ({ ...prev, [`optical:${o.id}`]: sug.contactId }));
+                        }}
+                      >
+                        ⇋ {sug.contactName} · {(sug.score * 100).toFixed(0)}%
+                      </div>
+                    );
+                  })()}
+                  {(() => {
+                    const boundId = bindings[`optical:${o.id}`];
+                    if (!boundId) return null;
+                    const c = props.contacts.find((x) => x.id === boundId);
+                    return (
+                      <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#0f5132]/70 text-emerald-100 border border-emerald-300/50">
+                        ⛭ BONDED · {c?.displayName ?? boundId.slice(0, 10)}
+                      </div>
+                    );
+                  })()}
                   {isPerson && ai?.person?.threat && ai.person.threat !== "none" ? (
                     <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-rose-500/40 text-rose-50 border border-rose-300/70 animate-pulse">
                       ⚠ {ai.person.threat}
                     </div>
                   ) : null}
-                </div>
-                {(isPerson && personChips.length) || sub ? (
-                  <div className="absolute -bottom-[20px] left-0 text-[8px] font-mono tracking-[0.12em] px-1.5 py-0.5 rounded-sm bg-black/70 text-foreground/80 max-w-[200px] whitespace-normal leading-tight">
-                    {isPerson && personChips.length ? personChips.join(" · ") : sub}
-                  </div>
-                ) : null}
-              </div>
-            );
-          });
-        })()}
 
         {/* AI-ONLY IDENT BOXES — top 5 only, with confidence + wrapping labels. */}
         {props.arOn && visionIdents
