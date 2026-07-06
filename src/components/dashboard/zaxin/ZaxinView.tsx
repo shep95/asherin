@@ -691,7 +691,7 @@ function ArTab(props: {
   scopeOn: boolean; scopeAvail: boolean;
   onToggleScope: () => void; onFlip: () => void;
   contacts: Contact[];
-  onStart: () => void; onStop: () => void;
+  onStart: () => void; onStop: () => void; onPick: () => void;
   compassOn: boolean; onEnableCompass: () => void; compassErr: string | null;
   onManualHeading: (deg: number) => void;
   geo: ReturnType<typeof usePrecisionGeo>;
