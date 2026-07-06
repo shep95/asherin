@@ -17,7 +17,7 @@ interface Props {
 
 const DossierRail = memo(function DossierRail({ contacts, arOn }: Props) {
   const [tick, setTick] = useState(0);
-  useEffect(() => iffStore.subscribe(() => setTick((n) => n + 1)), []);
+  useEffect(() => { const off = iffStore.subscribe(() => setTick((n) => n + 1)); return () => { off(); }; }, []);
   useEffect(() => {
     const t = window.setInterval(() => setTick((n) => n + 1), 1500);
     return () => clearInterval(t);
