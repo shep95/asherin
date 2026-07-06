@@ -511,6 +511,7 @@ const ZaxinView = () => {
             onToggleScope={() => setScopeOn((v) => !v)} onFlip={flipMain}
             contacts={locals}
             onStart={startAr} onStop={stopAr}
+            onPick={pickDevice}
             compassOn={compassOn} onEnableCompass={enableCompass} compassErr={compassErr}
             onManualHeading={setManualHeading}
             geo={liveGeo}
