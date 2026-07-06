@@ -351,7 +351,8 @@ export async function startBodyVision(
         const lm = r?.faceLandmarks?.[0];
         if (lm?.length) {
           const pts = lm.map((p: any) => ({ x: p.x, y: p.y }));
-          hits.push({ kind: "face", points: pts, bbox: bboxOf(pts) });
+          const faceMetrics = analyzeFace(pts, video, aspect) ?? undefined;
+          hits.push({ kind: "face", points: pts, bbox: bboxOf(pts), faceMetrics });
         }
       }
       if (modes.has("fingers")) {
