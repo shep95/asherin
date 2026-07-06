@@ -16,6 +16,7 @@ import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type 
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
 import { correlateOptical, type Suggestion } from "./core/deviceCorrelation";
 import DossierRail from "./DossierRail";
+import RadarIntelPack from "./RadarIntelPack";
 import SonarSweep from "./SonarSweep";
 import { Waves } from "lucide-react";
 import { rssiToDistance } from "./core/bleRanging";
@@ -613,6 +614,11 @@ function ScanTab(props: {
           geo={props.geo}
           contacts={[...props.locals, ...props.remotes]}
           onPick={props.onPick}
+        />
+        <RadarIntelPack
+          contacts={[...props.locals, ...props.remotes]}
+          heading={props.heading}
+          geo={props.geo}
         />
       </Panel>
 
