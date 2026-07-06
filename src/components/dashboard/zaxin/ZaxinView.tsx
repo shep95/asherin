@@ -14,6 +14,7 @@ import { startHeadingStream, startVisualHeadingStream, startCamera, stopCamera, 
 import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
 import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
+import { correlateOptical, type Suggestion } from "./core/deviceCorrelation";
 import { rssiToDistance } from "./core/bleRanging";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 import { useResolvedZaxinByok } from "@/lib/zaxin/resolveByok";
