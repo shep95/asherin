@@ -21,6 +21,9 @@ export default function Ziaassets() {
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [busy, setBusy] = useState(false);
+  // Track live member status so a pending/revoked user cannot slip past the
+  // gate just because a session key was sealed during enrollment.
+  const [memberStatus, setMemberStatus] = useState<"active" | "pending" | "revoked" | "unknown">("unknown");
 
   // Re-render on session unlock/lock
   const key = useSyncExternalStore(subscribeSession, () => getSessionKey());
@@ -28,6 +31,28 @@ export default function Ziaassets() {
   useEffect(() => {
     document.title = "ZIAASSETS · Sovereign Command Deck";
   }, []);
+
+  // Re-fetch member.status any time the user or session key changes.  If the
+  // Emperor activates a pending member, unlocking (or a page refresh) will
+  // pick it up on the next tick.  Also runs on cross-tab session changes.
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) { setMemberStatus("unknown"); return; }
+    (async () => {
+      const { data, error } = await supabase
+        .from("ziaassets_members")
+        .select("status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error || !data) { setMemberStatus("unknown"); return; }
+      setMemberStatus((data.status as any) === "active" ? "active"
+                    : (data.status as any) === "revoked" ? "revoked"
+                    : "pending");
+    })();
+    return () => { cancelled = true; };
+  }, [user, key]);
+
 
   const handleAuth = async () => {
     setBusy(true);
