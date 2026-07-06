@@ -1423,6 +1423,30 @@ function ArTab(props: {
           </div>
         )}
 
+        {/* SONAR SWEEP — Splinter Cell / Ghost Recon pulse overlay */}
+        <SonarSweep contacts={smoothedContacts} heading={props.heading} fov={FOV} arOn={props.arOn} active={sonarOn} />
+
+        {/* DOSSIER RAIL — Terminator/Iron Man priority-contact readout with IFF tags */}
+        <DossierRail contacts={smoothedContacts} arOn={props.arOn} />
+
+        {/* SONAR toggle pill */}
+        {props.arOn && (
+          <button
+            onClick={() => setSonarOn((v) => !v)}
+            style={{ zIndex: 5 }}
+            className={`absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-mono tracking-[0.14em] border transition ${
+              sonarOn
+                ? "bg-[#6b4a18]/55 text-[#e8c684] border-[#c69a4a]/60 shadow-[0_0_10px_rgba(232,198,132,0.45)]"
+                : "bg-black/45 text-foreground/60 border-white/[0.08]"
+            }`}
+            title="Radial sonar pulse — spokes brighten as the pulse crosses each contact bearing."
+          >
+            <Waves className="h-3 w-3" />
+            <span>{sonarOn ? "SONAR" : "SONAR OFF"}</span>
+          </button>
+        )}
+
+
         {/* OPTICAL pill — pairing-free contact source */}
         {props.arOn && (
           <button
