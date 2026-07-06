@@ -686,7 +686,9 @@ const ZaliView = () => {
                 <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-accent" />
               )}
             </button>
-            <div className="hidden sm:block">
+            {/* EncryptionBadge is now visible on every viewport — mobile
+                users previously had zero trust signal (fixes U6). */}
+            <div className="flex">
               <EncryptionBadge />
             </div>
           </div>
