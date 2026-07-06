@@ -11,6 +11,9 @@
 
 export type BodyMode = "full" | "face" | "fingers";
 
+import { analyzeFace, type FaceMetrics } from "./faceAnalytics";
+export type { FaceMetrics } from "./faceAnalytics";
+
 export interface BodyMetrics {
   /** estimated standing height in meters (rough — monocular, no depth). */
   heightM: number;
