@@ -136,9 +136,12 @@ export function buildAutopilotReply(round: number, max: number): string {
  */
 export function parseDecisionMarker(text: string): { chosen: string | null; rationale: string | null } {
   if (!text) return { chosen: null, rationale: null };
-  const m = /ZANOEM_DECISION:\s*"([^"]{1,300})"\s*(?:[—\-:]\s*(.{1,400}?))?\s*$/im.exec(text);
-  if (!m) return { chosen: null, rationale: null };
-  return { chosen: m[1].trim(), rationale: (m[2] || "").trim() || null };
+  // Accept quoted OR unquoted values; non-greedy; no strict end anchor.
+  const quoted = /ZANOEM_DECISION:\s*"([^"\n]{1,300})"\s*(?:[—\-:]\s*([^\n]{1,400}))?/i.exec(text);
+  if (quoted) return { chosen: quoted[1].trim(), rationale: (quoted[2] || "").trim() || null };
+  const unquoted = /ZANOEM_DECISION:\s*([^\n"][^\n]{0,299})\s*(?:[—\-:]\s*([^\n]{1,400}))?/i.exec(text);
+  if (!unquoted) return { chosen: null, rationale: null };
+  return { chosen: unquoted[1].trim(), rationale: (unquoted[2] || "").trim() || null };
 }
 
 export interface LogDecisionInput {
