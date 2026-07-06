@@ -21,6 +21,9 @@ export default function Ziaassets() {
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [busy, setBusy] = useState(false);
+  // Track live member status so a pending/revoked user cannot slip past the
+  // gate just because a session key was sealed during enrollment.
+  const [memberStatus, setMemberStatus] = useState<"active" | "pending" | "revoked" | "unknown">("unknown");
 
   // Re-render on session unlock/lock
   const key = useSyncExternalStore(subscribeSession, () => getSessionKey());
@@ -28,6 +31,28 @@ export default function Ziaassets() {
   useEffect(() => {
     document.title = "ZIAASSETS · Sovereign Command Deck";
   }, []);
+
+  // Re-fetch member.status any time the user or session key changes.  If the
+  // Emperor activates a pending member, unlocking (or a page refresh) will
+  // pick it up on the next tick.  Also runs on cross-tab session changes.
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) { setMemberStatus("unknown"); return; }
+    (async () => {
+      const { data, error } = await supabase
+        .from("ziaassets_members")
+        .select("status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error || !data) { setMemberStatus("unknown"); return; }
+      setMemberStatus((data.status as any) === "active" ? "active"
+                    : (data.status as any) === "revoked" ? "revoked"
+                    : "pending");
+    })();
+    return () => { cancelled = true; };
+  }, [user, key]);
+
 
   const handleAuth = async () => {
     setBusy(true);
@@ -83,7 +108,14 @@ export default function Ziaassets() {
     );
   }
 
-  if (!key) {
+  // Show GateScreen when:
+  //  - the sovereign key hasn't been sealed yet, OR
+  //  - the member row is still pending/revoked (RLS would return empty
+  //    results and make the deck look broken).  GateScreen already renders
+  //    the correct "Awaiting Emperor Approval" / "Access revoked" message
+  //    based on the same member row.
+  const gateActive = !key || memberStatus === "pending" || memberStatus === "revoked";
+  if (gateActive) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-black p-4">
         <div className="max-w-6xl mx-auto pt-8">
@@ -94,7 +126,7 @@ export default function Ziaassets() {
               <LogOut className="w-4 h-4 mr-1" /> Sign out
             </Button>
           </div>
-          <GateScreen onUnlocked={() => { /* rerender via store */ }} />
+          <GateScreen onUnlocked={() => { /* rerender via store; deck stays gated until member.status === active */ }} />
         </div>
       </div>
     );
