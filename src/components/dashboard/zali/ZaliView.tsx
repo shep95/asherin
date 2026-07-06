@@ -86,13 +86,25 @@ const ZaliView = () => {
   const [autoBuildModel, setAutoBuildModel] = useState(false);
   const [modelPrompt, setModelPrompt] = useState("");
   const [codeFiles, setCodeFiles] = useState<Array<{ filename: string; language: string; content: string }>>([]);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [lastTurnFailedAt, setLastTurnFailedAt] = useState<number | null>(null);
+  const lastUserPromptRef = useRef<string>("");
 
-  useEffect(() => {
-    const latestCode = [...messages].reverse().find((m) => m.role === "assistant" && extractZanoemCodeFiles(m.content).length > 0);
-    if (!latestCode) return;
-    const files = extractZanoemCodeFiles(latestCode.content);
-    if (files.length > 0) setCodeFiles(files);
-  }, [messages]);
+  // History-via-ref: streaming tokens re-render `messages` many times per
+  // second, but every `sendMessage` needs the frozen conversation as it
+  // stood BEFORE the new user turn. Reading from a ref eliminates the
+  // stale-closure race the previous `[...messages, userMsg]` had.
+  const messagesRef = useRef<ZaliMessage[]>([]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  // Abort any in-flight stream when the component unmounts so we never
+  // call `setMessages` on an unmounted tree (fixes the console warning
+  // and the associated memory leak).
+  useEffect(() => () => { abortRef.current?.abort(); }, []);
+
+  // codeFiles is now derived exclusively from the post-stream branch;
+  // the previous message-scan useEffect was removed because it raced
+  // with the fresh stream write.
 
   // Resizable chat panel state
   const [chatWidth, setChatWidth] = useState(() => {
