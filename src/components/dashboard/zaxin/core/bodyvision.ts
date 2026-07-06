@@ -11,6 +11,9 @@
 
 export type BodyMode = "full" | "face" | "fingers";
 
+import { analyzeFace, type FaceMetrics } from "./faceAnalytics";
+export type { FaceMetrics } from "./faceAnalytics";
+
 export interface BodyMetrics {
   /** estimated standing height in meters (rough — monocular, no depth). */
   heightM: number;
@@ -47,6 +50,8 @@ export interface PoseHit {
   metrics?: BodyMetrics;
   /** body-only: wearable-device candidate zones (wrists, ears). */
   wearableZones?: WearableZone[];
+  /** face-only: assistive readout (age, ethnicity, iris colour, gaze, stress). */
+  faceMetrics?: FaceMetrics;
 }
 
 export interface BodyFrame {
@@ -346,7 +351,8 @@ export async function startBodyVision(
         const lm = r?.faceLandmarks?.[0];
         if (lm?.length) {
           const pts = lm.map((p: any) => ({ x: p.x, y: p.y }));
-          hits.push({ kind: "face", points: pts, bbox: bboxOf(pts) });
+          const faceMetrics = analyzeFace(pts, video, aspect) ?? undefined;
+          hits.push({ kind: "face", points: pts, bbox: bboxOf(pts), faceMetrics });
         }
       }
       if (modes.has("fingers")) {

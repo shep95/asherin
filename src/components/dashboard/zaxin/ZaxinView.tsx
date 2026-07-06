@@ -14,6 +14,7 @@ import { startHeadingStream, startVisualHeadingStream, startCamera, stopCamera, 
 import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
 import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
+import { correlateOptical, type Suggestion } from "./core/deviceCorrelation";
 import { rssiToDistance } from "./core/bleRanging";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 import { useResolvedZaxinByok } from "@/lib/zaxin/resolveByok";
@@ -1125,10 +1126,16 @@ function ArTab(props: {
         {/* OPTICAL CONTACTS — pairing-free, drawn directly on detected pixels.
             If the AI Vision panel has returned an identification paired to this
             bbox (matched_optical_id === "opt:i"), we override the label with the
-            refined brand/model/type and a BLE pip. */}
+            refined brand/model/type and a BLE pip. Off-body devices (phone on a
+            table, laptop on a desk) are auto-correlated with unbonded BLE
+            contacts by distance + name family — surfaced as a "MATCH?" chip
+            so the operator can confirm with one tap. */}
         {props.arOn && opticalOn && (() => {
+          const suggestions = correlateOptical(optical, props.contacts, bindings);
           // Cap to the 5 highest-confidence detections (persons/devices win),
           // dedupe near-overlapping boxes, hide the noisy floor/wall area-fillers,
+          // and only render labels inside the camera viewport. Preserve original
+          // index so AI vision matches by `opt:<idx>` still resolve.
           // and only render labels inside the camera viewport. Preserve original
           // index so AI vision matches by `opt:<idx>` still resolve.
           const enriched = optical.map((o, idx) => ({ o, idx, area: o.x !== undefined ? 0 : 0 }));
@@ -1213,6 +1220,32 @@ function ArTab(props: {
                   {ai?.has_bluetooth ? (
                     <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#6b4a18]/80 text-[#f0d59a] border border-[#c69a4a]/60">BLE</div>
                   ) : null}
+                  {(() => {
+                    const sug = suggestions.get(o.id);
+                    if (!sug || bindings[`optical:${o.id}`]) return null;
+                    return (
+                      <div
+                        className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-sky-500/25 text-sky-100 border border-sky-300/50 cursor-pointer pointer-events-auto animate-pulse"
+                        title={`Suggested BLE bond · ${sug.reason} · est ${sug.estRangeM}m`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBindings((prev) => ({ ...prev, [`optical:${o.id}`]: sug.contactId }));
+                        }}
+                      >
+                        ⇋ {sug.contactName} · {(sug.score * 100).toFixed(0)}%
+                      </div>
+                    );
+                  })()}
+                  {(() => {
+                    const boundId = bindings[`optical:${o.id}`];
+                    if (!boundId) return null;
+                    const c = props.contacts.find((x) => x.id === boundId);
+                    return (
+                      <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-[#0f5132]/70 text-emerald-100 border border-emerald-300/50">
+                        ⛭ BONDED · {c?.displayName ?? boundId.slice(0, 10)}
+                      </div>
+                    );
+                  })()}
                   {isPerson && ai?.person?.threat && ai.person.threat !== "none" ? (
                     <div className="text-[8px] font-mono tracking-[0.16em] uppercase px-1 py-0.5 rounded-sm bg-rose-500/40 text-rose-50 border border-rose-300/70 animate-pulse">
                       ⚠ {ai.person.threat}
@@ -1228,6 +1261,7 @@ function ArTab(props: {
             );
           });
         })()}
+
 
         {/* AI-ONLY IDENT BOXES — top 5 only, with confidence + wrapping labels. */}
         {props.arOn && visionIdents
@@ -1557,6 +1591,49 @@ function drawFrame(
       for (let i = 0; i < pts.length; i += 4) {
         const p = pts[i];
         ctx.fillRect(p.x * W, p.y * H, 1, 1);
+      }
+      // Face-only assistive HUD — surfaces when body isn't in frame or as a
+      // complement when it is. Two-column dossier with iris swatches.
+      const fm = hit.faceMetrics;
+      if (fm) {
+        const bx = hit.bbox.x * W;
+        const by = (hit.bbox.y + hit.bbox.h) * H + 4;
+        const lines: Array<[string, string]> = [
+          [`${fm.ageBand.toUpperCase()} · ~${fm.ageYears}y`, `${fm.sexHint.replace("-", " ")}`],
+          [`H ~${fm.heightM.toFixed(2)}m`, `W ~${fm.weightKg}kg · ${fm.bmiBand}`],
+          [`ETH ${fm.ethnicity.label}`, `${(fm.ethnicity.probs[fm.ethnicity.top] * 100).toFixed(0)}%`],
+          [`GAZE ${fm.gaze.label}`, `emo ${fm.emotion}`],
+          [`blink ${fm.blink.ratePerMin}/m`, `sym ${(fm.symmetry * 100).toFixed(0)}% · stress ${(fm.stress * 100).toFixed(0)}%`],
+          [`D ~${fm.distanceFromCameraM}m`, `conf ${(fm.confidence * 100).toFixed(0)}%`],
+        ];
+        ctx.font = "10px ui-monospace, monospace";
+        const maxW = Math.max(...lines.map(([l, r]) => ctx.measureText(l + "   " + r).width)) + 34;
+        const boxH = lines.length * 12 + 18;
+        ctx.fillStyle = "rgba(0,0,0,0.72)";
+        ctx.fillRect(bx, by, maxW, boxH);
+        ctx.strokeStyle = "rgba(125,211,252,0.35)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bx, by, maxW, boxH);
+        // header
+        ctx.fillStyle = "rgba(125,211,252,0.95)";
+        ctx.fillText("FACE ASSIST", bx + 6, by + 12);
+        // iris colour swatches
+        ctx.fillStyle = fm.eye.hexL;
+        ctx.fillRect(bx + maxW - 26, by + 4, 10, 10);
+        ctx.fillStyle = fm.eye.hexR;
+        ctx.fillRect(bx + maxW - 14, by + 4, 10, 10);
+        ctx.strokeStyle = "rgba(255,255,255,0.4)";
+        ctx.strokeRect(bx + maxW - 26.5, by + 3.5, 10, 10);
+        ctx.strokeRect(bx + maxW - 14.5, by + 3.5, 10, 10);
+        // body lines
+        for (let i = 0; i < lines.length; i++) {
+          const [l, r] = lines[i];
+          ctx.fillStyle = "rgba(240,213,154,0.9)";
+          ctx.fillText(l, bx + 6, by + 26 + i * 12);
+          ctx.fillStyle = "rgba(167,243,208,0.85)";
+          const rw = ctx.measureText(r).width;
+          ctx.fillText(r, bx + maxW - 6 - rw, by + 26 + i * 12);
+        }
       }
     } else if (isHand) {
       // Joints: small dim dots; fingertips: bright big caps.
