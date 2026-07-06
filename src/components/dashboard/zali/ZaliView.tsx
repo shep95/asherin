@@ -733,15 +733,51 @@ const ZaliView = () => {
 
         {/* Desktop: Resizable Chat panel */}
         <div className="hidden md:flex flex-shrink-0 relative">
-          {/* Drag handle */}
+          {/* Drag handle — WAI-ARIA separator with keyboard support. */}
           <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize chat panel"
+            aria-valuenow={chatWidth}
+            aria-valuemin={260}
+            aria-valuemax={600}
+            tabIndex={0}
             onMouseDown={handleDragStart}
-            className="absolute left-0 top-0 bottom-0 w-2 z-10 cursor-col-resize group flex items-center justify-center hover:bg-accent/10 transition-colors -translate-x-1/2"
-            title="Drag to resize chat"
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                e.preventDefault();
+                const step = e.shiftKey ? 64 : 32;
+                const dir = e.key === "ArrowLeft" ? 1 : -1;
+                setChatWidth((w) => {
+                  const next = Math.max(260, Math.min(600, w + dir * step));
+                  localStorage.setItem("zali_chat_width", String(next));
+                  return next;
+                });
+              } else if (e.key === "Home") {
+                e.preventDefault();
+                setChatWidth(260); localStorage.setItem("zali_chat_width", "260");
+              } else if (e.key === "End") {
+                e.preventDefault();
+                setChatWidth(600); localStorage.setItem("zali_chat_width", "600");
+              }
+            }}
+            className="absolute left-0 top-0 bottom-0 w-2 z-10 cursor-col-resize group flex items-center justify-center hover:bg-accent/10 focus:bg-accent/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent transition-colors -translate-x-1/2"
+            title="Drag or use ←/→ to resize chat"
           >
-            <div className="w-0.5 h-8 rounded-full bg-border/30 group-hover:bg-accent/50 transition-colors" />
+            <div className="w-0.5 h-8 rounded-full bg-border/30 group-hover:bg-accent/50 group-focus:bg-accent/70 transition-colors" />
           </div>
           <div style={{ width: chatWidth }} className="border-l border-border/20 flex flex-col overflow-hidden">
+            {lastTurnFailedAt && (
+              <div className="flex items-center gap-2 px-3 py-1.5 border-b border-destructive/30 bg-destructive/10 text-[10px] text-destructive">
+                <span className="flex-1">Last turn failed.</span>
+                <button
+                  onClick={retryLastTurn}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded border border-destructive/40 hover:bg-destructive/20"
+                >
+                  <RotateCcw className="h-3 w-3" /> Retry
+                </button>
+              </div>
+            )}
             <ZaliErrorBoundary>
               <ZaliChatPanel
                 messages={messages}
