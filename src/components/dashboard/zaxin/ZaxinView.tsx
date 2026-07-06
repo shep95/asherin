@@ -25,6 +25,7 @@ import { useResolvedZaxinByok } from "@/lib/zaxin/resolveByok";
 import ZaxinInlineByok from "./ZaxinInlineByok";
 import { Link } from "react-router-dom";
 import { Mic, MicOff, Users } from "lucide-react";
+import { formatWeightKg, usesImperialWeight, kgToLb, primeCountryFromGeolocation } from "@/lib/units";
 
 type Tab = "scan" | "tactical" | "ar" | "hops" | "diag";
 
@@ -123,6 +124,14 @@ const ZaxinView = () => {
     hop.start(() => engine.emitHopReport(), (r) => engine.ingestHop(r));
     return () => hop.stop();
   }, [hop, engine]);
+
+  // Prime the operator's country once so weight readings render in the
+  // right unit (lb for US/LR/MM, kg elsewhere). Silent on failure.
+  useEffect(() => {
+    const ac = new AbortController();
+    primeCountryFromGeolocation(ac.signal);
+    return () => ac.abort();
+  }, []);
 
   // initial + recurring paired load — picks up OS-paired devices without user re-tap
   useEffect(() => {
@@ -1191,7 +1200,7 @@ function ArTab(props: {
               const pp = ai.person;
               if (pp.age_years != null) personChips.push(`~${pp.age_years}y`);
               if (pp.height_cm != null) personChips.push(`${pp.height_cm}cm`);
-              if (pp.weight_kg != null) personChips.push(`${pp.weight_kg}kg`);
+              if (pp.weight_kg != null) personChips.push(formatWeightKg(pp.weight_kg));
               if (pp.gender) personChips.push(pp.gender);
               if (pp.ethnicity) personChips.push(pp.ethnicity);
               if (pp.build) personChips.push(pp.build);
@@ -1345,7 +1354,7 @@ function ArTab(props: {
               const pp = it.person;
               if (pp.age_years != null) personChips.push(`~${pp.age_years}y`);
               if (pp.height_cm != null) personChips.push(`${pp.height_cm}cm`);
-              if (pp.weight_kg != null) personChips.push(`${pp.weight_kg}kg`);
+              if (pp.weight_kg != null) personChips.push(formatWeightKg(pp.weight_kg));
               if (pp.gender) personChips.push(pp.gender);
               if (pp.ethnicity) personChips.push(pp.ethnicity);
               if (pp.build) personChips.push(pp.build);
@@ -1687,7 +1696,7 @@ function drawFrame(
         const by = (hit.bbox.y + hit.bbox.h) * H + 4;
         const lines: Array<[string, string]> = [
           [`${fm.ageBand.toUpperCase()} · ~${fm.ageYears}y`, `${fm.sexHint.replace("-", " ")}`],
-          [`H ~${fm.heightM.toFixed(2)}m`, `W ~${fm.weightKg}kg · ${fm.bmiBand}`],
+          [`H ~${fm.heightM.toFixed(2)}m`, `W ~${formatWeightKg(fm.weightKg)} · ${fm.bmiBand}`],
           [`ETH ${fm.ethnicity.label}`, `${(fm.ethnicity.probs[fm.ethnicity.top] * 100).toFixed(0)}%`],
           [`GAZE ${fm.gaze.label}`, `emo ${fm.emotion}`],
           [`blink ${fm.blink.ratePerMin}/m`, `sym ${(fm.symmetry * 100).toFixed(0)}% · stress ${(fm.stress * 100).toFixed(0)}%`],
@@ -1807,12 +1816,14 @@ function drawFrame(
       const ft = m.heightM * 3.28084;
       const feet = Math.floor(ft);
       const inch = Math.round((ft - feet) * 12);
-      const lbs = Math.round(m.weightKg * 2.20462);
+      const lbs = kgToLb(m.weightKg);
       const distLine = m.distanceFromCameraM != null
         ? `D ~${m.distanceFromCameraM.toFixed(1)}m · tilt ${m.torsoTiltDeg ?? 0}°`
         : `tilt ${m.torsoTiltDeg ?? 0}°`;
       const line1 = `H ${m.heightM.toFixed(2)}m · ${feet}'${inch}"`;
-      const line2 = `W ~${m.weightKg}kg · ${lbs}lb`;
+      const line2 = usesImperialWeight()
+        ? `W ~${lbs}lb · ${Math.round(m.weightKg)}kg`
+        : `W ~${Math.round(m.weightKg)}kg · ${lbs}lb`;
       const line3 = distLine;
       const stability = m.unstable ? "unstable" : m.anchor;
       const line4 = `${Math.round(m.confidence * 100)}% · ${stability}`;
