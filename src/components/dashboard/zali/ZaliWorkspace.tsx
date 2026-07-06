@@ -25,12 +25,23 @@ const SCALE_LEVELS = [
   { label: "Quantum", scale: "sub-Å", icon: Cpu },
 ];
 
-const SOFTWARE_TYPES = ["software", "app", "web", "mobile", "api", "saas", "backend", "frontend", "fullstack", "full-stack", "service", "microservice", "platform", "dashboard", "cli", "library", "plugin", "extension", "bot", "automation", "script", "code"];
+const SOFTWARE_TYPES = new Set([
+  "software", "app", "web", "mobile", "api", "saas", "backend", "frontend",
+  "fullstack", "service", "microservice", "platform", "dashboard", "cli",
+  "library", "plugin", "extension", "bot", "automation", "script", "code",
+]);
 
 function isSoftwareProject(project: ZaliProject | null): boolean {
   if (!project) return false;
-  const lower = (project.designType + " " + project.name + " " + project.description).toLowerCase();
-  return SOFTWARE_TYPES.some((kw) => lower.includes(kw));
+  // Tokenize on non-word chars so "appetite" or "botany" don't false-positive
+  // (fixes the raw `includes` bug in the previous implementation).
+  const tokens = (`${project.designType} ${project.name} ${project.description}`)
+    .toLowerCase()
+    .split(/[^a-z0-9+#]+/)
+    .filter(Boolean);
+  // "full-stack" arrives as two tokens after tokenization — normalize.
+  if (tokens.includes("full") && tokens.includes("stack")) return true;
+  return tokens.some((t) => SOFTWARE_TYPES.has(t));
 }
 
 interface Props {
