@@ -25,6 +25,7 @@ import { useResolvedZaxinByok } from "@/lib/zaxin/resolveByok";
 import ZaxinInlineByok from "./ZaxinInlineByok";
 import { Link } from "react-router-dom";
 import { Mic, MicOff, Users } from "lucide-react";
+import { formatWeightKg, usesImperialWeight, kgToLb, primeCountryFromGeolocation } from "@/lib/units";
 
 type Tab = "scan" | "tactical" | "ar" | "hops" | "diag";
 
