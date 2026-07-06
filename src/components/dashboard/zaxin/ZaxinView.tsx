@@ -1126,10 +1126,16 @@ function ArTab(props: {
         {/* OPTICAL CONTACTS — pairing-free, drawn directly on detected pixels.
             If the AI Vision panel has returned an identification paired to this
             bbox (matched_optical_id === "opt:i"), we override the label with the
-            refined brand/model/type and a BLE pip. */}
+            refined brand/model/type and a BLE pip. Off-body devices (phone on a
+            table, laptop on a desk) are auto-correlated with unbonded BLE
+            contacts by distance + name family — surfaced as a "MATCH?" chip
+            so the operator can confirm with one tap. */}
         {props.arOn && opticalOn && (() => {
+          const suggestions = correlateOptical(optical, props.contacts, bindings);
           // Cap to the 5 highest-confidence detections (persons/devices win),
           // dedupe near-overlapping boxes, hide the noisy floor/wall area-fillers,
+          // and only render labels inside the camera viewport. Preserve original
+          // index so AI vision matches by `opt:<idx>` still resolve.
           // and only render labels inside the camera viewport. Preserve original
           // index so AI vision matches by `opt:<idx>` still resolve.
           const enriched = optical.map((o, idx) => ({ o, idx, area: o.x !== undefined ? 0 : 0 }));
