@@ -80,11 +80,19 @@ export function extractOptions(text: string): ZanoemOption[] {
   if (opts.length >= 2) return opts.slice(0, 8);
   opts.length = 0;
 
-  // Pass 2: numbered list "1. ..."
+  // Pass 2: numbered list "1. ..." — but only when a decision heading is
+  // nearby (within 5 lines above), so ordinary numbered plans don't get
+  // treated as options for the user to pick.
   const numRe = /^\s*(\d+)[.)]\s+(.+)$/;
+  const headingRe = /^\s*(?:\*\*)?\s*(options|recommendations|choices|alternatives|which|pick one|decide)\b/i;
   for (let i = 0; i < lines.length; i++) {
     const m = numRe.exec(lines[i]);
-    if (m) opts.push({ label: m[2].trim().slice(0, 240) });
+    if (!m) continue;
+    let hasHeading = false;
+    for (let j = Math.max(0, i - 5); j < i; j++) {
+      if (headingRe.test(lines[j])) { hasHeading = true; break; }
+    }
+    if (hasHeading) opts.push({ label: m[2].trim().slice(0, 240) });
   }
   if (opts.length >= 2) return opts.slice(0, 8);
   opts.length = 0;
