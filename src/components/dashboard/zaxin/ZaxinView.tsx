@@ -125,6 +125,14 @@ const ZaxinView = () => {
     return () => hop.stop();
   }, [hop, engine]);
 
+  // Prime the operator's country once so weight readings render in the
+  // right unit (lb for US/LR/MM, kg elsewhere). Silent on failure.
+  useEffect(() => {
+    const ac = new AbortController();
+    primeCountryFromGeolocation(ac.signal);
+    return () => ac.abort();
+  }, []);
+
   // initial + recurring paired load — picks up OS-paired devices without user re-tap
   useEffect(() => {
     const pull = () =>
