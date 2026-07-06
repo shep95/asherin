@@ -709,6 +709,7 @@ function ArTab(props: {
   const [bvReady, setBvReady] = useState(false);
   const [modes, setModes] = useState<Set<BodyMode>>(() => new Set<BodyMode>(["full", "face", "fingers"]));
   const [bindings, setBindings] = useState<Record<string, string>>({});
+  const [sonarOn, setSonarOn] = useState(true);
 
   const toggleMode = (m: BodyMode) => {
     setModes((prev) => {
