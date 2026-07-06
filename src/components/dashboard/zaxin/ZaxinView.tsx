@@ -14,6 +14,7 @@ import { startHeadingStream, startVisualHeadingStream, startCamera, stopCamera, 
 import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
 import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
+import { updateVehicleTracks } from "./core/vehicleTracking";
 import { correlateOptical, type Suggestion } from "./core/deviceCorrelation";
 import RadarIntelPack from "./RadarIntelPack";
 import SonarSweep from "./SonarSweep";
