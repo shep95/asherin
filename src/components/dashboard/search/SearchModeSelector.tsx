@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Brain, Image as ImageIcon, Crosshair, ShieldAlert, Scan, Skull, FileArchive, ChevronDown, ShieldCheck, Database, Package, BookOpen, Target } from "lucide-react";
+import { Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Brain, Image as ImageIcon, Crosshair, ShieldAlert, Scan, Skull, FileArchive, ChevronDown, ShieldCheck, Database, Package, BookOpen, Target, Ghost } from "lucide-react";
 import type { SearchMode } from "./types";
 
 type ModeDef = { id: SearchMode; label: string; icon: React.ReactNode; accent?: boolean };
@@ -8,6 +8,8 @@ type ModeDef = { id: SearchMode; label: string; icon: React.ReactNode; accent?: 
 const primaryModes: ModeDef[] = [
   { id: "web", label: "Web", icon: <Globe className="h-3.5 w-3.5" /> },
   { id: "deep", label: "Deep Search", icon: <Brain className="h-3.5 w-3.5" />, accent: true },
+  { id: "ghostchain", label: "Ghost Chain", icon: <Ghost className="h-3.5 w-3.5" />, accent: true },
+
   { id: "dork", label: "Dork", icon: <Target className="h-3.5 w-3.5" />, accent: true },
   { id: "dataengine", label: "DataEngine", icon: <Database className="h-3.5 w-3.5" />, accent: true },
   { id: "imagine", label: "Imagine", icon: <ImageIcon className="h-3.5 w-3.5" />, accent: true },

@@ -1,5 +1,5 @@
 export type SourceTier = 1 | 2 | 3 | 4 | 5;
-export type SearchMode = 'web' | 'news' | 'academic' | 'code' | 'data' | 'docs' | 'deep' | 'imagine' | 'extract' | 'audit' | 'face' | 'darkweb' | 'leaks' | 'archive' | 'vpn' | 'dataengine' | 'harvest' | 'scribd' | 'dork';
+export type SearchMode = 'web' | 'news' | 'academic' | 'code' | 'data' | 'docs' | 'deep' | 'imagine' | 'extract' | 'audit' | 'face' | 'darkweb' | 'leaks' | 'archive' | 'vpn' | 'dataengine' | 'harvest' | 'scribd' | 'dork' | 'ghostchain';
 
 export interface SearchResult {
   title: string;
