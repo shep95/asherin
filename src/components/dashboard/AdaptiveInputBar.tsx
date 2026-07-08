@@ -193,6 +193,11 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [borderColorKey, setBorderColorKey] = useState(() => localStorage.getItem("aureon_send_border_color") || "default");
   const [btnShape, setBtnShape] = useState(() => localStorage.getItem("aureon_send_btn_shape") || "circle");
+  // NAR mode — narrative expansion of prompts before send. Persisted per browser.
+  const [narrativeMode, setNarrativeMode] = useState<boolean>(() => loadNarrativeMode());
+  const toggleNarrative = useCallback(() => {
+    setNarrativeMode(prev => { const next = !prev; saveNarrativeMode(next); return next; });
+  }, []);
 
   useEffect(() => {
     const handler = () => {
