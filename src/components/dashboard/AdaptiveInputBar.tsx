@@ -668,6 +668,24 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
               </div>
             )}
           </div>
+          {/* NAR — narrative-expansion mode. When on, every send is wrapped in a
+              narrative frame instructing the model to reason as narrative first.
+              Persisted in localStorage; visible glow when active. */}
+          <button
+            onClick={toggleNarrative}
+            title={narrativeMode
+              ? "NAR mode ON — prompts are expanded into a narrative frame before send. Click to disable."
+              : "NAR mode OFF — prompts are sent verbatim. Click to enable narrative expansion."}
+            aria-pressed={narrativeMode}
+            className={`shrink-0 flex items-center gap-1 h-8 px-2 rounded-lg text-[10px] font-medium tracking-[0.2em] uppercase transition-all border ${
+              narrativeMode
+                ? "border-amber-400/60 bg-amber-400/10 text-amber-300 shadow-[0_0_12px_hsl(45_100%_60%/0.25)]"
+                : "border-border/30 bg-background/30 text-muted-foreground/60 hover:text-foreground hover:border-border/60"
+            }`}
+          >
+            <BookOpen className="h-3 w-3" strokeWidth={1.6} />
+            NAR
+          </button>
           {value.trim() && (
             <button onClick={clearDraft} className="shrink-0 p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors" title="Clear draft">
               <X className="h-3.5 w-3.5" />
