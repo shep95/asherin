@@ -107,6 +107,9 @@ const Header = () => {
                   <Link to="/houseofasher/theories" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">House of Asher · Theories</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link to="/hosrad" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">HOSRAD · Research & Development</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link to="/investors" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Investors</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
