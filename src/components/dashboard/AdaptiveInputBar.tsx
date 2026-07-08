@@ -277,7 +277,13 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
     deleteDraft(key).catch(() => {});
     setDraftSaved(null);
     trackPhrase(value.trim());
-    onSendMessage(value.trim(), attachments.length > 0 ? attachments : undefined);
+    // NAR mode: expand raw prompt into a narrative frame before send.
+    // Trackphrase and draft use the ORIGINAL text; only the model receives
+    // the expanded version so autocomplete history stays clean.
+    const outbound = narrativeMode
+      ? expandPromptToNarrative(value.trim()).transformed
+      : value.trim();
+    onSendMessage(outbound, attachments.length > 0 ? attachments : undefined);
     setValue("");
     setAttachments([]);
   };
