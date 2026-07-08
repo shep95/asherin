@@ -53,6 +53,9 @@ export default function IntelligenceSuitePanel({ query, results, onClose, onRunQ
             <X className="h-4 w-4" />
           </button>
         </div>
+      </div>
+
+
 
       {/* Tabs */}
       <div className="flex-shrink-0 border-b border-border/20 px-2 overflow-x-auto">
