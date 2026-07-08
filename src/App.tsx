@@ -26,6 +26,7 @@ const BlogUncensoredAi = lazy(() => import("./pages/BlogUncensoredAi"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Updates = lazy(() => import("./pages/Updates"));
 const HouseOfAsherTheories = lazy(() => import("./pages/HouseOfAsherTheories"));
+const Hosrad = lazy(() => import("./pages/Hosrad"));
 const Investors = lazy(() => import("./pages/Investors"));
 const Valuation = lazy(() => import("./pages/Valuation"));
 const Ziaassets = lazy(() => import("./pages/Ziaassets"));
@@ -157,6 +158,8 @@ const App = () => (
             <Route path="/valuation" element={<Valuation />} />
 
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
+            <Route path="/hosrad" element={<Hosrad />} />
+            <Route path="/HOSRAD" element={<Hosrad />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
             <Route path="/glossary/sovereign-ai" element={<GlossarySovereignAi />} />
             <Route path="/glossary/uncensored-ai" element={<GlossaryUncensoredAi />} />

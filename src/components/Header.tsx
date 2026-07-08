@@ -107,6 +107,9 @@ const Header = () => {
                   <Link to="/houseofasher/theories" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">House of Asher · Theories</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link to="/hosrad" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">HOSRAD · Research & Development</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link to="/investors" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Investors</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -217,6 +220,7 @@ const Header = () => {
                 <Link to="/blog" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Blog</Link>
                 <Link to="/updates" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Updates</Link>
                 <Link to="/houseofasher/theories" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">House of Asher · Theories</Link>
+                <Link to="/hosrad" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">HOSRAD · Research & Development</Link>
                 <Link to="/investors" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Investors</Link>
                 <Link to="/valuation" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Valuation</Link>
               </div>

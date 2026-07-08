@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo, forwardRef, useImperativeHandle } from "react";
-import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff, ClipboardPaste, FileUp, Image as ImageLucide, Video, FileIcon, Files } from "lucide-react";
+import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff, ClipboardPaste, FileUp, Image as ImageLucide, Video, FileIcon, Files, BookOpen } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
 import VoiceRecordingOrb from "./VoiceRecordingOrb";
 import SlashCommandPalette from "./SlashCommandPalette";
 import { parseSlashCommand, type SlashCommand } from "@/lib/slashCommands";
+import { expandPromptToNarrative, loadNarrativeMode, saveNarrativeMode } from "@/lib/promptToNarrative";
 import type { FileAttachment } from "./types";
 
 const LONG_PASTE_THRESHOLD = 500; // chars
@@ -192,6 +193,11 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [borderColorKey, setBorderColorKey] = useState(() => localStorage.getItem("aureon_send_border_color") || "default");
   const [btnShape, setBtnShape] = useState(() => localStorage.getItem("aureon_send_btn_shape") || "circle");
+  // NAR mode — narrative expansion of prompts before send. Persisted per browser.
+  const [narrativeMode, setNarrativeMode] = useState<boolean>(() => loadNarrativeMode());
+  const toggleNarrative = useCallback(() => {
+    setNarrativeMode(prev => { const next = !prev; saveNarrativeMode(next); return next; });
+  }, []);
 
   useEffect(() => {
     const handler = () => {
@@ -271,7 +277,13 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
     deleteDraft(key).catch(() => {});
     setDraftSaved(null);
     trackPhrase(value.trim());
-    onSendMessage(value.trim(), attachments.length > 0 ? attachments : undefined);
+    // NAR mode: expand raw prompt into a narrative frame before send.
+    // Trackphrase and draft use the ORIGINAL text; only the model receives
+    // the expanded version so autocomplete history stays clean.
+    const outbound = narrativeMode
+      ? expandPromptToNarrative(value.trim()).transformed
+      : value.trim();
+    onSendMessage(outbound, attachments.length > 0 ? attachments : undefined);
     setValue("");
     setAttachments([]);
   };
@@ -656,6 +668,24 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
               </div>
             )}
           </div>
+          {/* NAR — narrative-expansion mode. When on, every send is wrapped in a
+              narrative frame instructing the model to reason as narrative first.
+              Persisted in localStorage; visible glow when active. */}
+          <button
+            onClick={toggleNarrative}
+            title={narrativeMode
+              ? "NAR mode ON — prompts are expanded into a narrative frame before send. Click to disable."
+              : "NAR mode OFF — prompts are sent verbatim. Click to enable narrative expansion."}
+            aria-pressed={narrativeMode}
+            className={`shrink-0 flex items-center gap-1 h-8 px-2 rounded-lg text-[10px] font-medium tracking-[0.2em] uppercase transition-all border ${
+              narrativeMode
+                ? "border-amber-400/60 bg-amber-400/10 text-amber-300 shadow-[0_0_12px_hsl(45_100%_60%/0.25)]"
+                : "border-border/30 bg-background/30 text-muted-foreground/60 hover:text-foreground hover:border-border/60"
+            }`}
+          >
+            <BookOpen className="h-3 w-3" strokeWidth={1.6} />
+            NAR
+          </button>
           {value.trim() && (
             <button onClick={clearDraft} className="shrink-0 p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors" title="Clear draft">
               <X className="h-3.5 w-3.5" />
