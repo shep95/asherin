@@ -158,6 +158,8 @@ const App = () => (
             <Route path="/valuation" element={<Valuation />} />
 
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
+            <Route path="/hosrad" element={<Hosrad />} />
+            <Route path="/HOSRAD" element={<Hosrad />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
             <Route path="/glossary/sovereign-ai" element={<GlossarySovereignAi />} />
             <Route path="/glossary/uncensored-ai" element={<GlossaryUncensoredAi />} />
