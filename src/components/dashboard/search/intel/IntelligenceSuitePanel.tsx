@@ -39,10 +39,20 @@ export default function IntelligenceSuitePanel({ query, results, onClose, onRunQ
             <p className="text-[10px] text-muted-foreground/60 truncate">{query}</p>
           </div>
         </div>
-        <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-colors shrink-0">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => downloadIntelligenceReport({ query, results })}
+            disabled={results.length === 0}
+            title="Download deterministic intelligence report (.txt)"
+            className="flex items-center gap-1 text-[10px] tracking-[0.15em] uppercase px-2 py-1 rounded-md border border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            <Download className="h-3 w-3" />
+            Report
+          </button>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
       {/* Tabs */}
       <div className="flex-shrink-0 border-b border-border/20 px-2 overflow-x-auto">
