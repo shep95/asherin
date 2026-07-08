@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Brain, Clock, Shield, Scale, MessageSquare, Search, X } from "lucide-react";
+import { Brain, Clock, Shield, Scale, MessageSquare, Search, X, Download } from "lucide-react";
 import TemporalPanel from "./TemporalPanel";
 import CredibilityPanel from "./CredibilityPanel";
 import FactCheckPanel from "./FactCheckPanel";
 import NarrativePanel from "./NarrativePanel";
 import InvestigativePanel from "./InvestigativePanel";
+import { downloadIntelligenceReport } from "./buildIntelligenceReportText";
 import type { SearchResult } from "../types";
 
 type Tab = "temporal" | "credibility" | "factcheck" | "narrative" | "investigative";
