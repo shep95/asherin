@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo, forwardRef, useImperativeHandle } from "react";
-import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff, ClipboardPaste, FileUp, Image as ImageLucide, Video, FileIcon, Files } from "lucide-react";
+import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff, ClipboardPaste, FileUp, Image as ImageLucide, Video, FileIcon, Files, BookOpen } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
 import VoiceRecordingOrb from "./VoiceRecordingOrb";
 import SlashCommandPalette from "./SlashCommandPalette";
 import { parseSlashCommand, type SlashCommand } from "@/lib/slashCommands";
+import { expandPromptToNarrative, loadNarrativeMode, saveNarrativeMode } from "@/lib/promptToNarrative";
 import type { FileAttachment } from "./types";
 
 const LONG_PASTE_THRESHOLD = 500; // chars
