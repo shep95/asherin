@@ -59,6 +59,11 @@ const SEO: Record<string, SeoEntry> = {
     description:
       "The story behind Aureon: Asher Newton, House of Asher, and the doctrine that built a predictive intelligence platform.",
   },
+  "/hosrad": {
+    title: "HOSRAD — House Of Asher Research & Development",
+    description:
+      "HOSRAD is the House Of Asher R&D division — a private DARPA for the Asher Empire. Full-spectrum research across AI, quantum, military, and civilian safety technology.",
+  },
   "/prompt-engineering": {
     title: "Prompt Engineering Protocols — Zophiel Doctrine",
     description:
