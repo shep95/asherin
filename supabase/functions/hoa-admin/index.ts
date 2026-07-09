@@ -203,6 +203,60 @@ Deno.serve(async (req) => {
         return json({ ok: true });
       }
 
+      // ── Channels ───────────────────────────────────────────────────────────
+      case "create_channel": {
+        const serverId = String(body.serverId ?? "");
+        const name     = String(body.name ?? "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+        const kind     = String(body.kind ?? "text");
+        const minCl    = Math.max(0, Math.min(4, Number(body.minClearance ?? 0) | 0));
+        const topic    = body.topic == null ? null : String(body.topic).slice(0, 400);
+        const comps    = Array.isArray(body.compartments) ? body.compartments.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 8) : [];
+        if (!serverId || !name) return json({ error: "serverId and name required" }, 400);
+        if (!["text","voice","vault","broadcast"].includes(kind)) return json({ error: "invalid kind" }, 400);
+        const { handle } = await requireOwner(serverId);
+        const { data, error } = await admin.from("hoa_channels").insert({
+          server_id: serverId, name, kind, min_clearance: minCl, topic, compartments: comps,
+        }).select().single();
+        if (error) throw error;
+        await audit(serverId, handle, "CHANNEL_CREATED", name, `kind=${kind} clearance=${minCl}`);
+        return json({ ok: true, channel: data });
+      }
+
+      case "update_channel": {
+        const channelId = String(body.channelId ?? "");
+        if (!channelId) return json({ error: "channelId required" }, 400);
+        const { data: existing } = await admin.from("hoa_channels").select("server_id, name").eq("id", channelId).single();
+        if (!existing) return json({ error: "channel not found" }, 404);
+        const { handle } = await requireOwner(existing.server_id);
+        const patch: Record<string, unknown> = {};
+        if (body.name !== undefined)  patch.name = String(body.name).trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+        if (body.kind !== undefined) {
+          const k = String(body.kind);
+          if (!["text","voice","vault","broadcast"].includes(k)) return json({ error: "invalid kind" }, 400);
+          patch.kind = k;
+        }
+        if (body.minClearance !== undefined) patch.min_clearance = Math.max(0, Math.min(4, Number(body.minClearance) | 0));
+        if (body.topic !== undefined) patch.topic = body.topic == null ? null : String(body.topic).slice(0, 400);
+        if (body.compartments !== undefined) patch.compartments = Array.isArray(body.compartments)
+          ? body.compartments.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 8) : [];
+        const { error } = await admin.from("hoa_channels").update(patch).eq("id", channelId);
+        if (error) throw error;
+        await audit(existing.server_id, handle, "CHANNEL_UPDATED", (patch.name as string) ?? existing.name);
+        return json({ ok: true });
+      }
+
+      case "delete_channel": {
+        const channelId = String(body.channelId ?? "");
+        if (!channelId) return json({ error: "channelId required" }, 400);
+        const { data: existing } = await admin.from("hoa_channels").select("server_id, name").eq("id", channelId).single();
+        if (!existing) return json({ error: "channel not found" }, 404);
+        const { handle } = await requireOwner(existing.server_id);
+        const { error } = await admin.from("hoa_channels").delete().eq("id", channelId);
+        if (error) throw error;
+        await audit(existing.server_id, handle, "CHANNEL_DELETED", existing.name);
+        return json({ ok: true });
+      }
+
       default:
         return json({ error: `unknown action: ${action}` }, 400);
     }
