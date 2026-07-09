@@ -228,7 +228,6 @@ const AsherinGovDashboard = () => {
   const nav = useNavigate();
   const deck = useHoaDeck();
 
-  const [draft, setDraft] = useState("");
   const [search, setSearch] = useState("");
   const [showAudit, setShowAudit] = useState(false);
   const [unsealed, setUnsealed] = useState<Set<string>>(new Set());
