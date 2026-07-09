@@ -63,6 +63,11 @@ export default function ChatCardRenderer({ segment, source }: Props) {
       if (!Number.isFinite(value) || value <= 0 || value > 10000) return null;
       return <NumberLookupCard value={value} cipher={cipher} source={source} />;
     }
+    // ── symbolic-exegesis family ─────────────────────
+    case "symbolic":
+      return <SymbolicPassageCard payload={payload} source={source} />;
+    case "symbolic-spine":
+      return <SymbolicSpineCard payload={payload} source={source} />;
     // ── universal shape cards ────────────────────────
     case "info":       return <InfoCard payload={payload} source={source} />;
     case "entity":     return <EntityCard payload={payload} source={source} />;
