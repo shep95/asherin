@@ -23,6 +23,8 @@ import GovSuiteMount, { SUITES, type SuiteId } from "@/components/asher-gov/GovS
 import AdminPanel from "@/components/asher-gov/AdminPanel";
 import EmperorConsole from "@/components/asher-gov/EmperorConsole";
 import ProfileSettings from "@/components/asher-gov/ProfileSettings";
+import DeckComposer from "@/components/asher-gov/DeckComposer";
+import ChannelMessage from "@/components/asher-gov/ChannelMessage";
 
 const CLEARANCE_COLOR: Record<string,string> = {
   UNCLASS: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
