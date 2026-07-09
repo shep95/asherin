@@ -365,11 +365,13 @@ const AsherinGovDashboard = () => {
             const active = s.id === deck.activeServer?.id;
             return (
               <button key={s.id} onClick={() => { deck.switchServer(s.id); setActiveSuite(null); }}
-                className={`w-10 h-10 rounded-xl border flex items-center justify-center text-[10px] font-semibold tracking-widest transition relative
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center text-[10px] font-semibold tracking-widest transition relative overflow-hidden
                   ${active ? "border-foreground/60 bg-foreground/10 text-foreground" : "border-border/30 bg-foreground/[0.02] text-muted-foreground hover:text-foreground hover:border-border/60"}
                   ${s.is_mothership ? "ring-1 ring-amber-500/40" : ""}`}
                 title={`${s.name}${s.is_mothership ? " (mothership)" : ""}`}>
-                {s.is_mothership ? <Crown className="h-4 w-4 text-amber-400" /> : s.code.slice(0,3)}
+                {s.icon_url
+                  ? <img src={s.icon_url} alt="" className="w-full h-full object-cover" />
+                  : s.is_mothership ? <Crown className="h-4 w-4 text-amber-400" /> : s.code.slice(0,3)}
                 {active && <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r bg-foreground" />}
               </button>
             );
