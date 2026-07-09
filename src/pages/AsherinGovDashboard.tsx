@@ -328,11 +328,28 @@ const AsherinGovDashboard = () => {
       .filter(m => !q || m.body.toLowerCase().includes(q));
   }, [deck.messages, activeChannel?.id, search]);
 
-  const handleSend = async () => {
-    if (!draft.trim() || !activeChannel) return;
-    if (!deck.canAccess(activeChannel)) return;
-    try { await deck.sendMessage(draft); setDraft(""); }
-    catch (e: any) { toast.error(e?.message ?? "send failed"); }
+  const handleSendBody = async (body: string) => {
+    if (!activeChannel) return;
+    if (!deck.canAccess(activeChannel)) throw new Error("insufficient clearance");
+    await deck.sendMessage(body);
+  };
+
+  const handleAiCommand = async (prompt: string) => {
+    if (!activeChannel || !deck.activeServer) throw new Error("no channel");
+    // 1. Post the operator's prompt so the audit trail shows the question.
+    await deck.sendMessage(`**/ai** ${prompt}`);
+    // 2. Ask AI Gov.
+    const { data, error } = await supabase.functions.invoke("hoa-ai-command", {
+      body: { serverId: deck.activeServer.id, prompt, context: activeChannel.topic ?? "" },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    const reply = (data?.reply as string) ?? "";
+    if (!reply) throw new Error("empty AI reply");
+    // 3. Post the reply under the operator's identity (schema requires it),
+    //    prefixed so the channel visually attributes it to the AI Gov.
+    await deck.sendMessage(`**🤖 AI Gov · Aureon**\n${reply}`);
+    await deck.pushAudit("AI_COMMAND", activeChannel.name, prompt.slice(0, 200));
   };
 
   const handleUnseal = async (msgId: string) => {
