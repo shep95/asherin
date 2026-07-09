@@ -35,6 +35,9 @@
 const SENSITIVE_ROUTE_PATTERNS: RegExp[] = [
   /^\/dashboard(\/|$)/i,
   /^\/asher-dashboard(\/|$)/i,
+  /^\/asherin[.-]gov\/dashboard(\/|$)/i,
+  /^\/ziaassets(\/|$)/i,
+  /^\/whiteboard(\/|$)/i,
   /^\/admin(\/|$)/i,
   /^\/wp-admin(\/|$)/i,
   /^\/wp-login/i,
@@ -43,31 +46,49 @@ const SENSITIVE_ROUTE_PATTERNS: RegExp[] = [
   /^\/\.git(\/|$)/i,
   /^\/\.aws(\/|$)/i,
   /^\/\.ssh(\/|$)/i,
+  /^\/\.well-known\/(?!security\.txt)/i,
   /^\/config(\/|$)/i,
   /^\/backup(s)?(\/|$)/i,
   /^\/server-(status|info)/i,
   /^\/debug(\/|$)/i,
   /^\/api\/internal(\/|$)/i,
   /^\/api\/admin(\/|$)/i,
-  /\.(sql|bak|log|env|pem|key)$/i,
+  /^\/functions\/v1(\/|$)/i,
+  /^\/rest\/v1(\/|$)/i,
+  /\.(sql|bak|log|env|pem|key|pfx|p12|kdbx|ovpn)$/i,
 ];
 
 const SENSITIVE_QUERY_KEYS = new Set([
   "token",
   "access_token",
   "refresh_token",
+  "id_token",
   "apikey",
   "api_key",
   "password",
   "passwd",
+  "pwd",
   "secret",
+  "client_secret",
   "session",
   "sessionid",
+  "sid",
   "auth",
+  "authorization",
   "otp",
+  "totp",
+  "mfa",
   "code",     // OAuth authorization codes should never linger in history
   "state",    // OAuth state params
+  "email",    // PII — avoid dork operators pivoting from search cache
+  "phone",
+  "signature",
+  "sig",
+  "hmac",
+  "invite",
+  "invite_token",
 ]);
+
 
 function upsertMetaRobots(content: string) {
   let el = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
