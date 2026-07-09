@@ -78,15 +78,16 @@ const SENSITIVE_QUERY_KEYS = new Set([
   "otp",
   "totp",
   "mfa",
-  "code",     // OAuth authorization codes should never linger in history
-  "state",    // OAuth state params
+  // NOTE: "code" and "state" (OAuth), "invite"/"invite_token" (Asher invitations)
+  // are intentionally NOT scrubbed here — downstream components
+  // (MultiAccountManager, AsherInvitationsBanner) must read them on mount
+  // and clean the URL themselves after consumption. Scrubbing them here
+  // pre-render silently breaks Google OAuth callback + invitation accept.
   "email",    // PII — avoid dork operators pivoting from search cache
   "phone",
   "signature",
   "sig",
   "hmac",
-  "invite",
-  "invite_token",
 ]);
 
 
