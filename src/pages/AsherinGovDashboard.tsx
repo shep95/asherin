@@ -289,6 +289,7 @@ const AsherinGovDashboard = () => {
   const clearanceLabel = deck.myMembership ? rankToLabel(deck.myMembership.clearance_rank) : "UNCLASS";
   const banner = deck.activeServer?.is_mothership ? "TS" : clearanceLabel;
   const canInvite = deck.myMembership && ["owner","operator"].includes(deck.myMembership.role);
+  const isOwner = deck.myMembership?.role === "owner" || deck.myMembership?.role === "houseofasher";
 
   // Filter channels & members client-side (RLS already gate reads server-side)
   const activeChannel = deck.activeChannel;
