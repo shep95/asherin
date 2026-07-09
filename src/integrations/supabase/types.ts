@@ -4298,6 +4298,332 @@ export type Database = {
         }
         Relationships: []
       }
+      hoa_audit: {
+        Row: {
+          action: string
+          actor_handle: string | null
+          actor_id: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          server_id: string | null
+          target: string | null
+        }
+        Insert: {
+          action: string
+          actor_handle?: string | null
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          server_id?: string | null
+          target?: string | null
+        }
+        Update: {
+          action?: string
+          actor_handle?: string | null
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          server_id?: string | null
+          target?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hoa_audit_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hoa_aureon_training_feed: {
+        Row: {
+          author_handle: string | null
+          author_id: string | null
+          body: string
+          channel_kind: Database["public"]["Enums"]["hoa_channel_kind"]
+          channel_name: string
+          compartments: string[]
+          consumed_at: string | null
+          id: string
+          ingested_at: string
+          message_id: string
+          meta: Json
+          sealed: boolean
+          server_code: string
+          server_id: string
+        }
+        Insert: {
+          author_handle?: string | null
+          author_id?: string | null
+          body: string
+          channel_kind: Database["public"]["Enums"]["hoa_channel_kind"]
+          channel_name: string
+          compartments?: string[]
+          consumed_at?: string | null
+          id?: string
+          ingested_at?: string
+          message_id: string
+          meta?: Json
+          sealed?: boolean
+          server_code: string
+          server_id: string
+        }
+        Update: {
+          author_handle?: string | null
+          author_id?: string | null
+          body?: string
+          channel_kind?: Database["public"]["Enums"]["hoa_channel_kind"]
+          channel_name?: string
+          compartments?: string[]
+          consumed_at?: string | null
+          id?: string
+          ingested_at?: string
+          message_id?: string
+          meta?: Json
+          sealed?: boolean
+          server_code?: string
+          server_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hoa_aureon_training_feed_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hoa_aureon_training_feed_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hoa_channels: {
+        Row: {
+          compartments: string[]
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["hoa_channel_kind"]
+          min_clearance: number
+          name: string
+          server_id: string
+          topic: string | null
+        }
+        Insert: {
+          compartments?: string[]
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["hoa_channel_kind"]
+          min_clearance?: number
+          name: string
+          server_id: string
+          topic?: string | null
+        }
+        Update: {
+          compartments?: string[]
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["hoa_channel_kind"]
+          min_clearance?: number
+          name?: string
+          server_id?: string
+          topic?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hoa_channels_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hoa_invites: {
+        Row: {
+          clearance_grant: number
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          max_uses: number
+          mirror_mothership: boolean
+          role_grant: Database["public"]["Enums"]["hoa_server_role"]
+          server_id: string
+          uses: number
+        }
+        Insert: {
+          clearance_grant?: number
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          mirror_mothership?: boolean
+          role_grant?: Database["public"]["Enums"]["hoa_server_role"]
+          server_id: string
+          uses?: number
+        }
+        Update: {
+          clearance_grant?: number
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          mirror_mothership?: boolean
+          role_grant?: Database["public"]["Enums"]["hoa_server_role"]
+          server_id?: string
+          uses?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hoa_invites_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hoa_members: {
+        Row: {
+          clearance_rank: number
+          handle: string
+          id: string
+          joined_at: string
+          rank_label: string
+          role: Database["public"]["Enums"]["hoa_server_role"]
+          server_id: string
+          user_id: string
+        }
+        Insert: {
+          clearance_rank?: number
+          handle: string
+          id?: string
+          joined_at?: string
+          rank_label?: string
+          role?: Database["public"]["Enums"]["hoa_server_role"]
+          server_id: string
+          user_id: string
+        }
+        Update: {
+          clearance_rank?: number
+          handle?: string
+          id?: string
+          joined_at?: string
+          rank_label?: string
+          role?: Database["public"]["Enums"]["hoa_server_role"]
+          server_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hoa_members_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hoa_messages: {
+        Row: {
+          author_handle: string
+          author_id: string
+          body: string
+          channel_id: string
+          compartments: string[]
+          created_at: string
+          id: string
+          pinned: boolean
+          sealed: boolean
+          server_id: string
+        }
+        Insert: {
+          author_handle: string
+          author_id: string
+          body: string
+          channel_id: string
+          compartments?: string[]
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          sealed?: boolean
+          server_id: string
+        }
+        Update: {
+          author_handle?: string
+          author_id?: string
+          body?: string
+          channel_id?: string
+          compartments?: string[]
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          sealed?: boolean
+          server_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hoa_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hoa_messages_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hoa_servers: {
+        Row: {
+          code: string
+          country: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_mothership: boolean
+          name: string
+        }
+        Insert: {
+          code: string
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_mothership?: boolean
+          name: string
+        }
+        Update: {
+          code?: string
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_mothership?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       honeypot_logs: {
         Row: {
           created_at: string
@@ -9465,6 +9791,19 @@ export type Database = {
         Returns: boolean
       }
       heartbeat_intel_slot: { Args: { _job_id: string }; Returns: undefined }
+      hoa_is_houseofasher: { Args: { _user: string }; Returns: boolean }
+      hoa_is_member: {
+        Args: { _server: string; _user: string }
+        Returns: boolean
+      }
+      hoa_member_clearance: {
+        Args: { _server: string; _user: string }
+        Returns: number
+      }
+      hoa_member_role: {
+        Args: { _server: string; _user: string }
+        Returns: Database["public"]["Enums"]["hoa_server_role"]
+      }
       hoodie_vote_totals: {
         Args: never
         Returns: {
@@ -9613,6 +9952,13 @@ export type Database = {
         | "officer"
         | "analyst"
       forum_category: "idea" | "leak" | "bug" | "theory"
+      hoa_channel_kind: "text" | "voice" | "vault" | "broadcast"
+      hoa_server_role:
+        | "owner"
+        | "operator"
+        | "analyst"
+        | "guest"
+        | "houseofasher"
       ziaassets_channel_kind:
         | "chamber"
         | "direct"
@@ -9783,6 +10129,14 @@ export const Constants = {
         "analyst",
       ],
       forum_category: ["idea", "leak", "bug", "theory"],
+      hoa_channel_kind: ["text", "voice", "vault", "broadcast"],
+      hoa_server_role: [
+        "owner",
+        "operator",
+        "analyst",
+        "guest",
+        "houseofasher",
+      ],
       ziaassets_channel_kind: [
         "chamber",
         "direct",
