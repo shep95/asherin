@@ -228,12 +228,15 @@ const AsherinGovDashboard = () => {
   const [search, setSearch] = useState("");
   const [showAudit, setShowAudit] = useState(false);
   const [unsealed, setUnsealed] = useState<Set<string>>(new Set());
-  const [membersOpen, setMembersOpen] = useState(true);
+  const [membersOpen, setMembersOpen] = useState(false);
   const [activeSuite, setActiveSuite] = useState<SuiteId | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showJoin,   setShowJoin  ] = useState(false);
+  const [showAdmin,  setShowAdmin ] = useState(false);
+  const [mobileNav,  setMobileNav ] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastNavRef = useRef<{ server?: string; channel?: string }>({});
 
   const wallpaper = getWallpaperSrc("aureon");
 
