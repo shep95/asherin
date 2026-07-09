@@ -251,6 +251,12 @@ const AsherinGovDashboard = () => {
     robots.setAttribute("content","noindex, nofollow, noarchive");
   }, []);
 
+  // Emperor authority probe (server-side truth via RPC — never trust client email)
+  useEffect(() => {
+    if (!user) { setIsEmperor(false); return; }
+    supabase.rpc("hoa_is_houseofasher", { _user: user.id }).then(({ data }) => setIsEmperor(data === true));
+  }, [user?.id]);
+
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
