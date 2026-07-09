@@ -115,6 +115,32 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
               ) : (
                 <span className="whitespace-pre-wrap">{m.content}</span>
               )}
+              {m.role === "assistant" && deck.activeServer && deck.activeChannel && deck.myMembership && user && (
+                <button
+                  onClick={async () => {
+                    setSharingIdx(i);
+                    try {
+                      await shareToDeck({
+                        source: "aureon-chat",
+                        title: `Aureon reply · ${new Date(m.ts).toLocaleTimeString()}`,
+                        body: m.content,
+                        serverId: deck.activeServer!.id,
+                        channelId: deck.activeChannel!.id,
+                        authorId: user.id,
+                        authorHandle: deck.myMembership!.handle,
+                        compartments: deck.activeChannel!.compartments ?? [],
+                      });
+                      onAudit("SUITE_SHARE", `#${deck.activeChannel!.name}`, "aureon-chat");
+                    } finally { setSharingIdx(null); }
+                  }}
+                  disabled={sharingIdx === i}
+                  className="mt-2 inline-flex items-center gap-1 text-[10px] tracking-widest uppercase px-2 py-1 rounded border border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60 disabled:opacity-50"
+                  title={`Share to #${deck.activeChannel.name}`}
+                >
+                  {sharingIdx === i ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
+                  Share to #{deck.activeChannel.name}
+                </button>
+              )}
             </div>
             {m.role === "user" && (
               <div className="w-8 h-8 shrink-0 rounded-md bg-foreground/[0.06] border border-border/30 flex items-center justify-center text-[10px] font-semibold">
