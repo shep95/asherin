@@ -1006,8 +1006,19 @@ const Dashboard = () => {
       )
     );
 
-    // Only send branch-scoped history to AI (no memory leaking between branches)
-    const history = [...branchMsgs, userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content, attachments: m.attachments }));
+    // Only send branch-scoped history to AI (no memory leaking between branches).
+    // If the composer registered a hidden model-prompt override for this visible
+    // content (LAW / NAR modes), swap it in for the LAST user turn only so the
+    // stored + displayed user message stays raw while the model receives the
+    // wrapped directive.
+    const { takeModelPromptOverride } = await import("@/lib/promptOverrideMap");
+    const modelPromptOverride = takeModelPromptOverride(content);
+    const history = [...branchMsgs, userMsg].map((m, i, arr) => ({
+      role: m.role as "user" | "assistant",
+      content: modelPromptOverride && i === arr.length - 1 && m.role === "user" ? modelPromptOverride : m.content,
+      attachments: m.attachments,
+    }));
+
 
     const activePersona = customPersonas.find((p) => p.id === personaId) 
       || builtInPersonas.find((p) => p.id === personaId);
