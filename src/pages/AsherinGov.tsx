@@ -84,6 +84,7 @@ const WHITELABEL_TIERS = [
 ];
 
 const AsherinGov = () => {
+  const { user, loading: authLoading } = useAuth();
   useEffect(() => {
     document.title = "Asherin · Government & Sovereign Partners";
     const upsert = (sel: string, attrs: Record<string, string>) => {
