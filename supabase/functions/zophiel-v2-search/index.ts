@@ -129,20 +129,22 @@ async function ddgGather(query: string, region: string | null, limit: number): P
     const r = await fetch("https://lite.duckduckgo.com/lite/", {
       method: "POST",
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; ZophielV2/1.0)",
+        // Match the UA that ddg-search uses successfully in production.
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Content-Type": "application/x-www-form-urlencoded",
         Accept: "text/html",
       },
       body,
       signal: ctl.signal,
     });
-    if (!r.ok) return [];
+    if (!r.ok) { console.error("[zophiel-v2] DDG status", r.status); return []; }
     const html = await r.text();
 
     const hits: RawHit[] = [];
+    // Primary parse — lite markup with class='result-link'
     const linkRx = /class=['"]?result-link['"]?[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
     const snipRx = /class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi;
-
     const links: { url: string; title: string }[] = [];
     let m: RegExpExecArray | null;
     while ((m = linkRx.exec(html)) !== null && links.length < limit * 2) {
@@ -161,11 +163,24 @@ async function ddgGather(query: string, region: string | null, limit: number): P
     for (let i = 0; i < Math.min(links.length, limit); i++) {
       hits.push({ title: links[i].title, url: links[i].url, snippet: snippets[i] || "" });
     }
+
+    // Fallback parse — any external anchor with rel=nofollow.
+    if (hits.length === 0) {
+      const altRx = /<a[^>]*rel="nofollow"[^>]*href="(https?:\/\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+      while ((m = altRx.exec(html)) !== null && hits.length < limit) {
+        const url = m[1];
+        const title = stripTags(m[2]);
+        if (title && !url.includes("duckduckgo.com")) hits.push({ title, url, snippet: "" });
+      }
+    }
+    console.log(`[zophiel-v2] gathered=${hits.length} region=${region || "-"}`);
     return hits;
-  } catch {
+  } catch (e) {
+    console.error("[zophiel-v2] gather error", e instanceof Error ? e.message : String(e));
     return [];
   } finally { clearTimeout(t); }
 }
+
 
 // ---- Pass 2: refine the in-memory corpus using operators -------------------
 interface ScoredHit extends RawHit { score: number; matched: string[] }
