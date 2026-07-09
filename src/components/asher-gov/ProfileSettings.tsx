@@ -22,13 +22,16 @@ export default function ProfileSettings({
 
   useEffect(() => {
     if (!open) return;
+    let cancelled = false;
     setLoading(true);
-    supabase.from("profiles").select("display_name,avatar_url").eq("user_id", userId).maybeSingle()
-      .then(({ data }) => {
-        setDisplayName(data?.display_name ?? (defaultEmail?.split("@")[0] ?? ""));
-        setAvatarUrl(data?.avatar_url ?? null);
-      })
-      .finally(() => setLoading(false));
+    (async () => {
+      const { data } = await supabase.from("profiles").select("display_name,avatar_url").eq("user_id", userId).maybeSingle();
+      if (cancelled) return;
+      setDisplayName(data?.display_name ?? (defaultEmail?.split("@")[0] ?? ""));
+      setAvatarUrl(data?.avatar_url ?? null);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
   }, [open, userId, defaultEmail]);
 
   const persistAvatar = async (url: string | null) => {
