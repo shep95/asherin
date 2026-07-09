@@ -35,8 +35,10 @@ import {
   Circle,
   Crown,
   Star,
+  X,
 } from "lucide-react";
 import { getWallpaperSrc } from "@/lib/wallpapers";
+import GovSuiteMount, { SUITES, type SuiteId } from "@/components/asher-gov/GovSuiteMount";
 
 // -----------------------------------------------------------------------------
 // Clearance model
@@ -178,6 +180,7 @@ interface Persisted {
   operatorId: string;
   activeChannelId: string;
   banner: Clearance;
+  activeSuite?: SuiteId | null;
 }
 
 const loadState = (): Persisted => {
@@ -185,7 +188,7 @@ const loadState = (): Persisted => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Persisted;
-      if (parsed?.messages && parsed?.audit) return parsed;
+      if (parsed?.messages && parsed?.audit) return { activeSuite: null, ...parsed };
     }
   } catch { /* ignore */ }
   return {
@@ -196,6 +199,7 @@ const loadState = (): Persisted => {
     operatorId: "op-01",
     activeChannelId: "def-briefings",
     banner: "SECRET",
+    activeSuite: null,
   };
 };
 
@@ -315,14 +319,29 @@ const AsherinGovDashboard = () => {
   const switchAgency = (a: Agency) => {
     const firstVisible = CHANNELS.find(c => c.agencyId === a.id && canAccess(c));
     if (firstVisible) {
-      setState(s => ({ ...s, activeChannelId: firstVisible.id }));
+      setState(s => ({ ...s, activeChannelId: firstVisible.id, activeSuite: null }));
       pushAudit("AGENCY_ENTER", a.code);
     }
   };
 
   const switchChannel = (c: Channel) => {
-    setState(s => ({ ...s, activeChannelId: c.id }));
+    setState(s => ({ ...s, activeChannelId: c.id, activeSuite: null }));
     pushAudit("CHANNEL_ENTER", c.name);
+  };
+
+  const openSuite = (id: SuiteId) => {
+    const suite = SUITES.find(s => s.id === id);
+    if (!suite) return;
+    if (clearanceRank(operator.clearance) < suite.minClearanceRank) {
+      pushAudit("SUITE_DENIED", suite.label, "insufficient clearance");
+      return;
+    }
+    setState(s => ({ ...s, activeSuite: id }));
+    pushAudit("SUITE_ENTER", suite.label);
+  };
+
+  const exitSuite = () => {
+    setState(s => ({ ...s, activeSuite: null }));
   };
 
   const switchOperator = (id: string) => {
@@ -372,6 +391,26 @@ const AsherinGovDashboard = () => {
                 style={active ? { boxShadow: `inset 0 0 0 1px ${a.color}55` } : undefined}
               >
                 {a.code}
+                {active && <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r bg-foreground" />}
+              </button>
+            );
+          })}
+          <div className="w-8 h-px bg-border/30 my-1" />
+          <div className="text-[8px] tracking-[0.25em] uppercase text-muted-foreground/60">SUITE</div>
+          {SUITES.map(s => {
+            const active = state.activeSuite === s.id;
+            const gated = clearanceRank(operator.clearance) < s.minClearanceRank;
+            return (
+              <button
+                key={s.id}
+                onClick={() => openSuite(s.id)}
+                disabled={gated}
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center text-[9px] font-semibold tracking-widest transition relative
+                  ${active ? "border-foreground/60 bg-foreground/10 text-foreground" : "border-border/30 bg-foreground/[0.02] text-muted-foreground hover:text-foreground hover:border-border/60"}
+                  ${gated ? "opacity-30 cursor-not-allowed hover:text-muted-foreground" : ""}`}
+                title={`${s.label} — ${s.blurb}${gated ? " (clearance too low)" : ""}`}
+              >
+                <s.icon className="h-4 w-4" />
                 {active && <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r bg-foreground" />}
               </button>
             );
@@ -439,6 +478,32 @@ const AsherinGovDashboard = () => {
 
         {/* MAIN PANE */}
         <main className="flex-1 flex flex-col min-w-0">
+          {state.activeSuite ? (() => {
+            const suite = SUITES.find(s => s.id === state.activeSuite)!;
+            return (
+              <>
+                <header className="border-b border-border/20 bg-black/20 px-5 py-3 flex items-center gap-3 min-w-0">
+                  <suite.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-sm font-light text-foreground truncate">{suite.label}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded border border-foreground/30 text-foreground/80 tracking-widest uppercase">Sovereign Runtime</span>
+                    </div>
+                    <div className="text-[11px] font-light text-muted-foreground/70 truncate">{suite.blurb}</div>
+                  </div>
+                  <button
+                    onClick={exitSuite}
+                    className="ml-auto text-[10px] tracking-widest uppercase px-2 py-1.5 rounded-md border border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60 flex items-center gap-1"
+                  >
+                    <X className="h-3 w-3" /> Exit Suite
+                  </button>
+                </header>
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <GovSuiteMount suite={state.activeSuite!} operator={operator.handle} onAudit={pushAudit} />
+                </div>
+              </>
+            );
+          })() : (<>
           {/* Channel header */}
           <header className="border-b border-border/20 bg-black/20 px-5 py-3 flex items-center gap-3 min-w-0">
             {(() => { const Icon = channelIcon(activeChannel.kind); return <Icon className="h-4 w-4 text-muted-foreground shrink-0" />; })()}
@@ -584,6 +649,7 @@ const AsherinGovDashboard = () => {
               </div>
             </div>
           )}
+          </>)}
         </main>
 
         {/* MEMBERS RAIL */}

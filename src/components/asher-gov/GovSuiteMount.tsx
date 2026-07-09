@@ -1,0 +1,80 @@
+// GovSuiteMount — lazy-loads an Aureon engine (Zophiel, AXRLEN, ZERLAL,
+// Aureon Chat, Aureon IDE) inside the Sovereign Command Deck's main pane.
+//
+// Countries operating on asherin.gov use these mounts *instead of* running
+// the software themselves — the deck is the sovereign runtime for every
+// engine. Every mount enter/exit is written to the deck's audit ledger by
+// the parent dashboard.
+
+import { lazy, Suspense, useEffect } from "react";
+import { Loader2, Search, Sparkles, ShieldAlert, Brain, Code2 } from "lucide-react";
+
+export type SuiteId = "aureon-chat" | "zophiel" | "axrlen" | "zerlal" | "ide";
+
+export interface SuiteDef {
+  id: SuiteId;
+  label: string;
+  code: string;         // 3-letter rail glyph
+  blurb: string;
+  minClearanceRank: number; // matches CLEARANCE_LEVELS index in the deck
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+export const SUITES: SuiteDef[] = [
+  { id: "aureon-chat", label: "Aureon Chat",       code: "AUR", blurb: "Sovereign analytical AI. Legal, doctrinal, OSINT reasoning.", minClearanceRank: 1, icon: Brain }, // CUI+
+  { id: "zophiel",     label: "Zophiel Search",    code: "ZOP", blurb: "30-source OSINT + Ghost Chain live scrape.",                    minClearanceRank: 1, icon: Search }, // CUI+
+  { id: "axrlen",      label: "AXRLEN Forecast",   code: "AXR", blurb: "Probabilistic scenario engine (Nexus Prime).",                  minClearanceRank: 2, icon: Sparkles }, // CONF+
+  { id: "zerlal",      label: "ZERLAL Cyber",      code: "ZRL", blurb: "Vulnerability & kill-chain analysis of sovereign code.",       minClearanceRank: 3, icon: ShieldAlert }, // SECRET+
+  { id: "ide",         label: "Sovereign IDE",     code: "IDE", blurb: "Aureon IDE. Countries build & run software here, not locally.", minClearanceRank: 3, icon: Code2 }, // SECRET+
+];
+
+// Lazy imports — the deck stays fast until an operator opens a suite.
+const AureonChat  = lazy(() => import("./GovAureonChatPanel"));
+const Zophiel     = lazy(() => import("@/components/asher/AsherZophielModule"));
+const Axrlen      = lazy(() => import("@/components/asher/AsherAxrlenModule"));
+// Zerlal & IDE require a projectId + files context. We pass an ephemeral gov project.
+const AsherCodeModule = lazy(() => import("@/components/asher/AsherCodeModule"));
+const AsherCodeZerlal = lazy(() => import("@/components/asher/AsherCodeZerlal"));
+
+interface Props {
+  suite: SuiteId;
+  operator: string;
+  onAudit: (action: string, target: string, detail?: string) => void;
+}
+
+const GovSuiteMount = ({ suite, operator, onAudit }: Props) => {
+  useEffect(() => {
+    onAudit("SUITE_MOUNT", suite);
+    return () => onAudit("SUITE_UNMOUNT", suite);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suite]);
+
+  const Fallback = (
+    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      <span className="ml-2 text-xs font-light tracking-[0.2em] uppercase">
+        Booting sovereign engine…
+      </span>
+    </div>
+  );
+
+  return (
+    <Suspense fallback={Fallback}>
+      {suite === "aureon-chat" && <AureonChat operator={operator} onAudit={onAudit} />}
+      {suite === "zophiel"     && <Zophiel />}
+      {suite === "axrlen"      && <Axrlen />}
+      {suite === "zerlal"      && (
+        <div className="h-full w-full overflow-y-auto bg-background">
+          <AsherCodeZerlal projectId="gov-ephemeral" files={[]} />
+        </div>
+      )}
+      {suite === "ide"         && (
+        <div className="h-full w-full overflow-hidden bg-background">
+          <AsherCodeModule />
+        </div>
+      )}
+    </Suspense>
+  );
+};
+
+export default GovSuiteMount;
