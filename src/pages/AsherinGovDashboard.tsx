@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import GovSuiteMount, { SUITES, type SuiteId } from "@/components/asher-gov/GovSuiteMount";
 import AdminPanel from "@/components/asher-gov/AdminPanel";
 import EmperorConsole from "@/components/asher-gov/EmperorConsole";
+import ProfileSettings from "@/components/asher-gov/ProfileSettings";
 
 const CLEARANCE_COLOR: Record<string,string> = {
   UNCLASS: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
@@ -236,6 +237,8 @@ const AsherinGovDashboard = () => {
   const [showJoin,   setShowJoin  ] = useState(false);
   const [showAdmin,  setShowAdmin ] = useState(false);
   const [showEmperor,setShowEmperor] = useState(false);
+  const [showProfile,setShowProfile] = useState(false);
+  const [myAvatar, setMyAvatar] = useState<string | null>(null);
   const [isEmperor,  setIsEmperor ] = useState(false);
   const [mobileNav,  setMobileNav ] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -254,9 +257,11 @@ const AsherinGovDashboard = () => {
 
   // Emperor authority probe (server-side truth via RPC — never trust client email)
   useEffect(() => {
-    if (!user) { setIsEmperor(false); return; }
+    if (!user) { setIsEmperor(false); setMyAvatar(null); return; }
     supabase.rpc("hoa_is_houseofasher", { _user: user.id }).then(({ data }) => setIsEmperor(data === true));
-  }, [user?.id]);
+    supabase.from("profiles").select("avatar_url").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => setMyAvatar(data?.avatar_url ?? null));
+  }, [user?.id, showProfile]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -360,11 +365,13 @@ const AsherinGovDashboard = () => {
             const active = s.id === deck.activeServer?.id;
             return (
               <button key={s.id} onClick={() => { deck.switchServer(s.id); setActiveSuite(null); }}
-                className={`w-10 h-10 rounded-xl border flex items-center justify-center text-[10px] font-semibold tracking-widest transition relative
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center text-[10px] font-semibold tracking-widest transition relative overflow-hidden
                   ${active ? "border-foreground/60 bg-foreground/10 text-foreground" : "border-border/30 bg-foreground/[0.02] text-muted-foreground hover:text-foreground hover:border-border/60"}
                   ${s.is_mothership ? "ring-1 ring-amber-500/40" : ""}`}
                 title={`${s.name}${s.is_mothership ? " (mothership)" : ""}`}>
-                {s.is_mothership ? <Crown className="h-4 w-4 text-amber-400" /> : s.code.slice(0,3)}
+                {s.icon_url
+                  ? <img src={s.icon_url} alt="" className="w-full h-full object-cover" />
+                  : s.is_mothership ? <Crown className="h-4 w-4 text-amber-400" /> : s.code.slice(0,3)}
                 {active && <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r bg-foreground" />}
               </button>
             );
@@ -445,14 +452,23 @@ const AsherinGovDashboard = () => {
               </div>
             )}
           </div>
-          <div className="border-t border-border/20 p-3">
-            <div className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60 mb-1.5">Acting as</div>
-            <div className="text-sm font-light text-foreground truncate">{deck.myMembership?.handle ?? user?.email?.split("@")[0] ?? "—"}</div>
-            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground/70">
-              <span className={`inline-block px-1.5 py-0.5 rounded border ${CLEARANCE_COLOR[clearanceLabel]}`}>{clearanceLabel}</span>
-              <span>{deck.myMembership?.rank_label ?? (deck.activeServer ? "Guest" : "—")}</span>
+          <button onClick={() => setShowProfile(true)}
+                  className="border-t border-border/20 p-3 text-left hover:bg-foreground/[0.03] transition w-full flex items-center gap-3"
+                  title="Edit profile">
+            <div className="w-10 h-10 rounded-full border border-border/40 bg-foreground/[0.06] overflow-hidden shrink-0 flex items-center justify-center text-[10px] text-muted-foreground">
+              {myAvatar
+                ? <img src={myAvatar} alt="" className="w-full h-full object-cover" />
+                : (deck.myMembership?.handle ?? user?.email ?? "?").slice(0,2).toUpperCase()}
             </div>
-          </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">Acting as</div>
+              <div className="text-sm font-light text-foreground truncate">{deck.myMembership?.handle ?? user?.email?.split("@")[0] ?? "—"}</div>
+              <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground/70">
+                <span className={`inline-block px-1.5 py-0.5 rounded border ${CLEARANCE_COLOR[clearanceLabel]}`}>{clearanceLabel}</span>
+                <span className="truncate">{deck.myMembership?.rank_label ?? (deck.activeServer ? "Guest" : "—")}</span>
+              </div>
+            </div>
+          </button>
         </aside>
 
         {/* MAIN PANE */}
@@ -687,6 +703,14 @@ const AsherinGovDashboard = () => {
         myPresidentServerIds={deck.members.filter(m => m.user_id === user?.id && m.role === "owner").map(m => m.server_id)}
         refresh={deck.refresh}
       />
+      {user && (
+        <ProfileSettings
+          open={showProfile}
+          onClose={() => setShowProfile(false)}
+          userId={user.id}
+          defaultEmail={user.email}
+        />
+      )}
     </div>
   );
 };

@@ -17,6 +17,7 @@ export const rankToLabel = (n: number): ClearanceLabel => CLEARANCE_LABELS[Math.
 export interface HoaServer {
   id: string; code: string; name: string; country: string | null;
   description: string | null; is_mothership: boolean;
+  icon_url?: string | null;
   api_key_provider?: string | null;
   api_key_hint?: string | null;
   api_key_updated_at?: string | null;
