@@ -96,12 +96,10 @@ Deno.serve(async (req) => {
   // an existing account onto a new server should not create a duplicate).
   let userId: string | null = null;
   let created = false;
-  {
-    // list up to 200 matching users by scanning first page filtered by email
-    const { data: existing } = await svc.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const hit = existing?.users.find((u) => u.email?.toLowerCase() === email);
-    if (hit) userId = hit.id;
-  }
+
+  // O(1) email lookup via existing SECURITY DEFINER RPC — no full-user scan.
+  const { data: existingId } = await svc.rpc("get_user_id_by_email", { _email: email });
+  if (existingId) userId = existingId as string;
 
   if (!userId) {
     const { data: newUser, error: cErr } = await svc.auth.admin.createUser({
@@ -110,8 +108,8 @@ Deno.serve(async (req) => {
     if (cErr || !newUser?.user) return json({ error: cErr?.message ?? "create_failed" }, 500);
     userId = newUser.user.id;
     created = true;
-  } else if (password && generated) {
-    // Existing account: don't reset their password silently.
+  } else if (generated) {
+    // Existing account: never reset their password silently.
     password = undefined;
   }
 
