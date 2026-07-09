@@ -329,13 +329,20 @@ const AsherinGovDashboard = () => {
       <div className="fixed inset-0 -z-10 bg-black/80 backdrop-blur-sm" aria-hidden />
 
       {/* Classification banner (top) */}
-      <div className={`sticky top-0 z-40 border-b text-center text-[10px] tracking-[0.35em] uppercase font-semibold py-1.5 ${CLEARANCE_COLOR[banner] ?? CLEARANCE_COLOR.SECRET}`}>
-        {banner === "TS" ? "TOP SECRET" : banner} // ASHERIN.GOV COMMAND DECK // {deck.activeServer?.is_mothership ? "#HOUSEOFASHER MOTHERSHIP" : (deck.activeServer?.name ?? "NO SERVER")}
+      <div className={`sticky top-0 z-40 border-b text-center text-[10px] tracking-[0.35em] uppercase font-semibold py-1.5 flex items-center justify-center gap-2 ${CLEARANCE_COLOR[banner] ?? CLEARANCE_COLOR.SECRET}`}>
+        <button onClick={() => setMobileNav(v => !v)} className="lg:hidden absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded-md border border-current/30" aria-label="Toggle navigation">
+          <Menu className="h-3.5 w-3.5" />
+        </button>
+        <span className="truncate">{banner === "TS" ? "TOP SECRET" : banner} // ASHERIN.GOV // {deck.activeServer?.is_mothership ? "#HOUSEOFASHER" : (deck.activeServer?.code ?? "NO SERVER")}</span>
       </div>
 
-      <div className="flex h-[calc(100vh-28px)]">
+      <div className="flex h-[calc(100vh-28px)] relative">
+        {/* Mobile backdrop */}
+        {mobileNav && <div className="lg:hidden fixed inset-0 z-30 bg-black/60" onClick={() => setMobileNav(false)} aria-hidden />}
+
         {/* SERVER RAIL */}
-        <aside className="w-16 shrink-0 border-r border-border/20 bg-black/40 flex flex-col items-center py-3 gap-2 overflow-y-auto">
+        <aside className={`w-16 shrink-0 border-r border-border/20 bg-black/60 lg:bg-black/40 flex-col items-center py-3 gap-2 overflow-y-auto
+                           ${mobileNav ? "flex fixed z-40 h-full top-7" : "hidden lg:flex"}`}>
           <Link to="/asherin.gov" className="w-10 h-10 rounded-xl border border-border/30 bg-foreground/[0.03] flex items-center justify-center hover:bg-foreground/10 transition" title="Back to asherin.gov">
             <ChevronLeft className="h-4 w-4 text-muted-foreground" />
           </Link>
