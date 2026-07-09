@@ -11,7 +11,7 @@ const PUBLISHED = "2026-06-23T16:38:26.000Z";
 
 const TheCryptoDumpOctober2026 = () => (
   <ArticleShell
-    eyebrow="AXRLEN Predictive Engine · Crypto Forecast"
+    eyebrow="AXRLEN Predictive Engine · Crypto Forecast · Status: Pending Resolution (window Oct 12–19 2026)"
     title="The Crypto Dump — Bitcoin to $44,500, October 12–19, 2026"
     dek="AXRLEN's 88%-confidence call on the October 2026 Bitcoin liquidity event: the Sarvatobhadra Chakra collision, the Mars–Rahu Mahadasha trigger, the 92:8 loser-to-winner ratio, and the BlackRock/Vanguard trap-door mechanism."
     publishedLabel="Generated Jun 23 2026 · 16:38:26 UTC by AXRLEN"
