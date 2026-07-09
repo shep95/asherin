@@ -12,6 +12,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Shield, Hash, Volume2, Lock, Radio, Search, Send, Users, AlertTriangle,
   Eye, EyeOff, Pin, ScrollText, ChevronLeft, Circle, Crown, X, Plus, LogIn, Copy, Check, Loader2,
+  Menu, Settings,
 } from "lucide-react";
 import { getWallpaperSrc } from "@/lib/wallpapers";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +20,7 @@ import { useHoaDeck, rankToLabel, CLEARANCE_LABELS, type HoaChannel } from "@/ho
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GovSuiteMount, { SUITES, type SuiteId } from "@/components/asher-gov/GovSuiteMount";
+import AdminPanel from "@/components/asher-gov/AdminPanel";
 
 const CLEARANCE_COLOR: Record<string,string> = {
   UNCLASS: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
