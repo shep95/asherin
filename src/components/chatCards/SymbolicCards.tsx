@@ -203,26 +203,27 @@ interface SpineNode {
 
 export function SymbolicSpineCard({ payload, source }: { payload: SpinePayload; source?: Source }) {
   const view = useMemo(() => {
-    const nodes: SpineNode[] = clampList(payload.nodes, 24)
-      .map((n, idx) => {
-        if (!n || typeof n !== "object") return null;
-        const raw = n as SpineNodeRaw;
-        const title = clamp(raw.title, 140);
-        const summary = clamp(raw.summary, 900);
-        if (!title || !summary) return null;
-        const motifs = clampList(raw.motifs, 8)
-          .map((m) => clamp(m, 40))
-          .filter((m) => m.length > 0);
-        return {
-          id: clamp(raw.id, 40) || `n${idx}`,
-          title,
-          reference: clamp(raw.reference, 120) || undefined,
-          summary,
-          motifs,
-          sources: normalizeSources(raw.sources),
-        };
-      })
-      .filter((n): n is SpineNode => !!n);
+    const nodes: SpineNode[] = [];
+    clampList(payload.nodes, 24).forEach((n, idx) => {
+      if (!n || typeof n !== "object") return;
+      const raw = n as SpineNodeRaw;
+      const title = clamp(raw.title, 140);
+      const summary = clamp(raw.summary, 900);
+      if (!title || !summary) return;
+      const motifs = clampList(raw.motifs, 8)
+        .map((m) => clamp(m, 40))
+        .filter((m) => m.length > 0);
+      const reference = clamp(raw.reference, 120);
+      const node: SpineNode = {
+        id: clamp(raw.id, 40) || `n${idx}`,
+        title,
+        summary,
+        motifs,
+        sources: normalizeSources(raw.sources),
+      };
+      if (reference) node.reference = reference;
+      nodes.push(node);
+    });
 
     if (nodes.length === 0) return null;
     return {
