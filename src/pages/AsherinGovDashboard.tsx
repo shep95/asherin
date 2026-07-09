@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GovSuiteMount, { SUITES, type SuiteId } from "@/components/asher-gov/GovSuiteMount";
 import AdminPanel from "@/components/asher-gov/AdminPanel";
+import EmperorConsole from "@/components/asher-gov/EmperorConsole";
 
 const CLEARANCE_COLOR: Record<string,string> = {
   UNCLASS: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
@@ -234,6 +235,8 @@ const AsherinGovDashboard = () => {
   const [showInvite, setShowInvite] = useState(false);
   const [showJoin,   setShowJoin  ] = useState(false);
   const [showAdmin,  setShowAdmin ] = useState(false);
+  const [showEmperor,setShowEmperor] = useState(false);
+  const [isEmperor,  setIsEmperor ] = useState(false);
   const [mobileNav,  setMobileNav ] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastNavRef = useRef<{ server?: string; channel?: string }>({});
@@ -248,6 +251,12 @@ const AsherinGovDashboard = () => {
     if (!robots) { robots = document.createElement("meta"); robots.setAttribute("name","robots"); document.head.appendChild(robots); }
     robots.setAttribute("content","noindex, nofollow, noarchive");
   }, []);
+
+  // Emperor authority probe (server-side truth via RPC — never trust client email)
+  useEffect(() => {
+    if (!user) { setIsEmperor(false); return; }
+    supabase.rpc("hoa_is_houseofasher", { _user: user.id }).then(({ data }) => setIsEmperor(data === true));
+  }, [user?.id]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -396,6 +405,11 @@ const AsherinGovDashboard = () => {
               {isOwner && (
                 <button onClick={() => setShowAdmin(true)} className="text-[9px] tracking-widest uppercase border border-amber-500/40 text-amber-300 rounded px-2 py-1 hover:bg-amber-500/10 flex items-center gap-1 justify-center">
                   <Settings className="h-3 w-3" /> Admin
+                </button>
+              )}
+              {(isEmperor || isOwner) && (
+                <button onClick={() => setShowEmperor(true)} className="text-[9px] tracking-widest uppercase border border-amber-500/60 text-amber-200 rounded px-2 py-1 hover:bg-amber-500/15 flex items-center gap-1 justify-center">
+                  <Crown className="h-3 w-3" /> {isEmperor ? "Mint" : "Provision"}
                 </button>
               )}
             </div>
@@ -664,6 +678,15 @@ const AsherinGovDashboard = () => {
                     members={deck.members}
                     refreshServers={deck.refresh} />
       )}
+      <EmperorConsole
+        open={showEmperor}
+        onClose={() => setShowEmperor(false)}
+        servers={deck.servers}
+        activeServerId={deck.activeServer?.id ?? null}
+        isEmperor={isEmperor}
+        myPresidentServerIds={deck.members.filter(m => m.user_id === user?.id && m.role === "owner").map(m => m.server_id)}
+        refresh={deck.refresh}
+      />
     </div>
   );
 };
