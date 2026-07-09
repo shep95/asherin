@@ -319,14 +319,29 @@ const AsherinGovDashboard = () => {
   const switchAgency = (a: Agency) => {
     const firstVisible = CHANNELS.find(c => c.agencyId === a.id && canAccess(c));
     if (firstVisible) {
-      setState(s => ({ ...s, activeChannelId: firstVisible.id }));
+      setState(s => ({ ...s, activeChannelId: firstVisible.id, activeSuite: null }));
       pushAudit("AGENCY_ENTER", a.code);
     }
   };
 
   const switchChannel = (c: Channel) => {
-    setState(s => ({ ...s, activeChannelId: c.id }));
+    setState(s => ({ ...s, activeChannelId: c.id, activeSuite: null }));
     pushAudit("CHANNEL_ENTER", c.name);
+  };
+
+  const openSuite = (id: SuiteId) => {
+    const suite = SUITES.find(s => s.id === id);
+    if (!suite) return;
+    if (clearanceRank(operator.clearance) < suite.minClearanceRank) {
+      pushAudit("SUITE_DENIED", suite.label, "insufficient clearance");
+      return;
+    }
+    setState(s => ({ ...s, activeSuite: id }));
+    pushAudit("SUITE_ENTER", suite.label);
+  };
+
+  const exitSuite = () => {
+    setState(s => ({ ...s, activeSuite: null }));
   };
 
   const switchOperator = (id: string) => {
