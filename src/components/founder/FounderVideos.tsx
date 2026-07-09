@@ -36,6 +36,13 @@ const LOCAL_VIDEOS: LocalVideo[] = [
     publishedAt: new Date().toISOString(),
   },
   {
+    id: "local:secret-history-antichrist-new-messiah",
+    src: secretHistoryAntichristNewMessiahVideo.url,
+    poster: secretHistoryAntichristNewMessiahPoster.url,
+    title: "Secret History: Who Is the Antichrist and the New Messiah?",
+    publishedAt: new Date().toISOString(),
+  },
+  {
     id: "local:truth-about-jesus",
     src: "/videos/founder/truth-about-jesus.mp4",
     poster: "/videos/founder/truth-about-jesus.jpg",
