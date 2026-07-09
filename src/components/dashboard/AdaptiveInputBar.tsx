@@ -294,11 +294,8 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
     let outbound = raw;
     if (legalMode) outbound = expandPromptToLegal(raw).transformed;
     else if (narrativeMode) outbound = expandPromptToNarrative(raw).transformed;
-    if (outbound !== raw) {
-      import("@/lib/promptOverrideMap").then(({ setModelPromptOverride }) => {
-        setModelPromptOverride(raw, outbound);
-      });
-    }
+    if (outbound !== raw) setModelPromptOverride(raw, outbound);
+
     onSendMessage(raw, attachments.length > 0 ? attachments : undefined);
     setValue("");
     setAttachments([]);
