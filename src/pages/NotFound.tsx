@@ -61,7 +61,22 @@ const NotFound = () => {
         "This isn't a page on Aureon. Click to return — or play the offline space-dino game while you're here.",
       path: location.pathname,
     });
+    // Dork-hardening: every 404 must be de-indexable so recon probes for
+    // /wp-admin, /.env, /phpmyadmin etc. never leave a cache footprint.
+    let robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
+    const prev = robots?.getAttribute("content") ?? null;
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.setAttribute("name", "robots");
+      document.head.appendChild(robots);
+    }
+    robots.setAttribute("content", "noindex, nofollow, noarchive, nosnippet, noimageindex");
+    return () => {
+      if (prev === null) robots?.remove();
+      else robots?.setAttribute("content", prev);
+    };
   }, [location.pathname]);
+
 
   const reset = useCallback(() => {
     const s = stateRef.current;
