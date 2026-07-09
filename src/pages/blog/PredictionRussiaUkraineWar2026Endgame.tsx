@@ -11,7 +11,7 @@ const PUBLISHED = prediction.generated_at;
 
 const PredictionRussiaUkraineWar2026Endgame = () => (
   <ArticleShell
-    eyebrow="AXRLEN Predictive Engine · Live Output"
+    eyebrow="AXRLEN Predictive Engine · Status: Pending Resolution"
     title="Russia–Ukraine 2026 — AXRLEN forecasts a frozen front and Korean-style armistice"
     dek="AXRLEN's Zero-Point Field read on the Russia–Ukraine endgame: the Symmetric Exhaustion Cycle, weighted outcome matrix, three dynamic scenarios, and the 24-month armistice call at 55% probability."
     publishedLabel={`Generated ${new Date(PUBLISHED).toUTCString()} by AXRLEN`}

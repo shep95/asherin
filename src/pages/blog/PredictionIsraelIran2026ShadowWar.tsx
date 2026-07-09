@@ -11,7 +11,7 @@ const PUBLISHED = prediction.generated_at;
 
 const PredictionIsraelIran2026ShadowWar = () => (
   <ArticleShell
-    eyebrow="AXRLEN Predictive Engine · Live Output"
+    eyebrow="AXRLEN Predictive Engine · Status: Pending Resolution"
     title="Israel–Iran 2026 — AXRLEN forecasts direct-attrition equilibrium and a nuclear 'Hard Test'"
     dek="AXRLEN's Zero-Point Field read on the Levantine–Persian theatre: the Thucydidean Proxy-Direct Oscillation, High-Intensity Intermittency, weighted outcome matrix, three scenarios, and the singular Israeli strike on Iranian nuclear infrastructure as the terminal call."
     publishedLabel={`Generated ${new Date(PUBLISHED).toUTCString()} by AXRLEN`}

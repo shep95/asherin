@@ -11,7 +11,7 @@ const PUBLISHED = "2026-06-22T17:00:00.000Z";
 
 const PredictionPeru2026KeikoFujimori = () => (
   <ArticleShell
-    eyebrow="AXRLEN Predictive Engine · Live Output"
+    eyebrow="AXRLEN Predictive Engine · Status: Pending Resolution"
     title="Peru 2026 — AXRLEN predicts Keiko Fujimori as future president"
     dek="AXRLEN's Zero-Point Field read on the 2026 Peruvian presidential election: the 'Fractured Populism' pattern, the Antivoto Paradox, weighted victory matrix, and three dynamic scenarios. Headline call: Keiko Fujimori (Fuerza Popular) wins the runoff by exhaustion."
     publishedLabel="Generated Jun 22 2026 · 1:00 PM EST by AXRLEN"
