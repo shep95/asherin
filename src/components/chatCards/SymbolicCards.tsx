@@ -54,20 +54,21 @@ interface CitedSource {
 }
 
 const normalizeSources = (raw: unknown): CitedSource[] => {
-  return clampList(raw, 8)
-    .map((s) => {
-      if (typeof s === "string") {
-        const url = safeUrl(s);
-        return url ? { url } : null;
-      }
-      if (s && typeof s === "object") {
-        const url = safeUrl((s as any).url);
-        if (!url) return null;
-        return { url, title: clamp((s as any).title, 140) || undefined };
-      }
-      return null;
-    })
-    .filter((s): s is CitedSource => !!s);
+  const out: CitedSource[] = [];
+  for (const s of clampList(raw, 8)) {
+    if (typeof s === "string") {
+      const url = safeUrl(s);
+      if (url) out.push({ url });
+      continue;
+    }
+    if (s && typeof s === "object") {
+      const url = safeUrl((s as any).url);
+      if (!url) continue;
+      const title = clamp((s as any).title, 140);
+      out.push(title ? { url, title } : { url });
+    }
+  }
+  return out;
 };
 
 // ─── card:symbolic ─────────────────────────────────────────────────────────
