@@ -598,7 +598,7 @@ const AsherinGovDashboard = () => {
 
         {/* MEMBERS RAIL */}
         {membersOpen && !activeSuite && deck.activeServer && (
-          <aside className="w-64 shrink-0 border-l border-border/20 bg-black/30 flex flex-col">
+          <aside className="hidden md:flex w-64 shrink-0 border-l border-border/20 bg-black/30 flex-col">
             <div className="px-4 py-3 border-b border-border/20 text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Members · {activeServerMembers.length}</div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {activeServerMembers.map(m => (
