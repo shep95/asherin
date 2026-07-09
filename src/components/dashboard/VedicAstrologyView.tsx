@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import WealthHousesPanel from "./vedic/WealthHousesPanel";
 import AsherChatPanel from "./vedic/AsherChatPanel";
 import GlobalPredictionsTab from "./vedic/GlobalPredictionsTab";
+import GlobalChartTab from "./vedic/GlobalChartTab";
 import CompatibilityPanel from "./vedic/CompatibilityPanel";
 import SwvPanel from "./vedic/SwvPanel";
 import DashaNode from "./vedic/DashaNode";
