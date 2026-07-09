@@ -703,6 +703,14 @@ const AsherinGovDashboard = () => {
         myPresidentServerIds={deck.members.filter(m => m.user_id === user?.id && m.role === "owner").map(m => m.server_id)}
         refresh={deck.refresh}
       />
+      {user && (
+        <ProfileSettings
+          open={showProfile}
+          onClose={() => setShowProfile(false)}
+          userId={user.id}
+          defaultEmail={user.email}
+        />
+      )}
     </div>
   );
 };
