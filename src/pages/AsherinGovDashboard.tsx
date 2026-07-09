@@ -503,8 +503,7 @@ const AsherinGovDashboard = () => {
                 </div>
               </>
             );
-          })() : (<></>)}
-          {!state.activeSuite && (<></>)}
+          })() : (<>
           {/* Channel header */}
           <header className="border-b border-border/20 bg-black/20 px-5 py-3 flex items-center gap-3 min-w-0">
             {(() => { const Icon = channelIcon(activeChannel.kind); return <Icon className="h-4 w-4 text-muted-foreground shrink-0" />; })()}
@@ -650,6 +649,7 @@ const AsherinGovDashboard = () => {
               </div>
             </div>
           )}
+          </>)}
         </main>
 
         {/* MEMBERS RAIL */}
