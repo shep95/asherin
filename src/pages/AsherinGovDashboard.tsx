@@ -287,7 +287,7 @@ const AsherinGovDashboard = () => {
           <p className="text-sm font-light text-muted-foreground leading-relaxed">
             Sign in to reach your country's server. Members of the #houseofasher mothership see every server globally.
           </p>
-          <button onClick={() => nav("/auth?next=/asherin-gov/dashboard")} className="px-4 py-2 text-xs tracking-widest uppercase border border-foreground/50 rounded-md hover:bg-foreground/10">
+          <button onClick={() => nav("/?next=/asherin-gov/dashboard")} className="px-4 py-2 text-xs tracking-widest uppercase border border-foreground/50 rounded-md hover:bg-foreground/10">
             Authenticate
           </button>
         </div>
