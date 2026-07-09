@@ -324,7 +324,7 @@ export function SymbolicSpineCard({ payload, source }: { payload: SpinePayload; 
 
         <div className="pt-1 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground/60">
           <SparkIcon className="h-3 w-3" strokeWidth={1.5} />
-          Ask "expand <node title>" to go deeper on any node.
+          {'Ask "expand <node title>" to go deeper on any node.'}
         </div>
       </div>
     </div>
