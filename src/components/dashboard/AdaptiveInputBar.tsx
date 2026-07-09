@@ -569,7 +569,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
           </div>
         )}
 
-        <div className={`flex items-end gap-2 sm:gap-3 rounded-2xl border ${online ? "border-border/30" : "border-amber-500/30"} bg-card/40 backdrop-blur-xl p-2 sm:p-3 transition-all min-w-0`}>
+        <div className={`flex flex-wrap items-end gap-2 sm:gap-3 rounded-2xl border ${online ? "border-border/30" : "border-amber-500/30"} bg-card/40 backdrop-blur-xl p-2 sm:p-3 transition-all min-w-0`}>
           {/* Attach button — categorized tabs (Photos / Videos / Documents / Files) */}
           <input
             ref={fileInputRef}
@@ -643,7 +643,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
             </button>
           )}
 
-          <div className="flex-1 relative min-w-0">
+          <div className="relative min-w-0 order-[-1] w-full sm:order-none sm:w-auto sm:flex-1">
             <SlashCommandPalette
               input={value}
               visible={value.startsWith("/") && !value.includes("\n")}
