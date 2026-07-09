@@ -81,6 +81,37 @@ export default function AdminPanel({
   );
 }
 
+// ─── IDENTITY TAB ─────────────────────────────────────────────────────────
+function IdentityTab({ server, refreshServers }: {
+  server: HoaServer & { icon_url?: string | null };
+  refreshServers: () => Promise<void>;
+}) {
+  const persist = async (icon_url: string | null) => {
+    const { error } = await supabase.from("hoa_servers").update({ icon_url }).eq("id", server.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(icon_url ? "Server icon updated" : "Server icon removed");
+    await refreshServers();
+  };
+  return (
+    <div className="space-y-6 max-w-xl">
+      <div>
+        <div className="text-xs font-light text-foreground mb-1">Server icon</div>
+        <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
+          Shown in the server rail and headers. Members see this whenever they see the server code. Square image works best; it renders at 40 px in the rail.
+        </p>
+      </div>
+      <IconUploader
+        kind="server" folderKey={server.id} currentUrl={server.icon_url ?? null} size={88} shape="square"
+        onUploaded={(url) => persist(url)}
+        onCleared={() => persist(null)}
+      />
+      <div className="text-[10.5px] text-muted-foreground/70 border border-border/20 rounded-md p-3 leading-relaxed">
+        Only the server owner and Emperor can change this. Storage RLS blocks all other roles at the object layer, not just in the UI.
+      </div>
+    </div>
+  );
+}
+
 // ─── API KEY TAB ──────────────────────────────────────────────────────────
 function ApiKeyTab({ server, refreshServers }: {
   server: HoaServer & { api_key_provider?: string | null; api_key_hint?: string | null; api_key_updated_at?: string | null };
