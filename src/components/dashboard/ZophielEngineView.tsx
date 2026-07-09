@@ -624,6 +624,14 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
+              {/* Zophiel v2 — two-pass gather + refine with operator parser */}
+              {mode === "zophielv2" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <ZophielV2Panel initialQuery={query} />
+                </Suspense>
+              )}
+
+
 
 
 
