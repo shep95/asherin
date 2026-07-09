@@ -162,6 +162,8 @@ const App = () => (
             <Route path="/valuation" element={<Valuation />} />
             <Route path="/asherin.gov" element={<AsherinGov />} />
             <Route path="/asherin-gov" element={<AsherinGov />} />
+            <Route path="/asherin.gov/dashboard" element={<AsherinGovDashboard />} />
+            <Route path="/asherin-gov/dashboard" element={<AsherinGovDashboard />} />
 
 
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
