@@ -257,9 +257,11 @@ const AsherinGovDashboard = () => {
 
   // Emperor authority probe (server-side truth via RPC — never trust client email)
   useEffect(() => {
-    if (!user) { setIsEmperor(false); return; }
+    if (!user) { setIsEmperor(false); setMyAvatar(null); return; }
     supabase.rpc("hoa_is_houseofasher", { _user: user.id }).then(({ data }) => setIsEmperor(data === true));
-  }, [user?.id]);
+    supabase.from("profiles").select("avatar_url").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => setMyAvatar(data?.avatar_url ?? null));
+  }, [user?.id, showProfile]);
 
   useEffect(() => {
     const el = scrollRef.current;
