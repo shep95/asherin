@@ -70,7 +70,7 @@ const GovSuiteMount = ({ suite, operator, onAudit, context }: Props) => {
     <Suspense fallback={Fallback}>
       {suite === "aureon-chat" && <AureonChat operator={operator} onAudit={onAudit} />}
       {suite === "zophiel"     && <Zophiel />}
-      {suite === "axrlen"      && <Axrlen />}
+      {suite === "axrlen"      && <Axrlen operator={operator} serverName={context?.serverName ?? null} onAudit={onAudit} />}
       {suite === "zerlal"      && (
         <GovZerlalPanel
           serverId={context?.serverId ?? null}
