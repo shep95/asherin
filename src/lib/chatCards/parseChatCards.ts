@@ -22,6 +22,9 @@ export type CardType =
   | "gematria"
   | "gematria-compare"
   | "number-lookup"
+  // Symbolic-exegesis family
+  | "symbolic"
+  | "symbolic-spine"
   // Universal shape-based cards
   | "info"
   | "entity"
@@ -56,6 +59,8 @@ const KNOWN: ReadonlySet<CardType> = new Set([
   "gematria",
   "gematria-compare",
   "number-lookup",
+  "symbolic",
+  "symbolic-spine",
   "info",
   "entity",
   "timeline",
