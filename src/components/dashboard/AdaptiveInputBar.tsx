@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, forwardRef, useImperativeHandle } from "react";
-import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff, ClipboardPaste, FileUp, Image as ImageLucide, Video, FileIcon, Files, BookOpen } from "lucide-react";
+import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff, ClipboardPaste, FileUp, Image as ImageLucide, Video, FileIcon, Files, BookOpen, Scale } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
@@ -7,6 +7,7 @@ import VoiceRecordingOrb from "./VoiceRecordingOrb";
 import SlashCommandPalette from "./SlashCommandPalette";
 import { parseSlashCommand, type SlashCommand } from "@/lib/slashCommands";
 import { expandPromptToNarrative, loadNarrativeMode, saveNarrativeMode } from "@/lib/promptToNarrative";
+import { expandPromptToLegal, loadLegalMode, saveLegalMode } from "@/lib/legalAdvisor";
 import type { FileAttachment } from "./types";
 
 const LONG_PASTE_THRESHOLD = 500; // chars
@@ -198,6 +199,12 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
   const toggleNarrative = useCallback(() => {
     setNarrativeMode(prev => { const next = !prev; saveNarrativeMode(next); return next; });
   }, []);
+  // LAW mode — legal-advisor directive with deep-jurisdiction + old-law
+  // supersession research. Mutually independent of NAR.
+  const [legalMode, setLegalMode] = useState<boolean>(() => loadLegalMode());
+  const toggleLegal = useCallback(() => {
+    setLegalMode(prev => { const next = !prev; saveLegalMode(next); return next; });
+  }, []);
 
   useEffect(() => {
     const handler = () => {
@@ -277,12 +284,12 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
     deleteDraft(key).catch(() => {});
     setDraftSaved(null);
     trackPhrase(value.trim());
-    // NAR mode: expand raw prompt into a narrative frame before send.
-    // Trackphrase and draft use the ORIGINAL text; only the model receives
-    // the expanded version so autocomplete history stays clean.
-    const outbound = narrativeMode
-      ? expandPromptToNarrative(value.trim()).transformed
-      : value.trim();
+    // LAW takes precedence over NAR (legal directive is more specific).
+    // Both are opt-in and mutually exclusive at the outbound layer only.
+    const raw = value.trim();
+    let outbound = raw;
+    if (legalMode) outbound = expandPromptToLegal(raw).transformed;
+    else if (narrativeMode) outbound = expandPromptToNarrative(raw).transformed;
     onSendMessage(outbound, attachments.length > 0 ? attachments : undefined);
     setValue("");
     setAttachments([]);
@@ -685,6 +692,23 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
           >
             <BookOpen className="h-3 w-3" strokeWidth={1.6} />
             NAR
+          </button>
+          {/* LAW — legal-advisor mode: deep-jurisdiction + old-law supersession
+              directive wraps the prompt before send. */}
+          <button
+            onClick={toggleLegal}
+            title={legalMode
+              ? "LAW mode ON — prompts are wrapped in a deep legal-research directive (country/state/local laws + older superseding statutes). Click to disable."
+              : "LAW mode OFF — click to enable legal-advisor mode for jurisdiction-aware answers."}
+            aria-pressed={legalMode}
+            className={`shrink-0 flex items-center gap-1 h-8 px-2 rounded-lg text-[10px] font-medium tracking-[0.2em] uppercase transition-all border ${
+              legalMode
+                ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-300 shadow-[0_0_12px_hsl(150_80%_50%/0.25)]"
+                : "border-border/30 bg-background/30 text-muted-foreground/60 hover:text-foreground hover:border-border/60"
+            }`}
+          >
+            <Scale className="h-3 w-3" strokeWidth={1.6} />
+            LAW
           </button>
           {value.trim() && (
             <button onClick={clearDraft} className="shrink-0 p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors" title="Clear draft">

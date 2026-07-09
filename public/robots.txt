@@ -165,9 +165,48 @@ Disallow: /
 # --- Default: allow everything (real humans + unknown crawlers) ---
 # Only protect authenticated app surfaces; do NOT block /asher (it is a public
 # marketing page indexed via sitemap).
+# --- Default: allow everything (real humans + unknown crawlers) ---
+# Only protect authenticated app surfaces; do NOT block /asher (it is a public
+# marketing page indexed via sitemap).
+#
+# GOOGLE-DORK HARDENING — deny common recon paths that dork operators use.
+# These paths do not exist on Aureon, but disallowing them removes the
+# opportunistic index/cache footprint if any tooling ever creates one.
 User-agent: *
 Allow: /
 Disallow: /dashboard/
 Disallow: /asher-dashboard/
+Disallow: /admin/
+Disallow: /admin
+Disallow: /wp-admin/
+Disallow: /wp-login.php
+Disallow: /phpmyadmin/
+Disallow: /.env
+Disallow: /.git/
+Disallow: /.git
+Disallow: /.aws/
+Disallow: /.ssh/
+Disallow: /config/
+Disallow: /backup/
+Disallow: /backups/
+Disallow: /server-status
+Disallow: /server-info
+Disallow: /debug/
+Disallow: /debug
+Disallow: /api/internal/
+Disallow: /api/admin/
+Disallow: /*.sql$
+Disallow: /*.bak$
+Disallow: /*.log$
+Disallow: /*.env$
+Disallow: /*.pem$
+Disallow: /*.key$
+Disallow: /*token=*
+Disallow: /*apikey=*
+Disallow: /*api_key=*
+Disallow: /*password=*
+Disallow: /*secret=*
+Disallow: /*access_token=*
 
 Sitemap: https://aureonai.app/sitemap.xml
+

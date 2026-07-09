@@ -23,8 +23,8 @@ import {
  * Public, SEO-optimized, sourced from comparable-company analysis.
  */
 
-const VALUATION_HEADLINE = 1100; // $M  → displayed as $1.1B (flat headline number)
-const VALUATION_DATE = "06/26/2026";
+const VALUATION_HEADLINE = 48000; // $M  → displayed as $48.0B (asset-based, private co.)
+const VALUATION_DATE = "07/08/2026";
 
 // ── Software inventory inside the Aureon Dashboard ──────────────────────────
 const SOFTWARE = [
@@ -82,9 +82,9 @@ const SOFTWARE_VALUE_RAMP = [
 ];
 
 const SCENARIOS = [
-  { scenario: "Bear", low: 600, high: 720, basis: "Software value only — slow strategic acquirer interest" },
-  { scenario: "Base", low: 800, high: 1100, basis: "Software value — comp-weighted vs Palantir / Maltego / Anduril stack" },
-  { scenario: "Bull", low: 1300, high: 1800, basis: "Software value + sovereign-AI scarcity premium" },
+  { scenario: "Bear",  low: 22000, high: 30000, basis: "Portfolio asset value only — slow strategic acquirer interest" },
+  { scenario: "Base",  low: 40000, high: 55000, basis: "Portfolio + comp-weighted vs Palantir / Anduril / Recorded Future / Maltego stack" },
+  { scenario: "Bull",  low: 60000, high: 90000, basis: "Portfolio + sovereign-AI scarcity premium + government / defense whitelabel" },
 ];
 
 const CAPABILITY_RADAR = [
@@ -98,7 +98,7 @@ const CAPABILITY_RADAR = [
 
 const Valuation = () => {
   useEffect(() => {
-    document.title = "Aureon Valuation $1.1B (Private Company) · 06/26/2026";
+    document.title = "Aureon Valuation $48.0B (Private Company) · 07/08/2026";
 
     const upsertMeta = (selector: string, attrs: Record<string, string>) => {
       let el = document.head.querySelector<HTMLMetaElement>(selector);
@@ -110,10 +110,10 @@ const Valuation = () => {
     };
 
     const description =
-      "Aureon (private company) software-asset valuation $1.1B as of 06/26/2026. Based on software value, not revenue — modeled like WhatsApp's $19B Meta acquisition. Comparable analysis vs Palantir, Recorded Future, Maltego, Anduril Lattice.";
+      "Aureon (private company, not public — no plans to IPO) software-asset valuation $48.0B as of 07/08/2026. Asset + portfolio-based, not revenue. Comparable analysis vs Palantir, Anduril Lattice, Recorded Future, Maltego.";
 
     upsertMeta('meta[name="description"]', { name: "description", content: description });
-    upsertMeta('meta[property="og:title"]', { property: "og:title", content: "Aureon Valuation · $1.1B" });
+    upsertMeta('meta[property="og:title"]', { property: "og:title", content: "Aureon Valuation · $48.0B" });
     upsertMeta('meta[property="og:description"]', { property: "og:description", content: description });
     upsertMeta('meta[property="og:url"]', { property: "og:url", content: "https://aureonai.app/valuation" });
     upsertMeta('meta[property="og:type"]', { property: "og:type", content: "article" });
@@ -136,11 +136,12 @@ const Valuation = () => {
     ld.text = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "Article",
-      headline: "Aureon Company Valuation: $1.1B",
-      datePublished: "2026-06-26",
+      headline: "Aureon Company Valuation: $48.0B",
+      datePublished: "2026-07-08",
+      dateModified: "2026-07-08",
       author: { "@type": "Organization", name: "Aureon" },
       publisher: { "@type": "Organization", name: "Aureon" },
-      about: "Private-company software-asset valuation based on comparable acquisitions.",
+      about: "Private-company asset + portfolio valuation. Not a public company.",
       mainEntityOfPage: "https://aureonai.app/valuation",
     });
     document.head.appendChild(ld);
@@ -168,13 +169,29 @@ const Valuation = () => {
             ${(VALUATION_HEADLINE / 1000).toFixed(1)}B
           </h1>
           <p className="mt-4 text-sm font-light text-muted-foreground/80">
-            As of <span className="text-foreground/90">{VALUATION_DATE}</span> · based on market research and competitive analysis.
+            As of <span className="text-foreground/90">{VALUATION_DATE}</span> · asset + portfolio-based · updated 07/08/2026.
           </p>
           <p className="mt-6 max-w-2xl text-sm font-light leading-relaxed text-muted-foreground/80">
-            Aureon is a <span className="text-foreground/90">private company</span>. This valuation is based on{" "}
-            <span className="text-amber-200/90">software / technology asset value</span> — not revenue. The same
-            framework values shipped engineering, defensible IP, and capability uniqueness rather than P&amp;L.
+            Aureon is a <span className="text-foreground/90">private company</span>. This valuation reflects
+            <span className="text-amber-200/90"> company + full software portfolio asset value</span> — not revenue.
+            We are <span className="text-foreground/90">not a public company</span> and have{" "}
+            <span className="text-foreground/90">no plans</span> to become one. There is no ticker, no IPO
+            roadmap, no SPAC — the cap table is held by the founders and House Of Asher only.
           </p>
+
+          {/* PRIVATE-COMPANY NOTICE */}
+          <div className="mt-6 max-w-2xl rounded-2xl border border-foreground/15 bg-foreground/[0.02] p-5">
+            <p className="text-[10px] tracking-[0.25em] uppercase text-foreground/70 mb-2">
+              ◈ Private Company · Not Public
+            </p>
+            <p className="text-sm font-light leading-relaxed text-foreground/80">
+              Aureon operates as a fully private entity under the Asherin Empire.
+              This valuation is disclosed voluntarily for transparency with
+              partners, licensees, and prospective enterprise / government
+              clients — it is not a solicitation of investment, and no equity
+              is available on public or secondary markets.
+            </p>
+          </div>
 
           {/* WHATSAPP PRECEDENT */}
           <div className="mt-6 max-w-2xl rounded-2xl border border-amber-200/20 bg-amber-200/[0.03] p-5">
@@ -184,8 +201,9 @@ const Valuation = () => {
             <p className="text-sm font-light leading-relaxed text-foreground/85">
               <span className="text-amber-200/90">WhatsApp had effectively zero revenue</span> when Facebook acquired it
               for <span className="text-amber-200/90">$19,000M ($19B)</span> in 2014. The price reflected the
-              software, the user-graph, and the strategic asset — not the income statement. Aureon's range is
-              modeled on the same logic.
+              software, the user-graph, and the strategic asset — not the income statement. Aureon's
+              multi-module sovereign stack is modeled on the same asset logic, scaled to a
+              20+ module portfolio.
             </p>
           </div>
         </div>
