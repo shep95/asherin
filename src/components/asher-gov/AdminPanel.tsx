@@ -36,7 +36,7 @@ export default function AdminPanel({
   members: HoaMember[];
   refreshServers: () => Promise<void>;
 }) {
-  const [tab, setTab] = useState<"apikey"|"roles"|"audit">("apikey");
+  const [tab, setTab] = useState<"identity"|"apikey"|"roles"|"audit">("identity");
 
   if (!open) return null;
 
