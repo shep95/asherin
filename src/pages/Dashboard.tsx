@@ -1011,7 +1011,7 @@ const Dashboard = () => {
     // content (LAW / NAR modes), swap it in for the LAST user turn only so the
     // stored + displayed user message stays raw while the model receives the
     // wrapped directive.
-    const { takeModelPromptOverride } = await import("@/lib/promptOverrideMap");
+    const { takeModelPromptOverride } = await import("@/lib/promptOverrideMap"); // async ok — resolves before streamChat
     const modelPromptOverride = takeModelPromptOverride(content);
     const history = [...branchMsgs, userMsg].map((m, i, arr) => ({
       role: m.role as "user" | "assistant",
