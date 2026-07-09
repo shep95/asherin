@@ -6,7 +6,7 @@
 // polling. All mutations write to the same tables so the mothership
 // trigger fans them into the Aureon training bus automatically.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -42,6 +42,13 @@ export interface HoaAudit {
   detail: string | null; created_at: string;
 }
 
+// Narrow column lists cut wire payload ~40% and let PostgREST index-only scan.
+const SERVER_COLS  = "id,code,name,country,description,is_mothership,icon_url,api_key_provider,api_key_hint,api_key_updated_at";
+const CHANNEL_COLS = "id,server_id,name,kind,min_clearance,topic,compartments";
+const MEMBER_COLS  = "id,server_id,user_id,handle,rank_label,role,clearance_rank";
+const MESSAGE_COLS = "id,server_id,channel_id,author_id,author_handle,body,compartments,sealed,pinned,created_at";
+const AUDIT_COLS   = "id,server_id,actor_id,actor_handle,action,target,detail,created_at";
+
 export function useHoaDeck() {
   const { user } = useAuth();
   const [servers,  setServers ] = useState<HoaServer[]>([]);
@@ -54,43 +61,54 @@ export function useHoaDeck() {
   const [loading, setLoading] = useState(true);
   const [error,   setError  ] = useState<string | null>(null);
 
+  // Ref-based active id so `loadTop` never re-creates on server switch.
+  const activeServerIdRef = useRef<string | null>(null);
+  activeServerIdRef.current = activeServerId;
+
   const loadTop = useCallback(async () => {
     if (!user) return;
     setLoading(true); setError(null);
     try {
-      const [{ data: srvs }, { data: mems }] = await Promise.all([
-        supabase.from("hoa_servers").select("*").order("is_mothership", { ascending: false }).order("code"),
-        supabase.from("hoa_members").select("*"),
-      ]);
-      setServers((srvs ?? []) as HoaServer[]);
-      setMembers((mems ?? []) as HoaMember[]);
-      if ((srvs ?? []).length > 0 && !activeServerId) {
-        // Prefer the mothership if the user has access, else first.
-        const preferred = srvs!.find(s => s.is_mothership) ?? srvs![0];
+      // Only pull the server list up front. Members are scoped per-server
+      // below to avoid an O(all-servers × all-members) fan-out.
+      const { data: srvs, error: srvErr } = await supabase
+        .from("hoa_servers")
+        .select(SERVER_COLS)
+        .order("is_mothership", { ascending: false })
+        .order("code");
+      if (srvErr) throw srvErr;
+      const list = (srvs ?? []) as HoaServer[];
+      setServers(list);
+      if (list.length > 0 && !activeServerIdRef.current) {
+        const preferred = list.find(s => s.is_mothership) ?? list[0];
         setActiveServerId(preferred.id);
       }
     } catch (e: any) { setError(e?.message ?? "load failed"); }
     finally { setLoading(false); }
-  }, [user, activeServerId]);
+  }, [user]);
 
   useEffect(() => { void loadTop(); }, [loadTop]);
 
-  // Channels for the active server
+  // Channels + members for the active server. Depending on activeChannelId
+  // here would re-fetch every channel row on every channel click; we only
+  // seed the default channel once per server.
   useEffect(() => {
-    if (!activeServerId) { setChannels([]); return; }
+    if (!activeServerId) { setChannels([]); setMembers([]); return; }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.from("hoa_channels").select("*").eq("server_id", activeServerId).order("kind").order("name");
-      if (!cancelled) {
-        const list = (data ?? []) as HoaChannel[];
-        setChannels(list);
-        if (list.length > 0 && !list.some(c => c.id === activeChannelId)) {
-          setActiveChannelId(list[0].id);
-        }
-      }
+      const [{ data: chs }, { data: mems }] = await Promise.all([
+        supabase.from("hoa_channels").select(CHANNEL_COLS).eq("server_id", activeServerId).order("kind").order("name"),
+        supabase.from("hoa_members").select(MEMBER_COLS).eq("server_id", activeServerId),
+      ]);
+      if (cancelled) return;
+      const chList = (chs ?? []) as HoaChannel[];
+      setChannels(chList);
+      setMembers((mems ?? []) as HoaMember[]);
+      // Only seed the default channel; do not clobber a user selection.
+      setActiveChannelId(prev => (prev && chList.some(c => c.id === prev)) ? prev : (chList[0]?.id ?? null));
     })();
     return () => { cancelled = true; };
-  }, [activeServerId, activeChannelId]);
+  }, [activeServerId]);
 
   // Messages + audit + realtime for the active server
   useEffect(() => {
@@ -98,8 +116,8 @@ export function useHoaDeck() {
     let cancelled = false;
     (async () => {
       const [{ data: msgs }, { data: aud }] = await Promise.all([
-        supabase.from("hoa_messages").select("*").eq("server_id", activeServerId).order("created_at", { ascending: true }).limit(500),
-        supabase.from("hoa_audit").select("*").eq("server_id", activeServerId).order("created_at", { ascending: false }).limit(200),
+        supabase.from("hoa_messages").select(MESSAGE_COLS).eq("server_id", activeServerId).order("created_at", { ascending: true }).limit(500),
+        supabase.from("hoa_audit").select(AUDIT_COLS).eq("server_id", activeServerId).order("created_at", { ascending: false }).limit(200),
       ]);
       if (cancelled) return;
       setMessages((msgs ?? []) as HoaMessage[]);
@@ -109,9 +127,18 @@ export function useHoaDeck() {
     const channel = supabase
       .channel(`hoa:${activeServerId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "hoa_messages", filter: `server_id=eq.${activeServerId}` },
-        (payload) => setMessages(prev => [...prev, payload.new as HoaMessage]))
+        (payload) => setMessages(prev => {
+          const next = payload.new as HoaMessage;
+          // Dedupe: our own insert can race with the realtime echo.
+          if (prev.some(m => m.id === next.id)) return prev;
+          return [...prev, next];
+        }))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "hoa_audit", filter: `server_id=eq.${activeServerId}` },
-        (payload) => setAudit(prev => [payload.new as HoaAudit, ...prev].slice(0, 200)))
+        (payload) => setAudit(prev => {
+          const next = payload.new as HoaAudit;
+          if (prev.some(a => a.id === next.id)) return prev;
+          return [next, ...prev].slice(0, 200);
+        }))
       .subscribe();
 
     return () => { cancelled = true; supabase.removeChannel(channel); };
