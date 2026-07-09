@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import GovSuiteMount, { SUITES, type SuiteId } from "@/components/asher-gov/GovSuiteMount";
 import AdminPanel from "@/components/asher-gov/AdminPanel";
 import EmperorConsole from "@/components/asher-gov/EmperorConsole";
+import ProfileSettings from "@/components/asher-gov/ProfileSettings";
 
 const CLEARANCE_COLOR: Record<string,string> = {
   UNCLASS: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
