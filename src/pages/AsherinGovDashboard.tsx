@@ -35,8 +35,10 @@ import {
   Circle,
   Crown,
   Star,
+  X,
 } from "lucide-react";
 import { getWallpaperSrc } from "@/lib/wallpapers";
+import GovSuiteMount, { SUITES, type SuiteId } from "@/components/asher-gov/GovSuiteMount";
 
 // -----------------------------------------------------------------------------
 // Clearance model
@@ -178,6 +180,7 @@ interface Persisted {
   operatorId: string;
   activeChannelId: string;
   banner: Clearance;
+  activeSuite?: SuiteId | null;
 }
 
 const loadState = (): Persisted => {
@@ -185,7 +188,7 @@ const loadState = (): Persisted => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Persisted;
-      if (parsed?.messages && parsed?.audit) return parsed;
+      if (parsed?.messages && parsed?.audit) return { activeSuite: null, ...parsed };
     }
   } catch { /* ignore */ }
   return {
@@ -196,6 +199,7 @@ const loadState = (): Persisted => {
     operatorId: "op-01",
     activeChannelId: "def-briefings",
     banner: "SECRET",
+    activeSuite: null,
   };
 };
 
