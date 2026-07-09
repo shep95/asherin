@@ -31,8 +31,8 @@ export const SUITES: SuiteDef[] = [
 // Lazy imports — the deck stays fast until an operator opens a suite.
 const AureonChat  = lazy(() => import("./GovAureonChatPanel"));
 const Zophiel     = lazy(() => import("@/components/asher/AsherZophielModule"));
-const Axrlen      = lazy(() => import("@/components/asher/AsherAxrlenModule"));
-// Zerlal & IDE require a projectId + files context. We pass an ephemeral gov project.
+const Axrlen      = lazy(() => import("./GovAxrlenPanel"));
+// IDE requires deck runtime, Zerlal has its own sovereign wrapper below.
 const AsherCodeModule = lazy(() => import("@/components/asher/AsherCodeModule"));
 const GovZerlalPanel  = lazy(() => import("./GovZerlalPanel"));
 
