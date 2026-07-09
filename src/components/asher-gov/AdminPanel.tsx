@@ -153,7 +153,7 @@ function ApiKeyTab({ server, refreshServers }: {
           </button>
           {active && (
             <button onClick={() => submit("delete_api_key")} disabled={busy}
-                    className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-red-500/40 text-red-300 rounded-md hover:bg-red-500/10 disabled:opacity-40 flex items-center gap-1.5">
+                    className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-amber-500/40 text-amber-200 rounded-md hover:bg-amber-500/10 disabled:opacity-40 flex items-center gap-1.5">
               <Trash2 className="h-3 w-3" /> Revoke
             </button>
           )}
@@ -227,7 +227,7 @@ function RolesTab({ server, members }: { server: HoaServer; members: HoaMember[]
                     <span key={k} className="text-[9px] px-1.5 py-0.5 rounded border border-border/30 text-muted-foreground">{l}</span>
                   ))}
                 </div>
-                <button onClick={() => del(r.id)} className="ml-auto p-1 text-red-300/70 hover:text-red-300"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button onClick={() => del(r.id)} className="ml-auto p-1 text-amber-300/70 hover:text-amber-300"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             ))}
           </div>

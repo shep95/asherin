@@ -266,11 +266,11 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
         {/* MAIN — SCENARIO WORKSPACE */}
         <main className="overflow-y-auto">
           {err && (
-            <div className="m-4 flex items-start gap-2 rounded border border-red-400/30 bg-red-500/5 p-3 text-[11px] text-red-300/90">
+            <div className="m-4 flex items-start gap-2 rounded border border-amber-400/30 bg-amber-500/5 p-3 text-[11px] text-amber-300/90">
               <AlertTriangle className="h-3.5 w-3.5 mt-0.5" />
               <div>
                 <div className="font-medium">AXRLEN feed unavailable</div>
-                <div className="text-red-300/70 mt-0.5">{err}</div>
+                <div className="text-amber-300/70 mt-0.5">{err}</div>
               </div>
             </div>
           )}
@@ -375,7 +375,7 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
                     <span className="text-[9px] font-mono tracking-widest text-muted-foreground/60">
                       {new Date(s.updated_at).toISOString().slice(5, 16).replace("T", " ")}Z
                     </span>
-                    <span className={`text-[9px] font-mono ${delta >= 0 ? "text-emerald-400/80" : "text-red-400/70"}`}>
+                    <span className={`text-[9px] font-mono ${delta >= 0 ? "text-emerald-400/80" : "text-amber-400/80"}`}>
                       {sign}{delta.toFixed(1)}
                     </span>
                   </div>

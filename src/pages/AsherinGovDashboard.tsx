@@ -576,7 +576,7 @@ const AsherinGovDashboard = () => {
               {activeChannel.kind !== "voice" && (
                 <div className="border-t border-border/20 bg-black/20 p-3">
                   {!deck.canAccess(activeChannel) ? (
-                    <div className="flex items-center gap-2 text-xs font-light text-red-300 border border-red-500/30 bg-red-500/5 rounded-md px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs font-light text-amber-300 border border-amber-500/30 bg-amber-500/5 rounded-md px-3 py-2">
                       <AlertTriangle className="h-3.5 w-3.5" /> Insufficient clearance to post here.
                     </div>
                   ) : (
@@ -586,7 +586,7 @@ const AsherinGovDashboard = () => {
                           <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-amber-300 flex items-center gap-1.5"><Radio className="h-3 w-3" /> Emergency broadcast · pins across visible feeds</div>
                         )}
                         {activeChannel.kind === "vault" && (
-                          <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-red-300 flex items-center gap-1.5"><Lock className="h-3 w-3" /> Vault channel · outbound sealed by default · body stripped from Aureon feed until published</div>
+                          <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-amber-300 flex items-center gap-1.5"><Lock className="h-3 w-3" /> Vault channel · outbound sealed by default · body stripped from Aureon feed until published</div>
                         )}
                         <textarea value={draft} onChange={e => setDraft(e.target.value)}
                           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}

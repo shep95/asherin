@@ -202,7 +202,7 @@ export default function GovZerlalPanel({
           {files.length > 0 && (
             <button
               onClick={clearAll}
-              className="inline-flex items-center gap-1 px-3 rounded border border-red-400/30 text-red-300/80 hover:border-red-400/60 text-[10px] uppercase tracking-[0.2em]"
+              className="inline-flex items-center gap-1 px-3 rounded border border-amber-400/30 text-amber-300/80 hover:border-amber-400/60 text-[10px] uppercase tracking-[0.2em]"
             >
               <Trash2 className="h-3 w-3" /> Clear
             </button>
