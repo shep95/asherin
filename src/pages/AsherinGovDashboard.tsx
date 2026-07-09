@@ -648,6 +648,12 @@ const AsherinGovDashboard = () => {
       <CreateServerModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={deck.refresh} />
       <InviteModal open={showInvite} onClose={() => setShowInvite(false)} serverId={deck.activeServer?.id ?? null} canInvite={!!canInvite} />
       <JoinModal open={showJoin} onClose={() => setShowJoin(false)} onJoined={deck.refresh} />
+      {deck.activeServer && (
+        <AdminPanel open={showAdmin} onClose={() => setShowAdmin(false)}
+                    server={deck.activeServer as any}
+                    members={deck.members}
+                    refreshServers={deck.refresh} />
+      )}
     </div>
   );
 };
