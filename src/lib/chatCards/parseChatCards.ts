@@ -59,6 +59,8 @@ const KNOWN: ReadonlySet<CardType> = new Set([
   "gematria",
   "gematria-compare",
   "number-lookup",
+  "symbolic",
+  "symbolic-spine",
   "info",
   "entity",
   "timeline",
