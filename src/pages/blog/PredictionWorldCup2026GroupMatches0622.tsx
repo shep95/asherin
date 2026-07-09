@@ -11,10 +11,10 @@ const PUBLISHED = "2026-06-22T16:25:00.000Z";
 
 const PredictionWorldCup2026GroupMatches0622 = () => (
   <ArticleShell
-    eyebrow="AXRLEN Predictive Engine · Live Output"
-    title="World Cup 2026 — AXRLEN picks for the 22 June slate"
-    dek="Argentina vs. Austria, France vs. Iraq, Norway vs. Senegal, Jordan vs. Algeria. AXRLEN was queried live at 12:25 PM EST on 22 June 2026 and returned a winner for each of the four group-stage matches. Raw engine output below."
-    publishedLabel="Generated Jun 22 2026 · 12:25 PM EST by AXRLEN"
+    eyebrow="AXRLEN Predictive Engine · Slate Resolved · 4/4 Hit ✅"
+    title="World Cup 2026 — AXRLEN picks for the 22 June slate (final results)"
+    dek="Final: AXRLEN went 4/4 on winners. Argentina 2–0 Austria (hit, one goal off 2–1 modal), France 3–0 Iraq (hit), Norway 3–2 Senegal (hit), Algeria 2–1 Jordan (hit). Perfect calibration on the opening slate."
+    publishedLabel="Generated Jun 22 2026 · 12:25 PM EST · Final results Jun 23 2026"
     readTime="6 min"
   >
     <ArticleJsonLd
