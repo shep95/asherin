@@ -382,15 +382,23 @@ const AsherinGovDashboard = () => {
         </aside>
 
         {/* CHANNEL RAIL */}
-        <aside className="w-64 shrink-0 border-r border-border/20 bg-black/30 flex flex-col">
+        <aside className={`w-64 shrink-0 border-r border-border/20 bg-black/60 lg:bg-black/30 flex-col
+                           ${mobileNav ? "flex fixed z-40 h-full top-7 left-16" : "hidden lg:flex"}`}>
           <div className="px-4 py-4 border-b border-border/20 flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">{deck.activeServer?.code ?? "—"}</div>
               <div className="text-sm font-light text-foreground mt-0.5 truncate">{deck.activeServer?.name ?? "Select a server"}</div>
             </div>
-            {canInvite && (
-              <button onClick={() => setShowInvite(true)} className="shrink-0 text-[9px] tracking-widest uppercase border border-border/30 rounded px-2 py-1 hover:bg-foreground/10">Invite</button>
-            )}
+            <div className="flex flex-col gap-1 shrink-0">
+              {canInvite && (
+                <button onClick={() => setShowInvite(true)} className="text-[9px] tracking-widest uppercase border border-border/30 rounded px-2 py-1 hover:bg-foreground/10">Invite</button>
+              )}
+              {isOwner && (
+                <button onClick={() => setShowAdmin(true)} className="text-[9px] tracking-widest uppercase border border-amber-500/40 text-amber-300 rounded px-2 py-1 hover:bg-amber-500/10 flex items-center gap-1 justify-center">
+                  <Settings className="h-3 w-3" /> Admin
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-4">
             {deck.loading && <div className="text-center text-xs text-muted-foreground py-8"><Loader2 className="h-3 w-3 animate-spin inline mr-1" /> Loading…</div>}
