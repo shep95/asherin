@@ -12,6 +12,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Shield, Hash, Volume2, Lock, Radio, Search, Send, Users, AlertTriangle,
   Eye, EyeOff, Pin, ScrollText, ChevronLeft, Circle, Crown, X, Plus, LogIn, Copy, Check, Loader2,
+  Menu, Settings,
 } from "lucide-react";
 import { getWallpaperSrc } from "@/lib/wallpapers";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +20,7 @@ import { useHoaDeck, rankToLabel, CLEARANCE_LABELS, type HoaChannel } from "@/ho
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GovSuiteMount, { SUITES, type SuiteId } from "@/components/asher-gov/GovSuiteMount";
+import AdminPanel from "@/components/asher-gov/AdminPanel";
 
 const CLEARANCE_COLOR: Record<string,string> = {
   UNCLASS: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
@@ -226,12 +228,15 @@ const AsherinGovDashboard = () => {
   const [search, setSearch] = useState("");
   const [showAudit, setShowAudit] = useState(false);
   const [unsealed, setUnsealed] = useState<Set<string>>(new Set());
-  const [membersOpen, setMembersOpen] = useState(true);
+  const [membersOpen, setMembersOpen] = useState(false);
   const [activeSuite, setActiveSuite] = useState<SuiteId | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showJoin,   setShowJoin  ] = useState(false);
+  const [showAdmin,  setShowAdmin ] = useState(false);
+  const [mobileNav,  setMobileNav ] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastNavRef = useRef<{ server?: string; channel?: string }>({});
 
   const wallpaper = getWallpaperSrc("aureon");
 
@@ -248,6 +253,18 @@ const AsherinGovDashboard = () => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [deck.activeChannel?.id, deck.messages.length]);
+
+  // Debounced navigation audit: only log distinct server/channel entries.
+  useEffect(() => {
+    if (!deck.activeServer || !deck.myMembership) return;
+    const s = deck.activeServer.id, c = deck.activeChannel?.id;
+    const last = lastNavRef.current;
+    const t = window.setTimeout(() => {
+      if (last.server !== s) { void deck.pushAudit("NAV_SERVER", deck.activeServer!.name); lastNavRef.current.server = s; }
+      if (c && last.channel !== c) { void deck.pushAudit("NAV_CHANNEL", deck.activeChannel!.name); lastNavRef.current.channel = c; }
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [deck.activeServer?.id, deck.activeChannel?.id, deck.myMembership?.id]);
 
   // ---------------- gate: signed out ----------------
   if (!authLoading && !user) {
@@ -272,6 +289,7 @@ const AsherinGovDashboard = () => {
   const clearanceLabel = deck.myMembership ? rankToLabel(deck.myMembership.clearance_rank) : "UNCLASS";
   const banner = deck.activeServer?.is_mothership ? "TS" : clearanceLabel;
   const canInvite = deck.myMembership && ["owner","operator"].includes(deck.myMembership.role);
+  const isOwner = deck.myMembership?.role === "owner" || deck.myMembership?.role === "houseofasher";
 
   // Filter channels & members client-side (RLS already gate reads server-side)
   const activeChannel = deck.activeChannel;
@@ -311,13 +329,20 @@ const AsherinGovDashboard = () => {
       <div className="fixed inset-0 -z-10 bg-black/80 backdrop-blur-sm" aria-hidden />
 
       {/* Classification banner (top) */}
-      <div className={`sticky top-0 z-40 border-b text-center text-[10px] tracking-[0.35em] uppercase font-semibold py-1.5 ${CLEARANCE_COLOR[banner] ?? CLEARANCE_COLOR.SECRET}`}>
-        {banner === "TS" ? "TOP SECRET" : banner} // ASHERIN.GOV COMMAND DECK // {deck.activeServer?.is_mothership ? "#HOUSEOFASHER MOTHERSHIP" : (deck.activeServer?.name ?? "NO SERVER")}
+      <div className={`sticky top-0 z-40 border-b text-center text-[10px] tracking-[0.35em] uppercase font-semibold py-1.5 flex items-center justify-center gap-2 ${CLEARANCE_COLOR[banner] ?? CLEARANCE_COLOR.SECRET}`}>
+        <button onClick={() => setMobileNav(v => !v)} className="lg:hidden absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded-md border border-current/30" aria-label="Toggle navigation">
+          <Menu className="h-3.5 w-3.5" />
+        </button>
+        <span className="truncate">{banner === "TS" ? "TOP SECRET" : banner} // ASHERIN.GOV // {deck.activeServer?.is_mothership ? "#HOUSEOFASHER" : (deck.activeServer?.code ?? "NO SERVER")}</span>
       </div>
 
-      <div className="flex h-[calc(100vh-28px)]">
+      <div className="flex h-[calc(100vh-28px)] relative">
+        {/* Mobile backdrop */}
+        {mobileNav && <div className="lg:hidden fixed inset-0 z-30 bg-black/60" onClick={() => setMobileNav(false)} aria-hidden />}
+
         {/* SERVER RAIL */}
-        <aside className="w-16 shrink-0 border-r border-border/20 bg-black/40 flex flex-col items-center py-3 gap-2 overflow-y-auto">
+        <aside className={`w-16 shrink-0 border-r border-border/20 bg-black/60 lg:bg-black/40 flex-col items-center py-3 gap-2 overflow-y-auto
+                           ${mobileNav ? "flex fixed z-40 h-full top-7" : "hidden lg:flex"}`}>
           <Link to="/asherin.gov" className="w-10 h-10 rounded-xl border border-border/30 bg-foreground/[0.03] flex items-center justify-center hover:bg-foreground/10 transition" title="Back to asherin.gov">
             <ChevronLeft className="h-4 w-4 text-muted-foreground" />
           </Link>
@@ -357,15 +382,23 @@ const AsherinGovDashboard = () => {
         </aside>
 
         {/* CHANNEL RAIL */}
-        <aside className="w-64 shrink-0 border-r border-border/20 bg-black/30 flex flex-col">
+        <aside className={`w-64 shrink-0 border-r border-border/20 bg-black/60 lg:bg-black/30 flex-col
+                           ${mobileNav ? "flex fixed z-40 h-full top-7 left-16" : "hidden lg:flex"}`}>
           <div className="px-4 py-4 border-b border-border/20 flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">{deck.activeServer?.code ?? "—"}</div>
               <div className="text-sm font-light text-foreground mt-0.5 truncate">{deck.activeServer?.name ?? "Select a server"}</div>
             </div>
-            {canInvite && (
-              <button onClick={() => setShowInvite(true)} className="shrink-0 text-[9px] tracking-widest uppercase border border-border/30 rounded px-2 py-1 hover:bg-foreground/10">Invite</button>
-            )}
+            <div className="flex flex-col gap-1 shrink-0">
+              {canInvite && (
+                <button onClick={() => setShowInvite(true)} className="text-[9px] tracking-widest uppercase border border-border/30 rounded px-2 py-1 hover:bg-foreground/10">Invite</button>
+              )}
+              {isOwner && (
+                <button onClick={() => setShowAdmin(true)} className="text-[9px] tracking-widest uppercase border border-amber-500/40 text-amber-300 rounded px-2 py-1 hover:bg-amber-500/10 flex items-center gap-1 justify-center">
+                  <Settings className="h-3 w-3" /> Admin
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-4">
             {deck.loading && <div className="text-center text-xs text-muted-foreground py-8"><Loader2 className="h-3 w-3 animate-spin inline mr-1" /> Loading…</div>}
@@ -565,7 +598,7 @@ const AsherinGovDashboard = () => {
 
         {/* MEMBERS RAIL */}
         {membersOpen && !activeSuite && deck.activeServer && (
-          <aside className="w-64 shrink-0 border-l border-border/20 bg-black/30 flex flex-col">
+          <aside className="hidden md:flex w-64 shrink-0 border-l border-border/20 bg-black/30 flex-col">
             <div className="px-4 py-3 border-b border-border/20 text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Members · {activeServerMembers.length}</div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {activeServerMembers.map(m => (
@@ -615,6 +648,12 @@ const AsherinGovDashboard = () => {
       <CreateServerModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={deck.refresh} />
       <InviteModal open={showInvite} onClose={() => setShowInvite(false)} serverId={deck.activeServer?.id ?? null} canInvite={!!canInvite} />
       <JoinModal open={showJoin} onClose={() => setShowJoin(false)} onJoined={deck.refresh} />
+      {deck.activeServer && (
+        <AdminPanel open={showAdmin} onClose={() => setShowAdmin(false)}
+                    server={deck.activeServer as any}
+                    members={deck.members}
+                    refreshServers={deck.refresh} />
+      )}
     </div>
   );
 };

@@ -4496,6 +4496,55 @@ export type Database = {
           },
         ]
       }
+      hoa_member_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          member_id: string
+          role_id: string
+          server_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          member_id: string
+          role_id: string
+          server_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          member_id?: string
+          role_id?: string
+          server_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hoa_member_roles_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hoa_member_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_server_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hoa_member_roles_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hoa_members: {
         Row: {
           clearance_rank: number
@@ -4591,8 +4640,66 @@ export type Database = {
           },
         ]
       }
+      hoa_server_roles: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          perm_invite: boolean
+          perm_manage_api_key: boolean
+          perm_manage_channels: boolean
+          perm_manage_roles: boolean
+          perm_send: boolean
+          perm_view_audit: boolean
+          server_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          perm_invite?: boolean
+          perm_manage_api_key?: boolean
+          perm_manage_channels?: boolean
+          perm_manage_roles?: boolean
+          perm_send?: boolean
+          perm_view_audit?: boolean
+          server_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          perm_invite?: boolean
+          perm_manage_api_key?: boolean
+          perm_manage_channels?: boolean
+          perm_manage_roles?: boolean
+          perm_send?: boolean
+          perm_view_audit?: boolean
+          server_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hoa_server_roles_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "hoa_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hoa_servers: {
         Row: {
+          api_key_ciphertext: string | null
+          api_key_hint: string | null
+          api_key_provider: string | null
+          api_key_updated_at: string | null
+          api_key_updated_by: string | null
           code: string
           country: string | null
           created_at: string
@@ -4603,6 +4710,11 @@ export type Database = {
           name: string
         }
         Insert: {
+          api_key_ciphertext?: string | null
+          api_key_hint?: string | null
+          api_key_provider?: string | null
+          api_key_updated_at?: string | null
+          api_key_updated_by?: string | null
           code: string
           country?: string | null
           created_at?: string
@@ -4613,6 +4725,11 @@ export type Database = {
           name: string
         }
         Update: {
+          api_key_ciphertext?: string | null
+          api_key_hint?: string | null
+          api_key_provider?: string | null
+          api_key_updated_at?: string | null
+          api_key_updated_by?: string | null
           code?: string
           country?: string | null
           created_at?: string
@@ -9791,6 +9908,10 @@ export type Database = {
         Returns: boolean
       }
       heartbeat_intel_slot: { Args: { _job_id: string }; Returns: undefined }
+      hoa_has_permission: {
+        Args: { _perm: string; _server: string; _user: string }
+        Returns: boolean
+      }
       hoa_is_houseofasher: { Args: { _user: string }; Returns: boolean }
       hoa_is_member: {
         Args: { _server: string; _user: string }
