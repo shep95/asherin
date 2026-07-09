@@ -124,7 +124,7 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
         )}
       </div>
 
-      <div className="border-t border-border/20 bg-black/30 p-3">
+      <div className="border-t border-border/20 backdrop-blur-md bg-background/25 p-3">
         <div className="flex items-end gap-2">
           <textarea
             value={draft}
@@ -137,7 +137,7 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
             }}
             rows={2}
             placeholder="Ask Aureon — legal, OSINT, doctrine, decisions…"
-            className="flex-1 bg-black/40 border border-border/30 rounded-md px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/50 resize-none"
+            className="flex-1 bg-background/40 backdrop-blur-sm border border-border/30 rounded-md px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/50 resize-none"
           />
           <button
             onClick={send}
