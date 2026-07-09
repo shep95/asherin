@@ -569,7 +569,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
           </div>
         )}
 
-        <div className={`flex items-end gap-2 sm:gap-3 rounded-2xl border ${online ? "border-border/30" : "border-amber-500/30"} bg-card/40 backdrop-blur-xl p-2 sm:p-3 transition-all min-w-0`}>
+        <div className={`flex flex-wrap items-end gap-2 sm:gap-3 rounded-2xl border ${online ? "border-border/30" : "border-amber-500/30"} bg-card/40 backdrop-blur-xl p-2 sm:p-3 transition-all min-w-0`}>
           {/* Attach button — categorized tabs (Photos / Videos / Documents / Files) */}
           <input
             ref={fileInputRef}
