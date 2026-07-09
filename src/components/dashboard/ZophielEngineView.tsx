@@ -34,6 +34,7 @@ const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
 const DorkPanel = lazy(() => import("./search/DorkPanel"));
 const GhostChainPanel = lazy(() => import("./search/GhostChainPanel"));
+const ZophielV2Panel = lazy(() => import("./search/ZophielV2Panel"));
 
 
 // Detect when the search query is actually a URL (with or without scheme).
