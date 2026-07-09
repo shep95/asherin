@@ -131,8 +131,8 @@ Deno.serve(async (req) => {
   // ─── Audit ──────────────────────────────────────────────────────────────
   await svc.from("hoa_audit").insert({
     server_id, actor_id: caller.id, action: "provision_account",
-    target_type: "user", target_id: userId,
-    detail: { email, role, generated_password: generated, existed: !created },
+    target: userId,
+    detail: JSON.stringify({ email, role, generated_password: generated, existed: !created }),
   }).catch(() => {});
 
   return json({
