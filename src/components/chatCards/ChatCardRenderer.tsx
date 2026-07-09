@@ -5,6 +5,7 @@
 import GematriaResultCard from "@/components/gematria/GematriaResultCard";
 import GematriaCompareCard from "@/components/chatCards/GematriaCompareCard";
 import NumberLookupCard from "@/components/chatCards/NumberLookupCard";
+import { SymbolicPassageCard, SymbolicSpineCard } from "@/components/chatCards/SymbolicCards";
 import {
   InfoCard,
   EntityCard,
