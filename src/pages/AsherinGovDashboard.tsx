@@ -254,6 +254,18 @@ const AsherinGovDashboard = () => {
     if (el) el.scrollTop = el.scrollHeight;
   }, [deck.activeChannel?.id, deck.messages.length]);
 
+  // Debounced navigation audit: only log distinct server/channel entries.
+  useEffect(() => {
+    if (!deck.activeServer || !deck.myMembership) return;
+    const s = deck.activeServer.id, c = deck.activeChannel?.id;
+    const last = lastNavRef.current;
+    const t = window.setTimeout(() => {
+      if (last.server !== s) { void deck.pushAudit("NAV_SERVER", deck.activeServer!.name); lastNavRef.current.server = s; }
+      if (c && last.channel !== c) { void deck.pushAudit("NAV_CHANNEL", deck.activeChannel!.name); lastNavRef.current.channel = c; }
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [deck.activeServer?.id, deck.activeChannel?.id, deck.myMembership?.id]);
+
   // ---------------- gate: signed out ----------------
   if (!authLoading && !user) {
     return (
