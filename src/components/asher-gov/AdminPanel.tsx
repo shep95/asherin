@@ -3,10 +3,11 @@
 // Fully responsive: full-screen sheet on mobile, floating panel on desktop.
 
 import { useEffect, useMemo, useState } from "react";
-import { X, Key, Shield, ScrollText, Loader2, Trash2, Plus, Search, RefreshCw, Copy, Check } from "lucide-react";
+import { X, Key, Shield, ScrollText, Loader2, Trash2, Plus, Search, RefreshCw, Copy, Check, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { HoaServer, HoaMember, HoaAudit } from "@/hooks/useHoaDeck";
+import IconUploader from "./IconUploader";
 
 interface ServerRole {
   id: string; server_id: string; name: string; color: string;
