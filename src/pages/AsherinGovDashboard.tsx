@@ -461,7 +461,17 @@ const AsherinGovDashboard = () => {
                   </button>
                 </header>
                 <div className="flex-1 min-h-0 overflow-hidden">
-                  <GovSuiteMount suite={activeSuite} operator={deck.myMembership?.handle ?? user?.email ?? "operator"} onAudit={(a,t,d) => deck.pushAudit(a,t,d)} />
+                  <GovSuiteMount
+                    suite={activeSuite}
+                    operator={deck.myMembership?.handle ?? user?.email ?? "operator"}
+                    onAudit={(a,t,d) => deck.pushAudit(a,t,d)}
+                    context={{
+                      serverId: deck.activeServer?.id ?? null,
+                      serverName: deck.activeServer?.name ?? null,
+                      channelName: deck.activeChannel?.name ?? null,
+                      channelMessages: deck.messages ?? [],
+                    }}
+                  />
                 </div>
               </>
             );

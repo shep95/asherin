@@ -34,15 +34,23 @@ const Zophiel     = lazy(() => import("@/components/asher/AsherZophielModule"));
 const Axrlen      = lazy(() => import("@/components/asher/AsherAxrlenModule"));
 // Zerlal & IDE require a projectId + files context. We pass an ephemeral gov project.
 const AsherCodeModule = lazy(() => import("@/components/asher/AsherCodeModule"));
-const AsherCodeZerlal = lazy(() => import("@/components/asher/AsherCodeZerlal"));
+const GovZerlalPanel  = lazy(() => import("./GovZerlalPanel"));
+
+export interface GovSuiteContext {
+  serverId: string | null;
+  serverName?: string | null;
+  channelName?: string | null;
+  channelMessages: Array<{ id: string; body: string | null; created_at: string; operator_handle?: string | null }>;
+}
 
 interface Props {
   suite: SuiteId;
   operator: string;
   onAudit: (action: string, target: string, detail?: string) => void;
+  context?: GovSuiteContext;
 }
 
-const GovSuiteMount = ({ suite, operator, onAudit }: Props) => {
+const GovSuiteMount = ({ suite, operator, onAudit, context }: Props) => {
   useEffect(() => {
     onAudit("SUITE_MOUNT", suite);
     return () => onAudit("SUITE_UNMOUNT", suite);
@@ -64,9 +72,14 @@ const GovSuiteMount = ({ suite, operator, onAudit }: Props) => {
       {suite === "zophiel"     && <Zophiel />}
       {suite === "axrlen"      && <Axrlen />}
       {suite === "zerlal"      && (
-        <div className="h-full w-full overflow-y-auto bg-background">
-          <AsherCodeZerlal projectId="gov-ephemeral" files={[]} />
-        </div>
+        <GovZerlalPanel
+          serverId={context?.serverId ?? null}
+          serverName={context?.serverName ?? null}
+          channelName={context?.channelName ?? null}
+          channelMessages={context?.channelMessages ?? []}
+          operator={operator}
+          onAudit={onAudit}
+        />
       )}
       {suite === "ide"         && (
         <div className="h-full w-full overflow-hidden bg-background">
