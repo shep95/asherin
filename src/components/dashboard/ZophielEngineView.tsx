@@ -34,6 +34,7 @@ const OpenVpnPanel = lazy(() => import("./search/OpenVpnPanel"));
 const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
 const DorkPanel = lazy(() => import("./search/DorkPanel"));
 const GhostChainPanel = lazy(() => import("./search/GhostChainPanel"));
+const ZophielV2Panel = lazy(() => import("./search/ZophielV2Panel"));
 
 
 // Detect when the search query is actually a URL (with or without scheme).
@@ -147,7 +148,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
   // Auto-activate "searched" view when entering Imagine, Extract, Audit, or special modes (no query needed)
   useEffect(() => {
-    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "dork" || mode === "ghostchain") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "dork" || mode === "ghostchain" || mode === "zophielv2") {
       setSearched(true);
       setShowSuggestions(false);
     }
@@ -246,7 +247,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     }
 
     // Imagine / Extract / Audit / special modes — handled by their own panels, do not run text search
-    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest" || mode === "dork" || mode === "ghostchain") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest" || mode === "dork" || mode === "ghostchain" || mode === "zophielv2") {
       setSearched(true);
       setShowSuggestions(false);
       return;
@@ -535,7 +536,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         {/* Results */}
         {searched && (
           <div className="flex-1 overflow-y-auto">
-            <div className={`${mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest" || mode === "dork" || mode === "ghostchain" ? "max-w-6xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
+            <div className={`${mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest" || mode === "dork" || mode === "ghostchain" || mode === "zophielv2" ? "max-w-6xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
               {/* Queue Panel */}
               <MessageQueuePanel
                 items={queuedSearch ? [{ id: "zophiel-queued", content: queuedSearch }] : []}
@@ -623,19 +624,27 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
+              {/* Zophiel v2 — two-pass gather + refine with operator parser */}
+              {mode === "zophielv2" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <ZophielV2Panel initialQuery={query} />
+                </Suspense>
+              )}
+
+
 
 
 
 
               {/* Deep Search Panel */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && mode !== "dork" && deepSearchQuery && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && mode !== "dork" && mode !== "zophielv2" && deepSearchQuery && (
                 <Suspense fallback={null}>
                   <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
                 </Suspense>
               )}
 
               {/* Inline Dark Web sweep — shown when scope=mix or dark */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && mode !== "dork" && !deepSearchQuery && (scope === "mix" || scope === "dark") && (darkLoading || darkResults.length > 0 || darkSummary) && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && mode !== "dork" && mode !== "zophielv2" && !deepSearchQuery && (scope === "mix" || scope === "dark") && (darkLoading || darkResults.length > 0 || darkSummary) && (
                 <div className="mb-6 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase tracking-[0.25em] text-accent/80">Dark Web Sweep</span>
@@ -672,7 +681,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               )}
 
               {/* Standard search results */}
-              {!urlIntelTarget && mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "dork" && !deepSearchQuery && (
+              {!urlIntelTarget && mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "dork" && mode !== "zophielv2" && !deepSearchQuery && (
                 <>
                   {/* Meta */}
                   {!loading && results.length > 0 && (
