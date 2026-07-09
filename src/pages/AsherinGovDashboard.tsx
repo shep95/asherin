@@ -395,6 +395,26 @@ const AsherinGovDashboard = () => {
               </button>
             );
           })}
+          <div className="w-8 h-px bg-border/30 my-1" />
+          <div className="text-[8px] tracking-[0.25em] uppercase text-muted-foreground/60">SUITE</div>
+          {SUITES.map(s => {
+            const active = state.activeSuite === s.id;
+            const gated = clearanceRank(operator.clearance) < s.minClearanceRank;
+            return (
+              <button
+                key={s.id}
+                onClick={() => openSuite(s.id)}
+                disabled={gated}
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center text-[9px] font-semibold tracking-widest transition relative
+                  ${active ? "border-foreground/60 bg-foreground/10 text-foreground" : "border-border/30 bg-foreground/[0.02] text-muted-foreground hover:text-foreground hover:border-border/60"}
+                  ${gated ? "opacity-30 cursor-not-allowed hover:text-muted-foreground" : ""}`}
+                title={`${s.label} — ${s.blurb}${gated ? " (clearance too low)" : ""}`}
+              >
+                <s.icon className="h-4 w-4" />
+                {active && <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r bg-foreground" />}
+              </button>
+            );
+          })}
         </aside>
 
         {/* CHANNEL RAIL */}
