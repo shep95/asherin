@@ -57,6 +57,7 @@ export default function AdminPanel({
 
         <div className="flex gap-1 px-3 pt-3 border-b border-border/20 overflow-x-auto shrink-0">
           {[
+            { id: "identity", label: "Identity", Icon: ImageIcon },
             { id: "apikey", label: "API Key", Icon: Key },
             { id: "roles",  label: "Roles & Members", Icon: Shield },
             { id: "audit",  label: "Activity Log", Icon: ScrollText },
@@ -70,6 +71,7 @@ export default function AdminPanel({
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto p-5">
+          {tab === "identity" && <IdentityTab server={server} refreshServers={refreshServers} />}
           {tab === "apikey" && <ApiKeyTab server={server} refreshServers={refreshServers} />}
           {tab === "roles"  && <RolesTab server={server} members={members} />}
           {tab === "audit"  && <AuditTab serverId={server.id} members={members} />}
