@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Play, X, Sparkles } from "lucide-react";
+import secretHistoryAntichristNewMessiahPoster from "@/assets/secret-history-antichrist-new-messiah-poster.jpg.asset.json";
+import secretHistoryAntichristNewMessiahVideo from "@/assets/secret-history-antichrist-new-messiah.mp4.asset.json";
 
 interface LocalVideo {
   id: string; // unique key, prefixed with "local:"
