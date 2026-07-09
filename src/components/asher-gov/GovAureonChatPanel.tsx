@@ -101,8 +101,8 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
                 AU
               </div>
             )}
-            <div className={`max-w-[75%] rounded-md px-3 py-2 text-sm font-light leading-relaxed ${
-              m.role === "user" ? "bg-foreground/10 text-foreground" : "bg-black/30 border border-border/20 text-foreground/90"
+            <div className={`max-w-[75%] rounded-md px-3 py-2 text-sm font-light leading-relaxed backdrop-blur-sm ${
+              m.role === "user" ? "bg-foreground/10 text-foreground" : "bg-background/30 border border-border/20 text-foreground/90"
             }`}>
               {m.role === "assistant" ? (
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
