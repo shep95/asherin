@@ -11,10 +11,10 @@ const PUBLISHED = "2026-06-23T23:00:00.000Z";
 
 const PredictionWorldCup2026GroupMatches0625 = () => (
   <ArticleShell
-    eyebrow="AXRLEN Predictive Engine · Live Output"
-    title="World Cup 2026 — AXRLEN picks for the 24 June slate"
-    dek="Six matches on 24 June 2026: Switzerland vs. Canada, Bosnia vs. Qatar, Morocco vs. Haiti, Scotland vs. Brazil, South Africa vs. South Korea, Czechia vs. Mexico. Winners, modal scorelines, and confidence weights from the AXRLEN engine."
-    publishedLabel="Generated Jun 23 2026 · 7:00 PM EST by AXRLEN"
+    eyebrow="AXRLEN Predictive Engine · Slate Resolved · 5/6 Hit ✅"
+    title="World Cup 2026 — AXRLEN picks for the 24 June slate (final results)"
+    dek="Final: AXRLEN finished 5/6 on winners — inside the calibration band. Switzerland 2–1 Canada (hit, modal exact), Bosnia 3–1 Qatar (hit, modal exact), Morocco 4–2 Haiti (hit), Brazil 3–0 Scotland (hit), Mexico 3–0 Czechia (hit). Miss: South Africa 1–0 South Korea — the pre-flagged low-block upset scenario."
+    publishedLabel="Generated Jun 23 2026 · 7:00 PM EST · Final results Jun 25 2026"
     readTime="8 min"
   >
     <ArticleJsonLd

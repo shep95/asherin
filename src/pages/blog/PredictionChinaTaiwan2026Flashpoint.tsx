@@ -11,7 +11,7 @@ const PUBLISHED = prediction.generated_at;
 
 const PredictionChinaTaiwan2026Flashpoint = () => (
   <ArticleShell
-    eyebrow="AXRLEN Predictive Engine · Live Output"
+    eyebrow="AXRLEN Predictive Engine · Status: Pending Resolution"
     title="China–Taiwan 2026 — AXRLEN forecasts a 72% kinetic-crisis window and blockade-first path"
     dek="AXRLEN's Zero-Point Field read on the Taiwan Strait: the Thucydides–Mahan Convergence, PLA Target 2027 milestone, US electoral transition gap, weighted outcome matrix, and the blockade-first escalation call at 72% probability."
     publishedLabel={`Generated ${new Date(PUBLISHED).toUTCString()} by AXRLEN`}
