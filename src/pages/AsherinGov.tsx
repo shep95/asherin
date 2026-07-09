@@ -4,8 +4,9 @@
 
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Shield, Cpu, Lock, Radar, Building2, Scale, Eye, Zap, ArrowRight } from "lucide-react";
+import { Shield, Cpu, Lock, Radar, Building2, Scale, Eye, Zap, ArrowRight, LogIn, Terminal } from "lucide-react";
 import { getWallpaperSrc } from "@/lib/wallpapers";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CAPABILITIES = [
   {
