@@ -28,7 +28,7 @@ const CLEARANCE_COLOR: Record<string,string> = {
   CUI: "bg-sky-500/15 text-sky-300 border-sky-500/30",
   CONFIDENTIAL: "bg-blue-500/15 text-blue-300 border-blue-500/30",
   SECRET: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-  TS: "bg-red-500/15 text-red-300 border-red-500/30",
+  TS: "bg-amber-500/15 text-amber-200 border-amber-500/40",
 };
 
 const channelIcon = (kind: HoaChannel["kind"]) =>
@@ -123,7 +123,7 @@ function InviteModal({ open, onClose, serverId, canInvite }: { open: boolean; on
       <div onClick={e => e.stopPropagation()} className="w-full max-w-md rounded-xl border border-border/30 bg-black/85 p-6 space-y-4">
         <div className="flex items-center gap-2"><Users className="h-4 w-4" /><div className="text-sm font-light tracking-widest uppercase">Invite operator</div></div>
         {!canInvite ? (
-          <p className="text-xs text-red-300">Only owners and operators can mint invites for this server.</p>
+          <p className="text-xs text-amber-300/90">Only owners and operators can mint invites for this server.</p>
         ) : !code ? (
           <>
             <div className="grid grid-cols-2 gap-3">
@@ -498,7 +498,7 @@ const AsherinGovDashboard = () => {
                     <span className="text-sm font-light text-foreground truncate">{activeChannel.name}</span>
                     <span className={`text-[9px] px-1.5 py-0.5 rounded border ${CLEARANCE_COLOR[rankToLabel(activeChannel.min_clearance)]}`}>{rankToLabel(activeChannel.min_clearance)}</span>
                     {activeChannel.compartments?.map(c => (
-                      <span key={c} className="text-[9px] px-1.5 py-0.5 rounded border border-red-500/30 bg-red-500/10 text-red-300 tracking-wider">{c}</span>
+                      <span key={c} className="text-[9px] px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-200 tracking-wider">{c}</span>
                     ))}
                   </div>
                   {activeChannel.topic && <div className="text-[11px] font-light text-muted-foreground/70 truncate">{activeChannel.topic}</div>}
@@ -546,14 +546,14 @@ const AsherinGovDashboard = () => {
                           {m.pinned && <Pin className="h-3 w-3 text-amber-400" />}
                           <span className="text-[10px] text-muted-foreground/60">{fmtTime(m.created_at)}</span>
                           {m.compartments?.map(c => (
-                            <span key={c} className="text-[9px] px-1 py-0.5 rounded border border-red-500/30 bg-red-500/10 text-red-300 tracking-wider">{c}</span>
+                            <span key={c} className="text-[9px] px-1 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-200 tracking-wider">{c}</span>
                           ))}
                         </div>
                         {sealed ? (
-                          <div className="mt-1 flex items-center gap-3 rounded-md border border-dashed border-red-500/40 bg-red-500/5 px-3 py-2">
-                            <Lock className="h-3.5 w-3.5 text-red-300 shrink-0" />
-                            <div className="text-[11px] font-light text-red-200/90">Message sealed. Unsealing is written to the audit ledger.</div>
-                            <button onClick={() => handleUnseal(m.id)} className="ml-auto text-[10px] tracking-widest uppercase px-2 py-1 rounded border border-red-500/40 text-red-200 hover:bg-red-500/10">
+                          <div className="mt-1 flex items-center gap-3 rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 px-3 py-2">
+                            <Lock className="h-3.5 w-3.5 text-amber-300 shrink-0" />
+                            <div className="text-[11px] font-light text-amber-200/90">Message sealed. Unsealing is written to the audit ledger.</div>
+                            <button onClick={() => handleUnseal(m.id)} className="ml-auto text-[10px] tracking-widest uppercase px-2 py-1 rounded border border-amber-500/40 text-amber-200 hover:bg-amber-500/10">
                               <Eye className="h-3 w-3 inline mr-1" />Unseal
                             </button>
                           </div>
@@ -576,7 +576,7 @@ const AsherinGovDashboard = () => {
               {activeChannel.kind !== "voice" && (
                 <div className="border-t border-border/20 bg-black/20 p-3">
                   {!deck.canAccess(activeChannel) ? (
-                    <div className="flex items-center gap-2 text-xs font-light text-red-300 border border-red-500/30 bg-red-500/5 rounded-md px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs font-light text-amber-300 border border-amber-500/30 bg-amber-500/5 rounded-md px-3 py-2">
                       <AlertTriangle className="h-3.5 w-3.5" /> Insufficient clearance to post here.
                     </div>
                   ) : (
@@ -586,7 +586,7 @@ const AsherinGovDashboard = () => {
                           <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-amber-300 flex items-center gap-1.5"><Radio className="h-3 w-3" /> Emergency broadcast · pins across visible feeds</div>
                         )}
                         {activeChannel.kind === "vault" && (
-                          <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-red-300 flex items-center gap-1.5"><Lock className="h-3 w-3" /> Vault channel · outbound sealed by default · body stripped from Aureon feed until published</div>
+                          <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-amber-300 flex items-center gap-1.5"><Lock className="h-3 w-3" /> Vault channel · outbound sealed by default · body stripped from Aureon feed until published</div>
                         )}
                         <textarea value={draft} onChange={e => setDraft(e.target.value)}
                           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
