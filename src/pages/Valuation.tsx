@@ -210,26 +210,40 @@ const Valuation = () => {
 
         {/* SCENARIO TABLE */}
         <section className="mb-16">
-          <h2 className="text-xs tracking-[0.3em] uppercase text-foreground/70 mb-4">◉ Scenarios</h2>
+          <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+            <h2 className="text-xs tracking-[0.3em] uppercase text-foreground/70">◉ Valuation Scenarios</h2>
+            <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/60">All figures in USD billions</span>
+          </div>
+          <p className="text-xs md:text-sm text-muted-foreground/80 mb-4 font-light leading-relaxed max-w-3xl">
+            Three possible outcomes if the Asherin Empire portfolio were valued today. <span className="text-foreground/80">Bear</span> = conservative floor. <span className="text-foreground/80">Base</span> = most likely, benchmarked against Palantir / Anduril / Recorded Future / Maltego. <span className="text-foreground/80">Bull</span> = sovereign-AI scarcity + defense whitelabel premium. Current mark of <span className="text-foreground/90">$48.0B</span> sits inside the Base range.
+          </p>
           <div className="rounded-2xl border border-border/40 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-foreground/[0.03] text-[10px] tracking-[0.2em] uppercase text-muted-foreground/70">
                 <tr>
                   <th className="text-left px-4 py-3">Scenario</th>
-                  <th className="text-left px-4 py-3">Range ($M)</th>
-                  <th className="text-left px-4 py-3">Basis</th>
+                  <th className="text-left px-4 py-3">Valuation range</th>
+                  <th className="text-left px-4 py-3">What has to be true</th>
                 </tr>
               </thead>
               <tbody>
-                {SCENARIOS.map((s) => (
-                  <tr key={s.scenario} className="border-t border-border/30">
-                    <td className="px-4 py-3 font-light">{s.scenario}</td>
-                    <td className="px-4 py-3 tabular-nums text-amber-200/90">
-                      ${s.low}M – ${s.high}M
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground/80 font-light">{s.basis}</td>
-                  </tr>
-                ))}
+                {SCENARIOS.map((s) => {
+                  const lowB = (s.low / 1000).toFixed(1);
+                  const highB = (s.high / 1000).toFixed(1);
+                  const label = s.scenario === "Bear" ? "Conservative floor" : s.scenario === "Base" ? "Most likely · current mark sits here" : "Upside case";
+                  return (
+                    <tr key={s.scenario} className="border-t border-border/30 align-top">
+                      <td className="px-4 py-3">
+                        <div className="font-light text-foreground">{s.scenario}</div>
+                        <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground/60 mt-0.5">{label}</div>
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-amber-200/90 whitespace-nowrap">
+                        ${lowB}B – ${highB}B
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground/80 font-light">{s.basis}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
