@@ -140,11 +140,33 @@ const AsherinGov = () => {
             and delivered with dedicated engineering liaison.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
+            {/* Auth-aware primary CTA: authenticated operators drop straight
+                into the Command Deck; unauthenticated visitors land on the
+                sign-in surface with a next= redirect back to the deck. */}
+            {authLoading ? (
+              <span className="inline-flex items-center gap-2 rounded-xl border border-border/30 bg-background/30 px-5 py-3 text-sm tracking-wide text-muted-foreground/70">
+                Checking session…
+              </span>
+            ) : user ? (
+              <Link
+                to="/asherin-gov/dashboard"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-300/50 bg-amber-300/15 px-5 py-3 text-sm tracking-wide text-amber-100 hover:bg-amber-300/25 transition"
+              >
+                <Terminal className="h-4 w-4" /> Enter Command Deck <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <Link
+                to="/?next=/asherin-gov/dashboard"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-300/50 bg-amber-300/15 px-5 py-3 text-sm tracking-wide text-amber-100 hover:bg-amber-300/25 transition"
+              >
+                <LogIn className="h-4 w-4" /> Sign in to Command Deck <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
             <a
               href="mailto:government@aureonai.app?subject=Asherin%20Government%20Inquiry"
-              className="inline-flex items-center gap-2 rounded-xl border border-amber-300/40 bg-amber-300/10 px-5 py-3 text-sm tracking-wide text-amber-100 hover:bg-amber-300/20 transition"
+              className="inline-flex items-center gap-2 rounded-xl border border-border/40 bg-background/40 px-5 py-3 text-sm tracking-wide text-foreground/80 hover:border-foreground/60 transition"
             >
-              Open a partnership inquiry <ArrowRight className="h-4 w-4" />
+              Partnership inquiry <ArrowRight className="h-4 w-4" />
             </a>
             <Link
               to="/software"
