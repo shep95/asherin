@@ -1,53 +1,26 @@
-// /asherin.gov/dashboard — Sovereign communications & coordination deck.
+// /asherin-gov/dashboard — LIVE Sovereign Command Deck.
 //
-// Discord-parity layout adapted for government use:
-//   Agencies (guilds) → Channels (text / voice / vault) → Transcript → Members
-// Adds gov-specific primitives Discord does not have natively:
-//   · Persistent classification banner (UNCLASS / CUI / CONFIDENTIAL / SECRET / TS)
-//   · Per-channel minimum-clearance gate (channel is hidden below the operator's clearance)
-//   · Encrypted "vault" channels (client-side sealed, message body redacted until unsealed)
-//   · Immutable audit ledger (every send, join, unseal, broadcast)
-//   · Emergency broadcast that pins across every visible channel
-//   · Compartment tags (SCI-style handling caveats) on messages
+// Backed by Supabase (hoa_servers, hoa_channels, hoa_members, hoa_messages,
+// hoa_audit, hoa_invites) with realtime. Every message a country's operator
+// writes on their server is mirrored into the #houseofasher mothership feed
+// via the DB trigger, so Aureon has full global signal.
 //
-// State is persisted to localStorage (`asherin.gov.dashboard.v1`) so the deck
-// survives refresh. This is a frontend surface — no PII, no real classified
-// data, seeded scenarios only.
+// The Aureon Suite rail (previous work) still mounts inline.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  Shield,
-  Hash,
-  Volume2,
-  Lock,
-  Radio,
-  Search,
-  Send,
-  Users,
-  Plus,
-  AlertTriangle,
-  Eye,
-  EyeOff,
-  Pin,
-  ScrollText,
-  ChevronLeft,
-  Circle,
-  Crown,
-  Star,
-  X,
+  Shield, Hash, Volume2, Lock, Radio, Search, Send, Users, AlertTriangle,
+  Eye, EyeOff, Pin, ScrollText, ChevronLeft, Circle, Crown, X, Plus, LogIn, Copy, Check, Loader2,
 } from "lucide-react";
 import { getWallpaperSrc } from "@/lib/wallpapers";
+import { useAuth } from "@/contexts/AuthContext";
+import { useHoaDeck, rankToLabel, CLEARANCE_LABELS, type HoaChannel } from "@/hooks/useHoaDeck";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import GovSuiteMount, { SUITES, type SuiteId } from "@/components/asher-gov/GovSuiteMount";
 
-// -----------------------------------------------------------------------------
-// Clearance model
-// -----------------------------------------------------------------------------
-const CLEARANCE_LEVELS = ["UNCLASS", "CUI", "CONFIDENTIAL", "SECRET", "TS"] as const;
-type Clearance = (typeof CLEARANCE_LEVELS)[number];
-const clearanceRank = (c: Clearance) => CLEARANCE_LEVELS.indexOf(c);
-
-const CLEARANCE_COLOR: Record<Clearance, string> = {
+const CLEARANCE_COLOR: Record<string,string> = {
   UNCLASS: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
   CUI: "bg-sky-500/15 text-sky-300 border-sky-500/30",
   CONFIDENTIAL: "bg-blue-500/15 text-blue-300 border-blue-500/30",
@@ -55,361 +28,327 @@ const CLEARANCE_COLOR: Record<Clearance, string> = {
   TS: "bg-red-500/15 text-red-300 border-red-500/30",
 };
 
-// -----------------------------------------------------------------------------
-// Types
-// -----------------------------------------------------------------------------
-type ChannelKind = "text" | "voice" | "vault" | "broadcast";
+const channelIcon = (kind: HoaChannel["kind"]) =>
+  kind === "text" ? Hash : kind === "voice" ? Volume2 : kind === "vault" ? Lock : Radio;
 
-interface Channel {
-  id: string;
-  agencyId: string;
-  name: string;
-  kind: ChannelKind;
-  minClearance: Clearance;
-  compartments?: string[]; // e.g. ["NOFORN", "ORCON"]
-  topic?: string;
-}
+const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-interface Agency {
-  id: string;
-  code: string;   // 3-letter
-  name: string;
-  color: string;  // hex accent
-}
+// ═════════════════════════════════════════════════════════════════════════
+// Modals
+// ═════════════════════════════════════════════════════════════════════════
 
-interface Member {
-  id: string;
-  handle: string;
-  rank: string;
-  agencyId: string;
-  clearance: Clearance;
-  presence: "online" | "away" | "silent";
-}
-
-interface Message {
-  id: string;
-  channelId: string;
-  authorId: string;
-  ts: number;
-  body: string;
-  compartments?: string[];
-  sealed?: boolean; // vault-channel messages start sealed
-  pinned?: boolean;
-}
-
-interface AuditEntry {
-  id: string;
-  ts: number;
-  actor: string;
-  action: string;
-  target: string;
-  detail?: string;
-}
-
-// -----------------------------------------------------------------------------
-// Seed data (realistic scenarios — no live PII)
-// -----------------------------------------------------------------------------
-const AGENCIES: Agency[] = [
-  { id: "def",  code: "DEF", name: "Department of Defense",       color: "#4a6a4a" },
-  { id: "int",  code: "INT", name: "Intelligence Directorate",    color: "#8a6d3b" },
-  { id: "sta",  code: "STA", name: "State & Diplomacy",           color: "#3b5a8a" },
-  { id: "trs",  code: "TRS", name: "Treasury & Sanctions",        color: "#6b5a3b" },
-  { id: "hls",  code: "HLS", name: "Homeland & Continuity",       color: "#7a3b3b" },
-  { id: "jus",  code: "JUS", name: "Justice & Enforcement",       color: "#5a3b6b" },
-];
-
-const CHANNELS: Channel[] = [
-  // DEF
-  { id: "def-briefings",   agencyId: "def", name: "daily-briefings",       kind: "text",      minClearance: "CUI",         topic: "0600Z daily posture summary." },
-  { id: "def-jocwatch",    agencyId: "def", name: "joc-watch",             kind: "text",      minClearance: "SECRET",      topic: "Joint Operations Center watch floor." },
-  { id: "def-ops",         agencyId: "def", name: "ops-room-alpha",        kind: "voice",     minClearance: "SECRET" },
-  { id: "def-vault",       agencyId: "def", name: "sealed-orders",         kind: "vault",     minClearance: "TS",          compartments: ["NOFORN", "ORCON"] },
-  { id: "def-cast",        agencyId: "def", name: "emergency-broadcast",   kind: "broadcast", minClearance: "UNCLASS" },
-  // INT
-  { id: "int-osint",       agencyId: "int", name: "osint-desk",            kind: "text",      minClearance: "UNCLASS",     topic: "Zophiel OSINT feed handoff." },
-  { id: "int-fusion",      agencyId: "int", name: "fusion-cell",           kind: "text",      minClearance: "SECRET",      topic: "All-source fusion analysts." },
-  { id: "int-vault",       agencyId: "int", name: "hcs-vault",             kind: "vault",     minClearance: "TS",          compartments: ["HCS", "NOFORN"] },
-  { id: "int-scif",        agencyId: "int", name: "scif-voice",            kind: "voice",     minClearance: "TS" },
-  // STA
-  { id: "sta-cables",      agencyId: "sta", name: "cable-traffic",         kind: "text",      minClearance: "CONFIDENTIAL", topic: "Post-to-post cable summaries." },
-  { id: "sta-negot",       agencyId: "sta", name: "negotiations-room",     kind: "voice",     minClearance: "SECRET" },
-  // TRS
-  { id: "trs-sanctions",   agencyId: "trs", name: "sanctions-desk",        kind: "text",      minClearance: "CUI",         topic: "OFAC-style designation drafts." },
-  { id: "trs-vault",       agencyId: "trs", name: "designation-vault",     kind: "vault",     minClearance: "SECRET" },
-  // HLS
-  { id: "hls-watch",       agencyId: "hls", name: "national-watch",        kind: "text",      minClearance: "CUI",         topic: "24/7 continuity watch floor." },
-  { id: "hls-cast",        agencyId: "hls", name: "public-alert",          kind: "broadcast", minClearance: "UNCLASS" },
-  // JUS
-  { id: "jus-cases",       agencyId: "jus", name: "case-coordination",     kind: "text",      minClearance: "CUI",         topic: "Multi-district case sync." },
-  { id: "jus-vault",       agencyId: "jus", name: "grand-jury-vault",      kind: "vault",     minClearance: "SECRET",      compartments: ["6E"] },
-];
-
-const MEMBERS: Member[] = [
-  { id: "op-01", handle: "Sovereign.Actual",  rank: "Sovereign",        agencyId: "def", clearance: "TS",           presence: "online" },
-  { id: "op-02", handle: "J3.Watch",          rank: "Watch Officer",    agencyId: "def", clearance: "SECRET",       presence: "online" },
-  { id: "op-03", handle: "Zophiel.Analyst",   rank: "Senior Analyst",   agencyId: "int", clearance: "TS",           presence: "online" },
-  { id: "op-04", handle: "Fusion.Lead",       rank: "Fusion Lead",      agencyId: "int", clearance: "SECRET",       presence: "away" },
-  { id: "op-05", handle: "Cable.Desk",        rank: "Diplomatic",       agencyId: "sta", clearance: "CONFIDENTIAL", presence: "online" },
-  { id: "op-06", handle: "Sanctions.Chief",   rank: "Designation Lead", agencyId: "trs", clearance: "SECRET",       presence: "silent" },
-  { id: "op-07", handle: "Continuity.Watch",  rank: "NWO",              agencyId: "hls", clearance: "SECRET",       presence: "online" },
-  { id: "op-08", handle: "Case.Coord",        rank: "Deputy AG",        agencyId: "jus", clearance: "SECRET",       presence: "online" },
-  { id: "op-09", handle: "OSINT.Junior",      rank: "Analyst I",        agencyId: "int", clearance: "CUI",          presence: "online" },
-];
-
-const SEED_MESSAGES: Message[] = [
-  { id: "m1", channelId: "def-briefings", authorId: "op-02", ts: Date.now() - 1000 * 60 * 42, body: "0600Z: three carrier groups on schedule, no new posture changes. All watch stations green.", pinned: true },
-  { id: "m2", channelId: "def-briefings", authorId: "op-01", ts: Date.now() - 1000 * 60 * 30, body: "Acknowledge. Push AXRLEN 72h forecast to fusion-cell before 1200Z." },
-  { id: "m3", channelId: "int-osint",     authorId: "op-09", ts: Date.now() - 1000 * 60 * 22, body: "Zophiel picked up 41 new mentions on the northern-border logistics query. Veracity median 0.71. Handing to fusion." },
-  { id: "m4", channelId: "int-fusion",    authorId: "op-03", ts: Date.now() - 1000 * 60 * 18, body: "Correlated with sanctions-desk shipment manifest. Recommend a SECRET-level assessment before end of day." },
-  { id: "m5", channelId: "sta-cables",    authorId: "op-05", ts: Date.now() - 1000 * 60 * 12, body: "Cable EMBASSY/2091 drafted. Awaiting sig from State POL/MIL before release." },
-  { id: "m6", channelId: "trs-sanctions", authorId: "op-06", ts: Date.now() - 1000 * 60 * 9,  body: "Three shell entities queued for designation review. Vault entry created for evidentiary bundle." },
-  { id: "m7", channelId: "hls-watch",     authorId: "op-07", ts: Date.now() - 1000 * 60 * 5,  body: "Continuity watch: no domestic red-flag. Weather advisory posted to public-alert broadcast." },
-  { id: "m8", channelId: "jus-cases",     authorId: "op-08", ts: Date.now() - 1000 * 60 * 3,  body: "Multi-district sync at 1500Z. Case-coord channel will host." },
-  { id: "m9", channelId: "def-vault",     authorId: "op-01", ts: Date.now() - 1000 * 60 * 55, body: "[SEALED] Directive 2026-07-09 alpha. Handling: NOFORN / ORCON. Unseal only in-role.", sealed: true, compartments: ["NOFORN","ORCON"] },
-  { id: "m10", channelId: "int-vault",    authorId: "op-03", ts: Date.now() - 1000 * 60 * 48, body: "[SEALED] HCS bundle rev 4. Contains raw collection references. Unseal in briefing only.", sealed: true, compartments: ["HCS","NOFORN"] },
-];
-
-// -----------------------------------------------------------------------------
-// Persistence
-// -----------------------------------------------------------------------------
-const STORAGE_KEY = "asherin.gov.dashboard.v1";
-
-interface Persisted {
-  messages: Message[];
-  audit: AuditEntry[];
-  operatorId: string;
-  activeChannelId: string;
-  banner: Clearance;
-  activeSuite?: SuiteId | null;
-}
-
-const loadState = (): Persisted => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Persisted;
-      if (parsed?.messages && parsed?.audit) return { activeSuite: null, ...parsed };
-    }
-  } catch { /* ignore */ }
-  return {
-    messages: SEED_MESSAGES,
-    audit: [
-      { id: "a1", ts: Date.now() - 1000 * 60 * 60, actor: "SYSTEM", action: "DECK_INITIALIZED", target: "asherin.gov/dashboard" },
-    ],
-    operatorId: "op-01",
-    activeChannelId: "def-briefings",
-    banner: "SECRET",
-    activeSuite: null,
+function CreateServerModal({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
+  const [code, setCode] = useState(""); const [name, setName] = useState("");
+  const [country, setCountry] = useState(""); const [busy, setBusy] = useState(false);
+  if (!open) return null;
+  const submit = async () => {
+    if (!code.trim() || !name.trim()) return;
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("hoa-invite", {
+        body: { action: "create_server", code: code.trim(), name: name.trim(), country: country.trim() || null },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Sovereign server ${code.toUpperCase()} online`);
+      onCreated(); onClose();
+    } catch (e: any) { toast.error(e?.message ?? "create failed"); }
+    finally { setBusy(false); }
   };
-};
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="w-full max-w-md rounded-xl border border-border/30 bg-black/85 p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          <div className="text-sm font-light tracking-widest uppercase">Establish sovereign server</div>
+        </div>
+        <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
+          A country server. You become owner (TS clearance). Every message here is mirrored into the #houseofasher mothership so Aureon retains global signal.
+        </p>
+        <div className="space-y-2">
+          <label className="text-[10px] tracking-widest uppercase text-muted-foreground">Country code (3–8 chars)</label>
+          <input value={code} onChange={e => setCode(e.target.value.toUpperCase().slice(0,8))} placeholder="USA / JPN / DEU"
+            className="w-full bg-black/40 border border-border/30 rounded-md px-3 py-2 text-sm outline-none focus:border-foreground/50 uppercase tracking-widest" />
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] tracking-widest uppercase text-muted-foreground">Server name</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="United States Command"
+            className="w-full bg-black/40 border border-border/30 rounded-md px-3 py-2 text-sm outline-none focus:border-foreground/50" />
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] tracking-widest uppercase text-muted-foreground">Country (optional)</label>
+          <input value={country} onChange={e => setCountry(e.target.value)} placeholder="United States"
+            className="w-full bg-black/40 border border-border/30 rounded-md px-3 py-2 text-sm outline-none focus:border-foreground/50" />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button onClick={onClose} className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-border/30 rounded-md text-muted-foreground hover:text-foreground">Cancel</button>
+          <button onClick={submit} disabled={busy || !code.trim() || !name.trim()} className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-foreground/50 rounded-md hover:bg-foreground/10 disabled:opacity-40">
+            {busy ? <Loader2 className="h-3 w-3 animate-spin inline" /> : "Establish"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-const saveState = (s: Persisted) => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* ignore */ }
-};
+function InviteModal({ open, onClose, serverId, canInvite }: { open: boolean; onClose: () => void; serverId: string | null; canInvite: boolean }) {
+  const [code, setCode] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [roleGrant, setRoleGrant] = useState<"operator"|"analyst"|"guest">("operator");
+  const [clearanceGrant, setClearanceGrant] = useState(1);
+  const [maxUses, setMaxUses] = useState(1);
+  const [mirror, setMirror] = useState(true);
+  if (!open) return null;
 
-// -----------------------------------------------------------------------------
-// Utilities
-// -----------------------------------------------------------------------------
-const fmtTime = (ts: number) => {
-  const d = new Date(ts);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-};
+  const create = async () => {
+    if (!serverId) return;
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("hoa-invite", {
+        body: { action: "create", serverId, roleGrant, clearanceGrant, maxUses, mirrorMothership: mirror },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setCode(data.invite.code);
+    } catch (e: any) { toast.error(e?.message ?? "invite failed"); }
+    finally { setBusy(false); }
+  };
 
-const channelIcon = (kind: ChannelKind) => {
-  switch (kind) {
-    case "text":      return Hash;
-    case "voice":     return Volume2;
-    case "vault":     return Lock;
-    case "broadcast": return Radio;
-  }
-};
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="w-full max-w-md rounded-xl border border-border/30 bg-black/85 p-6 space-y-4">
+        <div className="flex items-center gap-2"><Users className="h-4 w-4" /><div className="text-sm font-light tracking-widest uppercase">Invite operator</div></div>
+        {!canInvite ? (
+          <p className="text-xs text-red-300">Only owners and operators can mint invites for this server.</p>
+        ) : !code ? (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] tracking-widest uppercase text-muted-foreground">Role</label>
+                <select value={roleGrant} onChange={e => setRoleGrant(e.target.value as any)} className="w-full mt-1 bg-black/40 border border-border/30 rounded-md px-2 py-1.5 text-xs">
+                  <option value="operator">Operator</option>
+                  <option value="analyst">Analyst</option>
+                  <option value="guest">Guest</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] tracking-widest uppercase text-muted-foreground">Clearance</label>
+                <select value={clearanceGrant} onChange={e => setClearanceGrant(Number(e.target.value))} className="w-full mt-1 bg-black/40 border border-border/30 rounded-md px-2 py-1.5 text-xs">
+                  {CLEARANCE_LABELS.map((l, i) => <option key={i} value={i}>{l}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] tracking-widest uppercase text-muted-foreground">Max uses</label>
+                <input type="number" min={1} max={500} value={maxUses} onChange={e => setMaxUses(Math.max(1, +e.target.value))} className="w-full mt-1 bg-black/40 border border-border/30 rounded-md px-2 py-1.5 text-xs" />
+              </div>
+              <label className="flex items-end gap-2 text-[11px] text-muted-foreground/80">
+                <input type="checkbox" checked={mirror} onChange={e => setMirror(e.target.checked)} />
+                Mirror to #houseofasher
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={onClose} className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-border/30 rounded-md text-muted-foreground">Cancel</button>
+              <button onClick={create} disabled={busy} className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-foreground/50 rounded-md hover:bg-foreground/10 disabled:opacity-40">
+                {busy ? <Loader2 className="h-3 w-3 animate-spin inline" /> : "Mint Invite"}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-3">
+            <div className="text-[11px] text-muted-foreground/80">Share this code — the recipient redeems it in the deck's Join dialog.</div>
+            <div className="flex items-center gap-2 rounded-md border border-foreground/30 bg-foreground/5 px-3 py-3 font-mono text-lg tracking-widest">
+              {code}
+              <button onClick={() => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1500); }} className="ml-auto text-muted-foreground hover:text-foreground">
+                {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+              </button>
+            </div>
+            <div className="flex justify-end">
+              <button onClick={onClose} className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-border/30 rounded-md">Done</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
-// -----------------------------------------------------------------------------
-// Component
-// -----------------------------------------------------------------------------
+function JoinModal({ open, onClose, onJoined }: { open: boolean; onClose: () => void; onJoined: () => void }) {
+  const [code, setCode] = useState(""); const [handle, setHandle] = useState(""); const [busy, setBusy] = useState(false);
+  if (!open) return null;
+  const submit = async () => {
+    if (!code.trim()) return;
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("hoa-invite", { body: { action: "accept", code: code.trim(), handle: handle.trim() } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Joined ${data.server?.name ?? "server"} · ${rankToLabel(data.clearance)}`);
+      onJoined(); onClose();
+    } catch (e: any) { toast.error(e?.message ?? "join failed"); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="w-full max-w-md rounded-xl border border-border/30 bg-black/85 p-6 space-y-4">
+        <div className="flex items-center gap-2"><LogIn className="h-4 w-4" /><div className="text-sm font-light tracking-widest uppercase">Redeem invite</div></div>
+        <div className="space-y-2">
+          <label className="text-[10px] tracking-widest uppercase text-muted-foreground">Invite code</label>
+          <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="XXXXXXXXXX"
+            className="w-full bg-black/40 border border-border/30 rounded-md px-3 py-2 text-sm outline-none focus:border-foreground/50 font-mono tracking-widest" />
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] tracking-widest uppercase text-muted-foreground">Handle (optional)</label>
+          <input value={handle} onChange={e => setHandle(e.target.value)} placeholder="Fusion.Lead"
+            className="w-full bg-black/40 border border-border/30 rounded-md px-3 py-2 text-sm outline-none focus:border-foreground/50" />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button onClick={onClose} className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-border/30 rounded-md text-muted-foreground">Cancel</button>
+          <button onClick={submit} disabled={busy || !code.trim()} className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-foreground/50 rounded-md hover:bg-foreground/10 disabled:opacity-40">
+            {busy ? <Loader2 className="h-3 w-3 animate-spin inline" /> : "Redeem"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// Main deck
+// ═════════════════════════════════════════════════════════════════════════
+
 const AsherinGovDashboard = () => {
-  const [state, setState] = useState<Persisted>(loadState);
+  const { user, loading: authLoading } = useAuth();
+  const nav = useNavigate();
+  const deck = useHoaDeck();
+
   const [draft, setDraft] = useState("");
   const [search, setSearch] = useState("");
   const [showAudit, setShowAudit] = useState(false);
   const [unsealed, setUnsealed] = useState<Set<string>>(new Set());
   const [membersOpen, setMembersOpen] = useState(true);
+  const [activeSuite, setActiveSuite] = useState<SuiteId | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [showJoin,   setShowJoin  ] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const wallpaper = getWallpaperSrc("aureon");
-  const operator = MEMBERS.find(m => m.id === state.operatorId)!;
-  const activeChannel = CHANNELS.find(c => c.id === state.activeChannelId)!;
-  const activeAgency = AGENCIES.find(a => a.id === activeChannel.agencyId)!;
 
   useEffect(() => {
     document.title = "Command Deck · asherin.gov";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Sovereign command deck: agency channels, clearance-gated rooms, encrypted vaults, immutable audit ledger.");
-    // Also inject noindex so this dashboard never surfaces publicly.
+    if (meta) meta.setAttribute("content", "Sovereign command deck: live country servers, clearance-gated channels, encrypted vaults, immutable audit ledger, Aureon suite runtime.");
     let robots = document.querySelector('meta[name="robots"]');
-    if (!robots) {
-      robots = document.createElement("meta");
-      robots.setAttribute("name", "robots");
-      document.head.appendChild(robots);
-    }
-    robots.setAttribute("content", "noindex, nofollow, noarchive");
+    if (!robots) { robots = document.createElement("meta"); robots.setAttribute("name","robots"); document.head.appendChild(robots); }
+    robots.setAttribute("content","noindex, nofollow, noarchive");
   }, []);
-
-  useEffect(() => { saveState(state); }, [state]);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [state.activeChannelId, state.messages.length]);
+  }, [deck.activeChannel?.id, deck.messages.length]);
 
-  const pushAudit = (action: string, target: string, detail?: string) => {
-    setState(s => ({
-      ...s,
-      audit: [
-        { id: crypto.randomUUID(), ts: Date.now(), actor: operator.handle, action, target, detail },
-        ...s.audit,
-      ].slice(0, 500),
-    }));
+  // ---------------- gate: signed out ----------------
+  if (!authLoading && !user) {
+    return (
+      <div className="relative min-h-screen w-full flex items-center justify-center text-foreground overflow-hidden">
+        <div className="fixed inset-0 -z-20 bg-cover bg-center" style={{ backgroundImage: `url(${wallpaper})` }} aria-hidden />
+        <div className="fixed inset-0 -z-10 bg-black/80" aria-hidden />
+        <div className="max-w-md text-center p-8 rounded-xl border border-border/30 bg-black/60 space-y-4">
+          <Shield className="h-8 w-8 mx-auto text-foreground/80" />
+          <div className="text-lg font-light tracking-widest uppercase">Sovereign Command Deck</div>
+          <p className="text-sm font-light text-muted-foreground leading-relaxed">
+            Sign in to reach your country's server. Members of the #houseofasher mothership see every server globally.
+          </p>
+          <button onClick={() => nav("/auth?next=/asherin-gov/dashboard")} className="px-4 py-2 text-xs tracking-widest uppercase border border-foreground/50 rounded-md hover:bg-foreground/10">
+            Authenticate
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const clearanceLabel = deck.myMembership ? rankToLabel(deck.myMembership.clearance_rank) : "UNCLASS";
+  const banner = deck.activeServer?.is_mothership ? "TS" : clearanceLabel;
+  const canInvite = deck.myMembership && ["owner","operator"].includes(deck.myMembership.role);
+
+  // Filter channels & members client-side (RLS already gate reads server-side)
+  const activeChannel = deck.activeChannel;
+  const visibleChannels = deck.channels;
+  const activeServerMembers = deck.members.filter(m => m.server_id === deck.activeServer?.id);
+  const channelMessages = deck.messages
+    .filter(m => m.channel_id === activeChannel?.id)
+    .filter(m => !search.trim() || m.body.toLowerCase().includes(search.toLowerCase()));
+
+  const handleSend = async () => {
+    if (!draft.trim() || !activeChannel) return;
+    if (!deck.canAccess(activeChannel)) return;
+    try { await deck.sendMessage(draft); setDraft(""); }
+    catch (e: any) { toast.error(e?.message ?? "send failed"); }
   };
 
-  const canAccess = (c: Channel) =>
-    clearanceRank(operator.clearance) >= clearanceRank(c.minClearance);
-
-  const visibleChannels = useMemo(
-    () => CHANNELS.filter(c => c.agencyId === activeAgency.id && canAccess(c)),
-    [activeAgency.id, operator.clearance],
-  );
-
-  const channelMessages = useMemo(() => {
-    const list = state.messages.filter(m => m.channelId === state.activeChannelId);
-    if (!search.trim()) return list;
-    const q = search.toLowerCase();
-    return list.filter(m => m.body.toLowerCase().includes(q));
-  }, [state.messages, state.activeChannelId, search]);
-
-  const agencyMembers = MEMBERS.filter(m => m.agencyId === activeAgency.id);
-
-  const handleSend = () => {
-    const body = draft.trim();
-    if (!body || !canAccess(activeChannel)) return;
-    if (activeChannel.kind === "broadcast" && operator.clearance !== "TS" && operator.rank !== "Sovereign") {
-      pushAudit("BROADCAST_DENIED", activeChannel.name, "operator lacks broadcast authority");
-      return;
-    }
-    const msg: Message = {
-      id: crypto.randomUUID(),
-      channelId: activeChannel.id,
-      authorId: operator.id,
-      ts: Date.now(),
-      body,
-      compartments: activeChannel.compartments,
-      sealed: activeChannel.kind === "vault",
-      pinned: activeChannel.kind === "broadcast",
-    };
-    setState(s => ({ ...s, messages: [...s.messages, msg] }));
-    pushAudit(activeChannel.kind === "broadcast" ? "BROADCAST_SENT" : "MSG_SENT", activeChannel.name);
-    setDraft("");
+  const handleUnseal = async (msgId: string) => {
+    setUnsealed(p => new Set(p).add(msgId));
+    await deck.pushAudit("VAULT_UNSEALED", activeChannel?.name ?? "?", `msg=${msgId.slice(0,8)}`);
   };
 
-  const handleUnseal = (m: Message) => {
-    setUnsealed(prev => new Set(prev).add(m.id));
-    pushAudit("VAULT_UNSEALED", activeChannel.name, `msg=${m.id.slice(0,8)}`);
-  };
-
-  const switchAgency = (a: Agency) => {
-    const firstVisible = CHANNELS.find(c => c.agencyId === a.id && canAccess(c));
-    if (firstVisible) {
-      setState(s => ({ ...s, activeChannelId: firstVisible.id, activeSuite: null }));
-      pushAudit("AGENCY_ENTER", a.code);
-    }
-  };
-
-  const switchChannel = (c: Channel) => {
-    setState(s => ({ ...s, activeChannelId: c.id, activeSuite: null }));
-    pushAudit("CHANNEL_ENTER", c.name);
-  };
-
-  const openSuite = (id: SuiteId) => {
+  const openSuite = async (id: SuiteId) => {
     const suite = SUITES.find(s => s.id === id);
     if (!suite) return;
-    if (clearanceRank(operator.clearance) < suite.minClearanceRank) {
-      pushAudit("SUITE_DENIED", suite.label, "insufficient clearance");
+    if ((deck.myMembership?.clearance_rank ?? -1) < suite.minClearanceRank) {
+      await deck.pushAudit("SUITE_DENIED", suite.label, "insufficient clearance");
+      toast.error("Clearance below required level for this suite.");
       return;
     }
-    setState(s => ({ ...s, activeSuite: id }));
-    pushAudit("SUITE_ENTER", suite.label);
-  };
-
-  const exitSuite = () => {
-    setState(s => ({ ...s, activeSuite: null }));
-  };
-
-  const switchOperator = (id: string) => {
-    const next = MEMBERS.find(m => m.id === id);
-    if (!next) return;
-    setState(s => ({ ...s, operatorId: id }));
-    // Reset active channel if operator can no longer see current one
-    const current = CHANNELS.find(c => c.id === state.activeChannelId);
-    if (current && clearanceRank(next.clearance) < clearanceRank(current.minClearance)) {
-      const first = CHANNELS.find(c => c.agencyId === current.agencyId && clearanceRank(next.clearance) >= clearanceRank(c.minClearance));
-      if (first) setState(s => ({ ...s, activeChannelId: first.id, operatorId: id }));
-    }
-    pushAudit("OPERATOR_SWITCH", next.handle);
+    setActiveSuite(id);
+    await deck.pushAudit("SUITE_ENTER", suite.label);
   };
 
   return (
     <div className="relative min-h-screen w-full text-foreground overflow-hidden">
-      {/* Aureon wallpaper background */}
-      <div
-        className="fixed inset-0 -z-20 bg-cover bg-center"
-        style={{ backgroundImage: `url(${wallpaper})` }}
-        aria-hidden
-      />
+      <div className="fixed inset-0 -z-20 bg-cover bg-center" style={{ backgroundImage: `url(${wallpaper})` }} aria-hidden />
       <div className="fixed inset-0 -z-10 bg-black/80 backdrop-blur-sm" aria-hidden />
 
       {/* Classification banner (top) */}
-      <div className={`sticky top-0 z-40 border-b text-center text-[10px] tracking-[0.35em] uppercase font-semibold py-1.5 ${CLEARANCE_COLOR[state.banner]}`}>
-        {state.banner === "TS" ? "TOP SECRET" : state.banner} // ASHERIN.GOV COMMAND DECK // HANDLE VIA APPROVED CHANNELS
+      <div className={`sticky top-0 z-40 border-b text-center text-[10px] tracking-[0.35em] uppercase font-semibold py-1.5 ${CLEARANCE_COLOR[banner] ?? CLEARANCE_COLOR.SECRET}`}>
+        {banner === "TS" ? "TOP SECRET" : banner} // ASHERIN.GOV COMMAND DECK // {deck.activeServer?.is_mothership ? "#HOUSEOFASHER MOTHERSHIP" : (deck.activeServer?.name ?? "NO SERVER")}
       </div>
 
       <div className="flex h-[calc(100vh-28px)]">
-        {/* AGENCY RAIL */}
-        <aside className="w-16 shrink-0 border-r border-border/20 bg-black/40 flex flex-col items-center py-3 gap-2">
+        {/* SERVER RAIL */}
+        <aside className="w-16 shrink-0 border-r border-border/20 bg-black/40 flex flex-col items-center py-3 gap-2 overflow-y-auto">
           <Link to="/asherin.gov" className="w-10 h-10 rounded-xl border border-border/30 bg-foreground/[0.03] flex items-center justify-center hover:bg-foreground/10 transition" title="Back to asherin.gov">
             <ChevronLeft className="h-4 w-4 text-muted-foreground" />
           </Link>
           <div className="w-8 h-px bg-border/30 my-1" />
-          {AGENCIES.map(a => {
-            const active = a.id === activeAgency.id;
+          {deck.servers.map(s => {
+            const active = s.id === deck.activeServer?.id;
             return (
-              <button
-                key={a.id}
-                onClick={() => switchAgency(a)}
+              <button key={s.id} onClick={() => { deck.switchServer(s.id); setActiveSuite(null); }}
                 className={`w-10 h-10 rounded-xl border flex items-center justify-center text-[10px] font-semibold tracking-widest transition relative
-                  ${active ? "border-foreground/60 bg-foreground/10 text-foreground" : "border-border/30 bg-foreground/[0.02] text-muted-foreground hover:text-foreground hover:border-border/60"}`}
-                title={a.name}
-                style={active ? { boxShadow: `inset 0 0 0 1px ${a.color}55` } : undefined}
-              >
-                {a.code}
+                  ${active ? "border-foreground/60 bg-foreground/10 text-foreground" : "border-border/30 bg-foreground/[0.02] text-muted-foreground hover:text-foreground hover:border-border/60"}
+                  ${s.is_mothership ? "ring-1 ring-amber-500/40" : ""}`}
+                title={`${s.name}${s.is_mothership ? " (mothership)" : ""}`}>
+                {s.is_mothership ? <Crown className="h-4 w-4 text-amber-400" /> : s.code.slice(0,3)}
                 {active && <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r bg-foreground" />}
               </button>
             );
           })}
+          <button onClick={() => setShowCreate(true)} className="w-10 h-10 rounded-xl border border-dashed border-border/40 text-muted-foreground hover:text-foreground hover:border-foreground/60" title="Establish sovereign server"><Plus className="h-4 w-4 mx-auto" /></button>
+          <button onClick={() => setShowJoin(true)} className="w-10 h-10 rounded-xl border border-dashed border-border/40 text-muted-foreground hover:text-foreground hover:border-foreground/60" title="Redeem invite"><LogIn className="h-4 w-4 mx-auto" /></button>
+
           <div className="w-8 h-px bg-border/30 my-1" />
           <div className="text-[8px] tracking-[0.25em] uppercase text-muted-foreground/60">SUITE</div>
           {SUITES.map(s => {
-            const active = state.activeSuite === s.id;
-            const gated = clearanceRank(operator.clearance) < s.minClearanceRank;
+            const active = activeSuite === s.id;
+            const gated = (deck.myMembership?.clearance_rank ?? -1) < s.minClearanceRank;
             return (
-              <button
-                key={s.id}
-                onClick={() => openSuite(s.id)}
-                disabled={gated}
-                className={`w-10 h-10 rounded-xl border flex items-center justify-center text-[9px] font-semibold tracking-widest transition relative
+              <button key={s.id} onClick={() => openSuite(s.id)} disabled={gated}
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center transition relative
                   ${active ? "border-foreground/60 bg-foreground/10 text-foreground" : "border-border/30 bg-foreground/[0.02] text-muted-foreground hover:text-foreground hover:border-border/60"}
-                  ${gated ? "opacity-30 cursor-not-allowed hover:text-muted-foreground" : ""}`}
-                title={`${s.label} — ${s.blurb}${gated ? " (clearance too low)" : ""}`}
-              >
+                  ${gated ? "opacity-30 cursor-not-allowed" : ""}`}
+                title={`${s.label} — ${s.blurb}${gated ? " (clearance too low)" : ""}`}>
                 <s.icon className="h-4 w-4" />
                 {active && <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r bg-foreground" />}
               </button>
@@ -419,67 +358,60 @@ const AsherinGovDashboard = () => {
 
         {/* CHANNEL RAIL */}
         <aside className="w-64 shrink-0 border-r border-border/20 bg-black/30 flex flex-col">
-          <div className="px-4 py-4 border-b border-border/20">
-            <div className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">{activeAgency.code}</div>
-            <div className="text-sm font-light text-foreground mt-0.5">{activeAgency.name}</div>
+          <div className="px-4 py-4 border-b border-border/20 flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">{deck.activeServer?.code ?? "—"}</div>
+              <div className="text-sm font-light text-foreground mt-0.5 truncate">{deck.activeServer?.name ?? "Select a server"}</div>
+            </div>
+            {canInvite && (
+              <button onClick={() => setShowInvite(true)} className="shrink-0 text-[9px] tracking-widest uppercase border border-border/30 rounded px-2 py-1 hover:bg-foreground/10">Invite</button>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-4">
-            {(["text","voice","vault","broadcast"] as ChannelKind[]).map(kind => {
+            {deck.loading && <div className="text-center text-xs text-muted-foreground py-8"><Loader2 className="h-3 w-3 animate-spin inline mr-1" /> Loading…</div>}
+            {(["text","voice","vault","broadcast"] as HoaChannel["kind"][]).map(kind => {
               const list = visibleChannels.filter(c => c.kind === kind);
               if (list.length === 0) return null;
-              const groupLabel = { text: "Channels", voice: "Rooms", vault: "Vaults", broadcast: "Broadcast" }[kind];
+              const label = { text: "Channels", voice: "Rooms", vault: "Vaults", broadcast: "Broadcast" }[kind];
               return (
                 <div key={kind}>
-                  <div className="px-2 pb-1 text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">{groupLabel}</div>
+                  <div className="px-2 pb-1 text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">{label}</div>
                   {list.map(c => {
                     const Icon = channelIcon(c.kind);
-                    const active = c.id === state.activeChannelId;
+                    const active = c.id === activeChannel?.id;
                     return (
-                      <button
-                        key={c.id}
-                        onClick={() => switchChannel(c)}
+                      <button key={c.id} onClick={() => { deck.switchChannel(c.id); setActiveSuite(null); }}
                         className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition
-                          ${active ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]"}`}
-                      >
+                          ${active ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]"}`}>
                         <Icon className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate font-light">{c.name}</span>
-                        <span className={`ml-auto text-[8px] px-1.5 py-0.5 rounded border ${CLEARANCE_COLOR[c.minClearance]}`}>{c.minClearance}</span>
+                        <span className={`ml-auto text-[8px] px-1.5 py-0.5 rounded border ${CLEARANCE_COLOR[rankToLabel(c.min_clearance)]}`}>{rankToLabel(c.min_clearance)}</span>
                       </button>
                     );
                   })}
                 </div>
               );
             })}
-            {/* Hidden-channel hint */}
-            {CHANNELS.filter(c => c.agencyId === activeAgency.id && !canAccess(c)).length > 0 && (
-              <div className="px-2 py-2 text-[10px] font-light text-muted-foreground/60 border border-dashed border-border/30 rounded-md">
-                {CHANNELS.filter(c => c.agencyId === activeAgency.id && !canAccess(c)).length} channel(s) hidden — clearance below required level.
+            {!deck.loading && visibleChannels.length === 0 && deck.activeServer && (
+              <div className="px-2 py-4 text-[10.5px] font-light text-muted-foreground/70 border border-dashed border-border/30 rounded-md text-center">
+                No channels visible at your clearance ({clearanceLabel}).
               </div>
             )}
           </div>
-          {/* Operator switcher (simulation aid) */}
           <div className="border-t border-border/20 p-3">
             <div className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60 mb-1.5">Acting as</div>
-            <select
-              value={operator.id}
-              onChange={e => switchOperator(e.target.value)}
-              className="w-full bg-black/40 border border-border/30 rounded-md text-xs font-light text-foreground px-2 py-1.5 outline-none focus:border-foreground/50"
-            >
-              {MEMBERS.map(m => (
-                <option key={m.id} value={m.id}>{m.handle} · {m.clearance}</option>
-              ))}
-            </select>
-            <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
-              <span className={`inline-block h-2 w-2 rounded-full ${operator.presence === "online" ? "bg-emerald-400" : operator.presence === "away" ? "bg-amber-400" : "bg-muted-foreground/50"}`} />
-              {operator.rank}
+            <div className="text-sm font-light text-foreground truncate">{deck.myMembership?.handle ?? user?.email?.split("@")[0] ?? "—"}</div>
+            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground/70">
+              <span className={`inline-block px-1.5 py-0.5 rounded border ${CLEARANCE_COLOR[clearanceLabel]}`}>{clearanceLabel}</span>
+              <span>{deck.myMembership?.rank_label ?? (deck.activeServer ? "Guest" : "—")}</span>
             </div>
           </div>
         </aside>
 
         {/* MAIN PANE */}
         <main className="flex-1 flex flex-col min-w-0">
-          {state.activeSuite ? (() => {
-            const suite = SUITES.find(s => s.id === state.activeSuite)!;
+          {activeSuite ? (() => {
+            const suite = SUITES.find(s => s.id === activeSuite)!;
             return (
               <>
                 <header className="border-b border-border/20 bg-black/20 px-5 py-3 flex items-center gap-3 min-w-0">
@@ -491,186 +423,159 @@ const AsherinGovDashboard = () => {
                     </div>
                     <div className="text-[11px] font-light text-muted-foreground/70 truncate">{suite.blurb}</div>
                   </div>
-                  <button
-                    onClick={exitSuite}
-                    className="ml-auto text-[10px] tracking-widest uppercase px-2 py-1.5 rounded-md border border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60 flex items-center gap-1"
-                  >
+                  <button onClick={() => setActiveSuite(null)} className="ml-auto text-[10px] tracking-widest uppercase px-2 py-1.5 rounded-md border border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60 flex items-center gap-1">
                     <X className="h-3 w-3" /> Exit Suite
                   </button>
                 </header>
                 <div className="flex-1 min-h-0 overflow-hidden">
-                  <GovSuiteMount suite={state.activeSuite!} operator={operator.handle} onAudit={pushAudit} />
+                  <GovSuiteMount suite={activeSuite} operator={deck.myMembership?.handle ?? user?.email ?? "operator"} onAudit={(a,t,d) => deck.pushAudit(a,t,d)} />
                 </div>
               </>
             );
-          })() : (<>
-          {/* Channel header */}
-          <header className="border-b border-border/20 bg-black/20 px-5 py-3 flex items-center gap-3 min-w-0">
-            {(() => { const Icon = channelIcon(activeChannel.kind); return <Icon className="h-4 w-4 text-muted-foreground shrink-0" />; })()}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-light text-foreground truncate">{activeChannel.name}</span>
-                <span className={`text-[9px] px-1.5 py-0.5 rounded border ${CLEARANCE_COLOR[activeChannel.minClearance]}`}>{activeChannel.minClearance}</span>
-                {activeChannel.compartments?.map(c => (
-                  <span key={c} className="text-[9px] px-1.5 py-0.5 rounded border border-red-500/30 bg-red-500/10 text-red-300 tracking-wider">{c}</span>
-                ))}
-              </div>
-              {activeChannel.topic && <div className="text-[11px] font-light text-muted-foreground/70 truncate">{activeChannel.topic}</div>}
-            </div>
-            <div className="ml-auto flex items-center gap-2">
-              <div className="relative">
-                <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Search this channel"
-                  className="bg-black/30 border border-border/30 rounded-md text-xs font-light text-foreground pl-7 pr-2 py-1.5 w-52 outline-none focus:border-foreground/50 placeholder:text-muted-foreground/50"
-                />
-              </div>
-              <button
-                onClick={() => setShowAudit(v => !v)}
-                className={`text-[10px] tracking-widest uppercase px-2 py-1.5 rounded-md border transition ${showAudit ? "border-foreground/60 bg-foreground/10 text-foreground" : "border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60"}`}
-              >
-                <ScrollText className="h-3.5 w-3.5 inline mr-1" />Audit
-              </button>
-              <button
-                onClick={() => setMembersOpen(v => !v)}
-                className={`text-[10px] tracking-widest uppercase px-2 py-1.5 rounded-md border transition ${membersOpen ? "border-foreground/60 bg-foreground/10 text-foreground" : "border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60"}`}
-              >
-                <Users className="h-3.5 w-3.5 inline mr-1" />{agencyMembers.length}
-              </button>
-            </div>
-          </header>
-
-          {/* Transcript */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-            {activeChannel.kind === "voice" && (
-              <div className="rounded-xl border border-border/30 bg-black/30 p-6 text-center">
-                <Volume2 className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
-                <div className="text-sm font-light text-foreground">Secure voice room</div>
-                <div className="text-[11px] text-muted-foreground/70 mt-1">This is a coordination-only surface. Voice routes over the sovereign SRTP mesh; join controls appear here once initiated.</div>
-                <button className="mt-4 px-4 py-2 text-xs tracking-widest uppercase border border-foreground/30 rounded-md hover:bg-foreground/10">Join Room</button>
-              </div>
-            )}
-            {activeChannel.kind !== "voice" && channelMessages.length === 0 && (
-              <div className="text-center text-xs font-light text-muted-foreground/60 py-16">No traffic in this channel yet.</div>
-            )}
-            {activeChannel.kind !== "voice" && channelMessages.map(m => {
-              const author = MEMBERS.find(u => u.id === m.authorId);
-              const sealed = m.sealed && !unsealed.has(m.id);
-              return (
-                <div key={m.id} className={`group flex gap-3 rounded-md px-2 py-1.5 hover:bg-foreground/[0.03] ${m.pinned ? "border-l-2 border-amber-500/60 pl-3" : ""}`}>
-                  <div className="w-8 h-8 shrink-0 rounded-md bg-foreground/[0.06] border border-border/30 flex items-center justify-center text-[10px] font-semibold text-foreground/80">
-                    {author?.handle.slice(0,2).toUpperCase()}
+          })() : activeChannel ? (
+            <>
+              <header className="border-b border-border/20 bg-black/20 px-5 py-3 flex items-center gap-3 min-w-0">
+                {(() => { const Icon = channelIcon(activeChannel.kind); return <Icon className="h-4 w-4 text-muted-foreground shrink-0" />; })()}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm font-light text-foreground truncate">{activeChannel.name}</span>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${CLEARANCE_COLOR[rankToLabel(activeChannel.min_clearance)]}`}>{rankToLabel(activeChannel.min_clearance)}</span>
+                    {activeChannel.compartments?.map(c => (
+                      <span key={c} className="text-[9px] px-1.5 py-0.5 rounded border border-red-500/30 bg-red-500/10 text-red-300 tracking-wider">{c}</span>
+                    ))}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-light text-foreground">{author?.handle ?? "unknown"}</span>
-                      {author?.rank === "Sovereign" && <Crown className="h-3 w-3 text-amber-400" />}
-                      <span className={`text-[9px] px-1 py-0.5 rounded border ${author ? CLEARANCE_COLOR[author.clearance] : ""}`}>{author?.clearance}</span>
-                      {m.pinned && <Pin className="h-3 w-3 text-amber-400" />}
-                      <span className="text-[10px] text-muted-foreground/60">{fmtTime(m.ts)}</span>
-                      {m.compartments?.map(c => (
-                        <span key={c} className="text-[9px] px-1 py-0.5 rounded border border-red-500/30 bg-red-500/10 text-red-300 tracking-wider">{c}</span>
-                      ))}
-                    </div>
-                    {sealed ? (
-                      <div className="mt-1 flex items-center gap-3 rounded-md border border-dashed border-red-500/40 bg-red-500/5 px-3 py-2">
-                        <Lock className="h-3.5 w-3.5 text-red-300 shrink-0" />
-                        <div className="text-[11px] font-light text-red-200/90">Message sealed. Unsealing will be recorded in the audit ledger.</div>
-                        <button
-                          onClick={() => handleUnseal(m)}
-                          className="ml-auto text-[10px] tracking-widest uppercase px-2 py-1 rounded border border-red-500/40 text-red-200 hover:bg-red-500/10"
-                        >
-                          <Eye className="h-3 w-3 inline mr-1" />Unseal
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="text-sm font-light text-foreground/90 leading-relaxed whitespace-pre-wrap">
-                        {m.body}
-                        {m.sealed && (
-                          <button
-                            onClick={() => setUnsealed(prev => { const n = new Set(prev); n.delete(m.id); return n; })}
-                            className="ml-2 inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 hover:text-foreground"
-                          >
-                            <EyeOff className="h-3 w-3" />reseal
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  {activeChannel.topic && <div className="text-[11px] font-light text-muted-foreground/70 truncate">{activeChannel.topic}</div>}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Composer */}
-          {activeChannel.kind !== "voice" && (
-            <div className="border-t border-border/20 bg-black/20 p-3">
-              {!canAccess(activeChannel) ? (
-                <div className="flex items-center gap-2 text-xs font-light text-red-300 border border-red-500/30 bg-red-500/5 rounded-md px-3 py-2">
-                  <AlertTriangle className="h-3.5 w-3.5" /> Insufficient clearance to post here.
-                </div>
-              ) : (
-                <div className="flex items-end gap-2">
-                  <div className="flex-1 rounded-md border border-border/30 bg-black/40 focus-within:border-foreground/50 transition">
-                    {activeChannel.kind === "broadcast" && (
-                      <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-amber-300 flex items-center gap-1.5">
-                        <Radio className="h-3 w-3" /> Emergency broadcast · pins across visible feeds
-                      </div>
-                    )}
-                    {activeChannel.kind === "vault" && (
-                      <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-red-300 flex items-center gap-1.5">
-                        <Lock className="h-3 w-3" /> Vault channel · outbound sealed by default
-                      </div>
-                    )}
-                    <textarea
-                      value={draft}
-                      onChange={e => setDraft(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                      rows={2}
-                      placeholder={`Transmit to #${activeChannel.name}`}
-                      className="w-full bg-transparent px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none resize-none"
-                    />
+                <div className="ml-auto flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search this channel"
+                      className="bg-black/30 border border-border/30 rounded-md text-xs font-light text-foreground pl-7 pr-2 py-1.5 w-52 outline-none focus:border-foreground/50 placeholder:text-muted-foreground/50" />
                   </div>
-                  <button
-                    onClick={handleSend}
-                    disabled={!draft.trim()}
-                    className="h-10 w-10 rounded-md border border-foreground/40 bg-foreground/5 hover:bg-foreground/15 disabled:opacity-40 flex items-center justify-center"
-                    aria-label="Send"
-                  >
-                    <Send className="h-4 w-4" />
+                  <button onClick={() => setShowAudit(v => !v)} className={`text-[10px] tracking-widest uppercase px-2 py-1.5 rounded-md border transition ${showAudit ? "border-foreground/60 bg-foreground/10 text-foreground" : "border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60"}`}>
+                    <ScrollText className="h-3.5 w-3.5 inline mr-1" />Audit
+                  </button>
+                  <button onClick={() => setMembersOpen(v => !v)} className={`text-[10px] tracking-widest uppercase px-2 py-1.5 rounded-md border transition ${membersOpen ? "border-foreground/60 bg-foreground/10 text-foreground" : "border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60"}`}>
+                    <Users className="h-3.5 w-3.5 inline mr-1" />{activeServerMembers.length}
                   </button>
                 </div>
+              </header>
+
+              <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+                {activeChannel.kind === "voice" && (
+                  <div className="rounded-xl border border-border/30 bg-black/30 p-6 text-center">
+                    <Volume2 className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
+                    <div className="text-sm font-light text-foreground">Secure voice room</div>
+                    <div className="text-[11px] text-muted-foreground/70 mt-1">Coordination surface. Voice routes over the sovereign SRTP mesh; join controls appear here once initiated.</div>
+                  </div>
+                )}
+                {activeChannel.kind !== "voice" && channelMessages.length === 0 && (
+                  <div className="text-center text-xs font-light text-muted-foreground/60 py-16">No traffic in this channel yet.</div>
+                )}
+                {activeChannel.kind !== "voice" && channelMessages.map(m => {
+                  const author = activeServerMembers.find(u => u.user_id === m.author_id);
+                  const sealed = m.sealed && !unsealed.has(m.id);
+                  const authorClearance = author ? rankToLabel(author.clearance_rank) : "UNCLASS";
+                  return (
+                    <div key={m.id} className={`group flex gap-3 rounded-md px-2 py-1.5 hover:bg-foreground/[0.03] ${m.pinned ? "border-l-2 border-amber-500/60 pl-3" : ""}`}>
+                      <div className="w-8 h-8 shrink-0 rounded-md bg-foreground/[0.06] border border-border/30 flex items-center justify-center text-[10px] font-semibold text-foreground/80">
+                        {m.author_handle.slice(0,2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-light text-foreground">{m.author_handle}</span>
+                          {author?.role === "houseofasher" && <Crown className="h-3 w-3 text-amber-400" />}
+                          {author && <span className={`text-[9px] px-1 py-0.5 rounded border ${CLEARANCE_COLOR[authorClearance]}`}>{authorClearance}</span>}
+                          {m.pinned && <Pin className="h-3 w-3 text-amber-400" />}
+                          <span className="text-[10px] text-muted-foreground/60">{fmtTime(m.created_at)}</span>
+                          {m.compartments?.map(c => (
+                            <span key={c} className="text-[9px] px-1 py-0.5 rounded border border-red-500/30 bg-red-500/10 text-red-300 tracking-wider">{c}</span>
+                          ))}
+                        </div>
+                        {sealed ? (
+                          <div className="mt-1 flex items-center gap-3 rounded-md border border-dashed border-red-500/40 bg-red-500/5 px-3 py-2">
+                            <Lock className="h-3.5 w-3.5 text-red-300 shrink-0" />
+                            <div className="text-[11px] font-light text-red-200/90">Message sealed. Unsealing is written to the audit ledger.</div>
+                            <button onClick={() => handleUnseal(m.id)} className="ml-auto text-[10px] tracking-widest uppercase px-2 py-1 rounded border border-red-500/40 text-red-200 hover:bg-red-500/10">
+                              <Eye className="h-3 w-3 inline mr-1" />Unseal
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-sm font-light text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                            {m.body}
+                            {m.sealed && (
+                              <button onClick={() => setUnsealed(prev => { const n = new Set(prev); n.delete(m.id); return n; })} className="ml-2 inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 hover:text-foreground">
+                                <EyeOff className="h-3 w-3" />reseal
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {activeChannel.kind !== "voice" && (
+                <div className="border-t border-border/20 bg-black/20 p-3">
+                  {!deck.canAccess(activeChannel) ? (
+                    <div className="flex items-center gap-2 text-xs font-light text-red-300 border border-red-500/30 bg-red-500/5 rounded-md px-3 py-2">
+                      <AlertTriangle className="h-3.5 w-3.5" /> Insufficient clearance to post here.
+                    </div>
+                  ) : (
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1 rounded-md border border-border/30 bg-black/40 focus-within:border-foreground/50 transition">
+                        {activeChannel.kind === "broadcast" && (
+                          <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-amber-300 flex items-center gap-1.5"><Radio className="h-3 w-3" /> Emergency broadcast · pins across visible feeds</div>
+                        )}
+                        {activeChannel.kind === "vault" && (
+                          <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-red-300 flex items-center gap-1.5"><Lock className="h-3 w-3" /> Vault channel · outbound sealed by default · body stripped from Aureon feed until published</div>
+                        )}
+                        <textarea value={draft} onChange={e => setDraft(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
+                          rows={2} placeholder={`Transmit to #${activeChannel.name}`}
+                          className="w-full bg-transparent px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none resize-none" />
+                      </div>
+                      <button onClick={handleSend} disabled={!draft.trim()} className="h-10 w-10 rounded-md border border-foreground/40 bg-foreground/5 hover:bg-foreground/15 disabled:opacity-40 flex items-center justify-center" aria-label="Send">
+                        <Send className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="mt-1.5 text-[10px] text-muted-foreground/60 flex items-center gap-3">
+                    <span>Enter to send · Shift+Enter for newline</span>
+                    <span className="ml-auto">All traffic mirrored to #houseofasher and audit-logged.</span>
+                  </div>
+                </div>
               )}
-              <div className="mt-1.5 text-[10px] text-muted-foreground/60 flex items-center gap-3">
-                <span>Enter to send · Shift+Enter for newline</span>
-                <span className="ml-auto">Every transmission is audit-logged.</span>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center max-w-md p-6 space-y-3">
+                <Shield className="h-8 w-8 mx-auto text-foreground/60" />
+                <div className="text-sm font-light tracking-widest uppercase">No server selected</div>
+                <p className="text-xs text-muted-foreground/80 leading-relaxed">Establish a sovereign server or redeem an invite. Every message you write here is mirrored to the #houseofasher mothership so the Aureon brain retains global signal.</p>
+                <div className="flex gap-2 justify-center pt-2">
+                  <button onClick={() => setShowCreate(true)} className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-foreground/50 rounded-md hover:bg-foreground/10">Establish</button>
+                  <button onClick={() => setShowJoin(true)} className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-border/30 rounded-md">Redeem invite</button>
+                </div>
               </div>
             </div>
           )}
-          </>)}
         </main>
 
         {/* MEMBERS RAIL */}
-        {membersOpen && (
+        {membersOpen && !activeSuite && deck.activeServer && (
           <aside className="w-64 shrink-0 border-l border-border/20 bg-black/30 flex flex-col">
-            <div className="px-4 py-3 border-b border-border/20 text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Members · {agencyMembers.length}</div>
+            <div className="px-4 py-3 border-b border-border/20 text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Members · {activeServerMembers.length}</div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {agencyMembers.map(m => (
+              {activeServerMembers.map(m => (
                 <div key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-foreground/[0.04]">
-                  <div className="relative">
-                    <div className="w-7 h-7 rounded-md bg-foreground/[0.06] border border-border/30 flex items-center justify-center text-[10px] font-semibold">{m.handle.slice(0,2).toUpperCase()}</div>
-                    <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-black ${m.presence === "online" ? "bg-emerald-400" : m.presence === "away" ? "bg-amber-400" : "bg-muted-foreground/60"}`} />
-                  </div>
+                  <div className="w-7 h-7 rounded-md bg-foreground/[0.06] border border-border/30 flex items-center justify-center text-[10px] font-semibold">{m.handle.slice(0,2).toUpperCase()}</div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-light text-foreground truncate flex items-center gap-1">
-                      {m.handle}
-                      {m.rank === "Sovereign" && <Crown className="h-3 w-3 text-amber-400" />}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground/60 truncate">{m.rank}</div>
+                    <div className="text-xs font-light text-foreground truncate flex items-center gap-1">{m.handle}{m.role === "houseofasher" && <Crown className="h-3 w-3 text-amber-400" />}</div>
+                    <div className="text-[10px] text-muted-foreground/60 truncate">{m.rank_label}</div>
                   </div>
-                  <span className={`text-[8px] px-1 py-0.5 rounded border ${CLEARANCE_COLOR[m.clearance]}`}>{m.clearance}</span>
+                  <span className={`text-[8px] px-1 py-0.5 rounded border ${CLEARANCE_COLOR[rankToLabel(m.clearance_rank)]}`}>{rankToLabel(m.clearance_rank)}</span>
                 </div>
               ))}
             </div>
@@ -678,34 +583,38 @@ const AsherinGovDashboard = () => {
         )}
 
         {/* AUDIT DRAWER */}
-        {showAudit && (
+        {showAudit && !activeSuite && (
           <aside className="w-80 shrink-0 border-l border-border/20 bg-black/50 flex flex-col">
             <div className="px-4 py-3 border-b border-border/20 flex items-center gap-2">
               <ScrollText className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Immutable Audit Ledger</span>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {state.audit.map(e => (
+              {deck.audit.map(e => (
                 <div key={e.id} className="rounded-md border border-border/20 bg-black/30 px-3 py-2">
                   <div className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
                     <Circle className="h-1.5 w-1.5 fill-foreground/60 text-foreground/60" />
-                    {new Date(e.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                    {new Date(e.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                     <span className="ml-auto text-foreground/80 tracking-widest">{e.action}</span>
                   </div>
-                  <div className="mt-1 text-xs font-light text-foreground/90">{e.actor} <span className="text-muted-foreground">→</span> {e.target}</div>
+                  <div className="mt-1 text-xs font-light text-foreground/90">{e.actor_handle ?? "system"} <span className="text-muted-foreground">→</span> {e.target ?? "—"}</div>
                   {e.detail && <div className="text-[10px] text-muted-foreground/70 mt-0.5">{e.detail}</div>}
                 </div>
               ))}
-              {state.audit.length === 0 && <div className="text-center text-[11px] text-muted-foreground/60 py-8">No entries.</div>}
+              {deck.audit.length === 0 && <div className="text-center text-[11px] text-muted-foreground/60 py-8">No entries.</div>}
             </div>
           </aside>
         )}
       </div>
 
       {/* Classification banner (bottom) */}
-      <div className={`fixed bottom-0 left-0 right-0 z-40 border-t text-center text-[10px] tracking-[0.35em] uppercase font-semibold py-1 ${CLEARANCE_COLOR[state.banner]}`}>
-        {state.banner === "TS" ? "TOP SECRET" : state.banner}
+      <div className={`fixed bottom-0 left-0 right-0 z-40 border-t text-center text-[10px] tracking-[0.35em] uppercase font-semibold py-1 ${CLEARANCE_COLOR[banner] ?? CLEARANCE_COLOR.SECRET}`}>
+        {banner === "TS" ? "TOP SECRET" : banner}
       </div>
+
+      <CreateServerModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={deck.refresh} />
+      <InviteModal open={showInvite} onClose={() => setShowInvite(false)} serverId={deck.activeServer?.id ?? null} canInvite={!!canInvite} />
+      <JoinModal open={showJoin} onClose={() => setShowJoin(false)} onJoined={deck.refresh} />
     </div>
   );
 };
