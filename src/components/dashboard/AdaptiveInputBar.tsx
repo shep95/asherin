@@ -643,7 +643,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
             </button>
           )}
 
-          <div className="flex-1 relative min-w-0">
+          <div className="relative min-w-0 order-[-1] w-full sm:order-none sm:w-auto sm:flex-1">
             <SlashCommandPalette
               input={value}
               visible={value.startsWith("/") && !value.includes("\n")}
