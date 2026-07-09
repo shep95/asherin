@@ -115,6 +115,9 @@ const Header = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/valuation" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Valuation</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/asherin.gov" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Asherin · Government</Link>
+                </DropdownMenuItem>
 
                 {isAdminEmail(user?.email) && (
                   <>
@@ -223,6 +226,7 @@ const Header = () => {
                 <Link to="/hosrad" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">HOSRAD · Research & Development</Link>
                 <Link to="/investors" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Investors</Link>
                 <Link to="/valuation" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Valuation</Link>
+                <Link to="/asherin.gov" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Asherin · Government</Link>
               </div>
             </div>
           </>

@@ -20,7 +20,7 @@ import {
 
 /* ────────────────────────────────────────────────────────────────────
  * DIAGRAM 1 — Empire R&D Doctrine
- * A horizontal timeline: Rome → America (DARPA) → Asher Empire (HOSRAD)
+ * A horizontal timeline: Rome → America (DARPA) → Asherin Empire (HOSRAD)
  * Purely SVG, uses semantic tokens for colors so it inherits dark theme.
  * ──────────────────────────────────────────────────────────────────── */
 function EmpireDoctrineDiagram() {
@@ -28,7 +28,7 @@ function EmpireDoctrineDiagram() {
     { label: "Roman Empire", sub: "Architects · Engineers", era: "27 BC — 476 AD" },
     { label: "British Empire", sub: "Royal Society · Admiralty Labs", era: "1660 — 1945" },
     { label: "American Empire", sub: "DARPA · Bell Labs · NASA", era: "1958 — Present" },
-    { label: "Asher Empire", sub: "HOSRAD", era: "2026 — ∞", accent: true },
+    { label: "Asherin Empire", sub: "HOSRAD", era: "2026 — ∞", accent: true },
   ];
   return (
     <div className="relative rounded-2xl border border-foreground/10 bg-card/30 backdrop-blur-xl p-6 sm:p-8">
@@ -182,7 +182,7 @@ export default function Hosrad() {
           <p className="mt-4 max-w-3xl text-sm font-light leading-relaxed text-foreground/60">
             Every empire that ever mattered — Rome, Britain, America — funded
             an R&D arm before it minted its currency. The Indian Empire is next.
-            The Asher Empire starts here.
+            The Asherin Empire starts here.
           </p>
         </header>
 
@@ -249,7 +249,7 @@ export default function Hosrad() {
               <p className="text-sm font-light leading-relaxed text-foreground/70">
                 We do not care what degree you hold, what firm you left, or
                 which government contract you sat on. We care what you can
-                deliver for the House Of Asher and the Asher Empire. Fill
+                deliver for the House Of Asher and the Asherin Empire. Fill
                 out the application below <span className="text-foreground/90">completely honestly</span> —
                 the review is not lenient, and it is not slow.
               </p>
