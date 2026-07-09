@@ -285,14 +285,22 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
     setDraftSaved(null);
     trackPhrase(value.trim());
     // LAW takes precedence over NAR (legal directive is more specific).
-    // Both are opt-in and mutually exclusive at the outbound layer only.
+    // The wrapped directive is sent to the MODEL only — the visible/stored
+    // user message stays as the raw text so the user never sees the prompt
+    // scaffolding echoed back into the transcript.
     const raw = value.trim();
     let outbound = raw;
     if (legalMode) outbound = expandPromptToLegal(raw).transformed;
     else if (narrativeMode) outbound = expandPromptToNarrative(raw).transformed;
-    onSendMessage(outbound, attachments.length > 0 ? attachments : undefined);
+    if (outbound !== raw) {
+      import("@/lib/promptOverrideMap").then(({ setModelPromptOverride }) => {
+        setModelPromptOverride(raw, outbound);
+      });
+    }
+    onSendMessage(raw, attachments.length > 0 ? attachments : undefined);
     setValue("");
     setAttachments([]);
+
   };
 
   // Handle paste from clipboard (images)
