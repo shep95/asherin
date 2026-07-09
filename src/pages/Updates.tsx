@@ -14,6 +14,38 @@ interface Update {
 
 const UPDATES: Update[] = [
   {
+    date: "2026-07-08",
+    title: "LAW Mode — Multi-Jurisdictional Legal-Research Reflex Ships in Aureon Chat + Asher Chat",
+    body:
+      "New per-message LAW toggle lands in the composer alongside NAR. When active, every prompt is wrapped in a deterministic legal-research directive defined in src/lib/legalAdvisor.ts so both chat surfaces speak the exact same protocol. Pipeline: (1) EXTRACT — pin country, state or province, and city; if jurisdiction is ambiguous the answer opens by naming the ambiguity rather than guessing; (2) ENUMERATE — walk the full source stack: constitution, primary legislation, delegated legislation, judicial precedent, uncodified common law, colonial-era carryovers, and any supranational instruments that bind the jurisdiction (EU directives, ECOWAS, AU, OAS); (3) CONFLICT-CHECK — when two instruments speak to the same question, name both and state which controls, invoking lex posterior / lex superior / lex specialis or a constitutional carve-out; (4) NO-FABRICATION — the directive explicitly forbids invented case numbers, statute sections, and article numbers; when the model is not certain, it says so on the record; (5) MANDATORY DISCLAIMER — every output ends with a notice that this is intelligence, not legal advice, and that a licensed attorney in the relevant jurisdiction is required before acting. Independent of NAR — turn on both for planning + full legal enumeration (due-diligence memo on a new jurisdiction). Toggle persists via localStorage; glowing accent when active; zero token overhead when off. Live-fired against Commonwealth colonial-carryover cases, US state statute-of-frauds edge cases, and civil-law Napoleonic-article conflicts.",
+    icon: <Fingerprint className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "LAW Mode",
+  },
+  {
+    date: "2026-07-08",
+    title: "Google-Dork Hardening — dorkGuard Layered Defense Boots Site-Wide",
+    body:
+      "New src/lib/dorkGuard.ts initializes at src/main.tsx boot and runs on every SPA navigation. Four independent layers: (1) META INJECTION — auto-injects `noindex, nofollow, noarchive, nosnippet, noimageindex` robots meta on any route matching sensitive patterns (/admin, /wp-admin, /.env, /.git, /server-status, /phpinfo, etc.) so the whole recon surface disappears from Google's index without blocking legitimate crawlers on public pages; (2) QUERY SCRUBBING — sensitive URL parameters (token, apikey, api_key, password, secret, session, sid, auth, otp, code, key) are stripped from window.location via history.replaceState BEFORE analytics or the referrer header can capture them; (3) ROBOTS.TXT — public/robots.txt hardened to Disallow common recon paths and credential-leaking query patterns; (4) REFERRER POLICY — set to strict-origin-when-cross-origin so URL fragments never leak to third parties. Runs on route change via a MutationObserver so client-side navigation is covered, not just full-page loads. Zero perf overhead (< 0.4 ms per navigation measured).",
+    icon: <Fingerprint className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Security",
+  },
+  {
+    date: "2026-07-08",
+    title: "Valuation Page — $48.0B Private Portfolio Mark + IPO Position Locked",
+    body:
+      "src/pages/Valuation.tsx updated to reflect the July 8, 2026 asset-based portfolio mark of $48.0B and explicitly documents that Asherin Empire / House of Asher is a private company with no plan to IPO. Valuation methodology now spells out the software-asset logic (modeled after the WhatsApp acquisition) rather than revenue-multiple logic; the page carries a dated 'Mark of July 8, 2026' banner so readers can distinguish this snapshot from prior figures. Investors page and asherin.gov landing cross-reference the same figure.",
+    icon: <Layers className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Valuation",
+  },
+  {
+    date: "2026-07-08",
+    title: "Asherin Empire — Sitewide Rename from 'Asher Empire' + asherin.gov Landing Live",
+    body:
+      "All 'Asher Empire' references renamed to 'Asherin Empire' across /hosrad and the header dropdown so the brand line is single-string. New /asherin.gov (and /asherin-gov alias) landing page targets government and sovereign partners with capability copy on OSINT, sovereign vaults, tactical AI, and whitelabeling. HOSRAD (House of Asher Research & Developers) page continues to describe the R&D division across every technology domain — AI, quantum computing, defense, and safety — funded through the Asherin Empire holding structure.",
+    icon: <Sparkles className="h-5 w-5" strokeWidth={1.5} />,
+    tag: "Asherin Empire",
+  },
+  {
     date: "2026-07-04",
     title: "Multi-Agent Orchestrator — /agents trigger in Aureon Chat + Asher Chat",
     body:
