@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Play, X, Sparkles } from "lucide-react";
 import secretHistoryAntichristNewMessiahPoster from "@/assets/secret-history-antichrist-new-messiah-poster.jpg.asset.json";
 import secretHistoryAntichristNewMessiahVideo from "@/assets/secret-history-antichrist-new-messiah.mp4.asset.json";
+import secretHistoryNewMessiahPartTwoPoster from "@/assets/secret-history-new-messiah-part-two-poster.jpg.asset.json";
+import secretHistoryNewMessiahPartTwoVideo from "@/assets/secret-history-new-messiah-part-two.mp4.asset.json";
 
 interface LocalVideo {
   id: string; // unique key, prefixed with "local:"
@@ -40,6 +42,13 @@ const LOCAL_VIDEOS: LocalVideo[] = [
     src: secretHistoryAntichristNewMessiahVideo.url,
     poster: secretHistoryAntichristNewMessiahPoster.url,
     title: "Secret History: Who Is the Antichrist and the New Messiah?",
+    publishedAt: new Date().toISOString(),
+  },
+  {
+    id: "local:secret-history-new-messiah-part-two",
+    src: secretHistoryNewMessiahPartTwoVideo.url,
+    poster: secretHistoryNewMessiahPartTwoPoster.url,
+    title: "Secret History: The New Messiah Part Two and How You Are the Child of God and the Prodigal Son",
     publishedAt: new Date().toISOString(),
   },
   {
