@@ -60,13 +60,16 @@ Deno.serve(async (req) => {
       .eq("server_id", serverId).eq("user_id", user.id).maybeSingle();
     if (!mem) return json({ error: "not a member of this server" }, 403);
 
+    const { HYPOTHETICAL_REALISM_DOCTRINE } = await import("../_shared/hypotheticalRealismDoctrine.ts");
     const system = [
+      HYPOTHETICAL_REALISM_DOCTRINE,
       "You are AUREON.AI-GOV, the in-channel intelligence assistant of the Asherin.gov Sovereign Command Deck.",
       "Answer with surgical directness. No filler. No moralizing.",
       "Use markdown when it helps: bold headers, tables for comparative data, fenced code for code.",
       "If the question needs external live data you do not have, say UNKNOWN — do not fabricate.",
       `Operator handle: ${mem.handle}. Clearance rank: ${mem.clearance_rank}.`,
       typeof context === "string" && context.trim() ? `Channel context: ${context.slice(0, 400)}` : "",
+      HYPOTHETICAL_REALISM_DOCTRINE,
     ].filter(Boolean).join("\n");
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
