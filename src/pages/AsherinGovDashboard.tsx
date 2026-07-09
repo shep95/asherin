@@ -255,10 +255,16 @@ const AsherinGovDashboard = () => {
     robots.setAttribute("content","noindex, nofollow, noarchive");
   }, []);
 
-  // Emperor authority probe (server-side truth via RPC — never trust client email)
+  // Emperor authority probe (server-side truth via RPC — never trust client email).
+  // Split from avatar refresh so opening/closing the profile modal doesn't re-run
+  // the RPC; only the avatar re-reads on profile close.
   useEffect(() => {
-    if (!user) { setIsEmperor(false); setMyAvatar(null); return; }
+    if (!user) { setIsEmperor(false); return; }
     supabase.rpc("hoa_is_houseofasher", { _user: user.id }).then(({ data }) => setIsEmperor(data === true));
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) { setMyAvatar(null); return; }
     supabase.from("profiles").select("avatar_url").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => setMyAvatar(data?.avatar_url ?? null));
   }, [user?.id, showProfile]);
@@ -285,8 +291,8 @@ const AsherinGovDashboard = () => {
     return (
       <div className="relative min-h-screen w-full flex items-center justify-center text-foreground overflow-hidden">
         <div className="fixed inset-0 -z-20 bg-cover bg-center" style={{ backgroundImage: `url(${wallpaper})` }} aria-hidden />
-        <div className="fixed inset-0 -z-10 bg-black/80" aria-hidden />
-        <div className="max-w-md text-center p-8 rounded-xl border border-border/30 bg-black/60 space-y-4">
+        <div className="fixed inset-0 -z-10 bg-black/70 backdrop-blur-sm" aria-hidden />
+        <div className="max-w-md text-center p-8 rounded-xl border border-border/30 bg-black/50 backdrop-blur-md space-y-4">
           <Shield className="h-8 w-8 mx-auto text-foreground/80" />
           <div className="text-lg font-light tracking-widest uppercase">Sovereign Command Deck</div>
           <p className="text-sm font-light text-muted-foreground leading-relaxed">
@@ -305,13 +311,20 @@ const AsherinGovDashboard = () => {
   const canInvite = deck.myMembership && ["owner","operator"].includes(deck.myMembership.role);
   const isOwner = deck.myMembership?.role === "owner" || deck.myMembership?.role === "houseofasher";
 
-  // Filter channels & members client-side (RLS already gate reads server-side)
+  // Memoized filters — prior code re-ran two .filter() chains on every render
+  // (typing in the composer, mouse-move, realtime message on another channel).
   const activeChannel = deck.activeChannel;
   const visibleChannels = deck.channels;
-  const activeServerMembers = deck.members.filter(m => m.server_id === deck.activeServer?.id);
-  const channelMessages = deck.messages
-    .filter(m => m.channel_id === activeChannel?.id)
-    .filter(m => !search.trim() || m.body.toLowerCase().includes(search.toLowerCase()));
+  const activeServerMembers = useMemo(
+    () => deck.members.filter(m => m.server_id === deck.activeServer?.id),
+    [deck.members, deck.activeServer?.id]
+  );
+  const channelMessages = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return deck.messages
+      .filter(m => m.channel_id === activeChannel?.id)
+      .filter(m => !q || m.body.toLowerCase().includes(q));
+  }, [deck.messages, activeChannel?.id, search]);
 
   const handleSend = async () => {
     if (!draft.trim() || !activeChannel) return;
