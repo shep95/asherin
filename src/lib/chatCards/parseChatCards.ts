@@ -22,6 +22,9 @@ export type CardType =
   | "gematria"
   | "gematria-compare"
   | "number-lookup"
+  // Symbolic-exegesis family
+  | "symbolic"
+  | "symbolic-spine"
   // Universal shape-based cards
   | "info"
   | "entity"
