@@ -406,6 +406,11 @@ const AsherinGovDashboard = () => {
                   <Settings className="h-3 w-3" /> Admin
                 </button>
               )}
+              {(isEmperor || isOwner) && (
+                <button onClick={() => setShowEmperor(true)} className="text-[9px] tracking-widest uppercase border border-amber-500/60 text-amber-200 rounded px-2 py-1 hover:bg-amber-500/15 flex items-center gap-1 justify-center">
+                  <Crown className="h-3 w-3" /> {isEmperor ? "Mint" : "Provision"}
+                </button>
+              )}
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-4">
