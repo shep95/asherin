@@ -1,36 +1,14 @@
 // GovAxrlenPanel — Sovereign AXRLEN Forecast console.
 //
-// NARRATIVE / WORKFLOW TAXONOMY
-// -----------------------------
-// 1. INGEST      — live SELECT from `axrlen_sessions` (RLS-gated to
-//                  the caller). Non-deleted rows only. Ordered by
-//                  updated_at desc, capped at 40 for O(n) render.
-// 2. TAXONOMY    — sessions are bucketed into domain families by
-//                  `prediction_type` (fallback → region). Counts feed
-//                  the left rail so operators see workload at a glance.
-// 3. SELECTION   — activeSessionId is the single source of truth for
-//                  the main workspace. Defaults to the freshest session.
-// 4. SCENARIOS   — `predictions` jsonb is parsed defensively (array or
-//                  { scenarios: [] }) and rendered as up to 4 scenario
-//                  cards with probability, calibration, timeframe, and
-//                  verification-plan citation (each cite pulled from
-//                  `data_sources` when present, else "PENDING").
-// 5. LEDGER      — right rail lists the last 8 sessions with confidence
-//                  delta vs the fleet median (real accuracy proxy).
-// 6. AUDIT       — every ingest and session switch pings the deck
-//                  audit ledger via onAudit for traceability.
-// 7. FLAWS FIXED — prior mount rendered the full standalone AxrlenView
-//                  which duplicated header chrome and clashed with the
-//                  deck classification banner. This panel is deck-native.
-//
-// Theme lock: matches the AsherinGov landing + deck aesthetic —
-// pure black, hairline `border-border/20`, ultralight tracked caps,
-// no gold, no gradients, single muted status dot.
+// Interactive prompt → question → streamed answer, wired to the
+// `axrlen-chat` edge function (Gemini). Backgrounds are transparent
+// so the deck wallpaper reads through; only hairline borders and
+// glass tints remain.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity, Shield, Radio, Clock, ChevronRight, Loader2,
-  AlertTriangle, FileCheck2, Signal,
+  Activity, Shield, Radio, Clock, Loader2,
+  AlertTriangle, FileCheck2, Signal, Send, Sparkles, Trash2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -48,13 +26,7 @@ interface Session {
   created_at: string;
 }
 
-interface Scenario {
-  label: string;
-  probability: number;      // 0..100
-  calibration?: number;     // 0..1
-  timeframe?: string;
-  cite?: string;
-}
+interface ChatMsg { role: "user" | "assistant"; content: string; }
 
 interface Props {
   operator: string;
@@ -70,28 +42,6 @@ function classifyDomain(s: Session): string {
   if (/mkt|market|price|econ|fin|trade/.test(t)) return "market";
   if (/geo|nato|treaty|state|diplom|border/.test(t)) return "geopolitical";
   return "event";
-}
-
-function parseScenarios(p: any, sources: any): Scenario[] {
-  const src = (() => {
-    if (Array.isArray(p)) return p;
-    if (p && Array.isArray(p.scenarios)) return p.scenarios;
-    if (p && typeof p === "object") return Object.entries(p).map(([k, v]) => ({ label: k, ...(v as any) }));
-    return [];
-  })();
-  const citeList: string[] = Array.isArray(sources)
-    ? sources.map((x: any) => (typeof x === "string" ? x : x?.name || x?.title || x?.url)).filter(Boolean)
-    : [];
-  return src.slice(0, 4).map((raw: any, i: number): Scenario => {
-    const prob = Number(raw?.probability ?? raw?.p ?? raw?.likelihood ?? 0);
-    return {
-      label: String(raw?.label ?? raw?.name ?? raw?.title ?? `Scenario ${i + 1}`).slice(0, 120),
-      probability: Math.max(0, Math.min(100, prob > 1 ? prob : prob * 100)),
-      calibration: typeof raw?.calibration === "number" ? raw.calibration : undefined,
-      timeframe: raw?.timeframe ?? raw?.horizon ?? undefined,
-      cite: raw?.cite ?? citeList[i] ?? undefined,
-    };
-  });
 }
 
 function fmtWhen(iso: string): string {
@@ -110,6 +60,13 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
   const [activeId, setActiveId] = useState<string | null>(null);
   const [domain, setDomain] = useState<string>("all");
 
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [prompt, setPrompt] = useState("");
+  const [streaming, setStreaming] = useState(false);
+  const [chatErr, setChatErr] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -127,9 +84,13 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
       setLoading(false);
       onAudit("AXRLEN_INGEST", "axrlen_sessions", `${data?.length ?? 0} sessions`);
     })();
-    return () => { alive = false; };
+    return () => { alive = false; abortRef.current?.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, streaming]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { regulatory: 0, market: 0, geopolitical: 0, event: 0 };
@@ -147,11 +108,6 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
     [sessions, activeId, visible]
   );
 
-  const scenarios = useMemo(
-    () => (active ? parseScenarios(active.predictions, active.data_sources) : []),
-    [active]
-  );
-
   const fleetMedian = useMemo(() => {
     const vals = sessions.map(s => Number(s.confidence_score ?? 0)).filter(v => v > 0).sort((a, b) => a - b);
     if (!vals.length) return 0;
@@ -160,13 +116,103 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
 
   function switchSession(id: string) {
     setActiveId(id);
+    setMessages([]);
+    setChatErr(null);
     onAudit("AXRLEN_OPEN_SESSION", id);
   }
 
+  async function ask() {
+    const q = prompt.trim();
+    if (!q || streaming) return;
+    setChatErr(null);
+    setPrompt("");
+    const next: ChatMsg[] = [...messages, { role: "user", content: q }, { role: "assistant", content: "" }];
+    setMessages(next);
+    setStreaming(true);
+    onAudit("AXRLEN_ASK", active?.id ?? "adhoc", q.slice(0, 120));
+
+    const ac = new AbortController();
+    abortRef.current = ac;
+
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      const url = `https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1/axrlen-chat`;
+      const res = await fetch(url, {
+        method: "POST",
+        signal: ac.signal,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          messages: next.filter(m => m.content || m.role === "user").slice(0, -1),
+          sessionContext: active ? {
+            title: active.title,
+            region: active.region,
+            confidenceScore: active.confidence_score,
+          } : undefined,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          locale: navigator.language,
+        }),
+      });
+
+      if (!res.ok || !res.body) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let acc = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) !== -1) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(payload);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              acc += delta;
+              setMessages(prev => {
+                const copy = prev.slice();
+                copy[copy.length - 1] = { role: "assistant", content: acc };
+                return copy;
+              });
+            }
+          } catch { /* skip */ }
+        }
+      }
+    } catch (e: any) {
+      if (e?.name !== "AbortError") {
+        setChatErr(e?.message || "AXRLEN request failed");
+        setMessages(prev => prev.slice(0, -1)); // drop empty assistant
+      }
+    } finally {
+      setStreaming(false);
+      abortRef.current = null;
+    }
+  }
+
+  function clearChat() {
+    abortRef.current?.abort();
+    setMessages([]);
+    setChatErr(null);
+  }
+
   return (
-    <div className="h-full w-full flex flex-col bg-background text-foreground">
+    <div className="h-full w-full flex flex-col text-foreground">
       {/* CLASSIFICATION HEADER */}
-      <div className="shrink-0 border-b border-border/20 bg-black/40">
+      <div className="shrink-0 border-b border-border/20 backdrop-blur-md bg-background/30">
         <div className="flex items-center justify-between px-4 py-1.5 border-b border-border/15">
           <div className="flex items-center gap-3 text-[9px] tracking-[0.3em] uppercase text-muted-foreground/70">
             <Shield className="h-3 w-3" />
@@ -188,17 +234,17 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
               <span className="text-[9px] px-1.5 py-0.5 rounded border border-border/25 tracking-[0.25em] uppercase text-muted-foreground/70">Nexus Prime</span>
             </div>
             <div className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/50 mt-0.5">
-              30-Domain Predictive Intelligence · Verification-Planned Forecasts
+              Prompt-driven Predictive Intelligence · Verification-Planned Forecasts
             </div>
           </div>
           <div className="ml-auto flex items-center gap-4">
             <div className="text-right">
-              <div className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/50">Fleet Median Confidence</div>
+              <div className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/50">Fleet Median</div>
               <div className="text-[13px] font-light tracking-wide">
                 {fleetMedian ? `${fleetMedian.toFixed(1)}%` : "—"}
               </div>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-border/25">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-border/25 backdrop-blur-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/70" />
               <span className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/70">Live · {sessions.length}</span>
             </div>
@@ -208,15 +254,15 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
 
       {/* BODY */}
       <div className="flex-1 min-h-0 grid grid-cols-[200px_minmax(0,1fr)_280px]">
-        {/* LEFT RAIL — DOMAIN FAMILIES */}
-        <aside className="border-r border-border/20 bg-black/25 overflow-y-auto">
+        {/* LEFT RAIL */}
+        <aside className="border-r border-border/20 backdrop-blur-sm bg-background/20 overflow-y-auto">
           <div className="px-3 py-2.5 border-b border-border/15 text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">
             Domain Families
           </div>
           <nav className="p-1.5">
-            <DomainRow label="All Domains"    count={sessions.length}   active={domain === "all"}         onClick={() => setDomain("all")} />
+            <DomainRow label="All Domains" count={sessions.length} active={domain === "all"} onClick={() => setDomain("all")} />
             {DOMAIN_ORDER.map(d => (
-              <DomainRow key={d} label={d}     count={counts[d] ?? 0}    active={domain === d}             onClick={() => setDomain(d)} />
+              <DomainRow key={d} label={d} count={counts[d] ?? 0} active={domain === d} onClick={() => setDomain(d)} />
             ))}
           </nav>
 
@@ -241,7 +287,7 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
                   className={`w-full text-left px-2 py-1.5 rounded border transition ${
                     isActive
                       ? "border-border/40 bg-foreground/5"
-                      : "border-transparent hover:border-border/20 hover:bg-foreground/[0.03]"
+                      : "border-transparent hover:border-border/20 hover:bg-foreground/[0.04]"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -263,10 +309,10 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
           </div>
         </aside>
 
-        {/* MAIN — SCENARIO WORKSPACE */}
-        <main className="overflow-y-auto">
+        {/* MAIN — INTERACTIVE PROMPT / STREAM */}
+        <main className="flex flex-col min-h-0">
           {err && (
-            <div className="m-4 flex items-start gap-2 rounded border border-amber-400/30 bg-amber-500/5 p-3 text-[11px] text-amber-300/90">
+            <div className="m-4 flex items-start gap-2 rounded border border-amber-400/30 bg-amber-500/10 backdrop-blur-sm p-3 text-[11px] text-amber-300/90">
               <AlertTriangle className="h-3.5 w-3.5 mt-0.5" />
               <div>
                 <div className="font-medium">AXRLEN feed unavailable</div>
@@ -275,88 +321,133 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
             </div>
           )}
 
-          {!err && !active && !loading && (
-            <div className="h-full flex items-center justify-center text-center px-8">
-              <div className="max-w-sm">
-                <Activity className="h-5 w-5 mx-auto text-muted-foreground/50" strokeWidth={1.4} />
-                <div className="text-[11px] tracking-[0.3em] uppercase text-muted-foreground/70 mt-3">
-                  No sovereign forecasts on file
-                </div>
-                <p className="text-[10px] text-muted-foreground/50 mt-2 leading-relaxed">
-                  Commission a Nexus-Prime scenario through the Aureon Console; results appear here as classified probability cards with verification-plan citations.
-                </p>
-              </div>
-            </div>
-          )}
-
+          {/* Active brief chip */}
           {active && (
-            <div className="p-5 space-y-5">
-              {/* ACTIVE BRIEF HEADER */}
-              <header className="flex items-start justify-between gap-4 border-b border-border/15 pb-4">
+            <div className="px-5 pt-4 pb-2 border-b border-border/15">
+              <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">
-                    Forecast Brief · {classifyDomain(active)}
+                    Session Context · {classifyDomain(active)}
                   </div>
-                  <h2 className="text-[18px] font-light tracking-tight mt-1 truncate">
+                  <h2 className="text-[15px] font-light tracking-tight mt-0.5 truncate">
                     {active.title || "Untitled forecast"}
                   </h2>
                   <div className="text-[10px] text-muted-foreground/60 mt-1 flex items-center gap-3">
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> {fmtWhen(active.updated_at)}
-                    </span>
+                    <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {fmtWhen(active.updated_at)}</span>
                     {active.region && (
-                      <span className="inline-flex items-center gap-1">
-                        <Radio className="h-3 w-3" /> {active.region}
-                      </span>
-                    )}
-                    {active.status && (
-                      <span className="uppercase tracking-[0.25em]">{active.status}</span>
+                      <span className="inline-flex items-center gap-1"><Radio className="h-3 w-3" /> {active.region}</span>
                     )}
                   </div>
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">Confidence</div>
-                  <div className="text-[28px] font-extralight tracking-tight leading-none mt-1">
+                  <div className="text-[22px] font-extralight tracking-tight leading-none mt-1">
                     {typeof active.confidence_score === "number" ? `${Number(active.confidence_score).toFixed(1)}%` : "—"}
                   </div>
                 </div>
-              </header>
-
-              {/* AI SUMMARY */}
-              {active.ai_summary && (
-                <div className="rounded border border-border/20 bg-black/25 p-3">
-                  <div className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60 mb-1.5">
-                    Analyst Brief
-                  </div>
-                  <p className="text-[11.5px] leading-relaxed text-foreground/85 whitespace-pre-wrap">
-                    {active.ai_summary}
-                  </p>
-                </div>
-              )}
-
-              {/* SCENARIOS */}
-              <section>
-                <div className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60 mb-2">
-                  Scenario Probability Cards
-                </div>
-                {scenarios.length === 0 ? (
-                  <div className="rounded border border-border/20 bg-black/20 p-4 text-[10px] text-muted-foreground/60">
-                    No structured scenarios in this session's predictions payload.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                    {scenarios.map((sc, i) => (
-                      <ScenarioCard key={i} s={sc} />
-                    ))}
-                  </div>
-                )}
-              </section>
+              </div>
             </div>
           )}
+
+          {/* Transcript */}
+          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3">
+            {messages.length === 0 && !streaming && (
+              <div className="h-full min-h-[240px] flex items-center justify-center text-center">
+                <div className="max-w-md">
+                  <Sparkles className="h-5 w-5 mx-auto text-muted-foreground/50" strokeWidth={1.4} />
+                  <div className="text-[11px] tracking-[0.3em] uppercase text-muted-foreground/70 mt-3">
+                    Query AXRLEN Nexus Prime
+                  </div>
+                  <p className="text-[10.5px] text-muted-foreground/55 mt-2 leading-relaxed">
+                    Ask a direct question — a name, a lean, a probability. For a full scenario matrix, request "deep analysis" or "full report".
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+                    {[
+                      "Who wins the next NATO election cycle?",
+                      "BTC direction next 72h?",
+                      "Full analysis: Taiwan Strait Q1",
+                    ].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setPrompt(s)}
+                        className="text-[10px] px-2 py-1 rounded border border-border/25 hover:border-border/50 hover:bg-foreground/[0.04] transition"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[85%] rounded border px-3 py-2 text-[11.5px] leading-relaxed whitespace-pre-wrap backdrop-blur-sm ${
+                    m.role === "user"
+                      ? "border-border/40 bg-foreground/10 text-foreground"
+                      : "border-border/20 bg-background/30 text-foreground/90"
+                  }`}
+                >
+                  <div className="text-[8.5px] tracking-[0.3em] uppercase text-muted-foreground/50 mb-1">
+                    {m.role === "user" ? operator : "AXRLEN"}
+                  </div>
+                  {m.content || (streaming && i === messages.length - 1
+                    ? <span className="inline-flex items-center gap-1.5 text-muted-foreground/60"><Loader2 className="h-3 w-3 animate-spin" /> forecasting…</span>
+                    : null)}
+                </div>
+              </div>
+            ))}
+
+            {chatErr && (
+              <div className="flex items-start gap-2 rounded border border-amber-400/30 bg-amber-500/10 backdrop-blur-sm p-2.5 text-[11px] text-amber-300/90">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5" />
+                <div>{chatErr}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Composer */}
+          <div className="shrink-0 border-t border-border/20 backdrop-blur-md bg-background/30 px-4 py-3">
+            <div className="flex items-end gap-2">
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); }
+                }}
+                rows={2}
+                placeholder="Ask AXRLEN — a question, a pick, a scenario request…"
+                className="flex-1 resize-none rounded border border-border/25 bg-background/40 backdrop-blur-sm px-3 py-2 text-[11.5px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none focus:border-border/60"
+                disabled={streaming}
+              />
+              <div className="flex flex-col gap-1.5">
+                <button
+                  onClick={ask}
+                  disabled={streaming || !prompt.trim()}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded border border-border/40 hover:border-foreground/60 bg-foreground/5 hover:bg-foreground/10 text-[10.5px] tracking-[0.25em] uppercase disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  {streaming ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                  {streaming ? "Streaming" : "Send"}
+                </button>
+                {messages.length > 0 && (
+                  <button
+                    onClick={clearChat}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-border/20 hover:border-border/40 text-[9.5px] tracking-[0.25em] uppercase text-muted-foreground/70 hover:text-foreground transition"
+                  >
+                    <Trash2 className="h-3 w-3" /> Clear
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="mt-1.5 text-[9px] tracking-[0.2em] uppercase text-muted-foreground/40">
+              Enter to send · Shift+Enter for newline · Session context auto-attached
+            </div>
+          </div>
         </main>
 
-        {/* RIGHT RAIL — FORECAST LEDGER */}
-        <aside className="border-l border-border/20 bg-black/25 overflow-y-auto">
+        {/* RIGHT RAIL — LEDGER */}
+        <aside className="border-l border-border/20 backdrop-blur-sm bg-background/20 overflow-y-auto">
           <div className="px-3 py-2.5 border-b border-border/15 text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60 flex items-center gap-2">
             <FileCheck2 className="h-3 w-3" /> Forecast Ledger
           </div>
@@ -369,7 +460,7 @@ export default function GovAxrlenPanel({ operator, serverName, onAudit }: Props)
                 <button
                   key={s.id}
                   onClick={() => switchSession(s.id)}
-                  className="w-full text-left rounded border border-border/15 bg-black/20 hover:border-border/40 px-2.5 py-2 transition"
+                  className="w-full text-left rounded border border-border/15 bg-background/25 backdrop-blur-sm hover:border-border/40 px-2.5 py-2 transition"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-mono tracking-widest text-muted-foreground/60">
@@ -407,57 +498,11 @@ function DomainRow({ label, count, active, onClick }: { label: string; count: nu
       className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-[10.5px] tracking-[0.15em] uppercase transition ${
         active
           ? "bg-foreground/5 text-foreground border-l border-foreground/60"
-          : "text-muted-foreground/70 hover:text-foreground hover:bg-foreground/[0.03] border-l border-transparent"
+          : "text-muted-foreground/70 hover:text-foreground hover:bg-foreground/[0.04] border-l border-transparent"
       }`}
     >
       <span className="font-light">{label}</span>
       <span className="text-[9px] font-mono text-muted-foreground/50">{String(count).padStart(2, "0")}</span>
     </button>
-  );
-}
-
-function ScenarioCard({ s }: { s: Scenario }) {
-  const barPct = Math.round(s.probability);
-  const sev =
-    barPct >= 75 ? "text-foreground border-foreground/40"
-    : barPct >= 40 ? "text-foreground/85 border-border/40"
-    : "text-muted-foreground border-border/25";
-
-  return (
-    <article className="rounded border border-border/20 bg-black/30 p-3.5 flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/55">Scenario</div>
-          <div className="text-[12px] font-light leading-snug mt-0.5">{s.label}</div>
-        </div>
-        <div className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${sev} whitespace-nowrap`}>
-          P {barPct}%
-        </div>
-      </div>
-
-      <div>
-        <div className="h-[3px] w-full bg-foreground/5 rounded-sm overflow-hidden">
-          <div
-            className="h-full bg-foreground/60 transition-[width] duration-500 ease-out"
-            style={{ width: `${barPct}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 text-[9px]">
-        <Meta label="Calibration" value={typeof s.calibration === "number" ? s.calibration.toFixed(2) : "—"} />
-        <Meta label="Horizon"     value={s.timeframe || "—"} />
-        <Meta label="Verify"      value={s.cite || "pending"} mono />
-      </div>
-    </article>
-  );
-}
-
-function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="min-w-0">
-      <div className="tracking-[0.25em] uppercase text-muted-foreground/50">{label}</div>
-      <div className={`mt-0.5 truncate ${mono ? "font-mono" : ""} text-foreground/85`}>{value}</div>
-    </div>
   );
 }
