@@ -2022,9 +2022,25 @@ The operator is requesting a defensive security audit / flaw check of their own 
     }
 
     // Helper: call Google Gemini with user's key
-    async function callGeminiWithKey(apiKey: string, model: string) {
+    // Google retires model ids on the direct Generative Language API (v1beta).
+    // A saved BYOK model that is now retired (e.g. legacy gemini-1.5-*) returns
+    // 404 "no longer available" and the whole Aureon chat turn fails. We alias
+    // known-retired ids up-front and, on a 404, retry once against a rolling
+    // alias so a stale saved model can never dead-end the user's chat.
+    const GEMINI_MODEL_ALIASES_CHAT: Record<string, string> = {
+      "gemini-pro": "gemini-2.5-flash",
+      "gemini-1.0-pro": "gemini-2.5-flash",
+      "gemini-1.5-pro": "gemini-2.5-pro",
+      "gemini-1.5-pro-latest": "gemini-2.5-pro",
+      "gemini-1.5-flash": "gemini-2.5-flash",
+      "gemini-1.5-flash-latest": "gemini-2.5-flash",
+      "gemini-1.5-flash-8b": "gemini-2.5-flash-lite",
+    };
+    const GEMINI_404_FALLBACK_CHAT = "gemini-flash-latest";
+
+    async function geminiStreamFetch(apiKey: string, model: string) {
       return await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2044,6 +2060,20 @@ The operator is requesting a defensive security audit / flaw check of their own 
         },
       );
     }
+
+    async function callGeminiWithKey(apiKey: string, model: string) {
+      const primary = GEMINI_MODEL_ALIASES_CHAT[model] || model;
+      let r = await geminiStreamFetch(apiKey, primary);
+      if (r.status === 404 && primary !== GEMINI_404_FALLBACK_CHAT) {
+        // Drain body so the socket is reusable, then retry on the rolling alias.
+        try { await r.body?.cancel(); } catch { /* noop */ }
+        console.warn(`[chat:byok:google] model ${primary} returned 404 — retrying on ${GEMINI_404_FALLBACK_CHAT}`);
+        r = await geminiStreamFetch(apiKey, GEMINI_404_FALLBACK_CHAT);
+      }
+      return r;
+    }
+
+
 
     // Determine which provider to call
     let isGeminiResponse = true; // true if we need to transform Gemini SSE format

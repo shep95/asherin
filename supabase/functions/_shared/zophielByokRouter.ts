@@ -161,6 +161,32 @@ export async function callByokJson(
 
 // ────────────────────────── Provider implementations ──────────────────────────
 
+// Google periodically retires model ids on the direct Generative Language API
+// (v1beta). When a user's saved BYOK model is one of the retired ids, the call
+// returns 404 NOT_FOUND ("This model models/<id> is no longer available"), which
+// breaks Aureon chat with no auto-recovery. We map known-retired ids to their
+// current stable equivalent BEFORE the request, and additionally auto-fallback
+// on a 404 to `gemini-flash-latest` (Google's rolling alias) so a stale saved
+// model never dead-ends a user's chat.
+const GEMINI_MODEL_ALIASES: Record<string, string> = {
+  // Retired / deprecated → current stable
+  "gemini-pro": "gemini-2.5-flash",
+  "gemini-1.0-pro": "gemini-2.5-flash",
+  "gemini-1.5-pro": "gemini-2.5-pro",
+  "gemini-1.5-pro-latest": "gemini-2.5-pro",
+  "gemini-1.5-flash": "gemini-2.5-flash",
+  "gemini-1.5-flash-latest": "gemini-2.5-flash",
+  "gemini-1.5-flash-8b": "gemini-2.5-flash-lite",
+};
+const GEMINI_404_FALLBACK = "gemini-flash-latest";
+
+async function geminiFetch(apiKey: string, model: string, body: unknown, signal: AbortSignal) {
+  return fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal, body: JSON.stringify(body) },
+  );
+}
+
 async function callGemini(
   apiKey: string,
   model: string,
@@ -171,33 +197,36 @@ async function callGemini(
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), opts.timeoutMs);
   try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: ctl.signal,
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-          safetySettings: [
-            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
-          ],
-          generationConfig: {
-            ...(opts.jsonMode ? { responseMimeType: 'application/json' } : {}),
-            temperature: opts.temperature,
-            maxOutputTokens: opts.maxOutputTokens,
-          },
-        }),
+    const body = {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
+      ],
+      generationConfig: {
+        ...(opts.jsonMode ? { responseMimeType: 'application/json' } : {}),
+        temperature: opts.temperature,
+        maxOutputTokens: opts.maxOutputTokens,
       },
-    );
+    };
+
+    const primary = GEMINI_MODEL_ALIASES[model] || model;
+    let r = await geminiFetch(apiKey, primary, body, ctl.signal);
+
+    // Auto-fallback: model retired on user's key → retry once on rolling alias.
+    if (r.status === 404 && primary !== GEMINI_404_FALLBACK) {
+      const _drain = await r.text().catch(() => '');
+      console.warn(`[byok:google] model ${primary} returned 404; falling back to ${GEMINI_404_FALLBACK}`);
+      r = await geminiFetch(apiKey, GEMINI_404_FALLBACK, body, ctl.signal);
+    }
+
     if (!r.ok) {
       const txt = await r.text();
-      throw makeRetryableError(r.status, `gemini_${model}_${r.status}: ${txt.slice(0, 200)}`, parseRetryAfterMs(r.headers, txt));
+      throw makeRetryableError(r.status, `gemini_${primary}_${r.status}: ${txt.slice(0, 200)}`, parseRetryAfterMs(r.headers, txt));
     }
     const d = await r.json();
     return d?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || '').join('') || '';
