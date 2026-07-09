@@ -237,6 +237,8 @@ const AsherinGovDashboard = () => {
   const [showJoin,   setShowJoin  ] = useState(false);
   const [showAdmin,  setShowAdmin ] = useState(false);
   const [showEmperor,setShowEmperor] = useState(false);
+  const [showProfile,setShowProfile] = useState(false);
+  const [myAvatar, setMyAvatar] = useState<string | null>(null);
   const [isEmperor,  setIsEmperor ] = useState(false);
   const [mobileNav,  setMobileNav ] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
