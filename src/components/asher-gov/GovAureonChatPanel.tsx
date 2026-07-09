@@ -10,11 +10,14 @@
 // still in force.
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Loader2, Brain } from "lucide-react";
+import { Send, Loader2, Brain, Share2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import { shareToDeck } from "@/lib/shareToDeck";
+import { useAuth } from "@/contexts/AuthContext";
+import { useHoaDeck } from "@/hooks/useHoaDeck";
 
 interface Msg {
   role: "user" | "assistant";
@@ -28,9 +31,12 @@ interface Props {
 }
 
 const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
+  const { user } = useAuth();
+  const deck = useHoaDeck();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sharingIdx, setSharingIdx] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -108,6 +114,32 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
               ) : (
                 <span className="whitespace-pre-wrap">{m.content}</span>
+              )}
+              {m.role === "assistant" && deck.activeServer && deck.activeChannel && deck.myMembership && user && (
+                <button
+                  onClick={async () => {
+                    setSharingIdx(i);
+                    try {
+                      await shareToDeck({
+                        source: "aureon-chat",
+                        title: `Aureon reply · ${new Date(m.ts).toLocaleTimeString()}`,
+                        body: m.content,
+                        serverId: deck.activeServer!.id,
+                        channelId: deck.activeChannel!.id,
+                        authorId: user.id,
+                        authorHandle: deck.myMembership!.handle,
+                        compartments: deck.activeChannel!.compartments ?? [],
+                      });
+                      onAudit("SUITE_SHARE", `#${deck.activeChannel!.name}`, "aureon-chat");
+                    } finally { setSharingIdx(null); }
+                  }}
+                  disabled={sharingIdx === i}
+                  className="mt-2 inline-flex items-center gap-1 text-[10px] tracking-widest uppercase px-2 py-1 rounded border border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60 disabled:opacity-50"
+                  title={`Share to #${deck.activeChannel.name}`}
+                >
+                  {sharingIdx === i ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
+                  Share to #{deck.activeChannel.name}
+                </button>
               )}
             </div>
             {m.role === "user" && (

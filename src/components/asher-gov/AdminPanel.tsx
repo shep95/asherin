@@ -3,11 +3,12 @@
 // Fully responsive: full-screen sheet on mobile, floating panel on desktop.
 
 import { useEffect, useMemo, useState } from "react";
-import { X, Key, Shield, ScrollText, Loader2, Trash2, Plus, Search, RefreshCw, Copy, Check, Image as ImageIcon } from "lucide-react";
+import { X, Key, Shield, ScrollText, Loader2, Trash2, Plus, Search, RefreshCw, Copy, Check, Image as ImageIcon, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { HoaServer, HoaMember, HoaAudit } from "@/hooks/useHoaDeck";
 import IconUploader from "./IconUploader";
+import ChannelsTab from "./ChannelsTab";
 
 interface ServerRole {
   id: string; server_id: string; name: string; color: string;
@@ -36,7 +37,7 @@ export default function AdminPanel({
   members: HoaMember[];
   refreshServers: () => Promise<void>;
 }) {
-  const [tab, setTab] = useState<"identity"|"apikey"|"roles"|"audit">("identity");
+  const [tab, setTab] = useState<"identity"|"apikey"|"channels"|"roles"|"audit">("identity");
 
   if (!open) return null;
 
@@ -58,9 +59,10 @@ export default function AdminPanel({
         <div className="flex gap-1 px-3 pt-3 border-b border-border/20 overflow-x-auto shrink-0">
           {[
             { id: "identity", label: "Identity", Icon: ImageIcon },
-            { id: "apikey", label: "API Key", Icon: Key },
-            { id: "roles",  label: "Roles & Members", Icon: Shield },
-            { id: "audit",  label: "Activity Log", Icon: ScrollText },
+            { id: "apikey",   label: "API Key",  Icon: Key },
+            { id: "channels", label: "Channels", Icon: Hash },
+            { id: "roles",    label: "Roles & Members", Icon: Shield },
+            { id: "audit",    label: "Activity Log", Icon: ScrollText },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id as typeof tab)}
               className={`px-3 py-2 text-[11px] tracking-widest uppercase border-b-2 transition flex items-center gap-1.5 shrink-0
@@ -72,9 +74,10 @@ export default function AdminPanel({
 
         <div className="flex-1 min-h-0 overflow-y-auto p-5">
           {tab === "identity" && <IdentityTab server={server} refreshServers={refreshServers} />}
-          {tab === "apikey" && <ApiKeyTab server={server} refreshServers={refreshServers} />}
-          {tab === "roles"  && <RolesTab server={server} members={members} />}
-          {tab === "audit"  && <AuditTab serverId={server.id} members={members} />}
+          {tab === "apikey"   && <ApiKeyTab   server={server} refreshServers={refreshServers} />}
+          {tab === "channels" && <ChannelsTab serverId={server.id} />}
+          {tab === "roles"    && <RolesTab    server={server} members={members} />}
+          {tab === "audit"    && <AuditTab    serverId={server.id} members={members} />}
         </div>
       </div>
     </div>
