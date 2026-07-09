@@ -81,8 +81,8 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-black/20">
-      <div className="border-b border-border/20 px-5 py-3 flex items-center gap-2">
+    <div className="flex h-full min-h-0 flex-col text-foreground">
+      <div className="border-b border-border/20 backdrop-blur-md bg-background/25 px-5 py-3 flex items-center gap-2">
         <Brain className="h-3.5 w-3.5 text-muted-foreground" />
         <div className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Aureon · Sovereign Chat</div>
         <div className="ml-auto text-[10px] font-light text-muted-foreground/70">Every prompt and reply is audit-logged.</div>
