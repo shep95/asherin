@@ -10,11 +10,14 @@
 // still in force.
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Loader2, Brain } from "lucide-react";
+import { Send, Loader2, Brain, Share2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import { shareToDeck } from "@/lib/shareToDeck";
+import { useAuth } from "@/contexts/AuthContext";
+import { useHoaDeck } from "@/hooks/useHoaDeck";
 
 interface Msg {
   role: "user" | "assistant";
@@ -28,9 +31,12 @@ interface Props {
 }
 
 const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
+  const { user } = useAuth();
+  const deck = useHoaDeck();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sharingIdx, setSharingIdx] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
