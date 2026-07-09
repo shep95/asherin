@@ -8,6 +8,8 @@ import SlashCommandPalette from "./SlashCommandPalette";
 import { parseSlashCommand, type SlashCommand } from "@/lib/slashCommands";
 import { expandPromptToNarrative, loadNarrativeMode, saveNarrativeMode } from "@/lib/promptToNarrative";
 import { expandPromptToLegal, loadLegalMode, saveLegalMode } from "@/lib/legalAdvisor";
+import { setModelPromptOverride } from "@/lib/promptOverrideMap";
+
 import type { FileAttachment } from "./types";
 
 const LONG_PASTE_THRESHOLD = 500; // chars
