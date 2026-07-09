@@ -452,14 +452,23 @@ const AsherinGovDashboard = () => {
               </div>
             )}
           </div>
-          <div className="border-t border-border/20 p-3">
-            <div className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60 mb-1.5">Acting as</div>
-            <div className="text-sm font-light text-foreground truncate">{deck.myMembership?.handle ?? user?.email?.split("@")[0] ?? "—"}</div>
-            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground/70">
-              <span className={`inline-block px-1.5 py-0.5 rounded border ${CLEARANCE_COLOR[clearanceLabel]}`}>{clearanceLabel}</span>
-              <span>{deck.myMembership?.rank_label ?? (deck.activeServer ? "Guest" : "—")}</span>
+          <button onClick={() => setShowProfile(true)}
+                  className="border-t border-border/20 p-3 text-left hover:bg-foreground/[0.03] transition w-full flex items-center gap-3"
+                  title="Edit profile">
+            <div className="w-10 h-10 rounded-full border border-border/40 bg-foreground/[0.06] overflow-hidden shrink-0 flex items-center justify-center text-[10px] text-muted-foreground">
+              {myAvatar
+                ? <img src={myAvatar} alt="" className="w-full h-full object-cover" />
+                : (deck.myMembership?.handle ?? user?.email ?? "?").slice(0,2).toUpperCase()}
             </div>
-          </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[9px] tracking-[0.3em] uppercase text-muted-foreground/60">Acting as</div>
+              <div className="text-sm font-light text-foreground truncate">{deck.myMembership?.handle ?? user?.email?.split("@")[0] ?? "—"}</div>
+              <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground/70">
+                <span className={`inline-block px-1.5 py-0.5 rounded border ${CLEARANCE_COLOR[clearanceLabel]}`}>{clearanceLabel}</span>
+                <span className="truncate">{deck.myMembership?.rank_label ?? (deck.activeServer ? "Guest" : "—")}</span>
+              </div>
+            </div>
+          </button>
         </aside>
 
         {/* MAIN PANE */}
