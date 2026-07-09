@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GovSuiteMount, { SUITES, type SuiteId } from "@/components/asher-gov/GovSuiteMount";
 import AdminPanel from "@/components/asher-gov/AdminPanel";
+import EmperorConsole from "@/components/asher-gov/EmperorConsole";
 
 const CLEARANCE_COLOR: Record<string,string> = {
   UNCLASS: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
@@ -677,6 +678,15 @@ const AsherinGovDashboard = () => {
                     members={deck.members}
                     refreshServers={deck.refresh} />
       )}
+      <EmperorConsole
+        open={showEmperor}
+        onClose={() => setShowEmperor(false)}
+        servers={deck.servers}
+        activeServerId={deck.activeServer?.id ?? null}
+        isEmperor={isEmperor}
+        myPresidentServerIds={deck.members.filter(m => m.user_id === user?.id && m.role === "owner").map(m => m.server_id)}
+        refresh={deck.refresh}
+      />
     </div>
   );
 };
