@@ -606,10 +606,10 @@ const AsherinGovDashboard = () => {
                             </button>
                           </div>
                         ) : (
-                          <div className="text-sm font-light text-foreground/90 leading-relaxed whitespace-pre-wrap">
-                            {m.body}
+                          <div className="mt-0.5">
+                            <ChannelMessage body={m.body} />
                             {m.sealed && (
-                              <button onClick={() => setUnsealed(prev => { const n = new Set(prev); n.delete(m.id); return n; })} className="ml-2 inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 hover:text-foreground">
+                              <button onClick={() => setUnsealed(prev => { const n = new Set(prev); n.delete(m.id); return n; })} className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground/70 hover:text-foreground">
                                 <EyeOff className="h-3 w-3" />reseal
                               </button>
                             )}
@@ -622,35 +622,20 @@ const AsherinGovDashboard = () => {
               </div>
 
               {activeChannel.kind !== "voice" && (
-                <div className="border-t border-border/20 bg-black/20 p-3">
-                  {!deck.canAccess(activeChannel) ? (
-                    <div className="flex items-center gap-2 text-xs font-light text-amber-300 border border-amber-500/30 bg-amber-500/5 rounded-md px-3 py-2">
-                      <AlertTriangle className="h-3.5 w-3.5" /> Insufficient clearance to post here.
-                    </div>
-                  ) : (
-                    <div className="flex items-end gap-2">
-                      <div className="flex-1 rounded-md border border-border/30 bg-black/40 focus-within:border-foreground/50 transition">
-                        {activeChannel.kind === "broadcast" && (
-                          <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-amber-300 flex items-center gap-1.5"><Radio className="h-3 w-3" /> Emergency broadcast · pins across visible feeds</div>
-                        )}
-                        {activeChannel.kind === "vault" && (
-                          <div className="px-3 pt-2 text-[10px] tracking-widest uppercase text-amber-300 flex items-center gap-1.5"><Lock className="h-3 w-3" /> Vault channel · outbound sealed by default · body stripped from Aureon feed until published</div>
-                        )}
-                        <textarea value={draft} onChange={e => setDraft(e.target.value)}
-                          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
-                          rows={2} placeholder={`Transmit to #${activeChannel.name}`}
-                          className="w-full bg-transparent px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none resize-none" />
-                      </div>
-                      <button onClick={handleSend} disabled={!draft.trim()} className="h-10 w-10 rounded-md border border-foreground/40 bg-foreground/5 hover:bg-foreground/15 disabled:opacity-40 flex items-center justify-center" aria-label="Send">
-                        <Send className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                  <div className="mt-1.5 text-[10px] text-muted-foreground/60 flex items-center gap-3">
-                    <span>Enter to send · Shift+Enter for newline</span>
-                    <span className="ml-auto">All traffic mirrored to #houseofasher and audit-logged.</span>
-                  </div>
-                </div>
+                <DeckComposer
+                  channelName={activeChannel.name}
+                  channelKind={activeChannel.kind}
+                  disabled={!deck.canAccess(activeChannel)}
+                  disabledReason="Insufficient clearance to post here."
+                  onSend={async (body) => {
+                    try { await handleSendBody(body); }
+                    catch (e: any) { toast.error(e?.message ?? "send failed"); throw e; }
+                  }}
+                  onAiCommand={async (prompt) => {
+                    try { await handleAiCommand(prompt); }
+                    catch (e: any) { toast.error(e?.message ?? "AI command failed"); throw e; }
+                  }}
+                />
               )}
             </>
           ) : (
