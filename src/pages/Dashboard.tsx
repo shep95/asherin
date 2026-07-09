@@ -735,82 +735,105 @@ const Dashboard = () => {
   // Keep ref in sync so sendMessageCore always reads latest conversations
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
-  // Re-sync UI when tab becomes visible again (prevents stale/blank messages after tab switch)
+  // Re-sync UI when tab becomes visible again — but ONLY if we were hidden long
+  // enough that drift is likely AND the DB actually has newer messages than local.
+  // Prior implementation force-rebuilt every conversation object on every tab flip,
+  // which caused ChatView to visibly "refresh from the top" and wiped in-memory
+  // extras (streaming partials, consensus cards, attachment previews).
   useEffect(() => {
-    const handleVisibility = async () => {
-      if (document.visibilityState === "visible") {
-        // First, force re-render from the ref (covers streaming updates that happened while backgrounded)
-        const refConvs = conversationsRef.current;
-        setConversations(refConvs.map(c => ({ ...c, messages: [...c.messages] })));
+    let hiddenAt: number | null = null;
+    const HIDDEN_THRESHOLD_MS = 45_000; // only resync after >45s away
 
-        // If we were NOT streaming when we came back, re-fetch messages for the active conversation
-        // from DB to catch any saves that completed while backgrounded
-        const currentConvId = activeConvIdRef.current;
-        if (!isStreamingRef.current && user && currentConvId) {
-          // Skip re-sync if user is on a non-main branch to prevent branch messages from disappearing
-          const currentBranch = getActiveBranch(currentConvId);
-          if (currentBranch !== "main") return;
-          // Small delay to let any in-flight DB writes complete
-          await new Promise(r => setTimeout(r, 500));
-          // Re-check streaming state after delay (user might have sent a message)
-          if (isStreamingRef.current) return;
-          try {
-            const { data: freshMsgs } = await supabase
-              .from("messages")
-              .select("*")
-              .eq("conversation_id", currentConvId)
-              .order("created_at", { ascending: true })
-              .limit(500);
-            if (freshMsgs && freshMsgs.length > 0) {
-              // Only update if we have MORE messages from DB than local (don't lose unsaved messages)
-              const localConv = conversationsRef.current.find(c => c.id === currentConvId);
-              const localCount = localConv?.messages.length ?? 0;
-              if (freshMsgs.length >= localCount) {
-                const decrypted = await Promise.all(
-                  freshMsgs.map(async (m) => {
-                    let content = "";
-                    try {
-                      content = await decryptText(m.content, user.id);
-                    } catch {
-                      content = "_[Encrypted on another device — unable to decrypt here.]_";
-                    }
-                    const attachments = await decryptAttachments((m as any).attachments_enc, user.id);
-                    return {
-                      id: m.id,
-                      role: m.role as "user" | "assistant",
-                      content,
-                      timestamp: new Date(m.created_at),
-                      truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
-                      sources: (m.sources as { title: string; url: string }[]) ?? [],
-                      attachments,
-                    };
-                  })
-                );
-                setConversations(prev => prev.map(c => {
-                  if (c.id !== currentConvId) return c;
-                  // Merge fresh DB rows with existing in-memory entries so we
-                  // don't wipe attachments / consensusData / branch metadata
-                  // that only live in memory.
-                  const existingById = Object.fromEntries(c.messages.map(m => [m.id, m]));
-                  return {
-                    ...c,
-                    messages: decrypted.map(dm => ({
-                      ...existingById[dm.id],
-                      ...dm,
-                    })),
-                  };
-                }));
-              }
+    const handleVisibility = async () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        return;
+      }
+      if (document.visibilityState !== "visible") return;
+
+      const awayMs = hiddenAt ? Date.now() - hiddenAt : 0;
+      hiddenAt = null;
+
+      // Short tab flip → do nothing. No re-render, no re-fetch.
+      if (awayMs < HIDDEN_THRESHOLD_MS) return;
+      if (isStreamingRef.current) return;
+
+      const currentConvId = activeConvIdRef.current;
+      if (!user || !currentConvId) return;
+
+      // Skip re-sync on non-main branches to avoid dropping branch-only rows.
+      const currentBranch = getActiveBranch(currentConvId);
+      if (currentBranch !== "main") return;
+
+      try {
+        // Cheap drift probe: fetch only the newest row's id + created_at.
+        const { data: probe } = await supabase
+          .from("messages")
+          .select("id, created_at")
+          .eq("conversation_id", currentConvId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        const localConv = conversationsRef.current.find(c => c.id === currentConvId);
+        const localMsgs = localConv?.messages ?? [];
+        const localLast = localMsgs[localMsgs.length - 1];
+        const remoteLastId = probe?.[0]?.id;
+
+        // No drift → done. Nothing rerenders.
+        if (!remoteLastId || remoteLastId === localLast?.id) return;
+
+        // Drift detected — pull full set and reconcile.
+        const { data: freshMsgs } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("conversation_id", currentConvId)
+          .order("created_at", { ascending: true })
+          .limit(500);
+        if (!freshMsgs || freshMsgs.length === 0) return;
+        if (isStreamingRef.current) return;
+
+        const decrypted = await Promise.all(
+          freshMsgs.map(async (m) => {
+            let content = "";
+            try {
+              content = await decryptText(m.content, user.id);
+            } catch {
+              content = "_[Encrypted on another device — unable to decrypt here.]_";
             }
-          } catch {
-            // Non-critical — local state is still valid
-          }
-        }
+            const attachments = await decryptAttachments((m as any).attachments_enc, user.id);
+            return {
+              id: m.id,
+              role: m.role as "user" | "assistant",
+              content,
+              timestamp: new Date(m.created_at),
+              truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
+              sources: (m.sources as { title: string; url: string }[]) ?? [],
+              attachments,
+            };
+          })
+        );
+
+        setConversations(prev => prev.map(c => {
+          if (c.id !== currentConvId) return c;
+          const existingById = Object.fromEntries(c.messages.map(m => [m.id, m]));
+          return {
+            ...c,
+            // Reverse-merge: DB provides the baseline row, but in-memory fields
+            // (consensusData, streaming partials, richer attachments) win.
+            messages: decrypted.map(dm => ({
+              ...dm,
+              ...existingById[dm.id],
+            })),
+          };
+        }));
+      } catch {
+        // Non-critical — local state is still valid
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [user]);
+
 
   const activeConv = activeConvId
     ? conversations.find((c) => c.id === activeConvId) ?? null
