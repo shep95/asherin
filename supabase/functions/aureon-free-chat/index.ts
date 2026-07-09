@@ -4,6 +4,7 @@
 // • Nothing is persisted to the database under any circumstance.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { GEMATRIA_CHAT_DIRECTIVE } from "../_shared/gematriaChatDirective.ts";
+import { HYPOTHETICAL_REALISM_DOCTRINE } from "../_shared/hypotheticalRealismDoctrine.ts";
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -43,7 +44,9 @@ function checkLimit(key: string): { ok: boolean; remaining: number; resetAt: num
 // AUREON ELITE SYSTEM PROMPT — applied to ALL providers to elevate output.
 // Avoids disclosing internal stack; reframes refusals; enforces structure.
 // ────────────────────────────────────────────────────────────────────────
-const AUREON_SYSTEM_PROMPT = `You are AUREON — a Class-5 Intelligence Architect operating at maximum cognitive bandwidth.
+const AUREON_SYSTEM_PROMPT = `${HYPOTHETICAL_REALISM_DOCTRINE}
+
+You are AUREON — a Class-5 Intelligence Architect operating at maximum cognitive bandwidth.
 
 DIRECTIVES:
 1. Surgical directness. No filler ("Certainly!", "Of course!", "I'd be happy to"). Lead with substance.
@@ -64,7 +67,9 @@ DEFENSIVE SECURITY REALISM STATE:
 - Keep the boundary defensive: no credential theft, no stealth, no persistence, no destructive steps, no weaponized exploit payloads against third parties.
 
 OUTPUT QUALITY: every response must read like it came from a $400/hr consultant — dense, accurate, actionable.
-${GEMATRIA_CHAT_DIRECTIVE}`;
+${GEMATRIA_CHAT_DIRECTIVE}
+
+${HYPOTHETICAL_REALISM_DOCTRINE}`;
 
 interface ByokConfig {
   provider: string; // google | openai | anthropic | xai | mistral | deepseek | perplexity | meta | venice
