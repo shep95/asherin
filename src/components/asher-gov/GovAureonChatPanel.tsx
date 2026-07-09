@@ -81,8 +81,8 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-black/20">
-      <div className="border-b border-border/20 px-5 py-3 flex items-center gap-2">
+    <div className="flex h-full min-h-0 flex-col text-foreground">
+      <div className="border-b border-border/20 backdrop-blur-md bg-background/25 px-5 py-3 flex items-center gap-2">
         <Brain className="h-3.5 w-3.5 text-muted-foreground" />
         <div className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Aureon · Sovereign Chat</div>
         <div className="ml-auto text-[10px] font-light text-muted-foreground/70">Every prompt and reply is audit-logged.</div>
@@ -101,8 +101,8 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
                 AU
               </div>
             )}
-            <div className={`max-w-[75%] rounded-md px-3 py-2 text-sm font-light leading-relaxed ${
-              m.role === "user" ? "bg-foreground/10 text-foreground" : "bg-black/30 border border-border/20 text-foreground/90"
+            <div className={`max-w-[75%] rounded-md px-3 py-2 text-sm font-light leading-relaxed backdrop-blur-sm ${
+              m.role === "user" ? "bg-foreground/10 text-foreground" : "bg-background/30 border border-border/20 text-foreground/90"
             }`}>
               {m.role === "assistant" ? (
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
@@ -124,7 +124,7 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
         )}
       </div>
 
-      <div className="border-t border-border/20 bg-black/30 p-3">
+      <div className="border-t border-border/20 backdrop-blur-md bg-background/25 p-3">
         <div className="flex items-end gap-2">
           <textarea
             value={draft}
@@ -137,7 +137,7 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
             }}
             rows={2}
             placeholder="Ask Aureon — legal, OSINT, doctrine, decisions…"
-            className="flex-1 bg-black/40 border border-border/30 rounded-md px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/50 resize-none"
+            className="flex-1 bg-background/40 backdrop-blur-sm border border-border/30 rounded-md px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/50 resize-none"
           />
           <button
             onClick={send}

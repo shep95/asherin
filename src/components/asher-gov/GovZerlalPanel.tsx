@@ -156,9 +156,9 @@ export default function GovZerlalPanel({
   }
 
   return (
-    <div className="flex h-full w-full flex-col bg-background">
+    <div className="flex h-full w-full flex-col text-foreground">
       {/* TARGET LOADER */}
-      <div className="border-b border-border/20 bg-black/25 px-4 py-3 space-y-2">
+      <div className="border-b border-border/20 backdrop-blur-md bg-background/25 px-4 py-3 space-y-2">
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/70">
           <ShieldAlert className="h-3 w-3" />
           Sovereign Target · {serverName ?? "no server"} · {files.length}/{MAX_FILES} files
