@@ -478,6 +478,33 @@ const AsherinGovDashboard = () => {
 
         {/* MAIN PANE */}
         <main className="flex-1 flex flex-col min-w-0">
+          {state.activeSuite ? (() => {
+            const suite = SUITES.find(s => s.id === state.activeSuite)!;
+            return (
+              <>
+                <header className="border-b border-border/20 bg-black/20 px-5 py-3 flex items-center gap-3 min-w-0">
+                  <suite.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-sm font-light text-foreground truncate">{suite.label}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded border border-foreground/30 text-foreground/80 tracking-widest uppercase">Sovereign Runtime</span>
+                    </div>
+                    <div className="text-[11px] font-light text-muted-foreground/70 truncate">{suite.blurb}</div>
+                  </div>
+                  <button
+                    onClick={exitSuite}
+                    className="ml-auto text-[10px] tracking-widest uppercase px-2 py-1.5 rounded-md border border-border/30 text-muted-foreground hover:text-foreground hover:border-border/60 flex items-center gap-1"
+                  >
+                    <X className="h-3 w-3" /> Exit Suite
+                  </button>
+                </header>
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <GovSuiteMount suite={state.activeSuite!} operator={operator.handle} onAudit={pushAudit} />
+                </div>
+              </>
+            );
+          })() : (<></>)}
+          {!state.activeSuite && (<></>)}
           {/* Channel header */}
           <header className="border-b border-border/20 bg-black/20 px-5 py-3 flex items-center gap-3 min-w-0">
             {(() => { const Icon = channelIcon(activeChannel.kind); return <Icon className="h-4 w-4 text-muted-foreground shrink-0" />; })()}
