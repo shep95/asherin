@@ -104,6 +104,12 @@ const SEO: Record<string, SeoEntry> = {
       "How Aureon routes free and BYOK traffic through Venice AI for uncensored, vision-capable answers with no key, no account, no subscription.",
     ogType: "article",
   },
+  "/blog/aureon-legal-advisor-multi-jurisdictional": {
+    title: "Aureon Legal Advisor (LAW Mode) — Multi-Jurisdictional AI Legal Research",
+    description:
+      "How Aureon and Asher's LAW mode runs deep legal research across any country, state, or province — surfacing older statutes that supersede newer law without fabricating citations.",
+    ogType: "article",
+  },
 
   // Blog satellites (Theory 8 — Nested Fractal Content Architecture)
   "/blog/what-is-ai-osint": {

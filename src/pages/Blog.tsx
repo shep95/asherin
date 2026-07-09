@@ -27,6 +27,15 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/aureon-legal-advisor-multi-jurisdictional",
+    title: "Aureon Legal Advisor (LAW Mode) — multi-jurisdictional AI legal research",
+    dek: "The July 8, 2026 ship: a per-message LAW toggle in Aureon and Asher that wraps prompts in a strict legal-research directive — hunts modern statutes, colonial carryovers, uncodified common law, and binding precedent across any country, state, or province, and refuses to fabricate citations.",
+    tag: "Product",
+    published: "2026-07-08T00:00:00.000Z",
+    readTime: "8 min",
+    featured: true,
+  },
+  {
     slug: "/blog/code-narrative-quantum-collapse",
     title: "Code-as-Narrative × Quantum Candidate Collapse — sub-60-second bug patches on the cheapest Gemini",
     dek: "How two #HouseOfAsher theories — Code-as-Narrative and Quantum Candidate Collapse — let Aureon patch logical, workflow, and UI bugs in under a minute on gemini-flash-lite, a fix cycle that normally takes 30+ minutes. Three-year jump on the narrative axis, ten-generation jump on the collapse axis. Wired into every Aureon module.",
