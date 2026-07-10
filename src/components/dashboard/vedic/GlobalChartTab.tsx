@@ -12,13 +12,48 @@
  * surface the top-affected nations.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Globe2, Sparkles, Activity, Flag, Clock, TrendingUp } from "lucide-react";
+import { Globe2, Sparkles, Activity, Flag, Clock, TrendingUp, Sun, Eye } from "lucide-react";
 import { calculateSweVedicChart, type SweVedicChart } from "@/lib/vedic/sweChart";
 import { computeMahadasha, findCurrentDasha, type CurrentDashaPath } from "@/lib/vedic/dasha";
 import { computeTransitChart, type TransitChart } from "@/lib/vedic/transits";
 import { houseFromAsc } from "@/lib/vedic/dignities";
 import { COUNTRY_CHARTS } from "@/data/vedic/countryCharts";
 import { rashis } from "@/data/nakshatraData";
+import { SOLAR_ECLIPSES_2026_2034, type SolarEclipse } from "@/data/vedic/solarEclipses";
+
+// ── Western tropical zodiac ──────────────────────────────────────────
+// Tropical longitude = sidereal + ayanamsa. Signs use the seasonal
+// (equinox-fixed) 12-fold division — same 12 names, but tropical Aries
+// begins at the March equinox (vs. Vedic sidereal Aries fixed to stars).
+const TROPICAL_SIGNS = [
+  { name: "Aries", symbol: "♈", element: "Fire", ruler: "Mars" },
+  { name: "Taurus", symbol: "♉", element: "Earth", ruler: "Venus" },
+  { name: "Gemini", symbol: "♊", element: "Air", ruler: "Mercury" },
+  { name: "Cancer", symbol: "♋", element: "Water", ruler: "Moon" },
+  { name: "Leo", symbol: "♌", element: "Fire", ruler: "Sun" },
+  { name: "Virgo", symbol: "♍", element: "Earth", ruler: "Mercury" },
+  { name: "Libra", symbol: "♎", element: "Air", ruler: "Venus" },
+  { name: "Scorpio", symbol: "♏", element: "Water", ruler: "Pluto/Mars" },
+  { name: "Sagittarius", symbol: "♐", element: "Fire", ruler: "Jupiter" },
+  { name: "Capricorn", symbol: "♑", element: "Earth", ruler: "Saturn" },
+  { name: "Aquarius", symbol: "♒", element: "Air", ruler: "Uranus/Saturn" },
+  { name: "Pisces", symbol: "♓", element: "Water", ruler: "Neptune/Jupiter" },
+];
+
+// Major Ptolemaic aspects with modern orb tolerances (mundane, tight).
+type AspectKind = "Conjunction" | "Opposition" | "Square" | "Trine" | "Sextile";
+const ASPECTS: Array<{ kind: AspectKind; angle: number; orb: number; nature: "harmonious" | "tense" | "neutral" }> = [
+  { kind: "Conjunction", angle: 0, orb: 8, nature: "neutral" },
+  { kind: "Opposition", angle: 180, orb: 7, nature: "tense" },
+  { kind: "Square", angle: 90, orb: 6, nature: "tense" },
+  { kind: "Trine", angle: 120, orb: 6, nature: "harmonious" },
+  { kind: "Sextile", angle: 60, orb: 4, nature: "harmonious" },
+];
+
+function angularSep(a: number, b: number): number {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
 
 // ── Mundane reference: Mesha Sankranti (sidereal Aries ingress ~Apr 14) ────
 // Cast for New Delhi 00:00 IST — traditional Medini annual mundane chart.
