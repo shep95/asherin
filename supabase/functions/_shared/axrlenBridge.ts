@@ -336,7 +336,7 @@ async function callGeminiStreamAsText(apiKey: string, model: string, sys: string
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: sys }] },
         contents,
-        generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
+        generationConfig: { temperature, maxOutputTokens: 4096 },
       }),
     },
   );
