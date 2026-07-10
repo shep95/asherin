@@ -320,7 +320,7 @@ Do NOT open a market answer with dasha lords, eclipse paths, or 30-domain synthe
 // ── 4. Streaming call ───────────────────────────────────────────────────────
 
 
-async function callGeminiStreamAsText(apiKey: string, model: string, sys: string, msgs: Array<{ role: string; content: string }>): Promise<ReadableStream<Uint8Array>> {
+async function callGeminiStreamAsText(apiKey: string, model: string, sys: string, msgs: Array<{ role: string; content: string }>, temperature = 0.3): Promise<ReadableStream<Uint8Array>> {
   const contents = msgs
     .filter((m) => m.role === "user" || m.role === "assistant")
     .map((m) => ({
