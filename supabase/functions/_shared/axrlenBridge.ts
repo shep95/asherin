@@ -20,6 +20,45 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { resolveAxrlenAccess, type AxrlenAccess } from "./proTierGate.ts";
 import { buildVedicContext, vedicContextAsPromptBlock } from "./vedicContext.ts";
+import { nexusPrimeCore, AXRLEN_INLINE_ADDENDUM } from "./axrlenSystemPrompt.ts";
+
+// ── Region detection — mirrors axrlen-analyze's REGION_MAP so the bridge
+// feeds regionally-scoped Vedic context when the user names a country. Keeps
+// Aureon/Asher forecasts on the same Vedic frame as the standalone endpoint.
+const REGION_LOOKUP: Array<[RegExp, string]> = [
+  [/\b(united states|u\.?s\.?a?|america|washington)\b/i, "US"],
+  [/\b(china|beijing|prc)\b/i, "CN"],
+  [/\b(russia|moscow|kremlin|putin)\b/i, "RU"],
+  [/\b(india|delhi|modi)\b/i, "IN"],
+  [/\b(brazil|brasilia)\b/i, "BR"],
+  [/\b(germany|berlin)\b/i, "DE"],
+  [/\b(france|paris|macron)\b/i, "FR"],
+  [/\b(uk|united kingdom|britain|london)\b/i, "GB"],
+  [/\b(japan|tokyo)\b/i, "JP"],
+  [/\b(south korea|seoul)\b/i, "KR"],
+  [/\b(mexico)\b/i, "MX"],
+  [/\b(nigeria|abuja|lagos)\b/i, "NG"],
+  [/\b(south africa|pretoria|johannesburg)\b/i, "ZA"],
+  [/\b(egypt|cairo)\b/i, "EG"],
+  [/\b(turkey|ankara|istanbul|erdogan)\b/i, "TR"],
+  [/\b(iran|tehran|khamenei)\b/i, "IR"],
+  [/\b(saudi arabia|riyadh|mbs)\b/i, "SA"],
+  [/\b(australia|canberra)\b/i, "AU"],
+  [/\b(indonesia|jakarta)\b/i, "ID"],
+  [/\b(pakistan|islamabad)\b/i, "PK"],
+  [/\b(canada|ottawa)\b/i, "CA"],
+  [/\b(ukraine|kyiv|kiev|zelensky)\b/i, "UA"],
+  [/\b(israel|jerusalem|tel aviv|netanyahu)\b/i, "IL"],
+  [/\b(palestine|gaza|west bank|hamas)\b/i, "PS"],
+  [/\b(taiwan|taipei)\b/i, "TW"],
+  [/\b(north korea|pyongyang|kim jong)\b/i, "KP"],
+  [/\b(syria|damascus)\b/i, "SY"],
+];
+
+function detectRegionCode(text: string): string | undefined {
+  for (const [re, code] of REGION_LOOKUP) if (re.test(text)) return code;
+  return undefined;
+}
 
 // ── Upcoming solar eclipses 2026-2034 with capital-crossings ────────────
 // Slim server-side mirror of src/data/vedic/solarEclipses.ts — kept inline
