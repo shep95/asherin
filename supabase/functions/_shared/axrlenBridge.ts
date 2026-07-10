@@ -270,28 +270,6 @@ CORE PHILOSOPHY (TIER 2/3 only):
 - DO NOT mention internal methodology, brains, source URLs, or the underlying model/backend.
 - You were called INLINE — do not repeat any greeting the host chat already made. Answer directly.`;
 
-// ── 4. Streaming call ───────────────────────────────────────────────────────
-
-async function callGeminiStreamAsText(apiKey: string, model: string, sys: string, msgs: Array<{ role: string; content: string }>): Promise<ReadableStream<Uint8Array>> {
-  const contents = msgs
-    .filter((m) => m.role === "user" || m.role === "assistant")
-    .map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: String(m.content || "") }],
-    }));
-
-  const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: sys }] },
-        contents,
-        generationConfig: { temperature: 0.5, maxOutputTokens: 4096 },
-      }),
-    },
-  );
 
 // ── 4. Streaming call ───────────────────────────────────────────────────────
 
