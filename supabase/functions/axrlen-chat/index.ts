@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { resolveAxrlenAccess } from "../_shared/proTierGate.ts";
+import { AXRLEN_MARKET_ADDENDUM, detectMarketIntent } from "../_shared/axrlenSystemPrompt.ts";
+
 
 const BASE_IDENTITY = `Project: AXRLEN. You are my global prediction algorithm. You identify PATTERNS across history, data, and esoteric frameworks to forecast what comes next.
 
@@ -157,7 +159,13 @@ serve(async (req) => {
 
     const { getTemporalContext } = await import("../_shared/systemContext.ts");
     const _tCtx = getTemporalContext({ timezone, locale });
-    const systemPrompt = _tCtx + "\n\n" + BASE_IDENTITY + "\n" + primaryBrains + secondaryBrains + sessionBlock;
+    // Market-intent override — price-action first, Vedic demoted to a
+    // footnote so short-horizon market forecasts don't get drowned by the
+    // Vedic Global Prediction primary brain.
+    const isMarket = detectMarketIntent(lastUserMsg);
+    const marketBlock = isMarket ? "\n\n" + AXRLEN_MARKET_ADDENDUM : "";
+    const systemPrompt = _tCtx + "\n\n" + BASE_IDENTITY + marketBlock + "\n" + primaryBrains + secondaryBrains + sessionBlock;
+
 
     const gatewayMessages = [
       { role: "system", content: systemPrompt },
@@ -191,7 +199,11 @@ serve(async (req) => {
         model: modelId,
         messages: gatewayMessages,
         stream: true,
+        // Market queries → 0.6 (looser, price-action reasoning like pre-unification
+        // AXRLEN). Everything else → 0.3 (tight, doctrine-anchored geopolitical).
+        temperature: isMarket ? 0.6 : 0.3,
       }),
+
     });
 
     if (response.status === 429) {
