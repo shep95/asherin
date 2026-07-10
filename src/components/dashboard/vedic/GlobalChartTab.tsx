@@ -390,6 +390,127 @@ export default function GlobalChartTab() {
           Impact = transiting planet's house against a country-localized reference of the world ascendant. Angles (1/4/7/10) and dusthanas (6/8/12) weighted highest; slow planets (Saturn, Jupiter, Rahu, Ketu) 2× multiplier.
         </div>
       </div>
+
+      {/* WESTERN TROPICAL TRANSITS */}
+      <div className="rounded-xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/[0.05] via-background/60 to-background/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-3">
+        <div className="flex items-center gap-2 border-b border-border/15 pb-3">
+          <Sparkles className="h-4 w-4 text-indigo-400/80" />
+          <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Western Tropical Transits</h3>
+          <span className="ml-auto text-[10px] font-light text-muted-foreground/70 italic">Seasonal zodiac · same planets, tropical signs</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+          {westernTransits.map((p) => (
+            <div key={p.name} className="grid grid-cols-[28px_1fr_auto] gap-2 py-1.5 items-center border-b border-border/5 last:border-0">
+              <div className="text-lg text-foreground/80">{p.symbol}</div>
+              <div className="min-w-0">
+                <div className="text-[13px] font-light text-foreground/95 flex items-center gap-2">
+                  {p.name}
+                  {p.retrograde && <span className="text-[9px] uppercase tracking-wider text-amber-500/80">℞</span>}
+                </div>
+                <div className="text-[10px] text-muted-foreground/70">{p.sign.element} · ruler {p.sign.ruler}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[12px] text-foreground/90">{p.sign.symbol} {p.sign.name}</div>
+                <div className="text-[10px] text-muted-foreground/70 tabular-nums">{fmtDeg(p.degInSign)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Major aspects */}
+        {majorAspects.length > 0 && (
+          <div className="pt-3 border-t border-border/15">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 mb-2">Active Ptolemaic Aspects (tightest 12)</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {majorAspects.map((a, i) => (
+                <div key={i} className="flex items-center gap-2 text-[11px] py-1 px-2 rounded bg-background/40 border border-border/10">
+                  <span className="text-base">{a.aSym}</span>
+                  <span className={`text-[10px] uppercase tracking-wider font-light px-1.5 py-0.5 rounded ${
+                    a.nature === "tense" ? "bg-red-500/15 text-red-300" :
+                    a.nature === "harmonious" ? "bg-emerald-500/15 text-emerald-300" :
+                    "bg-amber-500/15 text-amber-300"
+                  }`}>{a.kind}</span>
+                  <span className="text-base">{a.bSym}</span>
+                  <span className="ml-auto text-[10px] text-muted-foreground/70 tabular-nums">orb {a.orb.toFixed(2)}°</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* SOLAR ECLIPSES OVER CAPITALS — NEXT 8 YEARS */}
+      <div className="rounded-xl border border-orange-500/30 bg-gradient-to-br from-orange-500/[0.05] via-background/60 to-background/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-3">
+        <div className="flex items-center gap-2 border-b border-border/15 pb-3">
+          <Sun className="h-4 w-4 text-orange-400/85" />
+          <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Solar Eclipses Over Capitals · 2026 → 2034</h3>
+          <span className="ml-auto text-[10px] font-light text-muted-foreground/70 italic">NASA Espenak canon</span>
+        </div>
+        <div className="space-y-3">
+          {upcomingEclipses.map((e: SolarEclipse) => {
+            const inCount = e.capitalsInPath.length;
+            const nearCount = e.capitalsNearPath.length;
+            const weight = inCount * 3 + nearCount;
+            const weightLabel = weight >= 12 ? "critical" : weight >= 6 ? "high" : weight >= 2 ? "moderate" : "low";
+            const weightColor = weight >= 12 ? "bg-red-500/20 text-red-300 border-red-500/40"
+                              : weight >= 6 ? "bg-orange-500/20 text-orange-300 border-orange-500/40"
+                              : weight >= 2 ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                              : "bg-foreground/5 text-muted-foreground border-border/20";
+            const typeColor = e.type === "total" ? "text-orange-300"
+                            : e.type === "annular" ? "text-amber-300"
+                            : e.type === "hybrid" ? "text-fuchsia-300"
+                            : "text-muted-foreground";
+            return (
+              <div key={e.date} className="rounded-lg border border-border/25 bg-background/40 p-4 space-y-2">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <div className="text-base font-light text-foreground tabular-nums">{e.date}</div>
+                  <div className="text-[10px] text-muted-foreground/70 tabular-nums">{e.timeUt} UT</div>
+                  <div className={`text-[10px] uppercase tracking-[0.2em] font-light ${typeColor}`}>{e.type}</div>
+                  <div className="text-[10px] text-muted-foreground/70 tabular-nums">mag {e.magnitude.toFixed(3)} · max {Math.floor(e.maxDurationSec / 60)}m{String(e.maxDurationSec % 60).padStart(2, "0")}s</div>
+                  <span className={`ml-auto text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${weightColor}`}>{weightLabel} omen</span>
+                </div>
+                <div className="text-[11px] text-muted-foreground/85 font-light leading-relaxed">{e.pathSummary}</div>
+
+                {inCount > 0 && (
+                  <div>
+                    <div className="text-[9px] uppercase tracking-[0.2em] text-red-300/80 mb-1 flex items-center gap-1.5">
+                      <Eye className="h-3 w-3" /> Capitals under central path
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {e.capitalsInPath.map((c) => (
+                        <span key={c.capital} className="text-[10px] px-2 py-1 rounded border border-red-500/30 bg-red-500/[0.08] text-foreground/95">
+                          {c.flag} {c.capital} <span className="text-muted-foreground/70 tabular-nums">· {(c.obscuration * 100).toFixed(0)}% · {c.distanceKm}km</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {nearCount > 0 && (
+                  <div>
+                    <div className="text-[9px] uppercase tracking-[0.2em] text-amber-300/80 mb-1">Deep partial (≥80%)</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {e.capitalsNearPath.map((c) => (
+                        <span key={c.capital} className="text-[10px] px-2 py-1 rounded border border-amber-500/25 bg-amber-500/[0.05] text-foreground/85">
+                          {c.flag} {c.capital} <span className="text-muted-foreground/70 tabular-nums">· {(c.obscuration * 100).toFixed(0)}%</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-[10px] italic text-muted-foreground/75 leading-snug pt-1 border-t border-border/10">
+                  {e.omenNote}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="text-[10px] text-muted-foreground/60 italic pt-2 border-t border-border/10">
+          Classical mundane rule: a solar eclipse whose central path crosses a national capital signals leadership disruption or major policy inflection within ~6 months on either side. "In path" = umbral/antumbral; "near path" = ≥80% obscuration.
+        </div>
+      </div>
     </div>
   );
 }
+
