@@ -140,10 +140,10 @@ Deno.serve(async (req) => {
         }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       apiKey = resolved.byok!.apiKey;
-      model = resolved.byok!.model || "gemini-2.5-flash";
+      model = resolved.byok!.model || "gemini-flash-latest";
     } else {
       apiKey = resolved.geminiKey!;
-      model = "gemini-2.5-flash";
+      model = "gemini-flash-latest";
     }
 
     const brainsCtx = await loadBrainsContext(brainIds);

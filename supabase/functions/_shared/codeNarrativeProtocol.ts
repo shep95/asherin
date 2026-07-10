@@ -159,7 +159,7 @@ async function callJsonAI(prompt: string, keys: AIKeys): Promise<any> {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys.lovableKey}` },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-flash-latest",
           messages: [
             { role: "system", content: "Return ONLY valid JSON. No markdown fences." },
             { role: "user", content: prompt },
@@ -180,7 +180,7 @@ async function callJsonAI(prompt: string, keys: AIKeys): Promise<any> {
   }
   if (keys.geminiKey) {
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${keys.geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${keys.geminiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

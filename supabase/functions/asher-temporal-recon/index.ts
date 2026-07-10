@@ -154,7 +154,7 @@ For every match return:
 Return STRICT JSON only:
 {"detections":[{"x":0.42,"y":0.31,"label":"...","color":"red","confidence":0.86,"reason":"..."}],"summary":"1 sentence"}`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
   for (let attempt = 1; attempt <= 2; attempt++) {
     const r = await fetch(url, {
       method: "POST",

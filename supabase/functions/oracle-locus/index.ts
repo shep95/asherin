@@ -202,7 +202,7 @@ IMPORTANT: If the image lacks sufficient visual cues for geographic analysis (e.
 Analyze EVERY visual cue with forensic precision. Cross-reference cultural patterns at every geographic scale. The more corroborating indicators you find, the higher your confidence should be. Contradictory indicators should lower confidence and expand error radius.`;
 
     // Cascade through Gemini models — if one is overloaded/rate-limited, try the next.
-    const MODEL_CASCADE = ["gemini-2.5-flash", "gemini-3-flash-preview", "gemini-2.5-pro"];
+    const MODEL_CASCADE = ["gemini-flash-latest", "gemini-3-flash-preview", "gemini-pro-latest"];
     let text = "";
     let lastErr = "";
     let modelUsed = "";

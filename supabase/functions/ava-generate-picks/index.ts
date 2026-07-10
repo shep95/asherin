@@ -159,8 +159,8 @@ async function callGeminiOnce(games: ParsedGame[], model: string, temperature: n
 // Only pick games where BOTH models agree on the winner. Bumps confidence to HIGH on agreement.
 async function callGeminiConsensus(games: ParsedGame[]): Promise<any> {
   const [resA, resB] = await Promise.allSettled([
-    callGeminiOnce(games, "gemini-2.5-pro", 0.3),
-    callGeminiOnce(games, "gemini-2.5-flash", 0.5),
+    callGeminiOnce(games, "gemini-pro-latest", 0.3),
+    callGeminiOnce(games, "gemini-flash-latest", 0.5),
   ]);
   const a = resA.status === "fulfilled" ? (resA.value?.picks ?? []) : [];
   const b = resB.status === "fulfilled" ? (resB.value?.picks ?? []) : [];
@@ -178,8 +178,8 @@ async function callGeminiConsensus(games: ParsedGame[]): Promise<any> {
         odds_analysis: {
           ...(pa.odds_analysis ?? {}),
           consensus_mode: "dual_agreement",
-          model_a: "gemini-2.5-pro",
-          model_b: "gemini-2.5-flash",
+          model_a: "gemini-pro-latest",
+          model_b: "gemini-flash-latest",
         },
       });
     }

@@ -75,7 +75,7 @@ ${weights ? `Optimization Weights: ${JSON.stringify(weights)}` : ""}
 Provide realistic, detailed results based on this project data. If data is sparse, make reasonable engineering assumptions and note them.`;
 
     const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

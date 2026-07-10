@@ -22,7 +22,7 @@ async function callGemini(prompt: string, systemInstruction?: string): Promise<s
     body.systemInstruction = { parts: [{ text: systemInstruction }] };
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
 
   let lastError: Error | null = null;
   for (let attempt = 0; attempt < 3; attempt++) {

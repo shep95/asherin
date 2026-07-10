@@ -39,7 +39,7 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
     // ============================================================
     // PHASE 1: ASHA DATA EXTRACTION (for unstructured/binary data)

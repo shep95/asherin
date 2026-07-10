@@ -208,7 +208,7 @@ serve(async (req) => {
             const contents = msgs
               .filter((m) => m.role !== "system")
               .map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`;
             const resp = await fetch(url, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -249,7 +249,7 @@ serve(async (req) => {
           messages: cleaned.map((m: any) => ({ role: String(m.role || "user"), content: typeof m.content === "string" ? m.content : "" })),
           surface: "asher",
           fallbackGeminiKey: apiKey,
-          fallbackModel: "gemini-2.5-flash",
+          fallbackModel: "gemini-flash-latest",
         });
         if (axrlen.kind === "stream") {
           const openai = textStreamToOpenAiSse(axrlen.textStream);
@@ -334,7 +334,7 @@ serve(async (req) => {
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {
       const contents = toGeminiContents(cleaned);
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
       const upstream = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

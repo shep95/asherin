@@ -83,17 +83,17 @@ It is your turn. Make your move.`;
         "anthropic/claude-3-opus": "openai/gpt-5",
         "anthropic/claude-3-sonnet": "openai/gpt-5-mini",
         "anthropic/claude-3-haiku": "openai/gpt-5-nano",
-        "google/gemini-pro": "google/gemini-2.5-pro",
-        "google/gemini-flash": "google/gemini-2.5-flash",
-        "deepseek/deepseek-chat": "google/gemini-2.5-flash",
-        "deepseek/deepseek-reasoner": "google/gemini-2.5-pro",
+        "google/gemini-pro": "google/gemini-pro-latest",
+        "google/gemini-flash": "google/gemini-flash-latest",
+        "deepseek/deepseek-chat": "google/gemini-flash-latest",
+        "deepseek/deepseek-reasoner": "google/gemini-pro-latest",
         "xai/grok-2": "openai/gpt-5",
         "xai/grok-beta": "openai/gpt-5-mini",
         "meta/llama-3-70b": "openai/gpt-5-mini",
         "meta/llama-3-8b": "openai/gpt-5-nano",
       };
 
-      model = modelMap[`${byokProvider}/${byokModel}`] || "google/gemini-2.5-flash";
+      model = modelMap[`${byokProvider}/${byokModel}`] || "google/gemini-flash-latest";
 
       requestBody = {
         model,
@@ -107,7 +107,7 @@ It is your turn. Make your move.`;
       // Aureon mode
       apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
       apiUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
-      model = "google/gemini-2.5-pro";
+      model = "google/gemini-pro-latest";
 
       requestBody = {
         model,

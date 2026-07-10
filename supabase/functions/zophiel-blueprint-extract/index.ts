@@ -1485,7 +1485,7 @@ serve(async (req) => {
         );
       }
     } else {
-      const modelChain = ["gemini-2.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+      const modelChain = ["gemini-flash-latest", "gemini-flash-latest", "gemini-2.5-flash-lite"];
       const body = JSON.stringify({
         systemInstruction: { parts: [{ text: activeSystemPrompt }] },
         contents: [{ role: "user", parts: [{ text: userPrompt }] }],

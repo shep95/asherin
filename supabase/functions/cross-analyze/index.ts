@@ -840,7 +840,7 @@ async function handleChat(message: string, context: string, previousAlerts: any[
 
   const roleDesc = modeDescriptions[mode] || modeDescriptions.general;
 
-  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -872,7 +872,7 @@ async function handleChat(message: string, context: string, previousAlerts: any[
 
 async function callGeminiDirect(apiKey: string, prompt: string, frame: string): Promise<any | null> {
   const base64Data = frame.includes(",") ? frame.split(",")[1] : frame;
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
+  const models = ["gemini-flash-latest", "gemini-2.0-flash"];
 
   for (const model of models) {
     try {

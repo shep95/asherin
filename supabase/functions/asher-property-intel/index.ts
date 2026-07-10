@@ -424,7 +424,7 @@ Return STRICT JSON only with this exact schema:
   "citations": [{"label":"string","url":"string","channel":"ownership|residents|permits|financial|listings|history"}]
 }`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
     let resp: Response | null = null;
     let lastErr = "";
     for (let attempt = 1; attempt <= 3; attempt++) {

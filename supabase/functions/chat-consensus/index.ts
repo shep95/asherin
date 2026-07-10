@@ -84,7 +84,7 @@ async function callProvider(
 
     if (provider === "default") {
       const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
-      if (!GEMINI_API_KEY) return { provider, model: "gemini-2.5-flash", content: "", error: "No default API key", latencyMs: Date.now() - start };
+      if (!GEMINI_API_KEY) return { provider, model: "gemini-flash-latest", content: "", error: "No default API key", latencyMs: Date.now() - start };
       const geminiMessages = [
         { role: "user", parts: [{ text: systemPrompt }] },
         { role: "model", parts: [{ text: "Understood. Ready." }] },
@@ -94,7 +94,7 @@ async function callProvider(
         })),
       ];
       response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -103,10 +103,10 @@ async function callProvider(
       );
       if (!response.ok) {
         const errText = await response.text();
-        return { provider: "default", model: "gemini-2.5-flash", content: "", error: `${response.status}: ${errText.slice(0, 200)}`, latencyMs: Date.now() - start };
+        return { provider: "default", model: "gemini-flash-latest", content: "", error: `${response.status}: ${errText.slice(0, 200)}`, latencyMs: Date.now() - start };
       }
       const data = await response.json();
-      return { provider: "default", model: "gemini-2.5-flash", content: data.candidates?.[0]?.content?.parts?.[0]?.text || "", latencyMs: Date.now() - start };
+      return { provider: "default", model: "gemini-flash-latest", content: data.candidates?.[0]?.content?.parts?.[0]?.text || "", latencyMs: Date.now() - start };
     }
 
     // OpenAI-compatible providers

@@ -683,7 +683,7 @@ function dedupeFindings(findings: any[]) {
 async function detectProviderProfile(resolved: any, lovableKey: string | undefined, geminiKey: string | undefined): Promise<ProviderProfile> {
   const providerLabel = resolved.mode === "byok"
     ? `${resolved.byok.provider}/${resolved.byok.model}`
-    : (lovableKey ? "lovable-gateway/google-gemini-2.5-flash" : "google/gemini-2.5-flash");
+    : (lovableKey ? "lovable-gateway/google-gemini-flash-latest" : "google/gemini-flash-latest");
 
   const baseTimeout = resolved.mode === "byok"
     ? providerTimeoutForByok(resolved.byok.provider, resolved.byok.model)
@@ -949,7 +949,7 @@ async function callAI(
           },
           signal: ctl.signal,
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-flash-latest",
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: prompt },
@@ -999,7 +999,7 @@ async function callAI(
         const ctl = new AbortController();
         const timer = setTimeout(() => ctl.abort(), timeoutMs);
         const resp = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

@@ -53,7 +53,7 @@ async function aiChat(messages: any[]): Promise<string> {
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${LOVABLE_API_KEY}` },
-    body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, temperature: 0.2 }),
+    body: JSON.stringify({ model: "google/gemini-flash-latest", messages, temperature: 0.2 }),
   });
   if (!res.ok) throw new Error(`chat ${res.status}: ${await res.text()}`);
   const j = await res.json();

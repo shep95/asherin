@@ -90,7 +90,7 @@ serve(async (req) => {
         `MEDIA TYPE: ${mediaType}\n\nCURRENT CODE:\n\`\`\`html\n${currentCode}\n\`\`\`${histBlock}\n\nUSER INSTRUCTION: ${instruction}`;
 
       const r = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

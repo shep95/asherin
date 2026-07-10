@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
         aiError = e?.message || 'byok_fail';
       }
     } else {
-      const CHAIN = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+      const CHAIN = ['gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-pro-latest'];
       outer: for (let i = 0; i < CHAIN.length; i++) {
         const model = CHAIN[i];
         for (let a = 0; a < 2; a++) {

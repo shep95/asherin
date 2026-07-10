@@ -26,14 +26,14 @@ type TaskKind =
 // Default routing — mirrors src/lib/ide/modelRouter.ts
 function pickModel(task: TaskKind): string {
   switch (task) {
-    case "frontend-ui":   return "gemini-2.5-pro";
-    case "backend-logic": return "gemini-2.5-pro";
-    case "debug":         return "gemini-2.5-pro";
-    case "refactor":      return "gemini-2.5-pro";
-    case "tests":         return "google/gemini-2.5-flash";
+    case "frontend-ui":   return "gemini-pro-latest";
+    case "backend-logic": return "gemini-pro-latest";
+    case "debug":         return "gemini-pro-latest";
+    case "refactor":      return "gemini-pro-latest";
+    case "tests":         return "google/gemini-flash-latest";
     case "docs":          return "google/gemini-2.5-flash-lite";
-    case "explain":       return "google/gemini-2.5-flash";
-    default:              return "gemini-2.5-flash";
+    case "explain":       return "google/gemini-flash-latest";
+    default:              return "gemini-flash-latest";
   }
 }
 

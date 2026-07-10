@@ -73,7 +73,7 @@ Prefer official news channels (Sky News, Al Jazeera English, France 24, DW, NHK,
 
     // Try multiple models with retry — Gemini 2.5 frequently returns 503 under load
     const models = [
-      "gemini-2.5-flash",
+      "gemini-flash-latest",
       "gemini-2.0-flash",
       "gemini-2.5-flash-lite",
       "gemini-1.5-flash",

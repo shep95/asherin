@@ -290,7 +290,7 @@ For every match, return:
 Return STRICT JSON only:
 {"detections":[{"x":0.42,"y":0.31,"label":"...","color":"red","confidence":0.86,"reason":"..."}],"summary":"2 sentence overview of what was found"}`;
 
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
   let resp: Response | null = null;
   let lastErr = "";
   for (let attempt = 1; attempt <= 3; attempt++) {
