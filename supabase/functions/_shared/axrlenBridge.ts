@@ -408,26 +408,32 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
   const evidenceBlock = args.liveEvidence
     ? `\n\nHOST-CHAT LIVE EVIDENCE (already fetched — use it, cite domains inline):\n${args.liveEvidence.slice(0, 6000)}`
     : "";
-  // Live Vedic snapshot (real ephemeris) + upcoming eclipse capitals — computed
-  // this instant so every AXRLEN turn cites the actual sky, not a hallucination.
-  // Region-scoped when the user names a country, so inline forecasts share the
-  // same Vedic frame as the standalone axrlen-analyze endpoint.
+  // Market intent → skip Vedic snapshot bloat, swap in market-first addendum,
+  // raise temperature. Restores AXRLEN's pre-unification price behavior.
+  const isMarket = detectMarketIntent(userMessage);
+
+  // Live Vedic snapshot (real ephemeris) + upcoming eclipse capitals — only
+  // for non-market queries. Region-scoped when the user names a country.
   const regionCode = detectRegionCode(userMessage);
   let vedicBlock = "";
-  try {
-    const ctx = buildVedicContext(regionCode, new Date());
-    vedicBlock = "\n\n" + vedicContextAsPromptBlock(ctx) + "\n\n" + eclipsesPromptBlock();
-  } catch (e) {
-    console.error("[axrlen bridge] vedic snapshot failed:", (e as Error).message);
+  if (!isMarket) {
+    try {
+      const ctx = buildVedicContext(regionCode, new Date());
+      vedicBlock = "\n\n" + vedicContextAsPromptBlock(ctx) + "\n\n" + eclipsesPromptBlock();
+    } catch (e) {
+      console.error("[axrlen bridge] vedic snapshot failed:", (e as Error).message);
+    }
   }
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const systemPrompt =
     nexusPrimeCore(today) +
     AXRLEN_INLINE_ADDENDUM +
+    (isMarket ? AXRLEN_MARKET_ADDENDUM : "") +
     tierNote +
     vedicBlock +
     "\n" + primary + secondary + evidenceBlock;
 
+  const temperature = isMarket ? 0.6 : 0.3;
 
   const axrlenKey = Deno.env.get("AXRLEN_GEMINI_API_KEY") || "";
   const apiKey = axrlenKey || args.fallbackGeminiKey || "";
@@ -441,7 +447,8 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
     };
   }
 
-  const textStream = await callGeminiStreamAsText(apiKey, model, systemPrompt, args.messages);
+  const textStream = await callGeminiStreamAsText(apiKey, model, systemPrompt, args.messages, temperature);
+
   return { kind: "stream", access, intent, textStream, brainsLoaded: matched };
 }
 
