@@ -632,20 +632,20 @@ const SymbolsOfTheBible = () => (
     </p>
 
     <RelatedLinks
-      title="Related decoders and guides"
+      heading="Related decoders and guides"
       links={[
         {
-          href: "/houseofasher/theories",
+          to: "/houseofasher/theories",
           label: "House of Asher — Theories",
           description: "The philosophical spine behind Aureon's symbolic decoder.",
         },
         {
-          href: "/blog/code-narrative-quantum-collapse",
+          to: "/blog/code-narrative-quantum-collapse",
           label: "Code Narrative & Quantum Collapse",
           description: "How Aureon converts any input into layered narrative.",
         },
         {
-          href: "/glossary/digital-gnostic",
+          to: "/glossary/digital-gnostic",
           label: "Glossary: Digital Gnostic",
           description: "The tradition of reading symbolic meaning through modern systems.",
         },
