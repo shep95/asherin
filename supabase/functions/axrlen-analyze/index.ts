@@ -234,9 +234,18 @@ serve(async (req) => {
       // Wikipedia current events summary
       wikiCurrentEvents: wikiEvents?.slice(0, 3000) || null,
 
+      // ── VEDIC MUNDANE CONTEXT (Layer 1 — real ephemeris, computed here) ──
+      // Sidereal Lahiri positions of the 9 grahas, world Vimshottari dasha
+      // from the most recent Mesha Sankranti, and per-country impact scoring.
+      // Injected into the prompt so Gemini reasons on real data, not hallucinated timing.
+      vedicContext: (() => {
+        try { return buildVedicContext(regionInfo.code); }
+        catch (e) { console.error("vedic context failed:", e); return null; }
+      })(),
+
       // Source metadata
       fetchedAt: new Date().toISOString(),
-      sourceTypes: ["GDELT Global News (250M+ articles)", "GDELT TV Broadcast Monitoring", "GDELT Tone & Sentiment", "GDELT Geographic Intelligence", "Wikipedia Current Events"],
+      sourceTypes: ["GDELT Global News (250M+ articles)", "GDELT TV Broadcast Monitoring", "GDELT Tone & Sentiment", "GDELT Geographic Intelligence", "Wikipedia Current Events", "Vedic Mundane Ephemeris (Lahiri sidereal)"],
     };
 
     const sourceCount = [
