@@ -33,6 +33,7 @@ const Valuation = lazy(() => import("./pages/Valuation"));
 const Ziaassets = lazy(() => import("./pages/Ziaassets"));
 const AsherinGov = lazy(() => import("./pages/AsherinGov"));
 const AsherinGovDashboard = lazy(() => import("./pages/AsherinGovDashboard"));
+const SymbolsOfTheBible = lazy(() => import("./pages/SymbolsOfTheBible"));
 
 
 // SEO content cluster (Theories 8-14): glossary, satellites, predictions, feature spines.
