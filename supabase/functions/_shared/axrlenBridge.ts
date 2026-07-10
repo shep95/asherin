@@ -383,7 +383,16 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
   const evidenceBlock = args.liveEvidence
     ? `\n\nHOST-CHAT LIVE EVIDENCE (already fetched — use it, cite domains inline):\n${args.liveEvidence.slice(0, 6000)}`
     : "";
-  const systemPrompt = AXRLEN_BASE_IDENTITY + tierNote + "\n" + primary + secondary + evidenceBlock;
+  // Live Vedic snapshot (real ephemeris) + upcoming eclipse capitals — computed
+  // this instant so every AXRLEN turn cites the actual sky, not a hallucination.
+  let vedicBlock = "";
+  try {
+    const ctx = buildVedicContext(undefined, new Date());
+    vedicBlock = "\n\n" + vedicContextAsPromptBlock(ctx) + "\n\n" + eclipsesPromptBlock();
+  } catch (e) {
+    console.error("[axrlen bridge] vedic snapshot failed:", (e as Error).message);
+  }
+  const systemPrompt = AXRLEN_BASE_IDENTITY + tierNote + vedicBlock + "\n" + primary + secondary + evidenceBlock;
 
   const axrlenKey = Deno.env.get("AXRLEN_GEMINI_API_KEY") || "";
   const apiKey = axrlenKey || args.fallbackGeminiKey || "";
