@@ -19,6 +19,38 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { resolveAxrlenAccess, type AxrlenAccess } from "./proTierGate.ts";
+import { buildVedicContext, vedicContextAsPromptBlock } from "./vedicContext.ts";
+
+// ── Upcoming solar eclipses 2026-2034 with capital-crossings ────────────
+// Slim server-side mirror of src/data/vedic/solarEclipses.ts — kept inline
+// so both Aureon and Asher chat can cite exact capital hits without an
+// import path that crosses the client boundary. Source: NASA/Espenak canon.
+const UPCOMING_ECLIPSES = [
+  { d: "2026-08-12", t: "total", inPath: ["Reykjavík"], near: ["Madrid 99%", "Lisbon 93%", "Paris 92%", "London 90%"] },
+  { d: "2027-02-06", t: "annular", inPath: ["Buenos Aires", "Montevideo"], near: ["Santiago 90%"] },
+  { d: "2027-08-02", t: "total", inPath: ["Rabat", "Algiers", "Tunis", "Tripoli", "Sana'a"], near: ["Cairo 98%", "Riyadh 94%", "Athens 86%"] },
+  { d: "2028-01-26", t: "annular", inPath: ["Quito", "Paramaribo", "Lisbon", "Madrid"], near: [] },
+  { d: "2028-07-22", t: "total", inPath: ["Canberra"], near: ["Wellington 87%"] },
+  { d: "2030-06-01", t: "annular", inPath: ["Athens", "Ankara"], near: ["Istanbul 93%", "Tokyo 89%", "Beijing 85%"] },
+  { d: "2030-11-25", t: "total", inPath: ["Gaborone", "Pretoria"], near: ["Windhoek 94%"] },
+  { d: "2031-05-21", t: "annular", inPath: ["Kampala", "Nairobi", "Mogadishu", "Kuala Lumpur"], near: ["Kinshasa 90%", "Jakarta 88%"] },
+  { d: "2031-11-14", t: "hybrid", inPath: ["Panama City"], near: ["Bogotá 86%"] },
+  { d: "2034-03-20", t: "total", inPath: ["N'Djamena", "Khartoum", "Kuwait City", "Kabul"], near: ["Riyadh 96%", "Tehran 92%", "Islamabad 95%", "Abuja 90%"] },
+];
+
+function eclipsesPromptBlock(): string {
+  const now = Date.now();
+  const upcoming = UPCOMING_ECLIPSES.filter((e) => new Date(e.d).getTime() >= now - 30 * 86400_000).slice(0, 8);
+  if (!upcoming.length) return "";
+  const lines = ["=== SOLAR ECLIPSES OVER CAPITALS (NASA/Espenak, next 8 yrs) ==="];
+  for (const e of upcoming) {
+    const inP = e.inPath.length ? `centerline: ${e.inPath.join(", ")}` : "no capital on centerline";
+    const nr = e.near.length ? `; deep partial: ${e.near.join(", ")}` : "";
+    lines.push(`  ${e.d} ${e.t.padEnd(7)} — ${inP}${nr}`);
+  }
+  lines.push("Classical rule: capital under central path = leadership/policy inflection within ±6 months.");
+  return lines.join("\n");
+}
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
