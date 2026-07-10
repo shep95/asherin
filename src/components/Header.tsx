@@ -110,6 +110,9 @@ const Header = () => {
                   <Link to="/hosrad" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">HOSRAD · Research & Development</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link to="/symbols-of-the-bible" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Symbols of the Bible</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link to="/investors" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Investors</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
