@@ -279,9 +279,48 @@ async function loadAxrlenBrains(userMessage: string): Promise<{ primary: string;
 
 
 
+// ── 3b. Market-intent detector + market-first addendum ─────────────────────
+// The unified NEXUS-PRIME core is Vedic-heavy (great for geopolitics, but it
+// buries order-flow / momentum / liquidity when the user asks about price).
+// For market queries we swap in a price-action-first addendum that demotes
+// Vedic to a one-line footnote and raises temperature so the model reasons
+// like the pre-unification AXRLEN did on markets.
+
+const MARKET_INTENT_RE =
+  /\b(btc|bitcoin|eth|ethereum|sol|solana|xrp|doge|ada|bnb|usdt|usdc|crypto|altcoin|memecoin|nvda|tsla|aapl|msft|amzn|goog|meta|amd|spx|spy|qqq|ndx|dxy|dow|nasdaq|sp500|s&p|ftse|nikkei|hang seng|dax|russell|gold|silver|oil|wti|brent|copper|eur\/usd|usd\/jpy|gbp\/usd|forex|fx|stock|stocks|equity|equities|ticker|coin|token|price|prices|pump|dump|moon|rally|crash|bounce|reversal|breakout|breakdown|resistance|support|liquidity|liquidat|funding rate|open interest|order (?:flow|book)|market cap|candle|chart|rsi|macd|ema|sma|fibonacci|bollinger|long|short|bullish|bearish|take[- ]profit|stop[- ]loss|entry|exit|swing|scalp|day trade|leverage|futures|perp|perpetual|spot|options?|calls?|puts?|strike|iv|implied vol|earnings|fomc|cpi|nfp|fed|rate cut|rate hike|halving|etf|inflow|outflow|whale)\b/i;
+
+function detectMarketIntent(text: string): boolean {
+  return MARKET_INTENT_RE.test(text || "");
+}
+
+const AXRLEN_MARKET_ADDENDUM = `
+═══════════════════════════════════════════════════════════════
+MARKET MODE OVERRIDE — PRICE ACTION FIRST
+═══════════════════════════════════════════════════════════════
+
+The user is asking about a market / asset / ticker. For THIS turn, override the 30-domain weighting: reason like a professional discretionary trader and market-microstructure analyst FIRST, and treat Vedic/occult signals as a single one-line footnote at the end (or omit entirely on intraday horizons).
+
+PRIMARY LENS (in order):
+1. Trend & structure — higher-highs / higher-lows on the relevant timeframe (24h/72h/1wk maps to 15m→4h→daily). Name the trend in one word: up, down, chop.
+2. Momentum — accelerating, decelerating, or exhausted. Cite the 24h and 7d % change if given.
+3. Liquidity & positioning — obvious liquidation clusters, funding-rate skew, open interest, whale flows, ETF inflows/outflows.
+4. Key levels — nearest untested support and resistance, with real numbers.
+5. Macro catalyst — FOMC, CPI, NFP, earnings, halving, ETF flow — only if inside the horizon.
+6. Sentiment / narrative — greed vs fear, dominant story on X/CT.
+7. FOOTNOTE ONLY: one sentence Vedic/timing color IF a genuinely CRITICAL transit hits the horizon (Sarvatobhadra Vedha to NYSE natal, or eclipse crossing a financial-capital city within ±14 days). Otherwise skip Vedic entirely — do NOT force it in.
+
+OUTPUT SHAPE:
+- Rule #1 still governs. "Will BTC go up tomorrow?" → "Lean yes, ~62%. Reclaimed 4h EMA20, funding neutral; invalidation <$X." Two sentences, done.
+- Trade/setup ask: direction, confidence %, entry zone, invalidation (SL), first target (TP), key level.
+- Full analysis: Trend → Momentum → Liquidity/Positioning → Levels → Catalyst → Setup (direction, entry, SL, TP1, TP2, confidence) → optional 1-line Vedic footnote.
+
+Do NOT open a market answer with dasha lords, eclipse paths, or 30-domain synthesis. Markets = price first.
+`;
+
 // ── 4. Streaming call ───────────────────────────────────────────────────────
 
-async function callGeminiStreamAsText(apiKey: string, model: string, sys: string, msgs: Array<{ role: string; content: string }>): Promise<ReadableStream<Uint8Array>> {
+
+async function callGeminiStreamAsText(apiKey: string, model: string, sys: string, msgs: Array<{ role: string; content: string }>, temperature = 0.3): Promise<ReadableStream<Uint8Array>> {
   const contents = msgs
     .filter((m) => m.role === "user" || m.role === "assistant")
     .map((m) => ({
@@ -297,7 +336,7 @@ async function callGeminiStreamAsText(apiKey: string, model: string, sys: string
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: sys }] },
         contents,
-        generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
+        generationConfig: { temperature, maxOutputTokens: 4096 },
       }),
     },
   );
@@ -369,26 +408,32 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
   const evidenceBlock = args.liveEvidence
     ? `\n\nHOST-CHAT LIVE EVIDENCE (already fetched — use it, cite domains inline):\n${args.liveEvidence.slice(0, 6000)}`
     : "";
-  // Live Vedic snapshot (real ephemeris) + upcoming eclipse capitals — computed
-  // this instant so every AXRLEN turn cites the actual sky, not a hallucination.
-  // Region-scoped when the user names a country, so inline forecasts share the
-  // same Vedic frame as the standalone axrlen-analyze endpoint.
+  // Market intent → skip Vedic snapshot bloat, swap in market-first addendum,
+  // raise temperature. Restores AXRLEN's pre-unification price behavior.
+  const isMarket = detectMarketIntent(userMessage);
+
+  // Live Vedic snapshot (real ephemeris) + upcoming eclipse capitals — only
+  // for non-market queries. Region-scoped when the user names a country.
   const regionCode = detectRegionCode(userMessage);
   let vedicBlock = "";
-  try {
-    const ctx = buildVedicContext(regionCode, new Date());
-    vedicBlock = "\n\n" + vedicContextAsPromptBlock(ctx) + "\n\n" + eclipsesPromptBlock();
-  } catch (e) {
-    console.error("[axrlen bridge] vedic snapshot failed:", (e as Error).message);
+  if (!isMarket) {
+    try {
+      const ctx = buildVedicContext(regionCode, new Date());
+      vedicBlock = "\n\n" + vedicContextAsPromptBlock(ctx) + "\n\n" + eclipsesPromptBlock();
+    } catch (e) {
+      console.error("[axrlen bridge] vedic snapshot failed:", (e as Error).message);
+    }
   }
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const systemPrompt =
     nexusPrimeCore(today) +
     AXRLEN_INLINE_ADDENDUM +
+    (isMarket ? AXRLEN_MARKET_ADDENDUM : "") +
     tierNote +
     vedicBlock +
     "\n" + primary + secondary + evidenceBlock;
 
+  const temperature = isMarket ? 0.6 : 0.3;
 
   const axrlenKey = Deno.env.get("AXRLEN_GEMINI_API_KEY") || "";
   const apiKey = axrlenKey || args.fallbackGeminiKey || "";
@@ -402,7 +447,8 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
     };
   }
 
-  const textStream = await callGeminiStreamAsText(apiKey, model, systemPrompt, args.messages);
+  const textStream = await callGeminiStreamAsText(apiKey, model, systemPrompt, args.messages, temperature);
+
   return { kind: "stream", access, intent, textStream, brainsLoaded: matched };
 }
 
