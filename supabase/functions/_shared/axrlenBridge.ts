@@ -371,14 +371,24 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
     : "";
   // Live Vedic snapshot (real ephemeris) + upcoming eclipse capitals — computed
   // this instant so every AXRLEN turn cites the actual sky, not a hallucination.
+  // Region-scoped when the user names a country, so inline forecasts share the
+  // same Vedic frame as the standalone axrlen-analyze endpoint.
+  const regionCode = detectRegionCode(userMessage);
   let vedicBlock = "";
   try {
-    const ctx = buildVedicContext(undefined, new Date());
+    const ctx = buildVedicContext(regionCode, new Date());
     vedicBlock = "\n\n" + vedicContextAsPromptBlock(ctx) + "\n\n" + eclipsesPromptBlock();
   } catch (e) {
     console.error("[axrlen bridge] vedic snapshot failed:", (e as Error).message);
   }
-  const systemPrompt = AXRLEN_BASE_IDENTITY + tierNote + vedicBlock + "\n" + primary + secondary + evidenceBlock;
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const systemPrompt =
+    nexusPrimeCore(today) +
+    AXRLEN_INLINE_ADDENDUM +
+    tierNote +
+    vedicBlock +
+    "\n" + primary + secondary + evidenceBlock;
+
 
   const axrlenKey = Deno.env.get("AXRLEN_GEMINI_API_KEY") || "";
   const apiKey = axrlenKey || args.fallbackGeminiKey || "";
