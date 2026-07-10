@@ -165,10 +165,22 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { region = "global", predictionType = "comprehensive", sessionId } = await req.json();
+    const { region = "global", predictionType = "comprehensive", sessionId, debugVedic } = await req.json();
     const regionLower = region.toLowerCase();
     const regionInfo = REGION_MAP[regionLower] || REGION_MAP["global"];
     const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+    // Fast path — return only the computed Vedic snapshot (no news fetch, no AI).
+    // Used to verify Layer 1 ephemeris in isolation. Costs zero AI credits.
+    if (debugVedic) {
+      const ctx = buildVedicContext(regionInfo.code);
+      return new Response(JSON.stringify({
+        ok: true,
+        vedicContext: ctx,
+        promptBlock: vedicContextAsPromptBlock(ctx),
+      }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
 
     // ── Parallel news intelligence gathering ──────────────────────────
     const [
