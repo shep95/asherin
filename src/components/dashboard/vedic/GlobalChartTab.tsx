@@ -177,6 +177,59 @@ export default function GlobalChartTab() {
     return rows.sort((a, b) => (b.stresses + b.benefits) - (a.stresses + a.benefits)).slice(0, 10);
   }, [transits, worldChart]);
 
+  // ── WESTERN TROPICAL TRANSITS ──
+  // Tropical longitude = sidereal + ayanamsa. Rebuild sign membership on the
+  // tropical zodiac so Western readers see the same planets in Western signs.
+  const westernTransits = useMemo(() => {
+    if (!transits || !worldChart) return [];
+    return transits.planets.map((p) => {
+      const tropicalLon = (p.sid + worldChart.ayanamsa) % 360;
+      const signIdx = Math.floor(tropicalLon / 30);
+      const degInSign = tropicalLon - signIdx * 30;
+      return {
+        name: p.name,
+        symbol: p.symbol,
+        retrograde: p.retrograde,
+        tropicalLon,
+        sign: TROPICAL_SIGNS[signIdx],
+        degInSign,
+      };
+    });
+  }, [transits, worldChart]);
+
+  // ── MAJOR ASPECTS between transiting planets (Ptolemaic, tight orbs) ──
+  const majorAspects = useMemo(() => {
+    if (!westernTransits.length) return [];
+    const out: Array<{ a: string; aSym: string; b: string; bSym: string; kind: AspectKind; orb: number; nature: string; }> = [];
+    // Skip Moon to keep the reading mundane (Moon aspects tick over hourly).
+    const bodies = westernTransits.filter((p) => p.name !== "Moon");
+    for (let i = 0; i < bodies.length; i++) {
+      for (let j = i + 1; j < bodies.length; j++) {
+        const sep = angularSep(bodies[i].tropicalLon, bodies[j].tropicalLon);
+        for (const asp of ASPECTS) {
+          const orb = Math.abs(sep - asp.angle);
+          if (orb <= asp.orb) {
+            out.push({
+              a: bodies[i].name, aSym: bodies[i].symbol,
+              b: bodies[j].name, bSym: bodies[j].symbol,
+              kind: asp.kind, orb, nature: asp.nature,
+            });
+            break;
+          }
+        }
+      }
+    }
+    // Tightest first — smaller orb = stronger aspect.
+    return out.sort((a, b) => a.orb - b.orb).slice(0, 12);
+  }, [westernTransits]);
+
+  // ── UPCOMING SOLAR ECLIPSES over capitals — next 8 years from now ──
+  const upcomingEclipses = useMemo(() => {
+    const now = Date.now();
+    return SOLAR_ECLIPSES_2026_2034.filter((e) => new Date(e.date).getTime() >= now - 30 * 86400_000);
+  }, []);
+
+
   if (error) {
     return (
       <div className="rounded-xl border border-red-500/30 bg-red-500/[0.04] p-5 text-sm text-red-300">
