@@ -532,22 +532,28 @@ Return VALID JSON with this structure:
   "dataSources": { "total": number, "verified": number, "categories": ["string"], "topOutlets": ["string"] }
 }`;
 
-    const userPrompt = `Analyze the following LIVE NEWS INTELLIGENCE for region: ${region} (${regionInfo.code})
+    const vedicBlock = dataContext.vedicContext
+      ? vedicContextAsPromptBlock(dataContext.vedicContext)
+      : "(vedic context unavailable this run — do NOT fabricate dasha lords or transit positions)";
+
+    const userPrompt = `Analyze the following LIVE INTELLIGENCE for region: ${region} (${regionInfo.code})
 Prediction type: ${predictionType}
 Today's date: ${today}
 News sources active: ${sourceCount}
 
+${vedicBlock}
+
 === LIVE NEWS INTELLIGENCE FEED ===
-${JSON.stringify(dataContext, null, 2)}
+${JSON.stringify({ ...dataContext, vedicContext: undefined }, null, 2)}
 
 Generate a comprehensive NEXUS-PRIME prediction report. FUSE ALL 30+ domains through the 4-layer architecture:
 
-LAYER 0 (News Intelligence): Ground EVERY prediction in the live news data above. Cite specific headlines, outlets, and dates. Analyze media tone shifts and coverage patterns.
-LAYER 1 (Temporal/Vedic): Apply Vimshottari Mahadashas, Sanghatta Rashi Chakra, Sarvatobhadra Chakra, Garbha Dharan, Shoola Chakra, Eclipse paths, Nakshatra transits.
-LAYER 2 (Pattern Synthesis): Cross-reference occultism, history, religion, war strategy, philosophy, psychology, sociology, geopolitics, mythology, economics, game theory, semiotics, and consciousness field.
-LAYER 3 (Probability Weighting): Apply domain weight × signal strength × temporal multiplier. Include narrative analysis — what stories are media outlets pushing and what are they suppressing?
+LAYER 0 (News Intelligence): Ground EVERY prediction in the live news data above. Cite specific headlines, outlets, and dates.
+LAYER 1 (Temporal/Vedic): USE THE COMPUTED VEDIC MUNDANE SNAPSHOT ABOVE. The active Mahadasha, Antardasha, Pratyantardasha, and every transit position listed are AUTHORITATIVE — quote them verbatim in vedicTiming/esotericAnalysis. Do NOT invent alternate dasha lords or planetary positions. Cross-validate with Sanghatta / Sarvatobhadra / Shoola / Nakshatra reasoning built on those exact positions.
+LAYER 2 (Pattern Synthesis): Cross-reference occultism, history, religion, war strategy, philosophy, geopolitics, game theory.
+LAYER 3 (Probability Weighting): Apply domain weight × signal strength × temporal multiplier. The Top Affected Nations table already ranks countries by malefic/benefic transit weight — use it as a base rate.
 
-CRITICAL: Name specific news outlets, cite specific headlines, reference specific dates from the provided data. Include a narrativeAnalysis section detecting media bias, propaganda, and information gaps.`;
+CRITICAL: Name specific news outlets and cite specific dates. Every Vedic claim must reference the exact lords/houses/dates supplied above. If the snapshot shows Mahadasha=X, do not write about Mahadasha=Y.`;
 
     let rawText = "{}";
     let geminiFailed = false;
