@@ -170,6 +170,7 @@ const App = () => (
 
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
             <Route path="/hosrad" element={<Hosrad />} />
+            <Route path="/symbols-of-the-bible" element={<SymbolsOfTheBible />} />
             <Route path="/HOSRAD" element={<Hosrad />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
             <Route path="/glossary/sovereign-ai" element={<GlossarySovereignAi />} />
