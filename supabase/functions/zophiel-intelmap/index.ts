@@ -333,7 +333,7 @@ Return JSON with this exact shape:
       }
     } else {
       // Platform Gemini: try fast → lite → pro with backoff
-      const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+      const MODEL_CHAIN = ['gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-pro-latest'];
       outer: for (let mi = 0; mi < MODEL_CHAIN.length; mi++) {
         const model = MODEL_CHAIN[mi];
         const attempts = mi === 0 ? 3 : 2;

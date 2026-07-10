@@ -256,7 +256,7 @@ async function scrapeSECEdgar(ticker: string, companyName: string): Promise<{ fo
 async function generateNewsIntelligence(
   apiKey: string, companyName: string, ticker: string | undefined, concerns: string | undefined, timeframe: string | undefined
 ): Promise<{ title: string; source: string; date: string; sentiment: string; summary: string; content: string; url: string }[]> {
-  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -297,7 +297,7 @@ RULES:
 async function generatePressReleaseIntelligence(
   apiKey: string, companyName: string, domain: string | undefined, ticker: string | undefined
 ): Promise<{ title: string; source: string; date: string; summary: string; content: string }[]> {
-  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -334,7 +334,7 @@ RULES:
 async function generateLegalIntelligence(
   apiKey: string, companyName: string, concerns: string | undefined
 ): Promise<{ title: string; court: string; date: string; status: string; summary: string; content: string }[]> {
-  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

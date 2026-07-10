@@ -1037,7 +1037,7 @@ function shouldSearch(messages: { role: string; content: string }[], mode: strin
 
 function defaultModelForStoredProvider(provider: string): string | null {
   const defaults: Record<string, string> = {
-    google: "gemini-2.5-flash",
+    google: "gemini-flash-latest",
     openai: "gpt-4o",
     anthropic: "claude-3-5-sonnet",
     xai: "grok-2",
@@ -1162,7 +1162,7 @@ serve(async (req) => {
 
       if (adminRouted) {
         _parsedBody.byokProvider = "google";
-        _parsedBody.byokModel = "gemini-2.5-flash";
+        _parsedBody.byokModel = "gemini-flash-latest";
         _injectedKey = resolved!.geminiKey!;
       } else {
         const storedByok = await resolveStoredByok(req, _hasAttachments);
@@ -2028,12 +2028,12 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // known-retired ids up-front and, on a 404, retry once against a rolling
     // alias so a stale saved model can never dead-end the user's chat.
     const GEMINI_MODEL_ALIASES_CHAT: Record<string, string> = {
-      "gemini-pro": "gemini-2.5-flash",
-      "gemini-1.0-pro": "gemini-2.5-flash",
-      "gemini-1.5-pro": "gemini-2.5-pro",
-      "gemini-1.5-pro-latest": "gemini-2.5-pro",
-      "gemini-1.5-flash": "gemini-2.5-flash",
-      "gemini-1.5-flash-latest": "gemini-2.5-flash",
+      "gemini-pro": "gemini-flash-latest",
+      "gemini-1.0-pro": "gemini-flash-latest",
+      "gemini-1.5-pro": "gemini-pro-latest",
+      "gemini-1.5-pro-latest": "gemini-pro-latest",
+      "gemini-1.5-flash": "gemini-flash-latest",
+      "gemini-1.5-flash-latest": "gemini-flash-latest",
       "gemini-1.5-flash-8b": "gemini-2.5-flash-lite",
     };
     const GEMINI_404_FALLBACK_CHAT = "gemini-flash-latest";

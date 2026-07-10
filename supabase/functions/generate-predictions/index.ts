@@ -445,7 +445,7 @@ Be specific, use data points, write like a senior intelligence analyst. Return O
     const apiKey = Deno.env.get("GEMINI_API_KEY_APP");
     if (!apiKey) return `Based on ${topSignals.filter(s => s.signalStrength > 0).length} detected signals with ${(confidence * 100).toFixed(0)}% confidence, ${company} is likely to face a ${eventType.replace(/_/g, " ")} event within approximately ${daysUntil} days.`;
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

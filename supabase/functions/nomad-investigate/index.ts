@@ -3118,7 +3118,7 @@ ${intelSections || 'No intelligence data.'}`;
     console.log('NOMAD v7.0: Starting Pass 1 (Flash cluster summaries)...');
     const pass1Result = await aiPass(GEMINI_API_KEY, 
       'You are an intelligence analyst. Summarize raw OSINT data into structured cluster summaries. Be precise. No filler.',
-      pass1Prompt, 'gemini-2.5-flash', 4000, 0.15);
+      pass1Prompt, 'gemini-flash-latest', 4000, 0.15);
 
     // ══════════════════════════════════════════════════════════════════════════
     // PASSES 2-6: DEEP ANALYSIS (run in parallel for person investigations)
@@ -3164,7 +3164,7 @@ COMMUNICATION PATTERN ANALYSIS:
 Output: COMMUNICATION FINGERPRINT CARD with all 7 metrics scored, anomalies highlighted, and a CONSISTENCY RISK MAP showing which time periods and topics trigger the most linguistic variation.
 
 TEXT SAMPLES:
-${truncatedText}`, 'gemini-2.5-flash', 3000, 0.1),
+${truncatedText}`, 'gemini-flash-latest', 3000, 0.1),
 
         // PASS 3: SOCIAL PRESENCE ANALYSIS
         aiPass(GEMINI_API_KEY, 'You are a behavioral researcher specializing in digital presence analysis and public persona assessment. Output structured assessments only.', `Analyze the social media presence and public persona collected for this subject.
@@ -3184,7 +3184,7 @@ SOCIAL PRESENCE ANALYSIS:
 Output: Behavioral Risk Score (0-10), Attachment Style inference, Validation Dependency Score, top 3 behavioral predictions.
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
 
         // PASS 4: RELATIONSHIP VELOCITY ANALYSIS
         aiPass(GEMINI_API_KEY, 'You are a research analyst specializing in professional relationship dynamics and temporal network analysis. Output structured analysis only.', `Using ALL temporal data points (dated posts, filings, mentions, co-appearances), analyze the VELOCITY of this subject's key relationships.
@@ -3204,7 +3204,7 @@ RELATIONSHIP VELOCITY PROTOCOL:
 Output: RELATIONSHIP VELOCITY MAP with formation speeds, termination patterns, cluster migration timeline, and BEHAVIORAL SIGNATURE.
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
 
         // PASS 5: SELF-NARRATIVE CONSISTENCY AUDIT
         aiPass(GEMINI_API_KEY, 'You are a statement analysis expert specializing in biographical verification and narrative consistency assessment. Output structured forensic analysis only.', `Collect ALL self-authored biographical statements about this subject from the intelligence corpus.
@@ -3224,7 +3224,7 @@ NARRATIVE CONSISTENCY AUDIT:
 Output: NARRATIVE INTEGRITY SCORE (0-100), contradictions with sources, unverifiable claims, SELF-PRESENTATION ARCHETYPE (Genuine Builder / Status Inflator / Grievance Pattern / Deliberate Obscurantist).
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
 
         // PASS 6: CROSS-PLATFORM IDENTITY CONTINUITY
         aiPass(GEMINI_API_KEY, 'You are a digital research analyst specializing in cross-platform identity resolution and stylometric analysis. Output structured findings only.', `Given all text samples from different platform accounts attributed to or potentially linked to this subject:
@@ -3244,7 +3244,7 @@ IDENTITY CONTINUITY ANALYSIS:
 Output: IDENTITY CONTINUITY SCORE (0-100), confirmed cross-platform links, suspected managed accounts, AUTHENTIC PERSONALITY SIGNATURE vs CURATED PERSONA.
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
       ]);
 
       linguisticAnalysis = p2.status === 'fulfilled' ? p2.value : '';
@@ -3271,7 +3271,7 @@ GEOSPATIAL ANALYSIS: 1) Primary Residence Triangulation vs public records. 2) Mo
 Output: GEOSPATIAL PROFILE with primary anchor, shadow locations, migration timeline, jurisdiction risk.
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
 
         // PASS 8: DATA COMPLETENESS AUDIT
         aiPass(GEMINI_API_KEY, 'You are a research verification analyst. Identify expected artifacts that are missing. Output structured gap analysis only.', `Execute DATA COMPLETENESS AUDIT. Generate expected digital artifacts for this subject's stated biography. Audit presence vs absence.
@@ -3281,7 +3281,7 @@ CAREER: SEC filings, company pages, reviews, co-founder mentions. EDUCATION: alu
 For each: PRESENT=confirms, ABSENT=NARRATIVE GAP, CONTRADICTED=CONFLICT. Rank gaps by severity.
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
 
         // PASS 9: SENTIMENT VELOCITY
         aiPass(GEMINI_API_KEY, 'You are a reputation research analyst. Track sentiment changes over time. Output structured analysis only.', `Run SENTIMENT VELOCITY ANALYSIS on third-party mentions.
@@ -3291,7 +3291,7 @@ ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 Output: Timeline, top 5 inflections, divergence score, 90-day acceleration.
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
 
         // PASS 10: NETWORK CENTRALITY
         aiPass(GEMINI_API_KEY, 'You are a network theory analyst. Apply graph centrality scoring. Output structured scoring only.', `Apply network centrality analysis.
@@ -3301,13 +3301,13 @@ ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 Output: CENTRALITY SCORECARD, TOP 3 hidden brokers, structural holes, bridge node.
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
 
         // PASS 11: BAYESIAN CONFIDENCE
         aiPass(GEMINI_API_KEY, 'You are a probabilistic reasoning analyst. Apply Bayesian updating. Output structured probability chains only.', `Bayesian confidence update protocol. For each CORE CLAIM: Prior from source tier (self=0.40, T3=0.50, T2=0.75, T1=0.90). Updates: T1 corroboration x1.4, T2 x1.2, T1 contradiction x0.3, T2 x0.5, echo chamber x1.05, absent x0.6. <0.40=LIKELY FALSE, 0.40-0.60=CONTESTED, 0.60-0.80=PROBABLE, >0.80=CONFIRMED. Identify most dangerous assumption.
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
 
         // PASS 12: DATA INTEGRITY ASSESSMENT
         aiPass(GEMINI_API_KEY, 'You are a data quality analyst. Assess source reliability and consistency. Output structured findings only.', `Analyze data corpus for consistency and reliability.
@@ -3317,19 +3317,19 @@ ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 Output: DATA INTEGRITY SCORE (0-100) with flags and citations.
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
 
         // PASS 13: FINANCIAL DATA ANALYSIS
         aiPass(GEMINI_API_KEY, 'You are a financial research analyst. Analyze public financial records. Output structured findings only.', `Analyze financial data points. 1) Benford's Law on figures >$1,000. 2) Stated role vs public asset indicators. 3) Entity structure (registered agents, virtual offices, formation timing). 4) Financial event timeline with proximities. Output: FINANCIAL DATA SUMMARY.
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
 
         // PASS 14: DIGITAL PRESENCE ASSESSMENT
         aiPass(GEMINI_API_KEY, 'You are a digital footprint analyst. Assess public information accessibility. Output structured profile only.', `Assess digital footprint. 1) Presence density vs role baseline. 2) Architecture (professional/personal separation, privacy protection). 3) Historical content (deleted/cached). 4) Indirect exposure (high-footprint associates). 5) Records subject may not know are public. Output: DIGITAL PRESENCE PROFILE.
 
 INTELLIGENCE DATA:
-${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+${truncatedText}`, 'gemini-flash-latest', 2500, 0.15),
       ]);
 
       geospatialAnalysis = p7.status === 'fulfilled' ? p7.value : '';
@@ -3436,7 +3436,7 @@ Be direct, intelligence-grade. Include BT confidence inline.`;
     let aiText = "NOMAD could not generate a report.";
     const MAX_RETRIES = 4;
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3493,7 +3493,7 @@ RED TEAM CHALLENGE PROTOCOL:
 Output: RED TEAM REPORT with challenged findings and severity, the single most dangerous assumption, and REVISED CONFIDENCE DISTRIBUTION.
 
 DOSSIER TO CHALLENGE:
-${aiText.slice(0, 8000)}`, 'gemini-2.5-flash', 2500, 0.2);
+${aiText.slice(0, 8000)}`, 'gemini-flash-latest', 2500, 0.2);
 
       if (redTeamAnalysis) {
         aiText += `\n\n---\n\n## ADVERSARIAL REVIEW — RED TEAM FINDINGS\n\n${redTeamAnalysis}`;
@@ -3533,7 +3533,7 @@ MONITORING TRIGGERS:
 - Recommended search alerts / monitoring keywords
 
 DOSSIER:
-${aiText.slice(0, 6000)}`, 'gemini-2.5-flash', 2000, 0.2);
+${aiText.slice(0, 6000)}`, 'gemini-flash-latest', 2000, 0.2);
 
       if (actionableIntel) {
         aiText += `\n\n---\n\n## ACTIONABLE INTELLIGENCE — DECISION SUPPORT\n\n${actionableIntel}`;

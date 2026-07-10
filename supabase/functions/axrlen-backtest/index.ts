@@ -211,7 +211,7 @@ Predicted events: ${JSON.stringify(p?.predicted_events || [])}
 async function callGeminiJson(sys: string, user: string, geminiKey?: string, lovableKey?: string): Promise<any> {
   if (geminiKey) {
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -233,7 +233,7 @@ async function callGeminiJson(sys: string, user: string, geminiKey?: string, lov
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${lovableKey}` },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-flash-latest",
         messages: [{ role: "system", content: sys }, { role: "user", content: user }],
         response_format: { type: "json_object" },
         temperature: 0.2,

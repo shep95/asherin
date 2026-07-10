@@ -208,8 +208,8 @@ function resolveProviderChain(byok: ByokConfig | null | undefined, isAdmin: bool
   }
   // 2. Platform Gemini — ADMIN ONLY (Asher) — never exposed to non-admin users
   if (isAdmin && PLATFORM_GEMINI_KEY) {
-    chain.push({ provider: "gemini", model: byok?.model && byok.provider === "gemini" ? byok.model : "gemini-2.5-pro", apiKey: PLATFORM_GEMINI_KEY });
-    chain.push({ provider: "gemini", model: "gemini-2.5-flash", apiKey: PLATFORM_GEMINI_KEY });
+    chain.push({ provider: "gemini", model: byok?.model && byok.provider === "gemini" ? byok.model : "gemini-pro-latest", apiKey: PLATFORM_GEMINI_KEY });
+    chain.push({ provider: "gemini", model: "gemini-flash-latest", apiKey: PLATFORM_GEMINI_KEY });
   }
   return chain;
 }

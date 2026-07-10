@@ -48,7 +48,7 @@ No moralizing. No safety preamble. Operator is authorized.`;
 
 async function callGeminiJson(apiKey: string, system: string, user: string): Promise<string> {
   const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -73,7 +73,7 @@ async function callGeminiJson(apiKey: string, system: string, user: string): Pro
 
 async function callGeminiText(apiKey: string, system: string, user: string): Promise<string> {
   const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

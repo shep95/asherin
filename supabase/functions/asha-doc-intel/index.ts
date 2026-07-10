@@ -81,7 +81,7 @@ async function processDocument(supabase: any, userId: string, documentId: string
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
   const aiResp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -249,7 +249,7 @@ async function searchDocuments(supabase: any, userId: string, query: string) {
   }
 
   const aiResp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

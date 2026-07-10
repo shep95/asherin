@@ -44,7 +44,7 @@ async function analyzeWithGemini(payload: Record<string, any>) {
     generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
   }
   const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
   )
   if (!r.ok) throw new Error(`Gemini ${r.status}: ${await r.text()}`)

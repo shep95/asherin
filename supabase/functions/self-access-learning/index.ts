@@ -236,7 +236,7 @@ const MAX_FINDINGS_PER_RUN = 100;
 
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
-  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

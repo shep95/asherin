@@ -379,7 +379,7 @@ CRITICAL: Name specific news outlets and cite specific dates. Every Vedic claim 
     let geminiFailed = false;
     if (GEMINI_KEY) {
       const geminiResp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -417,7 +417,7 @@ CRITICAL: Name specific news outlets and cite specific dates. Every Vedic claim 
           "Authorization": `Bearer ${LOVABLE_KEY}`,
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-flash-latest",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },

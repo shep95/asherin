@@ -404,7 +404,7 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
 
   const axrlenKey = Deno.env.get("AXRLEN_GEMINI_API_KEY") || "";
   const apiKey = axrlenKey || args.fallbackGeminiKey || "";
-  const model = axrlenKey ? "gemini-2.5-flash" : (args.fallbackModel || "gemini-2.5-flash");
+  const model = axrlenKey ? "gemini-flash-latest" : (args.fallbackModel || "gemini-flash-latest");
   if (!apiKey) {
     return {
       kind: "denied",

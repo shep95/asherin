@@ -140,7 +140,7 @@ If the image does NOT contain a clear human face, respond with:
 {"status": "INVALID_PHOTO", "reason": "explanation", "tips": ["tip1", "tip2", "tip3"]}`;
 
     const analysisRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -330,7 +330,7 @@ Respond with ONLY valid JSON:
 Generate 6-10 matches. Use REAL image URLs from the image results for photo_url — pick ones showing people. Use REAL web URLs for sources. Vary similarity scores 60-94%. Include 2-4 inter_match_connections. Include 5-10 real_sources from the web results. This is an intelligence tool — do NOT use heritage, ancestry, genealogy, or adoption language.`;
 
     const synthesisRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

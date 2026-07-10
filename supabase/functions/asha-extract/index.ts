@@ -92,7 +92,7 @@ serve(async (req) => {
         `[DOCUMENT: ${d.file_name} | TYPE: ${d.doc_type} | ID: ${d.id}]\n${sanitizeContent(d.extracted_text?.slice(0, 3000) || d.summary || "")}\n---`
       ).join("\n\n");
 
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -176,7 +176,7 @@ RULES:
         `${e.entity_type}: ${e.entity_value} (${(e.confidence * 100).toFixed(0)}%)`
       ).join("\n");
 
-      const insightResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const insightResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -232,7 +232,7 @@ serve(async (req) => {
         { role: "user", parts: [{ text: `Previous analysis data:\n${body.previousAnalysis}\n\nUser question: ${body.question}` }] },
       ];
 
-      const qaUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${RESOLVED_GEMINI_KEY}`;
+      const qaUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=${RESOLVED_GEMINI_KEY}`;
       const qaResp = await fetch(qaUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -279,7 +279,7 @@ serve(async (req) => {
       },
     ];
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${RESOLVED_GEMINI_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=${RESOLVED_GEMINI_KEY}`;
 
     let response: Response | null = null;
     const MAX_RETRIES = 4;
