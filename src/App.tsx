@@ -33,6 +33,7 @@ const Valuation = lazy(() => import("./pages/Valuation"));
 const Ziaassets = lazy(() => import("./pages/Ziaassets"));
 const AsherinGov = lazy(() => import("./pages/AsherinGov"));
 const AsherinGovDashboard = lazy(() => import("./pages/AsherinGovDashboard"));
+const SymbolsOfTheBible = lazy(() => import("./pages/SymbolsOfTheBible"));
 
 
 // SEO content cluster (Theories 8-14): glossary, satellites, predictions, feature spines.
@@ -169,6 +170,7 @@ const App = () => (
 
             <Route path="/houseofasher/theories" element={<HouseOfAsherTheories />} />
             <Route path="/hosrad" element={<Hosrad />} />
+            <Route path="/symbols-of-the-bible" element={<SymbolsOfTheBible />} />
             <Route path="/HOSRAD" element={<Hosrad />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
             <Route path="/glossary/sovereign-ai" element={<GlossarySovereignAi />} />
