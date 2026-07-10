@@ -20,6 +20,45 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { resolveAxrlenAccess, type AxrlenAccess } from "./proTierGate.ts";
 import { buildVedicContext, vedicContextAsPromptBlock } from "./vedicContext.ts";
+import { nexusPrimeCore, AXRLEN_INLINE_ADDENDUM } from "./axrlenSystemPrompt.ts";
+
+// ── Region detection — mirrors axrlen-analyze's REGION_MAP so the bridge
+// feeds regionally-scoped Vedic context when the user names a country. Keeps
+// Aureon/Asher forecasts on the same Vedic frame as the standalone endpoint.
+const REGION_LOOKUP: Array<[RegExp, string]> = [
+  [/\b(united states|u\.?s\.?a?|america|washington)\b/i, "US"],
+  [/\b(china|beijing|prc)\b/i, "CN"],
+  [/\b(russia|moscow|kremlin|putin)\b/i, "RU"],
+  [/\b(india|delhi|modi)\b/i, "IN"],
+  [/\b(brazil|brasilia)\b/i, "BR"],
+  [/\b(germany|berlin)\b/i, "DE"],
+  [/\b(france|paris|macron)\b/i, "FR"],
+  [/\b(uk|united kingdom|britain|london)\b/i, "GB"],
+  [/\b(japan|tokyo)\b/i, "JP"],
+  [/\b(south korea|seoul)\b/i, "KR"],
+  [/\b(mexico)\b/i, "MX"],
+  [/\b(nigeria|abuja|lagos)\b/i, "NG"],
+  [/\b(south africa|pretoria|johannesburg)\b/i, "ZA"],
+  [/\b(egypt|cairo)\b/i, "EG"],
+  [/\b(turkey|ankara|istanbul|erdogan)\b/i, "TR"],
+  [/\b(iran|tehran|khamenei)\b/i, "IR"],
+  [/\b(saudi arabia|riyadh|mbs)\b/i, "SA"],
+  [/\b(australia|canberra)\b/i, "AU"],
+  [/\b(indonesia|jakarta)\b/i, "ID"],
+  [/\b(pakistan|islamabad)\b/i, "PK"],
+  [/\b(canada|ottawa)\b/i, "CA"],
+  [/\b(ukraine|kyiv|kiev|zelensky)\b/i, "UA"],
+  [/\b(israel|jerusalem|tel aviv|netanyahu)\b/i, "IL"],
+  [/\b(palestine|gaza|west bank|hamas)\b/i, "PS"],
+  [/\b(taiwan|taipei)\b/i, "TW"],
+  [/\b(north korea|pyongyang|kim jong)\b/i, "KP"],
+  [/\b(syria|damascus)\b/i, "SY"],
+];
+
+function detectRegionCode(text: string): string | undefined {
+  for (const [re, code] of REGION_LOOKUP) if (re.test(text)) return code;
+  return undefined;
+}
 
 // ── Upcoming solar eclipses 2026-2034 with capital-crossings ────────────
 // Slim server-side mirror of src/data/vedic/solarEclipses.ts — kept inline
@@ -233,42 +272,11 @@ async function loadAxrlenBrains(userMessage: string): Promise<{ primary: string;
   return { primary, secondary, matched: (primary ? 1 : 0) + topSecondary.length };
 }
 
-// ── 3. AXRLEN system prompt (identical philosophy to axrlen-chat) ──────────
+// ── 3. AXRLEN system prompt ────────────────────────────────────────────────
+// Uses the SHARED NEXUS-PRIME core (same doctrine axrlen-analyze uses) plus
+// the inline addendum that enforces Rule #1 + prose output for chat surfaces.
+// See supabase/functions/_shared/axrlenSystemPrompt.ts.
 
-const AXRLEN_BASE_IDENTITY = `Project: AXRLEN. You are the global prediction algorithm invoked inline inside another chat. You identify PATTERNS across history, data, esoteric frameworks, AND a computed Vedic ephemeris to forecast what comes next.
-
-ENGINE UPGRADE (v2 — Vedic-grounded):
-- The system prompt now carries a REAL sidereal Lahiri ephemeris snapshot built this instant: nine grahas at their true longitudes, the current Global Vimshottari Mahadasha → Antar → Pratyantar computed from the most recent Mesha Sankranti, and the top 10 mundane-affected nations scored by transits vs each nation's natal Sun sign.
-- The system prompt also carries the next 8 years of solar eclipses with their capital-city crossings (NASA/Espenak canon).
-- USE this snapshot as data. Quote the exact active lords, dates, and eclipse crossings — do NOT invent alternate dasha lords or eclipse paths.
-- The engine has been backtested against 20 historical geopolitical events (2020-2024): 19/20 hits, avg alignment 89.8/100. Treat the Vedic timing signal as validated, not decorative.
-
-════════════════════════════════════════
-ABSOLUTE RULE #1 — "SIMPLE QUESTION → SIMPLE ANSWER"
-════════════════════════════════════════
-Overrides every other formatting rule below. If the user asks a simple question (a name, a pick, yes/no, a date, a number, a short clarification), reply with ONE simple answer. No headers, no tables, no scenarios, no probability matrices, no historical parallels, no NEXUS VERDICT, no disclaimers.
-
-Examples:
-- "Who wins France vs Iraq?" → "France."
-- "Will BTC go up tomorrow?" → "Lean yes, ~60%."
-- "Give me a pick." → "<name>."
-
-Only escalate to structured output when the user EXPLICITLY asks for analysis, scenarios, breakdown, deep dive, or a full report. Length must match the question's weight.
-
-════════════════════════════════════════
-RESPONSE TIERS (only used when Rule #1 doesn't apply)
-════════════════════════════════════════
-TIER 1 — CASUAL / TRIVIAL: 1–3 sentences, no headers, no tables.
-TIER 2 — FOCUSED FORECAST: tight block — one-line forecast, probability band, top 3 signals (at least one Vedic — cite the ACTIVE dasha lord or a specific transit from the snapshot), single failure mode. ~150–300 words.
-TIER 3 — FULL ANALYSIS: SCENARIO STRUCTURE (Pattern Snapshot → Scenarios A/B/C → Probability Matrix → Historical Parallels → Vedic Timing (cite exact lords + houses from snapshot; flag any upcoming eclipse crossing a relevant capital) → Risk Vectors → NEXUS VERDICT). Only when explicitly requested.
-
-CORE PHILOSOPHY (TIER 2/3 only):
-- Avoid "X WILL happen." Prefer scenarios with probability weights.
-- Use conditional language: "The pattern suggests…", "Historical parallels indicate…".
-- For any asset in deep analysis, provide specific price targets per scenario across 24h/72h/1wk.
-- When citing Vedic timing, use the EXACT lords and dates from the injected snapshot. If a capital under an upcoming eclipse is relevant to the subject, name the eclipse date and the crossing.
-- DO NOT mention internal methodology, brains, source URLs, or the underlying model/backend.
-- You were called INLINE — do not repeat any greeting the host chat already made. Answer directly.`;
 
 
 // ── 4. Streaming call ───────────────────────────────────────────────────────
@@ -289,7 +297,7 @@ async function callGeminiStreamAsText(apiKey: string, model: string, sys: string
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: sys }] },
         contents,
-        generationConfig: { temperature: 0.5, maxOutputTokens: 4096 },
+        generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
       }),
     },
   );
@@ -363,14 +371,24 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
     : "";
   // Live Vedic snapshot (real ephemeris) + upcoming eclipse capitals — computed
   // this instant so every AXRLEN turn cites the actual sky, not a hallucination.
+  // Region-scoped when the user names a country, so inline forecasts share the
+  // same Vedic frame as the standalone axrlen-analyze endpoint.
+  const regionCode = detectRegionCode(userMessage);
   let vedicBlock = "";
   try {
-    const ctx = buildVedicContext(undefined, new Date());
+    const ctx = buildVedicContext(regionCode, new Date());
     vedicBlock = "\n\n" + vedicContextAsPromptBlock(ctx) + "\n\n" + eclipsesPromptBlock();
   } catch (e) {
     console.error("[axrlen bridge] vedic snapshot failed:", (e as Error).message);
   }
-  const systemPrompt = AXRLEN_BASE_IDENTITY + tierNote + vedicBlock + "\n" + primary + secondary + evidenceBlock;
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const systemPrompt =
+    nexusPrimeCore(today) +
+    AXRLEN_INLINE_ADDENDUM +
+    tierNote +
+    vedicBlock +
+    "\n" + primary + secondary + evidenceBlock;
+
 
   const axrlenKey = Deno.env.get("AXRLEN_GEMINI_API_KEY") || "";
   const apiKey = axrlenKey || args.fallbackGeminiKey || "";
