@@ -199,7 +199,11 @@ serve(async (req) => {
         model: modelId,
         messages: gatewayMessages,
         stream: true,
+        // Market queries → 0.6 (looser, price-action reasoning like pre-unification
+        // AXRLEN). Everything else → 0.3 (tight, doctrine-anchored geopolitical).
+        temperature: isMarket ? 0.6 : 0.3,
       }),
+
     });
 
     if (response.status === 429) {
