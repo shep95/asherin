@@ -159,7 +159,13 @@ serve(async (req) => {
 
     const { getTemporalContext } = await import("../_shared/systemContext.ts");
     const _tCtx = getTemporalContext({ timezone, locale });
-    const systemPrompt = _tCtx + "\n\n" + BASE_IDENTITY + "\n" + primaryBrains + secondaryBrains + sessionBlock;
+    // Market-intent override — price-action first, Vedic demoted to a
+    // footnote so short-horizon market forecasts don't get drowned by the
+    // Vedic Global Prediction primary brain.
+    const isMarket = detectMarketIntent(lastUserMsg);
+    const marketBlock = isMarket ? "\n\n" + AXRLEN_MARKET_ADDENDUM : "";
+    const systemPrompt = _tCtx + "\n\n" + BASE_IDENTITY + marketBlock + "\n" + primaryBrains + secondaryBrains + sessionBlock;
+
 
     const gatewayMessages = [
       { role: "system", content: systemPrompt },
