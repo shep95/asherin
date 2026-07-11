@@ -287,7 +287,7 @@ Generate the dork battery now.`;
     // Cap to 8 queries: each is delegated to zophiel-search internally, which
     // itself fans out to 5 engines. Beyond ~8 we hit the platform's overall
     // edge-request timeout.
-    const queries = Array.isArray(plan.queries) ? plan.queries.filter((q) => q && typeof q.q === "string").slice(0, 8) : [];
+    const queries = Array.isArray(plan.queries) ? plan.queries.filter((q) => q && typeof q.q === "string").slice(0, 6) : [];
     if (queries.length === 0) {
       return new Response(JSON.stringify({ error: "plan_failed", raw: planRaw.slice(0, 400) }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
