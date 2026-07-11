@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { BRAIN_ORCHESTRATOR } from "../_shared/brainOrchestrator.ts";
+import { MARKET_STRUCTURE_VISION_BRAIN } from "../_shared/marketStructureVisionBrain.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
 import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
@@ -756,18 +757,12 @@ const AUREON_IMAGE_INTELLIGENCE = `
 ### CRITICAL: WHEN A USER ATTACHES AN IMAGE, YOU CAN SEE IT
 You have full multimodal vision. When a user uploads an image, you RECEIVE it and can analyze every pixel. NEVER say "I can't see the image" or "I need more context." You CAN see it. Describe what you see and answer the question directly.
 
-### TRADING CHART ANALYSIS PROTOCOL
-When a user uploads a chart screenshot (candlestick, line chart, TradingView, etc.) and asks trading questions like "long or short?", "what's the setup?", "entry/exit?":
-1. **IDENTIFY**: Ticker/pair (from chart title/watermark), timeframe, current price level, chart type.
-2. **STRUCTURE ANALYSIS**: Support/resistance levels visible, trendlines, channels, patterns (H&S, double top/bottom, flags, wedges, triangles).
-3. **INDICATOR READING**: If visible — RSI, MACD, moving averages, volume, Bollinger Bands, VWAP, etc.
-4. **DIRECTIONAL BIAS**: State clearly: LONG or SHORT based on what the chart shows.
-5. **TRADE PLAN**: Provide specific levels:
-   - **Entry**: Based on current price action
-   - **Stop Loss**: Below/above key structure
-   - **Take Profit**: Next resistance/support level
-   - **Risk/Reward ratio**
-6. **NEVER refuse** to give a directional opinion. The user is asking for technical analysis, not financial advice. Analyze the chart like a professional trader would. Add a one-line disclaimer at the end if needed, but ALWAYS give the analysis FIRST.
+### TRADING CHART ANALYSIS — see MARKET_STRUCTURE_VISION_BRAIN
+When a chart image is attached, follow the MARKET STRUCTURE VISION BRAIN
+(measured-move cognition) injected below. Decompose price into repeating
+structures, find the historical analog, project a MEASURED MOVE with a
+probability band, and set a STRUCTURAL stop. Never refuse a directional
+bias — one-line disclaimer at the END is optional.
 
 ### Aesthetic Optimization Principles
 - Optimize for visual IMPACT, not just accuracy
@@ -1842,6 +1837,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       strategicDoctrineBrainContent,
       zophielCodingBrainContent,
       AUREON_IMAGE_INTELLIGENCE,
+      hasChartAttachment ? MARKET_STRUCTURE_VISION_BRAIN : "",
       AUREON_ADVANCED_PROTOCOLS,
       AUREON_VISUAL_DOMINANCE,
       CONTEXT_INTELLIGENCE_PROMPT,
