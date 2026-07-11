@@ -185,7 +185,7 @@ serve(async (req) => {
         summary = "_Summary generation failed — raw results are listed below._";
       }
     } else {
-      summary = "_No reachable onion results via clearnet gateways. Try refining the query or rerunning later — gateways throttle frequently._";
+      summary = "_No reachable onion results. Public clearnet→Tor gateways (`onion.ly`, `onion.ws`, `onion.pet`) are largely defunct as of 2026 — onion.ly is a parked domain, and the others frequently time out. For live darkweb intelligence, use the standalone Ahmia (clearnet index) mode or run a local Tor SOCKS5 proxy. Query refinement is still returned above._";
     }
 
     return new Response(JSON.stringify({
