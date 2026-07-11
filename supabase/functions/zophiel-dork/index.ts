@@ -178,49 +178,58 @@ function decodeEntities(text: string): string {
     .replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 }
 
+// DuckDuckGo html endpoint (GET). The old `lite.duckduckgo.com/lite/` POST path
+// now returns an anti-bot "anomaly.js" challenge page for edge-function IPs, so
+// every regex miss produced 0 hits per bucket. `html.duckduckgo.com/html/` still
+// serves parseable result blocks with the same class names zophiel-search uses.
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+// Delegate each dork query to the already-working internal `zophiel-search`
+// function. Its multi-engine backend (DDG html, Wikipedia, HackerNews, OpenAlex,
+// CrossRef) is proven to return results from the Supabase edge, whereas hitting
+// DDG directly from this function trips its anti-bot "anomaly" page after ~2
+// serial requests. Delegation gives us consistent recall without dedicating a
+// new anti-bot engine per bucket.
 async function ddg(query: string, max = 8): Promise<DorkHit[]> {
+  if (!SUPABASE_URL) return [];
   try {
     const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 15_000);
-    const r = await fetch("https://lite.duckduckgo.com/lite/", {
+    const t = setTimeout(() => ctl.abort(), 20_000);
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/zophiel-search`, {
       method: "POST",
       headers: {
-        "User-Agent": UA,
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "text/html",
+        "Content-Type": "application/json",
+        ...(SERVICE_ROLE_KEY
+          ? { Authorization: `Bearer ${SERVICE_ROLE_KEY}`, apikey: SERVICE_ROLE_KEY }
+          : {}),
       },
-      body: `q=${encodeURIComponent(query)}`,
+      body: JSON.stringify({ query, max_pages: 8, max_depth: 1 }),
       signal: ctl.signal,
     });
     clearTimeout(t);
-    if (!r.ok) return [];
-    const html = await r.text();
-    const hits: DorkHit[] = [];
-    const linkRe = /class='result-link'[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
-    const snipRe = /class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi;
-    const links: { url: string; title: string }[] = [];
-    let m: RegExpExecArray | null;
-    while ((m = linkRe.exec(html)) !== null) {
-      let url = m[1].trim();
-      const title = decodeEntities(m[2].replace(/<[^>]*>/g, ""));
-      if (url.includes("duckduckgo.com/l/")) {
-        const uddg = url.match(/uddg=([^&]*)/);
-        if (uddg) url = decodeURIComponent(uddg[1]);
-      }
-      if (title && url) links.push({ url, title });
+    if (!r.ok) {
+      console.log(`[dork.search] http ${r.status} q="${query.slice(0, 60)}"`);
+      return [];
     }
-    const snips: string[] = [];
-    while ((m = snipRe.exec(html)) !== null) {
-      snips.push(decodeEntities(m[1].replace(/<[^>]*>/g, "")));
-    }
-    for (let i = 0; i < Math.min(links.length, max); i++) {
-      hits.push({ title: links[i].title, url: links[i].url, snippet: snips[i] || "" });
-    }
-    return hits;
-  } catch {
+    const data = await r.json().catch(() => null) as
+      | { results?: Array<{ title?: string; url?: string; snippet?: string }> }
+      | null;
+    const raw = Array.isArray(data?.results) ? data!.results! : [];
+    return raw.slice(0, max).map((x) => ({
+      title: (x.title || "").slice(0, 200),
+      url: x.url || "",
+      snippet: (x.snippet || "").slice(0, 400),
+    })).filter((h) => h.url.startsWith("http"));
+  } catch (e) {
+    console.log(`[dork.search] err q="${query.slice(0, 60)}" ${(e as Error).message}`);
     return [];
   }
 }
+
+async function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
+
+
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -275,25 +284,32 @@ Generate the dork battery now.`;
       const m = planRaw.match(/\{[\s\S]*\}/);
       if (m) { try { plan = JSON.parse(m[0]); } catch { /* noop */ } }
     }
-    const queries = Array.isArray(plan.queries) ? plan.queries.filter((q) => q && typeof q.q === "string").slice(0, 18) : [];
+    // Cap to 8 queries: each is delegated to zophiel-search internally, which
+    // itself fans out to 5 engines. Beyond ~8 we hit the platform's overall
+    // edge-request timeout.
+    const queries = Array.isArray(plan.queries) ? plan.queries.filter((q) => q && typeof q.q === "string").slice(0, 8) : [];
     if (queries.length === 0) {
       return new Response(JSON.stringify({ error: "plan_failed", raw: planRaw.slice(0, 400) }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 2) Fan out — capped concurrency so DDG doesn't throttle us off the cliff.
-    const buckets: DorkBucket[] = [];
-    const CHUNK = 4;
-    for (let i = 0; i < queries.length; i += CHUNK) {
-      const slice = queries.slice(i, i + CHUNK);
-      const results = await Promise.all(slice.map(async (q) => ({
-        query: q.q,
-        rationale: q.why || "",
-        hits: await ddg(q.q, 8),
-      })));
-      buckets.push(...results);
+    // 2) Fan out — bounded parallel (concurrency 3). Zophiel-search internally
+    //    handles anti-bot rotation, so we don't need serial pacing here.
+    const buckets: DorkBucket[] = new Array(queries.length);
+    const CONCURRENCY = 3;
+    let cursor = 0;
+    async function worker() {
+      while (true) {
+        const i = cursor++;
+        if (i >= queries.length) return;
+        const q = queries[i];
+        const hits = await ddg(q.q, 8);
+        buckets[i] = { query: q.q, rationale: q.why || "", hits };
+      }
     }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queries.length) }, worker));
+
 
     const totalHits = buckets.reduce((acc, b) => acc + b.hits.length, 0);
 
