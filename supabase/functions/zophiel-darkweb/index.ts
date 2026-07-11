@@ -13,11 +13,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 
+
+
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // Public Tor2Web gateways — read-only, no client install required.
-const TOR_GATEWAYS = ["onion.ly", "onion.ws", "onion.pet"] as const;
+// Public Tor2Web gateway suffixes. Correct form is `<hash>.onion.<suffix>`
+// — the previous code stitched `.onion.onion.ly` which resolved to nothing.
+const TOR_GATEWAYS = ["ly", "ws", "pet"] as const;
 
 // Subset of Robin's engines (only the ones that historically respond well via gateways).
 const DARK_ENGINES: { name: string; host: string; path: string }[] = [
@@ -35,20 +39,15 @@ interface Hit { title: string; link: string; engine: string }
 
 const ONION_RE = /https?:\/\/[a-z0-9.-]+\.onion[^\s"'<>]*/gi;
 
-function gatewayUrlFor(host: string, path: string, q: string, gw: string): string {
-  // host = "...onion" → "...onion.ly"
-  const gwHost = host.replace(/\.onion$/, `.onion.${gw.split(".").pop()}`).replace(/\.onion\.[a-z]+\.([a-z]+)$/, ".onion." + gw.split(".").slice(-1));
-  // Simpler: just stitch
-  const stitched = `https://${host}.${gw.split(".").slice(-2).join(".")}`.replace(".onion." + gw, "." + gw);
-  // Use straightforward gateway form: <onion>.<gateway>
-  const direct = `https://${host}.${gw.split(".").slice(-2).join(".")}`;
-  void gwHost; void stitched;
-  return direct + path.replace("{q}", encodeURIComponent(q));
+// Build gateway URL. `host` already ends in `.onion`, so we simply append
+// the gateway TLD suffix (`.ly`, `.ws`, `.pet`) → `<hash>.onion.ly`.
+function gatewayUrl(host: string, path: string, q: string, gwSuffix: string): string {
+  return `https://${host}.${gwSuffix}${path.replace("{q}", encodeURIComponent(q))}`;
 }
 
 async function fetchEngine(engine: typeof DARK_ENGINES[number], query: string): Promise<Hit[]> {
   for (const gw of TOR_GATEWAYS) {
-    const url = `https://${engine.host}.${gw}${engine.path.replace("{q}", encodeURIComponent(query))}`;
+    const url = gatewayUrl(engine.host, engine.path, query, gw);
     try {
       const ctl = new AbortController();
       const t = setTimeout(() => ctl.abort(), 18_000);
@@ -186,7 +185,7 @@ serve(async (req) => {
         summary = "_Summary generation failed — raw results are listed below._";
       }
     } else {
-      summary = "_No reachable onion results via clearnet gateways. Try refining the query or rerunning later — gateways throttle frequently._";
+      summary = "_No reachable onion results. Public clearnet→Tor gateways (`onion.ly`, `onion.ws`, `onion.pet`) are largely defunct as of 2026 — onion.ly is a parked domain, and the others frequently time out. For live darkweb intelligence, use the standalone Ahmia (clearnet index) mode or run a local Tor SOCKS5 proxy. Query refinement is still returned above._";
     }
 
     return new Response(JSON.stringify({
