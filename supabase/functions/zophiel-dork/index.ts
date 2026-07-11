@@ -287,28 +287,25 @@ Generate the dork battery now.`;
     // Cap to 8 queries: each is delegated to zophiel-search internally, which
     // itself fans out to 5 engines. Beyond ~8 we hit the platform's overall
     // edge-request timeout.
-    const queries = Array.isArray(plan.queries) ? plan.queries.filter((q) => q && typeof q.q === "string").slice(0, 6) : [];
+    // Cap to 5 queries and run them all in parallel — each delegates to
+    // `zophiel-search` (multi-engine backend). Beyond this budget we risk
+    // the platform's overall edge-request timeout.
+    const queries = Array.isArray(plan.queries) ? plan.queries.filter((q) => q && typeof q.q === "string").slice(0, 5) : [];
     if (queries.length === 0) {
       return new Response(JSON.stringify({ error: "plan_failed", raw: planRaw.slice(0, 400) }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 2) Fan out — bounded parallel (concurrency 3). Zophiel-search internally
-    //    handles anti-bot rotation, so we don't need serial pacing here.
-    const buckets: DorkBucket[] = new Array(queries.length);
-    const CONCURRENCY = 3;
-    let cursor = 0;
-    async function worker() {
-      while (true) {
-        const i = cursor++;
-        if (i >= queries.length) return;
-        const q = queries[i];
-        const hits = await ddg(q.q, 8);
-        buckets[i] = { query: q.q, rationale: q.why || "", hits };
-      }
-    }
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queries.length) }, worker));
+    console.log(`[dork] fanning out ${queries.length} queries via zophiel-search`);
+    const buckets: DorkBucket[] = await Promise.all(
+      queries.map(async (q) => ({
+        query: q.q,
+        rationale: q.why || "",
+        hits: await ddg(q.q, 8),
+      })),
+    );
+    console.log(`[dork] fan-out complete, hits=${buckets.reduce((a, b) => a + b.hits.length, 0)}`);
 
 
     const totalHits = buckets.reduce((acc, b) => acc + b.hits.length, 0);
