@@ -8,7 +8,10 @@ import {
 } from "recharts";
 import {
   MessageSquare, Search, Network, Shield, Hammer, Database,
-  Layers, BookOpen, Sparkles, Eye, Code2, Globe,
+  Layers, BookOpen, Sparkles, Eye, Code2, Globe, FlaskConical,
+  Brain, LineChart, DollarSign, Map, Video, Bluetooth, Bot,
+  FileText, Lock, Cpu, Zap, Users, Puzzle, Notebook, Rss,
+  Image as ImageIcon, Command, Fingerprint, Radio, Compass,
 } from "lucide-react";
 
 const TOOLTIP_STYLE = {
@@ -20,112 +23,427 @@ const TOOLTIP_STYLE = {
   backdropFilter: "blur(12px)",
 };
 
+type Tier = "aureon" | "pro";
+
 type Product = {
   name: string;
+  codename?: string;
   tagline: string;
   description: string;
   icon: React.ElementType;
-  competitors: string[];
+  features: string[];
+  competitors?: string[];
   route?: string;
+  tier: Tier;
   badge?: string;
 };
 
+/* ─────────────────────────────────────────────────────────────
+   FULL SOFTWARE CATALOG — mirrors dashboard NAV_INTENTS
+   tier: "aureon" = $18/mo · "pro" = $399/mo
+   ───────────────────────────────────────────────────────────── */
+
 const PRODUCTS: Product[] = [
+  /* ═══════════════ CORE — AUREON $18 ═══════════════ */
   {
     name: "Aureon Chat",
+    codename: "Flagship",
     tagline: "Conversational intelligence",
-    description: "Multi-model consensus chat with reasoning visualization, vision, voice, and zero censorship. Replaces three paid tools with one free stack.",
+    description:
+      "Multi-model consensus chat with reasoning visualization, vision, voice, uncensored responses, and persistent memory. Replaces ChatGPT, Claude, and Gemini in one surface.",
     icon: MessageSquare,
+    features: [
+      "Chat / Code / Research / Truth modes",
+      "Multi-model consensus across 9+ providers",
+      "Vision + voice + file attachments",
+      "Persistent long-term memory",
+      "Reasoning chain-of-thought view",
+      "Response depth + determinism control",
+      "60 messages / 3-hour window",
+    ],
     competitors: ["ChatGPT Plus", "Claude Pro", "Gemini Advanced"],
     route: "/dashboard/chat",
+    tier: "aureon",
     badge: "Flagship",
   },
   {
     name: "Zophiel Search",
-    tagline: "30-source OSINT engine",
-    description: "Cross-validated intelligence search across 30 live sources with Veracity Scores and triangulated truth extraction.",
+    codename: "Base",
+    tagline: "OSINT-grade web search",
+    description:
+      "Cross-validated intelligence search with Veracity Scores and triangulated truth extraction. Base tier limits — Pro unlocks 30-source deep crawl.",
     icon: Search,
-    competitors: ["Perplexity Pro", "Google", "Kagi"],
+    features: [
+      "Real-time web search",
+      "Source-credibility scoring",
+      "Basic query throughput",
+      "Citation-first answers",
+    ],
+    competitors: ["Perplexity", "Google", "Kagi"],
     route: "/dashboard/search",
+    tier: "aureon",
   },
   {
-    name: "NOMAD",
-    tagline: "Persistent intelligence dossiers",
-    description: "14-pass deep analysis with persistent dossier trees. Built for investigators, journalists, and analysts.",
-    icon: Network,
-    competitors: ["Maltego", "Palantir Gotham"],
-    route: "/dashboard/nomad",
+    name: "File Scrapper",
+    tagline: "Universal document extractor",
+    description:
+      "Pull every character of text from PDFs, images, spreadsheets, and archives. OCR + structural parsing.",
+    icon: FileText,
+    features: ["OCR on scans & images", "PDF / DOCX / XLSX / CSV parsing", "Table structure preservation", "Multi-file batch mode"],
+    route: "/dashboard/file-scrapper",
+    tier: "aureon",
   },
   {
-    name: "Zerlal",
-    tagline: "Cyber intelligence engine",
-    description: "Full-spectrum vulnerability scanning, domain recon, exploit intelligence, and Cyber Kill Chain analysis.",
-    icon: Shield,
-    competitors: ["Tenable Nessus", "Qualys", "Rapid7"],
-    route: "/dashboard/security",
+    name: "Cipher Toolkit",
+    tagline: "Client-side crypto workbench",
+    description:
+      "Encoding, hashing, symmetric + asymmetric encryption run entirely in your browser. Nothing leaves the tab.",
+    icon: Lock,
+    features: ["Base64 / hex / ROT / URL encoders", "SHA / BLAKE / Argon2 hashing", "AES-GCM & RSA-OAEP", "Key-pair generation"],
+    route: "/dashboard/cipher",
+    tier: "aureon",
   },
   {
-    name: "ZALI Design Lab",
-    tagline: "FEA + thermal simulation",
-    description: "Generative material and assembly design with simulation-grade physics. CAD-class output without the license.",
-    icon: Hammer,
-    competitors: ["Fusion 360", "ANSYS", "Onshape"],
-    route: "/dashboard/zali",
-  },
-  {
-    name: "Azplen Foundry",
-    tagline: "Data intelligence suite",
-    description: "20-tab analytical workspace with workforce optimization, financial forensics, and flow visualizations.",
-    icon: Database,
-    competitors: ["Palantir Foundry", "Tableau"],
-    route: "/dashboard/azplen",
+    name: "Aureon IDE",
+    codename: "Asher Code",
+    tagline: "In-dashboard Monaco IDE",
+    description:
+      "BYOK across 9 providers, sandboxed publishing of custom tabs, project file management, ghost tabs, and inline edit.",
+    icon: Code2,
+    features: [
+      "Monaco editor + Git integration",
+      "BYOK: OpenAI, Anthropic, Gemini, Groq, xAI, DeepSeek, Mistral, Together, OpenRouter",
+      "Inline Edit + Ghost Tabs + Fast Apply",
+      "Project index + semantic search",
+      "Checkpoints + version history",
+    ],
+    competitors: ["Cursor", "Replit", "Lovable"],
+    route: "/dashboard/ide",
+    tier: "aureon",
   },
   {
     name: "Aureon Whiteboard",
     tagline: "Infinite canvas + layers",
-    description: "Photoshop-style layer stack on an infinite canvas with snap grids and live AI collaboration.",
+    description: "Photoshop-style layer stack on an infinite canvas with snap grids, freeform sketching, and live AI collaboration.",
     icon: Layers,
+    features: ["Infinite pan + zoom", "Layer stack with blend modes", "Snap grids + smart guides", "AI object generation"],
     competitors: ["Miro", "FigJam", "Excalidraw"],
     route: "/dashboard/whiteboard",
+    tier: "aureon",
   },
   {
-    name: "E-book Generator",
-    tagline: "Long-form authoring",
-    description: "Multi-session text uploads, 500 words/chapter pacing, and generated PNG covers. End-to-end publishing pipeline.",
+    name: "Document Studio",
+    tagline: "PDF / eBook / Slides generator",
+    description: "Multi-session authoring pipeline. 500-word chapter pacing, AI-generated covers, one-click PDF/EPUB export.",
     icon: BookOpen,
-    competitors: ["Sudowrite", "NovelAI"],
-    route: "/dashboard/ebook",
+    features: ["Long-form eBook mode", "Slide deck generator", "PDF layout engine", "AI cover art"],
+    competitors: ["Sudowrite", "NovelAI", "Canva"],
+    route: "/dashboard/pdf-generator",
+    tier: "aureon",
+  },
+  {
+    name: "Gematria Engine",
+    tagline: "Numerological corpus matcher",
+    description: "English Ordinal, Reduction, Reverse, and Chaldean value analysis with personal corpus matching and date fingerprints.",
+    icon: Fingerprint,
+    features: ["4 gematria systems", "Personal corpus matching", "Date fingerprint resonance", "World-event correlation"],
+    route: "/dashboard/gematria",
+    tier: "aureon",
   },
   {
     name: "Vedic Astrology",
-    tagline: "Swiss-grade chart engine",
-    description: "Swiss Ephemeris precision, full dasha readings, compatibility, and 27-nakshatra mythology matching.",
+    tagline: "Swiss-grade sidereal engine",
+    description: "Swiss Ephemeris precision, full Vimshottari Dasha, compatibility, 27-nakshatra mythology matching, and local transits.",
     icon: Sparkles,
+    features: ["Swiss Ephemeris (arcsecond)", "Full Dasha reading", "Compatibility engine", "27 nakshatra decoder", "Moon-driven local transits"],
     competitors: ["Astro-Seek", "AstroSage"],
     route: "/dashboard/vedic-astrology",
+    tier: "aureon",
   },
   {
-    name: "Vision Intelligence",
-    tagline: "Image + behavioral video",
-    description: "Image locus mapping and FACS behavioral video tracking. Sees what other models miss.",
-    icon: Eye,
-    competitors: ["Google Vision", "AWS Rekognition"],
-    route: "/dashboard/video-intelligence",
+    name: "Zerlal Cyber",
+    tagline: "Vulnerability & exploit intel",
+    description: "Full-spectrum vulnerability scanning, domain recon, exploit intelligence, and Cyber Kill Chain analysis.",
+    icon: Shield,
+    features: ["Domain + subdomain recon", "CVE + exploit intelligence", "Cyber Kill Chain mapping", "Dark-web indicator sweep"],
+    competitors: ["Tenable Nessus", "Qualys", "Rapid7"],
+    route: "/dashboard/zerlal",
+    tier: "aureon",
   },
   {
-    name: "Asher Code IDE",
-    tagline: "In-dashboard Monaco IDE",
-    description: "BYOK across 9 providers, sandboxed publishing of custom tabs, and full project file management.",
-    icon: Code2,
-    competitors: ["Cursor", "Replit", "Lovable"],
-    route: "/asher-dashboard",
+    name: "NOMAD OSINT",
+    tagline: "30+ source dossier engine",
+    description: "14-pass deep analysis with persistent dossier trees. Built for investigators, journalists, and analysts.",
+    icon: Network,
+    features: ["30+ live OSINT sources", "14-pass correlation engine", "Persistent dossier tree", "Entity + relationship graph"],
+    competitors: ["Maltego", "Palantir Gotham"],
+    route: "/dashboard/nomad",
+    tier: "aureon",
+  },
+  {
+    name: "Zaxin Tactical",
+    tagline: "BLE + optical AR overlay",
+    description: "Bluetooth Low Energy scanner with RSSI trilateration, GATT pull, hop graph, and tactical HUD.",
+    icon: Bluetooth,
+    features: ["BLE scanner + RSSI mapping", "GATT service enumeration", "Hop-graph visualization", "Web Mercator + Esri satellite map"],
+    route: "/dashboard/zaxin",
+    tier: "aureon",
+  },
+  {
+    name: "ZANOEM Design Lab",
+    codename: "ZALI",
+    tagline: "First-principles universal design",
+    description: "Generative material and assembly design with simulation-grade physics — FEA, thermal, and CFD hints.",
+    icon: Hammer,
+    features: ["Parametric CAD-class output", "FEA + thermal simulation", "Material property library", "Assembly + tolerance solver"],
+    competitors: ["Fusion 360", "ANSYS", "Onshape"],
+    route: "/dashboard/zali",
+    tier: "aureon",
+  },
+  {
+    name: "Media → Code",
+    tagline: "Vision to production HTML",
+    description: "Turn images and video into clean, semantic HTML/CSS embeds ready to ship.",
+    icon: ImageIcon,
+    features: ["Image → responsive HTML", "Video → embedded player", "Semantic markup output", "Tailwind class extraction"],
+    route: "/dashboard/media2code",
+    tier: "aureon",
+  },
+  {
+    name: "Zahten Agent Forge",
+    tagline: "Design + scaffold + harden agents",
+    description: "Compose task-scoped agents from templates, harden their prompts, and deploy them into your workspace.",
+    icon: Bot,
+    features: ["Template-driven scaffolding", "Prompt hardening lint", "Tool-permission scoping", "One-click deploy to sidebar"],
+    route: "/dashboard/zahten",
+    tier: "aureon",
+  },
+  {
+    name: "Briefings",
+    tagline: "Daily intel digests",
+    description: "Automated daily briefings across competitor, regulatory, and market signals — filtered to your industry.",
+    icon: Rss,
+    features: ["Industry-tuned feeds", "Competitor tracking", "Regulatory watch", "Signal-vs-noise summarization"],
+    route: "/dashboard/briefing",
+    tier: "aureon",
+  },
+  {
+    name: "Snippets & Blocks",
+    tagline: "Reusable code + prompt library",
+    description: "Save, tag, and recall code blocks and prompt templates across every workspace.",
+    icon: Puzzle,
+    features: ["Tagged library", "Cross-workspace search", "Prompt + code blocks", "Keyboard-first insert"],
+    route: "/dashboard/snippets",
+    tier: "aureon",
   },
   {
     name: "Aureon Shield",
     tagline: "Browser privacy extension",
     description: "Tracker eviction, DoH audit, hardening, and storage forensics. Lives in your browser, not our servers.",
     icon: Globe,
+    features: ["Tracker eviction", "DoH provider audit", "Storage forensics", "Extension hardening"],
     competitors: ["DuckDuckGo Privacy", "uBlock Origin"],
+    tier: "aureon",
+  },
+
+  /* ═══════════════ PRO — AUREON PRO $399 ═══════════════ */
+  {
+    name: "RAD — Research & Development",
+    codename: "New",
+    tagline: "Aureon Chat as an R&D partner",
+    description:
+      "A dedicated R&D workspace inside Aureon Chat. Frames every conversation as a research program: hypothesis → literature sweep → experiment design → simulation → report. Pulls Zophiel Pro sources, Azplen datasets, ZANOEM simulations, and Axrlen forecasts into one thread with citation-locked outputs.",
+    icon: FlaskConical,
+    features: [
+      "Hypothesis → experiment → report workflow",
+      "Live literature sweep via Zophiel Pro (deeper crawl, higher recall)",
+      "Dataset attach from Azplen (CSV / API / SQL)",
+      "Physics + material simulation call-outs to ZANOEM",
+      "Scenario simulation via Axrlen Monte Carlo",
+      "Citation-locked outputs (every claim traces to a source)",
+      "Persistent lab notebook per project",
+      "Export as whitepaper (PDF), slide deck, or executable notebook",
+    ],
+    route: "/dashboard/chat?mode=rad",
+    tier: "pro",
+    badge: "New",
+  },
+  {
+    name: "Zophiel Pro",
+    tagline: "30-source deep-crawl OSINT",
+    description:
+      "Everything in Zophiel Base plus deeper crawl, broader coverage, higher query throughput, and priority latency.",
+    icon: Search,
+    features: [
+      "30+ live sources triangulated",
+      "Veracity + provenance scoring",
+      "Priority latency",
+      "Higher query limits",
+      "Sovereign Source Atlas access",
+    ],
+    competitors: ["Perplexity Pro", "Kagi Ultimate"],
+    route: "/dashboard/search",
+    tier: "pro",
+  },
+  {
+    name: "Axrlen",
+    tagline: "Predictive intelligence engine",
+    description:
+      "NEXUS-PRIME probabilistic scenario engine — live global event prediction, policy simulation, and market forecasting with Monte Carlo scenario trees.",
+    icon: Brain,
+    features: [
+      "Monte Carlo scenario trees",
+      "Policy + geopolitical simulation",
+      "Market forecast module (price-action-first)",
+      "Backtest harness",
+      "Confidence bands + invalidation triggers",
+    ],
+    route: "/dashboard/axrlen",
+    tier: "pro",
+  },
+  {
+    name: "Azplen Foundry",
+    tagline: "Data intelligence platform",
+    description:
+      "20-tab analytical workspace with entity resolution, workforce optimization, financial forensics, workflow automation, and flow visualizations.",
+    icon: Database,
+    features: [
+      "Ingest CSV / API / SQL",
+      "Entity resolution + graph joins",
+      "Workflow automation engine",
+      "Scenario + threat modeling",
+      "Flow, Sankey, and geospatial visualization",
+    ],
+    competitors: ["Palantir Foundry", "Tableau"],
+    route: "/dashboard/azplen",
+    tier: "pro",
+  },
+  {
+    name: "Zeeion Financial",
+    tagline: "Cost + waste forensics",
+    description: "Cost savings, efficiency scoring, and budget optimization with per-line forensic drill-down.",
+    icon: DollarSign,
+    features: ["Line-item cost forensics", "Efficiency scoring", "Budget optimization solver", "Vendor + contract analysis"],
+    route: "/dashboard/zeeion",
+    tier: "pro",
+  },
+  {
+    name: "Pattern Engine",
+    tagline: "Visual pattern recognition",
+    description: "Recurring-pattern detection, anomaly surfacing, and forward forecasting across arbitrary time series.",
+    icon: LineChart,
+    features: ["Motif discovery", "Anomaly detection", "Multi-horizon forecast", "Regime-change alerts"],
+    route: "/dashboard/pattern-analysis",
+    tier: "pro",
+  },
+  {
+    name: "Time-Series Forecasting",
+    tagline: "Temporal analysis suite",
+    description: "Full temporal analytics with ARIMA, Prophet, and neural ensembles plus anomaly detection.",
+    icon: LineChart,
+    features: ["Multi-model ensemble", "Anomaly detection", "Seasonality decomposition", "Confidence bands"],
+    route: "/dashboard/timeseries",
+    tier: "pro",
+  },
+  {
+    name: "Intelligence Property Map",
+    tagline: "Live parcel intel via Zophiel",
+    description: "Click any property — Zophiel scrapes live ownership, valuation, permit history, and risk intel.",
+    icon: Map,
+    features: ["Parcel-level ownership", "Live valuation scrape", "Permit + zoning history", "Risk overlay"],
+    route: "/dashboard/geospatial",
+    tier: "pro",
+  },
+  {
+    name: "Video Intelligence",
+    tagline: "FACS + deception analysis",
+    description: "Image locus mapping and FACS-based behavioral video tracking with deception scoring and personality profiling.",
+    icon: Video,
+    features: ["FACS micro-expression tracking", "Deception scoring", "Personality profiling", "Frame-level annotation"],
+    competitors: ["Google Vision", "AWS Rekognition"],
+    route: "/dashboard/video-intelligence",
+    tier: "pro",
+  },
+  {
+    name: "Zacoon Phantom Grid",
+    tagline: "Autonomous web operative",
+    description: "Multi-cortex autonomous browser agent with adversarial awareness — recon, extract, and operate at scale.",
+    icon: Compass,
+    features: ["Multi-cortex planner", "Adversarial-aware browsing", "Recon → extract → report pipeline", "Human-in-the-loop checkpoints"],
+    route: "/dashboard/zacoon",
+    tier: "pro",
+  },
+  {
+    name: "Cross Screen Intelligence",
+    tagline: "Live screen + facial tracking",
+    description: "Real-time on-screen intelligence with alerts, facial tracking, and event triggers.",
+    icon: Eye,
+    features: ["Live screen OCR + intel", "Facial tracking", "Trigger-based alerts", "Recording + replay"],
+    route: "/dashboard/cross",
+    tier: "pro",
+  },
+  {
+    name: "Knowledge Vault (RAG)",
+    tagline: "BYO corpus retrieval",
+    description: "Upload files or connect APIs — Aureon retrieves them live during chat with citation-locked answers.",
+    icon: Database,
+    features: ["File + API ingest", "Vector + hybrid retrieval", "Citation-locked answers", "Per-project scoping"],
+    route: "/dashboard/knowledge-vault",
+    tier: "pro",
+  },
+  {
+    name: "Intelligence Notebooks",
+    tagline: "Shared analysis + SQL",
+    description: "Collaborative analysis sessions with in-notebook SQL execution and shareable results.",
+    icon: Notebook,
+    features: ["SQL cells", "Markdown + chart cells", "Real-time collaboration", "Version history"],
+    route: "/dashboard/notebooks",
+    tier: "pro",
+  },
+  {
+    name: "Plugin Marketplace",
+    tagline: "Connectors + agent modules",
+    description: "Extend Aureon with connectors, agent modules, and pre-built automations.",
+    icon: Puzzle,
+    features: ["Connector library", "Agent module store", "Sandboxed execution", "One-click install"],
+    route: "/dashboard/plugins",
+    tier: "pro",
+  },
+  {
+    name: "Automated Agents",
+    tagline: "Set-and-forget workers",
+    description: "AI agents that run tasks on autopilot — scheduled, event-driven, or continuously.",
+    icon: Cpu,
+    features: ["Scheduled + event triggers", "Multi-step tool chains", "Failure retry + DLQ", "Per-agent audit log"],
+    route: "/dashboard/zahten",
+    tier: "pro",
+  },
+  {
+    name: "Team Workspace",
+    tagline: "Role-based collaboration",
+    description: "Shared threads, shared outputs, admin controls, and role-based access.",
+    icon: Users,
+    features: ["Shared threads + outputs", "Role-based access", "Admin controls", "Team audit trail"],
+    route: "/dashboard/teams",
+    tier: "pro",
+  },
+  {
+    name: "Guardian Vault",
+    tagline: "Security command center",
+    description: "Centralized MFA, secrets, and credential hygiene with rotation reminders.",
+    icon: Lock,
+    features: ["MFA + TOTP vault", "Secret storage (AES-256-GCM)", "Rotation reminders", "Breach monitoring"],
+    route: "/dashboard/guardian-vault",
+    tier: "pro",
+  },
+  {
+    name: "Vibe Video",
+    tagline: "Generative video pipeline",
+    description: "Prompt-to-video with scene planning, shot list, and post-production hooks.",
+    icon: Radio,
+    features: ["Prompt → storyboard", "Shot list generator", "Scene + audio sync", "Export to editor"],
+    route: "/dashboard/vibe-video",
+    tier: "pro",
   },
 ];
 
@@ -157,42 +475,71 @@ const PRICE_DATA = [
   { plan: "Palantir Foundry", cost: 500 },
 ];
 
-
 const ProductCard = ({ p }: { p: Product }) => {
   const Icon = p.icon;
+  const tierBadge =
+    p.tier === "pro"
+      ? { label: "Pro · $399", cls: "text-foreground bg-foreground/[0.08] border-foreground/40" }
+      : { label: "Aureon · $18", cls: "text-muted-foreground bg-foreground/[0.03] border-border/40" };
+
   const inner = (
-    <div className="group h-full rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5 hover:border-border/60 hover:bg-card/40 transition-all">
+    <div className="group flex h-full flex-col rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5 hover:border-border/60 hover:bg-card/40 transition-all">
       <div className="flex items-start justify-between mb-4">
         <div className="w-10 h-10 rounded-xl bg-foreground/[0.04] border border-border/40 flex items-center justify-center group-hover:bg-foreground/[0.08] transition-colors">
           <Icon className="h-4 w-4 text-foreground/70" strokeWidth={1.5} />
         </div>
-        {p.badge && (
-          <span className="text-[9px] font-medium tracking-[0.2em] uppercase text-foreground/60 px-2 py-1 rounded-full border border-border/40">
-            {p.badge}
+        <div className="flex flex-col items-end gap-1">
+          <span className={`text-[9px] font-medium tracking-[0.2em] uppercase px-2 py-1 rounded-full border ${tierBadge.cls}`}>
+            {tierBadge.label}
           </span>
-        )}
+          {p.badge && (
+            <span className="text-[9px] font-medium tracking-[0.2em] uppercase text-foreground/70 px-2 py-0.5 rounded-full border border-foreground/30">
+              {p.badge}
+            </span>
+          )}
+        </div>
       </div>
+
       <h3 className="text-lg font-light tracking-tight text-foreground mb-1">{p.name}</h3>
       <p className="text-[10px] font-medium tracking-[0.2em] uppercase text-muted-foreground mb-3">
         {p.tagline}
+        {p.codename && p.codename !== p.badge && <span className="text-foreground/40"> · {p.codename}</span>}
       </p>
       <p className="text-xs font-extralight text-muted-foreground/90 leading-relaxed mb-4">
         {p.description}
       </p>
-      <div className="pt-3 border-t border-border/20">
-        <p className="text-[9px] font-medium tracking-[0.25em] uppercase text-muted-foreground/70 mb-2">
-          Replaces
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {p.competitors.map((c) => (
-            <span
-              key={c}
-              className="text-[10px] font-light px-2 py-0.5 rounded-full bg-foreground/[0.04] border border-border/30 text-foreground/60"
-            >
-              {c}
-            </span>
-          ))}
+
+      <div className="pt-3 border-t border-border/20 mt-auto space-y-3">
+        <div>
+          <p className="text-[9px] font-medium tracking-[0.25em] uppercase text-muted-foreground/70 mb-2">
+            Capabilities
+          </p>
+          <ul className="space-y-1">
+            {p.features.map((f) => (
+              <li key={f} className="flex items-start gap-2 text-[11px] font-extralight text-muted-foreground/90 leading-relaxed">
+                <span className="mt-1 h-1 w-1 rounded-full bg-foreground/40 shrink-0" />
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
         </div>
+        {p.competitors && p.competitors.length > 0 && (
+          <div>
+            <p className="text-[9px] font-medium tracking-[0.25em] uppercase text-muted-foreground/70 mb-2">
+              Replaces
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {p.competitors.map((c) => (
+                <span
+                  key={c}
+                  className="text-[10px] font-light px-2 py-0.5 rounded-full bg-foreground/[0.04] border border-border/30 text-foreground/60"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -200,8 +547,9 @@ const ProductCard = ({ p }: { p: Product }) => {
 };
 
 const Software = () => {
-  // Head is centrally managed in <RouteSeo /> (entry for /software).
-  // Inject page-specific CollectionPage + ItemList JSON-LD for richer SERP.
+  const aureonProducts = PRODUCTS.filter((p) => p.tier === "aureon");
+  const proProducts = PRODUCTS.filter((p) => p.tier === "pro");
+
   useEffect(() => {
     const id = "software-collection-jsonld";
     let el = document.getElementById(id) as HTMLScriptElement | null;
@@ -216,7 +564,7 @@ const Software = () => {
       "@type": "CollectionPage",
       name: "Aureon Software Catalog",
       description:
-        "Every Aureon tool: OSINT search, predictive engines, IDE, whiteboard, e-book generator, file scrapper, and more. Core modules on the $18/month plan; full intelligence suite on Aureon Pro ($399/month).",
+        "Every Aureon tool grouped by subscription tier. Core software on Aureon ($18/month); full intelligence + R&D suite on Aureon Pro ($399/month).",
       url: "https://aureonai.app/software",
       mainEntity: {
         "@type": "ItemList",
@@ -230,19 +578,19 @@ const Software = () => {
             description: p.description,
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
-            offers: { "@type": "Offer", price: "18", priceCurrency: "USD" },
+            offers: {
+              "@type": "Offer",
+              price: p.tier === "pro" ? "399" : "18",
+              priceCurrency: "USD",
+            },
           },
         })),
       },
-
     });
     return () => {
       document.getElementById(id)?.remove();
     };
   }, []);
-
-
-
 
   return (
     <div className="landing-perf min-h-screen bg-background text-foreground">
@@ -252,30 +600,118 @@ const Software = () => {
           {/* Hero */}
           <section className="text-center space-y-4">
             <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
-              ◈ Software · {PRODUCTS.length} products · from $18/month
+              ◈ Software · {PRODUCTS.length} products · Aureon $18 / Pro $399
             </div>
             <h1 className="text-4xl sm:text-5xl font-extralight tracking-tight">
-              Every Aureon tool. One subscription.
+              Every Aureon tool. Grouped by tier.
             </h1>
             <p className="max-w-2xl mx-auto text-sm sm:text-base font-extralight text-muted-foreground leading-relaxed">
-              We rebuilt the entire stack — chat, search, OSINT, cyber, CAD, data,
-              authoring, vision. Core modules ship in Aureon at <strong className="text-foreground">$18/month</strong>;
-              the full intelligence suite ships in Aureon Pro at <strong className="text-foreground">$399/month</strong>.
-              Below is the catalog and how it stacks up against the paid competition.
+              {aureonProducts.length} tools ship in <strong className="text-foreground">Aureon ($18/month)</strong>.
+              The full intelligence + R&amp;D suite — {proProducts.length} additional modules including
+              <strong className="text-foreground"> RAD (Research &amp; Development with Aureon Chat)</strong> —
+              ships in <strong className="text-foreground">Aureon Pro ($399/month)</strong>.
             </p>
-
           </section>
 
-          {/* Product grid */}
+          {/* RAD spotlight */}
+          <section className="rounded-3xl border border-foreground/25 bg-foreground/[0.04] backdrop-blur-sm p-8 sm:p-10">
+            <div className="flex items-start gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-foreground/[0.08] border border-foreground/25 flex items-center justify-center shrink-0">
+                <FlaskConical className="h-6 w-6 text-foreground" strokeWidth={1.4} />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[9px] font-medium tracking-[0.25em] uppercase text-foreground/80 px-2 py-0.5 rounded-full border border-foreground/40">
+                    New · Aureon Pro
+                  </span>
+                  <Command className="h-3 w-3 text-foreground/40" />
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extralight tracking-tight mb-3">
+                  RAD — Research &amp; Development with Aureon Chat
+                </h2>
+                <p className="text-sm font-extralight text-muted-foreground leading-relaxed mb-5 max-w-3xl">
+                  RAD turns Aureon Chat into a full research program manager. Every thread is scaffolded as a
+                  scientific workflow — hypothesis, literature sweep, experiment design, simulation, and
+                  citation-locked report — with the rest of the Aureon suite wired in as tools the chat can call.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 max-w-3xl">
+                  {[
+                    "Hypothesis → experiment → report workflow",
+                    "Zophiel Pro deep literature sweep",
+                    "Azplen dataset attach (CSV / API / SQL)",
+                    "ZANOEM material + physics simulation calls",
+                    "Axrlen Monte Carlo scenario runs",
+                    "Citation-locked outputs (every claim traces)",
+                    "Persistent lab notebook per project",
+                    "Export whitepaper / slides / notebook",
+                  ].map((f) => (
+                    <div key={f} className="flex items-start gap-2 text-xs font-extralight text-muted-foreground">
+                      <Zap className="mt-0.5 h-3 w-3 text-foreground/60 shrink-0" strokeWidth={1.5} />
+                      <span>{f}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link
+                    to="/dashboard/chat?mode=rad"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-foreground text-background text-xs font-light tracking-[0.2em] uppercase hover:bg-foreground/90 transition-colors"
+                  >
+                    Open RAD in Aureon Chat
+                  </Link>
+                  <Link
+                    to="/dashboard"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border/40 text-xs font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Launch dashboard
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* AUREON $18 tier */}
           <section className="space-y-6">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-xl font-light tracking-tight">Public software catalog</h2>
-              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                ◉ Click any card to launch
-              </p>
+            <div className="flex items-baseline justify-between flex-wrap gap-3">
+              <div>
+                <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+                  ◉ Tier 1
+                </p>
+                <h2 className="text-2xl font-extralight tracking-tight mt-1">
+                  Aureon — $18 / month <span className="text-muted-foreground/60 text-base">· {aureonProducts.length} tools</span>
+                </h2>
+                <p className="text-xs font-extralight text-muted-foreground mt-1">
+                  Core intelligence: chat, search, code, whiteboard, docs, OSINT, cyber, design, and privacy.
+                </p>
+              </div>
+              <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+                60 messages / 3-hour window
+              </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {PRODUCTS.map((p) => <ProductCard key={p.name} p={p} />)}
+              {aureonProducts.map((p) => <ProductCard key={p.name} p={p} />)}
+            </div>
+          </section>
+
+          {/* AUREON PRO $399 tier */}
+          <section className="space-y-6">
+            <div className="flex items-baseline justify-between flex-wrap gap-3">
+              <div>
+                <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+                  ◉ Tier 2 · Full suite
+                </p>
+                <h2 className="text-2xl font-extralight tracking-tight mt-1">
+                  Aureon Pro — $399 / month <span className="text-muted-foreground/60 text-base">· everything in Aureon + {proProducts.length} more</span>
+                </h2>
+                <p className="text-xs font-extralight text-muted-foreground mt-1">
+                  Predictive intelligence, financial + data forensics, autonomous agents, R&amp;D workflows, and enterprise collaboration.
+                </p>
+              </div>
+              <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+                200 messages / 3-hour window
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {proProducts.map((p) => <ProductCard key={p.name} p={p} />)}
             </div>
           </section>
 
@@ -347,7 +783,6 @@ const Software = () => {
                       <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => `$${v}/mo`} />
                       <Bar dataKey="cost" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                     </BarChart>
-
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -358,17 +793,24 @@ const Software = () => {
           <section className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 text-center space-y-4">
             <h2 className="text-2xl font-extralight tracking-tight">Two plans. Every tool above.</h2>
             <p className="max-w-xl mx-auto text-sm font-extralight text-muted-foreground">
-              Aureon is <strong className="text-foreground">$18/month</strong> for the core platform.
-              Aureon Pro is <strong className="text-foreground">$399/month</strong> for the full intelligence suite.
+              Aureon is <strong className="text-foreground">$18/month</strong> for {aureonProducts.length} core tools.
+              Aureon Pro is <strong className="text-foreground">$399/month</strong> for the full intelligence suite —
+              including RAD, Axrlen, Azplen, Zeeion, Zacoon, and every Pro-tier module.
               Enterprise (SSO, audit, dedicated capacity) is custom-priced.
             </p>
 
-            <div className="flex items-center justify-center gap-3 pt-2">
+            <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
               <Link
                 to="/dashboard"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-foreground/30 bg-foreground/[0.04] text-xs font-light tracking-[0.2em] uppercase text-foreground hover:bg-foreground/10 transition-colors"
               >
                 Launch dashboard
+              </Link>
+              <Link
+                to="/dashboard/subscription"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-border/40 text-xs font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Compare plans
               </Link>
               <Link
                 to="/benchmark"
