@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { BRAIN_ORCHESTRATOR } from "../_shared/brainOrchestrator.ts";
+import { MARKET_STRUCTURE_VISION_BRAIN } from "../_shared/marketStructureVisionBrain.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
 import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
@@ -1836,6 +1837,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       strategicDoctrineBrainContent,
       zophielCodingBrainContent,
       AUREON_IMAGE_INTELLIGENCE,
+      hasChartAttachment ? MARKET_STRUCTURE_VISION_BRAIN : "",
       AUREON_ADVANCED_PROTOCOLS,
       AUREON_VISUAL_DOMINANCE,
       CONTEXT_INTELLIGENCE_PROMPT,
