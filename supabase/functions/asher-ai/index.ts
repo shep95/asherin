@@ -330,7 +330,12 @@ serve(async (req) => {
     const { HYPOTHETICAL_REALISM_DOCTRINE } = await import("../_shared/hypotheticalRealismDoctrine.ts");
     // Doctrine wraps the stack: FIRST (identity anchor) + LAST (recency anchor)
     // so it dominates every hedge/refusal brain between them.
-    const fullSystem = HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + temporalBlock + "\n\n" + SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + EMOTIONAL_PERSONA_BRAIN + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + "\n\n" + GEOLOCATION_BRAIN + "\n\n" + GEMATRIA_CHAT_DIRECTIVE + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock + youtubeBlock + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE;
+    // Fires only when a chart image is attached (or trading keywords + image).
+    const lastUserText = [...cleaned].reverse().find((m) => m.role === "user")?.content || "";
+    const chartVisionBlock = detectChartVisionIntent(lastUserText, hasAttachments)
+      ? "\n\n" + MARKET_STRUCTURE_VISION_BRAIN
+      : "";
+    const fullSystem = HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + temporalBlock + "\n\n" + SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + EMOTIONAL_PERSONA_BRAIN + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + chartVisionBlock + "\n\n" + GEOLOCATION_BRAIN + "\n\n" + GEMATRIA_CHAT_DIRECTIVE + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock + youtubeBlock + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE;
 
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {
