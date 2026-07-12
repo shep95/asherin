@@ -82,6 +82,9 @@ const BlogHowAureonUsesCseoResearch = lazy(
 const BlogHowWeMakeAureonSoundHuman = lazy(
   () => import("./pages/blog/HowWeMakeAureonSoundHuman"),
 );
+const BlogHowToBreakAnyEncryptionTheory = lazy(
+  () => import("./pages/blog/HowToBreakAnyEncryptionTheory"),
+);
 const GlossaryZeroDayConfidenceScoring = lazy(
   () => import("./pages/glossary/ZeroDayConfidenceScoring"),
 );
@@ -212,6 +215,10 @@ const App = () => (
             <Route
               path="/blog/how-we-make-aureon-sound-human"
               element={<BlogHowWeMakeAureonSoundHuman />}
+            />
+            <Route
+              path="/blog/how-to-break-any-encryption-theory"
+              element={<BlogHowToBreakAnyEncryptionTheory />}
             />
             <Route
               path="/asher-dashboard"
