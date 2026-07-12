@@ -217,6 +217,10 @@ const App = () => (
               element={<BlogHowWeMakeAureonSoundHuman />}
             />
             <Route
+              path="/blog/how-to-break-any-encryption-theory"
+              element={<BlogHowToBreakAnyEncryptionTheory />}
+            />
+            <Route
               path="/asher-dashboard"
               element={
                 <ProtectedRoute>
