@@ -27,6 +27,16 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/how-to-break-any-encryption-theory",
+    title: "How To Break Any Encryption Theory — Asherin R&D × Aureon",
+    dek: "A research narrative on why post-quantum ciphers still fall: not by attacking the math, but by attacking the runtime that renders the ciphertext into the 3D realm. The Key of Solomon as the master-key metaphor for the code layer beneath the screen.",
+    tag: "Research",
+    published: "2026-07-12T00:00:00.000Z",
+    readTime: "11 min",
+    featured: true,
+    pinned: true,
+  },
+  {
     slug: "/blog/aureon-legal-advisor-multi-jurisdictional",
     title: "Aureon Legal Advisor (LAW Mode) — multi-jurisdictional AI legal research",
     dek: "The July 8, 2026 ship: a per-message LAW toggle in Aureon and Asher that wraps prompts in a strict legal-research directive — hunts modern statutes, colonial carryovers, uncodified common law, and binding precedent across any country, state, or province, and refuses to fabricate citations.",
