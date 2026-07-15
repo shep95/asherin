@@ -429,17 +429,20 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   }, [highlightedMsgId, branchMessages.length]);
 
   // ── Inline property/address satellite maps ────────────────────────────────
-  // When a user message mentions a real-world address (case-insensitive), we
-  // geocode it against Nominatim on the client and render a PropertyMapCard
-  // beneath that user bubble. Independent of the LLM stream, so the map shows
-  // instantly and never depends on the backend model finishing.
+  // When ANY message (user prompt OR Aureon's assistant reply) mentions a real
+  // address, geocode it via Nominatim on the client and render a PropertyMapCard
+  // beneath that bubble. For assistant messages we wait until streaming has
+  // finished for that message so we don't fire geocodes on partial tokens.
   const [propertyMaps, setPropertyMaps] = useState<Record<string, PropertyMapCardData>>({});
+  const lastMsgId = branchMessages[branchMessages.length - 1]?.id;
   useEffect(() => {
     let cancelled = false;
     (async () => {
       for (const m of branchMessages) {
-        if (m.role !== "user" || !m.content) continue;
+        if (!m.content) continue;
         if (propertyMaps[m.id]) continue;
+        // Skip the currently-streaming assistant message to avoid partial-text geocodes.
+        if (m.role === "assistant" && isStreaming && m.id === lastMsgId) continue;
         const [hit] = detectAddresses(m.content);
         if (!hit) continue;
         const g = await geocodeAddress(hit.raw);
@@ -452,7 +455,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
       }
     })();
     return () => { cancelled = true; };
-  }, [branchMessages, propertyMaps]);
+  }, [branchMessages, propertyMaps, isStreaming, lastMsgId]);
 
 
   // Listen for cross-component jump signals (e.g. from the sidebar hover preview)
