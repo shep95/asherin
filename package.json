@@ -86,6 +86,7 @@
     "sweph-wasm": "2.6.9",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "^7.0.0",
     "three": "^0.170.0",
     "typesettable": "^4.1.0",
     "vaul": "^0.9.9",
