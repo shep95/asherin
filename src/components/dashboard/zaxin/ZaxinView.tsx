@@ -17,6 +17,7 @@ import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./cor
 import { updateVehicleTracks } from "./core/vehicleTracking";
 import FalconOverlay from "./FalconOverlay";
 import FalconOpsPanel from "./FalconOpsPanel";
+import FalconIdPanel from "./FalconIdPanel";
 import { correlateOptical, type Suggestion } from "./core/deviceCorrelation";
 import RadarIntelPack from "./RadarIntelPack";
 import SonarSweep from "./SonarSweep";
@@ -1606,6 +1607,10 @@ function ArTab(props: {
         </span>
       </div>
       <FalconOpsPanel />
+
+      {/* Falcon ID — PDF417 / MRZ / cross-verify. Consent-gated. */}
+      <FalconIdPanel />
+
     </div>
   );
 }
