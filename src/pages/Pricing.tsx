@@ -168,8 +168,9 @@ const Pricing = () => {
               ◈ Subscription · Monthly · USD
             </p>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
-              Asherin pricing — $18/mo core, $399/mo Pro.
+              Asherin Pricing — Subscription Plans for Uncensored AI
             </h1>
+
             <p className="mt-6 text-base sm:text-lg font-extralight leading-relaxed text-foreground/75">
               Two monthly subscriptions and an Enterprise plan. No free trial countdown, no upsell
               wall, no retention loop. Cancel in one click from the dashboard.
