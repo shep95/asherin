@@ -19,6 +19,8 @@ import SubscriptionPlans from "@/components/SubscriptionPlans";
 import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import { BreadcrumbJsonLd, FaqJsonLd } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
+import { applySeoHead } from "@/lib/seoHead";
+
 
 const URL = "https://aureonai.app/pricing";
 
