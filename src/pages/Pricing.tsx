@@ -19,6 +19,8 @@ import SubscriptionPlans from "@/components/SubscriptionPlans";
 import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import { BreadcrumbJsonLd, FaqJsonLd } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
+import { applySeoHead } from "@/lib/seoHead";
+
 
 const URL = "https://aureonai.app/pricing";
 
@@ -58,6 +60,16 @@ const FAQ = [
 ];
 
 const Pricing = () => {
+  // Per-route head: unique title, meta description, canonical, og/twitter.
+  useEffect(() => {
+    applySeoHead({
+      title: "Asherin Pricing — $18/mo Core, $399/mo Pro",
+      description:
+        "Asherin subscription pricing: $18/mo core, $399/mo Pro (full intelligence suite), custom Enterprise. Monthly, USD, cancel anytime — no trial, no upsell wall.",
+      path: "/pricing",
+    });
+  }, []);
+
   // Product JSON-LD with two Offers (Asherin + Asherin Pro) — highest-fidelity
   // schema for a SaaS pricing page. AggregateOffer wraps both tiers so AI
   // search engines can quote the price range directly.
@@ -156,8 +168,9 @@ const Pricing = () => {
               ◈ Subscription · Monthly · USD
             </p>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
-              Asherin pricing — $18/mo core, $399/mo Pro.
+              Asherin Pricing — Subscription Plans for Uncensored AI
             </h1>
+
             <p className="mt-6 text-base sm:text-lg font-extralight leading-relaxed text-foreground/75">
               Two monthly subscriptions and an Enterprise plan. No free trial countdown, no upsell
               wall, no retention loop. Cancel in one click from the dashboard.

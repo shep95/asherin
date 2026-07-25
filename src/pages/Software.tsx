@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
+import { applySeoHead } from "@/lib/seoHead";
+
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
@@ -551,7 +553,17 @@ const Software = () => {
   const proProducts = PRODUCTS.filter((p) => p.tier === "pro");
 
   useEffect(() => {
+    applySeoHead({
+      title: "Asherin Software Catalog — Every Tool by Tier",
+      description:
+        "Full Asherin software catalog: chat, coding, Zophiel search, Zerlal security, AXRLEN forecasting, NOMAD OSINT, Zaxin AR vision, and RAD — grouped by $18 core and $399 Pro tiers.",
+      path: "/software",
+    });
+  }, []);
+
+  useEffect(() => {
     const id = "software-collection-jsonld";
+
     let el = document.getElementById(id) as HTMLScriptElement | null;
     if (!el) {
       el = document.createElement("script");
