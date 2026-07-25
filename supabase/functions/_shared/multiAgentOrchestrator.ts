@@ -1,4 +1,4 @@
-// Multi-Agent Orchestrator — shared runner used by aureon-free-chat and asher-ai.
+// Multi-Agent Orchestrator — shared runner used by asherin-free-chat and asher-ai.
 // Trigger prefixes: /agents, /orchestrate, "run agents:" (case-insensitive) on last user turn.
 // Pipeline: Planner → Executor (tools + reasoning) → Critic (1 corrective replan) → Synthesizer.
 // LLM adapter is injected so each surface keeps its own provider/key story.

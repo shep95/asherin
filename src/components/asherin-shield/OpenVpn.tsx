@@ -355,7 +355,7 @@ const AsherinShield = ({ embed = false }: { embed?: boolean } = {}) => {
     try {
       const audit = { identity, baseline, webrtc, dns, device, permissions: perms, fingerprint: fp,
         proxyActive, capturedAt: new Date().toISOString() };
-      const { data, error } = await supabase.functions.invoke("aureon-shield-analyze", { body: { audit } });
+      const { data, error } = await supabase.functions.invoke("asherin-shield-analyze", { body: { audit } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setAnalysis(data as AnalysisResult);

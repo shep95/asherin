@@ -1,4 +1,4 @@
-// hoa-aureon-feed — pulls the mothership training bus for Asherin consumption.
+// hoa-asherin-feed — pulls the mothership training bus for Asherin consumption.
 //
 // Admin-only (uses is_admin_user). Returns un-consumed messages from
 // hoa_aureon_training_feed, optionally marking them consumed. This is how
