@@ -435,7 +435,7 @@ const Founder = () => {
                 title: "The Book of Asher Asherin Elion",
                 volume: "Volume I · The Foundational Text",
                 desc: "The complete philosophical and operational doctrine that gave rise to Asherin — sovereignty, intelligence, and the architecture of the awakened mind.",
-                pdf: "/books/book-of-asher-asherin-elion.pdf",
+                pdf: "/__l5e/assets-v1/162dd383-a9e0-40b6-b5d7-938b13cc045a/book-of-asher-asherin-elion.pdf",
                 anchor: "book-1",
               },
               {
