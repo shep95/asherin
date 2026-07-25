@@ -1,5 +1,5 @@
 /**
- * AUREON GENAI PROCESSING PIPELINE
+ * ASHERIN GENAI PROCESSING PIPELINE
  * Reverse-engineered from Google's GenAI Processors (10K+ ⭐)
  * Implements parallel ingestion, multi-stage processing, and streaming output.
  * Used by Azplen for high-volume data processing.

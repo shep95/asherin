@@ -99,7 +99,7 @@ const BORDER_COLOR_THEMES: Record<string, { main: string; shimmer: string; glow:
   "wp-raven": { main: "conic-gradient(from 0deg, hsl(230 30% 20%/0.3), hsl(225 35% 35%), hsl(220 25% 50%/0.7), hsl(235 30% 30%), hsl(210 25% 40%/0.5), hsl(230 30% 20%/0.3))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(225 30% 45%/0.5) 20%, transparent 35%, hsl(220 25% 40%/0.4) 55%, transparent 70%, hsl(230 30% 50%/0.3) 85%, transparent 100%)", glow: "hsl(225 35% 35%)" },
   "wp-eclipse": { main: "conic-gradient(from 0deg, hsl(35 80% 40%/0.2), hsl(25 85% 50%), hsl(45 75% 55%/0.7), hsl(15 80% 45%), hsl(40 70% 40%/0.5), hsl(35 80% 40%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(35 80% 60%/0.6) 20%, transparent 35%, hsl(25 75% 50%/0.5) 55%, transparent 70%, hsl(45 70% 55%/0.4) 85%, transparent 100%)", glow: "hsl(30 85% 50%)" },
   "wp-glitch": { main: "conic-gradient(from 0deg, hsl(160 100% 40%/0.3), hsl(320 100% 50%), hsl(180 90% 50%/0.7), hsl(280 100% 55%), hsl(120 100% 45%/0.5), hsl(160 100% 40%/0.3))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(320 100% 55%/0.6) 20%, transparent 35%, hsl(160 100% 50%/0.5) 55%, transparent 70%, hsl(280 90% 55%/0.4) 85%, transparent 100%)", glow: "hsl(160 100% 45%)" },
-  "wp-aureon": { main: "conic-gradient(from 0deg, hsl(270 90% 40%/0.2), hsl(280 85% 55%), hsl(260 80% 65%/0.7), hsl(275 95% 50%), hsl(290 75% 45%/0.5), hsl(270 90% 40%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(280 80% 65%/0.6) 20%, transparent 35%, hsl(260 85% 55%/0.5) 55%, transparent 70%, hsl(275 80% 60%/0.4) 85%, transparent 100%)", glow: "hsl(275 90% 50%)" },
+  "wp-asherin": { main: "conic-gradient(from 0deg, hsl(270 90% 40%/0.2), hsl(280 85% 55%), hsl(260 80% 65%/0.7), hsl(275 95% 50%), hsl(290 75% 45%/0.5), hsl(270 90% 40%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(280 80% 65%/0.6) 20%, transparent 35%, hsl(260 85% 55%/0.5) 55%, transparent 70%, hsl(275 80% 60%/0.4) 85%, transparent 100%)", glow: "hsl(275 90% 50%)" },
   "wp-seraph": { main: "conic-gradient(from 0deg, hsl(40 70% 50%/0.2), hsl(45 80% 65%), hsl(35 75% 70%/0.7), hsl(50 85% 60%), hsl(30 70% 55%/0.5), hsl(40 70% 50%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(45 75% 70%/0.6) 20%, transparent 35%, hsl(40 80% 60%/0.5) 55%, transparent 70%, hsl(50 75% 65%/0.4) 85%, transparent 100%)", glow: "hsl(45 80% 60%)" },
   "wp-prophet": { main: "conic-gradient(from 0deg, hsl(210 60% 25%/0.2), hsl(200 55% 40%), hsl(220 50% 50%/0.7), hsl(215 60% 35%), hsl(205 55% 30%/0.5), hsl(210 60% 25%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(200 50% 50%/0.5) 20%, transparent 35%, hsl(215 55% 40%/0.4) 55%, transparent 70%, hsl(210 50% 45%/0.3) 85%, transparent 100%)", glow: "hsl(210 60% 35%)" },
   "wp-nexus": { main: "conic-gradient(from 0deg, hsl(180 70% 35%/0.2), hsl(170 65% 45%), hsl(190 60% 55%/0.7), hsl(175 70% 40%), hsl(185 65% 35%/0.5), hsl(180 70% 35%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(175 65% 55%/0.6) 20%, transparent 35%, hsl(180 60% 45%/0.5) 55%, transparent 70%, hsl(185 65% 50%/0.4) 85%, transparent 100%)", glow: "hsl(180 70% 42%)" },
@@ -194,8 +194,8 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [borderColorKey, setBorderColorKey] = useState(() => localStorage.getItem("aureon_send_border_color") || "default");
-  const [btnShape, setBtnShape] = useState(() => localStorage.getItem("aureon_send_btn_shape") || "circle");
+  const [borderColorKey, setBorderColorKey] = useState(() => localStorage.getItem("asherin_send_border_color") || "default");
+  const [btnShape, setBtnShape] = useState(() => localStorage.getItem("asherin_send_btn_shape") || "circle");
   // NAR mode — narrative expansion of prompts before send. Persisted per browser.
   const [narrativeMode, setNarrativeMode] = useState<boolean>(() => loadNarrativeMode());
   const toggleNarrative = useCallback(() => {
@@ -210,11 +210,11 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
 
   useEffect(() => {
     const handler = () => {
-      setBorderColorKey(localStorage.getItem("aureon_send_border_color") || "default");
-      setBtnShape(localStorage.getItem("aureon_send_btn_shape") || "circle");
+      setBorderColorKey(localStorage.getItem("asherin_send_border_color") || "default");
+      setBtnShape(localStorage.getItem("asherin_send_btn_shape") || "circle");
     };
-    window.addEventListener("aureon-border-color-change", handler);
-    return () => window.removeEventListener("aureon-border-color-change", handler);
+    window.addEventListener("asherin-border-color-change", handler);
+    return () => window.removeEventListener("asherin-border-color-change", handler);
   }, []);
 
   const borderTheme = BORDER_COLOR_THEMES[borderColorKey] || BORDER_COLOR_THEMES.default;
@@ -272,7 +272,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
   // Accept autocomplete suggestion
   const acceptSuggestion = useCallback(() => {
     const lower = value.toLowerCase();
-    const allPhrases = [...(JSON.parse(localStorage.getItem("aureon_user_phrases") || "[]") as string[]),
+    const allPhrases = [...(JSON.parse(localStorage.getItem("asherin_user_phrases") || "[]") as string[]),
       "Analyze this dataset", "Write a report about", "Summarize this document", "Explain how",
       "Compare and contrast", "Create a plan for", "Debug this code", "Optimize this function"];
     const match = allPhrases.find(p => p.toLowerCase().startsWith(lower) && p.toLowerCase() !== lower);
@@ -672,7 +672,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              placeholder={online ? "Message Aureon… (try /comps, /scan, /legal)" : "Offline — messages will queue…"}
+              placeholder={online ? "Message Asherin… (try /comps, /scan, /legal)" : "Offline — messages will queue…"}
               rows={1}
               className="w-full resize-none bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none max-h-32"
             />
@@ -761,7 +761,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
           {!online && <WifiOff className="h-3 w-3 text-amber-400/70" />}
           <Lock className="h-3 w-3 text-emerald-500/50" />
           <p className="text-xs font-extralight text-muted-foreground/50">
-            {!online ? "Offline · messages queued" : "End-to-end encrypted"}{draftSaved ? ` · ${draftSaved}` : ""} · Aureon may make mistakes
+            {!online ? "Offline · messages queued" : "End-to-end encrypted"}{draftSaved ? ` · ${draftSaved}` : ""} · Asherin may make mistakes
           </p>
         </div>
       </div>

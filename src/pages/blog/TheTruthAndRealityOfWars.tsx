@@ -45,7 +45,7 @@ const TheTruthAndRealityOfWars = () => (
     <BreadcrumbJsonLd
       id="the-truth-and-reality-of-wars"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "The Truth and Reality of Wars", url: "/blog/the-truth-and-reality-of-wars" },
       ]}

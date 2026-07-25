@@ -17,7 +17,7 @@ interface Live { price: number; }
 async function fetchLive(): Promise<Live> {
   const r = await fetch(
     "https://api.coingecko.com/api/v3/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false",
-    { headers: { "User-Agent": "Aureon-AXRLEN/1.0" } },
+    { headers: { "User-Agent": "Asherin-AXRLEN/1.0" } },
   );
   if (!r.ok) throw new Error(`CoinGecko ${r.status}`);
   const j = await r.json();

@@ -1,5 +1,5 @@
 # ============================================================
-# Aureon — robots policy
+# Asherin — robots policy
 # Strategy:
 #   ALLOW  — real search engines (Google, Bing, DuckDuckGo, Brave, Yandex)
 #   ALLOW  — AI SEARCH bots that drive referral traffic
@@ -170,7 +170,7 @@ Disallow: /
 # marketing page indexed via sitemap).
 #
 # GOOGLE-DORK HARDENING — deny common recon paths that dork operators use.
-# These paths do not exist on Aureon, but disallowing them removes the
+# These paths do not exist on Asherin, but disallowing them removes the
 # opportunistic index/cache footprint if any tooling ever creates one.
 User-agent: *
 Allow: /

@@ -4,7 +4,7 @@
 // straight from Supabase (RLS enforced). Subscribes to realtime on
 // hoa_messages + hoa_audit so every operator's transmission arrives without
 // polling. All mutations write to the same tables so the mothership
-// trigger fans them into the Aureon training bus automatically.
+// trigger fans them into the Asherin training bus automatically.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";

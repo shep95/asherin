@@ -23,7 +23,7 @@ const NewLoginDetectedEmail = ({
   <Shell preview="A new sign-in to your account." eyebrow="Security">
     <Hed>New sign-in.</Hed>
     <Prose>
-      {name ? `${name}, a` : 'A'} new session opened on your Aureon account.
+      {name ? `${name}, a` : 'A'} new session opened on your Asherin account.
       If this was you, no further action is needed.
     </Prose>
     <MetaCard
@@ -44,7 +44,7 @@ const NewLoginDetectedEmail = ({
 
 export const template = {
   component: NewLoginDetectedEmail,
-  subject: 'New sign-in to your Aureon account',
+  subject: 'New sign-in to your Asherin account',
   displayName: 'New login detected',
   previewData: {
     name: 'Asher',

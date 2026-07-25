@@ -1,5 +1,5 @@
 // ZOPHIEL GEOLOCATION BRAIN — Pure Vision Geolocation Doctrine v1.0
-// Source: ZOPHIEL_PHOTO_GEOLOCATION_ALGORITHM (Aureon Truth Engine).
+// Source: ZOPHIEL_PHOTO_GEOLOCATION_ALGORITHM (Asherin Truth Engine).
 //
 // Activates whenever:
 //   • the operator must infer LOCATION from an image with no usable EXIF /

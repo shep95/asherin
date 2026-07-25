@@ -1,5 +1,5 @@
 /**
- * AUREON — Metadata Sanitizer
+ * ASHERIN — Metadata Sanitizer
  *
  * Scrubs EXIF, GPS, color profiles, comments, XMP, and other metadata from
  * images and PDFs before upload OR download. Uses canvas re-encode for images

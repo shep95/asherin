@@ -130,7 +130,7 @@ const CrossRecordingLibrary: React.FC<CrossRecordingLibraryProps> = ({ onClose }
   };
 
   const [shareSettings] = useState<ShareSettings>({
-    emails: [], linkEnabled: true, link: "https://cross.aureon.ai/r/abc123xyz",
+    emails: [], linkEnabled: true, link: "https://cross.asherin.ai/r/abc123xyz",
     permissions: { view: true, download: false, edit: false },
     passwordProtected: true, password: "••••••••", expiresIn: 7,
     privacyFilters: { removeSensitive: true, blurFaces: false, muteAudio: false },

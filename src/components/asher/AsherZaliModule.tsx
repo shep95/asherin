@@ -1,6 +1,6 @@
 // AsherZaliModule — ZALI Design Intelligence reskinned for the Asher Dashboard.
 // Reuses every live ZALI panel + the same Supabase data plumbing as ZaliView,
-// but wrapped in monochrome / glassmorphic Asher chrome (no Aureon header,
+// but wrapped in monochrome / glassmorphic Asher chrome (no Asherin header,
 // no atom logo, no accent colors — just the dossier aesthetic).
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import {
@@ -295,13 +295,13 @@ const AsherZaliModule = () => {
       let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
 
       try {
-        const personaId = localStorage.getItem("aureon_active_persona_id");
-        const customPersonas = JSON.parse(localStorage.getItem("aureon_custom_personas") || "[]");
+        const personaId = localStorage.getItem("asherin_active_persona_id");
+        const customPersonas = JSON.parse(localStorage.getItem("asherin_custom_personas") || "[]");
         const activePersona = customPersonas.find((p: any) => p.id === personaId) || builtInPersonas.find((p) => p.id === personaId);
         personaSystemPrompt = activePersona?.systemPrompt || null;
       } catch { /* no persona context */ }
 
-      const activeBrainId = localStorage.getItem("aureon_active_brain_id");
+      const activeBrainId = localStorage.getItem("asherin_active_brain_id");
       if (activeBrainId) {
         try {
           const { data: brain } = await supabase.from("brains").select("system_prompt, file_ids").eq("id", activeBrainId).single();

@@ -456,7 +456,7 @@ const ScreenRecorderDropdown = () => {
         a.href = url;
         const ext = (mimeType.includes("mp4") ? "mp4" : "webm");
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-        a.download = `aureon-recording-${timestamp}.${ext}`;
+        a.download = `asherin-recording-${timestamp}.${ext}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

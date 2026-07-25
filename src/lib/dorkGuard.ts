@@ -2,7 +2,7 @@
 //
 // Narrative → Flaws → New narrative:
 //
-// Original narrative: "Aureon has a lot of public pages, some of which surface
+// Original narrative: "Asherin has a lot of public pages, some of which surface
 // sensitive route names, admin surfaces, and query params (?token=, ?email=)
 // that Google dorks can enumerate via `site:aureonai.app inurl:admin`,
 // `intitle:"index of"`, `filetype:env`, etc."

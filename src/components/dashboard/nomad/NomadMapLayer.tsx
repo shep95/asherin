@@ -21,7 +21,7 @@ async function geocodeWithNominatim(query: string): Promise<{ lat: number; lng: 
   try {
     const resp = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=0`,
-      { headers: { "User-Agent": "AUREON-NOMAD/3.0 (research@aureon.ai)" } }
+      { headers: { "User-Agent": "ASHERIN-NOMAD/3.0 (research@asherin.ai)" } }
     );
     if (!resp.ok) return null;
     const results = await resp.json();

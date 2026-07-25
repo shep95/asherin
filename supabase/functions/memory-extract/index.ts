@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
 ONLY extract items that are:
 - Stable preferences the user states ("always answer in bullets", "use metric units", "no emojis")
 - Rules / constraints the user sets ("never suggest React", "I prefer Python over Node")
-- Durable facts about the user, their work, their identity, their projects ("I live in Austin", "I'm a forensic accountant", "my company is Aureon")
+- Durable facts about the user, their work, their identity, their projects ("I live in Austin", "I'm a forensic accountant", "my company is Asherin")
 - Goals or ongoing context that will outlive this chat ("I'm building a trading bot named Lavba")
 
 DO NOT extract:

@@ -62,7 +62,7 @@ export const template = {
     `🚨 ZERLAL · ${d?.criticalCount ?? 0} critical finding(s) in ${d?.projectName ?? 'project'}`,
   displayName: 'ZERLAL critical alert',
   previewData: {
-    projectName: 'aureon-core',
+    projectName: 'asherin-core',
     criticalCount: 2,
     findings: [
       { title: 'Unparameterized SQL in invoice lookup', severity: 'critical', file_path: 'src/billing/invoice.ts', line_number: 142, cwe_id: 'CWE-89', cvss_score: 9.4 },

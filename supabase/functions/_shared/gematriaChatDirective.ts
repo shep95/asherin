@@ -1,4 +1,4 @@
-// Card Protocol directive injected into Aureon + Asher system prompts.
+// Card Protocol directive injected into Asherin + Asher system prompts.
 // The model emits fenced ```card:<type> blocks with a JSON payload; the
 // client parser (src/lib/chatCards/parseChatCards.ts) intercepts these
 // blocks and renders the matching card component.

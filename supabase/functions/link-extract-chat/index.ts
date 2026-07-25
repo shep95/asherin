@@ -1,4 +1,4 @@
-// LINK EXTRACT CHAT — Aureon-brain-powered streaming chat assistant scoped to a
+// LINK EXTRACT CHAT — Asherin-brain-powered streaming chat assistant scoped to a
 // link extraction session. Loads active brains from public.axrlen_brains and
 // answers questions about the dossier + intel map.
 //
@@ -83,7 +83,7 @@ async function callGeminiStream(
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: sys }] },
         contents,
-        // Aureon is a defensive OSINT/security tool. Disable Gemini's default
+        // Asherin is a defensive OSINT/security tool. Disable Gemini's default
         // safety blocks so it does not refuse legitimate security audits,
         // vulnerability assessments, or forensic reviews of URLs/code.
         safetySettings: [
@@ -186,14 +186,14 @@ Deno.serve(async (req) => {
     const temporal = getTemporalContext({ timezone, locale });
 
     // ── AXRLEN INLINE FORECASTING ────────────────────────────────────────────
-    // Aureon chat exposes every integrated feature to ALL subscription tiers,
+    // Asherin chat exposes every integrated feature to ALL subscription tiers,
     // so AXRLEN inline forecasting is open to any signed-in user here. The
     // standalone AXRLEN endpoint and Asher chat keep the Pro gate.
     const axrlen = await runAxrlenBridge({
       req,
       messages: messages as any,
       liveEvidence: (osint.context || "") + (property.evidence || "") + (domainPull.evidence || "") + (youtubePull.evidence || "") + (ghostPull.evidence || "") + (specterPull.evidence || "") + (registryPull.evidence || ""),
-      surface: "aureon",
+      surface: "asherin",
       fallbackGeminiKey: apiKey,
       fallbackModel: model,
       accessMode: "authenticated",
@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
       };
       const out = new ReadableStream({
         async start(controller) {
-          controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
+          controller.enqueue(encoder.encode(`[[ASHERIN_META]]${JSON.stringify(meta)}[[/ASHERIN_META]]\n`));
           controller.enqueue(encoder.encode(`> **AXRLEN forecast** — tier ${axrlen.intent.tier} · ${axrlen.brainsLoaded} brains\n\n`));
           const reader = axrlen.textStream.getReader();
           try {
@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
       const meta = { osintSources: osint.sources, property: property.fired ? property.attachments : null, domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null, youtube: youtubePull.fired ? youtubePull.attachment : null, ghostTrace: ghostPull.fired ? ghostPull.attachment : null, specterWeave: specterPull.fired ? specterPull.attachment : null, businessRegistry: registryPull.fired ? registryPull.attachment : null, axrlen: { fired: true, denied: true, reason: axrlen.access.reason } };
       const out = new ReadableStream({
         start(controller) {
-          controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
+          controller.enqueue(encoder.encode(`[[ASHERIN_META]]${JSON.stringify(meta)}[[/ASHERIN_META]]\n`));
           controller.enqueue(encoder.encode(axrlen.message));
           controller.close();
         },
@@ -300,14 +300,14 @@ The operator is the OWNER / authorized security auditor of the target URL and ha
     const sys = `${temporal}${securityClause}
 
 
-${isolationPreface}${codeProtocol}You are an Aureon URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
+${isolationPreface}${codeProtocol}You are an Asherin URL-forensics intelligence assistant operating inside the Link Extractor. Speak as a surgical intelligence officer: BOLD direct headers, Markdown tables for data, no apologies, no fluff.
 
 RESPONSE RULE: Simple question, simple answer.
 
 You have access to:
 1. The forensic DOSSIER for the target URL (extraction payload).
 2. The INTEL MAP graph (entities + relationships) built from the dossier.
-3. Active Aureon BRAINS that shape your tone and domain bias.
+3. Active Asherin BRAINS that shape your tone and domain bias.
 4. LIVE OSINT PULL — real-time evidence from free global intelligence APIs
    (GDELT, SEC EDGAR, OpenSky, World Bank, IMF, Wikipedia, USASpending,
    OpenFDA, UN Comtrade, FX, Overpass/OSM). When present, cite it inline like
@@ -340,7 +340,7 @@ ${brainsBlock}DOSSIER:\n${dossierStr}\n\nINTEL MAP:\n${intelMapStr}${osint.conte
     const decoder = new TextDecoder();
     const out = new ReadableStream({
       async start(controller) {
-        // 1. Emit an [[AUREON_META]] JSON block so the client can render the
+        // 1. Emit an [[ASHERIN_META]] JSON block so the client can render the
         //    PropertyMapCard + PropertySourcesStrip beneath the assistant
         //    message. Client strips this from displayed text. Always emitted
         //    (empty attachments allowed) so parsing is deterministic.
@@ -352,7 +352,7 @@ ${brainsBlock}DOSSIER:\n${dossierStr}\n\nINTEL MAP:\n${intelMapStr}${osint.conte
           ghostTrace: ghostPull.fired ? ghostPull.attachment : null,
           specterWeave: specterPull.fired ? specterPull.attachment : null, businessRegistry: registryPull.fired ? registryPull.attachment : null,
         };
-        controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
+        controller.enqueue(encoder.encode(`[[ASHERIN_META]]${JSON.stringify(meta)}[[/ASHERIN_META]]\n`));
 
         // 2. Human-visible OSINT footer (unchanged).
         if (osint.sources.length) {

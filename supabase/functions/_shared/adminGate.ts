@@ -1,7 +1,7 @@
 // Strict BYOK gate — only the platform owner may consume the platform Gemini
 // key. Every other caller MUST ship a valid BYOK config or get a clean 403.
 //
-// Used by every Zophiel / Aureon / Asher AI edge function.
+// Used by every Zophiel / Asherin / Asher AI edge function.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isValidByok, type ZophielByokConfig } from "./zophielByokRouter.ts";
@@ -63,13 +63,13 @@ export async function resolveKey(
 ): Promise<KeyResolution> {
   const validByok = isValidByok(byok) ? (byok as ZophielByokConfig) : null;
   const email = await getCallerEmail(req);
-  const isAureonTeam = isAdminEmail(email);
+  const isAsherinTeam = isAdminEmail(email);
 
-  // AUREON TEAM (ashernewtonx@gmail.com, shepherdnewtonx@gmail.com, etc.):
+  // ASHERIN TEAM (ashernewtonx@gmail.com, shepherdnewtonx@gmail.com, etc.):
   // never prompted for BYOK — always routed through the platform Gemini key.
   // Applies in BOTH normal and strict modes. No software they touch should
   // ever ask them to supply a Gemini key.
-  if (isAureonTeam) {
+  if (isAsherinTeam) {
     const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
     if (geminiKey) return { mode: "admin", geminiKey };
     // If platform key is missing, fall through so a team member's own BYOK still works.

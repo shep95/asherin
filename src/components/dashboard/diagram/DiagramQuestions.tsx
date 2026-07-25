@@ -88,7 +88,7 @@ const DiagramQuestions = ({ content, diagramType, onAddNode }: DiagramQuestionsP
         className="flex items-center gap-2 text-[10px] font-light text-muted-foreground/50 hover:text-foreground transition-colors w-full"
       >
         <Sparkles className="h-3 w-3 text-accent" />
-        <span>Aureon Suggestions — Enrich this diagram</span>
+        <span>Asherin Suggestions — Enrich this diagram</span>
         <span className="ml-auto text-[9px]">{expanded ? "▲" : "▼"}</span>
       </button>
 

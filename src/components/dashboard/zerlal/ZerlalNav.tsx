@@ -124,7 +124,7 @@ const ZerlalNav = ({ activeScreen, onNavigate, criticalCount }: ZerlalNavProps) 
 
       <div className="px-3 py-2 border-t border-border/[0.06]">
         <div className="text-[8px] text-muted-foreground/20 tracking-wider uppercase text-center">
-          Powered by AUREON
+          Powered by ASHERIN
         </div>
       </div>
     </div>

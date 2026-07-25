@@ -1,5 +1,5 @@
 // SymbolicPassageCard + SymbolicSpineCard — the "Symbolic Deep-Read" surface
-// for Aureon and Asher chats.
+// for Asherin and Asher chats.
 //
 // The model emits one of two fence types (see gematriaChatDirective.ts):
 //
@@ -30,7 +30,7 @@
 import { useMemo, useState } from "react";
 import { BookOpen, Sparkles as SparkIcon, GitBranch, ExternalLink, ChevronDown } from "lucide-react";
 
-type Source = "chat:aureon" | "chat:asher";
+type Source = "chat:asherin" | "chat:asher";
 
 const clamp = (s: unknown, max = 400) =>
   typeof s === "string" ? s.trim().slice(0, max) : "";

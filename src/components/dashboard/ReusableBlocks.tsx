@@ -9,7 +9,7 @@ export interface SavedBlock {
   createdAt: number;
 }
 
-const STORAGE_KEY = "aureon_saved_blocks";
+const STORAGE_KEY = "asherin_saved_blocks";
 
 function loadBlocks(): SavedBlock[] {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }

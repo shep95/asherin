@@ -1,4 +1,4 @@
-// YOUTUBE INTEL — Aureon / Asher inline YouTube transcript bridge.
+// YOUTUBE INTEL — Asherin / Asher inline YouTube transcript bridge.
 // ─────────────────────────────────────────────────────────────────
 // Given a user message, this module:
 //   1. detectYouTubeIntent()  → { fired, mode, videoId?, query?, maxResults }
@@ -191,7 +191,7 @@ async function fetchOEmbedMeta(ids: string[]): Promise<YouTubeVideoMeta[]> {
     try {
       const r = await withTimeout(
         fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`, {
-          headers: { "User-Agent": "AureonAI-YouTubeIntel/1.0" },
+          headers: { "User-Agent": "AsherinAI-YouTubeIntel/1.0" },
         }),
         4500, "yt_oembed",
       );
@@ -376,7 +376,7 @@ export async function runYouTubePipeline(userText: string, opts: YouTubePipeline
     return {
       fired: true, intent,
       evidence:
-        `\n\n<youtube_evidence>\nYouTube transcript intelligence detected but is BYOK-gated. Tell the operator plainly that YouTube video ingestion requires their own Gemini API key (Settings → BYOK → Google Gemini). Once connected, Aureon will scour authoritative channels, ingest audio + frames + transcripts natively via their Gemini quota, and answer grounded in what the videos actually say.\n</youtube_evidence>\n`,
+        `\n\n<youtube_evidence>\nYouTube transcript intelligence detected but is BYOK-gated. Tell the operator plainly that YouTube video ingestion requires their own Gemini API key (Settings → BYOK → Google Gemini). Once connected, Asherin will scour authoritative channels, ingest audio + frames + transcripts natively via their Gemini quota, and answer grounded in what the videos actually say.\n</youtube_evidence>\n`,
       attachment: null, fileUris: [], errors: ["byok_required"],
     };
   }

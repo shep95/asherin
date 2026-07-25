@@ -246,7 +246,7 @@ async function fetchXTweetById(id: string): Promise<any | null> {
   const url = `https://cdn.syndication.twimg.com/tweet-result?id=${id}&token=${token}`;
   try {
     const r = await withTimeout(fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; AureonSpecterWeave/1.0; +https://aureonai.app)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; AsherinSpecterWeave/1.0; +https://aureonai.app)" },
     }), 5000, "x_tweet_result");
     if (!r.ok) return null;
     return await r.json();
@@ -263,7 +263,7 @@ async function fetchXProfileTimeline(handle: string): Promise<any | null> {
   try {
     const r = await withTimeout(fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; AureonSpecterWeave/1.0; +https://aureonai.app)",
+        "User-Agent": "Mozilla/5.0 (compatible; AsherinSpecterWeave/1.0; +https://aureonai.app)",
         "Accept": "text/html",
       },
     }), 7000, "x_profile_timeline");
@@ -300,7 +300,7 @@ async function probeCrossPlatform(handle: string, exclude: string): Promise<Cros
         method: "GET",
         redirect: "manual",
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; AureonSpecterWeave/1.0)",
+          "User-Agent": "Mozilla/5.0 (compatible; AsherinSpecterWeave/1.0)",
           "Accept": "text/html,application/json",
         },
       }), 3500, `probe_${p.platform}`);

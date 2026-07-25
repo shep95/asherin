@@ -20,7 +20,7 @@ import {
 import type { CardSegment, UnknownCardSegment } from "@/lib/chatCards/parseChatCards";
 import { AlertCircle } from "lucide-react";
 
-type Source = "chat:aureon" | "chat:asher";
+type Source = "chat:asherin" | "chat:asher";
 
 interface Props {
   segment: CardSegment | UnknownCardSegment;

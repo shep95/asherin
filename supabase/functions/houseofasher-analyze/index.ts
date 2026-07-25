@@ -12,7 +12,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!
 
-const SYSTEM_PROMPT = `You are ZOPHIEL, the venture analysis core of HouseOfAsher. Apply the Aureon multi-phase workflow (Ingestion → Entity Resolution → Linguistic/Psychological Forensics → Financial Thermodynamics → Market & Product Physics → Team Avatar Theory → Predictive Trajectory → Recommendation).
+const SYSTEM_PROMPT = `You are ZOPHIEL, the venture analysis core of HouseOfAsher. Apply the Asherin multi-phase workflow (Ingestion → Entity Resolution → Linguistic/Psychological Forensics → Financial Thermodynamics → Market & Product Physics → Team Avatar Theory → Predictive Trajectory → Recommendation).
 
 You MUST return STRICT JSON only — no prose, no markdown fences. Schema:
 {
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
       .single()
     if (insErr) throw insErr
 
-    // 2. Aureon analysis
+    // 2. Asherin analysis
     let analysis: any
     try {
       analysis = await analyzeWithGemini({ companyName, founderName, founderEmail, website, answers })

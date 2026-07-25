@@ -31,16 +31,16 @@ interface SmartAutocompleteProps {
 const SmartAutocomplete = ({ value, onAccept }: SmartAutocompleteProps) => {
   const [suggestion, setSuggestion] = useState("");
   const [userPhrases, setUserPhrases] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem("aureon_user_phrases") || "[]"); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem("asherin_user_phrases") || "[]"); } catch { return []; }
   });
 
   // Track user's commonly used phrases
   useEffect(() => {
     const handler = () => {
-      try { setUserPhrases(JSON.parse(localStorage.getItem("aureon_user_phrases") || "[]")); } catch {}
+      try { setUserPhrases(JSON.parse(localStorage.getItem("asherin_user_phrases") || "[]")); } catch {}
     };
-    window.addEventListener("aureon-phrase-tracked", handler);
-    return () => window.removeEventListener("aureon-phrase-tracked", handler);
+    window.addEventListener("asherin-phrase-tracked", handler);
+    return () => window.removeEventListener("asherin-phrase-tracked", handler);
   }, []);
 
   useEffect(() => {
@@ -80,15 +80,15 @@ const SmartAutocomplete = ({ value, onAccept }: SmartAutocompleteProps) => {
 export function trackPhrase(text: string) {
   if (!text || text.length < 10 || text.length > 200) return;
   try {
-    const stored = JSON.parse(localStorage.getItem("aureon_user_phrases") || "[]") as string[];
+    const stored = JSON.parse(localStorage.getItem("asherin_user_phrases") || "[]") as string[];
     const exists = stored.findIndex(p => p.toLowerCase() === text.toLowerCase());
     if (exists !== -1) {
       // Move to front (most used)
       stored.splice(exists, 1);
     }
     const next = [text, ...stored].slice(0, 50);
-    localStorage.setItem("aureon_user_phrases", JSON.stringify(next));
-    window.dispatchEvent(new Event("aureon-phrase-tracked"));
+    localStorage.setItem("asherin_user_phrases", JSON.stringify(next));
+    window.dispatchEvent(new Event("asherin-phrase-tracked"));
   } catch {}
 }
 

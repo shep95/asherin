@@ -126,7 +126,7 @@ const SubscriptionGatedInput = forwardRef<AdaptiveInputBarHandle, {
   isStreaming: boolean;
   conversationId?: string;
 }>((props, ref) => {
-  // Free dashboard users are allowed to message through Aureon Algorithm.
+  // Free dashboard users are allowed to message through Asherin Algorithm.
   // The backend owns the 10 messages / 2 hours quota and only blocks after it is exhausted.
   return <AdaptiveInputBar ref={ref} {...props} disabled={false} />;
 });
@@ -199,8 +199,8 @@ const VALID_INTERNAL_PATHS = new Set([
 function isInternalLink(href: string): string | null {
   try {
     const url = new URL(href);
-    const isAureonDomain = url.hostname === "aureon.app" || url.hostname === "www.aureon.app" || url.hostname.endsWith(".lovable.app");
-    if (isAureonDomain && VALID_INTERNAL_PATHS.has(url.pathname)) {
+    const isAsherinDomain = url.hostname === "asherin.app" || url.hostname === "www.asherin.app" || url.hostname.endsWith(".lovable.app");
+    if (isAsherinDomain && VALID_INTERNAL_PATHS.has(url.pathname)) {
       return url.pathname;
     }
   } catch {
@@ -318,7 +318,7 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
   img({ src, alt, ...props }: any) {
     const hasAlt = typeof alt === "string" && alt.trim().length > 0;
     return (
-      <span className="relative inline-block group cursor-pointer" onClick={() => (window as any).__aureonLightbox?.(src)}>
+      <span className="relative inline-block group cursor-pointer" onClick={() => (window as any).__asherinLightbox?.(src)}>
         <img
           src={src}
           alt={hasAlt ? alt : ""}
@@ -429,7 +429,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   }, [highlightedMsgId, branchMessages.length]);
 
   // ── Inline property/address satellite maps ────────────────────────────────
-  // When ANY message (user prompt OR Aureon's assistant reply) mentions a real
+  // When ANY message (user prompt OR Asherin's assistant reply) mentions a real
   // address, geocode it via Nominatim on the client and render a PropertyMapCard
   // beneath that bubble. For assistant messages we wait until streaming has
   // finished for that message so we don't fire geocodes on partial tokens.
@@ -465,14 +465,14 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
       if (!detail || detail.conversationId !== conversation.id) return;
       setHighlightedMsgId(detail.messageId);
     };
-    window.addEventListener("aureon:jump-to-message", handler as EventListener);
-    return () => window.removeEventListener("aureon:jump-to-message", handler as EventListener);
+    window.addEventListener("asherin:jump-to-message", handler as EventListener);
+    return () => window.removeEventListener("asherin:jump-to-message", handler as EventListener);
   }, [conversation.id]);
 
   // Wire lightbox for markdown images
   useEffect(() => {
-    (window as any).__aureonLightbox = (src: string) => setLightboxSrc(src);
-    return () => { delete (window as any).__aureonLightbox; };
+    (window as any).__asherinLightbox = (src: string) => setLightboxSrc(src);
+    return () => { delete (window as any).__asherinLightbox; };
   }, []);
 
   const elevenLabsVoice = useElevenLabsVoice({
@@ -484,7 +484,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const downloadConversation = () => {
     if (!branchMessages.length) return;
     const lines = branchMessages.map(m =>
-      `**${m.role === "user" ? "You" : "Aureon"}** (${m.timestamp ? new Date(m.timestamp).toLocaleString() : ""}):\n${m.content}`
+      `**${m.role === "user" ? "You" : "Asherin"}** (${m.timestamp ? new Date(m.timestamp).toLocaleString() : ""}):\n${m.content}`
     );
     const md = `# ${conversation.title}\n\n${lines.join("\n\n---\n\n")}`;
     const blob = new Blob([md], { type: "text/markdown" });
@@ -883,7 +883,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
                         {parseChatCards(msg.content).map((seg, i) =>
                           seg.type === "card" || seg.type === "card-unknown" ? (
-                            <ChatCardRenderer key={`c-${i}`} segment={seg} source="chat:aureon" />
+                            <ChatCardRenderer key={`c-${i}`} segment={seg} source="chat:asherin" />
                           ) : (
                             <ReactMarkdown key={`t-${i}`} components={markdownComponents}>{seg.value}</ReactMarkdown>
                           )

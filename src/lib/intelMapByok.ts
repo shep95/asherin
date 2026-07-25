@@ -187,8 +187,8 @@ export const INTEL_MAP_PROVIDERS: IntelMapProviderSpec[] = [
   },
 ];
 
-const STORAGE_KEY = "aureon_intelmap_byok_v1";
-const ENABLED_KEY = "aureon_intelmap_byok_enabled_v1";
+const STORAGE_KEY = "asherin_intelmap_byok_v1";
+const ENABLED_KEY = "asherin_intelmap_byok_enabled_v1";
 
 export function getIntelMapByok(): IntelMapByok | null {
   try {

@@ -131,13 +131,13 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
     if (transcriptLog.length === 0) return;
     const lines = transcriptLog.map(
       (e) =>
-        `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.role === "user" ? "You" : "Aureon"}: ${e.text}`,
+        `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.role === "user" ? "You" : "Asherin"}: ${e.text}`,
     );
     const blob = new Blob([lines.join("\n")], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aureon-transcript-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `asherin-transcript-${new Date().toISOString().slice(0, 10)}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

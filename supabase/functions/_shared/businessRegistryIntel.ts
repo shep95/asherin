@@ -1,7 +1,7 @@
 // ───────────────────────────────────────────────────────────────────────────
 // BUSINESS REGISTRY INTEL — jurisdictional company-lookup framework.
 //
-// Goal: paste a company name (optionally with a country hint) into Aureon
+// Goal: paste a company name (optionally with a country hint) into Asherin
 // Chat and get back a live, cited authoritative-registry pull — the same
 // way Ghost Trace autopsies a social post and Specter Weave autopsies a
 // handle. Framework-first: one adapter interface, per-country adapters
@@ -18,7 +18,7 @@
 //    to cite it verbatim, and every fact carries a numeric confidence.
 // ───────────────────────────────────────────────────────────────────────────
 
-const USER_AGENT = "Aureon-Intel/1.0 contact@aureonai.app";
+const USER_AGENT = "Asherin-Intel/1.0 contact@aureonai.app";
 const ADAPTER_TIMEOUT_MS = 5000;
 
 export interface RegistryHit {

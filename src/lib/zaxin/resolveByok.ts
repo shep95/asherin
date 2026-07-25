@@ -129,10 +129,10 @@ export function useResolvedZaxinByok(): ResolvedZaxinByok {
     // Pick up changes saved elsewhere (Settings → API Keys, Zophiel BYOK).
     const onStorage = () => { void refresh(); };
     window.addEventListener("storage", onStorage);
-    window.addEventListener("aureon-byok-updated", onStorage as EventListener);
+    window.addEventListener("asherin-byok-updated", onStorage as EventListener);
     return () => {
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener("aureon-byok-updated", onStorage as EventListener);
+      window.removeEventListener("asherin-byok-updated", onStorage as EventListener);
     };
   }, [refresh]);
 
@@ -141,7 +141,7 @@ export function useResolvedZaxinByok(): ResolvedZaxinByok {
     setIntelMapByokEnabled(true);
     setByok(cfg);
     setSource("intelmap");
-    try { window.dispatchEvent(new Event("aureon-byok-updated")); } catch { /* noop */ }
+    try { window.dispatchEvent(new Event("asherin-byok-updated")); } catch { /* noop */ }
   }, []);
 
   return { byok, source, loading, refresh, saveInline };

@@ -11,7 +11,7 @@ interface Props {
   nextAttempt?: string
 }
 
-const PaymentFailedEmail = ({ name, planName = 'Aureon', amount, reason, nextAttempt }: Props) => (
+const PaymentFailedEmail = ({ name, planName = 'Asherin', amount, reason, nextAttempt }: Props) => (
   <Shell preview="Payment did not go through." eyebrow="Billing">
     <Hed>Payment failed.</Hed>
     <Prose>
@@ -35,5 +35,5 @@ export const template = {
   component: PaymentFailedEmail,
   subject: 'Payment failed — action required',
   displayName: 'Payment failed',
-  previewData: { name: 'Asher', planName: 'Aureon Pro', amount: '$740.00', reason: 'Card declined', nextAttempt: 'May 29, 2026' },
+  previewData: { name: 'Asher', planName: 'Asherin Pro', amount: '$740.00', reason: 'Card declined', nextAttempt: 'May 29, 2026' },
 } satisfies TemplateEntry

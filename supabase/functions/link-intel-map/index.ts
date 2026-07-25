@@ -1,4 +1,4 @@
-// LINK INTEL MAP — Aureon's URL-forensics intel graph.
+// LINK INTEL MAP — Asherin's URL-forensics intel graph.
 // Mirror of zophiel-intelmap, but the system prompt is tuned for a SINGLE target
 // URL: extract hosting stack, related domains, certificate parties, exposed paths,
 // JS/SDK leaks, breach signals, social/SEO footprint, and archived versions.

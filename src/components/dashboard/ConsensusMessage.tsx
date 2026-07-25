@@ -66,7 +66,7 @@ interface Props {
 // ── Helpers ──────────────────────────────────────────────────────────────────────
 
 function getProviderLabel(provider: string, model: string): string {
-  if (provider === "default") return "Aureon Default";
+  if (provider === "default") return "Asherin Default";
   const p = AI_PROVIDERS.find(a => a.id === provider);
   const m = p?.models.find(mm => mm.id === model);
   return `${p?.name || provider} → ${m?.name || model}`;

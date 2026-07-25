@@ -136,12 +136,12 @@ const CodingLawsView = () => {
     const text = active.map((l, i) =>
       `${l.law_number}: ${l.name}\nDomain: ${l.domain} | Severity: ${l.severity.toUpperCase()} | Era: ${l.era} | Source: ${l.source.toUpperCase()}\n\n${l.law}\n\nRationale: ${l.rationale}\n\n${"─".repeat(80)}`
     ).join("\n\n");
-    const header = `AUREON — LAWS OF CODING (AUTONOMOUS ENGINE)\nActive Laws: ${active.length}/${laws.length}\nDiscovered: ${discoveredCount} | Synthesized: ${synthesizedCount}\nExported: ${new Date().toISOString()}\n${"═".repeat(80)}\n\n`;
+    const header = `ASHERIN — LAWS OF CODING (AUTONOMOUS ENGINE)\nActive Laws: ${active.length}/${laws.length}\nDiscovered: ${discoveredCount} | Synthesized: ${synthesizedCount}\nExported: ${new Date().toISOString()}\n${"═".repeat(80)}\n\n`;
     const blob = new Blob([header + text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aureon-coding-laws-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `asherin-coding-laws-${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: "Exported", description: `${active.length} active laws exported.` });

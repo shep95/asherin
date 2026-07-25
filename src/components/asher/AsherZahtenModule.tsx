@@ -144,7 +144,7 @@ const INTEL_DISCIPLINES = [
   { icon: Users,    label: "HUMINT", detail: "Source debriefing, credibility scoring, cross-referencing, gap analysis, collection tasking." },
   { icon: Satellite,label: "GEOINT", detail: "Multi-sensor satellite (optical/SAR/IR), change detection, object detection, activity patterns." },
   { icon: Crosshair,label: "IMINT",  detail: "Imagery intelligence fusion across discipline outputs into a single threat board." },
-  { icon: Eye,      label: "Predictive", detail: "Aureon forecast engine — 7–30 day windows, confidence-thresholded courses of action." },
+  { icon: Eye,      label: "Predictive", detail: "Asherin forecast engine — 7–30 day windows, confidence-thresholded courses of action." },
 ];
 
 const COMPLIANCE = [
@@ -398,7 +398,7 @@ const AsherZahtenModule = () => {
       const route = await routeBrainsForPrompt(prompt, { topK: 5, charBudget: 40_000 });
       if (!route || !route.brains.length) return "";
       const blocks = route.brains.map(b => `### BRAIN — ${b.name} [${b.category}]\n${b.content}`).join("\n\n");
-      return `\n\n[AUREON BRAINS — injected for software build context]\n${route.rationale}\n\n${blocks}`;
+      return `\n\n[ASHERIN BRAINS — injected for software build context]\n${route.rationale}\n\n${blocks}`;
     } catch { return ""; }
   };
 

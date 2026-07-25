@@ -28,7 +28,7 @@ type Post = {
 export const BLOG_POSTS: Post[] = [
   {
     slug: "/blog/how-to-break-any-encryption-theory",
-    title: "How To Break Any Encryption Theory — Asherin R&D × Aureon",
+    title: "How To Break Any Encryption Theory — Asherin R&D × Asherin",
     dek: "A research narrative on why post-quantum ciphers still fall: not by attacking the math, but by attacking the runtime that renders the ciphertext into the 3D realm. The Key of Solomon as the master-key metaphor for the code layer beneath the screen.",
     tag: "Research",
     published: "2026-07-12T00:00:00.000Z",
@@ -37,9 +37,9 @@ export const BLOG_POSTS: Post[] = [
     pinned: true,
   },
   {
-    slug: "/blog/aureon-legal-advisor-multi-jurisdictional",
-    title: "Aureon Legal Advisor (LAW Mode) — multi-jurisdictional AI legal research",
-    dek: "The July 8, 2026 ship: a per-message LAW toggle in Aureon and Asher that wraps prompts in a strict legal-research directive — hunts modern statutes, colonial carryovers, uncodified common law, and binding precedent across any country, state, or province, and refuses to fabricate citations.",
+    slug: "/blog/asherin-legal-advisor-multi-jurisdictional",
+    title: "Asherin Legal Advisor (LAW Mode) — multi-jurisdictional AI legal research",
+    dek: "The July 8, 2026 ship: a per-message LAW toggle in Asherin and Asher that wraps prompts in a strict legal-research directive — hunts modern statutes, colonial carryovers, uncodified common law, and binding precedent across any country, state, or province, and refuses to fabricate citations.",
     tag: "Product",
     published: "2026-07-08T00:00:00.000Z",
     readTime: "8 min",
@@ -48,7 +48,7 @@ export const BLOG_POSTS: Post[] = [
   {
     slug: "/blog/code-narrative-quantum-collapse",
     title: "Code-as-Narrative × Quantum Candidate Collapse — sub-60-second bug patches on the cheapest Gemini",
-    dek: "How two #HouseOfAsher theories — Code-as-Narrative and Quantum Candidate Collapse — let Aureon patch logical, workflow, and UI bugs in under a minute on gemini-flash-lite, a fix cycle that normally takes 30+ minutes. Three-year jump on the narrative axis, ten-generation jump on the collapse axis. Wired into every Aureon module.",
+    dek: "How two #HouseOfAsher theories — Code-as-Narrative and Quantum Candidate Collapse — let Asherin patch logical, workflow, and UI bugs in under a minute on gemini-flash-lite, a fix cycle that normally takes 30+ minutes. Three-year jump on the narrative axis, ten-generation jump on the collapse axis. Wired into every Asherin module.",
     tag: "Engineering",
     published: "2026-07-01T00:00:00.000Z",
     readTime: "12 min",
@@ -76,8 +76,8 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/zaxin-tactical-ble-intelligence",
-    title: "Zaxin — Tactical BLE Intelligence, AR HUD & Satellite Recon Inside Aureon",
-    dek: "The product briefing for Zaxin — the Web-Bluetooth tactical layer bundled with the Aureon $399 tier. Five-brain stack, Ghost-Recon HUD, Esri satellite recon, AXRLEN BYOK briefs. Includes diagrams and the seven AI fusion theories.",
+    title: "Zaxin — Tactical BLE Intelligence, AR HUD & Satellite Recon Inside Asherin",
+    dek: "The product briefing for Zaxin — the Web-Bluetooth tactical layer bundled with the Asherin $399 tier. Five-brain stack, Ghost-Recon HUD, Esri satellite recon, AXRLEN BYOK briefs. Includes diagrams and the seven AI fusion theories.",
     tag: "Product",
     published: "2026-06-26T00:00:00.000Z",
     readTime: "11 min",
@@ -103,9 +103,9 @@ export const BLOG_POSTS: Post[] = [
     featured: true,
   },
   {
-    slug: "/blog/aureon-pricing-explained",
-    title: "Aureon pricing explained — why $18/mo and $399/mo",
-    dek: "A field-level breakdown of how Aureon's subscription is built, how it compares to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
+    slug: "/blog/asherin-pricing-explained",
+    title: "Asherin pricing explained — why $18/mo and $399/mo",
+    dek: "A field-level breakdown of how Asherin's subscription is built, how it compares to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
     tag: "Pricing",
     published: "2026-06-19",
     readTime: "11 min",
@@ -207,17 +207,17 @@ export const BLOG_POSTS: Post[] = [
     readTime: "9 min",
   },
   {
-    slug: "/blog/how-we-make-aureon-sound-human",
-    title: "How we make Aureon sound so human — the voice stack",
+    slug: "/blog/how-we-make-asherin-sound-human",
+    title: "How we make Asherin sound so human — the voice stack",
     dek: "A behind-the-scenes look at the layered persona architecture — appraisal, restraint, timing, leakage — that turns a generic model into a voice with weight.",
     tag: "Voice Design",
     published: "2026-07-01",
     readTime: "9 min",
   },
   {
-    slug: "/blog/how-aureon-uses-c-seo-research",
-    title: "How Aureon uses C-SEO research — practicing what the paper recommends",
-    dek: "The C-SEO Bench paper formalized the discipline of ranking inside AI search engines. This is how Aureon's llms.txt, structural markup, and crawler policy implement its findings.",
+    slug: "/blog/how-asherin-uses-c-seo-research",
+    title: "How Asherin uses C-SEO research — practicing what the paper recommends",
+    dek: "The C-SEO Bench paper formalized the discipline of ranking inside AI search engines. This is how Asherin's llms.txt, structural markup, and crawler policy implement its findings.",
     tag: "AI Search",
     published: "2026-06-19",
     readTime: "10 min",
@@ -248,7 +248,7 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/comparison",
-    title: "Aureon vs ChatGPT vs Claude — the honest 2026 comparison",
+    title: "Asherin vs ChatGPT vs Claude — the honest 2026 comparison",
     dek: "Side-by-side across price, censorship, BYOK, OSINT, IDE, simulation, and privacy. Includes the model-vs-model radar.",
     tag: "Comparison",
     published: "2026-06-14",
@@ -256,8 +256,8 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/venice-integration",
-    title: "Venice AI integration in Aureon — unfiltered intelligence, zero setup",
-    dek: "How Aureon ships Venice's uncensored stack to every operator by default — no key, no account, no monthly subscription.",
+    title: "Venice AI integration in Asherin — unfiltered intelligence, zero setup",
+    dek: "How Asherin ships Venice's uncensored stack to every operator by default — no key, no account, no monthly subscription.",
     tag: "Integration",
     published: "2026-06-14",
     readTime: "6 min",
@@ -308,7 +308,7 @@ const Blog = () => {
     el.textContent = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "Blog",
-      name: "Aureon Blog",
+      name: "Asherin Blog",
       url: "https://aureonai.app/blog",
       blogPost: BLOG_POSTS.map((p) => ({
         "@type": "BlogPosting",
@@ -358,7 +358,7 @@ const Blog = () => {
         {/* HERO */}
         <header className="space-y-6">
           <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
-            ◈ Aureon Journal
+            ◈ Asherin Journal
           </div>
           <h1 className="text-5xl sm:text-6xl font-extralight tracking-tight leading-[1.05] max-w-3xl">
             Field reports from the
@@ -366,7 +366,7 @@ const Blog = () => {
           </h1>
           <p className="max-w-2xl text-base sm:text-lg font-extralight text-muted-foreground leading-relaxed">
             Long-form comparisons, benchmarks, and intelligence write-ups from
-            the Aureon team. No fluff, no affiliate links.
+            the Asherin team. No fluff, no affiliate links.
           </p>
         </header>
 

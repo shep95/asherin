@@ -3,7 +3,7 @@ import { Swords, RotateCcw, Pause, Play } from "lucide-react";
 import ChessBoard from "./ChessBoard";
 import ZaplenSetup from "./ZaplenSetup";
 
-export type OpponentType = "aureon" | "human" | "byok";
+export type OpponentType = "asherin" | "human" | "byok";
 export type PlayerColor = "white" | "black";
 
 export interface GameConfig {

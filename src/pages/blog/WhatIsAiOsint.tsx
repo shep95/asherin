@@ -30,7 +30,7 @@ const WhatIsAiOsint = () => (
     <BreadcrumbJsonLd
       id="what-is-ai-osint"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "What Is AI OSINT?", url: "/blog/what-is-ai-osint" },
       ]}
@@ -43,7 +43,7 @@ const WhatIsAiOsint = () => (
       keyFacts={[
         "Real AI OSINT cross-validates a claim across at least three independent sources before surfacing it.",
         "Source count alone is a vanity metric — cross-validation depth matters more than source breadth.",
-        "Aureon's Zophiel engine cross-validates 30 live sources per query and ships a per-source veracity score.",
+        "Asherin's Zophiel engine cross-validates 30 live sources per query and ships a per-source veracity score.",
         "AI OSINT is not the same as 'AI search' — search ranks documents; OSINT verifies claims.",
         "The pipeline has four stages: ingestion, normalization, cross-validation, synthesis.",
       ]}
@@ -127,9 +127,9 @@ const WhatIsAiOsint = () => (
       </li>
     </ul>
 
-    <h2>Aureon's Zophiel engine — AI OSINT in production</h2>
+    <h2>Asherin's Zophiel engine — AI OSINT in production</h2>
     <p>
-      Aureon&apos;s{" "}
+      Asherin&apos;s{" "}
       <a href="/feature/zophiel">Zophiel OSINT engine</a> implements all four
       pipeline stages on 30 live sources per query. Each surfaced claim
       carries a veracity score, a per-source breakdown, and a contradiction
@@ -165,7 +165,7 @@ const WhatIsAiOsint = () => (
         {
           to: "/feature/zophiel",
           label: "Zophiel OSINT — 30-source intelligence engine",
-          description: "The Aureon implementation of the four-stage AI OSINT pipeline.",
+          description: "The Asherin implementation of the four-stage AI OSINT pipeline.",
         },
         {
           to: "/feature/nomad",
@@ -179,7 +179,7 @@ const WhatIsAiOsint = () => (
         },
         {
           to: "/blog/comparison",
-          label: "Aureon vs ChatGPT vs Claude — comparison",
+          label: "Asherin vs ChatGPT vs Claude — comparison",
           description: "Side-by-side across price, OSINT depth, and BYOK support.",
         },
       ]}

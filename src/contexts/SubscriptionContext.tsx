@@ -3,15 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Stripe product/price mapping.
-// NOTE: monthly_aureon ($18/mo) and monthly_pro ($399/mo) are the active subscription
-// products. The legacy one-time tiers (chat / aureon / pro / lifetime / algorithm) are
+// NOTE: monthly_asherin ($18/mo) and monthly_pro ($399/mo) are the active subscription
+// products. The legacy one-time tiers (chat / asherin / pro / lifetime / algorithm) are
 // retained so existing subscribers and grant records continue to resolve, but they are
 // no longer offered for new purchase.
 //
-// TODO(stripe): replace the monthly_aureon / monthly_pro price_id placeholders below
+// TODO(stripe): replace the monthly_asherin / monthly_pro price_id placeholders below
 // with real Stripe Price IDs ($18/mo + $399/mo recurring) before launching checkout.
 export const TIERS = {
-  monthly_aureon: {
+  monthly_asherin: {
     product_id: "prod_UjaQPixvFi3Qlr",
     price_id: "price_1Tk7FyRxgCpmPfiF4vZebmnE",
   },
@@ -27,7 +27,7 @@ export const TIERS = {
     product_id: "prod_U4YWDDwSXK3SGO",
     price_id: "price_1T6PPmRxgCpmPfiFoTiBXBzq",
   },
-  aureon: {
+  asherin: {
     product_id: "prod_U1rtJ8HXSCtvqO",
     price_id: "price_1T3o9NRxgCpmPfiFaFDWC8u0",
   },
@@ -36,7 +36,7 @@ export const TIERS = {
     price_id: "price_1T3N4iRxgCpmPfiFGbJkXY33",
   },
   algorithm: {
-    product_id: "prod_aureon_algorithm",
+    product_id: "prod_asherin_algorithm",
     price_id: "price_1TfC3oRxgCpmPfiFniV2cXAu",
   },
 } as const;
@@ -99,12 +99,12 @@ function productToTier(productId: string | null): TierKey | null {
 
 // ── Access helpers ───────────────────────────────────────────────────────────
 // Real tier-based gating. Tier ladder:
-//   chat < aureon/monthly_aureon < pro/monthly_pro/lifetime/algorithm
-const AUREON_TIERS: TierKey[] = ["monthly_aureon", "aureon", "monthly_pro", "pro", "lifetime", "algorithm"];
+//   chat < asherin/monthly_asherin < pro/monthly_pro/lifetime/algorithm
+const ASHERIN_TIERS: TierKey[] = ["monthly_asherin", "asherin", "monthly_pro", "pro", "lifetime", "algorithm"];
 const PRO_TIERS: TierKey[] = ["monthly_pro", "pro", "lifetime", "algorithm"];
 export function hasChatAccess(t: TierKey | null): boolean { return !!t; }
 export function hasSearchAccess(t: TierKey | null): boolean { return !!t; }
-export function hasAureonAccess(t: TierKey | null): boolean { return !!t && AUREON_TIERS.includes(t); }
+export function hasAsherinAccess(t: TierKey | null): boolean { return !!t && ASHERIN_TIERS.includes(t); }
 export function hasProAccess(t: TierKey | null): boolean { return !!t && PRO_TIERS.includes(t); }
 export function hasEnterpriseOnlyAccess(t: TierKey | null): boolean { return !!t && PRO_TIERS.includes(t); }
 /** @deprecated alias retained for legacy callers. */

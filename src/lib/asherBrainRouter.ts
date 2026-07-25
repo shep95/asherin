@@ -1,4 +1,4 @@
-// ASHER BRAIN ROUTER — "Scout" agent in the Aureon swarm.
+// ASHER BRAIN ROUTER — "Scout" agent in the Asherin swarm.
 // Given a user prompt + short recent history, it picks the most relevant
 // brains from the asher_brains vault and returns only those for injection
 // into ASHER AI's context. Mirrors the "Haiku Router → Sonnet Architect"

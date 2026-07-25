@@ -164,7 +164,7 @@ export async function callByokJson(
 // Google periodically retires model ids on the direct Generative Language API
 // (v1beta). When a user's saved BYOK model is one of the retired ids, the call
 // returns 404 NOT_FOUND ("This model models/<id> is no longer available"), which
-// breaks Aureon chat with no auto-recovery. We map known-retired ids to their
+// breaks Asherin chat with no auto-recovery. We map known-retired ids to their
 // current stable equivalent BEFORE the request, and additionally auto-fallback
 // on a 404 to `gemini-flash-latest` (Google's rolling alias) so a stale saved
 // model never dead-ends a user's chat.

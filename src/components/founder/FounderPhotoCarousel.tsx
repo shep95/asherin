@@ -24,7 +24,7 @@ export default function FounderPhotoCarousel() {
         <img
           key={src}
           src={src}
-          alt="Asher Newton, founder of Aureon"
+          alt="Asher Newton, founder of Asherin"
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1400ms] ease-in-out"
           style={{ opacity: i === index ? 1 : 0 }}
           loading={i === 0 ? "eager" : "lazy"}

@@ -576,7 +576,7 @@ Deno.serve(async (req) => {
 
     console.log(`[ghostchain] ${auth.email} → ${host} mode=${mode}`);
 
-    // Resolve AI key (Aureon Team / BYOK / Venice fallback handled in adminGate)
+    // Resolve AI key (Asherin Team / BYOK / Venice fallback handled in adminGate)
     let aiKey = "";
     try {
       const keyResolution = await resolveKey(req, body.byok ?? null, { strict: false });

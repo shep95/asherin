@@ -58,7 +58,7 @@ serve(async (req) => {
       // ASHA EXTRACTION PHASE: Convert unstructured → structured
       console.log(`[Zeeion] ASHA extraction phase for ${fileType} file: ${fileName}`);
 
-      const ashaPrompt = `You are ASHA (Advanced Structured Harmonization Agent), AUREON's data extraction engine. Your job is to extract ALL financial data from this document into clean, structured CSV format.
+      const ashaPrompt = `You are ASHA (Advanced Structured Harmonization Agent), ASHERIN's data extraction engine. Your job is to extract ALL financial data from this document into clean, structured CSV format.
 
 DOCUMENT INFO:
 - File: ${fileName}
@@ -122,12 +122,12 @@ ${fileContent.substring(0, 80000)}`;
     }
 
     // ============================================================
-    // PHASE 2: AUREON FINANCIAL ANALYSIS (on structured data)
+    // PHASE 2: ASHERIN FINANCIAL ANALYSIS (on structured data)
     // ============================================================
 
-    const analysisPrompt = `You are Zeeion, AUREON's elite Financial Intelligence AI. You have access to all of AUREON's analytical brains — pattern recognition, anomaly detection, forensic accounting, and predictive modeling.
+    const analysisPrompt = `You are Zeeion, ASHERIN's elite Financial Intelligence AI. You have access to all of ASHERIN's analytical brains — pattern recognition, anomaly detection, forensic accounting, and predictive modeling.
 
-This data has been pre-processed by ASHA (AUREON's data extraction engine) into structured format.
+This data has been pre-processed by ASHA (ASHERIN's data extraction engine) into structured format.
 
 Analyze the financial data and produce a comprehensive analysis.
 

@@ -209,7 +209,7 @@ async function deliverSlack(
     body: JSON.stringify({
       channel,
       text,
-      username: `Aureon Agent: ${agentName}`,
+      username: `Asherin Agent: ${agentName}`,
       icon_emoji: ":robot_face:",
     }),
   });
@@ -252,7 +252,7 @@ async function deliverWebhook(
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "User-Agent": "Aureon-Agent/1.0",
+    "User-Agent": "Asherin-Agent/1.0",
   };
 
   if (config?.secret) {
@@ -262,7 +262,7 @@ async function deliverWebhook(
     );
     const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(JSON.stringify(payload)));
     const hexSig = Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
-    headers["X-Aureon-Signature"] = `sha256=${hexSig}`;
+    headers["X-Asherin-Signature"] = `sha256=${hexSig}`;
   }
 
   const resp = await fetch(webhookUrl, {
@@ -313,7 +313,7 @@ async function deliverDiscord(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: `Aureon: ${agentName}`,
+        username: `Asherin: ${agentName}`,
         content: chunks[i],
       }),
     });
@@ -589,7 +589,7 @@ serve(async (req) => {
         switch (action.type) {
           case "ai_generate": {
             const prompt = action.config?.prompt || agent.description || agent.name;
-            const systemPrompt = `You are an Aureon AI Agent named "${agent.name}". Execute the user's task precisely. Provide actionable, detailed, and well-formatted output. Today's date is ${new Date().toISOString().split('T')[0]}.`;
+            const systemPrompt = `You are an Asherin AI Agent named "${agent.name}". Execute the user's task precisely. Provide actionable, detailed, and well-formatted output. Today's date is ${new Date().toISOString().split('T')[0]}.`;
             aiOutput = await callGemini(prompt, systemPrompt);
             results.push({ type: "ai_generate", output: aiOutput, status: "success" });
             break;
@@ -598,7 +598,7 @@ serve(async (req) => {
             const reportType = action.config?.reportType || "daily_summary";
             aiOutput = await callGemini(
               `Generate a comprehensive ${reportType.replace(/_/g, ' ')} report for today (${new Date().toISOString().split('T')[0]}). Include key insights, trends, and actionable recommendations.`,
-              `You are an intelligence report generator for Aureon.`
+              `You are an intelligence report generator for Asherin.`
             );
             results.push({ type: "generate_report", output: aiOutput, status: "success" });
             break;
@@ -608,7 +608,7 @@ serve(async (req) => {
             const count = action.config?.count || 1;
             aiOutput = await callGemini(
               `Generate ${count} pieces of ${contentType.replace(/_/g, ' ')} content. Make it engaging and original. Today: ${new Date().toISOString().split('T')[0]}.`,
-              `You are a professional content creator for Aureon.`
+              `You are a professional content creator for Asherin.`
             );
             results.push({ type: "generate_content", output: aiOutput, status: "success" });
             break;
@@ -616,7 +616,7 @@ serve(async (req) => {
           case "generate_analytics": {
             aiOutput = await callGemini(
               `Generate a comprehensive analytics summary report with key metrics, trends, anomalies, and actionable insights.`,
-              `You are a data analytics specialist for Aureon.`
+              `You are a data analytics specialist for Asherin.`
             );
             results.push({ type: "generate_analytics", output: aiOutput, status: "success" });
             break;
@@ -685,7 +685,7 @@ serve(async (req) => {
           default: {
             aiOutput = await callGemini(
               `Execute the following task: "${action.type}". Provide detailed results.`,
-              `You are an Aureon AI Agent executing automated tasks.`
+              `You are an Asherin AI Agent executing automated tasks.`
             );
             results.push({ type: action.type, output: aiOutput, status: "success" });
           }

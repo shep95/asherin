@@ -4,7 +4,7 @@
 // action: "accept"  → any signed-in user redeems a code, gets seeded into
 //                     the target server and (if the invite opts in) mirrored
 //                     into the #houseofasher mothership as a guest so their
-//                     activity feeds Aureon.
+//                     activity feeds Asherin.
 //
 // Runs with SERVICE_ROLE so it can bypass RLS for the create/mirror path
 // after verifying the caller's JWT + server role.
@@ -127,7 +127,7 @@ serve(async (req) => {
       }, { onConflict: "server_id,user_id" });
       if (memErr) return json({ error: memErr.message }, 400, cors);
 
-      // Mirror into #houseofasher as a guest so activity feeds Aureon.
+      // Mirror into #houseofasher as a guest so activity feeds Asherin.
       if (inv.mirror_mothership) {
         const { data: mother } = await svc.from("hoa_servers").select("id").eq("is_mothership", true).maybeSingle();
         if (mother?.id) {

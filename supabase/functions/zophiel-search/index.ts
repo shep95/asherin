@@ -810,7 +810,7 @@ async function searchEDGAR(query: string, limit = 10): Promise<SearchResult[]> {
   try {
     const url = `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent('"' + query + '"')}&dateRange=custom&startdt=2020-01-01&forms=10-K,10-Q,8-K,S-1,DEF+14A`;
     const r = await fetch(url, {
-      headers: { 'User-Agent': 'Aureon Intel research@aureonai.app', 'Accept': 'application/json' },
+      headers: { 'User-Agent': 'Asherin Intel research@aureonai.app', 'Accept': 'application/json' },
       signal: AbortSignal.timeout(7000),
     });
     if (!r.ok) return [];
@@ -865,7 +865,7 @@ async function searchArxiv(query: string, limit = 10): Promise<SearchResult[]> {
 async function searchCrossRef(query: string, limit = 10): Promise<SearchResult[]> {
   try {
     const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=${limit}&select=DOI,title,author,published-print,abstract,URL,container-title`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'Aureon/1.0 (mailto:research@aureonai.app)' }, signal: AbortSignal.timeout(7000) });
+    const r = await fetch(url, { headers: { 'User-Agent': 'Asherin/1.0 (mailto:research@aureonai.app)' }, signal: AbortSignal.timeout(7000) });
     if (!r.ok) return [];
     const data = await r.json();
     const out: SearchResult[] = [];
@@ -890,7 +890,7 @@ async function searchCrossRef(query: string, limit = 10): Promise<SearchResult[]
 async function searchOpenAlex(query: string, limit = 10): Promise<SearchResult[]> {
   try {
     const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=${limit}`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'Aureon/1.0 (mailto:research@aureonai.app)' }, signal: AbortSignal.timeout(7000) });
+    const r = await fetch(url, { headers: { 'User-Agent': 'Asherin/1.0 (mailto:research@aureonai.app)' }, signal: AbortSignal.timeout(7000) });
     if (!r.ok) return [];
     const data = await r.json();
     const out: SearchResult[] = [];
@@ -934,7 +934,7 @@ async function searchHackerNews(query: string, limit = 10): Promise<SearchResult
 async function searchReddit(query: string, limit = 10): Promise<SearchResult[]> {
   try {
     const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&limit=${limit}&sort=relevance&t=year`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'Aureon-Intel/1.0' }, signal: AbortSignal.timeout(6000) });
+    const r = await fetch(url, { headers: { 'User-Agent': 'Asherin-Intel/1.0' }, signal: AbortSignal.timeout(6000) });
     if (!r.ok) return [];
     const data = await r.json();
     const out: SearchResult[] = [];

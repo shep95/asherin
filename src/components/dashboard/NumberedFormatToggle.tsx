@@ -5,7 +5,7 @@ import { ListOrdered } from "lucide-react";
 // that forces every structured answer to come out as `1.`, `2.`, `3.` …
 // Default: ON. The toggle persists "OFF" entries in localStorage; missing
 // entries mean the brain stays on.
-const STORAGE_KEY = "aureon_numbered_format_off";
+const STORAGE_KEY = "asherin_numbered_format_off";
 
 function loadDisabledMap(): Record<string, boolean> {
   try {

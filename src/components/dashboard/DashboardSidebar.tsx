@@ -186,11 +186,11 @@ const DashboardSidebar = ({
   const personaId = externalPersonaId ?? null;
   const setPersonaId = onPersonaChange ?? (() => {});
   const [collapsed, setCollapsed] = useState<boolean>(() => {
-    try { return localStorage.getItem("aureon_sidebar_collapsed") === "1"; } catch { return false; }
+    try { return localStorage.getItem("asherin_sidebar_collapsed") === "1"; } catch { return false; }
   });
   const toggleCollapsed = () => setCollapsed((c) => {
     const next = !c;
-    try { localStorage.setItem("aureon_sidebar_collapsed", next ? "1" : "0"); } catch {}
+    try { localStorage.setItem("asherin_sidebar_collapsed", next ? "1" : "0"); } catch {}
     return next;
   });
 
@@ -320,7 +320,7 @@ const DashboardSidebar = ({
   const MAX_WIDTH = 480;
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     try {
-      const stored = localStorage.getItem("aureon_sidebar_width");
+      const stored = localStorage.getItem("asherin_sidebar_width");
       return stored ? Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Number(stored))) : 288;
     } catch { return 288; }
   });
@@ -344,7 +344,7 @@ const DashboardSidebar = ({
       document.removeEventListener("mouseup", onMouseUp);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      localStorage.setItem("aureon_sidebar_width", String(sidebarWidth));
+      localStorage.setItem("asherin_sidebar_width", String(sidebarWidth));
     };
 
     document.body.style.cursor = "col-resize";
@@ -354,7 +354,7 @@ const DashboardSidebar = ({
   }, [sidebarWidth]);
 
   useEffect(() => {
-    localStorage.setItem("aureon_sidebar_width", String(sidebarWidth));
+    localStorage.setItem("asherin_sidebar_width", String(sidebarWidth));
   }, [sidebarWidth]);
 
   const filtered = conversations.filter((c) =>
@@ -401,7 +401,7 @@ const DashboardSidebar = ({
           <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20 gap-2">
             {!collapsed && (
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-extralight tracking-[0.25em] text-foreground truncate">AUREON</span>
+                <span className="text-sm font-extralight tracking-[0.25em] text-foreground truncate">ASHERIN</span>
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70 shrink-0" />
               </div>
             )}

@@ -3,9 +3,9 @@ import { Settings as SettingsIcon, Key } from "lucide-react";
 
 /**
  * Asher Settings — operator preferences + Bring Your Own LLM API Key.
- * Reuses Aureon's AIKeysSettings component so the operator can toggle
- * provider + model exactly like in the main Aureon system. When BYOK is
- * active, the Asher AI / Aureon Command Center will route through the
+ * Reuses Asherin's AIKeysSettings component so the operator can toggle
+ * provider + model exactly like in the main Asherin system. When BYOK is
+ * active, the Asher AI / Asherin Command Center will route through the
  * operator's own key instead of the platform key.
  */
 const AsherSettingsModule = () => {

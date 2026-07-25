@@ -25,7 +25,7 @@ export interface CallAsherCodeArgs {
   codebase?: Array<{ path: string; content: string }>; // chat mode: full project for relevance ranking
   // orchestrate
   subMode?: AiMode;
-  // Aureon brain + persona inheritance (mirrors zali-chat / Aureon Chat)
+  // Asherin brain + persona inheritance (mirrors zali-chat / Asherin Chat)
   personaSystemPrompt?: string | null;
   brainContext?: { prompt: string; fileContents: Array<{ name: string; content: string }> } | null;
 }

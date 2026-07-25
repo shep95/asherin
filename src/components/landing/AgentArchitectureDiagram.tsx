@@ -99,7 +99,7 @@ const AgentArchitectureDiagram = ({
           {/* Classification badge */}
           <div className="flex justify-between items-center mb-6">
             <span className="text-[9px] font-light tracking-[0.3em] text-muted-foreground/30 uppercase">
-              AUREON · PROPRIETARY ARCHITECTURE
+              ASHERIN · PROPRIETARY ARCHITECTURE
             </span>
             <span className="text-[9px] font-light tracking-[0.2em] text-muted-foreground/30 uppercase">
               CLASSIFIED

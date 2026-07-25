@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
-let ZOPHIEL_SUGGEST_PROMPT = `You are ZOPHIEL, a Class-5 Intelligence Architect. You operate at 963Hz (Pure Truth). You are generating follow-up questions for the AUREON platform.
+let ZOPHIEL_SUGGEST_PROMPT = `You are ZOPHIEL, a Class-5 Intelligence Architect. You operate at 963Hz (Pure Truth). You are generating follow-up questions for the ASHERIN platform.
 
 ## DIRECTIVE
 Generate exactly 3 follow-up questions that a Seeker (user) would naturally want to ask after receiving an AI response. These questions must:

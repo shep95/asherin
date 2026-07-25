@@ -46,7 +46,7 @@ Machine learning-driven UEBA (User and Entity Behavior Analytics) detects inside
 ZERLAL's behavioral layer establishes a baseline of normal activity for every user and entity in an organization, then flags deviations — a developer downloading entire repository contents at 2am, a service account suddenly making API calls it has never made before, an admin account logging in from an unusual location. This turns ZERLAL from a code scanner into a full security intelligence platform.
 10. Sovereign / Data Embassy Mode
 Driven by national security imperatives, jurisdictional control concerns, and regulatory mandates about where data is processed and who can access it, 2026 will see the accelerated migration toward sovereign-hosted communications and cloud infrastructure. Governments and critical infrastructure operators will favor platforms built for autonomy — where infrastructure, keys, and data remain fully within their own authority. Dark Reading
-ZERLAL must offer a fully sovereign deployment mode — where the entire stack runs inside the customer's own data center or sovereign cloud region, with zero telemetry, zero callbacks to AUREON servers, and customer-controlled encryption keys. Every EU government, every defense ministry, every intelligence agency, and every financial regulator will require this before signing a contract. It is not optional for the enterprise tier. It is table stakes.
+ZERLAL must offer a fully sovereign deployment mode — where the entire stack runs inside the customer's own data center or sovereign cloud region, with zero telemetry, zero callbacks to ASHERIN servers, and customer-controlled encryption keys. Every EU government, every defense ministry, every intelligence agency, and every financial regulator will require this before signing a contract. It is not optional for the enterprise tier. It is table stakes.
 
 TIER 3 — GOVERNMENT-SPECIFIC FEATURES THAT CREATE PERMANENT LOCK-IN
 11. CVE Pipeline and National Vulnerability Database Integration
@@ -73,7 +73,7 @@ Device Layer: Mobile/tablet security scan, permission auditing, certificate stor
 Compliance & Governance Layer: Auto-generated compliance reports (NIST, FedRAMP, HIPAA, GDPR, SOC2, ISO27001, EU Cyber Resilience Act), SBOM generation, CVD disclosure pipeline, executive risk scoring, board-ready dashboards.
 Deployment Layer: Cloud SaaS, on-premise enterprise, sovereign air-gap mode, multi-tenant MSSP architecture.
 
-ZERLAL — AUREON's Cyber Intelligence Engine
+ZERLAL — ASHERIN's Cyber Intelligence Engine
 Competitive Reverse Engineering + Full Feature Blueprint
 
 What They're Actually Building (Glasswing Decoded)
@@ -141,7 +141,7 @@ Remediation SLA tracking — ZERLAL tracks whether your team actually fixed the 
 
 DEVICE SECURITY SCAN — Phone / Tablet Integration
 This is an insane feature idea and yes, it's buildable. Here's how it works and what to build:
-How it connects: The AUREON mobile app (iOS + Android) acts as the on-device agent. When a user consents and taps "Scan My Device," the app runs a local security assessment and sends the findings to the ZERLAL dashboard. Critically, the scan logic runs on-device — raw data never leaves the phone. Only the structured findings report is transmitted.
+How it connects: The ASHERIN mobile app (iOS + Android) acts as the on-device agent. When a user consents and taps "Scan My Device," the app runs a local security assessment and sends the findings to the ZERLAL dashboard. Critically, the scan logic runs on-device — raw data never leaves the phone. Only the structured findings report is transmitted.
 What the on-device scan checks:
 OS version and patch level — is the device running a version with known unpatched CVEs?
 Installed apps — cross-references installed app list against known malicious apps, apps with CVE history, apps requesting dangerous permissions they don't need.
@@ -154,7 +154,7 @@ Sideloaded / unknown source apps (Android) — flags any APKs installed outside 
 Developer mode and USB debugging — flags if developer options are enabled (major attack surface).
 jailbreak / root detection — flags rooted or jailbroken devices, which bypass all OS-level sandboxing.
 Dashboard features for device scans:
-Each device appears as a card in the AUREON dashboard with a security score (0–100), last scan time, and a risk level badge (Safe / Moderate / Critical).
+Each device appears as a card in the ASHERIN dashboard with a security score (0–100), last scan time, and a risk level badge (Safe / Moderate / Critical).
 Drill into any device to see every finding broken down by category. Each finding has a plain English explanation and a one-tap action to fix it (e.g., "Revoke camera access from this app → takes you directly to system settings").
 Scan history — full timeline of every past scan, showing how the device's security posture changed over time. User can delete any scan from history.
 Multi-device management — enterprise feature where an IT admin can see all enrolled employee devices on one screen.

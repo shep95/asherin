@@ -86,7 +86,7 @@ const ZeeionJobOptimization = () => {
       let aiContent = "";
       await streamChat({
         messages: [
-          { role: "user", content: `[GOV DATA]\n${ctx.join("\n")}\n\n---\nYou are Aureon's Government Workforce Optimization Engine. Analyze ${countryName}'s government workforce and identify positions that can be automated or eliminated using AI/technology.\n\nReturn JSON with this EXACT structure:\n{\n  "totalAutomatablePositions": <number>,\n  "totalAnnualSavings": <number USD>,\n  "categories": [\n    {\n      "title": "<job category name>",\n      "positionCount": <number>,\n      "currentCost": <annual cost USD>,\n      "automationCost": <one-time cost USD>,\n      "annualSavings": <annual savings USD>,\n      "automationRate": <percentage 0-100>,\n      "implementation": "<timeline e.g. '6 months'>",\n      "retrainingOption": "<what affected workers can do>",\n      "solution": "<how AI/tech replaces this>"\n    }\n  ],\n  "transitionPlan": "<3-phase transition plan>",\n  "executiveSummary": "<executive summary>"\n}\n\nInclude 8-12 job categories. Be realistic with numbers based on ${countryName}'s government size and budget. Consider data entry clerks, permit processors, invoice processors, customer service, tax preparation, document review, scheduling, procurement, compliance checking, report generation, etc.` },
+          { role: "user", content: `[GOV DATA]\n${ctx.join("\n")}\n\n---\nYou are Asherin's Government Workforce Optimization Engine. Analyze ${countryName}'s government workforce and identify positions that can be automated or eliminated using AI/technology.\n\nReturn JSON with this EXACT structure:\n{\n  "totalAutomatablePositions": <number>,\n  "totalAnnualSavings": <number USD>,\n  "categories": [\n    {\n      "title": "<job category name>",\n      "positionCount": <number>,\n      "currentCost": <annual cost USD>,\n      "automationCost": <one-time cost USD>,\n      "annualSavings": <annual savings USD>,\n      "automationRate": <percentage 0-100>,\n      "implementation": "<timeline e.g. '6 months'>",\n      "retrainingOption": "<what affected workers can do>",\n      "solution": "<how AI/tech replaces this>"\n    }\n  ],\n  "transitionPlan": "<3-phase transition plan>",\n  "executiveSummary": "<executive summary>"\n}\n\nInclude 8-12 job categories. Be realistic with numbers based on ${countryName}'s government size and budget. Consider data entry clerks, permit processors, invoice processors, customer service, tax preparation, document review, scheduling, procurement, compliance checking, report generation, etc.` },
         ],
         mode: "research",
         onDelta: (chunk) => { aiContent += chunk; },
@@ -114,7 +114,7 @@ const ZeeionJobOptimization = () => {
     try {
       await streamChat({
         messages: [
-          { role: "user", content: `[CONTEXT]\n${JSON.stringify(rawData).substring(0, 6000)}\nJob Analysis: ${JSON.stringify(result).substring(0, 4000)}\n\nYou are Aureon's workforce optimization consultant. Answer questions about automatable government positions.` },
+          { role: "user", content: `[CONTEXT]\n${JSON.stringify(rawData).substring(0, 6000)}\nJob Analysis: ${JSON.stringify(result).substring(0, 4000)}\n\nYou are Asherin's workforce optimization consultant. Answer questions about automatable government positions.` },
           ...chatMsgs.map(m => ({ role: m.role, content: m.content })),
           { role: "user" as const, content: msg },
         ],
@@ -267,7 +267,7 @@ const ZeeionJobOptimization = () => {
           {/* Chat */}
           <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/[0.06]">
-              <div className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-foreground/40" /><span className="text-[10px] font-light tracking-wider text-foreground/60">AUREON WORKFORCE ANALYST</span></div>
+              <div className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-foreground/40" /><span className="text-[10px] font-light tracking-wider text-foreground/60">ASHERIN WORKFORCE ANALYST</span></div>
               {chatMsgs.length > 0 && <button onClick={() => setChatMsgs([])} className="p-1 rounded-lg hover:bg-foreground/[0.06]"><X className="h-3 w-3 text-muted-foreground/40" /></button>}
             </div>
             <div className="max-h-[300px] overflow-y-auto px-4 py-3 space-y-3">

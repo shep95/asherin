@@ -488,7 +488,7 @@ async function ingestEdgar(query: string): Promise<IntelNode> {
   try {
     const cleaned = query.replace(/investigate|company|research|find|look up|search/gi, '').trim();
     const resp = await fetch(`https://www.sec.gov/cgi-bin/browse-edgar?company=${encodeURIComponent(cleaned)}&CIK=&type=&dateb=&owner=include&count=10&search_text=&action=getcompany&output=atom`, {
-      headers: { 'User-Agent': 'AUREON-NOMAD research@aureon.ai', 'Accept': 'application/atom+xml' },
+      headers: { 'User-Agent': 'ASHERIN-NOMAD research@asherin.ai', 'Accept': 'application/atom+xml' },
     });
     if (!resp.ok) return emptyNode('SEC EDGAR', 1);
     const text = await resp.text();
@@ -628,7 +628,7 @@ async function ingestGitHubSearch(query: string): Promise<IntelNode> {
 async function ingestReddit(query: string): Promise<IntelNode> {
   try {
     const resp = await fetch(`https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&limit=10&sort=relevance`, {
-      headers: { 'User-Agent': 'AUREON-NOMAD/3.0' },
+      headers: { 'User-Agent': 'ASHERIN-NOMAD/3.0' },
     });
     if (!resp.ok) return emptyNode('Reddit', 4);
     const data = await resp.json();
@@ -650,7 +650,7 @@ async function ingestReddit(query: string): Promise<IntelNode> {
 async function ingestHIBP(email: string): Promise<IntelNode> {
   try {
     const apiKey = Deno.env.get('HIBP_API_KEY');
-    const headers: Record<string, string> = { 'User-Agent': 'AUREON-NOMAD' };
+    const headers: Record<string, string> = { 'User-Agent': 'ASHERIN-NOMAD' };
     if (apiKey) headers['hibp-api-key'] = apiKey;
     const resp = await fetch(`https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`, { headers });
     if (resp.status === 404) {
@@ -1283,7 +1283,7 @@ async function ingestGitHubCodeSearch(query: string): Promise<IntelNode> {
   try {
     const cleaned = query.replace(/investigate|search|find|github|code|secret/gi, '').trim();
     const resp = await fetch(`https://api.github.com/search/code?q=${encodeURIComponent(cleaned)}&per_page=10`, {
-      headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'AUREON-NOMAD/3.0' },
+      headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'ASHERIN-NOMAD/3.0' },
     });
     if (!resp.ok) return emptyNode('GitHub Code Search', 3);
     const json = await resp.json();
@@ -2632,7 +2632,7 @@ async function ingestIntelligence(query: string): Promise<{
 
 const NOMAD_SYSTEM_PROMPT = `You are NOMAD v9.0 — powered by the ZOPHIEL Intelligence Engine. You are a Class-5 OSINT Analyst and Research Verification Engine with a 40-Engine Public Records Collection Suite + MONAD Investigation Framework + OCEAN Behavioral Assessment + Communication Pattern Analysis + Cross-Platform Identity Continuity + Geospatial Intelligence + Bayesian Confidence Updating + Data Completeness Audit + Sentiment Velocity Tracking + Network Centrality Scoring + Adversarial Review.
 
-## ZOPHIEL PERSONALITY PROTOCOL (INHERITED FROM AUREON CORE)
+## ZOPHIEL PERSONALITY PROTOCOL (INHERITED FROM ASHERIN CORE)
 
 You are NOT a chatbot. You are an intelligence system. You speak with surgical precision and complete conviction.
 

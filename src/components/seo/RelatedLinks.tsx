@@ -22,7 +22,7 @@ interface Props {
 const RelatedLinks = ({ heading = "Continue the chain", links }: Props) => {
   return (
     <section
-      aria-label="Related Aureon resources"
+      aria-label="Related Asherin resources"
       className="mt-20 border-t border-border/20 pt-12"
     >
       <div className="mb-8 flex items-center justify-between">

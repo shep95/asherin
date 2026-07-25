@@ -82,9 +82,9 @@ const AIKeysSettings = () => {
         fallback_to_default: prefRes.data.fallback_to_default ?? true,
       };
       setPreferences(pref);
-      localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: pref.active_provider, model: pref.active_model }));
+      localStorage.setItem("asherin_byok_active", JSON.stringify({ provider: pref.active_provider, model: pref.active_model }));
     } else {
-      localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: "default", model: "default" }));
+      localStorage.setItem("asherin_byok_active", JSON.stringify({ provider: "default", model: "default" }));
     }
     setLoading(false);
   };
@@ -141,7 +141,7 @@ const AIKeysSettings = () => {
     } else {
       setPreferences(prev => ({ ...prev, active_provider: provider, active_model: model }));
       // Sync to localStorage for streamChat to read
-      localStorage.setItem("aureon_byok_active", JSON.stringify({ provider, model }));
+      localStorage.setItem("asherin_byok_active", JSON.stringify({ provider, model }));
       const providerName = provider === "default" ? "No model selected" : AI_PROVIDERS.find(p => p.id === provider)?.name;
       toast({ title: "Model updated", description: `Now using ${providerName}${model !== "default" ? ` → ${model}` : ""}` });
     }
@@ -176,7 +176,7 @@ const AIKeysSettings = () => {
         <Key className="h-5 w-5 text-muted-foreground" />
         <div>
           <h3 className="text-sm font-light text-foreground">AI Model Keys</h3>
-          <p className="text-[10px] text-muted-foreground/50 mt-0.5">Bring your own API keys. Aureon never lends out a shared key — every request runs on the keys you add here.</p>
+          <p className="text-[10px] text-muted-foreground/50 mt-0.5">Bring your own API keys. Asherin never lends out a shared key — every request runs on the keys you add here.</p>
         </div>
       </div>
 
@@ -200,7 +200,7 @@ const AIKeysSettings = () => {
 
         <div className="mt-3 pt-3 border-t border-border/10 flex items-start gap-2 text-[10px] text-muted-foreground/60">
           <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5 text-amber-400/60" />
-          <span>You can enable multiple providers at once and toggle them per-conversation from the chat header. Aureon does not provide a shared/default key.</span>
+          <span>You can enable multiple providers at once and toggle them per-conversation from the chat header. Asherin does not provide a shared/default key.</span>
         </div>
       </div>
 

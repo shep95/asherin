@@ -14,7 +14,7 @@ const PRO_VIEWS: DashboardView[] = [
   "google", "pattern-analysis", "video-intelligence", "lavba", "cross",
   "zaplen", "zaxin", "zerlal", "knowledge-vault", "zacoon",
 ];
-const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks"];
+const ASHERIN_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks"];
 const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "file-scrapper", "cipher"];
 const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow", "zahten", "ebook", "ide", "whiteboard", "media2code"];
 const PUBLIC_VIEWS: DashboardView[] = [
@@ -42,7 +42,7 @@ export function useAccess() {
   const tier = tierKey;
   const hasChat = !!tier;
   const hasSearch = !!tier;
-  const hasAureon = tier === "monthly_aureon" || tier === "aureon" || tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
+  const hasAsherin = tier === "monthly_asherin" || tier === "asherin" || tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
   const hasPro = tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
   const hasEnterprise = hasPro;
 
@@ -57,16 +57,16 @@ export function useAccess() {
     if (subLoading && !!tier) return true;
     if (CHAT_VIEWS.includes(view)) return hasChat;
     if (SEARCH_VIEWS.includes(view)) return hasSearch;
-    if (AUREON_VIEWS.includes(view)) return hasAureon;
+    if (ASHERIN_VIEWS.includes(view)) return hasAsherin;
     if (PRO_VIEWS.includes(view)) return hasPro;
     if (ENTERPRISE_VIEWS.includes(view)) return hasEnterprise;
     // Unknown views default to the lowest paid tier — fail closed.
     return hasChat;
-  }, [isAdmin, trialActive, subLoading, tier, hasChat, hasSearch, hasAureon, hasPro, hasEnterprise]);
+  }, [isAdmin, trialActive, subLoading, tier, hasChat, hasSearch, hasAsherin, hasPro, hasEnterprise]);
 
   return useMemo(() => ({
     canAccess, isAdmin, tierKey, isPastDue,
-    hasChat, hasSearch, hasAureon, hasPro, hasEnterprise,
+    hasChat, hasSearch, hasAsherin, hasPro, hasEnterprise,
     trialActive, trialEnded, trialEndsAt,
-  }), [canAccess, isAdmin, tierKey, isPastDue, hasChat, hasSearch, hasAureon, hasPro, hasEnterprise, trialActive, trialEnded, trialEndsAt]);
+  }), [canAccess, isAdmin, tierKey, isPastDue, hasChat, hasSearch, hasAsherin, hasPro, hasEnterprise, trialActive, trialEnded, trialEndsAt]);
 }

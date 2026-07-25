@@ -33,7 +33,7 @@ function formatBlueprintIntel(url: string, payload: any): string {
     const securityHeaders = ["strict-transport-security", "content-security-policy", "x-frame-options", "x-content-type-options", "referrer-policy", "permissions-policy"];
     const present = securityHeaders.filter((h) => headers[h]);
     const missing = securityHeaders.filter((h) => !headers[h]);
-    return `## AUREON LINK INTELLIGENCE REPORT\n\n**Target:** ${url}\n\n**Summary:** ${payload.summary}\n\n| Signal | Value |\n|---|---|\n| HTTP | ${payload?.http?.status ?? "unreachable"} → ${payload?.http?.finalUrl || "n/a"} |\n| DNS A | ${(payload?.dns?.A || []).join(", ") || "none observed"} |\n| Security Score | ${payload?.score?.security ?? "n/a"}/100 |\n| Tech Signals | ${(payload?.tech || []).join(", ") || "none fingerprinted"} |\n\n### Security Header Posture\n\n| Present | Missing |\n|---|---|\n| ${present.join(", ") || "none"} | ${missing.join(", ") || "none"} |\n\n### Findings\n\n| Finding | Severity | Evidence | Remediation |\n|---|---:|---|---|\n${rows}`;
+    return `## ASHERIN LINK INTELLIGENCE REPORT\n\n**Target:** ${url}\n\n**Summary:** ${payload.summary}\n\n| Signal | Value |\n|---|---|\n| HTTP | ${payload?.http?.status ?? "unreachable"} → ${payload?.http?.finalUrl || "n/a"} |\n| DNS A | ${(payload?.dns?.A || []).join(", ") || "none observed"} |\n| Security Score | ${payload?.score?.security ?? "n/a"}/100 |\n| Tech Signals | ${(payload?.tech || []).join(", ") || "none fingerprinted"} |\n\n### Security Header Posture\n\n| Present | Missing |\n|---|---|\n| ${present.join(", ") || "none"} | ${missing.join(", ") || "none"} |\n\n### Findings\n\n| Finding | Severity | Evidence | Remediation |\n|---|---:|---|---|\n${rows}`;
   }
 
   const blueprint = payload?.blueprint || {};
@@ -65,7 +65,7 @@ function formatBlueprintIntel(url: string, payload: any): string {
     ? weaknessRows.map((r) => `| ${r.finding} | ${r.severity} | ${r.evidence} | Patch config/header/code path and retest |`).join("\n")
     : "| No high-confidence surface flaw from current unauthenticated scan | Info | Live scan completed | Run authenticated crawl / DAST for deeper coverage |";
 
-  return `## AUREON LINK INTELLIGENCE REPORT\n\n**Target:** ${url}\n\n**Summary:** ${blueprint?.summary || "Live defensive URL intelligence completed from observable public surface."}\n\n| Signal | Value |\n|---|---|\n| HTTP | ${recon?.http?.status ?? "unreachable"} → ${recon?.http?.finalUrl || "n/a"} |\n| DNS A | ${(dns?.A || []).join(", ") || "none observed"} |\n| Security Score | ${score.security ?? "n/a"}/100 |\n| Performance Score | ${score.performance ?? "n/a"}/100 |\n| JS Bundles Scanned | ${secrets?.bundles_scanned ?? 0} |\n| Subdomains Found | ${(recon?.subdomains || []).length} |\n\n### Security Header Posture\n\n| Present | Missing |\n|---|---|\n| ${present.join(", ") || "none"} | ${missing.join(", ") || "none"} |\n\n### Findings\n\n| Finding | Severity | Evidence | Remediation |\n|---|---:|---|---|\n${rows}\n\n### Raw Live Evidence\n\n\`\`\`json\n${JSON.stringify({ recon, forensics, secrets }, null, 2).slice(0, 12000)}\n\`\`\``;
+  return `## ASHERIN LINK INTELLIGENCE REPORT\n\n**Target:** ${url}\n\n**Summary:** ${blueprint?.summary || "Live defensive URL intelligence completed from observable public surface."}\n\n| Signal | Value |\n|---|---|\n| HTTP | ${recon?.http?.status ?? "unreachable"} → ${recon?.http?.finalUrl || "n/a"} |\n| DNS A | ${(dns?.A || []).join(", ") || "none observed"} |\n| Security Score | ${score.security ?? "n/a"}/100 |\n| Performance Score | ${score.performance ?? "n/a"}/100 |\n| JS Bundles Scanned | ${secrets?.bundles_scanned ?? 0} |\n| Subdomains Found | ${(recon?.subdomains || []).length} |\n\n### Security Header Posture\n\n| Present | Missing |\n|---|---|\n| ${present.join(", ") || "none"} | ${missing.join(", ") || "none"} |\n\n### Findings\n\n| Finding | Severity | Evidence | Remediation |\n|---|---:|---|---|\n${rows}\n\n### Raw Live Evidence\n\n\`\`\`json\n${JSON.stringify({ recon, forensics, secrets }, null, 2).slice(0, 12000)}\n\`\`\``;
 }
 
 const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
@@ -268,7 +268,7 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
         <div className="border-t border-border/10 px-3 py-2 max-h-[400px] overflow-y-auto">
           <div className="text-[10px] font-semibold tracking-widest text-accent/60 uppercase mb-1.5 flex items-center gap-1.5">
             <Crosshair className="h-3 w-3" />
-              AUREON INTELLIGENCE REPORT
+              ASHERIN INTELLIGENCE REPORT
           </div>
           <div className="prose prose-sm prose-invert max-w-none text-[11px] leading-relaxed [&_p]:mb-1.5 [&_p]:last:mb-0 [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[10px] [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:p-2 [&_pre]:text-[10px] [&_ul]:space-y-0.5 [&_li]:text-[11px] [&_h1]:text-xs [&_h2]:text-[11px] [&_h3]:text-[11px] [&_table]:text-[10px] [&_th]:px-2 [&_th]:py-1 [&_td]:px-2 [&_td]:py-1 [&_table]:border-border/20 [&_th]:border-border/20 [&_td]:border-border/20 [&_hr]:border-border/20">
             <ReactMarkdown>{extracted}</ReactMarkdown>

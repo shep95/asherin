@@ -286,7 +286,7 @@ const VoiceCallOverlay = ({
   const statusText = isConnecting
     ? "Connecting…"
     : isSpeaking
-      ? "Aureon is speaking"
+      ? "Asherin is speaking"
       : userSpeechIndicator
         ? "Hearing you…"
         : "Listening…";
@@ -331,7 +331,7 @@ const VoiceCallOverlay = ({
                 <span
                   className={`font-light ${entry.role === "user" ? "text-accent/80" : "text-primary/80"}`}
                 >
-                  {entry.role === "user" ? "You" : "Aureon"}:
+                  {entry.role === "user" ? "You" : "Asherin"}:
                 </span>{" "}
                 <span className="text-foreground/50">{entry.text}</span>
               </div>
