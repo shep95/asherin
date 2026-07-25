@@ -60,6 +60,16 @@ const FAQ = [
 ];
 
 const Pricing = () => {
+  // Per-route head: unique title, meta description, canonical, og/twitter.
+  useEffect(() => {
+    applySeoHead({
+      title: "Asherin Pricing — $18/mo Core, $399/mo Pro",
+      description:
+        "Asherin subscription pricing: $18/mo core, $399/mo Pro (full intelligence suite), custom Enterprise. Monthly, USD, cancel anytime — no trial, no upsell wall.",
+      path: "/pricing",
+    });
+  }, []);
+
   // Product JSON-LD with two Offers (Asherin + Asherin Pro) — highest-fidelity
   // schema for a SaaS pricing page. AggregateOffer wraps both tiers so AI
   // search engines can quote the price range directly.
