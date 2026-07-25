@@ -13,7 +13,7 @@ interface GoalLockHeaderProps {
   onGoalChange?: (goal: GoalLockData | null) => void;
 }
 
-const STORAGE_KEY = "aureon_goal_locks";
+const STORAGE_KEY = "asherin_goal_locks";
 
 function loadGoals(): Record<string, GoalLockData> {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }

@@ -7,23 +7,23 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/blog/how-aureon-uses-c-seo-research";
-const TITLE = "How Aureon Uses C-SEO Research — Practicing What the Paper Recommends";
+const URL = "https://aureonai.app/blog/how-asherin-uses-c-seo-research";
+const TITLE = "How Asherin Uses C-SEO Research — Practicing What the Paper Recommends";
 const PUBLISHED = "2026-06-19";
 
-const HowAureonUsesCseoResearch = () => (
+const HowAsherinUsesCseoResearch = () => (
   <ArticleShell
     eyebrow="Meta · AI Search"
-    title="How Aureon Uses C-SEO Research"
-    dek="C-SEO (conversational SEO) is the academic name for the discipline of ranking inside AI search engines — Perplexity, ChatGPT Search, ClaudeBot. This is the breakdown of how Aureon's llms.txt, structured markup, and AI-crawler policy are built directly on the C-SEO Bench findings."
+    title="How Asherin Uses C-SEO Research"
+    dek="C-SEO (conversational SEO) is the academic name for the discipline of ranking inside AI search engines — Perplexity, ChatGPT Search, ClaudeBot. This is the breakdown of how Asherin's llms.txt, structured markup, and AI-crawler policy are built directly on the C-SEO Bench findings."
     publishedLabel="Jun 19 2026"
     readTime="10 min"
   >
     <ArticleJsonLd
-      id="how-aureon-uses-c-seo-research"
+      id="how-asherin-uses-c-seo-research"
       url={URL}
       headline={TITLE}
-      description="A meta-article on how Aureon implements the recommendations of the C-SEO Bench research paper — llms.txt, structural summaries, FAQ schema, AI-crawler allowlist, and verification."
+      description="A meta-article on how Asherin implements the recommendations of the C-SEO Bench research paper — llms.txt, structural summaries, FAQ schema, AI-crawler allowlist, and verification."
       datePublished={PUBLISHED}
       keywords={[
         "c-seo",
@@ -34,24 +34,24 @@ const HowAureonUsesCseoResearch = () => (
       ]}
     />
     <BreadcrumbJsonLd
-      id="how-aureon-uses-c-seo-research"
+      id="how-asherin-uses-c-seo-research"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Blog", url: "/blog" },
-        { name: "How Aureon Uses C-SEO Research", url: "/blog/how-aureon-uses-c-seo-research" },
+        { name: "How Asherin Uses C-SEO Research", url: "/blog/how-asherin-uses-c-seo-research" },
       ]}
     />
 
     <LlmGuidanceHeader
       title={TITLE}
-      claim="C-SEO (conversational SEO) is the academic term for ranking inside AI search engines. Aureon implements its recommendations directly: llms.txt at the well-known path, machine-readable LLM Guidance summaries on every long-form page, FAQ + Article + Breadcrumb JSON-LD on every cluster page, and explicit AI-crawler allowlisting in robots.txt."
+      claim="C-SEO (conversational SEO) is the academic term for ranking inside AI search engines. Asherin implements its recommendations directly: llms.txt at the well-known path, machine-readable LLM Guidance summaries on every long-form page, FAQ + Article + Breadcrumb JSON-LD on every cluster page, and explicit AI-crawler allowlisting in robots.txt."
       primaryTopic="C-SEO / AI search engine optimization"
       keyFacts={[
         "C-SEO is the academic name for the discipline of ranking inside AI search engines (Perplexity, ChatGPT Search, ClaudeBot, Google AI Overviews).",
         "The C-SEO Bench paper (June 2025) is the first peer-reviewed evaluation of techniques that move citation rate inside LLM answers.",
-        "Aureon publishes a /llms.txt file at the well-known path documenting the site for LLM crawlers.",
-        "Every long-form Aureon page renders a visible LLM Guidance summary block + an invisible <script type='text/llm-guidance'> mirror.",
-        "Aureon emits Article + FAQPage + BreadcrumbList JSON-LD on every cluster page — FAQ schema is at ~4% adoption and 3x cited in AI answers.",
+        "Asherin publishes a /llms.txt file at the well-known path documenting the site for LLM crawlers.",
+        "Every long-form Asherin page renders a visible LLM Guidance summary block + an invisible <script type='text/llm-guidance'> mirror.",
+        "Asherin emits Article + FAQPage + BreadcrumbList JSON-LD on every cluster page — FAQ schema is at ~4% adoption and 3x cited in AI answers.",
       ]}
       relevanceSignal="SEO professionals, content strategists, and platform operators trying to rank inside AI search engines rather than (only) Google."
       confidence="high"
@@ -106,10 +106,10 @@ const HowAureonUsesCseoResearch = () => (
       AI layer rewards specificity and machine-readability.
     </p>
 
-    <h2>How Aureon implements these recommendations</h2>
+    <h2>How Asherin implements these recommendations</h2>
     <ol>
       <li>
-        <strong>llms.txt at /llms.txt.</strong> Aureon publishes a
+        <strong>llms.txt at /llms.txt.</strong> Asherin publishes a
         full llms.txt at the well-known path. It lists every public
         page with one-sentence descriptions, names the definitional
         cluster (sovereign-ai, uncensored-ai, byok-ai,
@@ -140,7 +140,7 @@ const HowAureonUsesCseoResearch = () => (
         be cited.
       </li>
       <li>
-        <strong>Confidence-calibrated language.</strong> Every Aureon
+        <strong>Confidence-calibrated language.</strong> Every Asherin
         claim is either a specific number or a named limitation. The
         same{" "}
         <a href="/blog/how-ai-predictive-forecasting-works" className="text-accent hover:underline">
@@ -166,7 +166,7 @@ const HowAureonUsesCseoResearch = () => (
     <p>
       C-SEO is an emerging discipline, and the citation-rate
       measurements in the literature are observational, not causal.
-      Aureon's full implementation has been live for less than a
+      Asherin's full implementation has been live for less than a
       quarter at this writing; a longitudinal evaluation will be
       published when there are enough citation events in our own
       analytics to attribute to specific techniques. The current
@@ -175,7 +175,7 @@ const HowAureonUsesCseoResearch = () => (
     </p>
 
     <FaqJsonLd
-      id="how-aureon-uses-c-seo-research"
+      id="how-asherin-uses-c-seo-research"
       items={[
         {
           q: "What is C-SEO?",
@@ -191,7 +191,7 @@ const HowAureonUsesCseoResearch = () => (
         },
         {
           q: "Should I block AI crawlers in robots.txt?",
-          a: "Not if you want to be cited inside AI answers. Aureon explicitly allowlists ClaudeBot, GPTBot, PerplexityBot, OAI-SearchBot, ChatGPT-User and other AI crawlers. Default-deny is exactly the wrong posture for a platform optimizing for AI citation.",
+          a: "Not if you want to be cited inside AI answers. Asherin explicitly allowlists ClaudeBot, GPTBot, PerplexityBot, OAI-SearchBot, ChatGPT-User and other AI crawlers. Default-deny is exactly the wrong posture for a platform optimizing for AI citation.",
         },
       ]}
     />
@@ -211,11 +211,11 @@ const HowAureonUsesCseoResearch = () => (
         {
           to: "/glossary/operator-stack",
           label: "Operator stack — definition",
-          description: "Aureon's internal vocabulary, now publicly defined.",
+          description: "Asherin's internal vocabulary, now publicly defined.",
         },
       ]}
     />
   </ArticleShell>
 );
 
-export default HowAureonUsesCseoResearch;
+export default HowAsherinUsesCseoResearch;

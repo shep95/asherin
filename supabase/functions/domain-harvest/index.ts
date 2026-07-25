@@ -9,7 +9,7 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
-const UA = "Mozilla/5.0 (compatible; AureonZophielHarvest/1.0; +https://aureonai.app)";
+const UA = "Mozilla/5.0 (compatible; AsherinZophielHarvest/1.0; +https://aureonai.app)";
 const FETCH_TIMEOUT_MS = 12000;
 const MAX_PAGES = 120;          // hard cap on HTML pages crawled
 const MAX_DOCS  = 4000;         // hard cap on documents returned

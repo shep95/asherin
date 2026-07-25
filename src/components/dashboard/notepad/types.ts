@@ -21,8 +21,8 @@ export interface NotepadChatMessage {
   content: string;
 }
 
-export const NOTEPAD_KEY = "aureon_notepad_tree";
-export const POS_KEY = "aureon_notepad_pos";
+export const NOTEPAD_KEY = "asherin_notepad_tree";
+export const POS_KEY = "asherin_notepad_pos";
 
 export function genId(): string {
   return crypto.randomUUID?.() || Math.random().toString(36).slice(2, 10);

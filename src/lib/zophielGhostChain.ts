@@ -1,5 +1,5 @@
 // zophielGhostChain.ts — thin client for the ported Zophiel v2 pipeline.
-// Called by ZophielEngineView (ghostchain mode) AND by Aureon/Asher chat
+// Called by ZophielEngineView (ghostchain mode) AND by Asherin/Asher chat
 // handlers whenever they need to scrape/analyze a URL rather than a file.
 //
 // Upstream: supabase/functions/zophiel-ghostchain/index.ts

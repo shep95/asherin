@@ -39,7 +39,7 @@ const AuditLogView = lazyWithRetry(() => import("@/components/dashboard/AuditLog
 const PredictiveIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/PredictiveIntelligenceView"));
 
 const PersonaStoreView = lazyWithRetry(() => import("@/components/dashboard/PersonaStoreView"));
-const AureonIdeView = lazyWithRetry(() => import("@/components/dashboard/ide/AureonIdeView"));
+const AsherinIdeView = lazyWithRetry(() => import("@/components/dashboard/ide/AsherinIdeView"));
 const WhiteboardView = lazyWithRetry(() => import("@/components/whiteboard/Whiteboard"));
 const PdfGeneratorView = lazyWithRetry(() => import("@/components/dashboard/PdfGeneratorView"));
 const DocumentExportLanding = lazyWithRetry(() => import("@/components/dashboard/DocumentExportLanding"));
@@ -145,7 +145,7 @@ const Dashboard = () => {
   const { canAccess, tierKey } = useAccess();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(() => {
-    try { return localStorage.getItem("aureon_active_conv_id") || null; } catch { return null; }
+    try { return localStorage.getItem("asherin_active_conv_id") || null; } catch { return null; }
   });
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
@@ -184,7 +184,7 @@ const Dashboard = () => {
   const [depth, setDepth] = useState<ResponseDepth>("standard");
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  // Donation Era: Aureon is fully free. Everyone gets the toggle and can pick
+  // Donation Era: Asherin is fully free. Everyone gets the toggle and can pick
   // between the Algorithm LLM and BYOK chat. Nothing is locked behind a tier.
   const isAdminUser = isAdminEmail(user?.email);
   const isFreeUser = false;
@@ -218,14 +218,14 @@ const Dashboard = () => {
   const [publishedAgents, setPublishedAgents] = useState<{ id: string; name: string; entry_html: string | null }[]>([]);
   const [isDraggingConvo, setIsDraggingConvo] = useState(false);
   const [activeBrainId, setActiveBrainId] = useState<string | null>(() => {
-    try { return localStorage.getItem("aureon_active_brain_id") || null; } catch { return null; }
+    try { return localStorage.getItem("asherin_active_brain_id") || null; } catch { return null; }
   });
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
       const oldStored = localStorage.getItem("zialiel_custom_personas");
-      const newStored = localStorage.getItem("aureon_custom_personas");
+      const newStored = localStorage.getItem("asherin_custom_personas");
       if (oldStored && !newStored) {
-        localStorage.setItem("aureon_custom_personas", oldStored);
+        localStorage.setItem("asherin_custom_personas", oldStored);
         localStorage.removeItem("zialiel_custom_personas");
         return JSON.parse(oldStored);
       }
@@ -234,15 +234,15 @@ const Dashboard = () => {
   });
   const [wallpaperKey, setWallpaperKey] = useState(() => {
     try {
-      // Newbies: seed the default Aureon wallpaper so it persists across reloads
+      // Newbies: seed the default Asherin wallpaper so it persists across reloads
       // until they explicitly change it in Settings.
-      const existing = localStorage.getItem("aureon_wallpaper");
+      const existing = localStorage.getItem("asherin_wallpaper");
       if (!existing) {
-        localStorage.setItem("aureon_wallpaper", "aureon");
-        return "aureon";
+        localStorage.setItem("asherin_wallpaper", "asherin");
+        return "asherin";
       }
       return existing;
-    } catch { return "aureon"; }
+    } catch { return "asherin"; }
   });
   const [prevDashWallpaper, setPrevDashWallpaper] = useState<string | null>(null);
   const [isDashTransitioning, setIsDashTransitioning] = useState(false);
@@ -251,9 +251,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     applySeoHead({
-      title: "Dashboard — Aureon Workspace",
+      title: "Dashboard — Asherin Workspace",
       description:
-        "Your Aureon workspace — chats, agents, projects, intelligence modules, and BYOK controls in one private dashboard.",
+        "Your Asherin workspace — chats, agents, projects, intelligence modules, and BYOK controls in one private dashboard.",
       path: "/dashboard",
     });
   }, []);
@@ -261,7 +261,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     const handler = () => {
-      const newKey = localStorage.getItem("aureon_wallpaper") || "aureon";
+      const newKey = localStorage.getItem("asherin_wallpaper") || "asherin";
       const newSrc = getWallpaperSrc(newKey);
       const oldSrc = getWallpaperSrc(wallpaperKey);
       if (newSrc !== oldSrc) {
@@ -276,10 +276,10 @@ const Dashboard = () => {
       setWallpaperKey(newKey);
     };
     window.addEventListener("storage", handler);
-    window.addEventListener("aureon-wallpaper-change", handler);
+    window.addEventListener("asherin-wallpaper-change", handler);
     return () => {
       window.removeEventListener("storage", handler);
-      window.removeEventListener("aureon-wallpaper-change", handler);
+      window.removeEventListener("asherin-wallpaper-change", handler);
       if (dashTransRef.current) clearTimeout(dashTransRef.current);
     };
   }, [wallpaperKey]);
@@ -287,7 +287,7 @@ const Dashboard = () => {
   // Global drag detection for split-pane drop zones
   useEffect(() => {
     const onDragOver = (e: DragEvent) => {
-      if (e.dataTransfer?.types.includes("text/aureon-conversation-id")) {
+      if (e.dataTransfer?.types.includes("text/asherin-conversation-id")) {
         setIsDraggingConvo(true);
       }
     };
@@ -468,7 +468,7 @@ const Dashboard = () => {
   const addCustomPersona = useCallback((persona: Persona) => {
     setCustomPersonas((prev) => {
       const next = [...prev, persona];
-      localStorage.setItem("aureon_custom_personas", JSON.stringify(next));
+      localStorage.setItem("asherin_custom_personas", JSON.stringify(next));
       return next;
     });
   }, []);
@@ -476,7 +476,7 @@ const Dashboard = () => {
   const editCustomPersona = useCallback((persona: Persona) => {
     setCustomPersonas((prev) => {
       const next = prev.map(p => p.id === persona.id ? persona : p);
-      localStorage.setItem("aureon_custom_personas", JSON.stringify(next));
+      localStorage.setItem("asherin_custom_personas", JSON.stringify(next));
       return next;
     });
   }, []);
@@ -484,7 +484,7 @@ const Dashboard = () => {
   const deleteCustomPersona = useCallback((id: string) => {
     setCustomPersonas((prev) => {
       const next = prev.filter(p => p.id !== id);
-      localStorage.setItem("aureon_custom_personas", JSON.stringify(next));
+      localStorage.setItem("asherin_custom_personas", JSON.stringify(next));
       return next;
     });
     if (personaId === id) setPersonaId(null);
@@ -492,19 +492,19 @@ const Dashboard = () => {
 
   // Sync custom personas to localStorage on every change (safety net)
   useEffect(() => {
-    localStorage.setItem("aureon_custom_personas", JSON.stringify(customPersonas));
+    localStorage.setItem("asherin_custom_personas", JSON.stringify(customPersonas));
   }, [customPersonas]);
 
   // Listen for persona changes from store installs
   useEffect(() => {
     const handler = () => {
       try {
-        const stored = localStorage.getItem("aureon_custom_personas");
+        const stored = localStorage.getItem("asherin_custom_personas");
         if (stored) setCustomPersonas(JSON.parse(stored));
       } catch {}
     };
-    window.addEventListener("aureon-personas-change", handler);
-    return () => window.removeEventListener("aureon-personas-change", handler);
+    window.addEventListener("asherin-personas-change", handler);
+    return () => window.removeEventListener("asherin-personas-change", handler);
   }, []);
 
   // CMD+K and CMD+1-4 global shortcuts
@@ -529,17 +529,17 @@ const Dashboard = () => {
       const view = (e as CustomEvent).detail as DashboardView;
       if (view) setActiveView(view);
     };
-    window.addEventListener("aureon:navigate", handler);
-    return () => window.removeEventListener("aureon:navigate", handler);
+    window.addEventListener("asherin:navigate", handler);
+    return () => window.removeEventListener("asherin:navigate", handler);
   }, []);
 
   // Load stored BYOK providers for consensus selector.
-  // "aureon" is platform-hosted (no key) and always available as a switchable provider.
+  // "asherin" is platform-hosted (no key) and always available as a switchable provider.
   useEffect(() => {
     if (!user) return;
     supabase.from("user_api_keys").select("provider").eq("user_id", user.id).eq("is_active", true).then(({ data }) => {
       const byok = data ? data.map(d => d.provider) : [];
-      setStoredProviders(["aureon", ...byok.filter(p => p !== "aureon")]);
+      setStoredProviders(["asherin", ...byok.filter(p => p !== "asherin")]);
     });
   }, [user]);
 
@@ -579,12 +579,12 @@ const Dashboard = () => {
       if (settingsResult.data?.wallpaper) {
         const dbWallpaper = settingsResult.data.wallpaper as string;
         setWallpaperKey(dbWallpaper);
-        localStorage.setItem("aureon_wallpaper", dbWallpaper);
+        localStorage.setItem("asherin_wallpaper", dbWallpaper);
       }
 
       const convRows = convResult.data ?? [];
       if (convRows.length === 0) {
-        const savedConvId = localStorage.getItem("aureon_active_conv_id");
+        const savedConvId = localStorage.getItem("asherin_active_conv_id");
         const canBootstrapConversation =
           !bootstrapConversationRef.current &&
           conversationsRef.current.length === 0 &&
@@ -621,7 +621,7 @@ const Dashboard = () => {
 
       // FAST PATH: render dashboard immediately with conversation list (no messages yet),
       // then lazy-hydrate messages in the background. Cuts loading screen from 10s+ to <1s.
-      const preferredConvId = activeConvIdRef.current ?? localStorage.getItem("aureon_active_conv_id");
+      const preferredConvId = activeConvIdRef.current ?? localStorage.getItem("asherin_active_conv_id");
       const shellConvs: Conversation[] = convRows.map((c) => ({
         id: c.id,
         title: c.title,
@@ -641,7 +641,7 @@ const Dashboard = () => {
       // Restore branches in background
       convRows.forEach((c) => {
         restoreBranchesFromDB(c.id, (c as any).branches);
-        const restored = localStorage.getItem("aureon_conv_branches");
+        const restored = localStorage.getItem("asherin_conv_branches");
         const parsed = restored ? JSON.parse(restored) : {};
         const current = parsed[c.id];
         if (!Array.isArray((c as any).branches) || (c as any).branches.length === 0 || !current?.some((branch: any) => branch.id === "main")) {
@@ -704,24 +704,24 @@ const Dashboard = () => {
   useEffect(() => {
     activeConvIdRef.current = activeConvId;
     if (activeConvId) {
-      localStorage.setItem("aureon_active_conv_id", activeConvId);
+      localStorage.setItem("asherin_active_conv_id", activeConvId);
     }
   }, [activeConvId]);
 
   // Persist active brain id
   useEffect(() => {
     if (activeBrainId) {
-      localStorage.setItem("aureon_active_brain_id", activeBrainId);
+      localStorage.setItem("asherin_active_brain_id", activeBrainId);
     } else {
-      localStorage.removeItem("aureon_active_brain_id");
+      localStorage.removeItem("asherin_active_brain_id");
     }
   }, [activeBrainId]);
 
   useEffect(() => {
     if (personaId) {
-      localStorage.setItem("aureon_active_persona_id", personaId);
+      localStorage.setItem("asherin_active_persona_id", personaId);
     } else {
-      localStorage.removeItem("aureon_active_persona_id");
+      localStorage.removeItem("asherin_active_persona_id");
     }
   }, [personaId]);
 
@@ -902,7 +902,7 @@ const Dashboard = () => {
       }
       await supabase.from("user_intelligence_profile").update(updates).eq("user_id", user.id);
     }
-    toast({ title: "Calibrated", description: "Aureon adjusted to your preference." });
+    toast({ title: "Calibrated", description: "Asherin adjusted to your preference." });
   }, [user, toast]);
 
   const stopStreaming = useCallback(() => {
@@ -945,7 +945,7 @@ const Dashboard = () => {
       if (match) {
         toast({
           title: `Persona suggestion: ${match.label}`,
-          description: "Aureon detected a task that matches this persona.",
+          description: "Asherin detected a task that matches this persona.",
           action: React.createElement(ToastAction, {
             altText: "Switch persona",
             onClick: () => setPersonaId(match.personaId),
@@ -1206,7 +1206,7 @@ const Dashboard = () => {
             setSuggestions(sug);
           } catch { /* suggestions are non-critical */ }
           pushNotification({
-            title: "Aureon responded",
+            title: "Asherin responded",
             message: assistantContent.slice(0, 80) + (assistantContent.length > 80 ? "…" : ""),
             type: "success",
             actionLabel: "View",
@@ -1488,8 +1488,8 @@ const Dashboard = () => {
       case "audit": return gatedView("audit", AuditLogView, "Audit Trail", "Complete access and activity logging for compliance and security. Available on Pro plans.");
       case "zahten": return gatedView("zahten" as DashboardView, AsherZahtenModule, "Zahten Agent Forge", "Autonomous agent builder — design, scaffold, and harden production-grade automated agents. Available on the Chat plan and above.");
       
-      case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
-      case "cross": return gatedView("cross", CrossView, "Cross — Live Screen Intelligence", "Real-time screen analysis — share your screen with Aureon for instant pattern detection, alerts, and recommendations. Admin only.");
+      case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Asherin powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
+      case "cross": return gatedView("cross", CrossView, "Cross — Live Screen Intelligence", "Real-time screen analysis — share your screen with Asherin for instant pattern detection, alerts, and recommendations. Admin only.");
       case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.");
       case "axrlen": return gatedView("axrlen", AxrlenView, "Axrlen — Predictive Intelligence", "Real-time global event prediction and policy simulation — powered by live data from 9+ intelligence sources. Available on Pro plans.");
       case "zerlal": return gatedView("zerlal", ZerlalView, "ZERLAL — Cyber Recon", "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.");
@@ -1498,13 +1498,13 @@ const Dashboard = () => {
       
       
       // case "imagine-intelligence" removed
-      case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Aureon and above.");
+      case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Asherin and above.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro plans.");
       
       case "bug-reports": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense></ErrorBoundary>;
       case "guardian-vault": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GuardianVaultView /></Suspense></ErrorBoundary>;
-      case "knowledge-vault": return gatedView("knowledge-vault", KnowledgeVaultView, "Knowledge Vault (RAG)", "Private retrieval-augmented memory — upload files or connect APIs and Aureon will cite them automatically in every chat. Available on the $399/mo Pro plan.");
-      case "cipher": return gatedView("cipher", CipherView, "Cipher — Data Operations", "Intelligence-grade data toolkit — encoding, hashing, encryption, format conversion, and recipe chaining. All operations run client-side. Available on Aureon and above.");
+      case "knowledge-vault": return gatedView("knowledge-vault", KnowledgeVaultView, "Knowledge Vault (RAG)", "Private retrieval-augmented memory — upload files or connect APIs and Asherin will cite them automatically in every chat. Available on the $399/mo Pro plan.");
+      case "cipher": return gatedView("cipher", CipherView, "Cipher — Data Operations", "Intelligence-grade data toolkit — encoding, hashing, encryption, format conversion, and recipe chaining. All operations run client-side. Available on Asherin and above.");
       case "gematria": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GematriaView /></Suspense></ErrorBoundary>;
       // Always-accessible views
       case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;
@@ -1519,7 +1519,7 @@ const Dashboard = () => {
       case "api-keys": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><div className="h-full overflow-y-auto"><div className="max-w-5xl mx-auto px-6 py-8"><div className="mb-6"><h2 className="text-2xl font-light text-foreground tracking-tight">API Keys</h2><p className="mt-1 text-sm text-muted-foreground">Add and manage your AI provider API keys. Your keys are encrypted and used for BYOK (Bring Your Own Key) requests.</p></div><AIKeysSettings /></div></div></Suspense></ErrorBoundary>;
       case "subscription": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SubscriptionView /></Suspense></ErrorBoundary>;
       case "persona-store": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><PersonaStoreView /></Suspense></ErrorBoundary>;
-      case "ide": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense></ErrorBoundary>;
+      case "ide": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><AsherinIdeView /></Suspense></ErrorBoundary>;
       case "pdf-generator": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><DocumentExportLanding /></Suspense></ErrorBoundary>;
       case "ebook": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><EBookGeneratorView /></Suspense></ErrorBoundary>;
       case "slideshow": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense></ErrorBoundary>;
@@ -1562,7 +1562,7 @@ const Dashboard = () => {
       ) : (
         <div className="flex h-full w-full items-center justify-center px-6">
           <div className="max-w-md text-center space-y-4">
-            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">◈ AUREON</p>
+            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">◈ ASHERIN</p>
             <h2 className="text-xl font-extralight tracking-wide text-foreground">Welcome to your workspace.</h2>
             <p className="text-sm font-extralight text-muted-foreground">
               Spin up your first conversation, or pick a module from the sidebar.
@@ -1592,7 +1592,7 @@ const Dashboard = () => {
   if (!loaded) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">AUREON</div>
+        <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">ASHERIN</div>
       </div>
     );
   }
@@ -1602,7 +1602,7 @@ const Dashboard = () => {
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       <Suspense fallback={null}><NewAccountWelcomeModal /></Suspense>
-      <h1 className="sr-only">Aureon Dashboard — Your Intelligence Workspace</h1>
+      <h1 className="sr-only">Asherin Dashboard — Your Intelligence Workspace</h1>
       {/* Previous wallpaper (fades out during transition) */}
       {prevDashWallpaper && isDashTransitioning && (
         <div className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${prevDashWallpaper})`, zIndex: 0 }} />
@@ -1697,13 +1697,13 @@ const Dashboard = () => {
         <main
           className="flex flex-1 flex-col min-w-0 overflow-hidden h-full relative"
           onDragOver={(e) => {
-            if (e.dataTransfer.types.includes("text/aureon-conversation-id") && splitPanes.length === 0 && activeView === "chat") {
+            if (e.dataTransfer.types.includes("text/asherin-conversation-id") && splitPanes.length === 0 && activeView === "chat") {
               e.preventDefault();
               e.dataTransfer.dropEffect = "copy";
             }
           }}
           onDrop={(e) => {
-            const convId = e.dataTransfer.getData("text/aureon-conversation-id");
+            const convId = e.dataTransfer.getData("text/asherin-conversation-id");
             if (convId && splitPanes.length === 0 && activeView === "chat") {
               e.preventDefault();
               // Don't add the currently active conversation

@@ -3,7 +3,7 @@
  * offline support, retry logic, and background sync.
  */
 
-const DB_NAME = "aureon_queue_db";
+const DB_NAME = "asherin_queue_db";
 const DB_VERSION = 2;
 const MSG_STORE = "queued_messages";
 const DRAFT_STORE = "drafts";
@@ -216,7 +216,7 @@ export function isOnline(): boolean {
 
 // ───── Background Sync Registration ─────
 
-export async function registerBackgroundSync(tag = "aureon-message-sync") {
+export async function registerBackgroundSync(tag = "asherin-message-sync") {
   if ("serviceWorker" in navigator && "SyncManager" in window) {
     try {
       const reg = await navigator.serviceWorker.ready;

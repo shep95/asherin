@@ -12,7 +12,7 @@ type Tool = "pan" | "zoom-in" | "zoom-out" | "select-box" | "color-paint" | "era
 interface ViewBox { x: number; y: number; w: number; h: number; }
 type ExportFormat = "svg" | "minified-svg" | "css-grid";
 
-interface AureonMessage {
+interface AsherinMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
@@ -26,7 +26,7 @@ interface ImagineSession {
   pixels: PixelRect[];
   grid_w: number;
   grid_h: number;
-  aureon_messages: AureonMessage[];
+  asherin_messages: AsherinMessage[];
   created_at: string;
   updated_at: string;
 }
@@ -62,7 +62,7 @@ function exportCssGrid(rects: PixelRect[], w: number, h: number): string {
 // of cells that would freeze the canvas, balloon the React tree, and pin the CPU
 // at 100% (the reported overheating/lag root cause).
 const MAX_EMITTED_RECTS = 20_000;
-const IMAGINE_ACTIVE_SESSION_KEY = "aureon_imagine_active_session_id";
+const IMAGINE_ACTIVE_SESSION_KEY = "asherin_imagine_active_session_id";
 
 function imageDataToRects(imageData: ImageData): PixelRect[] {
   const { width, height, data } = imageData;
@@ -95,7 +95,7 @@ function imageDataToRects(imageData: ImageData): PixelRect[] {
 }
 
 // ─── Pixel-Perfect Normalization (DPI · Palette · Scale snapping) ─────────────
-// Applied on import + surfaced to AUREON so it reasons in clean design-system
+// Applied on import + surfaced to ASHERIN so it reasons in clean design-system
 // units instead of arbitrary screenshot artifacts.
 
 // Detect Retina / HiDPI screenshots. We can't read EXIF reliably from a File via
@@ -242,7 +242,7 @@ function expandShape(shape: any): { x: number; y: number; color: string }[] {
   return out;
 }
 
-function parseAureonPixelEdit(response: string, currentRects: PixelRect[], currentW: number, currentH: number): PixelRect[] | null {
+function parseAsherinPixelEdit(response: string, currentRects: PixelRect[], currentW: number, currentH: number): PixelRect[] | null {
   // Collect every ```json block (model may emit several across a long edit)
   const blocks: string[] = [];
   const blockRe = /```(?:json)?\s*([\s\S]*?)```/g;
@@ -538,7 +538,7 @@ const ImagineToCodeView = () => {
     pixels: PixelRect[];
     gridW: number;
     gridH: number;
-    messages: AureonMessage[];
+    messages: AsherinMessage[];
   }>({ id: null, pixels: [], gridW: 512, gridH: 512, messages: [] });
 
   // Canvas state
@@ -558,9 +558,9 @@ const ImagineToCodeView = () => {
   const [selRect, setSelRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // AUREON
-  const [aureonMessages, setAureonMessages] = useState<AureonMessage[]>([]);
-  const [aureonInput, setAureonInput] = useState("");
+  // ASHERIN
+  const [asherinMessages, setAsherinMessages] = useState<AsherinMessage[]>([]);
+  const [asherinInput, setAsherinInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -602,9 +602,9 @@ const ImagineToCodeView = () => {
   const gridHRef = useRef(512);
   useEffect(() => { gridWRef.current = gridW; gridHRef.current = gridH; }, [gridW, gridH]);
   useEffect(() => {
-    saveSnapshotRef.current = { id: activeSessionId, pixels: rects, gridW, gridH, messages: aureonMessages };
+    saveSnapshotRef.current = { id: activeSessionId, pixels: rects, gridW, gridH, messages: asherinMessages };
     if (activeSessionId) localStorage.setItem(IMAGINE_ACTIVE_SESSION_KEY, activeSessionId);
-  }, [activeSessionId, rects, gridW, gridH, aureonMessages]);
+  }, [activeSessionId, rects, gridW, gridH, asherinMessages]);
 
   useEffect(() => () => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -616,16 +616,16 @@ const ImagineToCodeView = () => {
         pixels: (snap.pixels.length > 500_000 ? snap.pixels.slice(0, 500_000) : snap.pixels) as unknown as never,
         grid_w: snap.gridW,
         grid_h: snap.gridH,
-        aureon_messages: snap.messages as unknown as never,
+        asherin_messages: snap.messages as unknown as never,
       })
       .eq("id", snap.id);
   }, []);
 
-  // Auto-scroll AUREON chat
+  // Auto-scroll ASHERIN chat
   useEffect(() => {
     if (chatScrollRef.current)
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-  }, [aureonMessages]);
+  }, [asherinMessages]);
 
   // ── Load sessions on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -645,7 +645,7 @@ const ImagineToCodeView = () => {
       const parsed = data.map(row => ({
         ...row,
         pixels: (row.pixels as unknown as PixelRect[]) || [],
-        aureon_messages: (row.aureon_messages as unknown as AureonMessage[]) || [],
+        asherin_messages: (row.asherin_messages as unknown as AsherinMessage[]) || [],
       }));
       setSessions(parsed);
       if (!activeSessionId && parsed.length > 0) {
@@ -663,7 +663,7 @@ const ImagineToCodeView = () => {
     pixels: PixelRect[],
     w: number,
     h: number,
-    msgs: AureonMessage[]
+    msgs: AsherinMessage[]
   ) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     // For very large pixel sets, extend debounce to 4s to avoid thrashing
@@ -678,14 +678,14 @@ const ImagineToCodeView = () => {
           pixels: pixelsToSave as unknown as never,
           grid_w: w,
           grid_h: h,
-          aureon_messages: msgs as unknown as never,
+          asherin_messages: msgs as unknown as never,
         })
         .eq("id", sessionId);
       setSaving(false);
       setSessions(prev => {
         const idx = prev.findIndex(s => s.id === sessionId);
         if (idx === -1) return prev;
-        const updated = { ...prev[idx], pixels, grid_w: w, grid_h: h, aureon_messages: msgs, updated_at: new Date().toISOString() };
+        const updated = { ...prev[idx], pixels, grid_w: w, grid_h: h, asherin_messages: msgs, updated_at: new Date().toISOString() };
         const rest = prev.filter(s => s.id !== sessionId);
         return [updated, ...rest];
       });
@@ -694,8 +694,8 @@ const ImagineToCodeView = () => {
 
   useEffect(() => {
     if (!activeSessionId) return;
-    scheduleSave(activeSessionId, rects, gridW, gridH, aureonMessages);
-  }, [rects, aureonMessages, activeSessionId, gridW, gridH, scheduleSave]);
+    scheduleSave(activeSessionId, rects, gridW, gridH, asherinMessages);
+  }, [rects, asherinMessages, activeSessionId, gridW, gridH, scheduleSave]);
 
   // ── Session CRUD ──────────────────────────────────────────────────────────
   const createSession = async () => {
@@ -710,7 +710,7 @@ const ImagineToCodeView = () => {
     const newSession: ImagineSession = {
       ...data,
       pixels: [],
-      aureon_messages: [],
+      asherin_messages: [],
     };
     setSessions(prev => [newSession, ...prev]);
     loadSessionIntoEditor(newSession);
@@ -728,8 +728,8 @@ const ImagineToCodeView = () => {
     gridHRef.current = s.grid_h;
     setViewBox({ x: 0, y: 0, w: s.grid_w, h: s.grid_h });
     syncUndoRedo();
-    const msgs = s.aureon_messages.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
-    setAureonMessages(msgs);
+    const msgs = s.asherin_messages.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
+    setAsherinMessages(msgs);
     setSelRect(null);
     setSelectedIds(new Set());
   };
@@ -740,7 +740,7 @@ const ImagineToCodeView = () => {
     if (activeSessionId === id) {
       setActiveSessionId(null);
       setRects([]);
-      setAureonMessages([]);
+      setAsherinMessages([]);
       historyStack.current = [[]];
       histIdx.current = 0;
       syncUndoRedo();
@@ -1052,7 +1052,7 @@ const ImagineToCodeView = () => {
         const imageData = ctx.getImageData(0, 0, width, height);
 
         const rawRects = imageDataToRects(imageData);
-        // ─ Palette unification ─ cluster the quantized colors so AUREON sees a
+        // ─ Palette unification ─ cluster the quantized colors so ASHERIN sees a
         // tight design palette (≤ 8-16 hues) rather than 100s of near-duplicate
         // shades introduced by JPEG compression / antialiasing.
         const { rects: newRects, palette } = unifyPalette(rawRects);
@@ -1098,8 +1098,8 @@ const ImagineToCodeView = () => {
     URL.revokeObjectURL(a.href);
   };
 
-  // ── AUREON SSE streaming helper ────────────────────────────────────────────
-  const callAureonStream = async (
+  // ── ASHERIN SSE streaming helper ────────────────────────────────────────────
+  const callAsherinStream = async (
     messages: { role: "user" | "assistant"; content: string }[],
     systemPrompt: string
   ): Promise<string> => {
@@ -1108,8 +1108,8 @@ const ImagineToCodeView = () => {
     let byokProvider: string | undefined;
     let byokModel: string | undefined;
     try {
-      const cached = JSON.parse(localStorage.getItem("aureon_byok_active") || "null");
-      if (cached?.provider && cached.provider !== "default" && cached.provider !== "aureon") {
+      const cached = JSON.parse(localStorage.getItem("asherin_byok_active") || "null");
+      if (cached?.provider && cached.provider !== "default" && cached.provider !== "asherin") {
         byokProvider = cached.provider;
         byokModel = cached.model;
       }
@@ -1120,10 +1120,10 @@ const ImagineToCodeView = () => {
         .select("active_provider, active_model")
         .eq("user_id", session.user.id)
         .maybeSingle();
-      if (pref?.active_provider && pref.active_provider !== "default" && pref.active_provider !== "aureon") {
+      if (pref?.active_provider && pref.active_provider !== "default" && pref.active_provider !== "asherin") {
         byokProvider = pref.active_provider;
         byokModel = pref.active_model;
-        localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: byokProvider, model: byokModel }));
+        localStorage.setItem("asherin_byok_active", JSON.stringify({ provider: byokProvider, model: byokModel }));
       }
     }
     const resp = await fetch(CHAT_URL, {
@@ -1186,7 +1186,7 @@ const ImagineToCodeView = () => {
     return fullText || "No response received.";
   };
 
-  // ── AUREON ─────────────────────────────────────────────────────────────────
+  // ── ASHERIN ─────────────────────────────────────────────────────────────────
   const buildSystemPrompt = (currentRects: PixelRect[], currentW: number, currentH: number, forLoop = false) => {
     // Build a richer canvas digest: dimensions, palette, bounding box, density,
     // and a coarse occupancy map so the model can reason spatially without
@@ -1239,7 +1239,7 @@ Rules:
 - If you tag DONE, no further iterations run.
 ` : "";
 
-    return `You are AUREON, the design intelligence inside "Imagine To Code" — a pixel-art / SVG editor by ZALI Software.
+    return `You are ASHERIN, the design intelligence inside "Imagine To Code" — a pixel-art / SVG editor by ZALI Software.
 
 ═══ COORDINATE SYSTEM ═══
 - Grid is ${currentW} columns × ${currentH} rows.
@@ -1295,13 +1295,13 @@ ${digest}
 ${loopInstructions}`;
   };
 
-  const sendToAureon = async () => {
-    const inputText = aureonInput.trim();
+  const sendToAsherin = async () => {
+    const inputText = asherinInput.trim();
     if (!inputText) return;
-    const userMsg: AureonMessage = { id: uid(), role: "user", content: inputText, timestamp: new Date() };
-    const currentMessages = [...aureonMessages, userMsg];
-    setAureonMessages(currentMessages);
-    setAureonInput("");
+    const userMsg: AsherinMessage = { id: uid(), role: "user", content: inputText, timestamp: new Date() };
+    const currentMessages = [...asherinMessages, userMsg];
+    setAsherinMessages(currentMessages);
+    setAsherinInput("");
     setIsAnalyzing(true);
     const currentRects = rectsRef.current;
     const currentW = gridWRef.current;
@@ -1310,13 +1310,13 @@ ${loopInstructions}`;
     const systemPrompt = buildSystemPrompt(currentRects, currentW, currentH, false);
 
     try {
-      const responseText = await callAureonStream(apiMessages, systemPrompt);
-      const editedRects = parseAureonPixelEdit(responseText, currentRects, currentW, currentH);
-      const assistantMsg: AureonMessage = { id: uid(), role: "assistant", content: responseText, canvasEdit: editedRects ?? undefined, timestamp: new Date() };
-      setAureonMessages(prev => [...prev, assistantMsg]);
+      const responseText = await callAsherinStream(apiMessages, systemPrompt);
+      const editedRects = parseAsherinPixelEdit(responseText, currentRects, currentW, currentH);
+      const assistantMsg: AsherinMessage = { id: uid(), role: "assistant", content: responseText, canvasEdit: editedRects ?? undefined, timestamp: new Date() };
+      setAsherinMessages(prev => [...prev, assistantMsg]);
     } catch {
-      toast({ title: "AUREON error", description: "Could not connect to AUREON. Please try again.", variant: "destructive" });
-      setAureonMessages(prev => [...prev, { id: uid(), role: "assistant", content: "I couldn't connect to the AUREON intelligence engine. Please try again.", timestamp: new Date() }]);
+      toast({ title: "ASHERIN error", description: "Could not connect to ASHERIN. Please try again.", variant: "destructive" });
+      setAsherinMessages(prev => [...prev, { id: uid(), role: "assistant", content: "I couldn't connect to the ASHERIN intelligence engine. Please try again.", timestamp: new Date() }]);
     } finally {
       setIsAnalyzing(false);
     }
@@ -1324,7 +1324,7 @@ ${loopInstructions}`;
 
   const applyCanvasEdit = (newRects: PixelRect[]) => {
     pushHistory(newRects);
-    toast({ title: "Canvas updated", description: "AUREON's edits applied." });
+    toast({ title: "Canvas updated", description: "ASHERIN's edits applied." });
   };
 
   // ── Autonomous Edit → Imagine → Fix Loop (all technology preserved) ────────
@@ -1335,12 +1335,12 @@ ${loopInstructions}`;
     setLoopIteration(0);
     setIsAnalyzing(true);
 
-    const goalMsg: AureonMessage = {
+    const goalMsg: AsherinMessage = {
       id: uid(), role: "user",
-      content: `◌ **AUTONOMOUS LOOP INITIATED**\n\n**Goal:** ${goal}\n\nAUREON will now enter an autonomous edit→imagine→fix cycle until the result is satisfactory.`,
+      content: `◌ **AUTONOMOUS LOOP INITIATED**\n\n**Goal:** ${goal}\n\nASHERIN will now enter an autonomous edit→imagine→fix cycle until the result is satisfactory.`,
       timestamp: new Date()
     };
-    setAureonMessages(prev => [...prev, goalMsg]);
+    setAsherinMessages(prev => [...prev, goalMsg]);
 
     let iteration = 0;
     let conversationHistory: { role: "user" | "assistant"; content: string }[] = [
@@ -1369,9 +1369,9 @@ ${loopInstructions}`;
       ];
 
       try {
-        const responseText = await callAureonStream(messagesPayload, systemPrompt);
+        const responseText = await callAsherinStream(messagesPayload, systemPrompt);
 
-        const editedRects = parseAureonPixelEdit(responseText, currentRects, currentW, currentH);
+        const editedRects = parseAsherinPixelEdit(responseText, currentRects, currentW, currentH);
         if (editedRects) {
           currentRects = editedRects;
           pushHistory(editedRects);
@@ -1384,18 +1384,18 @@ ${loopInstructions}`;
           .trim();
 
         const loopTag = doneMatch
-          ? `\n\n**Loop complete** — AUREON is satisfied after ${iteration} iteration${iteration > 1 ? "s" : ""}.`
+          ? `\n\n**Loop complete** — ASHERIN is satisfied after ${iteration} iteration${iteration > 1 ? "s" : ""}.`
           : iterateMatch
             ? `\n\n**Continuing** — ${iterateMatch[1]}`
             : "";
 
-        const assistantMsg: AureonMessage = {
+        const assistantMsg: AsherinMessage = {
           id: uid(), role: "assistant",
           content: `**[Iteration ${iteration}]** ${cleanResponse}${loopTag}`,
           canvasEdit: editedRects ?? undefined,
           timestamp: new Date()
         };
-        setAureonMessages(prev => [...prev, assistantMsg]);
+        setAsherinMessages(prev => [...prev, assistantMsg]);
 
         conversationHistory = [
           ...conversationHistory,
@@ -1408,7 +1408,7 @@ ${loopInstructions}`;
         await new Promise(r => setTimeout(r, 800));
 
       } catch {
-        setAureonMessages(prev => [...prev, {
+        setAsherinMessages(prev => [...prev, {
           id: uid(), role: "assistant",
           content: `**Loop error at iteration ${iteration}.** Stopping autonomous cycle.`,
           timestamp: new Date()
@@ -1424,7 +1424,7 @@ ${loopInstructions}`;
         : null;
 
     if (finalStatus) {
-      setAureonMessages(prev => [...prev, { id: uid(), role: "assistant", content: finalStatus, timestamp: new Date() }]);
+      setAsherinMessages(prev => [...prev, { id: uid(), role: "assistant", content: finalStatus, timestamp: new Date() }]);
     }
 
     setLoopActive(false);
@@ -1592,7 +1592,7 @@ ${loopInstructions}`;
                   <Paintbrush className="h-7 w-7 text-accent/30 animate-pulse" />
                 </div>
                 <p className="text-xs font-light text-muted-foreground/40 tracking-wide">Upload an image or paint pixels</p>
-                <p className="text-[10px] font-light text-muted-foreground/25 tracking-widest uppercase">Or ask AUREON to create something →</p>
+                <p className="text-[10px] font-light text-muted-foreground/25 tracking-widest uppercase">Or ask ASHERIN to create something →</p>
               </div>
             ) : null}
             {/* Canvas-based renderer replaces SVG <rect> loop — handles 1M pixels smoothly */}
@@ -1648,12 +1648,12 @@ ${loopInstructions}`;
             </div>
           )}
 
-          {/* AUREON Panel */}
+          {/* ASHERIN Panel */}
           <div className="flex-1 flex flex-col min-h-0 border-t border-border/20">
             <div className="flex-shrink-0 flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border/10 bg-accent/5">
               <div className="flex items-center gap-2">
                 <Sparkles className={`h-3 w-3 text-accent ${loopActive ? "animate-spin" : "animate-pulse"}`} />
-                <p className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/80">AUREON — Design Intelligence</p>
+                <p className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/80">ASHERIN — Design Intelligence</p>
               </div>
               {loopActive && (
                 <span className="text-[8px] font-mono text-accent/60 border border-accent/20 rounded-md px-1.5 py-0.5 bg-accent/5">
@@ -1662,31 +1662,31 @@ ${loopInstructions}`;
               )}
             </div>
             <div ref={chatScrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
-              {aureonMessages.length === 0 ? (
+              {asherinMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-3 py-6">
                   <div className="h-10 w-10 rounded-xl border border-accent/20 bg-accent/5 flex items-center justify-center">
                     <Wand2 className="h-5 w-5 text-accent/40" />
                   </div>
                   <p className="text-[10px] font-light text-muted-foreground/40 text-center tracking-wide leading-relaxed">
-                    Ask AUREON to design, edit, or analyze your pixel art. It will ask questions and draw directly on the canvas.
+                    Ask ASHERIN to design, edit, or analyze your pixel art. It will ask questions and draw directly on the canvas.
                   </p>
                   <div className="flex flex-col gap-1.5 w-full">
                     <p className="text-[8px] text-muted-foreground/30 text-center tracking-widest uppercase mt-1">Single shot</p>
                     {["Draw a simple house", "Suggest a color palette"].map(s => (
-                      <button key={s} onClick={() => setAureonInput(s)} className="w-full text-left text-[10px] font-light text-muted-foreground/50 hover:text-accent/70 border border-border/10 hover:border-accent/20 rounded-xl px-3 py-2 transition-all hover:bg-accent/5">
+                      <button key={s} onClick={() => setAsherinInput(s)} className="w-full text-left text-[10px] font-light text-muted-foreground/50 hover:text-accent/70 border border-border/10 hover:border-accent/20 rounded-xl px-3 py-2 transition-all hover:bg-accent/5">
                         {s}
                       </button>
                     ))}
                     <p className="text-[8px] text-muted-foreground/30 text-center tracking-widest uppercase mt-1">◌ Autonomous loop</p>
                     {["Draw a detailed pixel landscape and refine until perfect", "Create a complex character sprite and self-correct details"].map(s => (
-                      <button key={s} onClick={() => { setAureonInput(""); startAutonomousLoop(s); }} className="w-full text-left text-[10px] font-light text-muted-foreground/50 hover:text-accent/70 border border-accent/10 hover:border-accent/30 rounded-xl px-3 py-2 transition-all hover:bg-accent/5">
+                      <button key={s} onClick={() => { setAsherinInput(""); startAutonomousLoop(s); }} className="w-full text-left text-[10px] font-light text-muted-foreground/50 hover:text-accent/70 border border-accent/10 hover:border-accent/30 rounded-xl px-3 py-2 transition-all hover:bg-accent/5">
                         <span className="text-accent/50 mr-1">↺</span>{s}
                       </button>
                     ))}
                   </div>
                 </div>
               ) : (
-                aureonMessages.map(msg => (
+                asherinMessages.map(msg => (
                   <div key={msg.id} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
                     <div className={`flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center ${msg.role === "user" ? "bg-foreground/10 border border-border/20" : "bg-accent/15 border border-accent/20"}`}>
                       {msg.role === "user" ? <User className="h-3 w-3 text-muted-foreground" /> : <Sparkles className="h-3 w-3 text-accent" />}
@@ -1755,26 +1755,26 @@ ${loopInstructions}`;
               )}
               <div className="flex gap-2">
                 <textarea
-                  value={aureonInput}
-                  onChange={e => setAureonInput(e.target.value)}
-                  placeholder="Ask AUREON to design or edit..."
+                  value={asherinInput}
+                  onChange={e => setAsherinInput(e.target.value)}
+                  placeholder="Ask ASHERIN to design or edit..."
                   rows={2}
                   className="flex-1 rounded-xl border border-border/20 bg-card/20 text-[10px] font-light text-foreground placeholder:text-muted-foreground/30 px-3 py-2 outline-none resize-none focus:border-accent/30 transition-all"
-                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendToAureon(); } }}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendToAsherin(); } }}
                 />
                 <div className="flex flex-col gap-1.5 self-end">
                   <button
-                    onClick={sendToAureon}
-                    disabled={isAnalyzing || !aureonInput.trim()}
+                    onClick={sendToAsherin}
+                    disabled={isAnalyzing || !asherinInput.trim()}
                     title="Single message"
                     className="flex items-center justify-center w-9 h-9 rounded-xl border border-accent/20 bg-accent/10 hover:bg-accent/20 text-accent transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Send className="h-3.5 w-3.5" />
                   </button>
                   <button
-                    onClick={() => { const goal = aureonInput.trim(); if (goal) { setAureonInput(""); startAutonomousLoop(goal); } }}
-                    disabled={isAnalyzing || !aureonInput.trim() || loopActive}
-                    title="Autonomous loop: AUREON edits → imagines → fixes, unlimited iterations"
+                    onClick={() => { const goal = asherinInput.trim(); if (goal) { setAsherinInput(""); startAutonomousLoop(goal); } }}
+                    disabled={isAnalyzing || !asherinInput.trim() || loopActive}
+                    title="Autonomous loop: ASHERIN edits → imagines → fixes, unlimited iterations"
                     className="flex items-center justify-center w-9 h-9 rounded-xl border border-accent/40 bg-accent/20 hover:bg-accent/35 text-accent transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />

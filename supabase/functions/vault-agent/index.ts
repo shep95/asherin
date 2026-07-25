@@ -1,4 +1,4 @@
-// VAULT-AGENT — Natural-language automation layer over the Aureon Vault.
+// VAULT-AGENT — Natural-language automation layer over the Asherin Vault.
 // Takes a plain-English command and autonomously decides to:
 //   WRITE        → chunk + embed the given content
 //   FETCH_WRITE  → fetch a URL/API, normalize to text, then ingest
@@ -32,11 +32,11 @@ interface Classified {
 
 async function classify(command: string): Promise<Classified> {
   if (!GEMINI_KEY) throw new Error("classifier_unavailable");
-  const prompt = `You are the routing brain of Aureon's Knowledge Vault agent.
+  const prompt = `You are the routing brain of Asherin's Knowledge Vault agent.
 Classify the user's command into ONE of:
 
 - "WRITE"       → user pasted or dictated content to store. Extract a short "name" (title) and the "content" verbatim.
-- "FETCH_WRITE" → user wants Aureon to go fetch data from a URL, API, or well-known open dataset. Provide the canonical "url" (must be https and publicly accessible without auth), and a short "name". If the user only names a source (e.g. "CoinGecko BTC price"), map it to the correct public endpoint (e.g. https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd).
+- "FETCH_WRITE" → user wants Asherin to go fetch data from a URL, API, or well-known open dataset. Provide the canonical "url" (must be https and publicly accessible without auth), and a short "name". If the user only names a source (e.g. "CoinGecko BTC price"), map it to the correct public endpoint (e.g. https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd).
 - "QUERY"       → user is asking a question that should be answered from vault contents. Put the raw question in "question".
 
 Return STRICT JSON: {"intent":"...","name":"...","content":"...","url":"...","question":"...","reason":"one short line"}
@@ -74,7 +74,7 @@ ${command}`;
 
 async function synthesize(question: string, ctx: string): Promise<string> {
   if (!GEMINI_KEY) return "Vault answer unavailable (no synth key).";
-  const prompt = `You are Aureon. Answer the user's question using ONLY the vault excerpts below.
+  const prompt = `You are Asherin. Answer the user's question using ONLY the vault excerpts below.
 Cite source names inline as [source]. If the excerpts do not contain the answer, say so plainly.
 
 QUESTION:
@@ -218,7 +218,7 @@ serve(async (req) => {
       const t = setTimeout(() => ctl.abort(), 20_000);
       let rawText = "";
       try {
-        const r = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": "AureonVaultAgent/1.0" } });
+        const r = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": "AsherinVaultAgent/1.0" } });
         clearTimeout(t);
         if (!r.ok) throw new Error(`http_${r.status}`);
         const ct = r.headers.get("content-type") ?? "";

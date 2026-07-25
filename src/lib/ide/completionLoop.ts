@@ -6,7 +6,7 @@
 // mid-build with "I'll continue next time", the IDE accepted it.
 //
 // ZAHTEN solves this with four mechanisms — all ported here so
-// both Asher Code and Aureon IDE share them:
+// both Asher Code and Asherin IDE share them:
 //
 //   1. Scope Assessor pre-flight  — batches missing-detail
 //      questions ONCE before the build starts.

@@ -30,10 +30,10 @@ interface ChatMsg {
   specterWeave?: SpecterAttachment | null;
 }
 
-// Server prefixes the assistant stream with a single-line [[AUREON_META]]…[[/AUREON_META]]
+// Server prefixes the assistant stream with a single-line [[ASHERIN_META]]…[[/ASHERIN_META]]
 // block encoding attachments (property, domain, youtube, ghostTrace, specterWeave). Extract
 // it, keep it out of the rendered text, and return both parts.
-const META_RE = /^\s*\[\[AUREON_META\]\](.*?)\[\[\/AUREON_META\]\]\s*\n?/s;
+const META_RE = /^\s*\[\[ASHERIN_META\]\](.*?)\[\[\/ASHERIN_META\]\]\s*\n?/s;
 function splitMeta(acc: string): { property: PropertyAttachments | null; domain: DomainIntel | null; youtube: YouTubeAttachment | null; ghostTrace: GhostTraceAttachment | null; specterWeave: SpecterAttachment | null; text: string } {
   const m = acc.match(META_RE);
   if (!m) return { property: null, domain: null, youtube: null, ghostTrace: null, specterWeave: null, text: acc };
@@ -55,7 +55,7 @@ function splitMeta(acc: string): { property: PropertyAttachments | null; domain:
 const MIN_W = 320;
 const MIN_H = 280;
 
-const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
+const AsherinChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
   const [pos, setPos] = useState({ x: Math.max(16, window.innerWidth - 460), y: 96 });
   const [size, setSize] = useState({ w: 420, h: 520 });
   const [minimized, setMinimized] = useState(false);
@@ -200,7 +200,7 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
       >
         <div className="flex items-center gap-2 min-w-0">
           <MessageSquare className="h-3.5 w-3.5 text-foreground/80" />
-          <div className="text-[10px] font-light tracking-[0.22em] uppercase text-muted-foreground">Aureon Chat</div>
+          <div className="text-[10px] font-light tracking-[0.22em] uppercase text-muted-foreground">Asherin Chat</div>
           <div className="text-[10px] font-light text-foreground/70 truncate max-w-[180px]">· {targetUrl}</div>
         </div>
         <div className="flex items-center gap-1" data-no-drag>
@@ -260,7 +260,7 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder="Ask Aureon…"
+              placeholder="Ask Asherin…"
               rows={2}
               className="flex-1 resize-none rounded-md border border-border/30 bg-background/50 px-2 py-1.5 text-xs font-light text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/40"
             />
@@ -288,4 +288,4 @@ const AureonChatFloat = ({ targetUrl, dossier, intelMap, onClose }: Props) => {
   );
 };
 
-export default AureonChatFloat;
+export default AsherinChatFloat;

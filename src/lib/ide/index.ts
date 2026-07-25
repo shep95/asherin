@@ -1,4 +1,4 @@
-// Public surface for the IDE upgrade pack — used by both Aureon IDE and Asher IDE.
+// Public surface for the IDE upgrade pack — used by both Asherin IDE and Asher IDE.
 export * from "./codeValidator";
 export * from "./projectIndex";
 export * from "./versionHistory";

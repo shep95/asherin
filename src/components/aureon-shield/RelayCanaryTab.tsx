@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { type LeakScoreBreakdown, bandColor } from "@/lib/aureonShield/leakScore";
-import { listFixes, clearFixes, haversineKm, type GeoFix } from "@/lib/aureonShield/locationHistory";
+import { type LeakScoreBreakdown, bandColor } from "@/lib/asherinShield/leakScore";
+import { listFixes, clearFixes, haversineKm, type GeoFix } from "@/lib/asherinShield/locationHistory";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Multi-hop relay chain
@@ -76,7 +76,7 @@ export const RelayCanaryTab = ({ leakScore, recentGeo }: RelayCanaryTabProps) =>
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.register("/aureon-killswitch-sw.js", { scope: "/" })
+    navigator.serviceWorker.register("/asherin-killswitch-sw.js", { scope: "/" })
       .then(async (reg) => {
         await navigator.serviceWorker.ready;
         swRef.current = reg.active || reg.waiting || reg.installing || null;
@@ -84,7 +84,7 @@ export const RelayCanaryTab = ({ leakScore, recentGeo }: RelayCanaryTabProps) =>
         // Query state
         navigator.serviceWorker.controller?.postMessage({ type: "STATUS" });
       })
-      .catch((e) => console.warn("[Aureon] SW register failed", e));
+      .catch((e) => console.warn("[Asherin] SW register failed", e));
 
     const onMsg = (ev: MessageEvent) => {
       const d = ev.data || {};
@@ -145,7 +145,7 @@ export const RelayCanaryTab = ({ leakScore, recentGeo }: RelayCanaryTabProps) =>
   const fetchCanary = useCallback(async () => {
     setCanaryBusy(true); setCanaryError(null);
     try {
-      const r = await fetch("/aureon-canary.json", { cache: "no-store" });
+      const r = await fetch("/asherin-canary.json", { cache: "no-store" });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
       setCanary(j);

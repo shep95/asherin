@@ -13,7 +13,7 @@ const RESTRICTED_HOSTS = new Set(["aureonai.app", "www.aureonai.app"]);
  * screen and is signed out. Other hosts (preview, lovable.app, custom
  * staging) are unaffected.
  */
-const AureonDomainGate = ({ children }: { children: ReactNode }) => {
+const AsherinDomainGate = ({ children }: { children: ReactNode }) => {
   const { user, loading } = useAuth();
   const [host, setHost] = useState<string>("");
 
@@ -70,4 +70,4 @@ const AureonDomainGate = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export default AureonDomainGate;
+export default AsherinDomainGate;

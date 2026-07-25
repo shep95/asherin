@@ -398,7 +398,7 @@ ${allRawText}`,
   const fixAllGrammar = useCallback(async () => {
     if (chapters.length === 0) return;
     setFixingGrammar(true);
-    setProgress("Aureon is fixing grammar across all chapters…");
+    setProgress("Asherin is fixing grammar across all chapters…");
 
     const chaptersPayload = chapters.map((ch, i) => ({
       index: i,
@@ -1004,7 +1004,7 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
           <button onClick={() => setSettings(prev => ({ ...prev, buildMode: "ai" }))}
             className={`rounded-xl border p-3 text-left transition-colors ${settings.buildMode !== "manual" ? "border-accent/40 bg-accent/10" : "border-border/20 bg-card/20 hover:border-border/40"}`}>
             <p className="text-xs font-light text-foreground flex items-center gap-1.5"><Sparkles className="h-3 w-3" /> AI Structured</p>
-            <p className="text-[10px] font-light text-muted-foreground/60 mt-1">Aureon organizes your text into chapters, fixes grammar, and polishes.</p>
+            <p className="text-[10px] font-light text-muted-foreground/60 mt-1">Asherin organizes your text into chapters, fixes grammar, and polishes.</p>
           </button>
           <button onClick={() => setSettings(prev => ({ ...prev, buildMode: "manual" }))}
             className={`rounded-xl border p-3 text-left transition-colors ${settings.buildMode === "manual" ? "border-accent/40 bg-accent/10" : "border-border/20 bg-card/20 hover:border-border/40"}`}>
@@ -1128,7 +1128,7 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
         <BookOpen className="h-5 w-5 text-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
       </div>
       <div className="text-center space-y-2">
-        <p className="text-sm font-light text-foreground">Aureon is writing your book…</p>
+        <p className="text-sm font-light text-foreground">Asherin is writing your book…</p>
         <p className="text-xs font-light text-muted-foreground/60">{progress}</p>
       </div>
       <div className="w-64 h-1 bg-border/20 rounded-full overflow-hidden">

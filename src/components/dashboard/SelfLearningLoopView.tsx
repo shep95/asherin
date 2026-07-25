@@ -202,12 +202,12 @@ const SelfLearningLoopView = () => {
     const lines = brains.map((b, i) =>
       `[${String(i + 1).padStart(3, "0")}] ${b.name}\nDomain: ${b.domain}\nConfidence: ${(b.confidence * 100).toFixed(0)}%\nActive: ${b.active ? "YES" : "NO"}\nCreated: ${new Date(b.created_at).toLocaleString()}\n\n${b.directive}\n\n${"─".repeat(80)}`
     ).join("\n\n");
-    const header = `AUREON SELF-LEARNING LOOP — BRAIN EXPORT\nExported: ${new Date().toISOString()}\nTotal Brains: ${brains.length}\nActive: ${brains.filter(b => b.active).length}\n${"═".repeat(80)}\n\n`;
+    const header = `ASHERIN SELF-LEARNING LOOP — BRAIN EXPORT\nExported: ${new Date().toISOString()}\nTotal Brains: ${brains.length}\nActive: ${brains.filter(b => b.active).length}\n${"═".repeat(80)}\n\n`;
     const blob = new Blob([header + lines], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aureon-brains-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `asherin-brains-${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: "Exported", description: `${brains.length} brains exported as TXT.` });

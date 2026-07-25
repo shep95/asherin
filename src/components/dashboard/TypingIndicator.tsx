@@ -3,7 +3,7 @@ interface TypingIndicatorProps {
 }
 
 const labels: Record<string, string> = {
-  thinking: "Aureon is thinking",
+  thinking: "Asherin is thinking",
   searching: "Searching the web",
   reading: "Reading document",
   generating: "Generating response",

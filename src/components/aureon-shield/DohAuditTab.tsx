@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Server, Loader2, Download, FileText } from "lucide-react";
-import { testDoh, type DohResult, readAudit, clearAudit, type AuditEntry } from "@/lib/aureonShield";
+import { testDoh, type DohResult, readAudit, clearAudit, type AuditEntry } from "@/lib/asherinShield";
 
 const Glass = ({ children, className = "" }: any) => (
   <div className={`rounded-2xl border border-border/35 bg-card/55 backdrop-blur-2xl shadow-[0_18px_55px_-25px_hsl(var(--foreground)/0.45)] ${className}`}>{children}</div>
@@ -16,8 +16,8 @@ export const DohAuditTab = () => {
 
   useEffect(() => {
     const h = () => setAudit(readAudit());
-    window.addEventListener("aureon:audit", h);
-    return () => window.removeEventListener("aureon:audit", h);
+    window.addEventListener("asherin:audit", h);
+    return () => window.removeEventListener("asherin:audit", h);
   }, []);
 
   const run = async () => { setBusy(true); try { setDoh(await testDoh(host)); } finally { setBusy(false); } };
@@ -25,7 +25,7 @@ export const DohAuditTab = () => {
   const exportJson = () => {
     const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), audit, doh }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = `aureon-shield-audit-${Date.now()}.json`; a.click();
+    a.href = URL.createObjectURL(blob); a.download = `asherin-shield-audit-${Date.now()}.json`; a.click();
     URL.revokeObjectURL(a.href);
   };
 

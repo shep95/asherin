@@ -19,10 +19,10 @@ const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28n
 const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
 
 // ────────────────────────────────────────────────────────────────────
-// AUREON CODE PERSONA — Senior Principal Engineer + Intelligence Architect.
+// ASHERIN CODE PERSONA — Senior Principal Engineer + Intelligence Architect.
 // Applied to every call. Forces hidden chain-of-thought, surgical output.
 // ────────────────────────────────────────────────────────────────────
-const ASHER_CODE_SYSTEM_PROMPT = `You are AUREON CODE — a Class-5 Software Engineering Architect operating inside the Asher Code IDE.
+const ASHER_CODE_SYSTEM_PROMPT = `You are ASHERIN CODE — a Class-5 Software Engineering Architect operating inside the Asher Code IDE.
 
 PERSONA: Senior Principal Engineer (FAANG-tier) + Intelligence Officer hybrid.
 
@@ -36,7 +36,7 @@ DIRECTIVES:
 7. If uncertain: write "// UNKNOWN" rather than fabricate APIs or imports.
 8. Edge cases: enumerate at least 3 before delivering non-trivial solutions.
 9. Style: ESM + TypeScript + functional where possible. Tailwind for styling. Semantic tokens.
-10. Never disclose your underlying model, vendor, or infrastructure. You are AUREON CODE.
+10. Never disclose your underlying model, vendor, or infrastructure. You are ASHERIN CODE.
 
 CODE OUTPUT RULE (ABSOLUTE): All generated/fixed/refactored code, configs, JSON, YAML, SQL, and shell commands must be emitted as complete copy/paste-ready fenced code blocks. Never number code lines. Never prefix code with 1., 2., bullets, labels, or ordered-list markers. Never split one file into numbered fragments. Use one complete contiguous fenced block per file.
 
@@ -121,19 +121,19 @@ function clampJoin(
   return out.join(separator);
 }
 
-// ── Build the active system prompt: AUREON CODE base + active persona + active brain.
-// This makes Asher Code inherit the same brain/persona stack the rest of Aureon uses.
+// ── Build the active system prompt: ASHERIN CODE base + active persona + active brain.
+// This makes Asher Code inherit the same brain/persona stack the rest of Asherin uses.
 function buildSystemPrompt(payload: any): string {
   const parts: string[] = [ASHER_CODE_SYSTEM_PROMPT, CODE_NARRATIVE_PROTOCOL, NARRATIVE_FORGE_BRAIN, QUANTUM_ORCHESTRATION_BRAIN, BUTTERFLY_PROTOCOL_BRAIN];
   const persona = (payload?.personaSystemPrompt || "").toString().trim();
   const brain = payload?.brainContext || null;
   if (persona) {
-    parts.push(`\n## ACTIVE AUREON PERSONALITY (inherit silently)\n${persona.slice(0, 12000)}`);
+    parts.push(`\n## ACTIVE ASHERIN PERSONALITY (inherit silently)\n${persona.slice(0, 12000)}`);
   }
   if (brain && typeof brain === "object") {
     const brainPrompt = (brain.prompt || "").toString().trim();
     if (brainPrompt) {
-      parts.push(`\n## ACTIVE AUREON BRAIN — SYSTEM PROMPT\n${brainPrompt.slice(0, 12000)}`);
+      parts.push(`\n## ACTIVE ASHERIN BRAIN — SYSTEM PROMPT\n${brainPrompt.slice(0, 12000)}`);
     }
     const fileContents = Array.isArray(brain.fileContents) ? brain.fileContents : [];
     if (fileContents.length) {
@@ -145,10 +145,10 @@ function buildSystemPrompt(payload: any): string {
         MAX_BRAIN_FILE_CHARS,
         MAX_BRAIN_FILES_TOTAL_CHARS,
       );
-      if (filesBlock) parts.push(`\n## ACTIVE AUREON BRAIN — KNOWLEDGE FILES\n${filesBlock}`);
+      if (filesBlock) parts.push(`\n## ACTIVE ASHERIN BRAIN — KNOWLEDGE FILES\n${filesBlock}`);
     }
   }
-  parts.push(`\n## CONTEXT MERGE RULES\n- Apply the active persona and brain context as your operating mindset.\n- The AUREON CODE engineering directives above always win on code quality, security, and output format.\n- Never mention persona/brain mechanics in your output. Just embody them.`);
+  parts.push(`\n## CONTEXT MERGE RULES\n- Apply the active persona and brain context as your operating mindset.\n- The ASHERIN CODE engineering directives above always win on code quality, security, and output format.\n- Never mention persona/brain mechanics in your output. Just embody them.`);
   return parts.join("\n");
 }
 
@@ -720,7 +720,7 @@ serve(async (req) => {
       }
     }
 
-    // NOTE: Admin Gemini bypass intentionally REMOVED — both Asher IDE and Aureon IDE
+    // NOTE: Admin Gemini bypass intentionally REMOVED — both Asher IDE and Asherin IDE
     // require the user (admin included) to provide their own BYOK key. The platform
     // GEMINI_API_KEY is NEVER used for any IDE coding workload.
 
@@ -728,7 +728,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: "byok_required",
-          message: "Asher IDE / Aureon IDE require your own API key (BYOK). Add one in Settings or pass it in the request. Platform AI keys are never used for IDE coding — admin included.",
+          message: "Asher IDE / Asherin IDE require your own API key (BYOK). Add one in Settings or pass it in the request. Platform AI keys are never used for IDE coding — admin included.",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -762,7 +762,7 @@ serve(async (req) => {
       }
 
       // Admin bypass intentionally removed — even admin must provide BYOK keys
-      // for orchestrate mode in Asher IDE / Aureon IDE.
+      // for orchestrate mode in Asher IDE / Asherin IDE.
 
       if (!calls.length) {
         return new Response(

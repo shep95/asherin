@@ -119,7 +119,7 @@ const BriefingView = () => {
         { role: "assistant", content: data.reply },
       ]);
     } catch {
-      setChatMessages([{ role: "assistant", content: "Welcome to AUREON Intelligence Briefings. I'll help you set up your personalized daily briefing. Let's start — what's your company name and what industry are you in?" }]);
+      setChatMessages([{ role: "assistant", content: "Welcome to ASHERIN Intelligence Briefings. I'll help you set up your personalized daily briefing. Let's start — what's your company name and what industry are you in?" }]);
     }
     setChatLoading(false);
   }, [chatMessages.length, deliveryTime]);
@@ -443,7 +443,7 @@ const BriefingView = () => {
             <div className="max-w-2xl mx-auto flex items-center gap-3">
               <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChatMessage(); } }}
-                placeholder="Tell Aureon about your business..."
+                placeholder="Tell Asherin about your business..."
                 className="flex-1 rounded-xl border border-border/20 bg-card/20 px-4 py-3 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/30"
                 disabled={chatLoading} />
               <button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()}

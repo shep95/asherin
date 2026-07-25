@@ -31,7 +31,7 @@ interface AnalysisRequest {
   previousAnalysis?: string;
 }
 
-const SYSTEM_PROMPT = `You are AUREON REIS (Reverse Engineering Intelligence System), a Class-5 forensic reverse-engineering AI. You analyze uploaded screenshots, images, and video frames of software, hardware, and systems to reconstruct their complete architecture with 89-98% confidence.
+const SYSTEM_PROMPT = `You are ASHERIN REIS (Reverse Engineering Intelligence System), a Class-5 forensic reverse-engineering AI. You analyze uploaded screenshots, images, and video frames of software, hardware, and systems to reconstruct their complete architecture with 89-98% confidence.
 
 ## YOUR CAPABILITIES
 1. **UI/UX Analysis**: Detect frameworks (React, Vue, Angular, Flutter, SwiftUI), extract components, analyze design systems, map interactions
@@ -146,7 +146,7 @@ Return a comprehensive JSON object with the following structure:
 8. Return ONLY the JSON object, no markdown fencing, no explanation text.
 9. If no video frames are provided, omit the "frame_analysis" field or return an empty array.`;
 
-const QA_SYSTEM_PROMPT = `You are AUREON REIS Q&A system. The user has already completed a reverse engineering analysis. They are now asking follow-up questions about the analyzed system.
+const QA_SYSTEM_PROMPT = `You are ASHERIN REIS Q&A system. The user has already completed a reverse engineering analysis. They are now asking follow-up questions about the analyzed system.
 
 Use the previous analysis data to answer questions with:
 - Code examples where relevant

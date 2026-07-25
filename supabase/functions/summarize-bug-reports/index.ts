@@ -81,7 +81,7 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         systemInstruction: {
-          parts: [{ text: `You are Aureon's internal QA analyst. Summarize bug reports and feature requests into actionable developer prompts. Group by priority, categorize by type (bug vs feature), and provide clear reproduction steps for bugs and implementation guidance for features. Be detailed, structured, and direct. Use markdown formatting.` }],
+          parts: [{ text: `You are Asherin's internal QA analyst. Summarize bug reports and feature requests into actionable developer prompts. Group by priority, categorize by type (bug vs feature), and provide clear reproduction steps for bugs and implementation guidance for features. Be detailed, structured, and direct. Use markdown formatting.` }],
         },
         contents: [
           {

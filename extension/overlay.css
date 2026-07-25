@@ -1,5 +1,5 @@
-/* Aureon Cross Overlay Styles */
-#aureon-cross-root {
+/* Asherin Cross Overlay Styles */
+#asherin-cross-root {
   position: fixed;
   top: 0;
   left: 0;
@@ -10,12 +10,12 @@
   font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
 }
 
-#aureon-cross-root * {
+#asherin-cross-root * {
   box-sizing: border-box;
 }
 
 /* Chat Box */
-.aureon-chat {
+.asherin-chat {
   position: fixed;
   bottom: 20px;
   right: 20px;
@@ -34,13 +34,13 @@
   overflow: hidden;
 }
 
-.aureon-chat.minimized {
+.asherin-chat.minimized {
   height: 44px;
   border-radius: 22px;
   width: 200px;
 }
 
-.aureon-chat-header {
+.asherin-chat-header {
   padding: 10px 14px;
   border-bottom: 1px solid rgba(0, 255, 128, 0.12);
   display: flex;
@@ -51,7 +51,7 @@
   background: rgba(0, 255, 128, 0.04);
 }
 
-.aureon-chat-header-title {
+.asherin-chat-header-title {
   font-size: 12px;
   font-weight: 600;
   color: #00ff80;
@@ -59,18 +59,18 @@
   text-transform: uppercase;
 }
 
-.aureon-chat-header-status {
+.asherin-chat-header-status {
   font-size: 9px;
   color: rgba(0, 255, 128, 0.5);
   margin-left: 8px;
 }
 
-.aureon-chat-btns {
+.asherin-chat-btns {
   display: flex;
   gap: 6px;
 }
 
-.aureon-chat-btns button {
+.asherin-chat-btns button {
   background: none;
   border: 1px solid rgba(0, 255, 128, 0.2);
   color: rgba(0, 255, 128, 0.6);
@@ -85,13 +85,13 @@
   transition: all 0.15s;
 }
 
-.aureon-chat-btns button:hover {
+.asherin-chat-btns button:hover {
   background: rgba(0, 255, 128, 0.1);
   color: #00ff80;
   border-color: rgba(0, 255, 128, 0.4);
 }
 
-.aureon-chat-messages {
+.asherin-chat-messages {
   flex: 1;
   overflow-y: auto;
   padding: 12px;
@@ -99,27 +99,27 @@
   line-height: 1.6;
 }
 
-.aureon-chat-messages::-webkit-scrollbar {
+.asherin-chat-messages::-webkit-scrollbar {
   width: 4px;
 }
-.aureon-chat-messages::-webkit-scrollbar-track {
+.asherin-chat-messages::-webkit-scrollbar-track {
   background: transparent;
 }
-.aureon-chat-messages::-webkit-scrollbar-thumb {
+.asherin-chat-messages::-webkit-scrollbar-thumb {
   background: rgba(0, 255, 128, 0.2);
   border-radius: 4px;
 }
 
-.aureon-msg {
+.asherin-msg {
   margin-bottom: 12px;
-  animation: aureon-fadeIn 0.2s ease;
+  animation: asherin-fadeIn 0.2s ease;
 }
 
-.aureon-msg-user {
+.asherin-msg-user {
   text-align: right;
 }
 
-.aureon-msg-bubble {
+.asherin-msg-bubble {
   display: inline-block;
   max-width: 85%;
   padding: 8px 12px;
@@ -128,26 +128,26 @@
   line-height: 1.5;
 }
 
-.aureon-msg-user .aureon-msg-bubble {
+.asherin-msg-user .asherin-msg-bubble {
   background: rgba(0, 255, 128, 0.12);
   color: #e0ffe8;
   border: 1px solid rgba(0, 255, 128, 0.15);
 }
 
-.aureon-msg-ai .aureon-msg-bubble {
+.asherin-msg-ai .asherin-msg-bubble {
   background: rgba(255, 255, 255, 0.04);
   color: #b8b8c0;
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.aureon-chat-input-area {
+.asherin-chat-input-area {
   padding: 10px;
   border-top: 1px solid rgba(0, 255, 128, 0.1);
   display: flex;
   gap: 8px;
 }
 
-.aureon-chat-input {
+.asherin-chat-input {
   flex: 1;
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(0, 255, 128, 0.15);
@@ -160,15 +160,15 @@
   transition: border-color 0.15s;
 }
 
-.aureon-chat-input:focus {
+.asherin-chat-input:focus {
   border-color: rgba(0, 255, 128, 0.4);
 }
 
-.aureon-chat-input::placeholder {
+.asherin-chat-input::placeholder {
   color: rgba(0, 255, 128, 0.25);
 }
 
-.aureon-chat-send {
+.asherin-chat-send {
   background: rgba(0, 255, 128, 0.15);
   color: #00ff80;
   border: 1px solid rgba(0, 255, 128, 0.25);
@@ -182,12 +182,12 @@
   transition: all 0.15s;
 }
 
-.aureon-chat-send:hover {
+.asherin-chat-send:hover {
   background: rgba(0, 255, 128, 0.25);
 }
 
 /* Alerts */
-.aureon-alert {
+.asherin-alert {
   position: fixed;
   top: 16px;
   right: 16px;
@@ -195,42 +195,42 @@
   border-radius: 14px;
   pointer-events: auto;
   font-family: 'SF Mono', monospace;
-  animation: aureon-slideIn 0.3s ease-out;
+  animation: asherin-slideIn 0.3s ease-out;
   overflow: hidden;
 }
 
-.aureon-alert-buy {
+.asherin-alert-buy {
   background: rgba(0, 200, 80, 0.95);
   color: #000;
   box-shadow: 0 0 50px rgba(0, 255, 80, 0.5);
 }
 
-.aureon-alert-sell {
+.asherin-alert-sell {
   background: rgba(220, 40, 40, 0.95);
   color: #fff;
   box-shadow: 0 0 50px rgba(255, 40, 40, 0.5);
 }
 
-.aureon-alert-warn {
+.asherin-alert-warn {
   background: rgba(220, 160, 0, 0.95);
   color: #000;
   box-shadow: 0 0 50px rgba(255, 200, 0, 0.4);
 }
 
-.aureon-alert-header {
+.asherin-alert-header {
   padding: 14px 16px 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.aureon-alert-title {
+.asherin-alert-title {
   font-size: 18px;
   font-weight: 800;
   letter-spacing: 1px;
 }
 
-.aureon-alert-close {
+.asherin-alert-close {
   background: none;
   border: none;
   font-size: 18px;
@@ -239,13 +239,13 @@
   color: inherit;
 }
 
-.aureon-alert-body {
+.asherin-alert-body {
   padding: 0 16px 12px;
   font-size: 12px;
   line-height: 1.6;
 }
 
-.aureon-alert-levels {
+.asherin-alert-levels {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
@@ -253,20 +253,20 @@
   font-size: 11px;
 }
 
-.aureon-alert-level {
+.asherin-alert-level {
   text-align: center;
   padding: 6px;
   border-radius: 6px;
   background: rgba(0,0,0,0.15);
 }
 
-.aureon-alert-footer {
+.asherin-alert-footer {
   padding: 8px 16px 14px;
   display: flex;
   gap: 8px;
 }
 
-.aureon-alert-footer button {
+.asherin-alert-footer button {
   flex: 1;
   padding: 8px;
   border-radius: 8px;
@@ -279,12 +279,12 @@
   transition: transform 0.1s;
 }
 
-.aureon-alert-footer button:active {
+.asherin-alert-footer button:active {
   transform: scale(0.97);
 }
 
 /* Verdict Banner */
-.aureon-verdict {
+.asherin-verdict {
   position: fixed;
   top: 12px;
   left: 50%;
@@ -296,64 +296,64 @@
   align-items: center;
   gap: 14px;
   cursor: pointer;
-  animation: aureon-slideDown 0.3s ease-out;
+  animation: asherin-slideDown 0.3s ease-out;
   backdrop-filter: blur(12px);
   transition: transform 0.15s;
   min-width: 320px;
 }
 
-.aureon-verdict:hover {
+.asherin-verdict:hover {
   transform: translateX(-50%) scale(1.02);
 }
 
-.aureon-verdict-buy {
+.asherin-verdict-buy {
   background: rgba(0, 200, 80, 0.92);
   color: #000;
   box-shadow: 0 4px 30px rgba(0, 255, 80, 0.4);
 }
 
-.aureon-verdict-sell, .aureon-verdict-exit {
+.asherin-verdict-sell, .asherin-verdict-exit {
   background: rgba(220, 40, 40, 0.92);
   color: #fff;
   box-shadow: 0 4px 30px rgba(255, 40, 40, 0.4);
 }
 
-.aureon-verdict-hold {
+.asherin-verdict-hold {
   background: rgba(40, 120, 220, 0.85);
   color: #fff;
   box-shadow: 0 4px 30px rgba(40, 120, 255, 0.3);
 }
 
-.aureon-verdict-wait {
+.asherin-verdict-wait {
   background: rgba(200, 160, 0, 0.85);
   color: #000;
   box-shadow: 0 4px 30px rgba(255, 200, 0, 0.3);
 }
 
-.aureon-verdict-emoji {
+.asherin-verdict-emoji {
   font-size: 28px;
 }
 
-.aureon-verdict-action {
+.asherin-verdict-action {
   font-size: 20px;
   font-weight: 800;
   letter-spacing: 2px;
 }
 
-.aureon-verdict-msg {
+.asherin-verdict-msg {
   font-size: 11px;
   opacity: 0.8;
   max-width: 200px;
 }
 
-.aureon-verdict-conf {
+.asherin-verdict-conf {
   font-size: 20px;
   font-weight: 800;
   margin-left: auto;
 }
 
 /* Status indicator */
-.aureon-status {
+.asherin-status {
   position: fixed;
   bottom: 20px;
   left: 20px;
@@ -371,46 +371,46 @@
   backdrop-filter: blur(8px);
 }
 
-.aureon-status-dot {
+.asherin-status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: #00ff80;
-  animation: aureon-pulse 2s infinite;
+  animation: asherin-pulse 2s infinite;
 }
 
-.aureon-status-dot.paused {
+.asherin-status-dot.paused {
   background: #ffa500;
   animation: none;
 }
 
-.aureon-status-dot.off {
+.asherin-status-dot.off {
   background: #666;
   animation: none;
 }
 
 /* Animations */
-@keyframes aureon-fadeIn {
+@keyframes asherin-fadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes aureon-slideIn {
+@keyframes asherin-slideIn {
   from { transform: translateX(400px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
 
-@keyframes aureon-slideDown {
+@keyframes asherin-slideDown {
   from { transform: translateX(-50%) translateY(-60px); opacity: 0; }
   to { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
 
-@keyframes aureon-pulse {
+@keyframes asherin-pulse {
   0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(0,255,128,0.6); }
   50% { opacity: 0.5; box-shadow: 0 0 8px rgba(0,255,128,0.3); }
 }
 
-@keyframes aureon-urgentPulse {
+@keyframes asherin-urgentPulse {
   0%, 100% { box-shadow: 0 0 30px rgba(0,255,80,0.6); }
   50% { box-shadow: 0 0 60px rgba(0,255,80,0.9); }
 }

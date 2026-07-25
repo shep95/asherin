@@ -1,5 +1,5 @@
-// Aureon Service Worker — PWA + Background Sync + Message Queue
-const CACHE_NAME = 'aureon-v3';
+// Asherin Service Worker — PWA + Background Sync + Message Queue
+const CACHE_NAME = 'asherin-v3';
 // Pre-cache the Swiss Ephemeris WASM so Vedic chart calculations work offline
 // after first load (previously the 2-3MB file silently 504'd offline).
 const PRECACHE_URLS = ['/wasm/swisseph.wasm'];
@@ -73,13 +73,13 @@ self.addEventListener('fetch', (event) => {
 
 // Background Sync — process queued messages when connection returns
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'aureon-message-sync') {
+  if (event.tag === 'asherin-message-sync') {
     event.waitUntil(processQueuedMessages());
   }
 });
 
 async function processQueuedMessages() {
-  const DB_NAME = 'aureon_queue_db';
+  const DB_NAME = 'asherin_queue_db';
   const DB_VERSION = 2;
   const STORE = 'queued_messages';
 

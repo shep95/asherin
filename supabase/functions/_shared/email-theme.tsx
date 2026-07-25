@@ -5,7 +5,7 @@ import {
 } from 'npm:@react-email/components@0.0.22'
 
 /**
- * AUREON premium email design system.
+ * ASHERIN premium email design system.
  *
  * Voice: surgical, calm, declarative. Short sentences. No exclamation marks.
  * No exhortation. Signal over noise. Confidence without volume.
@@ -207,11 +207,11 @@ export const Shell = ({ preview, eyebrow, children }: ShellProps) => (
     <Preview>{preview}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Text style={brandRow}>Aureon</Text>
+        <Text style={brandRow}>Asherin</Text>
         {eyebrow && <Text style={eyebrowStyle}>{eyebrow}</Text>}
         {children}
         <Hr style={ruleStyle} />
-        <Text style={signOff}>— Aureon</Text>
+        <Text style={signOff}>— Asherin</Text>
         <Text style={footerLine}>aureonai.app · Intelligence, distilled.</Text>
       </Container>
     </Body>

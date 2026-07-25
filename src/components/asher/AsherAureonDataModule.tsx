@@ -11,7 +11,7 @@ import {
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { format, subDays, startOfDay, formatDistanceToNow } from "date-fns";
-const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
+const wallpaperAsherin = "/wallpapers/wallpaper-asherin.webp";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
 type Range = 7 | 14 | 30 | 90;
 
@@ -27,7 +27,7 @@ const DEVICE_COLORS: Record<string, string> = {
 };
 const colorFor = (n: string) => DEVICE_COLORS[n] || DEVICE_COLORS[n?.split(" ")[0]] || "#9ca3af";
 
-const ACTIVE_PATH_PREFIXES = ["/dashboard", "/zophiel", "/asher-dashboard", "/asher", "/elite", "/whiteboard", "/proj-aureon"];
+const ACTIVE_PATH_PREFIXES = ["/dashboard", "/zophiel", "/asher-dashboard", "/asher", "/elite", "/whiteboard", "/proj-asherin"];
 const isActivePath = (p?: string | null) => !!p && ACTIVE_PATH_PREFIXES.some((x) => p === x || p.startsWith(x + "/"));
 const LIVE_WINDOW_MS = 10 * 60 * 1000;
 
@@ -75,7 +75,7 @@ const initialStats: Stats = {
   signupSeries: [], eventSeries: [], topEvents: [], countries: [], recent: [], trafficSources: [],
 };
 
-export default function AsherAureonDataModule() {
+export default function AsherAsherinDataModule() {
   const { user } = useAuth();
   const isAdmin = (user?.email || "").toLowerCase() === ADMIN_EMAIL;
   const [range, setRange] = useState<Range>(30);
@@ -207,13 +207,13 @@ export default function AsherAureonDataModule() {
     })();
   }, [isAdmin, range, refreshKey]);
 
-  // Aureon overview (predictions / incidents / flows) — admin RPC
+  // Asherin overview (predictions / incidents / flows) — admin RPC
   useEffect(() => {
     if (!isAdmin) return;
     let cancelled = false;
     (async () => {
       setLoadingOverview(true);
-      const { data } = await supabase.rpc("admin_aureon_overview");
+      const { data } = await supabase.rpc("admin_asherin_overview");
       if (!cancelled) {
         if (data) setOverview(data);
         setLoadingOverview(false);
@@ -267,7 +267,7 @@ export default function AsherAureonDataModule() {
   const maxCountry = Math.max(1, ...countryBars.map((c) => c.count));
 
   // Build module-by-tier matrix
-  const tierOrder = ["chat", "aureon", "pro", "lifetime", "free"];
+  const tierOrder = ["chat", "asherin", "pro", "lifetime", "free"];
   const moduleMatrix = useMemo(() => {
     const map: Record<string, Record<string, number>> = {};
     moduleUsage.forEach((m) => {
@@ -304,7 +304,7 @@ export default function AsherAureonDataModule() {
     <div
       className="h-full w-full overflow-y-auto text-foreground relative"
       style={{
-        backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.78), rgba(0,0,0,0.92)), url(${wallpaperAureon})`,
+        backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.78), rgba(0,0,0,0.92)), url(${wallpaperAsherin})`,
         backgroundSize: "cover",
         backgroundAttachment: "fixed",
         backgroundPosition: "center",
@@ -324,7 +324,7 @@ export default function AsherAureonDataModule() {
             </span>
             <p className="text-[10px] font-light tracking-[0.3em] uppercase text-amber-200/70">Live · Stripe + Sessions · Auto 60s</p>
           </div>
-          <h1 className="mt-1 text-2xl font-extralight tracking-[0.25em]">AUREON DATA</h1>
+          <h1 className="mt-1 text-2xl font-extralight tracking-[0.25em]">ASHERIN DATA</h1>
           <p className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground/60">
             Revenue · Active Accounts · Module Telemetry
           </p>
@@ -650,7 +650,7 @@ export default function AsherAureonDataModule() {
         {tab === "health" && <SystemHealthTab overview={overview} stats={stats} liveCount={liveCount} />}
 
         <p className="text-center text-[9px] font-light tracking-[0.3em] uppercase text-muted-foreground/40 pt-4">
-          Aureon Data · operator telemetry · privacy-first
+          Asherin Data · operator telemetry · privacy-first
         </p>
       </div>
     </div>
@@ -1060,13 +1060,13 @@ function SystemHealthTab({ overview, stats, liveCount }: any) {
 const PAGE_LABELS: Record<string, string> = {
   "/": "Landing",
   "/auth": "Sign In",
-  "/dashboard": "Aureon Chat",
+  "/dashboard": "Asherin Chat",
   "/zophiel": "Zophiel Intel",
   "/asher-dashboard": "Asher Dashboard",
   "/asher": "Asher",
   "/elite": "Elite Suite",
   "/whiteboard": "Whiteboard",
-  "/proj-aureon": "Aureon IDE",
+  "/proj-asherin": "Asherin IDE",
   
   "/vibe-video": "Vibe Video",
   "/zali": "Zali",

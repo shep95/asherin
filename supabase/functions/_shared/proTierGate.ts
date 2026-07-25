@@ -1,6 +1,6 @@
 // PRO / ADMIN gate — grants access when the caller is either:
 //   - An admin email (ADMIN_EMAILS in constants.ts), OR
-//   - Holds an active $399 Aureon Pro-class subscription in
+//   - Holds an active $399 Asherin Pro-class subscription in
 //     public.user_subscriptions (subscription_type in the pro ladder,
 //     status='active', not expired).
 //
@@ -8,7 +8,7 @@
 // edge function can import it without pulling extra weight.
 //
 // Used by axrlen-chat, axrlen-analyze, and the AXRLEN bridge inside
-// Aureon/Asher chat.
+// Asherin/Asher chat.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCallerEmail, isAdminEmail } from "./adminGate.ts";

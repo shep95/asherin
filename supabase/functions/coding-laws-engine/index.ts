@@ -53,7 +53,7 @@ serve(async (req) => {
     const nextNumber = totalExisting + 1;
 
     // 2. Phase 1: Discover historical coding laws not yet captured
-    const discoveryPrompt = `You are AUREON's Coding Laws Engine — an autonomous intelligence that researches the entire history of software engineering to discover fundamental coding laws.
+    const discoveryPrompt = `You are ASHERIN's Coding Laws Engine — an autonomous intelligence that researches the entire history of software engineering to discover fundamental coding laws.
 
 EXISTING LAWS (${totalExisting} total):
 ${lawsSummary}
@@ -228,7 +228,7 @@ IMPORTANT: Every law must be genuinely useful for code generation. No vague phil
         name: law.name,
         domain: law.domain,
         law: law.law,
-        era: law.era || "2026 — Aureon Synthesis",
+        era: law.era || "2026 — Asherin Synthesis",
         severity: law.severity || "standard",
         rationale: law.rationale,
         source: "synthesized",

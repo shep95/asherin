@@ -72,11 +72,11 @@ export async function streamChat({
   let byokProvider: string | undefined;
   let byokModel: string | undefined;
   try {
-    const cached = localStorage.getItem("aureon_byok_active");
+    const cached = localStorage.getItem("asherin_byok_active");
     if (cached) {
       const parsed = JSON.parse(cached);
-      // Ignore legacy in-house engine entries ("aureon" / "default").
-      if (parsed?.provider && parsed.provider !== "aureon" && parsed.provider !== "default") {
+      // Ignore legacy in-house engine entries ("asherin" / "default").
+      if (parsed?.provider && parsed.provider !== "asherin" && parsed.provider !== "default") {
         byokProvider = parsed.provider;
         byokModel = parsed.model;
       }
@@ -89,7 +89,7 @@ export async function streamChat({
   // Only `=== false` blocks BYOK — undefined/missing means "respect global setting".
   if (conversationId && byokProvider) {
     try {
-      const all = JSON.parse(localStorage.getItem("aureon_conv_api_toggles") || "{}");
+      const all = JSON.parse(localStorage.getItem("asherin_conv_api_toggles") || "{}");
       const convToggles = all[conversationId] || {};
       if (convToggles[byokProvider] === false) {
         byokProvider = undefined;
@@ -113,10 +113,10 @@ export async function streamChat({
         .eq("user_id", session.user.id)
         .maybeSingle();
       const provider = pref?.active_provider;
-      if (provider && provider !== "default" && provider !== "aureon") {
+      if (provider && provider !== "default" && provider !== "asherin") {
         byokProvider = provider;
         byokModel = pref?.active_model || undefined;
-        localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: byokProvider, model: byokModel }));
+        localStorage.setItem("asherin_byok_active", JSON.stringify({ provider: byokProvider, model: byokModel }));
       }
     }
   } catch { /* fallback to anon key */ }
@@ -138,7 +138,7 @@ export async function streamChat({
 
   const numberedFormat = (() => {
     try {
-      const m = JSON.parse(localStorage.getItem("aureon_numbered_format_off") || "{}");
+      const m = JSON.parse(localStorage.getItem("asherin_numbered_format_off") || "{}");
       return !(conversationId && m[conversationId] === true);
     } catch { return true; }
   })();
@@ -167,7 +167,7 @@ export async function streamChat({
       if (resp.status === 503 || resp.status === 502 || /overload/i.test(err?.error || "")) {
         try {
           const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
-          triggerByokRequired({ source: "aureon-chat", reason: "AUREON LLM API is overloaded right now." });
+          triggerByokRequired({ source: "asherin-chat", reason: "ASHERIN LLM API is overloaded right now." });
         } catch { /* noop */ }
       }
       throw new Error(err.error || `HTTP ${resp.status}`);

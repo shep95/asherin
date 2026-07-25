@@ -5,7 +5,7 @@ interface MessageNoteProps {
   messageId: string;
 }
 
-const STORAGE_KEY = "aureon_message_notes";
+const STORAGE_KEY = "asherin_message_notes";
 
 function loadNotes(): Record<string, string> {
   try {

@@ -15,15 +15,15 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { HardeningTab } from "@/components/aureon-shield/HardeningTab";
-import { TrackersTab } from "@/components/aureon-shield/TrackersTab";
-import { StorageTab } from "@/components/aureon-shield/StorageTab";
-import { ExtensionsTab } from "@/components/aureon-shield/ExtensionsTab";
-import { DohAuditTab } from "@/components/aureon-shield/DohAuditTab";
-import { ShutoffTab } from "@/components/aureon-shield/ShutoffTab";
-import { RelayCanaryTab } from "@/components/aureon-shield/RelayCanaryTab";
-import { computeLeakScore, bandColor } from "@/lib/aureonShield/leakScore";
-import { recordFix } from "@/lib/aureonShield/locationHistory";
+import { HardeningTab } from "@/components/asherin-shield/HardeningTab";
+import { TrackersTab } from "@/components/asherin-shield/TrackersTab";
+import { StorageTab } from "@/components/asherin-shield/StorageTab";
+import { ExtensionsTab } from "@/components/asherin-shield/ExtensionsTab";
+import { DohAuditTab } from "@/components/asherin-shield/DohAuditTab";
+import { ShutoffTab } from "@/components/asherin-shield/ShutoffTab";
+import { RelayCanaryTab } from "@/components/asherin-shield/RelayCanaryTab";
+import { computeLeakScore, bandColor } from "@/lib/asherinShield/leakScore";
+import { recordFix } from "@/lib/asherinShield/locationHistory";
 
 const REPO_URL = "https://github.com/ZorakCorp/openvpn";
 
@@ -135,7 +135,7 @@ async function fingerprintHash(): Promise<{ hash: string; uniquenessHint: string
   ctx.textBaseline = "top";
   ctx.font = "16px 'Arial'";
   ctx.fillStyle = "#f60"; ctx.fillRect(0, 0, 100, 30);
-  ctx.fillStyle = "#069"; ctx.fillText("Aureon Shield 🛡️", 2, 2);
+  ctx.fillStyle = "#069"; ctx.fillText("Asherin Shield 🛡️", 2, 2);
   ctx.fillStyle = "rgba(102,204,0,0.7)"; ctx.fillText("fp", 4, 17);
   const data = c.toDataURL();
   const buf = new TextEncoder().encode(data + navigator.userAgent + screen.width);
@@ -208,12 +208,12 @@ type AnalysisResult = {
   recommendations: string[];
 };
 
-const AureonShield = ({ embed = false }: { embed?: boolean } = {}) => {
+const AsherinShield = ({ embed = false }: { embed?: boolean } = {}) => {
   // SEO
   useEffect(() => {
     import("@/lib/seoHead").then(({ applySeoHead }) =>
       applySeoHead({
-        title: "Aureon Shield — Free Browser VPN & Cyber Audit",
+        title: "Asherin Shield — Free Browser VPN & Cyber Audit",
         description:
           "Free browser audit, leak detection, breach checks, AI threat analysis, and OpenVPN client. No download required.",
         path: "/openvpn",
@@ -414,7 +414,7 @@ const AureonShield = ({ embed = false }: { embed?: boolean } = {}) => {
           <div>
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border/40 bg-card/40 px-3 py-1 text-[9px] uppercase tracking-[0.32em] text-muted-foreground/80 backdrop-blur-xl">
               <Shield className="h-3 w-3" strokeWidth={1.5} />
-              Aureon Shield · Free Forever
+              Asherin Shield · Free Forever
             </div>
             <h1 className="text-4xl font-extralight tracking-tight text-foreground sm:text-5xl">
               Military-grade browser audit & VPN
@@ -476,7 +476,7 @@ const AureonShield = ({ embed = false }: { embed?: boolean } = {}) => {
             <div className="mt-6 border-t border-border/30 pt-5">
               <div className="mb-3 flex items-center justify-between">
                 <div>
-                  <div className="text-[9px] uppercase tracking-[0.32em] text-muted-foreground">Aureon Shield Score</div>
+                  <div className="text-[9px] uppercase tracking-[0.32em] text-muted-foreground">Asherin Shield Score</div>
                   <div className="mt-1 text-2xl font-extralight tracking-wide">{analysis.score}<span className="text-sm text-muted-foreground">/100</span></div>
                 </div>
                 <Badge variant="outline" className="border-border/40 bg-card/40 font-light">{analysis.threats.length} findings</Badge>
@@ -524,7 +524,7 @@ const AureonShield = ({ embed = false }: { embed?: boolean } = {}) => {
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2"><Server className="h-4 w-4" /><h2 className="text-sm font-light tracking-wide">Multi-Layer Device Protection</h2></div>
                 <div className="text-right">
-                  <div className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Aureon Shield Score</div>
+                  <div className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Asherin Shield Score</div>
                   <div className="text-2xl font-extralight">{Math.round(overallScore)}<span className="text-sm text-muted-foreground">/100</span></div>
                 </div>
               </div>
@@ -769,7 +769,7 @@ const AureonShield = ({ embed = false }: { embed?: boolean } = {}) => {
                     <span className="flex items-center gap-2"><Activity className="h-3 w-3 animate-pulse" /> Tunnel active · relay routing</span>
                     <span className="font-mono text-muted-foreground normal-case">{proxyUrl}</span>
                   </div>
-                  <iframe src={proxyActive} title="Aureon Shield Tunnel" className="h-[600px] w-full bg-background" sandbox="allow-scripts allow-forms allow-popups" />
+                  <iframe src={proxyActive} title="Asherin Shield Tunnel" className="h-[600px] w-full bg-background" sandbox="allow-scripts allow-forms allow-popups" />
                 </div>
               )}
             </Glass>
@@ -842,9 +842,9 @@ const AureonShield = ({ embed = false }: { embed?: boolean } = {}) => {
                   <div className="mt-3 text-sm font-light">Download Binary</div>
                   <div className="text-[10px] text-muted-foreground">Latest release · macOS / Linux / Win</div>
                 </a>
-                <a href={`${REPO_URL}/tree/master/contrib/aureon-hardening`} target="_blank" rel="noreferrer" className="group rounded-xl border border-border/35 bg-background/30 p-4 transition hover:border-foreground/30 hover:bg-background/50">
+                <a href={`${REPO_URL}/tree/master/contrib/asherin-hardening`} target="_blank" rel="noreferrer" className="group rounded-xl border border-border/35 bg-background/30 p-4 transition hover:border-foreground/30 hover:bg-background/50">
                   <div className="flex items-center justify-between"><Shield className="h-5 w-5" /><ArrowUpRight className="h-4 w-4 opacity-50 group-hover:opacity-100" /></div>
-                  <div className="mt-3 text-sm font-light">Aureon Hardening Pack</div>
+                  <div className="mt-3 text-sm font-light">Asherin Hardening Pack</div>
                   <div className="text-[10px] text-muted-foreground">Config auditor · Health scan · Doctor</div>
                 </a>
               </div>
@@ -853,7 +853,7 @@ const AureonShield = ({ embed = false }: { embed?: boolean } = {}) => {
                 <pre className="mt-2 overflow-x-auto text-[11px] font-mono text-foreground/80">{`git clone https://github.com/ZorakCorp/openvpn
 cd openvpn && ./configure && make
 sudo make install
-sudo openvpn --config aureon.ovpn`}</pre>
+sudo openvpn --config asherin.ovpn`}</pre>
               </div>
             </Glass>
           </TabsContent>
@@ -871,4 +871,4 @@ sudo openvpn --config aureon.ovpn`}</pre>
   );
 };
 
-export default AureonShield;
+export default AsherinShield;

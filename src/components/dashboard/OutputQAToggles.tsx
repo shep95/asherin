@@ -35,7 +35,7 @@ interface OutputQATogglesProps {
   onFlagsChange?: (flags: QAFlags) => void;
 }
 
-const STORAGE_KEY = "aureon_qa_flags";
+const STORAGE_KEY = "asherin_qa_flags";
 
 const OutputQAToggles = ({ conversationId, open, onClose, onFlagsChange }: OutputQATogglesProps) => {
   const [flags, setFlags] = useState<QAFlags>(() => {

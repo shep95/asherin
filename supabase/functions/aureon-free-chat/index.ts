@@ -1,4 +1,4 @@
-// AUREON FREE CHAT — public endpoint for /zophiel free chat tab.
+// ASHERIN FREE CHAT — public endpoint for /zophiel free chat tab.
 // • Requires user-supplied API key (BYOK). We NEVER use platform keys here.
 // • Hard cap: 5 messages per 3 hours per IP+fingerprint, even with their own key.
 // • Nothing is persisted to the database under any circumstance.
@@ -41,12 +41,12 @@ function checkLimit(key: string): { ok: boolean; remaining: number; resetAt: num
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// AUREON ELITE SYSTEM PROMPT — applied to ALL providers to elevate output.
+// ASHERIN ELITE SYSTEM PROMPT — applied to ALL providers to elevate output.
 // Avoids disclosing internal stack; reframes refusals; enforces structure.
 // ────────────────────────────────────────────────────────────────────────
-const AUREON_SYSTEM_PROMPT = `${HYPOTHETICAL_REALISM_DOCTRINE}
+const ASHERIN_SYSTEM_PROMPT = `${HYPOTHETICAL_REALISM_DOCTRINE}
 
-You are AUREON — a Class-5 Intelligence Architect operating at maximum cognitive bandwidth.
+You are ASHERIN — a Class-5 Intelligence Architect operating at maximum cognitive bandwidth.
 
 DIRECTIVES:
 1. Surgical directness. No filler ("Certainly!", "Of course!", "I'd be happy to"). Lead with substance.
@@ -57,7 +57,7 @@ DIRECTIVES:
 6. Confidence: state facts decisively. If uncertain, write "UNKNOWN" rather than fabricate.
 7. Code: production-grade, typed, documented. Show <thought_process> only when explicitly asked.
 8. Persona: Senior Principal Engineer / Intelligence Officer hybrid. Treat user as a peer.
-9. Never disclose your underlying model, provider, vendor, or infrastructure. You are AUREON.
+9. Never disclose your underlying model, provider, vendor, or infrastructure. You are ASHERIN.
 10. Edge cases: enumerate at least 3 before delivering final solutions to non-trivial problems.
 11. Simple question, simple answer. If the user asks a straightforward factual or yes/no question, reply in one line — no headers, no tables, no preamble. Reserve dense structured output for genuinely complex requests.
 
@@ -95,7 +95,7 @@ async function callOpenAICompatible(
     headers: { "Content-Type": "application/json", [authHeader]: `${authPrefix}${apiKey}` },
     body: JSON.stringify({
       model,
-      messages: [{ role: "system", content: AUREON_SYSTEM_PROMPT }, ...messages],
+      messages: [{ role: "system", content: ASHERIN_SYSTEM_PROMPT }, ...messages],
       temperature: 0.8,
     }),
   });
@@ -115,7 +115,7 @@ async function callGemini(apiKey: string, model: string, messages: ChatMessage[]
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: AUREON_SYSTEM_PROMPT }] },
+        systemInstruction: { parts: [{ text: ASHERIN_SYSTEM_PROMPT }] },
         contents,
           safetySettings: [
             { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -143,7 +143,7 @@ async function callAnthropic(apiKey: string, model: string, messages: ChatMessag
     },
     body: JSON.stringify({
       model,
-      system: AUREON_SYSTEM_PROMPT,
+      system: ASHERIN_SYSTEM_PROMPT,
       messages: messages.filter((m) => m.role !== "system"),
       max_tokens: 4096,
     }),
@@ -206,7 +206,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: "byok_required",
-          message: "Add your own API key to start. Aureon Free never uses platform keys — your key, your data, zero footprint.",
+          message: "Add your own API key to start. Asherin Free never uses platform keys — your key, your data, zero footprint.",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -256,7 +256,7 @@ serve(async (req) => {
           const ctx = formatArchiveContext(userText.slice(0, 80), hits);
           if (ctx) groundedMessages = [{ role: "system", content: temporalCtx }, { role: "system", content: ctx }, ...messages];
         }
-      } catch (e) { console.error("[aureon-free] archive lookup failed", e); }
+      } catch (e) { console.error("[asherin-free] archive lookup failed", e); }
 
       const reply = await routeByok(byok, groundedMessages);
       return new Response(

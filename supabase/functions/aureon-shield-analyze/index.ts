@@ -23,7 +23,7 @@ serve(async (req) => {
     // BYOK path → call user provider; admin path → platform Gemini.
     if (_resolved.mode === 'byok') {
       const { callByokJson } = await import('../_shared/zophielByokRouter.ts');
-      const sysB = `You are AUREON SHIELD. Return STRICT JSON only with shape {score,verdict,headline,summary,threats[],recommendations[]}.`;
+      const sysB = `You are ASHERIN SHIELD. Return STRICT JSON only with shape {score,verdict,headline,summary,threats[],recommendations[]}.`;
       const usrB = `AUDIT:\n${auditStr}`;
       try {
         const raw = await callByokJson(_resolved.byok!, sysB, usrB, { timeoutMs: 60_000, maxOutputTokens: 4096 });
@@ -37,7 +37,7 @@ serve(async (req) => {
 
     const GEMINI_API_KEY = _resolved.geminiKey || '';
 
-    const systemPrompt = `You are AUREON SHIELD — a forensic-grade cyber security analyst. You receive a real browser/device/network audit JSON. Produce a sharp, surgical threat report. Speak as an intelligence officer: BOLD direct headers, no fluff, no apologies. Be honest about real risks AND about what cannot be inspected from a sandboxed web context (e.g. installed processes, kernel modules, OS files).
+    const systemPrompt = `You are ASHERIN SHIELD — a forensic-grade cyber security analyst. You receive a real browser/device/network audit JSON. Produce a sharp, surgical threat report. Speak as an intelligence officer: BOLD direct headers, no fluff, no apologies. Be honest about real risks AND about what cannot be inspected from a sandboxed web context (e.g. installed processes, kernel modules, OS files).
 
 Return STRICT JSON ONLY (no markdown), schema:
 {

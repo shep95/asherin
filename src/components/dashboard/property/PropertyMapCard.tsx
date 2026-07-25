@@ -1,6 +1,6 @@
 // PropertyMapCard — inline satellite view of a geocoded property.
 // Uses Leaflet + Esri World Imagery tiles (free, no key required). Renders
-// beneath an Aureon chat message when the pipeline geocoded an address.
+// beneath an Asherin chat message when the pipeline geocoded an address.
 
 import { useEffect, useRef } from "react";
 import { MapPin, ExternalLink } from "lucide-react";

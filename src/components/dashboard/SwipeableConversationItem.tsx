@@ -74,7 +74,7 @@ const SwipeableConversationItem = ({
   };
   const handleArchiveClick = () => { setOffset(0); onArchive(); };
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData("text/aureon-conversation-id", conv.id);
+    e.dataTransfer.setData("text/asherin-conversation-id", conv.id);
     e.dataTransfer.effectAllowed = "copy";
   };
 
@@ -83,7 +83,7 @@ const SwipeableConversationItem = ({
     onSelect();
     // Dispatch a delayed jump signal that ChatView listens for
     window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("aureon:jump-to-message", {
+      window.dispatchEvent(new CustomEvent("asherin:jump-to-message", {
         detail: { conversationId: conv.id, messageId: msgId },
       }));
     }, 220);

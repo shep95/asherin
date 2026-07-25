@@ -57,7 +57,7 @@ async function fetchGeoFromIP(ip: string): Promise<{ city: string | null; region
   }
 }
 
-const SESSION_REGISTERED_KEY = "aureon_session_registered";
+const SESSION_REGISTERED_KEY = "asherin_session_registered";
 
 export async function registerSession(userId: string, sessionId: string) {
   // Prevent duplicate registration within the same browser session

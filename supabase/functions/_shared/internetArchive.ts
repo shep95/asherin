@@ -1,5 +1,5 @@
 // Shared Internet Archive (archive.org) helper.
-// Used by Asher AI + Aureon Chat + Asher Archives to ground answers in real
+// Used by Asher AI + Asherin Chat + Asher Archives to ground answers in real
 // archived books, web pages, audio, video, and software.
 //
 // Public API — no auth required. Fails soft (returns []).
@@ -47,7 +47,7 @@ export async function searchArchive(
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), opts.timeoutMs ?? 12_000);
     const r = await fetch(`${IA_SEARCH}?${params.toString()}`, {
-      headers: { Accept: "application/json", "User-Agent": "Aureon-Intelligence/1.0" },
+      headers: { Accept: "application/json", "User-Agent": "Asherin-Intelligence/1.0" },
       signal: ctl.signal,
     });
     clearTimeout(t);
@@ -81,7 +81,7 @@ export async function searchArchive(
           const ctl2 = new AbortController();
           const t2 = setTimeout(() => ctl2.abort(), 8000);
           const tr = await fetch(`${IA_BASE}/download/${h.id}/${h.id}_djvu.txt`, {
-            headers: { "User-Agent": "Aureon-Intelligence/1.0" }, signal: ctl2.signal,
+            headers: { "User-Agent": "Asherin-Intelligence/1.0" }, signal: ctl2.signal,
           });
           clearTimeout(t2);
           if (tr.ok) {

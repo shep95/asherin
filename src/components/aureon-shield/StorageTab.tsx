@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HardDrive, Trash2, RefreshCw } from "lucide-react";
-import { storageSweep, nukeStorage, type StorageReport } from "@/lib/aureonShield";
+import { storageSweep, nukeStorage, type StorageReport } from "@/lib/asherinShield";
 import { toast } from "sonner";
 
 const Glass = ({ children, className = "" }: any) => (
@@ -18,7 +18,7 @@ export const StorageTab = () => {
   useEffect(() => { refresh(); }, []);
 
   const nuke = async () => {
-    if (!confirm("Wipe selected storage on THIS origin? You will be logged out of Aureon if you check service workers.")) return;
+    if (!confirm("Wipe selected storage on THIS origin? You will be logged out of Asherin if you check service workers.")) return;
     setBusy(true);
     try {
       const wiped = await nukeStorage(opts);

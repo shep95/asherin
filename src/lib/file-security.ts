@@ -1,5 +1,5 @@
 /**
- * AUREON File Upload Security Module
+ * ASHERIN File Upload Security Module
  * Extension whitelist, MIME validation, size limits, UUID naming
  */
 

@@ -8,7 +8,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 
 
-const UA = "Mozilla/5.0 (compatible; AureonZophielZip/1.0; +https://aureonai.app)";
+const UA = "Mozilla/5.0 (compatible; AsherinZophielZip/1.0; +https://aureonai.app)";
 const MAX_URLS = 250;
 const MAX_TOTAL_BYTES = 250 * 1024 * 1024; // 250 MB hard cap
 const FETCH_TIMEOUT_MS = 15000;
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     const body = await req.json() as {
       mode?: "estimate" | "download" | "fetch"; urls?: string[]; url?: string; zipName?: string;
     };
-    const { mode = "estimate", urls = [], url: singleUrl, zipName = "aureon-domain-bundle.zip" } = body;
+    const { mode = "estimate", urls = [], url: singleUrl, zipName = "asherin-domain-bundle.zip" } = body;
 
     // ─── FETCH single URL (preview proxy) ────────────────────────────────────
     if (mode === "fetch") {
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
             ...corsHeaders,
             "Content-Type": ct,
             "Content-Length": String(buf.byteLength),
-            "X-Aureon-Source": singleUrl,
+            "X-Asherin-Source": singleUrl,
             "Cache-Control": "private, max-age=300",
           },
         });
@@ -245,15 +245,15 @@ Deno.serve(async (req) => {
     }, null, 2));
 
     const blob = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE", compressionOptions: { level: 6 } });
-    const safeZipName = zipName.replace(/[^a-zA-Z0-9._-]/g, "_") || "aureon-bundle.zip";
+    const safeZipName = zipName.replace(/[^a-zA-Z0-9._-]/g, "_") || "asherin-bundle.zip";
 
     return new Response(blob, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="${safeZipName}"`,
-        "X-Aureon-Files": String(idx),
-        "X-Aureon-Bytes": String(total),
+        "X-Asherin-Files": String(idx),
+        "X-Asherin-Bytes": String(total),
       },
     });
   } catch (e) {

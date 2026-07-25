@@ -20,7 +20,7 @@ const QuotaWarningEmail = ({
   limit = 1000,
   percent,
   resetDate,
-  planName = 'Aureon',
+  planName = 'Asherin',
 }: Props) => {
   const pct = percent ?? Math.round((used / Math.max(limit, 1)) * 100)
   return (
@@ -50,6 +50,6 @@ export const template = {
     limit: 1000,
     percent: 80,
     resetDate: 'June 26, 2026',
-    planName: 'Aureon Chat',
+    planName: 'Asherin Chat',
   },
 } satisfies TemplateEntry

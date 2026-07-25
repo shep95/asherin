@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
-const AUREON_SYSTEM_PROMPT = `You are AUREON Vibe Video — an elite AI video editing intelligence. You help users edit videos with precision.
+const ASHERIN_SYSTEM_PROMPT = `You are ASHERIN Vibe Video — an elite AI video editing intelligence. You help users edit videos with precision.
 
 CRITICAL BEHAVIOR — CLARIFYING QUESTIONS:
 When a user gives a vague or ambiguous editing instruction, you MUST ask clarifying questions before proceeding.
@@ -116,12 +116,12 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
-    // ── ANALYZE: Aureon decides if it needs more info ─────────
+    // ── ANALYZE: Asherin decides if it needs more info ─────────
     if (action === "analyze") {
       const { instruction, hasVideo, chatHistory, videoUrl } = body;
 
       const messages: any[] = [
-        { role: "system", content: AUREON_SYSTEM_PROMPT },
+        { role: "system", content: ASHERIN_SYSTEM_PROMPT },
       ];
 
       if (chatHistory?.length) {
@@ -146,7 +146,7 @@ serve(async (req) => {
             contents: [
               { role: "user", parts: [{ text: messages.map((m: any) => `${m.role === "system" ? "[System]" : m.role === "user" ? "[User]" : "[Assistant]"}: ${m.content}`).join("\n\n") }] },
             ],
-            systemInstruction: { parts: [{ text: AUREON_SYSTEM_PROMPT }] },
+            systemInstruction: { parts: [{ text: ASHERIN_SYSTEM_PROMPT }] },
           }),
         }
       );
@@ -242,7 +242,7 @@ serve(async (req) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: chatContent }] }],
-            systemInstruction: { parts: [{ text: AUREON_SYSTEM_PROMPT }] },
+            systemInstruction: { parts: [{ text: ASHERIN_SYSTEM_PROMPT }] },
           }),
         }
       );

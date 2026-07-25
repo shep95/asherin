@@ -66,7 +66,7 @@ const OutputFormatMenu = ({ content, onClose }: OutputFormatMenuProps) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aureon-export.${format.ext}`;
+    a.download = `asherin-export.${format.ext}`;
     a.click();
     URL.revokeObjectURL(url);
     onClose?.();

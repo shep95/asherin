@@ -69,11 +69,11 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
 
     const moduleContext = moduleContextMap[activeModule] || "Google Intelligence Nexus";
 
-    const systemContext = `You are Aureon, an AI intelligence assistant embedded within the Google Intelligence Nexus module. The user is currently viewing: "${moduleLabel}" tab. Context about this module: ${moduleContext}. Answer questions about their Google data intelligence, help them understand patterns, and provide actionable insights. Be concise, intelligent, and specific to the module context. If they ask about data from a different module, reference it naturally.`;
+    const systemContext = `You are Asherin, an AI intelligence assistant embedded within the Google Intelligence Nexus module. The user is currently viewing: "${moduleLabel}" tab. Context about this module: ${moduleContext}. Answer questions about their Google data intelligence, help them understand patterns, and provide actionable insights. Be concise, intelligent, and specific to the module context. If they ask about data from a different module, reference it naturally.`;
 
     const apiMessages = [
       { role: "user" as const, content: systemContext },
-      { role: "assistant" as const, content: "Understood. I'm Aureon, ready to assist with your Google Intelligence data. What would you like to know?" },
+      { role: "assistant" as const, content: "Understood. I'm Asherin, ready to assist with your Google Intelligence data. What would you like to know?" },
       ...messages.map((m) => ({ role: m.role, content: m.content })),
       { role: "user" as const, content: trimmed },
     ];
@@ -147,7 +147,7 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-foreground/50" />
           <span className="text-xs font-light text-foreground">
-            Aureon · {moduleLabel}
+            Asherin · {moduleLabel}
           </span>
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/60" />
         </div>
@@ -176,7 +176,7 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
             <div className="flex flex-col items-center justify-center py-10 space-y-3">
               <Brain className="h-8 w-8 text-muted-foreground/15" />
               <p className="text-xs font-extralight text-muted-foreground/40 text-center max-w-[200px]">
-                Ask Aureon about your {moduleLabel} intelligence data
+                Ask Asherin about your {moduleLabel} intelligence data
               </p>
               <div className="flex flex-wrap gap-1.5 justify-center max-w-[280px]">
                 {[

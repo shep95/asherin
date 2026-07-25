@@ -1,4 +1,4 @@
-// PROPERTY INTEL — Aureon inline property card pipeline
+// PROPERTY INTEL — Asherin inline property card pipeline
 // ─────────────────────────────────────────────────────
 // Given a user message, this module:
 //   1. Detects whether the message is about a physical property/address.
@@ -17,7 +17,7 @@
 // total scrape budget). Failures degrade gracefully — the assistant answers
 // with whatever evidence returned, or with none if nothing did.
 
-const NOMINATIM_UA = "AureonAI-PropertyIntel/1.0 (support@aureonai.app)";
+const NOMINATIM_UA = "AsherinAI-PropertyIntel/1.0 (support@aureonai.app)";
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
 // ─── Types ──────────────────────────────────────────────────────────────────

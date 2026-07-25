@@ -148,7 +148,7 @@ async function callUserModel(
   extraSystem?: string,
 ): Promise<string> {
   const fullSystem = extraSystem
-    ? `${SYSTEM_PROMPT}\n\n=== AUREON BRAIN CONTEXT (curated knowledge) ===\n${extraSystem}\n=== END BRAIN CONTEXT ===`
+    ? `${SYSTEM_PROMPT}\n\n=== ASHERIN BRAIN CONTEXT (curated knowledge) ===\n${extraSystem}\n=== END BRAIN CONTEXT ===`
     : SYSTEM_PROMPT;
   const messages = [
     { role: "system", content: fullSystem },
@@ -255,7 +255,7 @@ async function callUserModel(
   }
 }
 
-// ── Aureon Brain selector ───────────────────────────────────────────────────
+// ── Asherin Brain selector ───────────────────────────────────────────────────
 // Pulls active brains from the asher_brains table (admin/operator-curated)
 // and picks the most relevant ones for the current query using keyword overlap.
 type LoadedBrain = { name: string; category: string; content: string };

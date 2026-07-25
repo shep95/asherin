@@ -58,7 +58,7 @@ const BlogPredictionBtcDaily = lazy(() => import("./pages/blog/PredictionBtcDail
 const BlogTheTruthAndRealityOfWars = lazy(() => import("./pages/blog/TheTruthAndRealityOfWars"));
 const BlogZaxinTacticalBleIntelligence = lazy(() => import("./pages/blog/ZaxinTacticalBleIntelligence"));
 const BlogCodeNarrativeQuantumCollapse = lazy(() => import("./pages/blog/CodeNarrativeQuantumCollapse"));
-const BlogAureonLegalAdvisor = lazy(() => import("./pages/blog/AureonLegalAdvisor"));
+const BlogAsherinLegalAdvisor = lazy(() => import("./pages/blog/AsherinLegalAdvisor"));
 const ZaxinTheories = lazy(() => import("./pages/zaxin/ZaxinTheories"));
 const BlogEliteCorporationsAlgorithmsVsAxrlen = lazy(() => import("./pages/blog/EliteCorporationsAlgorithmsVsAxrlen"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
@@ -66,7 +66,7 @@ const FeatureZerlal = lazy(() => import("./pages/feature/FeatureZerlal"));
 const FeatureAxrlen = lazy(() => import("./pages/feature/FeatureAxrlen"));
 const FeatureByok = lazy(() => import("./pages/feature/FeatureByok"));
 const Pricing = lazy(() => import("./pages/Pricing"));
-const BlogAureonPricingExplained = lazy(() => import("./pages/blog/AureonPricingExplained"));
+const BlogAsherinPricingExplained = lazy(() => import("./pages/blog/AsherinPricingExplained"));
 const BlogAiVulnerabilityScanningExplained = lazy(
   () => import("./pages/blog/AiVulnerabilityScanningExplained"),
 );
@@ -76,11 +76,11 @@ const BlogVulnerabilityChainingExplained = lazy(
 const BlogHowAiPredictiveForecastingWorks = lazy(
   () => import("./pages/blog/HowAiPredictiveForecastingWorks"),
 );
-const BlogHowAureonUsesCseoResearch = lazy(
-  () => import("./pages/blog/HowAureonUsesCseoResearch"),
+const BlogHowAsherinUsesCseoResearch = lazy(
+  () => import("./pages/blog/HowAsherinUsesCseoResearch"),
 );
-const BlogHowWeMakeAureonSoundHuman = lazy(
-  () => import("./pages/blog/HowWeMakeAureonSoundHuman"),
+const BlogHowWeMakeAsherinSoundHuman = lazy(
+  () => import("./pages/blog/HowWeMakeAsherinSoundHuman"),
 );
 const BlogHowToBreakAnyEncryptionTheory = lazy(
   () => import("./pages/blog/HowToBreakAnyEncryptionTheory"),
@@ -98,12 +98,12 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import RouteSessionTracker from "./components/RouteSessionTracker";
 import RouteSeo from "./components/RouteSeo";
-// DonationBanner removed — Aureon now runs on a monthly subscription model.
+// DonationBanner removed — Asherin now runs on a monthly subscription model.
 
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
     <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">
-      AUREON
+      ASHERIN
     </div>
   </div>
 );
@@ -160,7 +160,7 @@ const App = () => (
             <Route path="/blog/the-truth-and-reality-of-wars" element={<BlogTheTruthAndRealityOfWars />} />
             <Route path="/blog/zaxin-tactical-ble-intelligence" element={<BlogZaxinTacticalBleIntelligence />} />
             <Route path="/blog/code-narrative-quantum-collapse" element={<BlogCodeNarrativeQuantumCollapse />} />
-            <Route path="/blog/aureon-legal-advisor-multi-jurisdictional" element={<BlogAureonLegalAdvisor />} />
+            <Route path="/blog/asherin-legal-advisor-multi-jurisdictional" element={<BlogAsherinLegalAdvisor />} />
             <Route path="/zaxin/theories" element={<ZaxinTheories />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/investors" element={<Investors />} />
@@ -195,7 +195,7 @@ const App = () => (
             <Route path="/glossary/operator-stack" element={<GlossaryOperatorStack />} />
             <Route path="/glossary/conversational-seo" element={<GlossaryConversationalSeo />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/blog/aureon-pricing-explained" element={<BlogAureonPricingExplained />} />
+            <Route path="/blog/asherin-pricing-explained" element={<BlogAsherinPricingExplained />} />
             <Route
               path="/blog/ai-vulnerability-scanning-explained"
               element={<BlogAiVulnerabilityScanningExplained />}
@@ -209,12 +209,12 @@ const App = () => (
               element={<BlogHowAiPredictiveForecastingWorks />}
             />
             <Route
-              path="/blog/how-aureon-uses-c-seo-research"
-              element={<BlogHowAureonUsesCseoResearch />}
+              path="/blog/how-asherin-uses-c-seo-research"
+              element={<BlogHowAsherinUsesCseoResearch />}
             />
             <Route
-              path="/blog/how-we-make-aureon-sound-human"
-              element={<BlogHowWeMakeAureonSoundHuman />}
+              path="/blog/how-we-make-asherin-sound-human"
+              element={<BlogHowWeMakeAsherinSoundHuman />}
             />
             <Route
               path="/blog/how-to-break-any-encryption-theory"

@@ -16,7 +16,7 @@ export function useDownloadDiagram(containerRef: React.RefObject<HTMLDivElement 
       });
 
       const link = document.createElement("a");
-      link.download = `aureon-diagram-${Date.now()}.png`;
+      link.download = `asherin-diagram-${Date.now()}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch {
@@ -49,7 +49,7 @@ function fallbackCapture(el: HTMLElement) {
   const url = URL.createObjectURL(blob);
   
   const link = document.createElement("a");
-  link.download = `aureon-diagram-${Date.now()}.svg`;
+  link.download = `asherin-diagram-${Date.now()}.svg`;
   link.href = url;
   link.click();
   URL.revokeObjectURL(url);

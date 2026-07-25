@@ -86,7 +86,7 @@ const CrossChatPanel: React.FC<CrossChatPanelProps> = ({
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-3 space-y-3 relative">
         {messages.length === 0 && (
           <p className="text-xs text-muted-foreground/30 text-center py-12 font-extralight">
-            Ask Aureon about what it sees on your screen
+            Ask Asherin about what it sees on your screen
           </p>
         )}
 

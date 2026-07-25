@@ -1,5 +1,5 @@
 /**
- * Aureon Shield — live browser hardening primitives.
+ * Asherin Shield — live browser hardening primitives.
  * Every function here performs a REAL action on the live page.
  * No simulated data. Toggles persist via window globals scoped to the tab.
  */
@@ -8,14 +8,14 @@
 // Audit log (sessionStorage-backed, exportable)
 // ─────────────────────────────────────────────────────────────────────
 export type AuditEntry = { ts: number; kind: string; detail: string };
-const AUDIT_KEY = "aureon_shield_audit_v1";
+const AUDIT_KEY = "asherin_shield_audit_v1";
 
 export function logAudit(kind: string, detail: string) {
   try {
     const arr: AuditEntry[] = JSON.parse(sessionStorage.getItem(AUDIT_KEY) || "[]");
     arr.push({ ts: Date.now(), kind, detail });
     sessionStorage.setItem(AUDIT_KEY, JSON.stringify(arr.slice(-500)));
-    window.dispatchEvent(new CustomEvent("aureon:audit"));
+    window.dispatchEvent(new CustomEvent("asherin:audit"));
   } catch {}
 }
 export function readAudit(): AuditEntry[] {
@@ -23,7 +23,7 @@ export function readAudit(): AuditEntry[] {
 }
 export function clearAudit() {
   sessionStorage.removeItem(AUDIT_KEY);
-  window.dispatchEvent(new CustomEvent("aureon:audit"));
+  window.dispatchEvent(new CustomEvent("asherin:audit"));
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ export function enableFingerprintSpoofer() {
     if (!proto) return;
     const orig = proto.getParameter;
     proto.getParameter = function (p: number) {
-      if (p === 37445) return "Aureon Shield"; // UNMASKED_VENDOR_WEBGL
+      if (p === 37445) return "Asherin Shield"; // UNMASKED_VENDOR_WEBGL
       if (p === 37446) return `Cloaked Renderer ${(rng() * 9999) | 0}`; // UNMASKED_RENDERER_WEBGL
       return orig.call(this, p);
     };
@@ -135,7 +135,7 @@ let origBeacon: any;
 
 export function isTrackerHookActive() { return trackerHookActive; }
 export function getTrackerStats() { return { count: trackerCount, hits: trackerHits.slice(-50).reverse() }; }
-export function resetTrackerStats() { trackerCount = 0; trackerHits.length = 0; window.dispatchEvent(new CustomEvent("aureon:trackers")); }
+export function resetTrackerStats() { trackerCount = 0; trackerHits.length = 0; window.dispatchEvent(new CustomEvent("asherin:trackers")); }
 
 function isTracker(url: string): string | null {
   try {
@@ -158,8 +158,8 @@ export function enableTrackerBlocker() {
     if (t) {
       trackerCount++;
       trackerHits.push({ domain: t, url, ts: Date.now() });
-      window.dispatchEvent(new CustomEvent("aureon:trackers"));
-      return Promise.resolve(new Response(null, { status: 204, statusText: "Blocked by Aureon Shield" }));
+      window.dispatchEvent(new CustomEvent("asherin:trackers"));
+      return Promise.resolve(new Response(null, { status: 204, statusText: "Blocked by Asherin Shield" }));
     }
     return origFetch(input as any, init);
   }) as typeof fetch;
@@ -171,7 +171,7 @@ export function enableTrackerBlocker() {
     if (t) {
       trackerCount++;
       trackerHits.push({ domain: t, url: u, ts: Date.now() });
-      window.dispatchEvent(new CustomEvent("aureon:trackers"));
+      window.dispatchEvent(new CustomEvent("asherin:trackers"));
       return origXhrOpen.call(this, method, "data:,", ...rest);
     }
     return origXhrOpen.call(this, method, url, ...rest);
@@ -182,7 +182,7 @@ export function enableTrackerBlocker() {
     navigator.sendBeacon = (url: string | URL, data?: BodyInit | null) => {
       const u = typeof url === "string" ? url : url.href;
       const t = isTracker(u);
-      if (t) { trackerCount++; trackerHits.push({ domain: t, url: u, ts: Date.now() }); window.dispatchEvent(new CustomEvent("aureon:trackers")); return true; }
+      if (t) { trackerCount++; trackerHits.push({ domain: t, url: u, ts: Date.now() }); window.dispatchEvent(new CustomEvent("asherin:trackers")); return true; }
       return origBeacon!(url, data ?? null);
     };
   }
@@ -376,7 +376,7 @@ export function geoLeakScore(args: {
 // ─────────────────────────────────────────────────────────────────────
 // Location history (IndexedDB)
 // ─────────────────────────────────────────────────────────────────────
-const DB = "aureon_shield";
+const DB = "asherin_shield";
 const STORE = "geo_history";
 
 function openDb(): Promise<IDBDatabase> {

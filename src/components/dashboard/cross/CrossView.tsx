@@ -216,7 +216,7 @@ const CrossView: React.FC = () => {
     try {
       const headers = await getAuthHeaders();
       let activeBrainId: string | null = null;
-      try { activeBrainId = localStorage.getItem("aureon_active_brain_id"); } catch { /* ignore */ }
+      try { activeBrainId = localStorage.getItem("asherin_active_brain_id"); } catch { /* ignore */ }
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cross-analyze`,
@@ -497,7 +497,7 @@ const CrossView: React.FC = () => {
     try {
       const headers = await getAuthHeaders();
       let activeBrainId: string | null = null;
-      try { activeBrainId = localStorage.getItem("aureon_active_brain_id"); } catch {}
+      try { activeBrainId = localStorage.getItem("asherin_active_brain_id"); } catch {}
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cross-analyze`,

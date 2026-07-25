@@ -13,7 +13,7 @@ interface ChatMsg {
   content: string;
 }
 
-const ZeeionAureonChat = ({ analysis }: Props) => {
+const ZeeionAsherinChat = ({ analysis }: Props) => {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -164,7 +164,7 @@ const ZeeionAureonChat = ({ analysis }: Props) => {
 
     const systemContext = buildContext();
     const apiMessages = [
-      { role: "user" as const, content: `[ZEEION FINANCIAL CONTEXT]\n${systemContext}\n\n---\nYou are Aureon, an expert AI financial analyst embedded in Zeeion Financial Intelligence. Answer questions about this financial data with specific numbers, actionable recommendations, and clear analysis. Be concise but thorough. Use the data provided above to answer accurately. When relevant, suggest specific action items the user can take. Format your responses with headers, bullet points, and bold text for key figures.` },
+      { role: "user" as const, content: `[ZEEION FINANCIAL CONTEXT]\n${systemContext}\n\n---\nYou are Asherin, an expert AI financial analyst embedded in Zeeion Financial Intelligence. Answer questions about this financial data with specific numbers, actionable recommendations, and clear analysis. Be concise but thorough. Use the data provided above to answer accurately. When relevant, suggest specific action items the user can take. Format your responses with headers, bullet points, and bold text for key figures.` },
       ...messages.map(m => ({ role: m.role, content: m.content })),
       { role: "user" as const, content: msg },
     ];
@@ -222,7 +222,7 @@ const ZeeionAureonChat = ({ analysis }: Props) => {
       <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border/[0.06]">
         <div className="flex items-center gap-2">
           <Sparkles className="h-3.5 w-3.5 text-foreground/40" />
-          <span className="text-[10px] font-light tracking-wider text-foreground/60">AUREON ANALYST</span>
+          <span className="text-[10px] font-light tracking-wider text-foreground/60">ASHERIN ANALYST</span>
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-pulse" />
           <span className="text-[8px] text-muted-foreground/25">Ready to help</span>
         </div>
@@ -279,7 +279,7 @@ const ZeeionAureonChat = ({ analysis }: Props) => {
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
             <Sparkles className="h-6 w-6 text-muted-foreground/15" />
             <div>
-              <p className="text-[11px] font-light text-foreground/40">Ask Aureon about your financial data</p>
+              <p className="text-[11px] font-light text-foreground/40">Ask Asherin about your financial data</p>
               <p className="text-[9px] text-muted-foreground/25 mt-1">I have full context of your {analysis.summary?.totalRecords.toLocaleString()} records across {analysis.summary?.departmentCount} departments</p>
             </div>
           </div>
@@ -353,4 +353,4 @@ const ZeeionAureonChat = ({ analysis }: Props) => {
   );
 };
 
-export default ZeeionAureonChat;
+export default ZeeionAsherinChat;

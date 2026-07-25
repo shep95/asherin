@@ -2,7 +2,7 @@
  * PALANTIR TYPESETTABLE INTEGRATION
  * Canvas text rendering engine using palantir/typesettable.
  * Handles word wrapping, alignment, truncation, and multi-line text
- * for the AUREON Whiteboard's infinite canvas.
+ * for the ASHERIN Whiteboard's infinite canvas.
  */
 import { Typesetter, Measurer, Wrapper, Writer, CacheMeasurer } from "typesettable";
 

@@ -22,7 +22,7 @@ const CADENCE_OPTIONS = ["concise", "detailed", "conversational", "telegraphic"]
 const FORMAT_OPTIONS = ["markdown", "plain text", "structured headings", "bullet-heavy"];
 const VOCAB_OPTIONS = ["standard", "simple", "technical", "executive"];
 
-const STORAGE_KEY = "aureon_style_profile";
+const STORAGE_KEY = "asherin_style_profile";
 
 interface PersonalStyleProfileProps {
   open: boolean;

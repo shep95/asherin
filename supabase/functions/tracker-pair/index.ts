@@ -41,7 +41,7 @@ async function pingLocation(lat, lon, acc) {
 }
 
 async function getStored() {
-  const cache = await caches.open("aureon-tracker-v1");
+  const cache = await caches.open("asherin-tracker-v1");
   const resp = await cache.match("/__meta__");
   if (!resp) return null;
   return resp.json();
@@ -57,7 +57,7 @@ function buildHtml(token: string, _deviceId: string, functionUrl: string): strin
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aureon · Live Tracker</title>
+  <title>Asherin · Live Tracker</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{background:#050505;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
@@ -91,7 +91,7 @@ function buildHtml(token: string, _deviceId: string, functionUrl: string): strin
 <body>
   <div id="header">
     <div id="pulse"></div>
-    <h1>Aureon · Live Signal</h1>
+    <h1>Asherin · Live Signal</h1>
     <span id="status">Acquiring…</span>
   </div>
 
@@ -129,10 +129,10 @@ function buildHtml(token: string, _deviceId: string, functionUrl: string): strin
     // Auto-generate a stable visitorId per browser stored in localStorage
     // This means each unique device/browser gets its own tracker_devices row
     // regardless of how many people click the same link
-    let VISITOR_ID = localStorage.getItem("aureon_visitor_id");
+    let VISITOR_ID = localStorage.getItem("asherin_visitor_id");
     if (!VISITOR_ID) {
       VISITOR_ID = "v-" + Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
-      localStorage.setItem("aureon_visitor_id", VISITOR_ID);
+      localStorage.setItem("asherin_visitor_id", VISITOR_ID);
     }
 
     let pingCount = 0;
@@ -203,7 +203,7 @@ function buildHtml(token: string, _deviceId: string, functionUrl: string): strin
       try {
         const reg = await navigator.serviceWorker.register(SW_URL, {scope:"/"});
         await navigator.serviceWorker.ready;
-        const cache = await caches.open("aureon-tracker-v1");
+        const cache = await caches.open("asherin-tracker-v1");
         await cache.put("/__meta__", new Response(JSON.stringify({token:TOKEN, visitorId:VISITOR_ID})));
         if ("periodicSync" in reg) {
           try {
@@ -360,7 +360,7 @@ serve(async (req) => {
       try {
         const geoResp = await fetch(
           `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-          { headers: { "Accept-Language": "en", "User-Agent": "AureonTracker/1.0" } }
+          { headers: { "Accept-Language": "en", "User-Agent": "AsherinTracker/1.0" } }
         );
         if (geoResp.ok) {
           const geo = await geoResp.json();

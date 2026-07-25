@@ -15,7 +15,7 @@ interface DecisionLogProps {
   onClose: () => void;
 }
 
-const STORAGE_KEY = "aureon_decisions";
+const STORAGE_KEY = "asherin_decisions";
 
 function loadAll(): Record<string, Decision[]> {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }

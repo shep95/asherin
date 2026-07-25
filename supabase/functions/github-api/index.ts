@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
         const conn = await getToken(params.connection_id);
         const branch = params.branch || conn.branch || "main";
         const files: { path: string; content: string }[] = params.files;
-        const message: string = params.message || `Commit ${files.length} file(s) from Aureon IDE`;
+        const message: string = params.message || `Commit ${files.length} file(s) from Asherin IDE`;
 
         // Atomic commit via git data API: one tree, one commit, one ref update
         const refData = await githubFetch(`/repos/${conn.repo_owner}/${conn.repo_name}/git/ref/heads/${encodeURIComponent(branch)}`, conn.github_token);
@@ -271,8 +271,8 @@ Deno.serve(async (req) => {
         const conn = await getToken(params.connection_id);
         const head: string = params.head || conn.branch;
         const base: string = params.base || "main";
-        const title: string = params.title || `Aureon IDE: ${head} → ${base}`;
-        const body: string = params.body || "Opened from Aureon IDE.";
+        const title: string = params.title || `Asherin IDE: ${head} → ${base}`;
+        const body: string = params.body || "Opened from Asherin IDE.";
         const draft: boolean = !!params.draft;
         const pr = await githubFetch(`/repos/${conn.repo_owner}/${conn.repo_name}/pulls`, conn.github_token, {
           method: "POST",

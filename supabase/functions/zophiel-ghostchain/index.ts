@@ -16,7 +16,7 @@
 // from the same repo), we POST there instead of running the static port. That
 // upstream returns the full Ghost Chain report; we forward it verbatim.
 //
-// Called by: ZophielEngineView (mode="ghostchain"), and any Aureon/Asher chat
+// Called by: ZophielEngineView (mode="ghostchain"), and any Asherin/Asher chat
 // that imports `src/lib/zophielGhostChain.ts`.
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";

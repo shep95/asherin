@@ -1,12 +1,12 @@
 import { useLocation } from "react-router-dom";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { applySeoHead } from "@/lib/seoHead";
-const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
+const wallpaperAsherin = "/wallpapers/wallpaper-asherin.webp";
 
 
 /**
- * AUREON 404 — "Lost in Orbit"
- * A monochrome, Aureon-themed not-found page with an offline
+ * ASHERIN 404 — "Lost in Orbit"
+ * A monochrome, Asherin-themed not-found page with an offline
  * Chrome-dino-style mini game: a futuristic dino in a space suit
  * jumping rogue asteroids and broken satellites, with Saturn looming
  * in the background. Funny flavor text included.
@@ -32,7 +32,7 @@ const NotFound = () => {
   const [score, setScore] = useState(0);
   const [best, setBest] = useState<number>(() => {
     if (typeof window === "undefined") return 0;
-    return Number(localStorage.getItem("aureon_404_best") || 0);
+    return Number(localStorage.getItem("asherin_404_best") || 0);
   });
   const [running, setRunning] = useState(false);
   const [dead, setDead] = useState(false);
@@ -56,9 +56,9 @@ const NotFound = () => {
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
     applySeoHead({
-      title: "404 — Lost in Orbit | Aureon",
+      title: "404 — Lost in Orbit | Asherin",
       description:
-        "This isn't a page on Aureon. Click to return — or play the offline space-dino game while you're here.",
+        "This isn't a page on Asherin. Click to return — or play the offline space-dino game while you're here.",
       path: location.pathname,
     });
     // Dork-hardening: every 404 must be de-indexable so recon probes for
@@ -362,7 +362,7 @@ const NotFound = () => {
             setScore(s.score);
             setBest((b) => {
               const nb = Math.max(b, s.score);
-              localStorage.setItem("aureon_404_best", String(nb));
+              localStorage.setItem("asherin_404_best", String(nb));
               return nb;
             });
             break;
@@ -466,11 +466,11 @@ const NotFound = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050507] text-zinc-200">
-      {/* Aureon wallpaper */}
+      {/* Asherin wallpaper */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${wallpaperAureon})`, zIndex: 0 }}
+        style={{ backgroundImage: `url(${wallpaperAsherin})`, zIndex: 0 }}
       />
       <div aria-hidden className="pointer-events-none fixed inset-0 bg-black/70" style={{ zIndex: 1 }} />
       {/* ambient grid + glow */}
@@ -493,13 +493,13 @@ const NotFound = () => {
       <main className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 py-16">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs uppercase tracking-[0.2em] text-zinc-400 backdrop-blur">
           <span className="h-1.5 w-1.5 rounded-full bg-zinc-300" />
-          aureon · signal lost
+          asherin · signal lost
         </div>
 
         <h1 className="text-center font-semibold tracking-tight">
           <span className="block text-[88px] leading-none text-white sm:text-[128px]">404</span>
           <span className="mt-3 block text-lg text-zinc-300 sm:text-xl">
-            this isn't a page on aureon.
+            this isn't a page on asherin.
           </span>
         </h1>
 
@@ -513,7 +513,7 @@ const NotFound = () => {
             href="/"
             className="group inline-flex items-center gap-2 rounded-md border border-white/15 bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-zinc-200"
           >
-            click here to go back to aureon
+            click here to go back to asherin
             <span className="transition group-hover:translate-x-0.5">→</span>
           </a>
           <button

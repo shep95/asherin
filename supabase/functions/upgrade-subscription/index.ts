@@ -12,11 +12,11 @@ const logStep = (step: string, details?: any) => {
 
 // Tier price IDs
 const TIER_PRICES: Record<string, string> = {
-  monthly_aureon: "price_1Tk7FyRxgCpmPfiF4vZebmnE",
+  monthly_asherin: "price_1Tk7FyRxgCpmPfiF4vZebmnE",
   monthly_pro: "price_1Tk7FzRxgCpmPfiFlkJig5Bf",
   starter: "price_1T9wBfRxgCpmPfiFgegrNIkk",
   chat: "price_1T6PPmRxgCpmPfiFoTiBXBzq",
-  aureon: "price_1T3o9NRxgCpmPfiFaFDWC8u0",
+  asherin: "price_1T3o9NRxgCpmPfiFaFDWC8u0",
   pro: "price_1T3N4iRxgCpmPfiFGbJkXY33",
   advisor_monthly: "price_1T1abVRxgCpmPfiFsZcq9ZNM",
 };
@@ -121,13 +121,13 @@ serve(async (req) => {
       );
 
     } else if (action === "start_pro_trial") {
-      // ── 3-DAY PRO TRIAL FOR AUREON USERS ──────────────────────────
+      // ── 3-DAY PRO TRIAL FOR ASHERIN USERS ──────────────────────────
       const mainSub = allSubs.find(s => {
         const priceId = s.items.data[0]?.price?.id;
-        return priceId === TIER_PRICES.aureon;
+        return priceId === TIER_PRICES.asherin;
       });
 
-      if (!mainSub) throw new Error("You need an active Aureon subscription to start a Pro trial");
+      if (!mainSub) throw new Error("You need an active Asherin subscription to start a Pro trial");
 
       // Check if they already had a trial
       const existingProTrials = allSubs.filter(s => {
@@ -136,10 +136,10 @@ serve(async (req) => {
       });
       if (existingProTrials.length > 0) throw new Error("You already have an active Pro trial");
 
-      logStep("Starting 3-day Pro trial for Aureon user");
+      logStep("Starting 3-day Pro trial for Asherin user");
 
       // Upgrade to Pro with 3-day trial, cancel_at set to 3 days from now
-      // After trial ends, it reverts by canceling (user keeps Aureon sub)
+      // After trial ends, it reverts by canceling (user keeps Asherin sub)
       const trialEnd = Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60; // 3 days
 
       const updated = await stripe.subscriptions.update(mainSub.id, {
@@ -159,7 +159,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          message: "3-day Pro trial activated! You'll have full Pro access. After 3 days, you can upgrade or return to Aureon.",
+          message: "3-day Pro trial activated! You'll have full Pro access. After 3 days, you can upgrade or return to Asherin.",
           trial_ends: new Date(trialEnd * 1000).toISOString(),
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }

@@ -4,7 +4,7 @@ import { History, RotateCcw, Clock, X } from "lucide-react";
 import { listSnapshots, restoreSnapshot, type Snapshot } from "@/lib/ide";
 
 interface Props {
-  scope: "aureon" | "asher";
+  scope: "asherin" | "asher";
   projectId: string;
   fileId: string;
   filePath: string;

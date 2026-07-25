@@ -1,5 +1,5 @@
 // AsherImagineAIPanel — chat side panel for the Imagine module.
-// Routes through the same asher-ai brain (full Aureon brain access) and
+// Routes through the same asher-ai brain (full Asherin brain access) and
 // can also generate images via the asher-imagine edge function.
 
 import { useEffect, useRef, useState } from "react";
@@ -23,7 +23,7 @@ const WELCOME_MSG: Msg = {
   id: "welcome",
   role: "assistant",
   content:
-    "**ASHER AI · Imagine Console**\n\nI'm wired into the full Aureon brain. Ask me anything or have me generate tactical imagery.\n\n- *Imagine a SAM site at sunset, top-down satellite view*\n- *Sketch a fortified compound with perimeter wall*\n- *Render an urban operations diagram*\n- *Explain the doctrinal use of an L-shaped ambush*",
+    "**ASHER AI · Imagine Console**\n\nI'm wired into the full Asherin brain. Ask me anything or have me generate tactical imagery.\n\n- *Imagine a SAM site at sunset, top-down satellite view*\n- *Sketch a fortified compound with perimeter wall*\n- *Render an urban operations diagram*\n- *Explain the doctrinal use of an L-shaped ambush*",
 };
 
 const AsherImagineAIPanel = () => {
@@ -98,7 +98,7 @@ const AsherImagineAIPanel = () => {
     try {
       // FLAW 1 FIX — Route brains BEFORE the AI call so the Imagine
       // module gets the same context-aware brain stack the rest of
-      // Aureon uses. Best-effort: failures here must not block chat.
+      // Asherin uses. Best-effort: failures here must not block chat.
       let brainContext: string | null = null;
       let brainRationale: unknown = undefined;
       try {

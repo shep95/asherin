@@ -1,8 +1,8 @@
-// CODE-RAG — Phase 4 Aureon IDE
+// CODE-RAG — Phase 4 Asherin IDE
 // Two actions:
 //   - index:   chunk + embed + upsert file contents into asher_code_embeddings
 //   - search:  embed a query, return top-k semantically similar chunks
-//   - hover:   embed symbol + context, return short Aureon-Code explanation grounded in RAG
+//   - hover:   embed symbol + context, return short Asherin-Code explanation grounded in RAG
 //
 // Uses Lovable AI Gateway embeddings (openai/text-embedding-3-small, 1536 dims)
 // and gemini-flash for hover explanations. JWT verified manually.
@@ -75,9 +75,9 @@ async function ensureCodeProject(admin: any, projectId: string, userId: string):
   const { error: insertError } = await admin.from("asher_code_projects").insert({
     id: projectId,
     owner_id: userId,
-    name: "Aureon IDE Project",
+    name: "Asherin IDE Project",
     language: "typescript",
-    template: "aureon-ide-session",
+    template: "asherin-ide-session",
     visibility: "private",
   });
   if (insertError && insertError.code !== "23505") throw insertError;
@@ -185,7 +185,7 @@ serve(async (req) => {
         .join("\n\n");
 
       const markdown = await aiChat([
-        { role: "system", content: "You are AUREON CODE hover-intel. Reply with 1-3 dense bullet lines in Markdown explaining the symbol in context. Use **bold** for the symbol. If it's a function, give a one-line signature. If a variable, give inferred type. No filler, no apologies, never mention models or vendors." },
+        { role: "system", content: "You are ASHERIN CODE hover-intel. Reply with 1-3 dense bullet lines in Markdown explaining the symbol in context. Use **bold** for the symbol. If it's a function, give a one-line signature. If a variable, give inferred type. No filler, no apologies, never mention models or vendors." },
         { role: "user", content: `LANGUAGE: ${language}\nFILE: ${filePath}\nLINE: ${lineText}\nSYMBOL: ${symbol}\n\nSURROUNDING CODE:\n\`\`\`${language}\n${surrounding}\n\`\`\`\n\nRELATED PROJECT CONTEXT:\n${ctx || "(none)"}` },
       ]);
 

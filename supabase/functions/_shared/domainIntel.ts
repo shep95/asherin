@@ -1,7 +1,7 @@
-// DOMAIN INTEL — Aureon inline domain-extraction bridge.
+// DOMAIN INTEL — Asherin inline domain-extraction bridge.
 // ──────────────────────────────────────────────────────
 // Brings the domain-extraction tooling from Zerlal + Zophiel (domain-map,
-// domain-harvest, zerlal-domain-recon) into Aureon chat as a lightweight
+// domain-harvest, zerlal-domain-recon) into Asherin chat as a lightweight
 // inline capability. Given a user message:
 //   1. detectDomainIntent()  → { fired, mode, domain, extFilter }
 //        mode ∈ 'map' | 'harvest' | 'recon' | 'osint'
@@ -14,7 +14,7 @@
 // still answers, just without the attachment.
 //
 // Access policy: this bridge is intentionally open to every signed-in
-// Aureon chat user (all subscription tiers). The heavy zerlal-domain-recon
+// Asherin chat user (all subscription tiers). The heavy zerlal-domain-recon
 // endpoint still requires the caller's own auth (it inserts into
 // zerlal_projects), so we surface a deep-link CTA instead of running it
 // inline.
@@ -335,7 +335,7 @@ async function runOsint(domain: string): Promise<DomainOsintAttachment | null> {
   const t = setTimeout(() => ac.abort(), 8000);
   try {
     const [pageResp, robotsResp, sitemapResp] = await Promise.all([
-      fetch(origin, { headers: { "user-agent": "AureonDomainProbe/1.0" }, signal: ac.signal }).catch(() => null),
+      fetch(origin, { headers: { "user-agent": "AsherinDomainProbe/1.0" }, signal: ac.signal }).catch(() => null),
       fetch(`${origin}/robots.txt`, { signal: ac.signal }).catch(() => null),
       fetch(`${origin}/sitemap.xml`, { signal: ac.signal }).catch(() => null),
     ]);

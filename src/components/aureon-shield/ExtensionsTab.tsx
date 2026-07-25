@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Puzzle, Loader2 } from "lucide-react";
-import { probeExtensions, type ExtensionDetection } from "@/lib/aureonShield";
+import { probeExtensions, type ExtensionDetection } from "@/lib/asherinShield";
 
 const Glass = ({ children, className = "" }: any) => (
   <div className={`rounded-2xl border border-border/35 bg-card/55 backdrop-blur-2xl shadow-[0_18px_55px_-25px_hsl(var(--foreground)/0.45)] ${className}`}>{children}</div>

@@ -34,7 +34,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 const AsherPublishedTabRenderer = lazy(() => import("@/components/asher/AsherPublishedTabRenderer"));
 const AsherBrainsModule       = lazy(() => import("@/components/asher/AsherBrainsModule"));
-const AsherAureonDataModule   = lazy(() => import("@/components/asher/AsherAureonDataModule"));
+const AsherAsherinDataModule   = lazy(() => import("@/components/asher/AsherAsherinDataModule"));
 const AsherZahtenModule       = lazy(() => import("@/components/asher/AsherZahtenModule"));
 const AsherZacoonModule       = lazy(() => import("@/components/asher/AsherZacoonModule"));
 const GematriaTab             = lazy(() => import("@/components/gematria/GematriaTab"));
@@ -219,7 +219,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 type AsherTab =
   | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "axrlen" | "notebooks" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
-  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains" | "aureondata" | "gematria"
+  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains" | "asherindata" | "gematria"
   | string; // allow dynamic published-tab ids: `pub:<uuid>`
 
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string; children?: NavItem[] }
@@ -232,7 +232,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "orgs" as AsherTab, label: "Org Management", icon: Building2, sub: "God-Mode" },
   ]}] : []),
   ...(isPrimaryAdmin ? [{ id: "analytics", label: "Analytics", items: [
-    { id: "aureondata" as AsherTab, label: "Aureon Data", icon: BarChart3, sub: "Operator" },
+    { id: "asherindata" as AsherTab, label: "Asherin Data", icon: BarChart3, sub: "Operator" },
   ]}] : []),
   { id: "ops", label: "Operations", items: [
     { id: "map",     label: "Intelligence Map", icon: MapIcon,  sub: "Primary" },
@@ -256,7 +256,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
       { id: "zahten",  label: "Zahten Agents",   icon: Workflow,  sub: "Builder" },
       { id: "zacoon",  label: "Zacoon Browser",  icon: Bot,       sub: "Agent" },
     ]},
-    { id: "__aureonIntel" as AsherTab, label: "Aureon Disciplines", icon: Satellite, children: [
+    { id: "__asherinIntel" as AsherTab, label: "Asherin Disciplines", icon: Satellite, children: [
       { id: "theater",   label: "Theater Brief",   icon: FileText },
       { id: "targeting", label: "Targeting Aid",   icon: Crosshair },
       { id: "sigint",    label: "SIGINT Fusion",   icon: Radio },
@@ -500,7 +500,7 @@ const AsherDashboard = () => {
             {active === "map"       && <IntelligenceMapModule />}
             {active === "command"   && <AsherCommandCenter />}
             {active === "brains"    && <AsherBrainsModule />}
-            {active === "aureondata"&& <AsherAureonDataModule />}
+            {active === "asherindata"&& <AsherAsherinDataModule />}
             {active === "zophiel"   && <AsherZophielModule />}
             {active === "azplen"    && <AsherAzplenModule />}
             {active === "zali"      && <AsherZaliModule />}

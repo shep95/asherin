@@ -11,7 +11,7 @@ import { AI_PROVIDERS } from "@/lib/aiProviders";
  * no in-house fallback model. If no provider is connected, this widget
  * routes the user to Settings → AI Keys to add one.
  *
- * Persisted via the existing `aureon_byok_active` localStorage contract,
+ * Persisted via the existing `asherin_byok_active` localStorage contract,
  * which `src/lib/ai.ts` reads on every chat call.
  */
 
@@ -21,12 +21,12 @@ type Active = { provider: string; model: string; label: string } | null;
 
 function loadActive(): Active {
   try {
-    const raw = localStorage.getItem("aureon_byok_active");
+    const raw = localStorage.getItem("asherin_byok_active");
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed?.provider) return null;
     // Ignore legacy in-house engine entries.
-    if (parsed.provider === "aureon" || parsed.provider === "default") return null;
+    if (parsed.provider === "asherin" || parsed.provider === "default") return null;
     const prov = AI_PROVIDERS.find((p) => p.id === parsed.provider);
     const mod = prov?.models.find((m) => m.id === parsed.model);
     if (prov && mod) {
@@ -38,7 +38,7 @@ function loadActive(): Active {
   }
 }
 
-export default function AureonEngineToggle() {
+export default function AsherinEngineToggle() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -75,7 +75,7 @@ export default function AureonEngineToggle() {
   const select = async (next: NonNullable<Active>) => {
     setActive(next);
     localStorage.setItem(
-      "aureon_byok_active",
+      "asherin_byok_active",
       JSON.stringify({ provider: next.provider, model: next.model }),
     );
     if (userId) {
@@ -180,7 +180,7 @@ export default function AureonEngineToggle() {
             )}
 
             <p className="text-[8px] text-muted-foreground/40 px-2.5 pt-2 border-t border-border/10 leading-relaxed">
-              Manage keys in Settings → AI Keys. Aureon does not ship a default model.
+              Manage keys in Settings → AI Keys. Asherin does not ship a default model.
             </p>
           </div>
         )}

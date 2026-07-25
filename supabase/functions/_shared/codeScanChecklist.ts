@@ -1,4 +1,4 @@
-// CODE SCANNING & DEBUGGING CHECKLIST — shared across Aureon coding/audit engines.
+// CODE SCANNING & DEBUGGING CHECKLIST — shared across Asherin coding/audit engines.
 // Sourced from operator-curated intelligence dossier (Library of Leaks references).
 // Injected into: zerlal-scan, asher-code-ai, zophiel-code-audit, chat (code mode), ide-code-router.
 
@@ -66,7 +66,7 @@ ANYTHING ELSE that is suspicious, sloppy, non-idiomatic, or "just not good":
 `;
 
 export const CODE_SCAN_CHECKLIST_BRIEF = `
-You MUST scan against the Aureon Code Scanning Checklist:
+You MUST scan against the Asherin Code Scanning Checklist:
 Cross-Domain/CORS bypass • Site Spoofing/Open Redirect • Reload-Redirect leaks •
 Limit/Auth bypass (IDOR, JWT, session) • Obfuscation/Anti-analysis •
 Data theft & weak crypto • Concealment (steg, audit-disable) •

@@ -1,7 +1,7 @@
 // ASHER ARCHIVES — Knowledge Harvester (admin-only).
 // Scrapes Internet Archive + live web for a domain, synthesizes a dumbed-down
 // .txt knowledge dump via Gemini, and inserts it as an ACTIVE row into
-// public.asher_brains so it feeds ASHER + AUREON brain context automatically.
+// public.asher_brains so it feeds ASHER + ASHERIN brain context automatically.
 //
 // Per ASHER DASHBOARD AI policy: GEMINI ONLY (admin GEMINI_API_KEY). Never
 // routes through Lovable AI Gateway.
@@ -185,7 +185,7 @@ serve(async (req) => {
       .from("asher_brains")
       .insert({
         name: brainName,
-        description: `Auto-harvested from Internet Archive + live web (last ${yearsBack} years). Feeds ASHER + AUREON brains.`,
+        description: `Auto-harvested from Internet Archive + live web (last ${yearsBack} years). Feeds ASHER + ASHERIN brains.`,
         category,
         content: synthesized,
         file_name: fileName,

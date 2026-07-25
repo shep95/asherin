@@ -107,7 +107,7 @@ serve(async (req) => {
             currency: "usd",
             recurring: { interval: "month" },
             product_data: {
-              name: `Aureon Plugin: ${pluginName}`,
+              name: `Asherin Plugin: ${pluginName}`,
               description: `Monthly subscription for the ${pluginName} plugin`,
             },
             unit_amount: priceCents,

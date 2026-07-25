@@ -12,7 +12,7 @@ import { useGematriaWorldMatches } from "@/hooks/useGematriaWorldMatches";
 interface Props {
   value: number;
   cipher: CipherKey;
-  source?: "chat:aureon" | "chat:asher";
+  source?: "chat:asherin" | "chat:asher";
 }
 
 export default function NumberLookupCard({ value, cipher, source }: Props) {

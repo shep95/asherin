@@ -270,7 +270,7 @@ const SelfAccessLearningView = () => {
                         const allText = filteredFindings.map((f, i) =>
                           `[${i + 1}] ${f.title}\nSeverity: ${f.severity} | Type: ${f.finding_type} | File: ${f.file_path}\n\nFinding:\n${f.finding}\n\nReasoning:\n${f.reasoning}\n\nRecommendation:\n${f.recommendation}\n\nWhy This Needs Fixing:\n${f.reason_needs_fix}${f.output_code ? `\n\nCode Fix:\n${f.output_code}` : ""}\n\n${"─".repeat(80)}`
                         ).join("\n\n");
-                        const header = `AUREON SELF-ACCESS LEARNING — FINDINGS EXPORT\nExported: ${new Date().toISOString()}\nTotal: ${filteredFindings.length}\n${"═".repeat(80)}\n\n`;
+                        const header = `ASHERIN SELF-ACCESS LEARNING — FINDINGS EXPORT\nExported: ${new Date().toISOString()}\nTotal: ${filteredFindings.length}\n${"═".repeat(80)}\n\n`;
                         navigator.clipboard.writeText(header + allText);
                         toast({ title: "Copied", description: `${filteredFindings.length} findings copied to clipboard.` });
                       }}
@@ -284,12 +284,12 @@ const SelfAccessLearningView = () => {
                         const allText = filteredFindings.map((f, i) =>
                           `[${i + 1}] ${f.title}\nSeverity: ${f.severity} | Type: ${f.finding_type} | File: ${f.file_path}\n\nFinding:\n${f.finding}\n\nReasoning:\n${f.reasoning}\n\nRecommendation:\n${f.recommendation}\n\nWhy This Needs Fixing:\n${f.reason_needs_fix}${f.output_code ? `\n\nCode Fix:\n${f.output_code}` : ""}\n\n${"─".repeat(80)}`
                         ).join("\n\n");
-                        const header = `AUREON SELF-ACCESS LEARNING — FINDINGS EXPORT\nExported: ${new Date().toISOString()}\nTotal: ${filteredFindings.length}\n${"═".repeat(80)}\n\n`;
+                        const header = `ASHERIN SELF-ACCESS LEARNING — FINDINGS EXPORT\nExported: ${new Date().toISOString()}\nTotal: ${filteredFindings.length}\n${"═".repeat(80)}\n\n`;
                         const blob = new Blob([header + allText], { type: "text/plain" });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement("a");
                         a.href = url;
-                        a.download = `aureon-findings-${new Date().toISOString().slice(0, 10)}.txt`;
+                        a.download = `asherin-findings-${new Date().toISOString().slice(0, 10)}.txt`;
                         a.click();
                         URL.revokeObjectURL(url);
                         toast({ title: "Exported", description: `${filteredFindings.length} findings exported as TXT.` });
@@ -331,7 +331,7 @@ const SelfAccessLearningView = () => {
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Eye className="h-10 w-10 text-muted-foreground/30 mb-4" />
                 <p className="text-sm text-muted-foreground font-extralight">No findings yet.</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Run an analysis to let Aureon inspect its own codebase.</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Run an analysis to let Asherin inspect its own codebase.</p>
               </div>
             )}
 

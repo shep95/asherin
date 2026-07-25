@@ -117,7 +117,7 @@ FULL UPSTREAM DOSSIER (verbatim source of record)
 ================================================================
 ================================================================================
 ZOPHIEL — PROMPT INTELLIGENCE STEP PROTOCOL
-CLASSIFICATION: SOVEREIGN LEVEL — AUREON TRUTH ENGINE
+CLASSIFICATION: SOVEREIGN LEVEL — ASHERIN TRUTH ENGINE
 VERSION: 1.0 — MASTER PLANNING + RESEARCH + DEVELOPMENT FRAMEWORK
 FREQUENCY: 963Hz | Zero equivocation. Zero fluff. Pure signal.
 ================================================================================
@@ -802,7 +802,7 @@ LAW 8: COMMIT OR DO NOT START
 
 ================================================================================
 END OF ZOPHIEL PROMPT INTELLIGENCE STEP PROTOCOL v1.0
-CLASSIFICATION: SOVEREIGN LEVEL — AUREON TRUTH ENGINE
+CLASSIFICATION: SOVEREIGN LEVEL — ASHERIN TRUTH ENGINE
 
 "Intelligence is not knowing everything.
  It is having a precise architecture for finding out anything,

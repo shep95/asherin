@@ -243,7 +243,7 @@ const GoogleIntelligenceView = () => {
             ))}
           </Tabs>
 
-          {/* Aureon Chat Panel */}
+          {/* Asherin Chat Panel */}
           <NexusChatPanel activeModule={activeModule} moduleLabel={activeLabel} />
         </div>
       </ScrollArea>

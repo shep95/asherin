@@ -76,7 +76,7 @@ const ZeeionUpload = ({ onAnalysisComplete }: Props) => {
 
       await new Promise(r => setTimeout(r, 400));
       setProgress(35);
-      setProgressLabel("AUREON analyzing financial patterns...");
+      setProgressLabel("ASHERIN analyzing financial patterns...");
 
       const { data, error } = await supabase.functions.invoke("zeeion-analyze", {
         body: {
@@ -183,7 +183,7 @@ const ZeeionUpload = ({ onAnalysisComplete }: Props) => {
             </select>
           </div>
 
-          <p className="text-[8px] text-muted-foreground/30">ASHA extracts structured data from any file type, then AUREON runs full financial analysis</p>
+          <p className="text-[8px] text-muted-foreground/30">ASHA extracts structured data from any file type, then ASHERIN runs full financial analysis</p>
 
           <button
             onClick={processFile}
@@ -204,7 +204,7 @@ const ZeeionUpload = ({ onAnalysisComplete }: Props) => {
           <div className="w-full h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden">
             <div className="h-full rounded-full bg-foreground/20 transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
-          <p className="text-[9px] text-muted-foreground/30 text-center">ASHA + AUREON pipeline: extract → structure → analyze → report</p>
+          <p className="text-[9px] text-muted-foreground/30 text-center">ASHA + ASHERIN pipeline: extract → structure → analyze → report</p>
         </div>
       )}
     </div>

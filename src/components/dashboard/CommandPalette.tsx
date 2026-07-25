@@ -40,13 +40,13 @@ const CommandPalette = ({ open, onClose, onNewConversation, onViewChange, onMode
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const [recentIds, setRecentIds] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem("aureon_recent_cmds") || "[]"); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem("asherin_recent_cmds") || "[]"); } catch { return []; }
   });
 
   const trackRecent = (id: string) => {
     const next = [id, ...recentIds.filter(r => r !== id)].slice(0, 5);
     setRecentIds(next);
-    localStorage.setItem("aureon_recent_cmds", JSON.stringify(next));
+    localStorage.setItem("asherin_recent_cmds", JSON.stringify(next));
   };
 
   const wrap = (id: string, fn: () => void) => () => { trackRecent(id); fn(); onClose(); };

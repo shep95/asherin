@@ -7,9 +7,9 @@ export interface Branch {
   createdAt: number;
 }
 
-const BRANCHES_KEY = "aureon_conv_branches";
-const ACTIVE_BRANCH_KEY = "aureon_active_branch";
-const MSG_BRANCH_KEY = "aureon_msg_branch_map";
+const BRANCHES_KEY = "asherin_conv_branches";
+const ACTIVE_BRANCH_KEY = "asherin_active_branch";
+const MSG_BRANCH_KEY = "asherin_msg_branch_map";
 
 // ── In-memory cache for branch-message map ──────────────────────────
 let branchMapCache: Record<string, string> | null = null;

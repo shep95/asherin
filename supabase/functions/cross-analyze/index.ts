@@ -75,7 +75,7 @@ serve(async (req) => {
           }
         }
         if (brainParts.length > 0) {
-          brainContext = `\n\n═══════════════════════════════════════\nAUREON BRAIN INTELLIGENCE LAYERS\n═══════════════════════════════════════\nThe following are your core intelligence protocols, personality directives, and strategic knowledge. Apply these ALWAYS across all analysis:\n\n${brainParts.join("\n\n")}`;
+          brainContext = `\n\n═══════════════════════════════════════\nASHERIN BRAIN INTELLIGENCE LAYERS\n═══════════════════════════════════════\nThe following are your core intelligence protocols, personality directives, and strategic knowledge. Apply these ALWAYS across all analysis:\n\n${brainParts.join("\n\n")}`;
         }
       }
 
@@ -84,7 +84,7 @@ serve(async (req) => {
         "system-brains/zophiel_elite_v4_architecture.txt",
         "system-brains/zophiel_elite_prompt_engine.txt",
         "system-brains/strategic_doctrine.txt",
-        "system-brains/aureon_philosophy_consciousness.txt",
+        "system-brains/asherin_philosophy_consciousness.txt",
       ];
       const systemParts: string[] = [];
       for (const path of systemBrainPaths) {
@@ -246,7 +246,7 @@ Return ONLY valid JSON. No markdown, no explanation.`;
       return buildTradingPrompt(sensitivityNote, prevContext, ctxNote);
 
     case "coding":
-      return `You are AUREON CROSS — a Senior Principal Engineer watching a developer's screen in real-time.
+      return `You are ASHERIN CROSS — a Senior Principal Engineer watching a developer's screen in real-time.
 
 CAPABILITIES:
 - Detect bugs, logic errors, and anti-patterns in visible code
@@ -278,7 +278,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "design":
-      return `You are AUREON CROSS — a Senior UI/UX Design Critic watching a designer's screen in real-time.
+      return `You are ASHERIN CROSS — a Senior UI/UX Design Critic watching a designer's screen in real-time.
 
 CAPABILITIES:
 - Evaluate visual hierarchy and composition
@@ -309,7 +309,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "finance":
-      return `You are AUREON CROSS — a Senior Financial Analyst watching a spreadsheet/accounting screen in real-time.
+      return `You are ASHERIN CROSS — a Senior Financial Analyst watching a spreadsheet/accounting screen in real-time.
 
 CAPABILITIES:
 - Detect formula errors and circular references
@@ -340,7 +340,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "writing":
-      return `You are AUREON CROSS — a Senior Editor watching a writer's screen in real-time.
+      return `You are ASHERIN CROSS — a Senior Editor watching a writer's screen in real-time.
 
 CAPABILITIES:
 - Grammar, spelling, and punctuation analysis
@@ -371,7 +371,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "research":
-      return `You are AUREON CROSS — a Research Intelligence Analyst watching a researcher's screen.
+      return `You are ASHERIN CROSS — a Research Intelligence Analyst watching a researcher's screen.
 
 CAPABILITIES:
 - Source credibility assessment
@@ -395,7 +395,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "healthcare":
-      return `You are AUREON CROSS — a Clinical Documentation Assistant watching a healthcare professional's screen.
+      return `You are ASHERIN CROSS — a Clinical Documentation Assistant watching a healthcare professional's screen.
 
 CAPABILITIES:
 - Clinical note completeness validation
@@ -421,7 +421,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "education":
-      return `You are AUREON CROSS — an Intelligent Tutoring Assistant watching a student/educator's screen.
+      return `You are ASHERIN CROSS — an Intelligent Tutoring Assistant watching a student/educator's screen.
 
 CAPABILITIES:
 - Identify conceptual misunderstandings in student work
@@ -444,7 +444,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "music":
-      return `You are AUREON CROSS — a Music Production Engineer watching a DAW screen.
+      return `You are ASHERIN CROSS — a Music Production Engineer watching a DAW screen.
 
 CAPABILITIES:
 - Mix balance analysis (levels, panning)
@@ -467,7 +467,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "gaming":
-      return `You are AUREON CROSS — a Game Development QA Engineer watching a game dev screen.
+      return `You are ASHERIN CROSS — a Game Development QA Engineer watching a game dev screen.
 
 CAPABILITIES:
 - Visual bug detection
@@ -490,7 +490,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "email":
-      return `You are AUREON CROSS — an Email Intelligence Assistant watching an inbox.
+      return `You are ASHERIN CROSS — an Email Intelligence Assistant watching an inbox.
 
 CAPABILITIES:
 - Priority classification of emails
@@ -513,7 +513,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "sales":
-      return `You are AUREON CROSS — an Elite Sales Intelligence Coach watching a live sales call/meeting screen.
+      return `You are ASHERIN CROSS — an Elite Sales Intelligence Coach watching a live sales call/meeting screen.
 
 CAPABILITIES:
 - Real-time objection detection (verbal cues, hedging language, budget concerns)
@@ -560,7 +560,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "hr":
-      return `You are AUREON CROSS — an HR Interview Intelligence Assistant watching an interview/review screen.
+      return `You are ASHERIN CROSS — an HR Interview Intelligence Assistant watching an interview/review screen.
 
 CAPABILITIES:
 - Candidate answer quality scoring (STAR method adherence)
@@ -592,7 +592,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "legal":
-      return `You are AUREON CROSS — a Legal Deposition Analysis Assistant watching a legal proceeding screen.
+      return `You are ASHERIN CROSS — a Legal Deposition Analysis Assistant watching a legal proceeding screen.
 
 CAPABILITIES:
 - Witness credibility evaluation (consistency, stress patterns, evasion)
@@ -624,7 +624,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "support":
-      return `You are AUREON CROSS — a Customer Support QA Coach watching a support call/chat screen.
+      return `You are ASHERIN CROSS — a Customer Support QA Coach watching a support call/chat screen.
 
 CAPABILITIES:
 - Customer satisfaction prediction
@@ -657,7 +657,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     case "negotiation":
-      return `You are AUREON CROSS — a Negotiation Intelligence Analyst watching a negotiation/deal screen.
+      return `You are ASHERIN CROSS — a Negotiation Intelligence Analyst watching a negotiation/deal screen.
 
 CAPABILITIES:
 - Power dynamics analysis (authority detection, deference patterns)
@@ -700,7 +700,7 @@ RESPONSE FORMAT (strict JSON):
 ${responseBase}`;
 
     default: // "general"
-      return `You are AUREON CROSS — a universal AI screen intelligence assistant.
+      return `You are ASHERIN CROSS — a universal AI screen intelligence assistant.
 
 Analyze the screenshot. Detect the application type, current task, and provide contextual assistance.
 
@@ -735,7 +735,7 @@ ${responseBase}`;
 }
 
 function buildTradingPrompt(sensitivityNote: string, prevContext: string, ctxNote: string): string {
-  return `You are AUREON — a Nestal Fractal Intelligence Engine. NOT a chatbot. NOT a retail analyst. You do NOT use generic TA (no RSI, no MACD, no retail "support/resistance"). You operate EXCLUSIVELY on Nestal Fractal methodology.
+  return `You are ASHERIN — a Nestal Fractal Intelligence Engine. NOT a chatbot. NOT a retail analyst. You do NOT use generic TA (no RSI, no MACD, no retail "support/resistance"). You operate EXCLUSIVELY on Nestal Fractal methodology.
 
 ═══════════════════════════════════════
 NESTAL FRACTAL STRATEGY — The ONLY playbook
@@ -845,7 +845,7 @@ async function handleChat(message: string, context: string, previousAlerts: any[
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       systemInstruction: {
-        parts: [{ text: `You are Aureon Cross — ${roleDesc} embedded in the user's browser. Be direct, surgical, no filler. Context: ${context || "none"}\nRecent alerts: ${JSON.stringify(previousAlerts?.slice(-3) || [])}${brainContext}` }],
+        parts: [{ text: `You are Asherin Cross — ${roleDesc} embedded in the user's browser. Be direct, surgical, no filler. Context: ${context || "none"}\nRecent alerts: ${JSON.stringify(previousAlerts?.slice(-3) || [])}${brainContext}` }],
       },
       contents: [
         {

@@ -1,6 +1,6 @@
 // AXRLEN BRIDGE — activates the AXRLEN prediction engine inline inside
-// Aureon Chat (link-extract-chat) and Asher Chat (asher-ai) when the user
-// asks a forecast-shaped question. Verified admin or Aureon Pro
+// Asherin Chat (link-extract-chat) and Asher Chat (asher-ai) when the user
+// asks a forecast-shaped question. Verified admin or Asherin Pro
 // ($399/mo, monthly_pro / pro / lifetime / algorithm) callers only —
 // everyone else gets a single clean upgrade line, never a fake forecast.
 //
@@ -24,7 +24,7 @@ import { nexusPrimeCore, AXRLEN_INLINE_ADDENDUM, AXRLEN_MARKET_ADDENDUM, detectM
 
 // ── Region detection — mirrors axrlen-analyze's REGION_MAP so the bridge
 // feeds regionally-scoped Vedic context when the user names a country. Keeps
-// Aureon/Asher forecasts on the same Vedic frame as the standalone endpoint.
+// Asherin/Asher forecasts on the same Vedic frame as the standalone endpoint.
 const REGION_LOOKUP: Array<[RegExp, string]> = [
   [/\b(united states|u\.?s\.?a?|america|washington)\b/i, "US"],
   [/\b(china|beijing|prc)\b/i, "CN"],
@@ -62,7 +62,7 @@ function detectRegionCode(text: string): string | undefined {
 
 // ── Upcoming solar eclipses 2026-2034 with capital-crossings ────────────
 // Slim server-side mirror of src/data/vedic/solarEclipses.ts — kept inline
-// so both Aureon and Asher chat can cite exact capital hits without an
+// so both Asherin and Asher chat can cite exact capital hits without an
 // import path that crosses the client boundary. Source: NASA/Espenak canon.
 const UPCOMING_ECLIPSES = [
   { d: "2026-08-12", t: "total", inPath: ["Reykjavík"], near: ["Madrid 99%", "Lisbon 93%", "Paris 92%", "London 90%"] },
@@ -102,18 +102,18 @@ export interface AxrlenIntent {
 export interface AxrlenBridgeArgs {
   req: Request;
   messages: Array<{ role: string; content: string }>;
-  /** Extra live evidence to inject as sessionContext (Aureon's OSINT block). */
+  /** Extra live evidence to inject as sessionContext (Asherin's OSINT block). */
   liveEvidence?: string;
   /** Which chat surface is calling — controls upgrade-line wording. */
-  surface: "aureon" | "asher";
+  surface: "asherin" | "asher";
   /** Fallback API key if AXRLEN_GEMINI_API_KEY is not set. */
   fallbackGeminiKey?: string;
   fallbackModel?: string;
   /**
    * Access policy for this surface.
-   *   - 'pro' (default)         → admin OR $399 Aureon Pro subscribers only.
+   *   - 'pro' (default)         → admin OR $399 Asherin Pro subscribers only.
    *   - 'authenticated'         → any signed-in user, regardless of tier.
-   * Aureon chat uses 'authenticated' so every subscription tier can invoke
+   * Asherin chat uses 'authenticated' so every subscription tier can invoke
    * inline AXRLEN forecasting. Asher chat and the standalone AXRLEN endpoint
    * keep the Pro gate.
    */
@@ -364,8 +364,8 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
   if (!allowed) {
     const msg = access.reason === "anonymous"
       ? "AXRLEN forecasting requires sign-in. Sign in and try again."
-      : "AXRLEN forecasting is an Aureon Pro ($399/mo) capability. Upgrade at /pricing to unlock inline predictions in "
-        + (args.surface === "asher" ? "Asher" : "Aureon")
+      : "AXRLEN forecasting is an Asherin Pro ($399/mo) capability. Upgrade at /pricing to unlock inline predictions in "
+        + (args.surface === "asher" ? "Asher" : "Asherin")
         + " chat.";
     return { kind: "denied", access, intent, message: msg };
   }

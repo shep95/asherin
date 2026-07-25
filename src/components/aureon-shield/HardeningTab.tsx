@@ -5,7 +5,7 @@ import { Eye, ShieldCheck } from "lucide-react";
 import {
   enableFingerprintSpoofer, disableFingerprintSpoofer, isSpoofActive,
   enableTrackerBlocker, disableTrackerBlocker, isTrackerHookActive,
-} from "@/lib/aureonShield";
+} from "@/lib/asherinShield";
 import { toast } from "sonner";
 
 const Glass = ({ children, className = "" }: any) => (

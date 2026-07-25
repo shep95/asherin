@@ -71,9 +71,9 @@ const STARTER_FILES: IdeFile[] = [
       { id: "css", name: "index.css", type: "file", content: `@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\nbody {\n  margin: 0;\n  font-family: Inter, sans-serif;\n}` },
     ],
   },
-  { id: "pkg", name: "package.json", type: "file", content: `{\n  "name": "aureon-project",\n  "version": "1.0.0",\n  "scripts": {\n    "dev": "vite",\n    "build": "vite build"\n  },\n  "dependencies": {\n    "react": "^18.3.1",\n    "react-dom": "^18.3.1"\n  },\n  "devDependencies": {\n    "vite": "^5.4.0",\n    "@vitejs/plugin-react": "^4.3.0",\n    "tailwindcss": "^3.4.0",\n    "typescript": "^5.5.0"\n  }\n}` },
+  { id: "pkg", name: "package.json", type: "file", content: `{\n  "name": "asherin-project",\n  "version": "1.0.0",\n  "scripts": {\n    "dev": "vite",\n    "build": "vite build"\n  },\n  "dependencies": {\n    "react": "^18.3.1",\n    "react-dom": "^18.3.1"\n  },\n  "devDependencies": {\n    "vite": "^5.4.0",\n    "@vitejs/plugin-react": "^4.3.0",\n    "tailwindcss": "^3.4.0",\n    "typescript": "^5.5.0"\n  }\n}` },
   { id: "tsconfig", name: "tsconfig.json", type: "file", content: `{\n  "compilerOptions": {\n    "target": "ES2020",\n    "jsx": "react-jsx",\n    "strict": true\n  }\n}` },
-  { id: "indexhtml", name: "index.html", type: "file", content: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Aureon Project</title>\n</head>\n<body>\n  <div id="root"></div>\n  <script type="module" src="/src/main.tsx"></script>\n</body>\n</html>` },
+  { id: "indexhtml", name: "index.html", type: "file", content: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Asherin Project</title>\n</head>\n<body>\n  <div id="root"></div>\n  <script type="module" src="/src/main.tsx"></script>\n</body>\n</html>` },
 ];
 
 const EMPTY_PROJECT_FILES: IdeFile[] = [];
@@ -198,7 +198,7 @@ function useCredits() {
   return { remaining: getRemaining(), useCredit, maxCredits: MAX_CREDITS_PER_HOUR };
 }
 
-const AureonIdeView = () => {
+const AsherinIdeView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -253,22 +253,22 @@ const AureonIdeView = () => {
 
   // ── ZANOEM autopilot state (mirrors Asher IDE checkboxes) ──
   // Separate localStorage keys from Asher so each IDE preserves its own toggle state.
-  const [zanoemMode, setZanoemMode] = useState(() => localStorage.getItem("aureonIde.zanoemMode") === "1");
-  const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("aureonIde.autopilotZanoem") === "1");
-  const [autoDebug, setAutoDebug] = useState(() => localStorage.getItem("aureonIde.autoDebug") !== "0");       // default ON
-  const [autoUiDebug, setAutoUiDebug] = useState(() => localStorage.getItem("aureonIde.autoUiDebug") !== "0"); // default ON
-  const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("aureonIde.autoApprove") !== "0"); // default ON
+  const [zanoemMode, setZanoemMode] = useState(() => localStorage.getItem("asherinIde.zanoemMode") === "1");
+  const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("asherinIde.autopilotZanoem") === "1");
+  const [autoDebug, setAutoDebug] = useState(() => localStorage.getItem("asherinIde.autoDebug") !== "0");       // default ON
+  const [autoUiDebug, setAutoUiDebug] = useState(() => localStorage.getItem("asherinIde.autoUiDebug") !== "0"); // default ON
+  const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherinIde.autoApprove") !== "0"); // default ON
   const [decisionLogOpen, setDecisionLogOpen] = useState(false);
   const autopilotRoundsRef = useRef(0);
   const AUTOPILOT_MAX_ROUNDS = 8;
-  useEffect(() => { localStorage.setItem("aureonIde.zanoemMode", zanoemMode ? "1" : "0"); }, [zanoemMode]);
-  useEffect(() => { localStorage.setItem("aureonIde.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
-  useEffect(() => { localStorage.setItem("aureonIde.autoDebug", autoDebug ? "1" : "0"); }, [autoDebug]);
-  useEffect(() => { localStorage.setItem("aureonIde.autoUiDebug", autoUiDebug ? "1" : "0"); }, [autoUiDebug]);
-  useEffect(() => { localStorage.setItem("aureonIde.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
+  useEffect(() => { localStorage.setItem("asherinIde.zanoemMode", zanoemMode ? "1" : "0"); }, [zanoemMode]);
+  useEffect(() => { localStorage.setItem("asherinIde.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
+  useEffect(() => { localStorage.setItem("asherinIde.autoDebug", autoDebug ? "1" : "0"); }, [autoDebug]);
+  useEffect(() => { localStorage.setItem("asherinIde.autoUiDebug", autoUiDebug ? "1" : "0"); }, [autoUiDebug]);
+  useEffect(() => { localStorage.setItem("asherinIde.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
 
   // Refs for offline queue handlers (run outside React's render cycle)
-  const filesRefAureon = useRef(files);
+  const filesRefAsherin = useRef(files);
   const autopilotZanoemRef = useRef(autopilotZanoem);
   const autoDebugRef = useRef(autoDebug);
   const autoUiDebugRef = useRef(autoUiDebug);
@@ -279,14 +279,14 @@ const AureonIdeView = () => {
   // sendChatMessage is declared further down — route through a ref so the
   // queue worker can call it once it exists.
   const sendZanoemTurnRef = useRef<((prompt: string) => Promise<void>) | null>(null);
-  useEffect(() => { filesRefAureon.current = files; }, [files]);
+  useEffect(() => { filesRefAsherin.current = files; }, [files]);
   useEffect(() => { autopilotZanoemRef.current = autopilotZanoem; }, [autopilotZanoem]);
   useEffect(() => { autoDebugRef.current = autoDebug; }, [autoDebug]);
   useEffect(() => { autoUiDebugRef.current = autoUiDebug; }, [autoUiDebug]);
 
   const activeByok = useCallback(() => {
     try {
-      const cached = localStorage.getItem("aureon_byok_active");
+      const cached = localStorage.getItem("asherin_byok_active");
       const parsed = cached ? JSON.parse(cached) : null;
       if (parsed?.provider && parsed.provider !== "default" && parsed?.model) {
         return { provider: parsed.provider, model: parsed.model };
@@ -295,9 +295,9 @@ const AureonIdeView = () => {
     return { provider: "google", model: "gemini-2.5-flash" };
   }, []);
 
-  const applyAureonDebuggerFix = useCallback(async (file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) => {
+  const applyAsherinDebuggerFix = useCallback(async (file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) => {
     const ownIssues = issues.filter((i) => i.file === file.name);
-    const flat = flattenFiles(filesRefAureon.current);
+    const flat = flattenFiles(filesRefAsherin.current);
     const live = flat.find((f) => f.id === file.id || f.name === file.name);
     const current = live?.content ?? file.content;
     // Scan-all mode: with no validator errors we still ask the model to
@@ -345,7 +345,7 @@ const AureonIdeView = () => {
       });
     setFiles((prev) => {
       const next = updateInTree(prev);
-      filesRefAureon.current = next;
+      filesRefAsherin.current = next;
       return next;
     });
     toast({ title: "Auto-applied debugger fix", description: file.name });
@@ -354,15 +354,15 @@ const AureonIdeView = () => {
 
   // ── ZANOEM offline autopilot worker (cross-IDE) ──
   // Drains persisted jobs even if the user closes the tab / loses wifi.
-  // Vision jobs are best-effort here (Aureon's preview iframe is owned by
+  // Vision jobs are best-effort here (Asherin's preview iframe is owned by
   // a child component); auto-fix runs the validator + dispatches a fix turn
-  // through Aureon's own chat backend when ZANOEM mode is on.
+  // through Asherin's own chat backend when ZANOEM mode is on.
   useEffect(() => {
     zqRegister("vision", async (_job: QueuedJob<{ intent: string; recentAssistant: string; projectRef?: string }>) => {
       if (!autopilotZanoemRef.current || !autoUiDebugRef.current) return;
-      // Aureon's preview iframe is encapsulated; we still log the verdict so the
+      // Asherin's preview iframe is encapsulated; we still log the verdict so the
       // user can see it in the console / future panels.
-      console.info("[zanoem] Aureon vision job (preview iframe owned by child component — skipping screenshot pass)");
+      console.info("[zanoem] Asherin vision job (preview iframe owned by child component — skipping screenshot pass)");
     });
 
     zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
@@ -375,12 +375,12 @@ const AureonIdeView = () => {
           else flat.push({ id: n.id, name: n.name, content: n.content || "", language: getLanguage(n.name) });
         }
       };
-        walk(filesRefAureon.current);
+        walk(filesRefAsherin.current);
         return flat;
       };
       const result = await autoFixUntilClean({
         files: collectFlat,
-        applyFileFix: applyAureonDebuggerFix,
+        applyFileFix: applyAsherinDebuggerFix,
         runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
         maxPasses: 20,
         swarmConcurrency: 2,
@@ -436,10 +436,10 @@ const AureonIdeView = () => {
       fileLocksRef.current.clear();
       agentFileRef.current.clear();
       if (result.clean) toast({ title: "ZANOEM Auto-Fix: clean", description: `${result.passes} pass${result.passes === 1 ? "" : "es"}` });
-      else console.info("[zanoem] Aureon validator stopped:", result.finalErrorCount, "error(s) remain");
+      else console.info("[zanoem] Asherin validator stopped:", result.finalErrorCount, "error(s) remain");
     });
     zqStart({ intervalMs: 2500 });
-  }, [applyAureonDebuggerFix, toast]);
+  }, [applyAsherinDebuggerFix, toast]);
 
   // Panel state — simplified defaults
   const [leftOpen, setLeftOpen] = useState(!isMobile);
@@ -605,7 +605,7 @@ const AureonIdeView = () => {
     try {
       const { listCheckpoints, deleteCheckpoint } = await import("@/lib/ide/checkpoints");
       const { clearAutoSave } = await import("@/lib/ide/autoSave");
-      const ckpts = await listCheckpoints("aureon", id);
+      const ckpts = await listCheckpoints("asherin", id);
       await Promise.all(ckpts.map(c => c.id ? deleteCheckpoint(c.id) : Promise.resolve()));
       clearAutoSave(id);
     } catch (e) {
@@ -661,7 +661,7 @@ const AureonIdeView = () => {
     if (!file?.content) return;
     const t = setTimeout(() => {
       void snapshotIfChanged({
-        scope: "aureon",
+        scope: "asherin",
         projectId: activeSessionId,
         fileId: activeFileId,
         filePath: file.name,
@@ -812,7 +812,7 @@ const AureonIdeView = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${sessions.find(s => s.id === activeSessionId)?.name ?? "aureon-project"}.zip`;
+    a.download = `${sessions.find(s => s.id === activeSessionId)?.name ?? "asherin-project"}.zip`;
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: "Exported", description: "Project downloaded as ZIP." });
@@ -849,7 +849,7 @@ const AureonIdeView = () => {
         void zqEnqueue({
           kind: "autofix",
           payload: { projectRef: activeSessionId },
-          surface: "aureon_ide",
+          surface: "asherin_ide",
           projectRef: activeSessionId,
           ownerUserId: user?.id,
         });
@@ -884,7 +884,7 @@ const AureonIdeView = () => {
     const contextParts: string[] = [];
     if (zanoemMode) {
       contextParts.push([
-        "[ZANOEM MODE — Aureon IDE]",
+        "[ZANOEM MODE — Asherin IDE]",
         "You are ZANOEM, a first-principles software inventor. Design and ship production-grade code, never apologise, never ask for permission you can resolve yourself.",
         "Use BOLD section headers, prefer code blocks for any concrete change, and write self-documenting code with strict types and guard clauses.",
         "When you create or update files, prefix EVERY code fence with the exact project path on its own line, for example: src/App.tsx then the fenced code block. This lets the IDE write the file into Explorer/Preview automatically.",
@@ -892,7 +892,7 @@ const AureonIdeView = () => {
       ].join("\n"));
     } else if (/\b(code|build|create|make|app|component|file|fix|rewrite|implement|page)\b/i.test(content)) {
       contextParts.push([
-        "[AUREON IDE FILE-WRITE CONTRACT]",
+        "[ASHERIN IDE FILE-WRITE CONTRACT]",
         "If you output code, prefix each fenced code block with the exact file path on its own line.",
         "Return complete files, not fragments or diffs. If the job is not done, end with STATUS: REFINING. If done, end with STATUS: MISSION_COMPLETE.",
       ].join("\n"));
@@ -963,10 +963,10 @@ const AureonIdeView = () => {
         ? [{ ...rawGenerated[0], filename: activeFile.name, language: getLanguage(activeFile.name) }]
         : rawGenerated;
       if (generatedFiles.length > 0) {
-        const result = applyGeneratedFilesToTree(filesRefAureon.current, generatedFiles);
+        const result = applyGeneratedFilesToTree(filesRefAsherin.current, generatedFiles);
         if (result.applied > 0) {
           setFiles(result.next);
-          filesRefAureon.current = result.next;
+          filesRefAsherin.current = result.next;
           const flatNext = flattenFiles(result.next);
           const primary = result.primaryId ? flatNext.find((f) => f.id === result.primaryId) : flatNext[0];
           if (primary) {
@@ -990,7 +990,7 @@ const AureonIdeView = () => {
       if (shouldContinue) {
         if (isAutopilotTurn && autopilotTriggerRef.current) {
           void zanoemLogDecision({
-            surface: "aureon_ide",
+            surface: "asherin_ide",
             projectRef: activeSessionId ?? null,
             round: autopilotRoundsRef.current,
             triggerText: autopilotTriggerRef.current,
@@ -1018,7 +1018,7 @@ const AureonIdeView = () => {
             void zqEnqueue({
               kind: "autofix",
               payload: { projectRef: activeSessionId ?? undefined },
-              surface: "aureon_ide",
+              surface: "asherin_ide",
               projectRef: activeSessionId ?? undefined,
               ownerUserId: user?.id,
             });
@@ -1031,7 +1031,7 @@ const AureonIdeView = () => {
                 recentAssistant: assistantContent,
                 projectRef: activeSessionId ?? undefined,
               },
-              surface: "aureon_ide",
+              surface: "asherin_ide",
               projectRef: activeSessionId ?? undefined,
               ownerUserId: user?.id,
             });
@@ -1121,7 +1121,7 @@ const AureonIdeView = () => {
   const zanoemToggleBar = (
     <div className="border-b border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5 flex-wrap">
       <label
-        title="ZANOEM Mode: design brand-new software from first principles. Uses Aureon's engine — no API key needed."
+        title="ZANOEM Mode: design brand-new software from first principles. Uses Asherin's engine — no API key needed."
         className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${zanoemMode ? "text-foreground" : "text-muted-foreground/70"}`}
       >
         <input type="checkbox" checked={zanoemMode} onChange={(e) => setZanoemMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
@@ -1233,7 +1233,7 @@ const AureonIdeView = () => {
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-2">
             <Code2 className="h-4 w-4 text-accent/70 shrink-0" />
-            <span className="text-xs font-light tracking-widest text-foreground/80 shrink-0">AUREON IDE</span>
+            <span className="text-xs font-light tracking-widest text-foreground/80 shrink-0">ASHERIN IDE</span>
           </div>
           {activeSessionId ? (
             <span className="text-[10px] text-muted-foreground/50 bg-muted/10 rounded-full px-2.5 py-0.5 truncate max-w-[160px]">
@@ -1305,7 +1305,7 @@ const AureonIdeView = () => {
           <button onClick={() => setCheckpointsOpen(true)} disabled={!activeSessionId} title="Checkpoints — rollback the last agent edit" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30">
             <GitCommit className="h-3.5 w-3.5" />
           </button>
-          <IdeModeToggle scope="aureon" />
+          <IdeModeToggle scope="asherin" />
           <button onClick={() => { setBugDoctorMsg(terminalOutput.slice(-5).join("\n") || ""); setBugDoctorOpen(true); }} title="Bug Doctor — explain last error" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
             <Stethoscope className="h-3.5 w-3.5" />
           </button>
@@ -1457,7 +1457,7 @@ const AureonIdeView = () => {
                   {zanoemToggleBar}
                   <div className="px-2 pt-2 space-y-2">
                     <IdeChangedFilesPanel
-                      scope="aureon"
+                      scope="asherin"
                       projectId={activeSessionId ?? ""}
                       onOpenFile={(id) => { const f = allFiles.find(x => x.id === id); if (f) selectFile(f); }}
                     />
@@ -1482,7 +1482,7 @@ const AureonIdeView = () => {
 
       <ZanoemDecisionLog
         open={decisionLogOpen}
-        surface="aureon_ide"
+        surface="asherin_ide"
         projectRef={activeSessionId ?? null}
         onClose={() => setDecisionLogOpen(false)}
       />
@@ -1496,7 +1496,7 @@ const AureonIdeView = () => {
       />
       <IdeTemplateLauncher open={templateOpen} onClose={() => setTemplateOpen(false)} onCreate={handleScaffold} />
       <IdeHistoryPanel
-        scope="aureon"
+        scope="asherin"
         projectId={activeSessionId ?? ""}
         fileId={activeFileId ?? ""}
         filePath={activeFile?.name ?? ""}
@@ -1505,13 +1505,13 @@ const AureonIdeView = () => {
         onRestore={(content) => activeFileId && aiWriteContent(activeFileId, content)}
       />
       <IdeCheckpointPanel
-        scope="aureon"
+        scope="asherin"
         projectId={activeSessionId ?? ""}
         open={checkpointsOpen}
         onClose={() => setCheckpointsOpen(false)}
         onRestore={(restored) => {
           for (const f of restored) aiWriteContent(f.fileId, f.content);
-          changedFiles.clear("aureon", activeSessionId ?? "");
+          changedFiles.clear("asherin", activeSessionId ?? "");
         }}
       />
       <IdeErrorExplainer
@@ -1534,4 +1534,4 @@ const AureonIdeView = () => {
   );
 };
 
-export default AureonIdeView;
+export default AsherinIdeView;

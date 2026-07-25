@@ -97,7 +97,7 @@ const ZeeionWasteTracker = ({ wasteItems, onUpdateStatus, onCreatePlan, countryN
   const resolvedCount = wasteItems.filter(w => resolvedStatuses.includes(w.status)).length;
   const resolutionRate = wasteItems.length > 0 ? (resolvedCount / wasteItems.length) * 100 : 0;
 
-  // Aureon investigation chat
+  // Asherin investigation chat
   const sendChat = useCallback(async (text?: string) => {
     const msg = text || chatInput.trim();
     if (!msg || chatLoading) return;
@@ -115,7 +115,7 @@ const ZeeionWasteTracker = ({ wasteItems, onUpdateStatus, onCreatePlan, countryN
     try {
       await streamChat({
         messages: [
-          { role: "user", content: `[WASTE INTELLIGENCE DATA - ${countryName}]\n${wasteCtx}\n\nTotal waste: ${fmtUsd(totalIdentified)} | Active: ${fmtUsd(activeWaste)} | Resolved: ${fmtUsd(resolvedWaste)} | Savings realized: ${fmtUsd(savingsRealized)}\n\n---\nYou are Aureon's Waste Intelligence Analyst. Provide forensic-grade analysis of government waste. Be specific with numbers, identify root causes, and suggest actionable remediation steps. Focus on: prioritization, cascading impacts, false positive detection, and budget redirection strategies.` },
+          { role: "user", content: `[WASTE INTELLIGENCE DATA - ${countryName}]\n${wasteCtx}\n\nTotal waste: ${fmtUsd(totalIdentified)} | Active: ${fmtUsd(activeWaste)} | Resolved: ${fmtUsd(resolvedWaste)} | Savings realized: ${fmtUsd(savingsRealized)}\n\n---\nYou are Asherin's Waste Intelligence Analyst. Provide forensic-grade analysis of government waste. Be specific with numbers, identify root causes, and suggest actionable remediation steps. Focus on: prioritization, cascading impacts, false positive detection, and budget redirection strategies.` },
           ...chatMsgs.map(m => ({ role: m.role, content: m.content })),
           { role: "user" as const, content: msg },
         ],
@@ -448,7 +448,7 @@ const ZeeionWasteTracker = ({ wasteItems, onUpdateStatus, onCreatePlan, countryN
                             <ArrowRight className="h-2.5 w-2.5" /> Start Implementation
                           </button>
                           <button onClick={() => { setSelectedItem(item); setChatMsgs([]); sendChat(`Analyze the remediation plan for "${item.type}" waste item. What are the risks, and how can we accelerate the timeline?`); }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border/[0.08] text-[8px] text-foreground/40 hover:bg-foreground/[0.04]">
-                            <Sparkles className="h-2.5 w-2.5" /> Ask Aureon
+                            <Sparkles className="h-2.5 w-2.5" /> Ask Asherin
                           </button>
                         </div>
                       </div>
@@ -468,12 +468,12 @@ const ZeeionWasteTracker = ({ wasteItems, onUpdateStatus, onCreatePlan, countryN
         </div>
       </div>
 
-      {/* Aureon Intelligence Insights Panel */}
+      {/* Asherin Intelligence Insights Panel */}
       <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/[0.06]">
           <div className="flex items-center gap-2">
             <Sparkles className="h-3.5 w-3.5 text-foreground/40" />
-            <span className="text-[10px] font-light tracking-wider text-foreground/60">AUREON WASTE INTELLIGENCE</span>
+            <span className="text-[10px] font-light tracking-wider text-foreground/60">ASHERIN WASTE INTELLIGENCE</span>
           </div>
           {chatMsgs.length > 0 && (
             <button onClick={() => setChatMsgs([])} className="p-1 rounded-lg hover:bg-foreground/[0.06]">

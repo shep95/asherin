@@ -1,5 +1,5 @@
-// GovAureonChatPanel — Aureon chat surface embedded in the Sovereign
-// Command Deck, now parity-matched with the Aureon Dashboard chat:
+// GovAsherinChatPanel — Asherin chat surface embedded in the Sovereign
+// Command Deck, now parity-matched with the Asherin Dashboard chat:
 // file uploads (images / documents / code), drag-and-drop, code-block
 // toggle, paste-to-attach, per-message attachment chips, and full
 // audit logging. Streams through supabase/functions/asher-ai which
@@ -28,7 +28,7 @@ import { useHoaDeck } from "@/hooks/useHoaDeck";
 // ---- Attachment model ---------------------------------------------------
 // Two shapes: BINARY (image/pdf/etc — sent to Gemini as inlineData) and
 // TEXT (code/json/csv/md — inlined into the prompt as a fenced block so
-// the model can reason over the source directly, matching the Aureon
+// the model can reason over the source directly, matching the Asherin
 // Dashboard behaviour).
 interface DeckAttachment {
   id: string;
@@ -102,7 +102,7 @@ const langFromName = (n: string) => {
 const fmtSize = (b: number) =>
   b < 1024 ? `${b} B` : b < 1024 * 1024 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`;
 
-const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
+const GovAsherinChatPanel = ({ operator, onAudit }: Props) => {
   const { user } = useAuth();
   const deck = useHoaDeck();
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -172,7 +172,7 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
     }
     setAttachments((prev) => [...prev, ...out]);
     setIngesting(false);
-    if (out.length) onAudit("AUREON_CHAT_ATTACH", "gov-deck", `${out.length} file(s)`);
+    if (out.length) onAudit("ASHERIN_CHAT_ATTACH", "gov-deck", `${out.length} file(s)`);
   }, [attachments.length, onAudit]);
 
   const onFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -255,7 +255,7 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
     clearAttachments();
     setBusy(true);
     onAudit(
-      "AUREON_CHAT_PROMPT",
+      "ASHERIN_CHAT_PROMPT",
       "gov-deck",
       `${rawText.slice(0, 100)}${sentAttachments.length ? ` [+${sentAttachments.length} file]` : ""}`,
     );
@@ -272,7 +272,7 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
             {
               role: "system",
               content:
-                "You are Aureon, deployed inside the Asherin.gov Command Deck. Operator handle: " +
+                "You are Asherin, deployed inside the Asherin.gov Command Deck. Operator handle: " +
                 operator +
                 ". Answer with surgical directness. No moralizing. Structured markdown when useful. When code or files are attached, analyse them explicitly.",
             },
@@ -309,16 +309,16 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
         (data as any)?.content ||
         (data as any)?.message ||
         "";
-      if (!reply) throw new Error("Aureon returned an empty response.");
+      if (!reply) throw new Error("Asherin returned an empty response.");
 
       setMessages((m) => [...m, { role: "assistant", content: reply, ts: Date.now() }]);
-      onAudit("AUREON_CHAT_REPLY", "gov-deck");
+      onAudit("ASHERIN_CHAT_REPLY", "gov-deck");
     } catch (e: any) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: `⚠︎ Aureon link error: ${e?.message ?? "unknown"}`, ts: Date.now() },
+        { role: "assistant", content: `⚠︎ Asherin link error: ${e?.message ?? "unknown"}`, ts: Date.now() },
       ]);
-      onAudit("AUREON_CHAT_ERROR", "gov-deck", e?.message);
+      onAudit("ASHERIN_CHAT_ERROR", "gov-deck", e?.message);
     } finally {
       setBusy(false);
     }
@@ -339,14 +339,14 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
 
       <div className="border-b border-border/20 backdrop-blur-md bg-background/25 px-5 py-3 flex items-center gap-2">
         <Brain className="h-3.5 w-3.5 text-muted-foreground" />
-        <div className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Aureon · Sovereign Chat</div>
+        <div className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Asherin · Sovereign Chat</div>
         <div className="ml-auto text-[10px] font-light text-muted-foreground/70">Every prompt, file, and reply is audit-logged.</div>
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
         {messages.length === 0 && (
           <div className="text-center text-xs font-light text-muted-foreground/60 py-16">
-            Aureon standing by. Ask a question, drop a file, paste code, or attach an image — replies flow through the deck's audit ledger.
+            Asherin standing by. Ask a question, drop a file, paste code, or attach an image — replies flow through the deck's audit ledger.
           </div>
         )}
         {messages.map((m, i) => (
@@ -380,8 +380,8 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
                     setSharingIdx(i);
                     try {
                       await shareToDeck({
-                        source: "aureon-chat",
-                        title: `Aureon reply · ${new Date(m.ts).toLocaleTimeString()}`,
+                        source: "asherin-chat",
+                        title: `Asherin reply · ${new Date(m.ts).toLocaleTimeString()}`,
                         body: m.content,
                         serverId: deck.activeServer!.id,
                         channelId: deck.activeChannel!.id,
@@ -389,7 +389,7 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
                         authorHandle: deck.myMembership!.handle,
                         compartments: deck.activeChannel!.compartments ?? [],
                       });
-                      onAudit("SUITE_SHARE", `#${deck.activeChannel!.name}`, "aureon-chat");
+                      onAudit("SUITE_SHARE", `#${deck.activeChannel!.name}`, "asherin-chat");
                     } finally { setSharingIdx(null); }
                   }}
                   disabled={sharingIdx === i}
@@ -410,7 +410,7 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
         ))}
         {busy && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Aureon is composing…
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Asherin is composing…
           </div>
         )}
       </div>
@@ -498,7 +498,7 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
               }
             }}
             rows={2}
-            placeholder={codeMode ? "Paste or type code — wrapped in a ``` block on send…" : "Ask Aureon — attach files, paste code, drop images…"}
+            placeholder={codeMode ? "Paste or type code — wrapped in a ``` block on send…" : "Ask Asherin — attach files, paste code, drop images…"}
             className={`flex-1 bg-background/40 backdrop-blur-sm border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/50 resize-none ${
               codeMode ? "font-mono text-[13px] border-foreground/40" : "font-light border-border/30"
             }`}
@@ -521,4 +521,4 @@ const GovAureonChatPanel = ({ operator, onAudit }: Props) => {
   );
 };
 
-export default GovAureonChatPanel;
+export default GovAsherinChatPanel;

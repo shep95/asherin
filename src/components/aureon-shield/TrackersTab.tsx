@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ShieldOff, RefreshCw } from "lucide-react";
-import { getTrackerStats, resetTrackerStats, isTrackerHookActive } from "@/lib/aureonShield";
+import { getTrackerStats, resetTrackerStats, isTrackerHookActive } from "@/lib/asherinShield";
 
 const Glass = ({ children, className = "" }: any) => (
   <div className={`rounded-2xl border border-border/35 bg-card/55 backdrop-blur-2xl shadow-[0_18px_55px_-25px_hsl(var(--foreground)/0.45)] ${className}`}>{children}</div>
@@ -12,9 +12,9 @@ export const TrackersTab = () => {
   const [stats, setStats] = useState(getTrackerStats());
   useEffect(() => {
     const h = () => setStats(getTrackerStats());
-    window.addEventListener("aureon:trackers", h);
+    window.addEventListener("asherin:trackers", h);
     const i = setInterval(h, 1500);
-    return () => { window.removeEventListener("aureon:trackers", h); clearInterval(i); };
+    return () => { window.removeEventListener("asherin:trackers", h); clearInterval(i); };
   }, []);
 
   return (

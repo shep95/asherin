@@ -15,8 +15,8 @@ export interface SplitPane {
 
 type LayoutMode = "horizontal" | "vertical" | "grid";
 
-const LAYOUT_STORAGE_KEY = "aureon_split_layout";
-const SIZES_STORAGE_KEY = "aureon_split_sizes";
+const LAYOUT_STORAGE_KEY = "asherin_split_layout";
+const SIZES_STORAGE_KEY = "asherin_split_sizes";
 
 function loadLayout(): LayoutMode {
   try { return (localStorage.getItem(LAYOUT_STORAGE_KEY) as LayoutMode) || "horizontal"; } catch { return "horizontal"; }
@@ -183,7 +183,7 @@ const SplitPaneManager = ({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOverDrop(false);
-    const convId = e.dataTransfer.getData("text/aureon-conversation-id");
+    const convId = e.dataTransfer.getData("text/asherin-conversation-id");
     if (convId) onDropConversation(convId);
   }, [onDropConversation]);
 

@@ -23,15 +23,15 @@ const SECTIONS: Section[] = [
     id: "windows",
     label: "Windows 10 / 11",
     icon: <MonitorSmartphone className="h-4 w-4" />,
-    intro: "Disable Aureon Shield's browser audit, tunnel, and any VPN profile.",
+    intro: "Disable Asherin Shield's browser audit, tunnel, and any VPN profile.",
     steps: [
-      { title: "Pause this audit", detail: "Click the Power switch in the status strip above (top-right of Aureon Shield). The browser audit telemetry stops immediately and the page reverts to your raw network identity." },
+      { title: "Pause this audit", detail: "Click the Power switch in the status strip above (top-right of Asherin Shield). The browser audit telemetry stops immediately and the page reverts to your raw network identity." },
       { title: "Close the in-browser tunnel", detail: "Open the Tunnel tab → click Stop Tunnel. Any tab routed through the relay returns to your direct ISP route." },
       { title: "Disable browser hardening", detail: "Open the Hardening tab → toggle off Canvas Spoof, WebGL Spoof, Audio Spoof, Font Block, Battery API, Network Info, Memory API. Reload the tab once to clear injected overrides." },
-      { title: "Remove the OpenVPN system profile (if installed)", detail: "Press Win + R → type ncpa.cpl → Enter. Right-click the TAP-Windows / WireGuard / Aureon adapter → Disable. To uninstall: Settings → Apps → Installed apps → search 'OpenVPN' or 'WireGuard' → Uninstall." },
+      { title: "Remove the OpenVPN system profile (if installed)", detail: "Press Win + R → type ncpa.cpl → Enter. Right-click the TAP-Windows / WireGuard / Asherin adapter → Disable. To uninstall: Settings → Apps → Installed apps → search 'OpenVPN' or 'WireGuard' → Uninstall." },
       { title: "Stop the background service", detail: "Press Win + R → services.msc → Enter. Find OpenVPNService (or WireGuardManager) → Right-click → Stop → set Startup type to Disabled." },
       { title: "Flush DNS to clear DoH overrides", detail: "Open PowerShell as Administrator → run: ipconfig /flushdns  then  Clear-DnsClientCache" },
-      { title: "Verify shutoff", detail: "Reload the Aureon Shield page. Verdict should read AWAITING ANALYSIS, the public IP should match your real ISP, and WebRTC should report your true local IPs." },
+      { title: "Verify shutoff", detail: "Reload the Asherin Shield page. Verdict should read AWAITING ANALYSIS, the public IP should match your real ISP, and WebRTC should report your true local IPs." },
     ],
   },
   {
@@ -43,11 +43,11 @@ const SECTIONS: Section[] = [
       { title: "Pause this audit", detail: "Click the Power switch in the status strip. All browser-side fingerprint overrides stop and telemetry halts." },
       { title: "Close the in-browser tunnel", detail: "Tunnel tab → Stop Tunnel." },
       { title: "Turn off browser hardening", detail: "Hardening tab → toggle off every spoofer (Canvas, WebGL, Audio, Fonts, Battery, Network, Memory). Cmd + R to reload the tab." },
-      { title: "Remove the system VPN profile", detail: "Apple menu → System Settings → Network → VPN. Click the (i) next to the Aureon / OpenVPN / WireGuard entry → Remove Configuration. Confirm with your password." },
-      { title: "Delete configuration profiles", detail: "System Settings → Privacy & Security → Profiles. Select any 'OpenVPN' / 'Aureon Shield' profile → minus (−) button → Remove." },
+      { title: "Remove the system VPN profile", detail: "Apple menu → System Settings → Network → VPN. Click the (i) next to the Asherin / OpenVPN / WireGuard entry → Remove Configuration. Confirm with your password." },
+      { title: "Delete configuration profiles", detail: "System Settings → Privacy & Security → Profiles. Select any 'OpenVPN' / 'Asherin Shield' profile → minus (−) button → Remove." },
       { title: "Quit the helper agent", detail: "Open Terminal → run:  sudo launchctl unload /Library/LaunchDaemons/net.openvpn.client.plist  (or the WireGuard equivalent). Then:  sudo killall openvpn 2>/dev/null" },
       { title: "Flush DNS", detail: "Terminal → sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder" },
-      { title: "Verify", detail: "Reload Aureon Shield. Public IP should equal your real ISP IP; DNS resolver should return your ISP / system default, not Cloudflare 1.1.1.1." },
+      { title: "Verify", detail: "Reload Asherin Shield. Public IP should equal your real ISP IP; DNS resolver should return your ISP / system default, not Cloudflare 1.1.1.1." },
     ],
   },
   {
@@ -59,11 +59,11 @@ const SECTIONS: Section[] = [
       { title: "Pause this audit", detail: "Click the Power switch in the status strip above." },
       { title: "Close the in-browser tunnel", detail: "Tunnel tab → Stop Tunnel." },
       { title: "Turn off browser hardening", detail: "Hardening tab → toggle every spoofer off. Ctrl + R to reload the tab." },
-      { title: "Drop the VPN interface", detail: "Terminal:  sudo wg-quick down wg0   (WireGuard) or  sudo systemctl stop openvpn-client@aureon  (OpenVPN systemd unit)." },
-      { title: "Disable the unit so it never auto-starts", detail: "sudo systemctl disable openvpn-client@aureon  /  sudo systemctl disable wg-quick@wg0" },
+      { title: "Drop the VPN interface", detail: "Terminal:  sudo wg-quick down wg0   (WireGuard) or  sudo systemctl stop openvpn-client@asherin  (OpenVPN systemd unit)." },
+      { title: "Disable the unit so it never auto-starts", detail: "sudo systemctl disable openvpn-client@asherin  /  sudo systemctl disable wg-quick@wg0" },
       { title: "Remove the package (optional)", detail: "Debian/Ubuntu:  sudo apt remove --purge openvpn wireguard-tools     Fedora/RHEL:  sudo dnf remove openvpn wireguard-tools     Arch:  sudo pacman -Rns openvpn wireguard-tools" },
       { title: "Restore default DNS", detail: "sudo resolvectl revert <iface>     (or remove /etc/resolv.conf overrides and restart NetworkManager:  sudo systemctl restart NetworkManager)" },
-      { title: "Verify", detail: "ip a should no longer show tun0 / wg0. curl ifconfig.me should return your ISP IP. Reload Aureon Shield to confirm." },
+      { title: "Verify", detail: "ip a should no longer show tun0 / wg0. curl ifconfig.me should return your ISP IP. Reload Asherin Shield to confirm." },
     ],
   },
   {
@@ -75,8 +75,8 @@ const SECTIONS: Section[] = [
       { title: "Pause this audit", detail: "Tap the Power switch in the status strip. Browser-side audit stops." },
       { title: "Stop the in-browser tunnel", detail: "Tunnel tab → Stop Tunnel." },
       { title: "Toggle VPN off (quick)", detail: "Settings → VPN → toggle Status to off. The on-screen 'VPN' badge in the status bar disappears." },
-      { title: "Delete the VPN configuration", detail: "Settings → General → VPN & Device Management → VPN → tap the (i) next to 'Aureon' / 'OpenVPN' → Delete VPN. Confirm." },
-      { title: "Remove the configuration profile", detail: "Settings → General → VPN & Device Management → under Configuration Profile, tap any Aureon profile → Remove Profile. Enter your passcode." },
+      { title: "Delete the VPN configuration", detail: "Settings → General → VPN & Device Management → VPN → tap the (i) next to 'Asherin' / 'OpenVPN' → Delete VPN. Confirm." },
+      { title: "Remove the configuration profile", detail: "Settings → General → VPN & Device Management → under Configuration Profile, tap any Asherin profile → Remove Profile. Enter your passcode." },
       { title: "Uninstall the app", detail: "Long-press the OpenVPN Connect / WireGuard app icon → Remove App → Delete App." },
       { title: "Clear Safari leftovers", detail: "Settings → Safari → Clear History and Website Data → confirm." },
       { title: "Verify", detail: "Reload aureonai.app/openvpn in Safari. The status strip should show your real carrier IP and 'AWAITING ANALYSIS'." },
@@ -90,12 +90,12 @@ const SECTIONS: Section[] = [
     steps: [
       { title: "Pause this audit", detail: "Tap the Power switch in the status strip." },
       { title: "Stop the in-browser tunnel", detail: "Tunnel tab → Stop Tunnel." },
-      { title: "Disconnect the VPN", detail: "Settings → Network & internet → VPN → tap the gear next to 'Aureon' / 'OpenVPN' → Disconnect. Toggle 'Always-on VPN' off." },
+      { title: "Disconnect the VPN", detail: "Settings → Network & internet → VPN → tap the gear next to 'Asherin' / 'OpenVPN' → Disconnect. Toggle 'Always-on VPN' off." },
       { title: "Forget the profile", detail: "Same screen → Forget VPN. Confirm." },
-      { title: "Uninstall the client", detail: "Long-press OpenVPN Connect / WireGuard / Aureon app → App info → Uninstall." },
+      { title: "Uninstall the client", detail: "Long-press OpenVPN Connect / WireGuard / Asherin app → App info → Uninstall." },
       { title: "Revoke private DNS override", detail: "Settings → Network & internet → Private DNS → select Off (or Automatic)." },
       { title: "Clear Chrome site data", detail: "Chrome → ⋮ → Settings → Site settings → All sites → aureonai.app → Clear & reset." },
-      { title: "Verify", detail: "Reload the page. The key icon in the status bar should be gone and Aureon Shield should show your real mobile IP." },
+      { title: "Verify", detail: "Reload the page. The key icon in the status bar should be gone and Asherin Shield should show your real mobile IP." },
     ],
   },
   {
@@ -123,7 +123,7 @@ const BROWSER_STEPS: { id: string; label: string; icon: React.ReactNode; steps: 
     steps: [
       { title: "Disable Secure DNS (DoH)", detail: "Settings → Privacy and security → Security → scroll to 'Use secure DNS' → toggle off." },
       { title: "Clear site permissions", detail: "Settings → Privacy and security → Site Settings → View permissions and data stored across sites → search aureonai.app → Clear data." },
-      { title: "Disable Aureon-related extensions", detail: "chrome://extensions → toggle off any Aureon Shield / privacy proxy extension → Remove." },
+      { title: "Disable Asherin-related extensions", detail: "chrome://extensions → toggle off any Asherin Shield / privacy proxy extension → Remove." },
     ],
   },
   {
@@ -159,7 +159,7 @@ export const ShutoffTab = ({ onPauseAudit }: ShutoffTabProps) => {
 
   const copyAll = () => {
     const text = [
-      `Aureon Shield · Shutoff steps (${section.label})`,
+      `Asherin Shield · Shutoff steps (${section.label})`,
       ...section.steps.map((s, i) => `${i + 1}. ${s.title}${s.detail ? "\n   " + s.detail : ""}`),
     ].join("\n");
     navigator.clipboard.writeText(text).then(() => toast.success("Steps copied to clipboard"));
@@ -180,7 +180,7 @@ export const ShutoffTab = ({ onPauseAudit }: ShutoffTabProps) => {
             </div>
           </div>
           <button
-            onClick={() => { onPauseAudit?.(); toast.success("All Aureon Shield browser overrides stopped on this device"); }}
+            onClick={() => { onPauseAudit?.(); toast.success("All Asherin Shield browser overrides stopped on this device"); }}
             className="rounded-lg border border-red-400/40 bg-red-400/10 px-4 py-2 text-[11px] font-light tracking-[0.2em] uppercase text-red-200 hover:bg-red-400/20 transition-colors"
           >
             Stop Everything Now

@@ -1,7 +1,7 @@
 // IDE Pain Point #7 + #17: One-command templates + natural-language commands.
 // Generates a multi-file scaffold from a single phrase.
 //
-// Examples (used by both Aureon's IdeCommandPalette and Asher IDE's command bar):
+// Examples (used by both Asherin's IdeCommandPalette and Asher IDE's command bar):
 //   "new component ThreatCard"
 //   "new hook useDebounce"
 //   "new page Dashboard"
@@ -109,7 +109,7 @@ export default function ${name}() {
   return (
     <main className="${tailwind ? "min-h-screen p-6 bg-background text-foreground" : ""}">
       <h1 className="${tailwind ? "text-2xl font-semibold tracking-tight mb-4" : ""}">${name}</h1>
-      <p className="${tailwind ? "text-sm text-muted-foreground" : ""}">Page scaffolded by Aureon IDE.</p>
+      <p className="${tailwind ? "text-sm text-muted-foreground" : ""}">Page scaffolded by Asherin IDE.</p>
     </main>
   );
 }

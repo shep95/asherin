@@ -35,7 +35,7 @@ const PredictionIsraelIran2026ShadowWar = () => (
     <BreadcrumbJsonLd
       id="prediction-israel-iran-2026-shadow-war"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "AXRLEN — Israel–Iran 2026 Shadow War", url: "/blog/predictions/israel-iran-2026-shadow-war" },
       ]}
@@ -46,7 +46,7 @@ const PredictionIsraelIran2026ShadowWar = () => (
       claim="AXRLEN forecasts Israel–Iran through 2026 as a state of High-Intensity Intermittency — direct kinetic exchange is now baseline, neither side seeks ground invasion, and the modal terminal event is a singular Israeli strike to degrade Iranian nuclear infrastructure followed by a three-month proxy spike and forced international mediation."
       primaryTopic="Israel–Iran 2026 direct-confrontation forecast"
       keyFacts={[
-        "Engine: AXRLEN — NEXUS PRIME (Aureon Predictive Engine).",
+        "Engine: AXRLEN — NEXUS PRIME (Asherin Predictive Engine).",
         "Headline call: 'Hard Test' Israeli strike on Iranian nuclear infrastructure.",
         "Dominant pattern: Thucydidean Proxy-Direct Oscillation → Direct-Attrition Equilibrium.",
         "Operational sequence: degrade Hezbollah/Lebanon → enable direct Iran strike.",

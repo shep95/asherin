@@ -138,7 +138,7 @@ Return ONLY the JSON array, no markdown wrapping.`
         if (i > 0) pdf.addPage([1920, 1080], "landscape");
         pdf.addImage(imgData, "PNG", 0, 0, 1920, 1080);
       }
-      pdf.save("aureon-slideshow.pdf");
+      pdf.save("asherin-slideshow.pdf");
     } catch (e) {
       console.error("Slideshow export error:", e);
     }

@@ -41,7 +41,7 @@ const VCForwardEmail = ({
         <Text style={brand}>◈ HOUSEOFASHER · SENATE BRIEFING</Text>
         <Heading style={h1}>{companyName || 'Unnamed Venture'}</Heading>
         <Text style={subhead}>
-          Aureon Recommendation: <strong>{recommendation || 'Advance'}</strong>
+          Asherin Recommendation: <strong>{recommendation || 'Advance'}</strong>
         </Text>
 
         <Section style={metaBox}>
@@ -83,7 +83,7 @@ const VCForwardEmail = ({
         )}
 
         <Hr style={hr} />
-        <Text style={footer}>— Aureon Intelligence · HouseOfAsher</Text>
+        <Text style={footer}>— Asherin Intelligence · HouseOfAsher</Text>
       </Container>
     </Body>
   </Html>

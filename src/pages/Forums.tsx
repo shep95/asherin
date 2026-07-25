@@ -199,7 +199,7 @@ const Forums = () => {
         {tab === "theory" && (
           <div className="mb-4 rounded-xl border border-foreground/15 bg-foreground/[0.03] p-3 text-[11px] font-light leading-relaxed text-muted-foreground">
             <span className="tracking-[0.15em] uppercase text-foreground/70">Open Source Notice —</span>{" "}
-            Theories submitted here are declared open-source. Anyone, including Aureon and other AI systems,
+            Theories submitted here are declared open-source. Anyone, including Asherin and other AI systems,
             may read, cite, and build upon them to advance AI for humanity.
           </div>
         )}

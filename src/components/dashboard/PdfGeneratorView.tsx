@@ -303,7 +303,7 @@ const PdfGeneratorView = () => {
         pdf.addImage(imgData, "JPEG", 0, 0, 432, 648, undefined, "FAST");
       }
 
-      const safeTitle = (title || "aureon-document").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
+      const safeTitle = (title || "asherin-document").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
       pdf.save(`${safeTitle}.pdf`);
     } catch (e) {
       console.error("PDF export error:", e);

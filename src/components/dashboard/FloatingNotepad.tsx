@@ -274,7 +274,7 @@ Rules:
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aureon-notes-${new Date().toISOString().slice(0, 10)}.md`;
+    a.download = `asherin-notes-${new Date().toISOString().slice(0, 10)}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -344,7 +344,7 @@ Rules:
                 tab === "chat" ? "bg-amber-500/15 text-amber-500" : "text-muted-foreground/50 hover:text-foreground"
               }`}
             >
-              <MessageSquare className="h-3 w-3" /> Ask Aureon
+              <MessageSquare className="h-3 w-3" /> Ask Asherin
             </button>
           </div>
 

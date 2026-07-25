@@ -173,7 +173,7 @@ const AxrlenView = () => {
         .single();
       if (sessionErr) throw sessionErr;
 
-      setScanProgress("Executing deep analysis via AUREON...");
+      setScanProgress("Executing deep analysis via ASHERIN...");
       const resp = await supabase.functions.invoke("axrlen-analyze", {
         body: { region, predictionType: scanType, sessionId: sessionData.id },
       });
@@ -216,7 +216,7 @@ const AxrlenView = () => {
     }
   };
 
-  // ── Chat with AUREON ──
+  // ── Chat with ASHERIN ──
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || isStreaming || isScanning) return;
@@ -707,7 +707,7 @@ const AxrlenView = () => {
                 </h1>
               </div>
               <p className="text-sm sm:text-[15px] font-extralight text-muted-foreground/90 max-w-lg mx-auto leading-relaxed">
-                Name a region. Pick a domain. Aureon forecasts what's next — every scan branched, scored, and timestamped.
+                Name a region. Pick a domain. Asherin forecasts what's next — every scan branched, scored, and timestamped.
               </p>
               <div className="px-4 py-2 rounded-xl border border-amber-400/15 bg-amber-400/[0.04]">
                 <p className="text-[10px] text-amber-300/70 tracking-wide">
@@ -792,7 +792,7 @@ const AxrlenView = () => {
               </div>
             )}
 
-            <p className="relative text-[9px] text-muted-foreground/30 tracking-wider pb-4">NEXUS-PRIME · 30-Domain Predictive Engine · Powered by AUREON</p>
+            <p className="relative text-[9px] text-muted-foreground/30 tracking-wider pb-4">NEXUS-PRIME · 30-Domain Predictive Engine · Powered by ASHERIN</p>
           </div>
         )}
 
@@ -813,12 +813,12 @@ const AxrlenView = () => {
             </button>
             <div className="h-px w-6 bg-border/[0.1]" />
             <div className="rotate-180 [writing-mode:vertical-rl] text-[8px] tracking-[0.32em] uppercase text-muted-foreground/40 mt-2">
-              Aureon Chat
+              Asherin Chat
             </div>
           </div>
         )}
 
-        {/* ── AUREON Chat rail (right) — full-width on mobile ── */}
+        {/* ── ASHERIN Chat rail (right) — full-width on mobile ── */}
         {!chatCollapsed && (
           <div
             className="flex flex-col border-l border-border/[0.06] bg-background/30 backdrop-blur-md w-full md:w-auto"
@@ -834,7 +834,7 @@ const AxrlenView = () => {
             <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border/[0.06]">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-3 w-3 text-foreground/40" strokeWidth={1.5} />
-                <span className="text-[9px] uppercase tracking-[0.22em] text-foreground/55">Aureon Chat</span>
+                <span className="text-[9px] uppercase tracking-[0.22em] text-foreground/55">Asherin Chat</span>
               </div>
               <button onClick={() => setChatCollapsed(true)}
                 className="p-1.5 rounded-lg hover:bg-foreground/[0.06] transition" title="Collapse">
@@ -914,7 +914,7 @@ const AxrlenView = () => {
               {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
                 <div className="flex items-center gap-2 px-2 py-1.5">
                   <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
-                  <span className="text-[9px] text-muted-foreground/40">AUREON — analyzing...</span>
+                  <span className="text-[9px] text-muted-foreground/40">ASHERIN — analyzing...</span>
                 </div>
               )}
 
@@ -936,7 +936,7 @@ const AxrlenView = () => {
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                  placeholder='Ask AUREON, or "Scan [region]"...'
+                  placeholder='Ask ASHERIN, or "Scan [region]"...'
                   rows={1}
                   className="flex-1 bg-foreground/[0.03] border border-border/[0.08] rounded-xl px-3 py-2 text-[11px] text-foreground/80 placeholder:text-muted-foreground/30 outline-none focus:border-foreground/[0.18] transition-all resize-none min-h-[36px] max-h-[120px]"
                   disabled={isStreaming || isScanning}

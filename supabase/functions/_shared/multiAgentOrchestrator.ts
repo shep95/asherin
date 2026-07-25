@@ -59,7 +59,7 @@ const TOOLS: Record<string, Tool> = {
       if (!q) return "web_search: empty query";
       // DuckDuckGo HTML lite — no key, robust.
       const url = `https://duckduckgo.com/html/?q=${encodeURIComponent(q)}`;
-      const resp = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 AureonOrchestrator" } });
+      const resp = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 AsherinOrchestrator" } });
       if (!resp.ok) return `web_search: HTTP ${resp.status}`;
       const html = await resp.text();
       const results: string[] = [];

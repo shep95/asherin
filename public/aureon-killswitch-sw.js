@@ -1,4 +1,4 @@
-/* Aureon Shield · Kill-Switch Service Worker
+/* Asherin Shield · Kill-Switch Service Worker
  *
  * When armed (via postMessage {type:"ARM", allowlist:[...]}), this worker
  * intercepts every fetch from controlled clients and short-circuits any
@@ -63,11 +63,11 @@ self.addEventListener("fetch", (event) => {
     new Response(
       JSON.stringify({
         blocked: true,
-        reason: "AUREON_KILLSWITCH_ARMED",
+        reason: "ASHERIN_KILLSWITCH_ARMED",
         url: req.url,
         ts: Date.now(),
       }),
-      { status: 503, headers: { "content-type": "application/json", "x-aureon-killswitch": "blocked" } },
+      { status: 503, headers: { "content-type": "application/json", "x-asherin-killswitch": "blocked" } },
     ),
   );
 });

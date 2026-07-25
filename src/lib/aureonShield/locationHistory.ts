@@ -1,7 +1,7 @@
-// IndexedDB-backed location history for Aureon Shield.
+// IndexedDB-backed location history for Asherin Shield.
 // All data is stored locally in the user's browser — never transmitted.
 
-const DB_NAME = "aureon-shield";
+const DB_NAME = "asherin-shield";
 const DB_VERSION = 1;
 const STORE = "location_history";
 
