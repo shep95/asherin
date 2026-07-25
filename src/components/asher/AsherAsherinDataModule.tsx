@@ -213,7 +213,7 @@ export default function AsherAsherinDataModule() {
     let cancelled = false;
     (async () => {
       setLoadingOverview(true);
-      const { data } = await supabase.rpc("admin_asherin_overview");
+      const { data } = await supabase.rpc("admin_aureon_overview");
       if (!cancelled) {
         if (data) setOverview(data);
         setLoadingOverview(false);

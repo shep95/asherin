@@ -26,7 +26,7 @@ interface ImagineSession {
   pixels: PixelRect[];
   grid_w: number;
   grid_h: number;
-  asherin_messages: AsherinMessage[];
+  aureon_messages: AsherinMessage[];
   created_at: string;
   updated_at: string;
 }
@@ -616,7 +616,7 @@ const ImagineToCodeView = () => {
         pixels: (snap.pixels.length > 500_000 ? snap.pixels.slice(0, 500_000) : snap.pixels) as unknown as never,
         grid_w: snap.gridW,
         grid_h: snap.gridH,
-        asherin_messages: snap.messages as unknown as never,
+        aureon_messages: snap.messages as unknown as never,
       })
       .eq("id", snap.id);
   }, []);
@@ -645,7 +645,7 @@ const ImagineToCodeView = () => {
       const parsed = data.map(row => ({
         ...row,
         pixels: (row.pixels as unknown as PixelRect[]) || [],
-        asherin_messages: (row.asherin_messages as unknown as AsherinMessage[]) || [],
+        aureon_messages: (row.aureon_messages as unknown as AsherinMessage[]) || [],
       }));
       setSessions(parsed);
       if (!activeSessionId && parsed.length > 0) {
@@ -678,14 +678,14 @@ const ImagineToCodeView = () => {
           pixels: pixelsToSave as unknown as never,
           grid_w: w,
           grid_h: h,
-          asherin_messages: msgs as unknown as never,
+          aureon_messages: msgs as unknown as never,
         })
         .eq("id", sessionId);
       setSaving(false);
       setSessions(prev => {
         const idx = prev.findIndex(s => s.id === sessionId);
         if (idx === -1) return prev;
-        const updated = { ...prev[idx], pixels, grid_w: w, grid_h: h, asherin_messages: msgs, updated_at: new Date().toISOString() };
+        const updated = { ...prev[idx], pixels, grid_w: w, grid_h: h, aureon_messages: msgs, updated_at: new Date().toISOString() };
         const rest = prev.filter(s => s.id !== sessionId);
         return [updated, ...rest];
       });
@@ -710,7 +710,7 @@ const ImagineToCodeView = () => {
     const newSession: ImagineSession = {
       ...data,
       pixels: [],
-      asherin_messages: [],
+      aureon_messages: [],
     };
     setSessions(prev => [newSession, ...prev]);
     loadSessionIntoEditor(newSession);
@@ -728,7 +728,7 @@ const ImagineToCodeView = () => {
     gridHRef.current = s.grid_h;
     setViewBox({ x: 0, y: 0, w: s.grid_w, h: s.grid_h });
     syncUndoRedo();
-    const msgs = s.asherin_messages.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
+    const msgs = s.aureon_messages.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
     setAsherinMessages(msgs);
     setSelRect(null);
     setSelectedIds(new Set());
