@@ -337,7 +337,7 @@ export function createIntelligencePipeline(sources: string[]): GenAIPipeline {
     ]})
     .addEnrichStage({
       enrichments: ["entity_extraction", "sentiment_analysis", "classification", "summarization"],
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-flash-latest",
     })
     .addAnalyzeStage({ analyses: ["correlation_matrix", "clustering", "feature_importance"] });
 }
