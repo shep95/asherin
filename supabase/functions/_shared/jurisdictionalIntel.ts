@@ -437,11 +437,11 @@ function isBotWall(hit: IntelChannelHit): boolean {
 
 function mentionsSubject(hit: IntelChannelHit, tokens: string[]): boolean {
   if (!tokens.length) return true;
-  const hay = `${hit.title} ${hit.snippet} ${hit.url}`.toLowerCase();
-  const matched = tokens.filter((t) => hay.includes(t)).length;
-  // Single-token subjects need that token; multi-token names need at least the
-  // rarest half (surname-bearing) so "John" alone cannot pull a stranger in.
-  return matched >= Math.max(1, Math.ceil(tokens.length / 2));
+  const hay = `${hit.title} ${hit.snippet} ${hit.url} ${hit.body ?? ""}`.toLowerCase();
+  // A multi-token personal name must appear in FULL. Matching a single given
+  // name ("Donna") let an unrelated Wikipedia article about scuba diving enter
+  // the bundle and be narrated as if it concerned the subject.
+  return tokens.every((t) => hay.includes(t));
 }
 
 
