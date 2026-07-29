@@ -3,7 +3,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { normalizeGeminiModel, GEMINI_ROLLING_FALLBACK } from "../_shared/geminiModels.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+
 
 const PLATFORM_GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("GEMINI_API_KEY_APP");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -110,7 +112,7 @@ Deno.serve(async (req) => {
   try {
     const { messages, chartContext, chartLabel, byok, crossCheck } = (await req.json()) as ChatBody;
     if (!Array.isArray(messages) || messages.length === 0) {
-      return jsonError(400, "messages required");
+      return jsonError(400, "messages required", corsHeaders);
     }
 
     // Identify caller (for admin-only platform key access)
@@ -127,7 +129,7 @@ ${chartContext}`;
     // Build the primary provider chain
     const primaryChain = resolveProviderChain(byok, isAdmin);
     if (primaryChain.length === 0) {
-      return jsonError(400, "No AI provider configured. Add a Gemini, OpenAI, or Anthropic API key in Asher chat settings.");
+      return jsonError(400, "No AI provider configured. Add a Gemini, OpenAI, or Anthropic API key in Asher chat settings.", corsHeaders);
     }
 
     let primary: { text: string; provider: Provider; model: string } | null = null;
@@ -142,7 +144,7 @@ ${chartContext}`;
         console.error(`[asher] primary ${cfg.provider}/${cfg.model} failed:`, lastError);
       }
     }
-    if (!primary) return jsonError(503, `Provider failed: ${lastError}`);
+    if (!primary) return jsonError(503, `Provider failed: ${lastError}`, corsHeaders);
 
     // Optional cross-validation across other providers (BYOK list)
     const crossResults: { provider: Provider; model: string; text: string }[] = [];
@@ -176,7 +178,7 @@ ${chartContext}`;
     });
   } catch (e) {
     console.error("vedic-asher-chat error:", e);
-    return jsonError(500, e instanceof Error ? e.message : "unknown");
+    return jsonError(500, e instanceof Error ? e.message : "unknown", getCorsHeaders(req));
   }
 });
 
@@ -193,7 +195,10 @@ async function checkAdmin(authHeader: string): Promise<boolean> {
   }
 }
 
-function jsonError(status: number, error: string): Response {
+// corsHeaders is per-request (origin-scoped), so it must be passed in — the
+// previous module-scope reference threw ReferenceError and turned every
+// handled error into an opaque, CORS-less 500.
+function jsonError(status: number, error: string, corsHeaders: Record<string, string>): Response {
   return new Response(JSON.stringify({ error }), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -258,16 +263,26 @@ async function callGemini(apiKey: string, model: string, systemPrompt: string, m
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      contents,
-      generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
-    }),
+  const payload = JSON.stringify({
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents,
+    generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
   });
+  const hit = (m: string) =>
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+    });
+
+  // Stale saved BYOK ids 404 on v1beta; normalize, then retry the rolling alias.
+  const primary = normalizeGeminiModel(model);
+  let resp = await hit(primary);
+  if (resp.status === 404 && primary !== GEMINI_ROLLING_FALLBACK) {
+    await resp.text().catch(() => "");
+    console.warn(`[vedic-asher] gemini model ${primary} 404 — retrying ${GEMINI_ROLLING_FALLBACK}`);
+    resp = await hit(GEMINI_ROLLING_FALLBACK);
+  }
   if (!resp.ok) {
     const t = await resp.text();
     const err = new Error(`gemini_${resp.status}: ${t.slice(0, 200)}`) as Error & { status?: number };
@@ -277,6 +292,7 @@ async function callGemini(apiKey: string, model: string, systemPrompt: string, m
   const data = await resp.json();
   return data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || "").join("") ?? "";
 }
+
 
 async function callOpenAICompat(baseUrl: string, apiKey: string, model: string, systemPrompt: string, messages: ChatBody["messages"]): Promise<string> {
   const resp = await fetch(`${baseUrl}/chat/completions`, {

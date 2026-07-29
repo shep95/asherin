@@ -177,8 +177,15 @@ const GEMINI_MODEL_ALIASES: Record<string, string> = {
   "gemini-1.5-flash": "gemini-flash-latest",
   "gemini-1.5-flash-latest": "gemini-flash-latest",
   "gemini-1.5-flash-8b": "gemini-2.5-flash-lite",
+  // 2.5 pinned ids — retired in favour of the rolling aliases.
+  "gemini-2.5-pro": "gemini-pro-latest",
+  "gemini-2.5-pro-latest": "gemini-pro-latest",
+  "gemini-2.5-flash": "gemini-flash-latest",
+  "gemini-2.5-flash-latest": "gemini-flash-latest",
+  "gemini-2.0-flash-exp": "gemini-2.0-flash",
 };
 const GEMINI_404_FALLBACK = "gemini-flash-latest";
+
 
 async function geminiFetch(apiKey: string, model: string, body: unknown, signal: AbortSignal) {
   return fetch(
