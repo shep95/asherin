@@ -72,7 +72,7 @@ function sse(data: unknown): string {
   return `data: ${typeof data === "string" ? data : JSON.stringify(data)}\n\n`;
 }
 
-function toolCallResponse(name: string, args: Record<string, unknown>): Response {
+function toolCallResponse(name: string, args: Record<string, unknown>, headers: Record<string, string>): Response {
   const payload = {
     choices: [{
       delta: {
@@ -88,7 +88,7 @@ function toolCallResponse(name: string, args: Record<string, unknown>): Response
     }],
   };
   return new Response(sse(payload) + sse("[DONE]"), {
-    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    headers: { ...headers, "Content-Type": "text/event-stream" },
   });
 }
 
