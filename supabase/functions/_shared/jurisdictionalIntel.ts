@@ -341,11 +341,22 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
 }
 
 // ── Zophiel retrieval ──────────────────────────────────────────────────────
-async function zophielQuery(query: string, options: { timeoutMs?: number; limit?: number } = {}): Promise<IntelChannelHit[]> {
-  if (!SUPABASE_URL || !SUPABASE_ANON) return [];
-  // Hard-cap any per-call timeout at 10s so a slow/degraded zophiel-search
-  // cannot chain into pushing the outer /chat request past the 150s edge limit.
-  const timeoutMs = Math.min(options.timeoutMs ?? 22000, 22000);
+export interface ChannelOutcome {
+  label: string;
+  ok: boolean;
+  hits: number;
+  reason?: string;
+}
+
+async function zophielQuery(
+  query: string,
+  options: { timeoutMs?: number; limit?: number } = {},
+): Promise<{ hits: IntelChannelHit[]; ok: boolean; reason?: string }> {
+  if (!SUPABASE_URL || !SUPABASE_ANON) return { hits: [], ok: false, reason: "missing supabase env" };
+  // Measured live P50 for zophiel-search is ~10.3s. Any per-call budget below
+  // ~12s aborts the call before it can ever answer, which silently starved the
+  // registry channels and left only wide-web noise for the model to reason on.
+  const timeoutMs = Math.max(6000, Math.min(options.timeoutMs ?? 20000, 24000));
   const limit = options.limit ?? 12;
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/zophiel-search`, {
@@ -358,14 +369,14 @@ async function zophielQuery(query: string, options: { timeoutMs?: number; limit?
       body: JSON.stringify({ query, page: 1, mode: "web" }),
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!resp.ok) return [];
+    if (!resp.ok) return { hits: [], ok: false, reason: `http_${resp.status}` };
     const data = await resp.json();
     let raw: any[] = Array.isArray(data?.results) ? data.results : (Array.isArray(data?.hits) ? data.hits : []);
     // Fallback: flatten `grouped` (category → results[]) if `results` empty.
     if (raw.length === 0 && data?.grouped && typeof data.grouped === "object") {
       raw = Object.values(data.grouped).flat() as any[];
     }
-    return raw.slice(0, limit).map((r: any) => {
+    const hits = raw.slice(0, limit).map((r: any) => {
       const url = String(r.url || r.link || r.source_url || (r.source && !r.source.includes(" ") ? `https://${r.source}` : "") || "");
       let domain = "";
       try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
@@ -376,12 +387,35 @@ async function zophielQuery(query: string, options: { timeoutMs?: number; limit?
         domain,
       } as IntelChannelHit;
     }).filter((h: IntelChannelHit) => h.url && !isBlockedSource(h.domain) && !isBlockedSource(h.url));
-
+    return { hits, ok: true };
   } catch (e) {
-    console.error("[jurisdictionalIntel] zophiel query failed:", (e as Error).message);
-    return [];
+    const reason = (e as Error).message || "unknown";
+    console.error("[jurisdictionalIntel] zophiel query failed:", reason);
+    return { hits: [], ok: false, reason };
   }
 }
+
+// ── Subject-relevance gate ────────────────────────────────────────────────
+// Retrieval used to accept ANY hit the engine returned. For a person sweep
+// that means an unrelated journal article about the city can be bucketed and
+// then narrated as if it described the subject. A hit now has to actually
+// mention a distinctive subject token to survive in the non-registry buckets.
+function subjectTokens(subject: string): string[] {
+  return subject
+    .toLowerCase()
+    .split(/[^a-z0-9'-]+/)
+    .filter((t) => t.length >= 3);
+}
+
+function mentionsSubject(hit: IntelChannelHit, tokens: string[]): boolean {
+  if (!tokens.length) return true;
+  const hay = `${hit.title} ${hit.snippet} ${hit.url}`.toLowerCase();
+  const matched = tokens.filter((t) => hay.includes(t)).length;
+  // Single-token subjects need that token; multi-token names need at least the
+  // rarest half (surname-bearing) so "John" alone cannot pull a stranger in.
+  return matched >= Math.max(1, Math.ceil(tokens.length / 2));
+}
+
 
 // ── Domain classifier ──────────────────────────────────────────────────────
 function classifyDomain(domain: string): DomainBucket {
