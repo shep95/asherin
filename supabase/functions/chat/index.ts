@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+import { getCorsHeaders } from "../_shared/cors.ts";
 // AUREON-ERA LEAN ASSEMBLY: 14 stacked brains removed from the runtime path.
 // Imports kept only for the modules actually attached to the system prompt.
 import { MARKET_STRUCTURE_VISION_BRAIN } from "../_shared/marketStructureVisionBrain.ts";
