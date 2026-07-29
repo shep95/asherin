@@ -68,7 +68,12 @@ export interface IntelBundle {
   jurisdictionLabel: string;
   emptyBuckets: DomainBucket[];
   totalHits: number;
+  /** Per-channel retrieval outcome — lets the model know what actually ran. */
+  channels?: { label: string; ok: boolean; hits: number; reason?: string }[];
+  /** Hits discarded because they never mentioned the subject. */
+  droppedOffSubject?: number;
 }
+
 
 // ── Lookup tables (kept from v1 — proven to work) ─────────────────────────
 const US_STATES: Record<string, string> = {
