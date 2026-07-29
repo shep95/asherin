@@ -629,15 +629,28 @@ const BUCKET_LABELS: Record<DomainBucket, string> = {
 };
 
 export function formatIntelContext(bundle: IntelBundle): string {
-  const { intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries } = bundle;
+  const { intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries, channels, droppedOffSubject } = bundle;
+
+  // Retrieval integrity is stated explicitly. Previously a sweep in which every
+  // registry channel had timed out looked identical to a clean sweep, so the
+  // model narrated wide-web noise with full confidence.
+  const failed = (channels ?? []).filter((c) => !c.ok);
+  const integrity = channels?.length
+    ? [
+        `Channels run: ${channels.length} — succeeded ${channels.length - failed.length}, failed ${failed.length}`,
+        failed.length ? `FAILED CHANNELS: ${failed.map((c) => `${c.label} (${c.reason ?? "error"})`).join(", ")} — treat these record classes as NOT SEARCHED, not as "nothing found".` : "",
+        droppedOffSubject ? `Off-subject hits discarded by the relevance gate: ${droppedOffSubject}` : "",
+      ].filter(Boolean).join("\n")
+    : "";
 
   const header = [
     `## JURISDICTIONAL INTEL SWEEP — ${intent.kind.toUpperCase()}`,
     `Subject: ${intent.subject}`,
     `Jurisdiction: ${jurisdictionLabel}`,
     `Registries in scope: ${registries.slice(0, 12).join(", ") || "(none jurisdiction-specific — wide-web only)"}`,
-    `Total unique hits (post-blocklist, deduped): ${totalHits}`,
-  ].join("\n");
+    `Total unique hits (post-blocklist, post-relevance, deduped): ${totalHits}`,
+    integrity,
+  ].filter(Boolean).join("\n");
 
   const accel = intent.accelerators.length
     ? `\n\n### ACCELERATORS (ask user, do not block)\n${intent.accelerators.map((a, i) => `${i + 1}. ${a}`).join("\n")}`
@@ -651,6 +664,7 @@ export function formatIntelContext(bundle: IntelBundle): string {
       "Distinguish 'no public record found' from 'this person does not exist'.",
     ].join("\n");
   }
+
 
   const sections: string[] = [];
   const order: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
