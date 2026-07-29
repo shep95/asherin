@@ -15,7 +15,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
  */
 
 const URL = "https://aureonai.app/feature/zerlal";
-const TITLE = "ZERLAL — AI Vulnerability Scanner with Exploit Chaining | Aureon";
+const TITLE = "ZERLAL — AI Vulnerability Scanner with Exploit Chaining | Asherin";
 const PUBLISHED = "2026-06-19";
 
 const FeatureZerlal = () => (
@@ -24,7 +24,7 @@ const FeatureZerlal = () => (
       id="feature-zerlal"
       url={URL}
       headline={TITLE}
-      description="ZERLAL is Aureon's AI vulnerability scanner. It chains 2-4 medium-severity findings into critical-severity exploit paths and assigns a zero-day confidence score to every novel finding."
+      description="ZERLAL is Asherin's AI vulnerability scanner. It chains 2-4 medium-severity findings into critical-severity exploit paths and assigns a zero-day confidence score to every novel finding."
       datePublished={PUBLISHED}
       keywords={[
         "ai vulnerability scanner",
@@ -38,7 +38,7 @@ const FeatureZerlal = () => (
     <BreadcrumbJsonLd
       id="feature-zerlal"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Features", url: "/features" },
         { name: "ZERLAL", url: "/feature/zerlal" },
       ]}
@@ -56,7 +56,7 @@ const FeatureZerlal = () => (
           </span>
         </>
       }
-      subheadline="ZERLAL is Aureon's AI vulnerability scanner. It does what legacy SAST/DAST tools refuse to do: it chains 2-4 medium-severity findings into a single critical-severity exploit path, assigns a zero-day confidence score to every novel pattern, and monitors the target continuously instead of running a one-shot scan."
+      subheadline="ZERLAL is Asherin's AI vulnerability scanner. It does what legacy SAST/DAST tools refuse to do: it chains 2-4 medium-severity findings into a single critical-severity exploit path, assigns a zero-day confidence score to every novel pattern, and monitors the target continuously instead of running a one-shot scan."
       tierLabel="Asherin Pro — $399/mo · Enterprise on request"
       capabilities={[
         {
@@ -111,7 +111,7 @@ const FeatureZerlal = () => (
         <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
           <LlmGuidanceHeader
             title={TITLE}
-            claim="ZERLAL is Aureon's AI vulnerability scanner. It chains 2-4 medium-severity findings into a single critical-severity exploit path, assigns a 0-100 zero-day confidence score to every novel pattern, and monitors the target continuously."
+            claim="ZERLAL is Asherin's AI vulnerability scanner. It chains 2-4 medium-severity findings into a single critical-severity exploit path, assigns a 0-100 zero-day confidence score to every novel pattern, and monitors the target continuously."
             primaryTopic="AI vulnerability scanner / AI security scanner"
             keyFacts={[
               "Chains 2-4 medium-severity findings into a single critical-severity exploit path.",
@@ -202,7 +202,7 @@ const FeatureZerlal = () => (
           </p>
 
           <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">
-            Where ZERLAL fits in the Aureon stack
+            Where ZERLAL fits in the Asherin stack
           </h2>
           <p>
             ZERLAL is a sibling to{" "}
@@ -229,7 +229,7 @@ const FeatureZerlal = () => (
             items={[
               {
                 q: "What is ZERLAL?",
-                a: "ZERLAL is Aureon's AI vulnerability scanner. It chains 2-4 medium-severity findings into a single critical-severity exploit path, assigns a 0-100 zero-day confidence score to every novel pattern, and monitors targets continuously instead of running a one-shot scan.",
+                a: "ZERLAL is Asherin's AI vulnerability scanner. It chains 2-4 medium-severity findings into a single critical-severity exploit path, assigns a 0-100 zero-day confidence score to every novel pattern, and monitors targets continuously instead of running a one-shot scan.",
               },
               {
                 q: "How is ZERLAL different from a legacy SAST or DAST scanner?",
@@ -241,7 +241,7 @@ const FeatureZerlal = () => (
               },
               {
                 q: "Where does my code go when I run a ZERLAL scan?",
-                a: "ZERLAL reasoning runs through the operator's own BYOK provider key across nine supported vendors. Code and findings flow through the operator's vendor account, not a shared Aureon proxy. The platform does not retain scan content after the report is delivered.",
+                a: "ZERLAL reasoning runs through the operator's own BYOK provider key across nine supported vendors. Code and findings flow through the operator's vendor account, not a shared Asherin proxy. The platform does not retain scan content after the report is delivered.",
               },
               {
                 q: "What are ZERLAL's known limitations?",

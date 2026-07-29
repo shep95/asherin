@@ -96,7 +96,7 @@ const PLANS = [
       {
         title: "Plus the full advanced suite",
         items: [
-          "Aureon IDE, Whiteboard, File Scrapper, Cipher",
+          "Asherin IDE, Whiteboard, File Scrapper, Cipher",
           "AXRLEN predictive intelligence",
           "ZEEION financial intelligence",
           "ZERLAL cyber security",
@@ -120,8 +120,8 @@ interface Props {
 /**
  * Public-facing subscription plans card.
  *
- * Replaces the previous "Aureon is free" donation manifesto. Renders the two
- * core monthly tiers (Aureon $18 / Asherin Pro $399) plus an Enterprise
+ * Replaces the previous "Asherin is free" donation manifesto. Renders the two
+ * core monthly tiers (Asherin $18 / Asherin Pro $399) plus an Enterprise
  * contact card.
  */
 export default function SubscriptionPlans({ compact = false }: Props) {
@@ -265,7 +265,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
           </div>
           <div className="flex-shrink-0">
             <a
-              href="mailto:asher@aureonai.app?subject=Aureon%20Enterprise%20Inquiry"
+              href="mailto:asher@aureonai.app?subject=Asherin%20Enterprise%20Inquiry"
               className="inline-flex items-center gap-2 rounded-full border border-foreground/30 px-5 py-3 text-xs font-light tracking-[0.2em] uppercase text-foreground hover:bg-foreground/5 transition-colors"
             >
               Contact sales

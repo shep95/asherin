@@ -176,7 +176,7 @@ const EclipseWeaponsSection = () => (
         <span className="text-muted-foreground">When They Detonate</span>
       </h2>
       <p className="text-xs font-extralight text-muted-foreground/50">
-        ZOPHIEL | AUREON TRUTH ENGINE · This is the system elites use that mainstream science ignores.
+        ZOPHIEL | ASHERIN TRUTH ENGINE · This is the system elites use that mainstream science ignores.
       </p>
     </div>
 

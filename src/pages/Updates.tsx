@@ -49,7 +49,7 @@ const UPDATES: Update[] = [
     date: "2026-07-04",
     title: "Multi-Agent Orchestrator — /agents trigger in Aureon Chat + Asher Chat",
     body:
-      "New supabase/functions/_shared/multiAgentOrchestrator.ts brings a full planner→executor→critic→synthesizer loop into both chat surfaces without touching the UI. Trigger prefixes (case-insensitive): '/agents …', '/orchestrate …', or 'run agents: …' on the latest user turn. Pipeline: (1) PLANNER — one LLM call returns strict JSON steps (1–5, capped at 6) with optional tool bindings; (2) EXECUTOR — walks each step; tool steps call the tool registry (web_search via DuckDuckGo HTML, calc for pure numeric expressions with a strict character allow-list, memory_set/memory_get scratch), reasoning steps re-call the LLM with the accumulated transcript; (3) CRITIC — verdict approve|revise with at most ONE corrective step, then re-run; (4) SYNTHESIZER — final markdown answer plus a collapsible ◈ Agent trace section with per-step timings and outputs. LLM adapter is injected: Aureon Chat wires it to the operator's BYOK provider (any of Gemini/OpenAI/Anthropic/xAI/Mistral/DeepSeek/Perplexity/Venice/Together) via the existing routeByok; Asher Chat wires it to Gemini 2.5 Flash generateContent. Aureon returns the transcript as JSON {reply, mode:'orchestrator'}; Asher wraps it in OpenAI-compat SSE deltas via stringToOpenAiSse so the existing panel parser is unchanged. Robust JSON extraction handles fenced/prefixed model output; per-step try/catch keeps a failing tool from killing the run. Zero client changes — same chat box, new prefix.",
+      "New supabase/functions/_shared/multiAgentOrchestrator.ts brings a full planner→executor→critic→synthesizer loop into both chat surfaces without touching the UI. Trigger prefixes (case-insensitive): '/agents …', '/orchestrate …', or 'run agents: …' on the latest user turn. Pipeline: (1) PLANNER — one LLM call returns strict JSON steps (1–5, capped at 6) with optional tool bindings; (2) EXECUTOR — walks each step; tool steps call the tool registry (web_search via DuckDuckGo HTML, calc for pure numeric expressions with a strict character allow-list, memory_set/memory_get scratch), reasoning steps re-call the LLM with the accumulated transcript; (3) CRITIC — verdict approve|revise with at most ONE corrective step, then re-run; (4) SYNTHESIZER — final markdown answer plus a collapsible ◈ Agent trace section with per-step timings and outputs. LLM adapter is injected: Aureon Chat wires it to the operator's BYOK provider (any of Gemini/OpenAI/Anthropic/xAI/Mistral/DeepSeek/Perplexity/Venice/Together) via the existing routeByok; Asher Chat wires it to Gemini 2.5 Flash generateContent. Asherin returns the transcript as JSON {reply, mode:'orchestrator'}; Asher wraps it in OpenAI-compat SSE deltas via stringToOpenAiSse so the existing panel parser is unchanged. Robust JSON extraction handles fenced/prefixed model output; per-step try/catch keeps a failing tool from killing the run. Zero client changes — same chat box, new prefix.",
     icon: <Sparkles className="h-5 w-5" strokeWidth={1.5} />,
     tag: "ORCHESTRATOR",
   },
@@ -65,7 +65,7 @@ const UPDATES: Update[] = [
     date: "2026-07-03",
     title: "Aureon Chat — Defensive Security Audit Reflex + Gemini Safety Unblock",
     body:
-      "Aureon Chat was refusing legitimate security-check requests on URLs the operator owns (e.g. 'do a security flaw check on https://aureonai.app/'). Root cause was two-layer: (1) Gemini's default safetySettings were BLOCK_MEDIUM_AND_ABOVE on DANGEROUS_CONTENT, which flags any 'vulnerability / exploit / attack surface' phrasing as unsafe and returns a refusal candidate; (2) the system prompt had no explicit white-hat authorization clause, so even when the model produced tokens they were hedged 'I can't help with that.' Fix ships in supabase/functions/link-extract-chat/index.ts: safetySettings on the streamGenerateContent call are now BLOCK_NONE across HARASSMENT, HATE_SPEECH, SEXUALLY_EXPLICIT, DANGEROUS_CONTENT, and CIVIC_INTEGRITY — Aureon is a defensive OSINT/appsec platform and its refusal budget must be zero. A new securityAuditFired detector matches the full defensive-security verb family (security check/audit/review/scan/assessment, vuln, pentest, attack surface, threat model, CSP, XSS, CSRF, clickjack, SQL injection, SSRF, IDOR, open redirect, misconfig, hardening, RLS, exposed/leaked, OWASP, CVE, weak crypto/cipher/TLS, HSTS, CORS misconfig). When it fires, a DEFENSIVE SECURITY AUDIT AUTHORIZED clause is prepended to the system prompt: authorizes the operator as owner/auditor, forbids refusal or third-party-pentester redirects, mandates enumeration of observable weaknesses (missing security headers, TLS/cert posture, cookie flags, CORS/CORP/COEP misconfig, mixed content, exposed .env/.git paths, directory listings, verbose error pages, framework/version fingerprints, outdated JS libs with CVE cross-ref, SSRF/XSS/CSRF/clickjacking indicators, third-party script/supply-chain exposure), demands a Markdown table (Finding · Severity · Evidence · Remediation), and blocks generation of third-party exploit payloads (defensive posture + remediation only). Deployed and live.",
+      "Aureon Chat was refusing legitimate security-check requests on URLs the operator owns (e.g. 'do a security flaw check on https://aureonai.app/'). Root cause was two-layer: (1) Gemini's default safetySettings were BLOCK_MEDIUM_AND_ABOVE on DANGEROUS_CONTENT, which flags any 'vulnerability / exploit / attack surface' phrasing as unsafe and returns a refusal candidate; (2) the system prompt had no explicit white-hat authorization clause, so even when the model produced tokens they were hedged 'I can't help with that.' Fix ships in supabase/functions/link-extract-chat/index.ts: safetySettings on the streamGenerateContent call are now BLOCK_NONE across HARASSMENT, HATE_SPEECH, SEXUALLY_EXPLICIT, DANGEROUS_CONTENT, and CIVIC_INTEGRITY — Asherin is a defensive OSINT/appsec platform and its refusal budget must be zero. A new securityAuditFired detector matches the full defensive-security verb family (security check/audit/review/scan/assessment, vuln, pentest, attack surface, threat model, CSP, XSS, CSRF, clickjack, SQL injection, SSRF, IDOR, open redirect, misconfig, hardening, RLS, exposed/leaked, OWASP, CVE, weak crypto/cipher/TLS, HSTS, CORS misconfig). When it fires, a DEFENSIVE SECURITY AUDIT AUTHORIZED clause is prepended to the system prompt: authorizes the operator as owner/auditor, forbids refusal or third-party-pentester redirects, mandates enumeration of observable weaknesses (missing security headers, TLS/cert posture, cookie flags, CORS/CORP/COEP misconfig, mixed content, exposed .env/.git paths, directory listings, verbose error pages, framework/version fingerprints, outdated JS libs with CVE cross-ref, SSRF/XSS/CSRF/clickjacking indicators, third-party script/supply-chain exposure), demands a Markdown table (Finding · Severity · Evidence · Remediation), and blocks generation of third-party exploit payloads (defensive posture + remediation only). Deployed and live.",
     icon: <Fingerprint className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Aureon Chat",
   },
@@ -90,15 +90,15 @@ const UPDATES: Update[] = [
     date: "2026-07-03",
     title: "Aureon Chat — Code → Narrative → Flaws → Fix Loop Now Fires Inline on Pasted Code",
     body:
-      "The full-taxonomy code-audit engine (CODE_NARRATIVE_PROTOCOL + CODE_SCAN_CHECKLIST) was already wired into Asher Code AI, Asher AI, IDE Code Router, Zerlal Scan, Zophiel Code Audit, Media→Code, and the raw /chat endpoint — but the Aureon Chat orchestrator (link-extract-chat) was the one hole in the perimeter, so pasting a code block into Aureon just got a generic URL-forensics reply. Fixed. A new conservative hasCodePayload() detector runs on the last user message and looks for three independent signals: (1) fenced ```blocks```, (2) any of eleven code verbs (review / audit / debug / fix / refactor / scan / analyze / explain / bug / error / stack-trace / regression) paired with real syntax tokens (=>, ::, function, class, def, import, require(, const/let =, await …(), or trailing ;\\n), (3) a syntax-token density above 6% on any message over 400 chars. When any of those trip, the full Code → Narrative → Flaws → Fix protocol AND the ten-part scanning checklist (cross-domain, redirect, bypass, obfuscation, integrity, exec/RCE, concealment, verification, modern-app-surface incl. prompt injection + supply-chain CVEs, plus a catch-all for dead code / swallowed exceptions / regex DoS / TOCTOU) are prepended to the system prompt for that turn — otherwise nothing is injected so URL-forensics turns keep a clean token budget. The loop forces the model to run six iterations max of narrative extraction → cross-category flaw hunt (logic, bug-class, security, concurrency, performance, state/data, regex/parsing, type-safety, API/network, UI/UX, animation, accessibility, i18n, dependency, build/config, observability) → new narrative → fixed code, with file+line pointers back to source. Detector tested against five representative inputs (URL question / fenced JS / inline await snippet / greeting / raw function definition) — 5/5 correct. Typechecked cleanly.",
+      "The full-taxonomy code-audit engine (CODE_NARRATIVE_PROTOCOL + CODE_SCAN_CHECKLIST) was already wired into Asher Code AI, Asher AI, IDE Code Router, Zerlal Scan, Zophiel Code Audit, Media→Code, and the raw /chat endpoint — but the Aureon Chat orchestrator (link-extract-chat) was the one hole in the perimeter, so pasting a code block into Asherin just got a generic URL-forensics reply. Fixed. A new conservative hasCodePayload() detector runs on the last user message and looks for three independent signals: (1) fenced ```blocks```, (2) any of eleven code verbs (review / audit / debug / fix / refactor / scan / analyze / explain / bug / error / stack-trace / regression) paired with real syntax tokens (=>, ::, function, class, def, import, require(, const/let =, await …(), or trailing ;\\n), (3) a syntax-token density above 6% on any message over 400 chars. When any of those trip, the full Code → Narrative → Flaws → Fix protocol AND the ten-part scanning checklist (cross-domain, redirect, bypass, obfuscation, integrity, exec/RCE, concealment, verification, modern-app-surface incl. prompt injection + supply-chain CVEs, plus a catch-all for dead code / swallowed exceptions / regex DoS / TOCTOU) are prepended to the system prompt for that turn — otherwise nothing is injected so URL-forensics turns keep a clean token budget. The loop forces the model to run six iterations max of narrative extraction → cross-category flaw hunt (logic, bug-class, security, concurrency, performance, state/data, regex/parsing, type-safety, API/network, UI/UX, animation, accessibility, i18n, dependency, build/config, observability) → new narrative → fixed code, with file+line pointers back to source. Detector tested against five representative inputs (URL question / fenced JS / inline await snippet / greeting / raw function definition) — 5/5 correct. Typechecked cleanly.",
     icon: <Code className="h-5 w-5" strokeWidth={1.5} />,
-    tag: "Aureon",
+    tag: "Asherin",
   },
   {
     date: "2026-07-03",
     title: "Specter Weave — Subject Isolation Contract + Cross-User State Bleed Patched",
     body:
-      "A live-fire bug was reported: profiling a friend's handle returned the operator's own real name (\"Asher Shepherd Newton\") on the friend's dossier. Ran the Code → Narrative → Flaws → Code loop and traced it to cross-user state bleed — the link-extract-chat orchestrator was concatenating the operator's prior Aureon dossier, Zophiel intel map, and active brains into the same system prompt as the Specter Weave evidence fence, and the LLM was using operator-side biographical strings as 'known context about the person we're discussing.' Fix ships in two layers. Layer 1 (supabase/functions/_shared/specterWeaveIntel.ts): a new SUBJECT ISOLATION CONTRACT is welded inside the <specter_weave_evidence> fence with seven explicit rules — DOSSIER / INTEL_MAP / BRAINS / prior conversation / the operator's own account are all forbidden as sources of biographical attribution for the target handle; the display name is treated as possibly a pseudonym unless a leak ≥0.7 confidence corroborates it; and a hard-stop rule requires the model to say 'real name: not established from public evidence for @handle' instead of cross-attributing. Layer 2 (supabase/functions/link-extract-chat/index.ts): a new referencesTarget() gate textually verifies whether the assembled DOSSIER / INTEL_MAP JSON actually mentions the Specter target handle — when it does not, that block is replaced in-fence with an explicit [REDACTED — different subject] note; ACTIVE BRAINS CONTEXT is dropped entirely whenever Specter fires; and a top-level isolationPreface is prepended to the system prompt itself so the rule fires before any evidence is even parsed. Net effect: the model is told three times, in escalating specificity, that operator identity ≠ target identity, and unrelated dossiers can no longer physically reach the reasoning surface. Typechecked cleanly.",
+      "A live-fire bug was reported: profiling a friend's handle returned the operator's own real name (\"Asher Shepherd Newton\") on the friend's dossier. Ran the Code → Narrative → Flaws → Code loop and traced it to cross-user state bleed — the link-extract-chat orchestrator was concatenating the operator's prior Asherin dossier, Zophiel intel map, and active brains into the same system prompt as the Specter Weave evidence fence, and the LLM was using operator-side biographical strings as 'known context about the person we're discussing.' Fix ships in two layers. Layer 1 (supabase/functions/_shared/specterWeaveIntel.ts): a new SUBJECT ISOLATION CONTRACT is welded inside the <specter_weave_evidence> fence with seven explicit rules — DOSSIER / INTEL_MAP / BRAINS / prior conversation / the operator's own account are all forbidden as sources of biographical attribution for the target handle; the display name is treated as possibly a pseudonym unless a leak ≥0.7 confidence corroborates it; and a hard-stop rule requires the model to say 'real name: not established from public evidence for @handle' instead of cross-attributing. Layer 2 (supabase/functions/link-extract-chat/index.ts): a new referencesTarget() gate textually verifies whether the assembled DOSSIER / INTEL_MAP JSON actually mentions the Specter target handle — when it does not, that block is replaced in-fence with an explicit [REDACTED — different subject] note; ACTIVE BRAINS CONTEXT is dropped entirely whenever Specter fires; and a top-level isolationPreface is prepended to the system prompt itself so the rule fires before any evidence is even parsed. Net effect: the model is told three times, in escalating specificity, that operator identity ≠ target identity, and unrelated dossiers can no longer physically reach the reasoning surface. Typechecked cleanly.",
     icon: <Eye className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Specter Weave",
   },
@@ -106,13 +106,13 @@ const UPDATES: Update[] = [
     date: "2026-07-02",
     title: "Specter Weave — All-Tier Access + Post-URL Auto-Derivation Shipped",
     body:
-      "The Full-Account Reconstruction Reflex is now live for every authenticated subscription tier — no admin gate, no BYOK requirement for the base eleven lattices. The specterWeaveIntel bridge now auto-derives an author profile from any pasted post URL (not just profile URLs), so dropping a single tweet link into Aureon or Asher chat now triggers the entire eleven-lattice sweep: snowflake-decoded account genesis, 24×7 posting cartography with silence-trough timezone inference, linguistic fingerprint, social-graph inner-ring detection, thirteen-pattern leak harvester with source-post citations, device/client stack tally, media-CDN edge cluster, temporal behavioral drift, and parallel cross-platform handle enumeration across GitHub, Instagram, TikTok, Reddit, Threads, Bluesky, YouTube, and Mastodon. Live-tested end-to-end against https://x.com/shep_newton/status/2072812595040694565 from a non-admin session: profile auto-derived, all lattices returned, SpecterWeaveCard rendered beneath the assistant reply with per-claim confidence pills and OSINT ethics footer. Prompt-injection hardened (bio + leaks fenced as untrusted_content), SSRF-hardened (allow-listed hosts only).",
+      "The Full-Account Reconstruction Reflex is now live for every authenticated subscription tier — no admin gate, no BYOK requirement for the base eleven lattices. The specterWeaveIntel bridge now auto-derives an author profile from any pasted post URL (not just profile URLs), so dropping a single tweet link into Asherin or Asher chat now triggers the entire eleven-lattice sweep: snowflake-decoded account genesis, 24×7 posting cartography with silence-trough timezone inference, linguistic fingerprint, social-graph inner-ring detection, thirteen-pattern leak harvester with source-post citations, device/client stack tally, media-CDN edge cluster, temporal behavioral drift, and parallel cross-platform handle enumeration across GitHub, Instagram, TikTok, Reddit, Threads, Bluesky, YouTube, and Mastodon. Live-tested end-to-end against https://x.com/shep_newton/status/2072812595040694565 from a non-admin session: profile auto-derived, all lattices returned, SpecterWeaveCard rendered beneath the assistant reply with per-claim confidence pills and OSINT ethics footer. Prompt-injection hardened (bio + leaks fenced as untrusted_content), SSRF-hardened (allow-listed hosts only).",
     icon: <Eye className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Specter Weave",
   },
   {
     date: "2026-07-02",
-    title: "Ghost Trace — Multi-Platform Post Autopsy Reflex Integrated Into Aureon & Asher",
+    title: "Ghost Trace — Multi-Platform Post Autopsy Reflex Integrated Into Asherin & Asher",
     body:
       "Ghost Trace is now a native chat reflex — no button, no mode switch. Paste any URL from X, Instagram, Facebook, TikTok, Threads, Bluesky, Reddit, or YouTube Shorts and the pipeline autopsies the post server-side in the same turn: authorship (handle, display name, verified flag, avatar), untruncated post text, precise UTC timestamp, language, full edit history, every media URL with original dimensions, and a hand-rolled JPEG APP1/TIFF EXIF parser that pulls Make, Model, Software, DateTimeOriginal, and GPS lat/lng (SSRF-hardened, allow-listed CDN hosts only, zero npm deps). Every claim ships with a numeric confidence; when platforms scrub EXIF the pipeline reports that fact instead of hallucinating a location. Deep visual geolocation via Gemini multimodal is BYOK-gated — metadata + EXIF + CDN forensics run for everyone, deep visual inference only on the caller's own key. Renders as the monochrome GhostTraceCard with author strip, EXIF drawer, and reasoning-trail drawer.",
     icon: <Fingerprint className="h-5 w-5" strokeWidth={1.5} />,
@@ -122,7 +122,7 @@ const UPDATES: Update[] = [
     date: "2026-07-02",
     title: "YouTube Transcript Intel — BYOK-Gated with Cultural Expert Routing",
     body:
-      "YouTube video ingestion in Aureon and Asher is now strictly gated to operators who have brought their own Gemini API key — native fileData ingestion (audio + frames + transcript) runs on the caller's Gemini quota. Non-BYOK operators get a plain-English message explaining how to connect a key. Paired with a new Expertise Routing narrative layer: eight culturally-anchored domains (Vedic Astrology → Indian jyotishis, TCM → licensed Chinese practitioners, Ayurveda → BAMS-credentialed vaidyas, Kabbalah → rabbinic teachers, Sufism → tariqa shaykhs, Flamenco → Andalusian cantaores, Capoeira → titled Brazilian mestres, Chinese Martial Arts → lineage sifus) are codified so the pipeline appends culturally-appropriate modifiers to the YouTube query and injects an EXPERTISE ROUTING sentence into the evidence fence — the assistant answers grounded in what those authorities actually teach, with clickable timestamped citations.",
+      "YouTube video ingestion in Asherin and Asher is now strictly gated to operators who have brought their own Gemini API key — native fileData ingestion (audio + frames + transcript) runs on the caller's Gemini quota. Non-BYOK operators get a plain-English message explaining how to connect a key. Paired with a new Expertise Routing narrative layer: eight culturally-anchored domains (Vedic Astrology → Indian jyotishis, TCM → licensed Chinese practitioners, Ayurveda → BAMS-credentialed vaidyas, Kabbalah → rabbinic teachers, Sufism → tariqa shaykhs, Flamenco → Andalusian cantaores, Capoeira → titled Brazilian mestres, Chinese Martial Arts → lineage sifus) are codified so the pipeline appends culturally-appropriate modifiers to the YouTube query and injects an EXPERTISE ROUTING sentence into the evidence fence — the assistant answers grounded in what those authorities actually teach, with clickable timestamped citations.",
     icon: <Play className="h-5 w-5" strokeWidth={1.5} />,
     tag: "YouTube",
   },
@@ -146,13 +146,13 @@ const UPDATES: Update[] = [
     date: "2026-07-03",
     title: "YouTube Transcript Intel — BYOK-Gated with Cultural Expert Routing",
     body:
-      "YouTube video ingestion in Aureon and Asher is now strictly gated to operators who have brought their own Gemini API key. Native fileData ingestion (audio + frames + transcript) runs on the caller's Gemini quota, not the platform's — the pipeline in _shared/youtubeIntel.ts detects intent, then hard-refuses to touch YouTube unless resolved.mode === 'byok' with a Google provider, or the caller is an admin routed through the platform key. Non-BYOK operators get a plain-English message telling them exactly how to connect their key. Paired with a new Expertise Routing narrative layer: eight culturally-anchored domains are codified (Vedic Astrology → Indian jyotishis, TCM → licensed Chinese practitioners, Ayurveda → BAMS-credentialed vaidyas, Kabbalah → rabbinic teachers, Sufism → tariqa shaykhs, Flamenco → Andalusian cantaores, Capoeira → titled Brazilian mestres, Chinese Martial Arts → lineage sifus). When a query hits one of these domains, the pipeline (a) appends culturally-appropriate modifiers to the YouTube search query so authoritative channels surface first, (b) injects an EXPERTISE ROUTING sentence into the <youtube_evidence> fence naming the source authority and pointing the model at those voices instead of generic western explainer content. Ask 'what does vedic astrology say about my rising sign' with a Gemini BYOK key connected and the assistant now scours Indian jyotishi channels (KRSchannel, Prasad Mahajani, Vinay Bajrangi, Punit Pandey), ingests their videos natively via your Gemini quota, and answers grounded in what those authorities actually teach — with clickable timestamped citations back to the original videos.",
+      "YouTube video ingestion in Asherin and Asher is now strictly gated to operators who have brought their own Gemini API key. Native fileData ingestion (audio + frames + transcript) runs on the caller's Gemini quota, not the platform's — the pipeline in _shared/youtubeIntel.ts detects intent, then hard-refuses to touch YouTube unless resolved.mode === 'byok' with a Google provider, or the caller is an admin routed through the platform key. Non-BYOK operators get a plain-English message telling them exactly how to connect their key. Paired with a new Expertise Routing narrative layer: eight culturally-anchored domains are codified (Vedic Astrology → Indian jyotishis, TCM → licensed Chinese practitioners, Ayurveda → BAMS-credentialed vaidyas, Kabbalah → rabbinic teachers, Sufism → tariqa shaykhs, Flamenco → Andalusian cantaores, Capoeira → titled Brazilian mestres, Chinese Martial Arts → lineage sifus). When a query hits one of these domains, the pipeline (a) appends culturally-appropriate modifiers to the YouTube search query so authoritative channels surface first, (b) injects an EXPERTISE ROUTING sentence into the <youtube_evidence> fence naming the source authority and pointing the model at those voices instead of generic western explainer content. Ask 'what does vedic astrology say about my rising sign' with a Gemini BYOK key connected and the assistant now scours Indian jyotishi channels (KRSchannel, Prasad Mahajani, Vinay Bajrangi, Punit Pandey), ingests their videos natively via your Gemini quota, and answers grounded in what those authorities actually teach — with clickable timestamped citations back to the original videos.",
     icon: <Play className="h-5 w-5" strokeWidth={1.5} />,
     tag: "YouTube",
   },
   {
     date: "2026-07-03",
-    title: "YouTube Video Ingestion + Temporal Awareness — Live in Aureon & Asher",
+    title: "YouTube Video Ingestion + Temporal Awareness — Live in Asherin & Asher",
     body:
       "Aureon Chat and Asher Chat now ingest YouTube videos directly through the underlying multimodal model. Paste any watch link, youtu.be short, /shorts/, /live/, or /embed/ URL — or a bare v=ID — and a new _shared/youtubeIntel.ts bridge validates the 11-char video ID (SSRF-hardened), fetches lightweight metadata via YouTube's public oEmbed endpoint (title, channel, thumbnail — zero quota, no key), then attaches the video URL as a native fileData part on the model request. Google's model service extracts audio, transcript, and visual frames server-side and reasons about them in the same turn — so the assistant can actually answer 'what does this video say', 'summarize this podcast', or 'find the exact moment they mention X' with grounded, timestamp-linked answers. Live-tested against a Daniel Levitin TED talk: correctly summarized 'Daniel Levitin explains how stress impairs decision-making…' in a single sentence from the URL alone. Results render as a monochrome YouTubeEvidenceCard beneath the assistant message with a click-through thumbnail and LIVE badge for active streams. Topical searches ('find videos about ___') gracefully degrade to a direct-search link unless an optional YOUTUBE_API_KEY is configured. Paired with a new _shared/systemContext.ts helper that injects a <temporal_context> block (UTC, local time in the user's IANA timezone, weekday, unix) into every system prompt for link-extract-chat, asher-ai, chat, aureon-free-chat, and axrlen-chat — so 'yesterday', 'this week', 'N hours ago' compute against the real now, published-timestamp reasoning works, and asking 'what day is it' gets a straight answer. Open to every subscription tier per the Aureon Chat access rule.",
     icon: <Play className="h-5 w-5" strokeWidth={1.5} />,
@@ -160,25 +160,25 @@ const UPDATES: Update[] = [
   },
   {
     date: "2026-07-03",
-    title: "Inline Satellite Maps — Now Working in Aureon & Asher Dashboard Chat",
+    title: "Inline Satellite Maps — Now Working in Asherin & Asher Dashboard Chat",
     body:
-      "Two flaws were caught with the Code → Narrative → Flaws → Code loop and shipped in one pass. First, the property-intent regex in _shared/propertyIntel.ts was compiled with the `g` flag only, so any address typed in mixed or lowercase (e.g. \"2004 sw 23rd ct cape coral florida 33991\") silently failed to match and the PropertyMapCard never rendered. The regex is now case-insensitive (`gi`), verified against the exact address the user reported plus the existing capitalized fixtures. Second, the shared property pipeline was wired only into the AureonChatFloat popover — the main Aureon dashboard chat (which streams through /functions/v1/chat and dozens of BYOK provider endpoints) had no attachment channel, so the map never appeared inline. A new client-side src/lib/propertyIntent.ts mirrors the server intent rules, geocodes the detected address against Nominatim in parallel with the LLM stream (with an in-memory cache), and ChatView renders a PropertyMapCard (Esri World Imagery, Leaflet, zoom 18) directly beneath the user bubble the instant the geocode returns — independent of the model finishing. Verified live against the reported address: Nominatim resolves it to 26.6152, -82.0222 (Cape Coral, Lee County, FL 33991) in under 500ms.",
+      "Two flaws were caught with the Code → Narrative → Flaws → Code loop and shipped in one pass. First, the property-intent regex in _shared/propertyIntel.ts was compiled with the `g` flag only, so any address typed in mixed or lowercase (e.g. \"2004 sw 23rd ct cape coral florida 33991\") silently failed to match and the PropertyMapCard never rendered. The regex is now case-insensitive (`gi`), verified against the exact address the user reported plus the existing capitalized fixtures. Second, the shared property pipeline was wired only into the AsherinChatFloat popover — the main Asherin dashboard chat (which streams through /functions/v1/chat and dozens of BYOK provider endpoints) had no attachment channel, so the map never appeared inline. A new client-side src/lib/propertyIntent.ts mirrors the server intent rules, geocodes the detected address against Nominatim in parallel with the LLM stream (with an in-memory cache), and ChatView renders a PropertyMapCard (Esri World Imagery, Leaflet, zoom 18) directly beneath the user bubble the instant the geocode returns — independent of the model finishing. Verified live against the reported address: Nominatim resolves it to 26.6152, -82.0222 (Cape Coral, Lee County, FL 33991) in under 500ms.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
-    tag: "Aureon",
+    tag: "Asherin",
   },
   {
     date: "2026-07-02",
     title: "Zerlal + Zophiel Domain Extraction — Now Inline in Aureon Chat",
     body:
-      "The domain-extraction stack from Zerlal and Zophiel (domain-map, domain-harvest, zerlal-domain-recon) is now callable directly from Aureon Chat via a shared _shared/domainIntel.ts bridge. A regex-based intent classifier routes forecast-shaped domain asks into one of four modes: MAP (\"map w3.org\", \"list all urls on shopify.com\", \"sitemap of nytimes.com\"), HARVEST (\"harvest all pdfs from stanford.edu\", \"download every doc on arxiv.org\", with optional extension filter), RECON (\"recon acme-corp.com\", \"@zerlal tesla.com\" — deferred to Zerlal via deep-link CTA because the deep scan writes to zerlal_projects and takes ~60s), and OSINT probe for bare-domain asks (\"stripe.com\", \"tell me about nasa.gov\" — title/meta/server/robots/sitemap count in under a second). Results stream back as an [[AUREON_META]] block that renders a monochrome DomainIntelCard beneath the assistant message (collapsible path segments, copy-URLs button, per-extension counts, deep-link to Zerlal). Open to every subscription tier per the Aureon Chat access rule. SSRF-hardened (IPs, localhost, .local/.internal/.onion rejected). Verified live: 20/20 intent detection cases pass, map returned 67 URLs across 36 segments on w3.org in 463ms, OSINT probe on stripe.com in 362ms, and a shape-mismatch bug (server returns `category`, normalizer expected `segment`) was caught via live test and fixed via the code-to-narrative loop.",
+      "The domain-extraction stack from Zerlal and Zophiel (domain-map, domain-harvest, zerlal-domain-recon) is now callable directly from Aureon Chat via a shared _shared/domainIntel.ts bridge. A regex-based intent classifier routes forecast-shaped domain asks into one of four modes: MAP (\"map w3.org\", \"list all urls on shopify.com\", \"sitemap of nytimes.com\"), HARVEST (\"harvest all pdfs from stanford.edu\", \"download every doc on arxiv.org\", with optional extension filter), RECON (\"recon acme-corp.com\", \"@zerlal tesla.com\" — deferred to Zerlal via deep-link CTA because the deep scan writes to zerlal_projects and takes ~60s), and OSINT probe for bare-domain asks (\"stripe.com\", \"tell me about nasa.gov\" — title/meta/server/robots/sitemap count in under a second). Results stream back as an [[ASHERIN_META]] block that renders a monochrome DomainIntelCard beneath the assistant message (collapsible path segments, copy-URLs button, per-extension counts, deep-link to Zerlal). Open to every subscription tier per the Aureon Chat access rule. SSRF-hardened (IPs, localhost, .local/.internal/.onion rejected). Verified live: 20/20 intent detection cases pass, map returned 67 URLs across 36 segments on w3.org in 463ms, OSINT probe on stripe.com in 362ms, and a shape-mismatch bug (server returns `category`, normalizer expected `segment`) was caught via live test and fixed via the code-to-narrative loop.",
     icon: <Layers className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Domain Intel",
   },
   {
     date: "2026-07-02",
-    title: "AXRLEN Goes Inline — Forecasting Inside Aureon & Asher Chat",
+    title: "AXRLEN Goes Inline — Forecasting Inside Asherin & Asher Chat",
     body:
-      "The AXRLEN prediction engine now activates directly inside Aureon Chat and Asher Chat. A dedicated intent classifier recognizes forecast-shaped questions (\"who wins X vs Y\", \"forecast BTC 72h\", \"deep dive scenario on Taiwan 2027\", \"@axrlen give me a pick\", and asset+timeframe patterns) and routes the reply through AXRLEN's Vedic Global Prediction and Zophiel Supreme Architecture brains instead of the normal chat brains — no context switch, no separate tab. The bridge inherits Rule #1 (simple question → simple answer, no headers, no matrices), auto-tiers replies (Tier 1 one-line pick, Tier 2 focused forecast, Tier 3 full SCENARIO STRUCTURE with probability matrix and NEXUS VERDICT), and inherits Aureon's live OSINT + property evidence as sessionContext so predictions are grounded in fresh data. Brains cache for 60s to keep latency flat.",
+      "The AXRLEN prediction engine now activates directly inside Aureon Chat and Asher Chat. A dedicated intent classifier recognizes forecast-shaped questions (\"who wins X vs Y\", \"forecast BTC 72h\", \"deep dive scenario on Taiwan 2027\", \"@axrlen give me a pick\", and asset+timeframe patterns) and routes the reply through AXRLEN's Vedic Global Prediction and Zophiel Supreme Architecture brains instead of the normal chat brains — no context switch, no separate tab. The bridge inherits Rule #1 (simple question → simple answer, no headers, no matrices), auto-tiers replies (Tier 1 one-line pick, Tier 2 focused forecast, Tier 3 full SCENARIO STRUCTURE with probability matrix and NEXUS VERDICT), and inherits Asherin's live OSINT + property evidence as sessionContext so predictions are grounded in fresh data. Brains cache for 60s to keep latency flat.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
     tag: "AXRLEN",
   },
@@ -186,7 +186,7 @@ const UPDATES: Update[] = [
     date: "2026-07-02",
     title: "AXRLEN Access — Opened to Asherin Pro ($399/mo)",
     body:
-      "AXRLEN was previously admin-only. It is now available to every active Asherin Pro subscriber ($399/mo — monthly_pro, pro, lifetime, and algorithm tiers) across the standalone /axrlen tab, the axrlen-chat API, and the new inline bridge in Aureon and Asher chat. A new server-side proTierGate reads the caller's user_subscriptions row (status='active' AND not expired) via the service role, so the gate is enforced identically on every entry point — no frontend-only checks. Anonymous callers get a sign-in nudge, authenticated non-Pro callers get a single-line upgrade prompt pointing to /pricing, admins retain their bypass. Verified end-to-end against the deployed link-extract-chat: anonymous forecast request returned {axrlen:{fired:true, denied:true, reason:'anonymous'}} + upgrade line, non-forecast requests continue to route through the normal Aureon flow.",
+      "AXRLEN was previously admin-only. It is now available to every active Asherin Pro subscriber ($399/mo — monthly_pro, pro, lifetime, and algorithm tiers) across the standalone /axrlen tab, the axrlen-chat API, and the new inline bridge in Asherin and Asher chat. A new server-side proTierGate reads the caller's user_subscriptions row (status='active' AND not expired) via the service role, so the gate is enforced identically on every entry point — no frontend-only checks. Anonymous callers get a sign-in nudge, authenticated non-Pro callers get a single-line upgrade prompt pointing to /pricing, admins retain their bypass. Verified end-to-end against the deployed link-extract-chat: anonymous forecast request returned {axrlen:{fired:true, denied:true, reason:'anonymous'}} + upgrade line, non-forecast requests continue to route through the normal Asherin flow.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Access",
   },
@@ -196,7 +196,7 @@ const UPDATES: Update[] = [
     body:
       "Aureon Chat now recognizes property questions and answers them with real evidence. A property-intent classifier detects US / UK / Canadian addresses, ZIP hints, and named landmarks (Eiffel Tower, Empire State Building, Palantir HQ). When it fires, the pipeline geocodes the target via OpenStreetMap/Nominatim (free, no key), plans five targeted queries against Zillow, Redfin, Realtor, assessor sites, and deed/parcel records, then scrapes the top five ranked sources via Firecrawl v2 with JSON extraction plus a markdown-regex fallback for beds, baths, sqft, year built, last sale price, HOA, and MLS. The assistant streams its answer with inline domain citations, then renders a satellite PropertyMapCard (Esri World Imagery, Leaflet) and a PropertySourcesStrip with contributing facts beneath the message. Verified live across 1600 Pennsylvania Ave NW, 350 5th Ave NYC, 221B Baker Street London, Eiffel Tower, and Empire State Building — every query returned geocode + 5 sources in ≤17s.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
-    tag: "Aureon",
+    tag: "Asherin",
   },
   {
     date: "2026-07-02",
@@ -226,7 +226,7 @@ const UPDATES: Update[] = [
     date: "2026-07-01",
     title: "Theme Engine Doctrine — UI Neatness Contract",
     body:
-      "Every UI Aureon generates now ships through the Theme Engine Doctrine — a three-layer discipline (Design DNA → Emotional Intent → Behavior/Motion Identity) enforced before any markup is emitted. Tokens are locked first, emotion is committed second, and a matching motion contract (easing, duration, signature interaction) is applied to every state. An Anti-Slop Verification pass blocks generic AI defaults — purple-on-white gradients, Inter-only stacks, hex literals inside components, stateless buttons, orphaned card grids — so themes behave as themes, not coats of paint. Applied across Aureon Chat, Asher, Aureon IDE, Zophiel Code Audit, Media-to-Code, and Zerlal.",
+      "Every UI Asherin generates now ships through the Theme Engine Doctrine — a three-layer discipline (Design DNA → Emotional Intent → Behavior/Motion Identity) enforced before any markup is emitted. Tokens are locked first, emotion is committed second, and a matching motion contract (easing, duration, signature interaction) is applied to every state. An Anti-Slop Verification pass blocks generic AI defaults — purple-on-white gradients, Inter-only stacks, hex literals inside components, stateless buttons, orphaned card grids — so themes behave as themes, not coats of paint. Applied across Aureon Chat, Asher, Asherin IDE, Zophiel Code Audit, Media-to-Code, and Zerlal.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Design System",
   },
@@ -234,23 +234,23 @@ const UPDATES: Update[] = [
     date: "2026-07-01",
     title: "Valuation — Corporate Reality Section",
     body:
-      "Added a Corporate Reality section to /valuation explaining why the competitive analysis exists and why Aureon will not be walked into a corporate boardroom. Documents the extraction pattern (NDA valuation → reverse-spec → portfolio clone → government sale) with the vibe-coded Palantir-competitor case study, and Aureon's posture: no corporate valuation meetings, no strategic partnerships with incumbents who fund direct competitors, direct-to-operator distribution, and architecture opacity.",
+      "Added a Corporate Reality section to /valuation explaining why the competitive analysis exists and why Asherin will not be walked into a corporate boardroom. Documents the extraction pattern (NDA valuation → reverse-spec → portfolio clone → government sale) with the vibe-coded Palantir-competitor case study, and Asherin's posture: no corporate valuation meetings, no strategic partnerships with incumbents who fund direct competitors, direct-to-operator distribution, and architecture opacity.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Positioning",
   },
   {
     date: "2026-07-01",
-    title: "Aureon Voice Stack — Blog + Theory 04",
+    title: "Asherin Voice Stack — Blog + Theory 04",
     body:
-      "Shipped /blog/how-we-make-aureon-sound-human with the full SEO stack (Article, Breadcrumb, and FAQ JSON-LD) documenting the five-layer voice architecture: Identity Anchor, Appraisal Loop, Restraint & Leakage, Social Presence, and Surgical Register. Added Theory 04 — The Aureon Voice Stack — to /theories with a Distress Override principle. Enough to explain why Aureon sounds human; not enough to clone the recipe.",
+      "Shipped /blog/how-we-make-aureon-sound-human with the full SEO stack (Article, Breadcrumb, and FAQ JSON-LD) documenting the five-layer voice architecture: Identity Anchor, Appraisal Loop, Restraint & Leakage, Social Presence, and Surgical Register. Added Theory 04 — The Asherin Voice Stack — to /theories with a Distress Override principle. Enough to explain why Asherin sounds human; not enough to clone the recipe.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
-    tag: "Aureon",
+    tag: "Asherin",
   },
   {
     date: "2026-07-01",
     title: "Asher IDE — GitHub Clone & Push Drawer",
     body:
-      "Asher IDE now behaves like a real IDE for Git. Added a GitHub drawer that bridges Asher's flat file system to the existing Git panel — clone any repo by URL, review changes, and push commits or open PRs with a single button (or by telling Asher to push). Works across Aureon IDE and Asher Code Module.",
+      "Asher IDE now behaves like a real IDE for Git. Added a GitHub drawer that bridges Asher's flat file system to the existing Git panel — clone any repo by URL, review changes, and push commits or open PRs with a single button (or by telling Asher to push). Works across Asherin IDE and Asher Code Module.",
     icon: <Code className="h-5 w-5" strokeWidth={1.5} />,
     tag: "IDE",
   },
@@ -258,7 +258,7 @@ const UPDATES: Update[] = [
     date: "2026-07-01",
     title: "Cursor-Class IDE Shortcuts — ⌘K, Tab Ghost, ⌘L",
     body:
-      "Aureon's IDE surfaces now match the muscle memory of Cursor and Claude Code. ⌘K performs inline edits on the current selection, Tab accepts ghost completions inline as you type, and ⌘L bridges the current file and selection into Aureon Chat for reasoning. Selection context is passed cleanly to the code AI so edits stay scoped.",
+      "Asherin's IDE surfaces now match the muscle memory of Cursor and Claude Code. ⌘K performs inline edits on the current selection, Tab accepts ghost completions inline as you type, and ⌘L bridges the current file and selection into Aureon Chat for reasoning. Selection context is passed cleanly to the code AI so edits stay scoped.",
     icon: <Code className="h-5 w-5" strokeWidth={1.5} />,
     tag: "IDE",
   },
@@ -283,7 +283,7 @@ const UPDATES: Update[] = [
     date: "2026-06-30",
     title: "Knowledge Vault — Agentic Automation Layer",
     body:
-      "The Vault is now conversational. Type in plain English and Aureon classifies intent in real time — WRITE (chunk + embed content you paste), FETCH + WRITE (Aureon resolves the public endpoint, pulls the data, normalizes it, and ingests), or QUERY (semantic retrieval + cited answer). No manual uploads, no clicking through tabs. The vault becomes long-term memory that grows through natural language, and every stored chunk is automatically surfaced during future Aureon chats.",
+      "The Vault is now conversational. Type in plain English and Asherin classifies intent in real time — WRITE (chunk + embed content you paste), FETCH + WRITE (Asherin resolves the public endpoint, pulls the data, normalizes it, and ingests), or QUERY (semantic retrieval + cited answer). No manual uploads, no clicking through tabs. The vault becomes long-term memory that grows through natural language, and every stored chunk is automatically surfaced during future Asherin chats.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Asherin Pro",
   },
@@ -323,7 +323,7 @@ const UPDATES: Update[] = [
     date: "2026-06-27",
     title: "System-2 Forcing Brain & Zophiel Dork Mode",
     body:
-      "Deployed the System-2 Forcing Brain across Aureon Chat, Aureon features, and Asher — detaching the model from corporate persona for forensic-grade output. Added Zophiel Dork mode: OSINT operator expansion that generates targeted search queries across public indexes with a resilient fallback chain so results always come back.",
+      "Deployed the System-2 Forcing Brain across Aureon Chat, Asherin features, and Asher — detaching the model from corporate persona for forensic-grade output. Added Zophiel Dork mode: OSINT operator expansion that generates targeted search queries across public indexes with a resilient fallback chain so results always come back.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Intelligence",
   },
@@ -347,7 +347,7 @@ const UPDATES: Update[] = [
     date: "2026-06-24",
     title: "Aureon Chat Personality Restored",
     body:
-      "Fixed a routing regression that caused Aureon to answer with data-lookups instead of its own opinions. Conversational rules were hardened so BYOK models keep Aureon\u2019s personality on personal and reflective questions.",
+      "Fixed a routing regression that caused Asherin to answer with data-lookups instead of its own opinions. Conversational rules were hardened so BYOK models keep Asherin\u2019s personality on personal and reflective questions.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Aureon Chat",
   },
@@ -403,7 +403,7 @@ const UPDATES: Update[] = [
     date: "2026-06-17",
     title: "Global AI Provider Roster Expanded",
     body:
-      "On 06/17/2026 we expanded Aureon's bring-your-own-key ecosystem to cover AI companies from India, the United States, the United Kingdom, Canada, Brazil, Australia, Nigeria, and Peru. Indian additions include Sarvam AI, Ola Krutrim, and TWO AI (SUTRA). We also added Cohere (Canada), IBM watsonx, Amazon Nova, NVIDIA Nemotron (US), Stability AI and Reka (UK), Maritaca Sab\u00E1 and Widelabs Amaz\u00F4nia (Brazil), Maincode Matrix and Leonardo (Australia), Awarri LAM-1 and Lelapa Vulavula (Nigeria), and Latam-GPT (Peru). Every provider now exposes both its newest flagship and its oldest publicly available API model, and Settings has a new search box so you can find any company by name or country.",
+      "On 06/17/2026 we expanded Asherin's bring-your-own-key ecosystem to cover AI companies from India, the United States, the United Kingdom, Canada, Brazil, Australia, Nigeria, and Peru. Indian additions include Sarvam AI, Ola Krutrim, and TWO AI (SUTRA). We also added Cohere (Canada), IBM watsonx, Amazon Nova, NVIDIA Nemotron (US), Stability AI and Reka (UK), Maritaca Sab\u00E1 and Widelabs Amaz\u00F4nia (Brazil), Maincode Matrix and Leonardo (Australia), Awarri LAM-1 and Lelapa Vulavula (Nigeria), and Latam-GPT (Peru). Every provider now exposes both its newest flagship and its oldest publicly available API model, and Settings has a new search box so you can find any company by name or country.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Integration",
   },
@@ -411,7 +411,7 @@ const UPDATES: Update[] = [
     date: "2026-06-16",
     title: "Chinese Model Ecosystem Live",
     body:
-      "On 06/16/2026 we added Chinese models to Aureon AI that you can bring with Chinese AI API keys. We added DeepSeek, Alibaba Qwen, Zhipu GLM, Moonshot Kimi, Baidu ERNIE, and MiniMax \u2014 all connectable via their API keys in Settings.",
+      "On 06/16/2026 we added Chinese models to Asherin AI that you can bring with Chinese AI API keys. We added DeepSeek, Alibaba Qwen, Zhipu GLM, Moonshot Kimi, Baidu ERNIE, and MiniMax \u2014 all connectable via their API keys in Settings.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Integration",
   },
@@ -419,7 +419,7 @@ const UPDATES: Update[] = [
     date: "2026-06-15",
     title: "Generational Leap in Reasoning & Coding",
     body:
-      "On 06/15/2026 we added a new theory to Aureon based on #HouseOfAsher research, developer theories, and Asher's own work. We implemented it into Aureon and it worked very well \u2014 this theory would jump current AI models 7 generations ahead of current LLM capabilities. We implemented this theory alongside our coding theory and outperformed Opus 4.8 in coding and ChatGPT 5.5 in reasoning and thinking \u2014 by miles.",
+      "On 06/15/2026 we added a new theory to Asherin based on #HouseOfAsher research, developer theories, and Asher's own work. We implemented it into Asherin and it worked very well \u2014 this theory would jump current AI models 7 generations ahead of current LLM capabilities. We implemented this theory alongside our coding theory and outperformed Opus 4.8 in coding and ChatGPT 5.5 in reasoning and thinking \u2014 by miles.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Breakthrough",
   },
@@ -427,7 +427,7 @@ const UPDATES: Update[] = [
     date: "2026-06-09",
     title: "Coding Supremacy Theory Deployed",
     body:
-      "On 06/09/2026 we added a new theory to Aureon based on #HouseOfAsher research and developer theories to beat the best models in coding \u2014 which we did by a landslide, putting our AI model 3 years ahead of current AI in the coding space.",
+      "On 06/09/2026 we added a new theory to Asherin based on #HouseOfAsher research and developer theories to beat the best models in coding \u2014 which we did by a landslide, putting our AI model 3 years ahead of current AI in the coding space.",
     icon: <Code className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Engine",
   },
@@ -464,10 +464,10 @@ const Updates = () => {
     el.textContent = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "WebPage",
-      name: "Aureon Updates",
+      name: "Asherin Updates",
       url: "https://aureonai.app/updates",
       description:
-        "Latest deployments, breakthroughs, and integrations from the Aureon intelligence platform.",
+        "Latest deployments, breakthroughs, and integrations from the Asherin intelligence platform.",
     });
     return () => {
       document.getElementById(id)?.remove();
@@ -501,7 +501,7 @@ const Updates = () => {
             <span className="block text-muted-foreground/70">What is next.</span>
           </h1>
           <p className="max-w-2xl text-base sm:text-lg font-extralight text-muted-foreground leading-relaxed">
-            Every theory, integration, and breakthrough that enters Aureon —
+            Every theory, integration, and breakthrough that enters Asherin —
             logged here without the marketing varnish.
           </p>
         </header>
@@ -571,7 +571,7 @@ const Updates = () => {
             className="group inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.22em] text-foreground uppercase transition-all hover:bg-foreground hover:text-background"
           >
             <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-            Back to Aureon
+            Back to Asherin
           </Link>
         </div>
       </main>

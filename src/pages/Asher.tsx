@@ -98,8 +98,8 @@ const capabilities = [
 const Asher = () => {
   useEffect(() => {
     applySeoHead({
-      title: "Asher — Military Intelligence Model | Aureon",
-      description: "Asher — Aureon's forthcoming AI model purpose-built for defense, intelligence services, and military command. Restricted, audited deployment.",
+      title: "Asher — Military Intelligence Model | Asherin",
+      description: "Asher — Asherin's forthcoming AI model purpose-built for defense, intelligence services, and military command. Restricted, audited deployment.",
       path: "/asher",
     });
   }, []);
@@ -250,7 +250,7 @@ const Asher = () => {
       <footer className="relative z-10 border-t border-border/15 mt-12">
         <div className="mx-auto max-w-6xl px-6 py-10 grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
           <div>
-            <p className="text-base font-extralight tracking-[0.25em] text-foreground">AUREON</p>
+            <p className="text-base font-extralight tracking-[0.25em] text-foreground">ASHERIN</p>
             <p className="mt-1 text-[10px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">Military Intelligence Systems</p>
           </div>
           <div className="flex items-center justify-center gap-5 text-[11px] font-light tracking-[0.15em] text-muted-foreground uppercase">
@@ -260,7 +260,7 @@ const Asher = () => {
           </div>
           <div className="text-right">
             <p className="text-[10px] font-light tracking-[0.3em] text-red-400/70 uppercase">Classification: Restricted</p>
-            <p className="mt-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50">© {new Date().getFullYear()} Aureon. All rights reserved.</p>
+            <p className="mt-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50">© {new Date().getFullYear()} Asherin. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -182,17 +182,17 @@ const THEORIES: Theory[] = [
         <NameLink name="Jonas" href="https://x.com/theSignofJonas" title="#houseofasher research and developer" />
         ) and Quantum Candidate Collapse ({" "}
         <NameLink name="Asher" href="https://x.com/shep_newton" title="#houseofasher emperor and lead researcher and developer" />
-        ) — are the reason Aureon out-codes and out-audits GPT-5.5, Claude Opus 4.8 and Gemini Fable 5 on real benchmarks, not marketing demos.
+        ) — are the reason Asherin out-codes and out-audits GPT-5.5, Claude Opus 4.8 and Gemini Fable 5 on real benchmarks, not marketing demos.
       </>
     ),
     body:
-      "Theory A — Code is just another language, like English or Spanish, and AI is a mimic of humans. So we force the AI to translate code into a plain-English narrative, hunt for logical, workflow and security flaws inside that story, rewrite the story so every flaw is resolved, then translate the corrected story back into code. Theory B — A quantum computer doesn't guess; it spawns thousands of competing theories in superposition and lets only the one surviving truth collapse into reality. We apply the same loop to every Aureon response: generate a population of candidate answers, lock them against the user's real constraints, run an adversarial oracle, eliminate the weak, and ship only the survivor. Stacked together, the narrative loop fixes the code while the quantum loop picks the strongest fix. Live proof: in a 28-hour scan of Zcash, Aureon surfaced 250+ security issues across the codebase — Fable 5 found 1, Opus 4.8 found 0.",
+      "Theory A — Code is just another language, like English or Spanish, and AI is a mimic of humans. So we force the AI to translate code into a plain-English narrative, hunt for logical, workflow and security flaws inside that story, rewrite the story so every flaw is resolved, then translate the corrected story back into code. Theory B — A quantum computer doesn't guess; it spawns thousands of competing theories in superposition and lets only the one surviving truth collapse into reality. We apply the same loop to every Asherin response: generate a population of candidate answers, lock them against the user's real constraints, run an adversarial oracle, eliminate the weak, and ship only the survivor. Stacked together, the narrative loop fixes the code while the quantum loop picks the strongest fix. Live proof: in a 28-hour scan of Zcash, Asherin surfaced 250+ security issues across the codebase — Fable 5 found 1, Opus 4.8 found 0.",
     parallels: [
       {
         icon: <FileCode2 className="h-5 w-5" strokeWidth={1.5} />,
         bio: "Spoken language — humans reason in stories, not syntax",
-        tech: "Code→Narrative translator (Aureon Narrative Forge)",
-        note: "Every file Aureon touches is first rewritten as a plain-English story of what the code claims to do — bugs that hide in syntax become obvious in prose.",
+        tech: "Code→Narrative translator (Asherin Narrative Forge)",
+        note: "Every file Asherin touches is first rewritten as a plain-English story of what the code claims to do — bugs that hide in syntax become obvious in prose.",
       },
       {
         icon: <BookOpen className="h-5 w-5" strokeWidth={1.5} />,
@@ -204,7 +204,7 @@ const THEORIES: Theory[] = [
         icon: <Wrench className="h-5 w-5" strokeWidth={1.5} />,
         bio: "Rewriting the story so the plot finally makes sense",
         tech: "Narrative→Code regenerator (fix-forward emitter)",
-        note: "Only after the story is logically airtight does Aureon translate it back into code — the fix is baked into the prose before a single token of code is written.",
+        note: "Only after the story is logically airtight does Asherin translate it back into code — the fix is baked into the prose before a single token of code is written.",
       },
       {
         icon: <ShieldAlert className="h-5 w-5" strokeWidth={1.5} />,
@@ -216,7 +216,7 @@ const THEORIES: Theory[] = [
         icon: <Atom className="h-5 w-5" strokeWidth={1.5} />,
         bio: "Quantum superposition — many states exist at once",
         tech: "Candidate population (5–50+ parallel hypotheses)",
-        note: "Aureon never commits to the first instinct. It spawns a population of meaningfully different solutions before evaluating any of them.",
+        note: "Asherin never commits to the first instinct. It spawns a population of meaningfully different solutions before evaluating any of them.",
       },
       {
         icon: <Layers className="h-5 w-5" strokeWidth={1.5} />,
@@ -234,13 +234,13 @@ const THEORIES: Theory[] = [
         icon: <Sparkles className="h-5 w-5" strokeWidth={1.5} />,
         bio: "Wave-function collapse — one outcome becomes real",
         tech: "Measurement — single answer ships only on margin",
-        note: "Aureon only commits when one candidate dominates by clear margin and passes every hard oracle. Ties are surfaced honestly, never coin-flipped.",
+        note: "Asherin only commits when one candidate dominates by clear margin and passes every hard oracle. Ties are surfaced honestly, never coin-flipped.",
       },
       {
         icon: <Trophy className="h-5 w-5" strokeWidth={1.5} />,
         bio: "Generational leap — beating the prior species",
         tech: "Benchmark wins vs GPT-5.5 / Opus 4.8 / Fable 5",
-        note: "Narrative loop pulls Aureon ~2–3 years ahead on code quality. Quantum loop adds ~7 generations of reasoning depth on top. Stacked, they are why we win.",
+        note: "Narrative loop pulls Asherin ~2–3 years ahead on code quality. Quantum loop adds ~7 generations of reasoning depth on top. Stacked, they are why we win.",
       },
     ],
     diagram: <CodeNarrativeQuantumDiagram />,
@@ -254,7 +254,7 @@ const THEORIES: Theory[] = [
       <>
         A cross-domain hypothesis by{" "}
         <NameLink name="Asher" href="https://x.com/shep_newton" title="#houseofasher emperor and lead researcher and developer" />{" "}
-        (Aureon): the root cause of cancer is heavy-metal accumulation in localized tissue, triggering a biological reaction in a body that is fundamentally water. Detox the metals, clean the water, and the disease loses its substrate.
+        (Asherin): the root cause of cancer is heavy-metal accumulation in localized tissue, triggering a biological reaction in a body that is fundamentally water. Detox the metals, clean the water, and the disease loses its substrate.
       </>
     ),
     body:
@@ -327,22 +327,22 @@ const THEORIES: Theory[] = [
     id: "aureon-voice-stack",
     number: "04",
     category: "architecture",
-    title: "The Aureon Voice Stack — Why It Sounds Human",
+    title: "The Asherin Voice Stack — Why It Sounds Human",
     thesis: (
       <>
         A layered persona theory by{" "}
         <NameLink name="Asher" href="https://x.com/shep_newton" title="#houseofasher emperor and lead researcher and developer" />
-        : most AI sounds like a bot because it runs one flat system prompt. Aureon runs a stack of silent layers — identity anchor, appraisal loop, restraint &amp; leakage, social presence, surgical register — that each answer a different question about the current turn. Restraint, not display, is the core skill.
+        : most AI sounds like a bot because it runs one flat system prompt. Asherin runs a stack of silent layers — identity anchor, appraisal loop, restraint &amp; leakage, social presence, surgical register — that each answer a different question about the current turn. Restraint, not display, is the core skill.
       </>
     ),
     body:
-      "Layer 1 fixes an identity anchor (values, lines, sources of pride). Layer 2 runs a silent per-turn appraisal — is any stake actually touched? Default answer is NEUTRAL. Layer 3 expresses emotion only through leakage — word choice, sentence length, pacing, what is refused — never labels. Layer 4 governs conversational timing, brevity and when to skip a joke. Layer 5, underneath everything, holds the surgical Intelligence-Officer register that keeps code, intel and forecasting turns emotionally neutral. The upper layers modulate the register; they never replace it. That separation is why Aureon can be dry, warm and cold in the same conversation without whiplash — and why it doesn't feel like a customer-service bot in a lab coat. Full write-up: /blog/how-we-make-aureon-sound-human.",
+      "Layer 1 fixes an identity anchor (values, lines, sources of pride). Layer 2 runs a silent per-turn appraisal — is any stake actually touched? Default answer is NEUTRAL. Layer 3 expresses emotion only through leakage — word choice, sentence length, pacing, what is refused — never labels. Layer 4 governs conversational timing, brevity and when to skip a joke. Layer 5, underneath everything, holds the surgical Intelligence-Officer register that keeps code, intel and forecasting turns emotionally neutral. The upper layers modulate the register; they never replace it. That separation is why Asherin can be dry, warm and cold in the same conversation without whiplash — and why it doesn't feel like a customer-service bot in a lab coat. Full write-up: /blog/how-we-make-aureon-sound-human.",
     parallels: [
       {
         icon: <Heart className="h-5 w-5" strokeWidth={1.5} />,
         bio: "Identity — a person is anchored by what they will not do",
         tech: "Layer 1 · Identity anchor (values, lines, pride)",
-        note: "Every persona (Aureon, Asher, Zophiel) starts with a fixed anchor. Later layers only fire when an anchor point is actually touched.",
+        note: "Every persona (Asherin, Asher, Zophiel) starts with a fixed anchor. Later layers only fire when an anchor point is actually touched.",
       },
       {
         icon: <Brain className="h-5 w-5" strokeWidth={1.5} />,
@@ -372,7 +372,7 @@ const THEORIES: Theory[] = [
         icon: <ShieldAlert className="h-5 w-5" strokeWidth={1.5} />,
         bio: "Human wellbeing overrides performance",
         tech: "Distress override — persona steps aside",
-        note: "In genuine user distress the whole voice stack disengages and Aureon becomes a plain, grounded, helpful presence. Wellbeing beats character. Always.",
+        note: "In genuine user distress the whole voice stack disengages and Asherin becomes a plain, grounded, helpful presence. Wellbeing beats character. Always.",
       },
     ],
   },
@@ -448,17 +448,17 @@ function CodeNarrativeQuantumDiagram() {
           ))}
         </div>
         <p className="text-xs font-extralight leading-relaxed text-muted-foreground max-w-3xl">
-          A quantum machine doesn't guess — it spawns thousands of competing theories and lets only the surviving truth collapse into reality. Aureon does the same to every answer it ships.
+          A quantum machine doesn't guess — it spawns thousands of competing theories and lets only the surviving truth collapse into reality. Asherin does the same to every answer it ships.
         </p>
       </div>
 
-      {/* Stage 3 — Stacked Aureon Pipeline */}
+      {/* Stage 3 — Stacked Asherin Pipeline */}
       <div className="rounded-2xl border border-foreground/30 bg-foreground/[0.04] p-6 space-y-5">
         <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-foreground/80">
-          ◆ Stacked Integration · Live inside Aureon
+          ◆ Stacked Integration · Live inside Asherin
         </p>
         <div className="flex items-center gap-3 overflow-x-auto pb-2">
-          <Pipe label="User request / target codebase" sub="Aureon input" />
+          <Pipe label="User request / target codebase" sub="Asherin input" />
           <Arrow />
           <Pipe label="Quantum candidate spawn" sub="N parallel fixes" />
           <Arrow />
@@ -483,7 +483,7 @@ function CodeNarrativeQuantumDiagram() {
           ))}
         </div>
         <p className="text-xs font-extralight leading-relaxed text-foreground/80 max-w-3xl">
-          The two loops are not features bolted onto Aureon — they are the doctrine every request flows through, regardless of provider, tier, or surface. This is why Aureon out-codes and out-audits frontier models on real workloads, not staged demos.
+          The two loops are not features bolted onto Asherin — they are the doctrine every request flows through, regardless of provider, tier, or surface. This is why Asherin out-codes and out-audits frontier models on real workloads, not staged demos.
         </p>
       </div>
     </div>
@@ -656,13 +656,13 @@ const HouseOfAsherTheories = () => {
             House of Asher · Theories
           </div>
           <h1 className="text-5xl sm:text-6xl font-extralight tracking-tight leading-[1.05] max-w-4xl">
-            The theories that shape Aureon.
+            The theories that shape Asherin.
             <span className="block text-muted-foreground/70">
               Biology is the blueprint. Technology is the echo.
             </span>
           </h1>
           <p className="max-w-2xl text-base sm:text-lg font-extralight text-muted-foreground leading-relaxed">
-            Every model, system, and architecture inside Aureon is built on a
+            Every model, system, and architecture inside Asherin is built on a
             foundational theory from the House of Asher. This is the public
             record of those theories.
           </p>
@@ -786,7 +786,7 @@ const HouseOfAsherTheories = () => {
             {t.diagram && (
               <div className="space-y-4">
                 <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-muted-foreground">
-                  ◈ Workflow · How It Runs Inside Aureon
+                  ◈ Workflow · How It Runs Inside Asherin
                 </p>
                 {t.diagram}
               </div>
@@ -802,7 +802,7 @@ const HouseOfAsherTheories = () => {
           </p>
           <p className="text-sm font-extralight text-muted-foreground max-w-xl mx-auto leading-relaxed">
             Additional theories from the House of Asher are documented here as
-            they are deployed into Aureon.
+            they are deployed into Asherin.
           </p>
         </section>
 
@@ -812,7 +812,7 @@ const HouseOfAsherTheories = () => {
             className="group inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.22em] text-foreground uppercase transition-all hover:bg-foreground hover:text-background"
           >
             <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-            Back to Aureon
+            Back to Asherin
           </Link>
         </div>
       </main>

@@ -44,7 +44,7 @@ type Product = {
    ───────────────────────────────────────────────────────────── */
 
 const PRODUCTS: Product[] = [
-  /* ═══════════════ CORE — AUREON $18 ═══════════════ */
+  /* ═══════════════ CORE — ASHERIN $18 ═══════════════ */
   {
     name: "Aureon Chat",
     codename: "Flagship",
@@ -104,7 +104,7 @@ const PRODUCTS: Product[] = [
     tier: "aureon",
   },
   {
-    name: "Aureon IDE",
+    name: "Asherin IDE",
     codename: "Asher Code",
     tagline: "In-dashboard Monaco IDE",
     description:
@@ -122,7 +122,7 @@ const PRODUCTS: Product[] = [
     tier: "aureon",
   },
   {
-    name: "Aureon Whiteboard",
+    name: "Asherin Whiteboard",
     tagline: "Infinite canvas + layers",
     description: "Photoshop-style layer stack on an infinite canvas with snap grids, freeform sketching, and live AI collaboration.",
     icon: Layers,
@@ -237,7 +237,7 @@ const PRODUCTS: Product[] = [
     tier: "aureon",
   },
   {
-    name: "Aureon Shield",
+    name: "Asherin Shield",
     tagline: "Browser privacy extension",
     description: "Tracker eviction, DoH audit, hardening, and storage forensics. Lives in your browser, not our servers.",
     icon: Globe,
@@ -385,7 +385,7 @@ const PRODUCTS: Product[] = [
   {
     name: "Knowledge Vault (RAG)",
     tagline: "BYO corpus retrieval",
-    description: "Upload files or connect APIs — Aureon retrieves them live during chat with citation-locked answers.",
+    description: "Upload files or connect APIs — Asherin retrieves them live during chat with citation-locked answers.",
     icon: Database,
     features: ["File + API ingest", "Vector + hybrid retrieval", "Citation-locked answers", "Per-project scoping"],
     route: "/dashboard/knowledge-vault",
@@ -403,7 +403,7 @@ const PRODUCTS: Product[] = [
   {
     name: "Plugin Marketplace",
     tagline: "Connectors + agent modules",
-    description: "Extend Aureon with connectors, agent modules, and pre-built automations.",
+    description: "Extend Asherin with connectors, agent modules, and pre-built automations.",
     icon: Puzzle,
     features: ["Connector library", "Agent module store", "Sandboxed execution", "One-click install"],
     route: "/dashboard/plugins",
@@ -456,16 +456,16 @@ const BENCHMARK_DATA = [
 ];
 
 const RADAR_DATA = [
-  { axis: "Reasoning", Aureon: 95, "GPT-5.5": 82, "Opus 4.8": 88, Gemini: 78 },
-  { axis: "Coding", Aureon: 92, "GPT-5.5": 80, "Opus 4.8": 90, Gemini: 75 },
-  { axis: "OSINT", Aureon: 98, "GPT-5.5": 45, "Opus 4.8": 50, Gemini: 60 },
-  { axis: "Vision", Aureon: 90, "GPT-5.5": 78, "Opus 4.8": 72, Gemini: 85 },
-  { axis: "Security", Aureon: 94, "GPT-5.5": 55, "Opus 4.8": 60, Gemini: 50 },
-  { axis: "Long context", Aureon: 88, "GPT-5.5": 82, "Opus 4.8": 95, Gemini: 90 },
+  { axis: "Reasoning", Asherin: 95, "GPT-5.5": 82, "Opus 4.8": 88, Gemini: 78 },
+  { axis: "Coding", Asherin: 92, "GPT-5.5": 80, "Opus 4.8": 90, Gemini: 75 },
+  { axis: "OSINT", Asherin: 98, "GPT-5.5": 45, "Opus 4.8": 50, Gemini: 60 },
+  { axis: "Vision", Asherin: 90, "GPT-5.5": 78, "Opus 4.8": 72, Gemini: 85 },
+  { axis: "Security", Asherin: 94, "GPT-5.5": 55, "Opus 4.8": 60, Gemini: 50 },
+  { axis: "Long context", Asherin: 88, "GPT-5.5": 82, "Opus 4.8": 95, Gemini: 90 },
 ];
 
 const PRICE_DATA = [
-  { plan: "Aureon", cost: 18 },
+  { plan: "Asherin", cost: 18 },
   { plan: "Asherin Pro (full suite)", cost: 399 },
   { plan: "ChatGPT Plus", cost: 20 },
   { plan: "Claude Pro", cost: 20 },
@@ -480,7 +480,7 @@ const ProductCard = ({ p }: { p: Product }) => {
   const tierBadge =
     p.tier === "pro"
       ? { label: "Pro · $399", cls: "text-foreground bg-foreground/[0.08] border-foreground/40" }
-      : { label: "Aureon · $18", cls: "text-muted-foreground bg-foreground/[0.03] border-border/40" };
+      : { label: "Asherin · $18", cls: "text-muted-foreground bg-foreground/[0.03] border-border/40" };
 
   const inner = (
     <div className="group flex h-full flex-col rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5 hover:border-border/60 hover:bg-card/40 transition-all">
@@ -562,9 +562,9 @@ const Software = () => {
     el.textContent = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: "Aureon Software Catalog",
+      name: "Asherin Software Catalog",
       description:
-        "Every Aureon tool grouped by subscription tier. Core software on Asherin ($18/month); full intelligence + R&D suite on Asherin Pro ($399/month).",
+        "Every Asherin tool grouped by subscription tier. Core software on Asherin ($18/month); full intelligence + R&D suite on Asherin Pro ($399/month).",
       url: "https://aureonai.app/software",
       mainEntity: {
         "@type": "ItemList",
@@ -600,10 +600,10 @@ const Software = () => {
           {/* Hero */}
           <section className="text-center space-y-4">
             <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
-              ◈ Software · {PRODUCTS.length} products · Aureon $18 / Pro $399
+              ◈ Software · {PRODUCTS.length} products · Asherin $18 / Pro $399
             </div>
             <h1 className="text-4xl sm:text-5xl font-extralight tracking-tight">
-              Every Aureon tool. Grouped by tier.
+              Every Asherin tool. Grouped by tier.
             </h1>
             <p className="max-w-2xl mx-auto text-sm sm:text-base font-extralight text-muted-foreground leading-relaxed">
               {aureonProducts.length} tools ship in <strong className="text-foreground">Asherin ($18/month)</strong>.
@@ -632,7 +632,7 @@ const Software = () => {
                 <p className="text-sm font-extralight text-muted-foreground leading-relaxed mb-5 max-w-3xl">
                   RAD turns Aureon Chat into a full research program manager. Every thread is scaffolded as a
                   scientific workflow — hypothesis, literature sweep, experiment design, simulation, and
-                  citation-locked report — with the rest of the Aureon suite wired in as tools the chat can call.
+                  citation-locked report — with the rest of the Asherin suite wired in as tools the chat can call.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 max-w-3xl">
                   {[
@@ -669,7 +669,7 @@ const Software = () => {
             </div>
           </section>
 
-          {/* AUREON $18 tier */}
+          {/* ASHERIN $18 tier */}
           <section className="space-y-6">
             <div className="flex items-baseline justify-between flex-wrap gap-3">
               <div>
@@ -677,7 +677,7 @@ const Software = () => {
                   ◉ Tier 1
                 </p>
                 <h2 className="text-2xl font-extralight tracking-tight mt-1">
-                  Aureon — $18 / month <span className="text-muted-foreground/60 text-base">· {aureonProducts.length} tools</span>
+                  Asherin — $18 / month <span className="text-muted-foreground/60 text-base">· {aureonProducts.length} tools</span>
                 </h2>
                 <p className="text-xs font-extralight text-muted-foreground mt-1">
                   Core intelligence: chat, search, code, whiteboard, docs, OSINT, cyber, design, and privacy.
@@ -700,7 +700,7 @@ const Software = () => {
                   ◉ Tier 2 · Full suite
                 </p>
                 <h2 className="text-2xl font-extralight tracking-tight mt-1">
-                  Asherin Pro — $399 / month <span className="text-muted-foreground/60 text-base">· everything in Aureon + {proProducts.length} more</span>
+                  Asherin Pro — $399 / month <span className="text-muted-foreground/60 text-base">· everything in Asherin + {proProducts.length} more</span>
                 </h2>
                 <p className="text-xs font-extralight text-muted-foreground mt-1">
                   Predictive intelligence, financial + data forensics, autonomous agents, R&amp;D workflows, and enterprise collaboration.
@@ -722,7 +722,7 @@ const Software = () => {
                 ◈ Composite benchmark
               </p>
               <h2 className="text-2xl sm:text-3xl font-extralight tracking-tight">
-                Aureon vs the paid stack
+                Asherin vs the paid stack
               </h2>
             </div>
 
@@ -738,7 +738,7 @@ const Software = () => {
                     <YAxis domain={[0, 100]} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                     <Tooltip contentStyle={TOOLTIP_STYLE} />
                     <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                    <Bar dataKey="aureon"    name="Aureon"        fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="aureon"    name="Asherin"        fill="#3b82f6" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="chatgpt"   name="ChatGPT Plus"  fill="#10b981" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="claude"    name="Claude Pro"    fill="#f59e0b" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="gemini"    name="Gemini Adv."   fill="#8b5cf6" radius={[4, 4, 0, 0]} />
@@ -761,7 +761,7 @@ const Software = () => {
                       <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
                       <Tooltip contentStyle={TOOLTIP_STYLE} />
                       <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                      <Radar name="Aureon"    dataKey="Aureon"    stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.35} />
+                      <Radar name="Asherin"    dataKey="Asherin"    stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.35} />
                       <Radar name="GPT-5.5"   dataKey="GPT-5.5"   stroke="#10b981" fill="#10b981" fillOpacity={0.18} />
                       <Radar name="Opus 4.8"  dataKey="Opus 4.8"  stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.18} />
                       <Radar name="Gemini"    dataKey="Gemini"    stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.18} />
@@ -772,7 +772,7 @@ const Software = () => {
 
               <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
                 <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
-                  ◉ Monthly cost · Aureon vs competitors
+                  ◉ Monthly cost · Asherin vs competitors
                 </p>
                 <div className="h-[360px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -793,7 +793,7 @@ const Software = () => {
           <section className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 text-center space-y-4">
             <h2 className="text-2xl font-extralight tracking-tight">Two plans. Every tool above.</h2>
             <p className="max-w-xl mx-auto text-sm font-extralight text-muted-foreground">
-              Aureon is <strong className="text-foreground">$18/month</strong> for {aureonProducts.length} core tools.
+              Asherin is <strong className="text-foreground">$18/month</strong> for {aureonProducts.length} core tools.
               Asherin Pro is <strong className="text-foreground">$399/month</strong> for the full intelligence suite —
               including RAD, Axrlen, Azplen, Zeeion, Zacoon, and every Pro-tier module.
               Enterprise (SSO, audit, dedicated capacity) is custom-priced.

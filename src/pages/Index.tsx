@@ -116,18 +116,18 @@ const HudStatusBar = () => {
 const Index = () => {
   useEffect(() => {
     applySeoHead({
-      title: "Aureon — Uncensored AI Intelligence",
-      description: "Aureon: uncensored AI with elite coding, live web search, and end-to-end encryption. The AI that tells you the truth.",
+      title: "Asherin — Uncensored AI Intelligence",
+      description: "Asherin: uncensored AI with elite coding, live web search, and end-to-end encryption. The AI that tells you the truth.",
       path: "/",
     });
 
     const faqs = [
-      { q: "What makes Aureon different?", a: "Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, intelligence tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },
-      { q: "How good is the coding engine?", a: "Aureon holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." },
+      { q: "What makes Asherin different?", a: "Asherin is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, intelligence tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },
+      { q: "How good is the coding engine?", a: "Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." },
       { q: 'What does "never trains our models" mean?', a: "Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." },
       { q: "Can I cancel anytime?", a: "Yes. One click from the dashboard. No retention flow. No \"are you sure?\" loop. Asherin is $18/month, Asherin Pro is $399/month, and you can cancel either at any time. Your data is exported or deleted on request." },
-      { q: "What is the live web search powered by?", a: "Privacy-first search infrastructure. Aureon pulls live data without tracking your search behavior or feeding it to ad networks." },
-      { q: "Is Aureon available in multiple languages?", a: "Yes. Aureon processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language." },
+      { q: "What is the live web search powered by?", a: "Privacy-first search infrastructure. Asherin pulls live data without tracking your search behavior or feeding it to ad networks." },
+      { q: "Is Asherin available in multiple languages?", a: "Yes. Asherin processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language." },
     ];
 
     const schemas = [
@@ -298,7 +298,7 @@ const Index = () => {
           <div className="flex items-center justify-between text-[9px] tracking-[0.4em] text-muted-foreground/50 uppercase font-mono mb-6">
             <span className="flex items-center gap-2">
               <span className="h-px w-6 bg-foreground/30" />
-              NODE / AUREON-01
+              NODE / ASHERIN-01
             </span>
             <span className="hidden sm:flex items-center gap-2">
               CHANNEL · ZOPHIEL
@@ -317,7 +317,7 @@ const Index = () => {
             </div>
 
             <h1 className="font-display mt-6 text-6xl sm:text-7xl md:text-8xl lg:text-[7rem] xl:text-[8rem] font-light tracking-[-0.025em] leading-[0.92] text-foreground">
-              <span className="sr-only">Aureon — Uncensored AI Intelligence Platform: </span>
+              <span className="sr-only">Asherin — Uncensored AI Intelligence Platform: </span>
               <span aria-hidden="true">See what</span>
               <br />
               <span className="zophiel-shimmer-text italic font-light" aria-hidden="true">others miss.</span>
@@ -325,7 +325,7 @@ const Index = () => {
 
             <p className="mt-7 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
               While other AI tells you what it thinks you should know,
-              Aureon gives you the complete picture — unfiltered, sourced, and ready to act on.
+              Asherin gives you the complete picture — unfiltered, sourced, and ready to act on.
             </p>
 
             {/* CTA cluster — Fitts (large primary), Hick (one dominant choice), Von Restorff (primary pops),
@@ -401,7 +401,7 @@ const Index = () => {
 
       <div id="demos" />
       <ScrollSection>
-        <h2 className="sr-only">Live Aureon Intelligence Demos</h2>
+        <h2 className="sr-only">Live Asherin Intelligence Demos</h2>
         <LiveDemoStrip />
       </ScrollSection>
       <ScrollSection><TrustBand /></ScrollSection>
@@ -418,12 +418,12 @@ const Index = () => {
           <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-foreground/[0.04] px-3 py-1 mb-8">
               <span className="h-1 w-1 rounded-full bg-foreground animate-pulse" />
-              <span className="text-[10px] font-light tracking-[0.3em] text-foreground/80 uppercase">The Aureon Difference</span>
+              <span className="text-[10px] font-light tracking-[0.3em] text-foreground/80 uppercase">The Asherin Difference</span>
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
               Most AI Gives You <span className="italic font-thin text-muted-foreground/70">Guardrails.</span>
               <br />
-              Aureon Gives You <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">The Full Picture.</span>
+              Asherin Gives You <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">The Full Picture.</span>
             </h2>
           </div>
 
@@ -488,7 +488,7 @@ const Index = () => {
           <div className="mt-16 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden text-left">
             {/* Demo Header */}
             <div className="flex items-center justify-between border-b border-border/20 px-6 py-4">
-              <span className="text-sm font-light tracking-[0.2em] text-foreground">AUREON LIVE</span>
+              <span className="text-sm font-light tracking-[0.2em] text-foreground">ASHERIN LIVE</span>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
                 <span className="text-xs font-extralight tracking-wide text-muted-foreground">LIVE</span>
@@ -627,7 +627,7 @@ const Index = () => {
               { idx: "02", icon: FlaskConical, title: "For Researchers", desc: "Get the full analysis on any topic — unfiltered, structured, and backed by real-time intelligence. No sanitized summaries.", span: "col-span-12 md:col-span-4", tag: "OSINT" },
               { idx: "03", icon: Code, title: "For Coders", desc: "Elite-tier coding engine. Debug, architect, and ship production code — with persistent context across every session.", span: "col-span-12 md:col-span-3", tag: "Production" },
               { idx: "04", icon: Target, title: "For Strategists", desc: "Predictive intelligence, scenario simulation, and signal detection for markets, conflicts, and complex systems.", span: "col-span-12 md:col-span-3", tag: "Forecast" },
-              { idx: "05", icon: Feather, title: "For Writers", desc: "Write with your voice intact. Aureon adapts to your tone and delivers raw creative output — no corporate rewrites.", span: "col-span-12 md:col-span-4", tag: "Voice-True" },
+              { idx: "05", icon: Feather, title: "For Writers", desc: "Write with your voice intact. Asherin adapts to your tone and delivers raw creative output — no corporate rewrites.", span: "col-span-12 md:col-span-4", tag: "Voice-True" },
               { idx: "06", icon: BarChart3, title: "For Analysts", desc: "Deep intelligence on economic events, structural trends, and data patterns — with full OSINT and entity resolution tooling.", span: "col-span-12 md:col-span-5", tag: "Entity-Res" },
             ].map(({ idx, icon: Icon, title, desc, span, tag }) => (
               <div
@@ -699,7 +699,7 @@ const Index = () => {
               <span className="italic text-muted-foreground/60">One Dashboard.</span>
             </h2>
             <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground/80">
-              All software modules available inside your Aureon workspace. Core modules ship in the $18/month Asherin plan; the advanced intelligence suite (Azplen, NOMAD, AXRLEN, ZEEION, CROSS and more) ships in Asherin Pro at $399/month.
+              All software modules available inside your Asherin workspace. Core modules ship in the $18/month Asherin plan; the advanced intelligence suite (Azplen, NOMAD, AXRLEN, ZEEION, CROSS and more) ships in Asherin Pro at $399/month.
             </p>
           </div>
 
@@ -748,10 +748,10 @@ const Index = () => {
               group: "Build",
               blurb: "IDE, notebooks, agents, and plugins",
               items: [
-                { icon: Code, name: "Aureon IDE", codename: "Cloud IDE", desc: "Browser IDE with project files, terminals, sessions, and BYOK AI assistance." },
+                { icon: Code, name: "Asherin IDE", codename: "Cloud IDE", desc: "Browser IDE with project files, terminals, sessions, and BYOK AI assistance." },
                 { icon: Feather, name: "Intelligence Notebooks", codename: "Notebooks", desc: "Shared analysis sessions with live SQL execution and team collaboration." },
                 { icon: GitBranch, name: "Zahten", codename: "Agent Forge", desc: "Design, scaffold, and harden autonomous agents — publish them as custom tabs." },
-                { icon: Cpu, name: "Plugin Marketplace", codename: "Plugins", desc: "Connectors and modules to extend Aureon with third-party integrations." },
+                { icon: Cpu, name: "Plugin Marketplace", codename: "Plugins", desc: "Connectors and modules to extend Asherin with third-party integrations." },
                 { icon: Code, name: "Code Snippets", codename: "Snippet Vault", desc: "Save, tag, and reuse code blocks across all your conversations." },
               ]
             },
@@ -834,7 +834,7 @@ const Index = () => {
               { Icon: Unlock, title: "Uncensored Responses", desc: "No topic is off limits. No hidden bias. Ask anything and get the complete, unfiltered answer.", span: "md:col-span-7 md:row-span-2", featured: true, tag: "Core" },
               { Icon: Monitor, title: "Elite Coding Engine", desc: "Production-grade output on complex builds, debugging, and multi-file architecture.", span: "md:col-span-5", tag: "Engine" },
               { Icon: Search, title: "Live Web Intelligence", desc: "Privacy-first real-time search. Current data — not 2-year-old training sets.", span: "md:col-span-5", tag: "Realtime" },
-              { Icon: Brain, title: "Persistent Memory", desc: "Aureon remembers your context, preferences, and projects across every session.", span: "md:col-span-4", tag: "Stateful" },
+              { Icon: Brain, title: "Persistent Memory", desc: "Asherin remembers your context, preferences, and projects across every session.", span: "md:col-span-4", tag: "Stateful" },
               { Icon: Users, title: "Team Workspace", desc: "Collaborate in real time. Share threads, outputs, and builds with your team.", span: "md:col-span-4", tag: "Collab" },
               { Icon: Globe, title: "Multi-Language Output", desc: "Thinks and delivers in any language. Same raw output. No filtered translations.", span: "md:col-span-4", tag: "Global" },
             ].map(({ Icon, title, desc, span, featured, tag }, i) => (
@@ -949,7 +949,7 @@ const Index = () => {
               <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">Uncensored Through Every Provider.</span>
             </h2>
             <p className="mt-8 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
-              Plug in your own API keys from any major AI provider. Every model runs through Aureon's uncensored intelligence layer — same raw output, same zero-filter policy, regardless of which LLM powers it.
+              Plug in your own API keys from any major AI provider. Every model runs through Asherin's uncensored intelligence layer — same raw output, same zero-filter policy, regardless of which LLM powers it.
             </p>
           </div>
 
@@ -959,7 +959,7 @@ const Index = () => {
               { n: "01", Icon: Key, title: "Bring Your Own Key", desc: "Plug in API keys from any provider. Your keys, your billing, your control. No middleman." },
               { n: "02", Icon: Layers, title: "Multi-Model at Once", desc: "Send one prompt to 2–4 models in parallel. See every response side-by-side." },
               { n: "03", Icon: Shuffle, title: "Consensus Engine", desc: "When models agree, you get one clean answer. When they disagree, you see exactly where." },
-              { n: "04", Icon: Cpu, title: "Aureon Brain Intact", desc: "Every model runs through Aureon's uncensored system prompt. Same depth, zero filters." },
+              { n: "04", Icon: Cpu, title: "Asherin Brain Intact", desc: "Every model runs through Asherin's uncensored system prompt. Same depth, zero filters." },
             ].map(({ n, Icon, title, desc }) => (
               <div key={n} className="group relative rounded-3xl overflow-hidden">
                 <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-foreground/15 to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-700" />
@@ -1088,7 +1088,7 @@ const Index = () => {
             <h2 className="text-3xl sm:text-5xl md:text-6xl font-extralight tracking-tight text-foreground leading-[1.05]">
               Don't see the software you need?
               <br />
-              <span className="text-muted-foreground">Build it. Ship it. Run it inside Aureon.</span>
+              <span className="text-muted-foreground">Build it. Ship it. Run it inside Asherin.</span>
             </h2>
           </div>
 
@@ -1099,7 +1099,7 @@ const Index = () => {
               <p className="font-mono text-[10px] tracking-[0.3em] text-foreground/40 uppercase mb-4">◈ Mission Brief</p>
               <p className="text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
                 If we don't ship the tool you want, build it yourself with <span className="text-foreground">Zahten</span> — our autonomous agent forge.
-                Spin up your own tab, your own module, your own intelligence engine inside Aureon and wire it directly to your own LLM API key.
+                Spin up your own tab, your own module, your own intelligence engine inside Asherin and wire it directly to your own LLM API key.
                 We strip the safety filters off the model for you, so the software you build runs uncensored — no guardrails, no apologies, no refusals.
               </p>
               <p className="mt-5 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
@@ -1168,7 +1168,7 @@ const Index = () => {
               <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-foreground/20 rounded-br-3xl" />
               <p className="font-mono text-[10px] tracking-[0.3em] text-foreground/40 uppercase mb-4">◈ Encryption Statement</p>
               <p className="text-base font-extralight leading-relaxed text-foreground/90">
-                Every prompt you send to Aureon is encrypted end-to-end.
+                Every prompt you send to Asherin is encrypted end-to-end.
               </p>
               <p className="mt-6 text-xs font-mono tracking-[0.25em] text-foreground/40 uppercase">Never:</p>
               <ul className="mt-3 space-y-2.5">
@@ -1248,7 +1248,7 @@ const Index = () => {
                 Instead of dumping every war in human history into a prompt and asking "predict the next conflict" — ask Aureon what data points, context, and variables it needs to give you the most accurate prediction. The output transforms from a guess into an intelligence assessment.
               </p>
               <p className="mt-4 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
-                This is the same principle behind every serious intelligence operation in history. Your best asset isn't the technology — it's the intelligence feeding it. That's why we built <span className="text-foreground font-light">Aureon</span> — and <span className="text-foreground font-light">Zophiel</span> as our intelligence officer.
+                This is the same principle behind every serious intelligence operation in history. Your best asset isn't the technology — it's the intelligence feeding it. That's why we built <span className="text-foreground font-light">Asherin</span> — and <span className="text-foreground font-light">Zophiel</span> as our intelligence officer.
               </p>
 
               <Link to="/dashboard" className="mt-8 inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.18em] uppercase text-foreground transition-all hover:bg-foreground hover:text-background">
@@ -1277,7 +1277,7 @@ const Index = () => {
                 <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-emerald-400/40 rounded-tl-3xl" />
                 <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-emerald-400/20 rounded-br-3xl" />
                 <div className="flex items-center justify-between mb-4">
-                  <p className="font-mono text-[10px] tracking-[0.3em] text-emerald-400/80 uppercase">◈ The Aureon Method</p>
+                  <p className="font-mono text-[10px] tracking-[0.3em] text-emerald-400/80 uppercase">◈ The Asherin Method</p>
                   <span className="font-mono text-[9px] tracking-[0.3em] text-foreground/30">02 / WIN</span>
                 </div>
                 <div className="space-y-2">
@@ -1288,7 +1288,7 @@ const Index = () => {
                     </p>
                   </div>
                   <div className="rounded-xl bg-background/40 border border-foreground/10 p-4">
-                    <p className="text-[10px] font-mono tracking-[0.25em] text-foreground/40 uppercase mb-1.5">Aureon →</p>
+                    <p className="text-[10px] font-mono tracking-[0.25em] text-foreground/40 uppercase mb-1.5">Asherin →</p>
                     <p className="text-xs font-light text-foreground/85 leading-relaxed">
                       "I need: region of focus, time horizon, economic indicators you're tracking, alliance structures, recent treaty changes, resource dependencies, and any specific actors of interest."
                     </p>
@@ -1332,15 +1332,15 @@ const Index = () => {
           </div>
 
           <div className="space-y-3">
-            <FaqItem q="How much does Aureon cost?" a='Asherin is $18/month for the core platform — chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $399/month and adds the full intelligence suite: Azplen, NOMAD, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
-            <FaqItem q="Is there a catch?" a="No. No usage trap. No data harvesting. No upsell wall after the first week. Bring your own API key on either tier, own your data, and cancel from the dashboard with one click. Aureon was built as a mission, not a funnel." />
-            <FaqItem q="What makes Aureon different?" a="Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." />
-            <FaqItem q="How good is the coding engine?" a="Aureon holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />
+            <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform — chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $399/month and adds the full intelligence suite: Azplen, NOMAD, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
+            <FaqItem q="Is there a catch?" a="No. No usage trap. No data harvesting. No upsell wall after the first week. Bring your own API key on either tier, own your data, and cancel from the dashboard with one click. Asherin was built as a mission, not a funnel." />
+            <FaqItem q="What makes Asherin different?" a="Asherin is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." />
+            <FaqItem q="How good is the coding engine?" a="Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />
             <FaqItem q='What does "never trains our models" mean?' a="Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." />
             <FaqItem q="Can I cancel anytime?" a='Yes. One click from the dashboard. No retention flow, no "are you sure?" loop. Cancel either tier whenever you want — your data is exported or deleted on request.' />
 
-            <FaqItem q="What is the live web search powered by?" a="Privacy-first search infrastructure. Aureon pulls live data without tracking your search behavior or feeding it to ad networks." />
-            <FaqItem q="Is Aureon available in multiple languages?" a="Yes. Aureon processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language." />
+            <FaqItem q="What is the live web search powered by?" a="Privacy-first search infrastructure. Asherin pulls live data without tracking your search behavior or feeding it to ad networks." />
+            <FaqItem q="Is Asherin available in multiple languages?" a="Yes. Asherin processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language." />
           </div>
         </div>
       </div>
@@ -1369,7 +1369,7 @@ const Index = () => {
                     <span aria-hidden className="absolute -inset-2 rounded-2xl bg-gradient-to-br from-amber-300/20 via-foreground/10 to-transparent blur-xl" />
                     <img
                       src={asherPhoto}
-                      alt="Asher Newton, founder of Aureon"
+                      alt="Asher Newton, founder of Asherin"
                       className="relative h-44 w-44 sm:h-56 sm:w-56 rounded-2xl object-cover border border-foreground/20 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]"
                     />
                     <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-background/90 border border-foreground/20 backdrop-blur font-mono text-[9px] tracking-[0.3em] uppercase text-foreground/80 whitespace-nowrap">
@@ -1381,14 +1381,14 @@ const Index = () => {
                 {/* Quote + CTA */}
                 <div className="sm:col-span-8 text-left">
                   <h2 className="text-2xl sm:text-3xl md:text-4xl font-extralight tracking-tight leading-[1.1] text-foreground">
-                    "I built Aureon because I was tired of being told what I was allowed to know."
+                    "I built Asherin because I was tired of being told what I was allowed to know."
                   </h2>
                   <p className="mt-6 text-base sm:text-lg font-extralight leading-relaxed text-foreground/85">
                     Every other platform treats you like a liability.
                     <span className="text-foreground"> You are not a liability. You are exactly who this was built for.</span>
                   </p>
                   <p className="mt-5 text-sm font-extralight leading-relaxed text-muted-foreground">
-                    Read the full archive — videos, philosophy, and the complete text of <em>The Book of Asher Aureon Elion</em>.
+                    Read the full archive — videos, philosophy, and the complete text of <em>The Book of Asher Asherin Elion</em>.
                   </p>
 
                   <Link
@@ -1423,7 +1423,7 @@ const Index = () => {
                     Coding supremacy. Generational leaps. Chinese model integrations.
                   </h3>
                   <p className="text-sm font-extralight text-muted-foreground max-w-xl leading-relaxed">
-                    See every theory, breakthrough, and integration that has entered Aureon — logged without the marketing varnish.
+                    See every theory, breakthrough, and integration that has entered Asherin — logged without the marketing varnish.
                   </p>
                 </div>
                 <Link

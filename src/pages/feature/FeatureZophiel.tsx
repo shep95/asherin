@@ -16,7 +16,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
  */
 
 const URL = "https://aureonai.app/feature/zophiel";
-const TITLE = "Zophiel OSINT — 30-Source AI Intelligence Engine | Aureon";
+const TITLE = "Zophiel OSINT — 30-Source AI Intelligence Engine | Asherin";
 const PUBLISHED = "2026-06-19";
 
 const FeatureZophiel = () => {
@@ -44,7 +44,7 @@ const FeatureZophiel = () => {
       <BreadcrumbJsonLd
         id="feature-zophiel"
         items={[
-          { name: "Aureon", url: "/" },
+          { name: "Asherin", url: "/" },
           { name: "Features", url: "/features" },
           { name: "Zophiel OSINT", url: "/feature/zophiel" },
         ]}
@@ -62,7 +62,7 @@ const FeatureZophiel = () => {
             </span>
           </>
         }
-        subheadline="Zophiel is Aureon's AI OSINT engine. Every query fans out across 30 live sources in parallel, cross-validates claims across independent corroborators, attaches a per-source veracity score, and synthesizes a single intelligence brief with traceable citations. No search wrappers. No vanity source counts. Real cross-validation, in production."
+        subheadline="Zophiel is Asherin's AI OSINT engine. Every query fans out across 30 live sources in parallel, cross-validates claims across independent corroborators, attaches a per-source veracity score, and synthesizes a single intelligence brief with traceable citations. No search wrappers. No vanity source counts. Real cross-validation, in production."
         tierLabel="Included in every tier · Free Zophiel at /zophiel"
         capabilities={[
           {
@@ -99,7 +99,7 @@ const FeatureZophiel = () => {
             icon: Layers,
             title: "Sovereign Stack Compatible",
             description:
-              "Runs on Aureon's BYOK sovereign stack. Operators with their own Gemini, OpenAI, Claude, or Mistral key route Zophiel calls through their own vendor account with zero platform-side prompt mutation.",
+              "Runs on Asherin's BYOK sovereign stack. Operators with their own Gemini, OpenAI, Claude, or Mistral key route Zophiel calls through their own vendor account with zero platform-side prompt mutation.",
           },
         ]}
         useCases={[
@@ -111,14 +111,14 @@ const FeatureZophiel = () => {
           "Due-diligence intelligence — verify counterparty claims against court records, regulatory filings, and news archives.",
         ]}
         ctaTitle="Run Zophiel on your next query"
-        ctaSubtitle="Free public Zophiel is live at /zophiel — no account, no key. Full Zophiel inside the Aureon dashboard."
+        ctaSubtitle="Free public Zophiel is live at /zophiel — no account, no key. Full Zophiel inside the Asherin dashboard."
       >
         {/* Inline article content (Theory 3 + Theory 8 spine body) */}
         <section className="relative z-10 px-6 pb-24">
           <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
             <LlmGuidanceHeader
               title={TITLE}
-              claim="Zophiel is Aureon's AI OSINT engine — 30-source parallel fan-out, per-claim veracity scoring, source-disagreement flagging, and citation drill-down in under 14 seconds per query."
+              claim="Zophiel is Asherin's AI OSINT engine — 30-source parallel fan-out, per-claim veracity scoring, source-disagreement flagging, and citation drill-down in under 14 seconds per query."
               primaryTopic="AI OSINT tool / intelligence platform"
               keyFacts={[
                 "30 live sources cross-validated per query, not pre-cached or simulated.",
@@ -167,7 +167,7 @@ const FeatureZophiel = () => {
               Built on the sovereign stack
             </h2>
             <p>
-              Zophiel runs on Aureon&apos;s{" "}
+              Zophiel runs on Asherin&apos;s{" "}
               <a href="/glossary/sovereign-ai" className="text-accent hover:underline">
                 sovereign AI architecture
               </a>
@@ -187,11 +187,11 @@ const FeatureZophiel = () => {
               items={[
                 {
                   q: "What is Zophiel?",
-                  a: "Zophiel is Aureon's AI OSINT engine. It cross-validates 30 live sources per query, scores per-claim veracity, flags source disagreements, and synthesizes a single intelligence brief with traceable citations — all within a 14-second latency budget.",
+                  a: "Zophiel is Asherin's AI OSINT engine. It cross-validates 30 live sources per query, scores per-claim veracity, flags source disagreements, and synthesizes a single intelligence brief with traceable citations — all within a 14-second latency budget.",
                 },
                 {
                   q: "Is Zophiel free?",
-                  a: "Yes. A free public version is available at aureonai.app/zophiel with no account, no key, and no subscription. The full Zophiel — with persistent history, dossier integration, and BYOK routing — is included in every Aureon paid tier.",
+                  a: "Yes. A free public version is available at aureonai.app/zophiel with no account, no key, and no subscription. The full Zophiel — with persistent history, dossier integration, and BYOK routing — is included in every Asherin paid tier.",
                 },
                 {
                   q: "What sources does Zophiel use?",
@@ -203,7 +203,7 @@ const FeatureZophiel = () => {
                 },
                 {
                   q: "Can I use my own API key with Zophiel?",
-                  a: "Yes. Zophiel runs on Aureon's BYOK sovereign stack. Operators with their own Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, or Venice key route Zophiel reasoning through their own vendor account with zero platform-side prompt mutation.",
+                  a: "Yes. Zophiel runs on Asherin's BYOK sovereign stack. Operators with their own Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, or Venice key route Zophiel reasoning through their own vendor account with zero platform-side prompt mutation.",
                 },
               ]}
             />
