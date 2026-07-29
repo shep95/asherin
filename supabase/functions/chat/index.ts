@@ -1007,17 +1007,55 @@ async function searchDuckDuckGo(query: string, callerAuth?: string | null): Prom
     });
 
     if (!resp.ok) {
+    let results: { title: string; url: string; snippet: string }[] = [];
+    if (resp.ok) {
+      const data = await resp.json();
+      results = Array.isArray(data?.results) ? data.results : [];
+    } else {
       console.error("DDG search failed:", resp.status);
-      return [];
     }
 
-    const data = await resp.json();
-    return data.results ?? [];
+    // DuckDuckGo's lite endpoint intermittently blocks server egress and
+    // returns an empty page. Fall back to the Zophiel engine so the model is
+    // never left ungrounded on a live-lookup request.
+    if (results.length === 0) {
+      try {
+        const zResp = await fetch(`${SUPABASE_URL}/functions/v1/zophiel-search`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${bearer}`,
+          },
+          body: JSON.stringify({ query, page: 1, mode: "web" }),
+          signal: AbortSignal.timeout(25000),
+        });
+        if (zResp.ok) {
+          const zData = await zResp.json();
+          const raw: any[] = Array.isArray(zData?.results)
+            ? zData.results
+            : (zData?.grouped && typeof zData.grouped === "object" ? Object.values(zData.grouped).flat() as any[] : []);
+          results = raw.slice(0, 8).map((r: any) => ({
+            title: String(r.title || r.name || ""),
+            url: String(r.url || r.link || ""),
+            snippet: String(r.snippet || r.description || r.summary || "").slice(0, 500),
+          })).filter((r) => r.url);
+          console.log(`DDG empty → Zophiel fallback returned ${results.length} results`);
+        } else {
+          console.error("Zophiel fallback failed:", zResp.status);
+        }
+      } catch (ze) {
+        console.error("Zophiel fallback error:", (ze as Error).message);
+      }
+    }
+
+    return results;
   } catch (e) {
     console.error("DDG search error:", e);
     return [];
   }
 }
+
 
 function shouldSearch(messages: { role: string; content: string }[], mode: string): boolean {
   // Always search in research mode
