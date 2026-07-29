@@ -345,7 +345,7 @@ async function zophielQuery(query: string, options: { timeoutMs?: number; limit?
   if (!SUPABASE_URL || !SUPABASE_ANON) return [];
   // Hard-cap any per-call timeout at 10s so a slow/degraded zophiel-search
   // cannot chain into pushing the outer /chat request past the 150s edge limit.
-  const timeoutMs = Math.min(options.timeoutMs ?? 10000, 10000);
+  const timeoutMs = Math.min(options.timeoutMs ?? 22000, 22000);
   const limit = options.limit ?? 12;
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/zophiel-search`, {
@@ -452,7 +452,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   const startedAt = Date.now();
   // Tightened from 24.5s → 20s so the sweep leaves comfortable headroom
   // inside the 150s /chat budget even when zophiel-search runs slow.
-  const deadlineMs = 20000;
+  const deadlineMs = 42000;
   const src = sourcesFor(intent.country, intent.state, intent.county);
   const registries = Array.from(new Set([
     ...src.ownership, ...src.tax, ...src.permits, ...src.entities, ...src.courts, ...src.people,
@@ -507,7 +507,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   // Pass 1 is deliberately first, not part of a large Promise fan-out. The
   // Zophiel web tab succeeds on single wide calls; flooding it with 6+ nested
   // calls caused chat-timeout failures while the web tab itself still worked.
-  const pass1a = await zophielQuery(pass1Queries[0], { timeoutMs: 10000, limit: 20 });
+  const pass1a = await zophielQuery(pass1Queries[0], { timeoutMs: 22000, limit: 20 });
   const pass1b = pass1a.length >= 8 || pass1Queries[1] === pass1Queries[0]
     ? []
     : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(4000, Math.min(8000, deadlineMs - (Date.now() - startedAt) - 3500)), limit: 12 });
