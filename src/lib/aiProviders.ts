@@ -33,11 +33,11 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     models: [
       { id: "gemini-3-pro-preview", name: "Gemini 3 Pro", description: "Newest — frontier reasoning, 1M context" },
       { id: "gemini-3-flash-preview", name: "Gemini 3 Flash", description: "Next-gen flash, balanced speed + capability" },
-      { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", description: "Strong reasoning + multimodal" },
-      { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", description: "Fast, balanced performance" },
-      { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "Legacy — 2M context" },
-      { id: "gemini-1.0-pro", name: "Gemini 1.0 Pro", description: "Oldest available — original Gemini API" },
-    ],
+      { id: "gemini-pro-latest", name: "Gemini Pro (latest)", description: "Rolling alias — strong reasoning + multimodal" },
+      { id: "gemini-flash-latest", name: "Gemini Flash (latest)", description: "Rolling alias — fast, balanced, recommended" },
+      { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", description: "Cheapest — high volume, low latency" },
+      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", description: "Previous generation flash" },
+
   },
   {
     id: "openai",
