@@ -596,6 +596,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   for (const hit of all) {
     if (!hit.url || seen.has(hit.url)) continue;
     if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
+    if (isBotWall(hit)) { droppedOffSubject++; continue; }
     seen.add(hit.url);
     const bucket = classifyDomain(hit.domain);
     // Registry/court/corporate hits are site-scoped by construction, so they
@@ -605,6 +606,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     hit.bucket = bucket;
     buckets[bucket].push(hit);
   }
+
 
   // ── PASS 3 — BODY FETCH top URLs (opportunistic; do not stall answer) ──
   const priority: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
