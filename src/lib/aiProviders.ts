@@ -483,3 +483,32 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     ],
   },
 ];
+
+// ── Stale model-id auto-heal ──────────────────────────────────────────────
+// Providers retire pinned model ids (Google does this on the v1beta endpoint
+// every few months). A user's saved preference keeps replaying the dead id and
+// every AI call comes back 404 as an opaque "AI error". These maps let the UI
+// migrate the saved id to the currently-served equivalent on load, mirroring
+// the server-side alias table in supabase/functions/_shared/geminiModels.ts.
+export const RETIRED_MODEL_ALIASES: Record<string, Record<string, string>> = {
+  google: {
+    "gemini-pro": "gemini-flash-latest",
+    "gemini-1.0-pro": "gemini-flash-latest",
+    "gemini-1.5-pro": "gemini-pro-latest",
+    "gemini-1.5-pro-latest": "gemini-pro-latest",
+    "gemini-1.5-flash": "gemini-flash-latest",
+    "gemini-1.5-flash-latest": "gemini-flash-latest",
+    "gemini-1.5-flash-8b": "gemini-2.5-flash-lite",
+    "gemini-2.5-pro": "gemini-pro-latest",
+    "gemini-2.5-pro-latest": "gemini-pro-latest",
+    "gemini-2.5-flash": "gemini-flash-latest",
+    "gemini-2.5-flash-latest": "gemini-flash-latest",
+    "gemini-2.0-flash-exp": "gemini-2.0-flash",
+  },
+};
+
+/** Returns the currently-served id for a saved (provider, model) pair. */
+export function normalizeModelId(provider: string, model: string): string {
+  if (!provider || !model || model === "default") return model;
+  return RETIRED_MODEL_ALIASES[provider]?.[model] ?? model;
+}
