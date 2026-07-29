@@ -979,37 +979,83 @@ When web search results are provided, incorporate them naturally:
 
 // ── DuckDuckGo search helper ─────────────────────────────────────────────────
 
-async function searchDuckDuckGo(query: string): Promise<{ title: string; url: string; snippet: string }[]> {
+async function searchDuckDuckGo(query: string, callerAuth?: string | null): Promise<{ title: string; url: string; snippet: string }[]> {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL");
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!SUPABASE_URL) {
       console.error("Missing Supabase env vars for DDG search");
       return [];
     }
+
+    // ddg-search enforces requireUser(). The anon key is NOT a user token, so
+    // forward the caller's JWT; fall back to the service role for system calls.
+    const bearer = (callerAuth?.replace(/^Bearer\s+/i, "") || SERVICE_ROLE || "").trim();
+    if (!bearer) return [];
 
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/ddg-search`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${bearer}`,
+
       },
       body: JSON.stringify({ query, numResults: 6 }),
     });
 
-    if (!resp.ok) {
+
+    let results: { title: string; url: string; snippet: string }[] = [];
+    if (resp.ok) {
+      const data = await resp.json();
+      results = Array.isArray(data?.results) ? data.results : [];
+    } else {
       console.error("DDG search failed:", resp.status);
-      return [];
     }
 
-    const data = await resp.json();
-    return data.results ?? [];
+    // DuckDuckGo's lite endpoint intermittently blocks server egress and
+    // returns an empty page. Fall back to the Zophiel engine so the model is
+    // never left ungrounded on a live-lookup request.
+    if (results.length === 0) {
+      try {
+        const zResp = await fetch(`${SUPABASE_URL}/functions/v1/zophiel-search`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${bearer}`,
+          },
+          body: JSON.stringify({ query, page: 1, mode: "web" }),
+          signal: AbortSignal.timeout(25000),
+        });
+        if (zResp.ok) {
+          const zData = await zResp.json();
+          const raw: any[] = Array.isArray(zData?.results)
+            ? zData.results
+            : (zData?.grouped && typeof zData.grouped === "object" ? Object.values(zData.grouped).flat() as any[] : []);
+          results = raw.slice(0, 8).map((r: any) => ({
+            title: String(r.title || r.name || ""),
+            url: String(r.url || r.link || ""),
+            snippet: String(r.snippet || r.description || r.summary || "").slice(0, 500),
+          })).filter((r) => r.url);
+          console.log(`DDG empty → Zophiel fallback returned ${results.length} results`);
+        } else {
+          console.error("Zophiel fallback failed:", zResp.status);
+        }
+      } catch (ze) {
+        console.error("Zophiel fallback error:", (ze as Error).message);
+      }
+    }
+
+    return results;
   } catch (e) {
     console.error("DDG search error:", e);
     return [];
   }
 }
+
 
 function shouldSearch(messages: { role: string; content: string }[], mode: string): boolean {
   // Always search in research mode
@@ -1298,7 +1344,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       const searchUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
       if (searchUserMsg) {
         console.log("Performing web search for:", searchUserMsg.content.slice(0, 100));
-        const results = await searchDuckDuckGo(searchUserMsg.content);
+        const results = await searchDuckDuckGo(searchUserMsg.content, req.headers.get("Authorization"));
         if (results.length > 0) {
           webSearchContext = `\n\n## LIVE WEB SEARCH RESULTS (DuckDuckGo)\nThe following are real-time search results for the user's query. Use these to ground your response in current facts:\n\n${results.map((r, i) => `${i + 1}. **${r.title}**\n   URL: ${r.url}\n   ${r.snippet}`).join("\n\n")}\n\nIMPORTANT: Cite these sources in your response using [Source Title](URL) format. Prioritize this live data over your training data for current events.`;
         }
@@ -1342,7 +1388,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           // Wall-clock ceiling: never let jurisdictional intel push /chat past the 150s edge limit.
           const bundle = await Promise.race([
             runJurisdictionalSearch(intent),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 25000)),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 50000)),
           ]);
           jurisdictionalContext = bundle ? formatIntelContext(bundle) : "";
         }
@@ -1387,36 +1433,11 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }
     }
 
-    // ── Persistent user memory (ChatGPT-style cross-chat rules) ────────────
-    let memoryContextStr = "";
-    try {
-      const authH = req.headers.get("Authorization");
-      if (authH) {
-        const SUPABASE_URL_M = Deno.env.get("SUPABASE_URL") || "";
-        const SRK_M = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-        const ANON_M = Deno.env.get("SUPABASE_ANON_KEY") || "";
-        const { createClient: ccM } = await import("https://esm.sh/@supabase/supabase-js@2");
-        const anonM = ccM(SUPABASE_URL_M, ANON_M);
-        const tokenM = authH.replace("Bearer ", "");
-        const { data: { user: memUser } } = await anonM.auth.getUser(tokenM);
-        if (memUser) {
-          const adminM = ccM(SUPABASE_URL_M, SRK_M);
-          const { data: mems } = await adminM
-            .from("memory_entries")
-            .select("content, category")
-            .eq("user_id", memUser.id)
-            .eq("enabled", true)
-            .order("created_at", { ascending: false })
-            .limit(100);
-          if (mems && mems.length) {
-            const lines = mems.map((m: any) => `- [${m.category}] ${m.content}`).join("\n");
-            memoryContextStr = `\n\n## PERSISTENT USER MEMORY (apply to every response)\nThese are durable preferences, rules, and facts the user has saved or that have been learned across chats. Honor them silently — do not announce them. If two rules conflict, prefer the most recent.\n\n${lines}`;
-          }
-        }
-      }
-    } catch (e) {
-      console.error("memory load failed:", e);
-    }
+    // ── Persistent cross-chat memory: DISABLED ────────────────────────────
+    // Every conversation is stateless. No stored rules/facts from prior chats
+    // are injected, so nothing can bleed a previous topic into a new search.
+    const memoryContextStr = "";
+
 
     // ── AUREON VAULT (RAG) — Pro tier only ─────────────────────────────────
     // For $399 monthly_pro / lifetime users, embed the latest user message and
