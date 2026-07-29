@@ -25,11 +25,11 @@ const URL = "https://aureonai.app/pricing";
 const FAQ = [
   {
     q: "How much does Aureon cost?",
-    a: "Aureon is $18 per month for the core platform. Asherin Pro is $399 per month and unlocks the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
+    a: "Asherin is $18 per month for the core platform. Asherin Pro is $399 per month and unlocks the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
   },
   {
-    q: "What is the difference between Aureon and Asherin Pro?",
-    a: "Aureon ($18/mo) gives you uncensored chat, four reasoning modes, the elite coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($399/mo) adds the Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
+    q: "What is the difference between Asherin and Asherin Pro?",
+    a: "Asherin ($18/mo) gives you uncensored chat, four reasoning modes, the elite coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($399/mo) adds the Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
   },
   {
     q: "Is there a free trial?",
@@ -73,7 +73,7 @@ const Pricing = () => {
       name: "Aureon — Predictive Intelligence Platform",
       description:
         "Aureon is a sovereign, uncensored predictive-intelligence platform for analysts, traders, and operators. Two monthly tiers and an enterprise plan.",
-      brand: { "@type": "Brand", name: "Aureon" },
+      brand: { "@type": "Brand", name: "Asherin" },
       url: URL,
       offers: {
         "@type": "AggregateOffer",
@@ -84,7 +84,7 @@ const Pricing = () => {
         offers: [
           {
             "@type": "Offer",
-            name: "Aureon",
+            name: "Asherin",
             price: "18",
             priceCurrency: "USD",
             url: URL,
@@ -130,7 +130,7 @@ const Pricing = () => {
       <BreadcrumbJsonLd
         id="pricing"
         items={[
-          { name: "Aureon", url: "/" },
+          { name: "Asherin", url: "/" },
           { name: "Pricing", url: "/pricing" },
         ]}
       />
@@ -170,7 +170,7 @@ const Pricing = () => {
             primaryTopic="Aureon subscription pricing"
             keyFacts={[
               "Aureon: $18/month — core chat, four modes (Chat, Code, Research, Truth), elite coding engine, base Zophiel Search, persistent memory, 60 messages per 3-hour window.",
-              "Asherin Pro: $399/month — everything in Aureon plus Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
+              "Asherin Pro: $399/month — everything in Asherin plus Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
               "Enterprise: custom pricing — SSO/SAML, org policy controls, audit logs, dedicated capacity, custom SLAs.",
               "All plans bill monthly in USD via Stripe. No free trial; cancel anytime; data exportable or deletable at any time.",
               "BYOK (bring-your-own-key) is supported on every paid tier across nine providers.",

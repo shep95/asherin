@@ -7,7 +7,7 @@ import { useState } from "react";
 const PLANS = [
   {
     id: "monthly_aureon" as const,
-    name: "Aureon",
+    name: "Asherin",
     price: "$18",
     period: "/month",
     tagline: "Core intelligence",
@@ -62,11 +62,11 @@ const PLANS = [
     period: "/month",
     tagline: "Maximum intelligence",
     description:
-      "Everything in Aureon, plus the full intelligence suite — Azplen data platform, NOMAD OSINT, advanced briefings, Zophiel Pro and full team collaboration.",
+      "Everything in Asherin, plus the full intelligence suite — Azplen data platform, NOMAD OSINT, advanced briefings, Zophiel Pro and full team collaboration.",
     cta: "Subscribe — $399 / month",
     highlight: true,
     groups: [
-      { title: "Everything in Aureon", items: ["All core chat, modes, search, memory and workspace features"] },
+      { title: "Everything in Asherin", items: ["All core chat, modes, search, memory and workspace features"] },
       {
         title: "Azplen Data Intelligence Platform",
         items: [

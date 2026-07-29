@@ -42,7 +42,7 @@ const FAQ = [
     a: "ChatGPT Plus is $20/mo, Claude Pro is $20/mo, Gemini Advanced is $20/mo. Aureon Core at $18/mo undercuts all three while shipping uncensored output, BYOK across nine providers, real OSINT, and a full IDE. Asherin Pro at $399/mo competes with custom enterprise quotes from those vendors — usually $1,000+/seat — at a fixed, transparent price.",
   },
   {
-    q: "Can I switch between Aureon and Asherin Pro?",
+    q: "Can I switch between Asherin and Asherin Pro?",
     a: "Yes. Upgrade or downgrade from the dashboard. Stripe pro-rates the difference automatically — no support ticket required.",
   },
   {
@@ -77,7 +77,7 @@ const AureonPricingExplained = () => (
     <BreadcrumbJsonLd
       id="aureon-pricing-explained"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "Aureon pricing explained", url: "/blog/aureon-pricing-explained" },
       ]}

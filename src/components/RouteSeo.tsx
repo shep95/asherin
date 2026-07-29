@@ -28,7 +28,7 @@ const SEO: Record<string, SeoEntry> = {
   "/pricing": {
     title: "Pricing — Aureon, Pro & Enterprise Plans",
     description:
-      "Aureon is $18/mo for the core platform and $399/mo for Asherin Pro (Azplen, NOMAD, Briefings, Zophiel Pro). Enterprise on request.",
+      "Asherin is $18/mo for the core platform and $399/mo for Asherin Pro (Azplen, NOMAD, Briefings, Zophiel Pro). Enterprise on request.",
   },
   "/terms": {
     title: "Terms of Service — Aureon",
@@ -556,7 +556,7 @@ function applySeo(entry: SeoEntry, path: string) {
     url: canonical,
     isPartOf: {
       "@type": "WebSite",
-      name: "Aureon",
+      name: "Asherin",
       url: ORIGIN,
     },
   });

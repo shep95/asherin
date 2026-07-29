@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const tiers = [
-  { id: "aureon", name: "Aureon", price: "$18", period: "/month", highlight: false, tagline: "Core" },
+  { id: "aureon", name: "Asherin", price: "$18", period: "/month", highlight: false, tagline: "Core" },
   { id: "pro", name: "Asherin Pro", price: "$399", period: "/month", highlight: true, tagline: "Full Suite" },
   { id: "enterprise", name: "Enterprise", price: "Custom", period: "", highlight: false, tagline: "Org" },
 ];

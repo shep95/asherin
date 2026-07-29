@@ -564,7 +564,7 @@ const Software = () => {
       "@type": "CollectionPage",
       name: "Aureon Software Catalog",
       description:
-        "Every Aureon tool grouped by subscription tier. Core software on Aureon ($18/month); full intelligence + R&D suite on Asherin Pro ($399/month).",
+        "Every Aureon tool grouped by subscription tier. Core software on Asherin ($18/month); full intelligence + R&D suite on Asherin Pro ($399/month).",
       url: "https://aureonai.app/software",
       mainEntity: {
         "@type": "ItemList",
@@ -606,7 +606,7 @@ const Software = () => {
               Every Aureon tool. Grouped by tier.
             </h1>
             <p className="max-w-2xl mx-auto text-sm sm:text-base font-extralight text-muted-foreground leading-relaxed">
-              {aureonProducts.length} tools ship in <strong className="text-foreground">Aureon ($18/month)</strong>.
+              {aureonProducts.length} tools ship in <strong className="text-foreground">Asherin ($18/month)</strong>.
               The full intelligence + R&amp;D suite — {proProducts.length} additional modules including
               <strong className="text-foreground"> RAD (Research &amp; Development with Aureon Chat)</strong> —
               ships in <strong className="text-foreground">Asherin Pro ($399/month)</strong>.
