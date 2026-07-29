@@ -49,9 +49,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      // A revoked/rotated server session leaves a syntactically valid JWT in
+      // localStorage. auth-js happily restores it, so every subsequent call
+      // ships a dead bearer and comes back 401 ("Session from session_id claim
+      // in JWT does not exist") — which the UI surfaces as a generic AI error
+      // on every reload. Validate once against the server and purge if dead.
+      if (event === "INITIAL_SESSION" && nextSession) {
+        supabase.auth.getUser().then(({ error }) => {
+          if (!mounted || !error) return;
+          const dead =
+            (error as { status?: number }).status === 401 ||
+            (error as { status?: number }).status === 403 ||
+            /session|jwt|token/i.test(error.message || "");
+          if (dead) {
+            console.warn("[auth] stale session purged:", error.message);
+            supabase.auth.signOut({ scope: "local" }).catch(() => void 0);
+          }
+        });
+      }
+
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setLoading(false);
+
 
       if (nextSession?.user && event === "SIGNED_IN") {
         const sid = nextSession.user.id + "_" + (nextSession.access_token?.substring(0, 8) || "x");
