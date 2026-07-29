@@ -76,16 +76,35 @@ const AIKeysSettings = () => {
     ]);
     setStoredKeys((keysRes.data as StoredKey[]) || []);
     if (prefRes.data) {
+      const savedProvider = prefRes.data.active_provider || "default";
+      const savedModel = prefRes.data.active_model || "default";
+      // Auto-heal: a retired provider model id (e.g. gemini-2.5-flash) makes
+      // every AI call 404. Migrate it to the served equivalent and persist so
+      // the fix survives the session instead of re-breaking on the next login.
+      const healedModel = normalizeModelId(savedProvider, savedModel);
       const pref = {
-        active_provider: prefRes.data.active_provider || "default",
-        active_model: prefRes.data.active_model || "default",
+        active_provider: savedProvider,
+        active_model: healedModel,
         fallback_to_default: prefRes.data.fallback_to_default ?? true,
       };
       setPreferences(pref);
       localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: pref.active_provider, model: pref.active_model }));
+      if (healedModel !== savedModel) {
+        await supabase.from("user_model_preferences").upsert({
+          user_id: user.id,
+          active_provider: savedProvider,
+          active_model: healedModel,
+          fallback_to_default: pref.fallback_to_default,
+        }, { onConflict: "user_id" });
+        toast({
+          title: "Model updated",
+          description: `${savedModel} was retired by the provider — switched to ${healedModel}.`,
+        });
+      }
     } else {
       localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: "default", model: "default" }));
     }
+
     setLoading(false);
   };
 
