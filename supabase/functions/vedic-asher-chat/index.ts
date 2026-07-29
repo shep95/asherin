@@ -258,16 +258,26 @@ async function callGemini(apiKey: string, model: string, systemPrompt: string, m
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      contents,
-      generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
-    }),
+  const payload = JSON.stringify({
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents,
+    generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
   });
+  const hit = (m: string) =>
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+    });
+
+  // Stale saved BYOK ids 404 on v1beta; normalize, then retry the rolling alias.
+  const primary = normalizeGeminiModel(model);
+  let resp = await hit(primary);
+  if (resp.status === 404 && primary !== GEMINI_ROLLING_FALLBACK) {
+    await resp.text().catch(() => "");
+    console.warn(`[vedic-asher] gemini model ${primary} 404 — retrying ${GEMINI_ROLLING_FALLBACK}`);
+    resp = await hit(GEMINI_ROLLING_FALLBACK);
+  }
   if (!resp.ok) {
     const t = await resp.text();
     const err = new Error(`gemini_${resp.status}: ${t.slice(0, 200)}`) as Error & { status?: number };
@@ -277,6 +287,7 @@ async function callGemini(apiKey: string, model: string, systemPrompt: string, m
   const data = await resp.json();
   return data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || "").join("") ?? "";
 }
+
 
 async function callOpenAICompat(baseUrl: string, apiKey: string, model: string, systemPrompt: string, messages: ChatBody["messages"]): Promise<string> {
   const resp = await fetch(`${baseUrl}/chat/completions`, {
