@@ -71,12 +71,11 @@ Return ONLY a JSON object with up to 5 candidates:
 {"streams":[{"video_url":"https://www.youtube.com/watch?v=XXXXXXXXXXX","title":"...","channel":"..."}]}
 Prefer official news channels (Sky News, Al Jazeera English, France 24, DW, NHK, ABC News, local stations) and well-known 24/7 city/webcam streams. Only include streams that are actively broadcasting right now. Do not invent URLs.`;
 
-    // Try multiple models with retry — Gemini 2.5 frequently returns 503 under load
+    // Try multiple models with retry — Gemini flash frequently returns 503 under load
     const models = [
       "gemini-flash-latest",
-      "gemini-2.0-flash",
       "gemini-2.5-flash-lite",
-      "gemini-1.5-flash",
+      "gemini-pro-latest",
     ];
     let resp: Response | null = null;
     let lastErr = "";

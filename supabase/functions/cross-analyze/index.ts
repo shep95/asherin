@@ -872,7 +872,7 @@ async function handleChat(message: string, context: string, previousAlerts: any[
 
 async function callGeminiDirect(apiKey: string, prompt: string, frame: string): Promise<any | null> {
   const base64Data = frame.includes(",") ? frame.split(",")[1] : frame;
-  const models = ["gemini-flash-latest", "gemini-2.0-flash"];
+  const models = ["gemini-flash-latest", "gemini-flash-latest"];
 
   for (const model of models) {
     try {
