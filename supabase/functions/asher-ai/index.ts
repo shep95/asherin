@@ -7,7 +7,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { WAR_DOCTRINE } from "./warDoctrine.ts";
 // AUREON-ERA LEAN ASSEMBLY: 14 stacked brains removed from the runtime path.
 // Kept only the two modules the runtime actually attaches conditionally.
-import { MARKET_STRUCTURE_VISION_BRAIN } from "../_shared/marketStructureVisionBrain.ts";
+import { MARKET_STRUCTURE_VISION_BRAIN, detectChartVisionIntent } from "../_shared/marketStructureVisionBrain.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { runAxrlenBridge, textStreamToOpenAiSse } from "../_shared/axrlenBridge.ts";
