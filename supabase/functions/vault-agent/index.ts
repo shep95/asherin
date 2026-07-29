@@ -18,7 +18,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 const MAX_BYTES = 2 * 1024 * 1024;
-const MODEL = "gemini-2.0-flash-exp";
+const MODEL = "gemini-flash-latest";
 
 type Intent = "WRITE" | "FETCH_WRITE" | "QUERY";
 interface Classified {
