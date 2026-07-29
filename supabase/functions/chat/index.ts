@@ -1,24 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-import { getCorsHeaders } from "../_shared/cors.ts";
-import { BRAIN_ORCHESTRATOR } from "../_shared/brainOrchestrator.ts";
+// AUREON-ERA LEAN ASSEMBLY: 14 stacked brains removed from the runtime path.
+// Imports kept only for the modules actually attached to the system prompt.
 import { MARKET_STRUCTURE_VISION_BRAIN } from "../_shared/marketStructureVisionBrain.ts";
-import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
-import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
-import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
-import { COMEDY_BRAIN } from "../_shared/comedyBrain.ts";
-import { ASHER_LOGIC_BRAIN } from "../_shared/asherLogicBrain.ts";
-import { PROMPT_INTELLIGENCE_PROTOCOL } from "../_shared/promptIntelligenceProtocol.ts";
-import { EMOTIONAL_PERSONA_BRAIN } from "../_shared/emotionalPersonaBrain.ts";
-import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
-import { VISUAL_INTELLIGENCE_BRAIN } from "../_shared/visualIntelligenceBrain.ts";
-import { SOCIAL_AWARENESS_BRAIN } from "../_shared/socialAwarenessBrain.ts";
-
-import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchitectureBrain.ts";
-import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
-import { SYSTEM_TWO_FORCING_BRAIN } from "../_shared/systemTwoForcingBrain.ts";
-import { HYPOTHETICAL_REALISM_DOCTRINE } from "../_shared/hypotheticalRealismDoctrine.ts";
-import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
+import { GEMATRIA_CHAT_DIRECTIVE } from "../_shared/gematriaChatDirective.ts";
+// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 import { GEMATRIA_CHAT_DIRECTIVE } from "../_shared/gematriaChatDirective.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
