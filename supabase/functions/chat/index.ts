@@ -1701,7 +1701,7 @@ ${truncatedDoctrine}
 
 ## END OF STRATEGIC DOCTRINE BRAIN
 `;
-      } else {
+      } else if (doctrineResp.status !== 400 && doctrineResp.status !== 404) {
         console.error("Failed to fetch Strategic Doctrine brain:", doctrineResp.status);
       }
     } catch (e) {
@@ -1717,7 +1717,7 @@ ${truncatedDoctrine}
         "system-brains/zophiel_elite_v4_architecture.txt",
         "system-brains/zophiel_elite_prompt_engine.txt",
         "system-brains/anti_spiral_protocol.md",
-        "system-brains/asherin_philosophy_consciousness.txt",
+        "system-brains/aureon_philosophy_consciousness.txt",
         // Zophiel coding brain digests — internal reference only
         "system-brains/zophiel_algorithm_coding.md",
         "system-brains/zophiel_algorithm_mind.md",
