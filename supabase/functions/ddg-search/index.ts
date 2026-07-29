@@ -13,9 +13,15 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Require authenticated caller — prevent anonymous scraping abuse
-  const { requireUser, authErrorResponse } = await import("../_shared/authMiddleware.ts");
-  try { await requireUser(req); } catch (e) { return authErrorResponse(e, corsHeaders); }
+  // Require an authenticated caller — prevents anonymous scraping abuse.
+  // Internal server-to-server callers (e.g. /chat) may present the service role key.
+  const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  const isInternal = bearer.length > 0 && bearer === (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "\u0000");
+  if (!isInternal) {
+    const { requireUser, authErrorResponse } = await import("../_shared/authMiddleware.ts");
+    try { await requireUser(req); } catch (e) { return authErrorResponse(e, corsHeaders); }
+  }
+
 
 
   try {
