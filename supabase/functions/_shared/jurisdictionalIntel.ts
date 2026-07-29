@@ -541,10 +541,14 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   // Pass 1 is deliberately first, not part of a large Promise fan-out. The
   // Zophiel web tab succeeds on single wide calls; flooding it with 6+ nested
   // calls caused chat-timeout failures while the web tab itself still worked.
-  const pass1a = await zophielQuery(pass1Queries[0], { timeoutMs: 22000, limit: 20 });
-  const pass1b = pass1a.length >= 8 || pass1Queries[1] === pass1Queries[0]
-    ? []
-    : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(4000, Math.min(8000, deadlineMs - (Date.now() - startedAt) - 3500)), limit: 12 });
+  const channels: ChannelOutcome[] = [];
+  const r1a = await zophielQuery(pass1Queries[0], { timeoutMs: 22000, limit: 20 });
+  channels.push({ label: "wide-web", ok: r1a.ok, hits: r1a.hits.length, reason: r1a.reason });
+  const needsSecondWide = r1a.hits.length < 8 && pass1Queries[1] !== pass1Queries[0];
+  const r1b = needsSecondWide
+    ? await zophielQuery(pass1Queries[1], { timeoutMs: 14000, limit: 12 })
+    : { hits: [] as IntelChannelHit[], ok: true as boolean, reason: undefined as string | undefined };
+  if (needsSecondWide) channels.push({ label: "wide-web-exact", ok: r1b.ok, hits: r1b.hits.length, reason: r1b.reason });
 
   const countryOnlyPerson = intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
   const maxEnrich = countryOnlyPerson ? 2 : 4;
@@ -552,24 +556,35 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     .sort((a, b) => scoreEnrichQuery(intent, b.label) - scoreEnrichQuery(intent, a.label))
     .slice(0, maxEnrich);
 
-  const pass2: IntelChannelHit[][] = [];
-  for (const q of selectedEnrich) {
-    const remaining = deadlineMs - (Date.now() - startedAt) - 3000;
-    if (remaining < 4500) break;
-    pass2.push(await zophielQuery(q.query, { timeoutMs: Math.min(7000, remaining), limit: 10 }));
-  }
+  // Registry channels now fan out IN PARALLEL. Sequentially they consumed the
+  // whole budget and every one of them aborted; in parallel the wall clock is
+  // one slow call, not four, so each gets a survivable 18s.
+  const enrichBudget = Math.min(18000, Math.max(6000, deadlineMs - (Date.now() - startedAt) - 5000));
+  const pass2Results = await Promise.all(
+    selectedEnrich.map(async (q) => {
+      const r = await zophielQuery(q.query, { timeoutMs: enrichBudget, limit: 10 });
+      return { label: q.label, ...r };
+    }),
+  );
+  for (const r of pass2Results) channels.push({ label: r.label, ok: r.ok, hits: r.hits.length, reason: r.reason });
 
   // ── FUSE — dedupe by URL, block-check every hit, classify into buckets ──
   const seen = new Set<string>();
   const buckets: Record<DomainBucket, IntelChannelHit[]> = {
     authoritative: [], corporate: [], court: [], people: [], news: [], social: [], web: [],
   };
-  const all: IntelChannelHit[] = [...pass1a, ...pass1b, ...pass2.flat()];
+  const tokens = subjectTokens(subject);
+  let droppedOffSubject = 0;
+  const all: IntelChannelHit[] = [...r1a.hits, ...r1b.hits, ...pass2Results.flatMap((r) => r.hits)];
   for (const hit of all) {
     if (!hit.url || seen.has(hit.url)) continue;
     if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
     seen.add(hit.url);
     const bucket = classifyDomain(hit.domain);
+    // Registry/court/corporate hits are site-scoped by construction, so they
+    // stay. Everything else must actually name the subject.
+    const exempt = bucket === "authoritative" || bucket === "corporate" || bucket === "court";
+    if (!exempt && !mentionsSubject(hit, tokens)) { droppedOffSubject++; continue; }
     hit.bucket = bucket;
     buckets[bucket].push(hit);
   }
@@ -593,8 +608,9 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   const emptyBuckets = (Object.keys(buckets) as DomainBucket[]).filter((k) => buckets[k].length === 0);
   const totalHits = Object.values(buckets).reduce((a, b) => a + b.length, 0);
 
-  return { intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits };
+  return { intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits, channels, droppedOffSubject };
 }
+
 
 // ── Format for LLM context ────────────────────────────────────────────────
 const BUCKET_LABELS: Record<DomainBucket, string> = {
