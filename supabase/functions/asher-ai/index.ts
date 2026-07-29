@@ -72,7 +72,7 @@ function sse(data: unknown): string {
   return `data: ${typeof data === "string" ? data : JSON.stringify(data)}\n\n`;
 }
 
-function toolCallResponse(name: string, args: Record<string, unknown>, headers: Record<string, string>): Response {
+function toolCallResponse(name: string, args: Record<string, unknown>): Response {
   const payload = {
     choices: [{
       delta: {
@@ -88,7 +88,7 @@ function toolCallResponse(name: string, args: Record<string, unknown>, headers: 
     }],
   };
   return new Response(sse(payload) + sse("[DONE]"), {
-    headers: { ...headers, "Content-Type": "text/event-stream" },
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
   });
 }
 
@@ -266,7 +266,7 @@ serve(async (req) => {
 
     const phone = extractPhoneLookup(latestUserText(cleaned));
     if (phone && !hasAttachments) {
-      return toolCallResponse("phone_intel", { phone }, corsHeaders);
+      return toolCallResponse("phone_intel", { phone });
     }
 
     // Library of Leaks / breach aggregators are PERMANENTLY DISABLED.
@@ -396,103 +396,15 @@ serve(async (req) => {
       return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
-    // ── TEXT PATH: Gemini with function calling → OpenAI-compat SSE ──
-    // Restores map_search / property_intel / phone_intel / visual_recon
-    // tool-calls so typing an address (or asking about a property) drives
-    // the Intelligence Map like before the BYOK-only short-circuit.
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({
-          error: "Bring Your Own API Key is required. Add a Gemini key in Settings → AI Keys.",
-          code: "BYOK_REQUIRED",
-        }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const functionDeclarations = TOOLS.map((t) => ({
-      name: t.function.name,
-      description: t.function.description,
-      parameters: t.function.parameters,
-    }));
-    const textContents = toGeminiContents(cleaned);
-    const textUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
-    const textUpstream = await fetch(textUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: textContents,
-        systemInstruction: { role: "system", parts: [{ text: fullSystem }] },
-        tools: [{ functionDeclarations }],
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
-        ],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
+    // BYOK-ONLY: text path requires the operator to bring their own LLM key.
+    // No in-house / self-hosted fallback is used.
+    return new Response(
+      JSON.stringify({
+        error: "Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.",
+        code: "BYOK_REQUIRED",
       }),
-    });
-    if (!textUpstream.ok || !textUpstream.body) {
-      const t = await textUpstream.text().catch(() => "");
-      console.error("asher-ai gemini text:", textUpstream.status, t);
-      return new Response(JSON.stringify({ error: `Gemini error ${textUpstream.status}`, details: t }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    const tReader = textUpstream.body.getReader();
-    const tDec = new TextDecoder();
-    const tEnc = new TextEncoder();
-    let toolIdx = 0;
-    const textStream = new ReadableStream({
-      async start(controller) {
-        let buf = "";
-        while (true) {
-          const { value, done } = await tReader.read();
-          if (done) break;
-          buf += tDec.decode(value, { stream: true });
-          let idx;
-          while ((idx = buf.indexOf("\n")) !== -1) {
-            const line = buf.slice(0, idx).trimEnd(); buf = buf.slice(idx + 1);
-            if (!line.startsWith("data: ")) continue;
-            const json = line.slice(6).trim();
-            if (!json) continue;
-            try {
-              const parsed = JSON.parse(json);
-              const parts = parsed?.candidates?.[0]?.content?.parts || [];
-              for (const p of parts) {
-                if (p?.text) {
-                  controller.enqueue(tEnc.encode(sse({ choices: [{ delta: { content: p.text }, index: 0, finish_reason: null }] })));
-                } else if (p?.functionCall) {
-                  const call = {
-                    choices: [{
-                      delta: {
-                        tool_calls: [{
-                          index: toolIdx,
-                          id: `call_${p.functionCall.name}_${Date.now()}_${toolIdx}`,
-                          type: "function",
-                          function: {
-                            name: p.functionCall.name,
-                            arguments: JSON.stringify(p.functionCall.args || {}),
-                          },
-                        }],
-                      },
-                      index: 0,
-                      finish_reason: null,
-                    }],
-                  };
-                  controller.enqueue(tEnc.encode(sse(call)));
-                  toolIdx++;
-                }
-              }
-            } catch { /* ignore parse */ }
-          }
-        }
-        controller.enqueue(tEnc.encode(sse("[DONE]")));
-        controller.close();
-      },
-    });
-    return new Response(textStream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("asher-ai error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
