@@ -693,6 +693,8 @@ export function formatIntelContext(bundle: IntelBundle): string {
     "  • Quote verbatim ONLY from SNIPPET or BODY EXCERPT text — never invent an owner, DOB, address, or case number.",
     "  • When BODY EXCERPT is present, mine it for names, dates, addresses, filing numbers — those beat the snippet.",
     "  • Distinguish 'confirmed' from 'possible match — needs verification'.",
+    "  • A source counts as being ABOUT the subject only if the subject's name appears in its SNIPPET or BODY EXCERPT. A hit that merely shares the city or topic is CONTEXT, never identity — label it as such.",
+    "  • If FAILED CHANNELS are listed above, say plainly which record classes were not reachable this run. Never present a degraded sweep as complete.",
     "  • NEVER reference leak/breach databases (Offshore Leaks, ICIJ, Have I Been Pwned, etc.) — they are blocked at retrieval.",
     "  • End with the ONE specific lever that would deepen the sweep next.",
   ].join("\n");
