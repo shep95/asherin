@@ -428,6 +428,13 @@ function subjectTokens(subject: string): string[] {
     .filter((t) => t.length >= 3);
 }
 
+// Registry hosts frequently answer scrapers with a rate-limit or bot-wall page.
+// Those pages used to enter the AUTHORITATIVE bucket and be narrated as records.
+const BOT_WALL_RE = /undeclared automated tool|access denied|are you a human|verify you are|request blocked|rate limit|captcha|enable javascript to continue|403 forbidden|page not found/i;
+function isBotWall(hit: IntelChannelHit): boolean {
+  return BOT_WALL_RE.test(`${hit.title} ${hit.snippet}`);
+}
+
 function mentionsSubject(hit: IntelChannelHit, tokens: string[]): boolean {
   if (!tokens.length) return true;
   const hay = `${hit.title} ${hit.snippet} ${hit.url}`.toLowerCase();
