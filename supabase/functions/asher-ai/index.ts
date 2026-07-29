@@ -266,7 +266,7 @@ serve(async (req) => {
 
     const phone = extractPhoneLookup(latestUserText(cleaned));
     if (phone && !hasAttachments) {
-      return toolCallResponse("phone_intel", { phone });
+      return toolCallResponse("phone_intel", { phone }, corsHeaders);
     }
 
     // Library of Leaks / breach aggregators are PERMANENTLY DISABLED.
