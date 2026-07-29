@@ -979,21 +979,29 @@ When web search results are provided, incorporate them naturally:
 
 // ── DuckDuckGo search helper ─────────────────────────────────────────────────
 
-async function searchDuckDuckGo(query: string): Promise<{ title: string; url: string; snippet: string }[]> {
+async function searchDuckDuckGo(query: string, callerAuth?: string | null): Promise<{ title: string; url: string; snippet: string }[]> {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL");
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!SUPABASE_URL) {
       console.error("Missing Supabase env vars for DDG search");
       return [];
     }
+
+    // ddg-search enforces requireUser(). The anon key is NOT a user token, so
+    // forward the caller's JWT; fall back to the service role for system calls.
+    const bearer = (callerAuth?.replace(/^Bearer\s+/i, "") || SERVICE_ROLE || "").trim();
+    if (!bearer) return [];
 
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/ddg-search`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${bearer}`,
+
       },
       body: JSON.stringify({ query, numResults: 6 }),
     });
