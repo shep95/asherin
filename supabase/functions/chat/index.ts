@@ -1006,7 +1006,7 @@ async function searchDuckDuckGo(query: string, callerAuth?: string | null): Prom
       body: JSON.stringify({ query, numResults: 6 }),
     });
 
-    if (!resp.ok) {
+
     let results: { title: string; url: string; snippet: string }[] = [];
     if (resp.ok) {
       const data = await resp.json();
