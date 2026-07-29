@@ -28,7 +28,7 @@ const SEO: Record<string, SeoEntry> = {
   "/pricing": {
     title: "Pricing — Aureon, Pro & Enterprise Plans",
     description:
-      "Aureon is $18/mo for the core platform and $399/mo for Aureon Pro (Azplen, NOMAD, Briefings, Zophiel Pro). Enterprise on request.",
+      "Aureon is $18/mo for the core platform and $399/mo for Asherin Pro (Azplen, NOMAD, Briefings, Zophiel Pro). Enterprise on request.",
   },
   "/terms": {
     title: "Terms of Service — Aureon",

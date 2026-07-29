@@ -184,15 +184,15 @@ const UPDATES: Update[] = [
   },
   {
     date: "2026-07-02",
-    title: "AXRLEN Access — Opened to Aureon Pro ($399/mo)",
+    title: "AXRLEN Access — Opened to Asherin Pro ($399/mo)",
     body:
-      "AXRLEN was previously admin-only. It is now available to every active Aureon Pro subscriber ($399/mo — monthly_pro, pro, lifetime, and algorithm tiers) across the standalone /axrlen tab, the axrlen-chat API, and the new inline bridge in Aureon and Asher chat. A new server-side proTierGate reads the caller's user_subscriptions row (status='active' AND not expired) via the service role, so the gate is enforced identically on every entry point — no frontend-only checks. Anonymous callers get a sign-in nudge, authenticated non-Pro callers get a single-line upgrade prompt pointing to /pricing, admins retain their bypass. Verified end-to-end against the deployed link-extract-chat: anonymous forecast request returned {axrlen:{fired:true, denied:true, reason:'anonymous'}} + upgrade line, non-forecast requests continue to route through the normal Aureon flow.",
+      "AXRLEN was previously admin-only. It is now available to every active Asherin Pro subscriber ($399/mo — monthly_pro, pro, lifetime, and algorithm tiers) across the standalone /axrlen tab, the axrlen-chat API, and the new inline bridge in Aureon and Asher chat. A new server-side proTierGate reads the caller's user_subscriptions row (status='active' AND not expired) via the service role, so the gate is enforced identically on every entry point — no frontend-only checks. Anonymous callers get a sign-in nudge, authenticated non-Pro callers get a single-line upgrade prompt pointing to /pricing, admins retain their bypass. Verified end-to-end against the deployed link-extract-chat: anonymous forecast request returned {axrlen:{fired:true, denied:true, reason:'anonymous'}} + upgrade line, non-forecast requests continue to route through the normal Aureon flow.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Access",
   },
   {
     date: "2026-07-02",
-    title: "Aureon Property Intelligence — Satellite Map + Live Scrape",
+    title: "Asherin Property Intelligence — Satellite Map + Live Scrape",
     body:
       "Aureon Chat now recognizes property questions and answers them with real evidence. A property-intent classifier detects US / UK / Canadian addresses, ZIP hints, and named landmarks (Eiffel Tower, Empire State Building, Palantir HQ). When it fires, the pipeline geocodes the target via OpenStreetMap/Nominatim (free, no key), plans five targeted queries against Zillow, Redfin, Realtor, assessor sites, and deed/parcel records, then scrapes the top five ranked sources via Firecrawl v2 with JSON extraction plus a markdown-regex fallback for beds, baths, sqft, year built, last sale price, HOA, and MLS. The assistant streams its answer with inline domain citations, then renders a satellite PropertyMapCard (Esri World Imagery, Leaflet) and a PropertySourcesStrip with contributing facts beneath the message. Verified live across 1600 Pennsylvania Ave NW, 350 5th Ave NYC, 221B Baker Street London, Eiffel Tower, and Empire State Building — every query returned geocode + 5 sources in ≤17s.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
@@ -285,7 +285,7 @@ const UPDATES: Update[] = [
     body:
       "The Vault is now conversational. Type in plain English and Aureon classifies intent in real time — WRITE (chunk + embed content you paste), FETCH + WRITE (Aureon resolves the public endpoint, pulls the data, normalizes it, and ingests), or QUERY (semantic retrieval + cited answer). No manual uploads, no clicking through tabs. The vault becomes long-term memory that grows through natural language, and every stored chunk is automatically surfaced during future Aureon chats.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
-    tag: "Aureon Pro",
+    tag: "Asherin Pro",
   },
   {
     date: "2026-06-30",
@@ -315,9 +315,9 @@ const UPDATES: Update[] = [
     date: "2026-06-28",
     title: "Knowledge Vault (RAG) — Glassmorphic Rebuild",
     body:
-      "The Aureon Pro Knowledge Vault now matches the glassmorphic aesthetic of the rest of the app — ambient blur washes, translucent cards, and backdrop-blur tabs. Retrieval remains gated to the $399 tier and is injected into Aureon Chat for forensic-grade recall against your private corpus.",
+      "The Asherin Pro Knowledge Vault now matches the glassmorphic aesthetic of the rest of the app — ambient blur washes, translucent cards, and backdrop-blur tabs. Retrieval remains gated to the $399 tier and is injected into Aureon Chat for forensic-grade recall against your private corpus.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
-    tag: "Aureon Pro",
+    tag: "Asherin Pro",
   },
   {
     date: "2026-06-27",
@@ -387,7 +387,7 @@ const UPDATES: Update[] = [
     date: "2026-06-19",
     title: "Zaxin Tactical Suite Launched",
     body:
-      "Introduced Zaxin inside the Aureon Pro tier \u2014 a tactical BLE/optical intelligence overlay with Web Bluetooth, skeleton tracking, a golden-brown HUD, and a picture-in-picture Binocular Scope. Mobile-friendly from day one.",
+      "Introduced Zaxin inside the Asherin Pro tier \u2014 a tactical BLE/optical intelligence overlay with Web Bluetooth, skeleton tracking, a golden-brown HUD, and a picture-in-picture Binocular Scope. Mobile-friendly from day one.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Launch",
   },

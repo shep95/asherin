@@ -5,7 +5,7 @@ import ManageSubscriptionCard from "@/components/dashboard/subscription/ManageSu
 /**
  * Dashboard "Subscription" page.
  *
- * Renders the active monthly subscription model ($18 Aureon / $399 Aureon Pro)
+ * Renders the active monthly subscription model ($18 Aureon / $399 Asherin Pro)
  * plus the Enterprise contact card.
  */
 const SubscriptionView = () => {
@@ -18,7 +18,7 @@ const SubscriptionView = () => {
             ◈ Aureon · Subscription
           </p>
           <h1 className="mt-1 text-2xl font-extralight tracking-wide text-foreground">
-            Aureon &amp; Aureon Pro.
+            Aureon &amp; Asherin Pro.
           </h1>
           <p className="mt-1 text-sm font-extralight text-muted-foreground">
             Two monthly plans. Enterprise priced on request.

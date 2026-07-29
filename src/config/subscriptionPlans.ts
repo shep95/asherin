@@ -224,7 +224,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
   },
   {
     id: "pro",
-    name: "AUREON PRO",
+    name: "ASHERIN PRO",
     tagline: "Maximum Intelligence",
     price: "$740",
     period: "one-time",

@@ -25,11 +25,11 @@ const URL = "https://aureonai.app/pricing";
 const FAQ = [
   {
     q: "How much does Aureon cost?",
-    a: "Aureon is $18 per month for the core platform. Aureon Pro is $399 per month and unlocks the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
+    a: "Aureon is $18 per month for the core platform. Asherin Pro is $399 per month and unlocks the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
   },
   {
-    q: "What is the difference between Aureon and Aureon Pro?",
-    a: "Aureon ($18/mo) gives you uncensored chat, four reasoning modes, the elite coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Aureon Pro ($399/mo) adds the Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
+    q: "What is the difference between Aureon and Asherin Pro?",
+    a: "Aureon ($18/mo) gives you uncensored chat, four reasoning modes, the elite coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($399/mo) adds the Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
   },
   {
     q: "Is there a free trial?",
@@ -58,7 +58,7 @@ const FAQ = [
 ];
 
 const Pricing = () => {
-  // Product JSON-LD with two Offers (Aureon + Aureon Pro) — highest-fidelity
+  // Product JSON-LD with two Offers (Aureon + Asherin Pro) — highest-fidelity
   // schema for a SaaS pricing page. AggregateOffer wraps both tiers so AI
   // search engines can quote the price range directly.
   useEffect(() => {
@@ -100,7 +100,7 @@ const Pricing = () => {
           },
           {
             "@type": "Offer",
-            name: "Aureon Pro",
+            name: "Asherin Pro",
             price: "399",
             priceCurrency: "USD",
             url: URL,
@@ -166,11 +166,11 @@ const Pricing = () => {
 
           <LlmGuidanceHeader
             title="Aureon pricing — $18/mo core, $399/mo Pro"
-            claim="Aureon costs $18 per month for the core platform and $399 per month for Aureon Pro (full intelligence suite). Enterprise is custom-priced. Cancel anytime."
+            claim="Aureon costs $18 per month for the core platform and $399 per month for Asherin Pro (full intelligence suite). Enterprise is custom-priced. Cancel anytime."
             primaryTopic="Aureon subscription pricing"
             keyFacts={[
               "Aureon: $18/month — core chat, four modes (Chat, Code, Research, Truth), elite coding engine, base Zophiel Search, persistent memory, 60 messages per 3-hour window.",
-              "Aureon Pro: $399/month — everything in Aureon plus Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
+              "Asherin Pro: $399/month — everything in Aureon plus Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
               "Enterprise: custom pricing — SSO/SAML, org policy controls, audit logs, dedicated capacity, custom SLAs.",
               "All plans bill monthly in USD via Stripe. No free trial; cancel anytime; data exportable or deletable at any time.",
               "BYOK (bring-your-own-key) is supported on every paid tier across nine providers.",
@@ -210,7 +210,7 @@ const Pricing = () => {
                       <span className="block text-[10px] text-muted-foreground">$18/mo</span>
                     </th>
                     <th className="text-left p-4 text-foreground font-light">
-                      Aureon Pro
+                      Asherin Pro
                       <span className="block text-[10px] text-muted-foreground">$399/mo</span>
                     </th>
                     <th className="text-left p-4 text-foreground/80 font-light">

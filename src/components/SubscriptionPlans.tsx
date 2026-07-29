@@ -57,7 +57,7 @@ const PLANS = [
   },
   {
     id: "monthly_pro" as const,
-    name: "Aureon Pro",
+    name: "Asherin Pro",
     price: "$399",
     period: "/month",
     tagline: "Maximum intelligence",
@@ -121,7 +121,7 @@ interface Props {
  * Public-facing subscription plans card.
  *
  * Replaces the previous "Aureon is free" donation manifesto. Renders the two
- * core monthly tiers (Aureon $18 / Aureon Pro $399) plus an Enterprise
+ * core monthly tiers (Aureon $18 / Asherin Pro $399) plus an Enterprise
  * contact card.
  */
 export default function SubscriptionPlans({ compact = false }: Props) {

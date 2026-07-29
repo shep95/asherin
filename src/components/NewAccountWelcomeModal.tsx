@@ -27,7 +27,7 @@ const CAPABILITIES = [
 
 const PLANS = [
   { tier: "Aureon",     price: "$18",     per: "/mo", desc: "Core uncensored chat, code, research, Zophiel Search (Base)." },
-  { tier: "Aureon Pro", price: "$399",    per: "/mo", desc: "Full intelligence suite — Azplen, NOMAD, Axrlen, Zaxin, Zerlal, Zeeion." },
+  { tier: "Asherin Pro", price: "$399",    per: "/mo", desc: "Full intelligence suite — Azplen, NOMAD, Axrlen, Zaxin, Zerlal, Zeeion." },
   { tier: "Enterprise", price: "Custom",  per: "",    desc: "Dedicated capacity, SSO, org controls, SLA." },
 ];
 

@@ -246,7 +246,7 @@ const PRODUCTS: Product[] = [
     tier: "aureon",
   },
 
-  /* ═══════════════ PRO — AUREON PRO $399 ═══════════════ */
+  /* ═══════════════ PRO — ASHERIN PRO $399 ═══════════════ */
   {
     name: "RAD — Research & Development",
     codename: "New",
@@ -466,7 +466,7 @@ const RADAR_DATA = [
 
 const PRICE_DATA = [
   { plan: "Aureon", cost: 18 },
-  { plan: "Aureon Pro (full suite)", cost: 399 },
+  { plan: "Asherin Pro (full suite)", cost: 399 },
   { plan: "ChatGPT Plus", cost: 20 },
   { plan: "Claude Pro", cost: 20 },
   { plan: "Gemini Advanced", cost: 20 },
@@ -564,7 +564,7 @@ const Software = () => {
       "@type": "CollectionPage",
       name: "Aureon Software Catalog",
       description:
-        "Every Aureon tool grouped by subscription tier. Core software on Aureon ($18/month); full intelligence + R&D suite on Aureon Pro ($399/month).",
+        "Every Aureon tool grouped by subscription tier. Core software on Aureon ($18/month); full intelligence + R&D suite on Asherin Pro ($399/month).",
       url: "https://aureonai.app/software",
       mainEntity: {
         "@type": "ItemList",
@@ -609,7 +609,7 @@ const Software = () => {
               {aureonProducts.length} tools ship in <strong className="text-foreground">Aureon ($18/month)</strong>.
               The full intelligence + R&amp;D suite — {proProducts.length} additional modules including
               <strong className="text-foreground"> RAD (Research &amp; Development with Aureon Chat)</strong> —
-              ships in <strong className="text-foreground">Aureon Pro ($399/month)</strong>.
+              ships in <strong className="text-foreground">Asherin Pro ($399/month)</strong>.
             </p>
           </section>
 
@@ -622,7 +622,7 @@ const Software = () => {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-[9px] font-medium tracking-[0.25em] uppercase text-foreground/80 px-2 py-0.5 rounded-full border border-foreground/40">
-                    New · Aureon Pro
+                    New · Asherin Pro
                   </span>
                   <Command className="h-3 w-3 text-foreground/40" />
                 </div>
@@ -692,7 +692,7 @@ const Software = () => {
             </div>
           </section>
 
-          {/* AUREON PRO $399 tier */}
+          {/* ASHERIN PRO $399 tier */}
           <section className="space-y-6">
             <div className="flex items-baseline justify-between flex-wrap gap-3">
               <div>
@@ -700,7 +700,7 @@ const Software = () => {
                   ◉ Tier 2 · Full suite
                 </p>
                 <h2 className="text-2xl font-extralight tracking-tight mt-1">
-                  Aureon Pro — $399 / month <span className="text-muted-foreground/60 text-base">· everything in Aureon + {proProducts.length} more</span>
+                  Asherin Pro — $399 / month <span className="text-muted-foreground/60 text-base">· everything in Aureon + {proProducts.length} more</span>
                 </h2>
                 <p className="text-xs font-extralight text-muted-foreground mt-1">
                   Predictive intelligence, financial + data forensics, autonomous agents, R&amp;D workflows, and enterprise collaboration.
@@ -794,7 +794,7 @@ const Software = () => {
             <h2 className="text-2xl font-extralight tracking-tight">Two plans. Every tool above.</h2>
             <p className="max-w-xl mx-auto text-sm font-extralight text-muted-foreground">
               Aureon is <strong className="text-foreground">$18/month</strong> for {aureonProducts.length} core tools.
-              Aureon Pro is <strong className="text-foreground">$399/month</strong> for the full intelligence suite —
+              Asherin Pro is <strong className="text-foreground">$399/month</strong> for the full intelligence suite —
               including RAD, Axrlen, Azplen, Zeeion, Zacoon, and every Pro-tier module.
               Enterprise (SSO, audit, dedicated capacity) is custom-priced.
             </p>

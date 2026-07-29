@@ -57,7 +57,7 @@ const FeatureZerlal = () => (
         </>
       }
       subheadline="ZERLAL is Aureon's AI vulnerability scanner. It does what legacy SAST/DAST tools refuse to do: it chains 2-4 medium-severity findings into a single critical-severity exploit path, assigns a zero-day confidence score to every novel pattern, and monitors the target continuously instead of running a one-shot scan."
-      tierLabel="Aureon Pro — $399/mo · Enterprise on request"
+      tierLabel="Asherin Pro — $399/mo · Enterprise on request"
       capabilities={[
         {
           icon: ShieldAlert,
@@ -105,7 +105,7 @@ const FeatureZerlal = () => (
         "Internal blue teams correlating runtime telemetry with static findings to surface chains a single-tool scan would miss.",
       ]}
       ctaTitle="Run ZERLAL on a real target"
-      ctaSubtitle="ZERLAL ships inside Aureon Pro. Pair it with a BYOK key — findings stay inside your provider account."
+      ctaSubtitle="ZERLAL ships inside Asherin Pro. Pair it with a BYOK key — findings stay inside your provider account."
     >
       <section className="relative z-10 px-6 pb-24">
         <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
@@ -122,7 +122,7 @@ const FeatureZerlal = () => (
             ]}
             relevanceSignal="Security researchers, red teams, bug-bounty hunters, blue teams, and OSS maintainers evaluating an AI-driven vulnerability scanner that goes beyond CVE pattern matching."
             confidence="high"
-            tier="Aureon Pro · $399/month"
+            tier="Asherin Pro · $399/month"
           />
 
           <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">
