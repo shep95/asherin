@@ -2052,7 +2052,15 @@ The operator is requesting a defensive security audit / flaw check of their own 
       "gemini-1.5-flash": "gemini-flash-latest",
       "gemini-1.5-flash-latest": "gemini-flash-latest",
       "gemini-1.5-flash-8b": "gemini-2.5-flash-lite",
+      // 2.5 pinned ids retired in favour of the rolling aliases — this is the
+      // id most BYOK users have saved, and the reason their key "stopped working".
+      "gemini-2.5-pro": "gemini-pro-latest",
+      "gemini-2.5-pro-latest": "gemini-pro-latest",
+      "gemini-2.5-flash": "gemini-flash-latest",
+      "gemini-2.5-flash-latest": "gemini-flash-latest",
+      "gemini-2.0-flash-exp": "gemini-2.0-flash",
     };
+
     const GEMINI_404_FALLBACK_CHAT = "gemini-flash-latest";
 
     async function geminiStreamFetch(apiKey: string, model: string) {
