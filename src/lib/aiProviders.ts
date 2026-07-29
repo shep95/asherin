@@ -37,8 +37,9 @@ export const AI_PROVIDERS: ProviderConfig[] = [
       { id: "gemini-flash-latest", name: "Gemini Flash (latest)", description: "Rolling alias — fast, balanced, recommended" },
       { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", description: "Cheapest — high volume, low latency" },
       { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", description: "Previous generation flash" },
-
+    ],
   },
+
   {
     id: "openai",
     name: "OpenAI",
