@@ -543,35 +543,31 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     enrichQueries.push({ label: "news", query: `${subjectQuoted} ${locus} ${siteFilter(NEWS_SITES)}` });
   }
 
-  // Pass 1 is deliberately first, not part of a large Promise fan-out. The
-  // Zophiel web tab succeeds on single wide calls; flooding it with 6+ nested
-  // calls caused chat-timeout failures while the web tab itself still worked.
-  const channels: ChannelOutcome[] = [];
-  const r1a = await zophielQuery(pass1Queries[0], { timeoutMs: 22000, limit: 20 });
-  channels.push({ label: "wide-web", ok: r1a.ok, hits: r1a.hits.length, reason: r1a.reason });
-  const needsSecondWide = r1a.hits.length < 8 && pass1Queries[1] !== pass1Queries[0];
-  const r1b = needsSecondWide
-    ? await zophielQuery(pass1Queries[1], { timeoutMs: 14000, limit: 12 })
-    : { hits: [] as IntelChannelHit[], ok: true as boolean, reason: undefined as string | undefined };
-  if (needsSecondWide) channels.push({ label: "wide-web-exact", ok: r1b.ok, hits: r1b.hits.length, reason: r1b.reason });
-
   const countryOnlyPerson = intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
   const maxEnrich = countryOnlyPerson ? 2 : 4;
   const selectedEnrich = enrichQueries
     .sort((a, b) => scoreEnrichQuery(intent, b.label) - scoreEnrichQuery(intent, a.label))
     .slice(0, maxEnrich);
 
-  // Registry channels now fan out IN PARALLEL. Sequentially they consumed the
-  // whole budget and every one of them aborted; in parallel the wall clock is
-  // one slow call, not four, so each gets a survivable 18s.
-  const enrichBudget = Math.min(18000, Math.max(6000, deadlineMs - (Date.now() - startedAt) - 5000));
-  const pass2Results = await Promise.all(
-    selectedEnrich.map(async (q) => {
-      const r = await zophielQuery(q.query, { timeoutMs: enrichBudget, limit: 10 });
-      return { label: q.label, ...r };
-    }),
+  // ONE fan-out for every channel. Measured live: a wide query answers in ~7-10s
+  // and a site-scoped registry query in ~16s. Run sequentially those costs stack
+  // past the budget and the registry channels always aborted — which is exactly
+  // why sweeps degraded to wide-web noise. Fanned out, wall clock is the single
+  // slowest call, so every channel gets a survivable 30s.
+  const channelBudget = 30000;
+  const channels: ChannelOutcome[] = [];
+  const plan: { label: string; query: string; limit: number }[] = [
+    { label: "wide-web", query: pass1Queries[0], limit: 20 },
+    ...(pass1Queries[1] !== pass1Queries[0]
+      ? [{ label: "wide-web-exact", query: pass1Queries[1], limit: 12 }]
+      : []),
+    ...selectedEnrich.map((q) => ({ label: q.label, query: q.query, limit: 10 })),
+  ];
+  const runs = await Promise.all(
+    plan.map(async (p) => ({ label: p.label, ...(await zophielQuery(p.query, { timeoutMs: channelBudget, limit: p.limit })) })),
   );
-  for (const r of pass2Results) channels.push({ label: r.label, ok: r.ok, hits: r.hits.length, reason: r.reason });
+  for (const r of runs) channels.push({ label: r.label, ok: r.ok, hits: r.hits.length, reason: r.reason });
+
 
   // ── FUSE — dedupe by URL, block-check every hit, classify into buckets ──
   const seen = new Set<string>();
