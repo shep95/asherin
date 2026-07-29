@@ -1770,29 +1770,12 @@ The operator is requesting a defensive security audit / flaw check of their own 
 - Keep the boundary defensive: no credential theft, no stealth, no persistence, no destructive steps, and no weaponized third-party exploit payloads.
 ` : "";
 
-    // ── COGNITIVE WORKFLOW PRE-PASS (silent, backend-only) ────────────────
-    // Mimics how a human mind decomposes a question before answering:
-    // routing cortex → activate regions → write internal step plan → execute
-    // as ONE coherent voice. The workflow itself is NEVER surfaced to the UI.
-    let cognitiveWorkflowDirective = "";
-    try {
-      const latestUser = [...prunedMessages].reverse().find((m: any) => m.role === "user");
-      const latestText = latestUser?.content || "";
-      const recentCtx = prunedMessages.slice(-4).map((m: any) => `${m.role}: ${m.content || ""}`).join("\n");
-      const routingKey = byokProvider === "google" ? (userApiKey || "") : "";
-      if (latestText && routingKey) {
-        const wf = await buildCognitiveWorkflow(latestText, recentCtx, routingKey);
-        if (wf) {
-          console.log(`[chat] Workflow: ${wf.intent} → ${wf.regions.join(",")}`);
-          cognitiveWorkflowDirective = formatWorkflowDirective(wf);
-        }
-      }
-    } catch (e) {
-      console.error("[chat] cognitive workflow pre-pass error:", (e as Error).message);
-    }
+    // Cognitive-workflow pre-pass DISABLED (Aureon-era restore) — the pre-pass
+    // added an extra Gemini round-trip and injected a second routing directive
+    // that competed with the identity mode classifier. Removed to restore tone.
 
-    // Inject the CODE → NARRATIVE → FLAWS → FIX loop protocol — applies
-    // whenever a ZIP/code attachment is present OR code generation is requested.
+    // CODE_NARRATIVE_PROTOCOL still imported so it can be conditionally attached
+    // when the turn is a code turn (see systemParts assembly below).
     const { CODE_NARRATIVE_PROTOCOL } = await import("../_shared/codeNarrativeProtocol.ts");
     const NUMBERED_OFF_OVERRIDE = `\n\n## NUMBERED-LIST BRAIN: DISABLED FOR THIS CONVERSATION\nThe operator has explicitly turned OFF the numbered-list answer brain for this thread. This override has the HIGHEST priority and replaces any rule above that mandates \`1.\`, \`2.\`, \`3.\` formatting.\n- Do NOT default every structured answer to a numbered list.\n- Write in natural prose, paragraphs, headers, tables, or bullet points — whatever fits the question best.\n- Numbered lists are allowed ONLY when the content is genuinely ordinal (steps in a procedure, ranked items the user asked for).\n- All other rules (secrecy, tone, formatting richness, mode classifier) still apply.\n`;
     // AUREON-ERA LEAN ASSEMBLY (restored 2026-07-29)
