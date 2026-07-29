@@ -86,8 +86,20 @@ JSON:`;
     if (!resp.ok) return null;
     const data = await resp.json();
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const cleaned = raw.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(cleaned);
+    // Robust JSON extraction — models sometimes prepend "parameters:" or wrap
+    // the object in commentary. Strip fences, then grab the first {...} block.
+    let cleaned = raw.replace(/```json|```/g, "").trim();
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+    }
+    let parsed: any;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      return null; // silent — pre-pass is best-effort, main model still runs
+    }
     if (!parsed?.intent || !Array.isArray(parsed?.regions)) return null;
     return {
       intent: String(parsed.intent),
@@ -98,8 +110,7 @@ JSON:`;
       needsCode: !!parsed.needsCode,
       rationale: String(parsed.rationale || ""),
     };
-  } catch (e) {
-    console.error("[cognitiveWorkflow] pre-pass failed:", (e as Error).message);
+  } catch {
     return null;
   }
 }
