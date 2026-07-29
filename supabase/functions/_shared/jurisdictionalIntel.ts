@@ -68,7 +68,12 @@ export interface IntelBundle {
   jurisdictionLabel: string;
   emptyBuckets: DomainBucket[];
   totalHits: number;
+  /** Per-channel retrieval outcome — lets the model know what actually ran. */
+  channels?: { label: string; ok: boolean; hits: number; reason?: string }[];
+  /** Hits discarded because they never mentioned the subject. */
+  droppedOffSubject?: number;
 }
+
 
 // ── Lookup tables (kept from v1 — proven to work) ─────────────────────────
 const US_STATES: Record<string, string> = {
@@ -272,9 +277,25 @@ function extractSubject(raw: string, jurisdictionTokens: string[]): string {
        .trim();
 
   const nameMatch = matchName(s);
-  if (nameMatch) return nameMatch;
-  return s;
+  return trimSubjectStopwords(nameMatch || s);
 }
+
+// Connectors left behind after jurisdiction tokens are stripped used to stay
+// glued to the name ("Donna Newton In"), and that polluted every quoted query
+// — an exact-phrase search for a name that does not exist returns strangers.
+const SUBJECT_EDGE_STOPWORDS = new Set([
+  "in", "at", "of", "on", "from", "near", "the", "a", "an", "and", "for",
+  "to", "by", "with", "who", "that", "which", "is", "was", "her", "his",
+  "their", "my", "info", "information", "about", "please", "she", "he",
+]);
+
+function trimSubjectStopwords(value: string): string {
+  const parts = value.split(/\s+/).filter(Boolean);
+  while (parts.length && SUBJECT_EDGE_STOPWORDS.has(parts[0].toLowerCase())) parts.shift();
+  while (parts.length && SUBJECT_EDGE_STOPWORDS.has(parts[parts.length - 1].toLowerCase())) parts.pop();
+  return parts.join(" ");
+}
+
 
 // ── Intent classifier ──────────────────────────────────────────────────────
 export function classifyIntent(rawUserMessage: string): IntelIntent {
@@ -341,11 +362,22 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
 }
 
 // ── Zophiel retrieval ──────────────────────────────────────────────────────
-async function zophielQuery(query: string, options: { timeoutMs?: number; limit?: number } = {}): Promise<IntelChannelHit[]> {
-  if (!SUPABASE_URL || !SUPABASE_ANON) return [];
-  // Hard-cap any per-call timeout at 10s so a slow/degraded zophiel-search
-  // cannot chain into pushing the outer /chat request past the 150s edge limit.
-  const timeoutMs = Math.min(options.timeoutMs ?? 22000, 22000);
+export interface ChannelOutcome {
+  label: string;
+  ok: boolean;
+  hits: number;
+  reason?: string;
+}
+
+async function zophielQuery(
+  query: string,
+  options: { timeoutMs?: number; limit?: number } = {},
+): Promise<{ hits: IntelChannelHit[]; ok: boolean; reason?: string }> {
+  if (!SUPABASE_URL || !SUPABASE_ANON) return { hits: [], ok: false, reason: "missing supabase env" };
+  // Measured live P50 for zophiel-search is ~10.3s. Any per-call budget below
+  // ~12s aborts the call before it can ever answer, which silently starved the
+  // registry channels and left only wide-web noise for the model to reason on.
+  const timeoutMs = Math.max(6000, Math.min(options.timeoutMs ?? 20000, 32000));
   const limit = options.limit ?? 12;
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/zophiel-search`, {
@@ -358,14 +390,14 @@ async function zophielQuery(query: string, options: { timeoutMs?: number; limit?
       body: JSON.stringify({ query, page: 1, mode: "web" }),
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!resp.ok) return [];
+    if (!resp.ok) return { hits: [], ok: false, reason: `http_${resp.status}` };
     const data = await resp.json();
     let raw: any[] = Array.isArray(data?.results) ? data.results : (Array.isArray(data?.hits) ? data.hits : []);
     // Fallback: flatten `grouped` (category → results[]) if `results` empty.
     if (raw.length === 0 && data?.grouped && typeof data.grouped === "object") {
       raw = Object.values(data.grouped).flat() as any[];
     }
-    return raw.slice(0, limit).map((r: any) => {
+    const hits = raw.slice(0, limit).map((r: any) => {
       const url = String(r.url || r.link || r.source_url || (r.source && !r.source.includes(" ") ? `https://${r.source}` : "") || "");
       let domain = "";
       try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
@@ -376,12 +408,42 @@ async function zophielQuery(query: string, options: { timeoutMs?: number; limit?
         domain,
       } as IntelChannelHit;
     }).filter((h: IntelChannelHit) => h.url && !isBlockedSource(h.domain) && !isBlockedSource(h.url));
-
+    return { hits, ok: true };
   } catch (e) {
-    console.error("[jurisdictionalIntel] zophiel query failed:", (e as Error).message);
-    return [];
+    const reason = (e as Error).message || "unknown";
+    console.error("[jurisdictionalIntel] zophiel query failed:", reason);
+    return { hits: [], ok: false, reason };
   }
 }
+
+// ── Subject-relevance gate ────────────────────────────────────────────────
+// Retrieval used to accept ANY hit the engine returned. For a person sweep
+// that means an unrelated journal article about the city can be bucketed and
+// then narrated as if it described the subject. A hit now has to actually
+// mention a distinctive subject token to survive in the non-registry buckets.
+function subjectTokens(subject: string): string[] {
+  return subject
+    .toLowerCase()
+    .split(/[^a-z0-9'-]+/)
+    .filter((t) => t.length >= 3);
+}
+
+// Registry hosts frequently answer scrapers with a rate-limit or bot-wall page.
+// Those pages used to enter the AUTHORITATIVE bucket and be narrated as records.
+const BOT_WALL_RE = /undeclared automated tool|access denied|are you a human|verify you are|request blocked|rate limit|captcha|enable javascript to continue|403 forbidden|page not found/i;
+function isBotWall(hit: IntelChannelHit): boolean {
+  return BOT_WALL_RE.test(`${hit.title} ${hit.snippet}`);
+}
+
+function mentionsSubject(hit: IntelChannelHit, tokens: string[]): boolean {
+  if (!tokens.length) return true;
+  const hay = `${hit.title} ${hit.snippet} ${hit.url} ${hit.body ?? ""}`.toLowerCase();
+  // A multi-token personal name must appear in FULL. Matching a single given
+  // name ("Donna") let an unrelated Wikipedia article about scuba diving enter
+  // the bundle and be narrated as if it concerned the subject.
+  return tokens.every((t) => hay.includes(t));
+}
+
 
 // ── Domain classifier ──────────────────────────────────────────────────────
 function classifyDomain(domain: string): DomainBucket {
@@ -452,7 +514,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   const startedAt = Date.now();
   // Tightened from 24.5s → 20s so the sweep leaves comfortable headroom
   // inside the 150s /chat budget even when zophiel-search runs slow.
-  const deadlineMs = 42000;
+  const deadlineMs = 44000;
   const src = sourcesFor(intent.country, intent.state, intent.county);
   const registries = Array.from(new Set([
     ...src.ownership, ...src.tax, ...src.permits, ...src.entities, ...src.courts, ...src.people,
@@ -504,41 +566,54 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     enrichQueries.push({ label: "news", query: `${subjectQuoted} ${locus} ${siteFilter(NEWS_SITES)}` });
   }
 
-  // Pass 1 is deliberately first, not part of a large Promise fan-out. The
-  // Zophiel web tab succeeds on single wide calls; flooding it with 6+ nested
-  // calls caused chat-timeout failures while the web tab itself still worked.
-  const pass1a = await zophielQuery(pass1Queries[0], { timeoutMs: 22000, limit: 20 });
-  const pass1b = pass1a.length >= 8 || pass1Queries[1] === pass1Queries[0]
-    ? []
-    : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(4000, Math.min(8000, deadlineMs - (Date.now() - startedAt) - 3500)), limit: 12 });
-
   const countryOnlyPerson = intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
   const maxEnrich = countryOnlyPerson ? 2 : 4;
   const selectedEnrich = enrichQueries
     .sort((a, b) => scoreEnrichQuery(intent, b.label) - scoreEnrichQuery(intent, a.label))
     .slice(0, maxEnrich);
 
-  const pass2: IntelChannelHit[][] = [];
-  for (const q of selectedEnrich) {
-    const remaining = deadlineMs - (Date.now() - startedAt) - 3000;
-    if (remaining < 4500) break;
-    pass2.push(await zophielQuery(q.query, { timeoutMs: Math.min(7000, remaining), limit: 10 }));
-  }
+  // ONE fan-out for every channel. Measured live: a wide query answers in ~7-10s
+  // and a site-scoped registry query in ~16s. Run sequentially those costs stack
+  // past the budget and the registry channels always aborted — which is exactly
+  // why sweeps degraded to wide-web noise. Fanned out, wall clock is the single
+  // slowest call, so every channel gets a survivable 30s.
+  const channelBudget = 30000;
+  const channels: ChannelOutcome[] = [];
+  const plan: { label: string; query: string; limit: number }[] = [
+    { label: "wide-web", query: pass1Queries[0], limit: 20 },
+    ...(pass1Queries[1] !== pass1Queries[0]
+      ? [{ label: "wide-web-exact", query: pass1Queries[1], limit: 12 }]
+      : []),
+    ...selectedEnrich.map((q) => ({ label: q.label, query: q.query, limit: 10 })),
+  ];
+  const runs = await Promise.all(
+    plan.map(async (p) => ({ label: p.label, ...(await zophielQuery(p.query, { timeoutMs: channelBudget, limit: p.limit })) })),
+  );
+  for (const r of runs) channels.push({ label: r.label, ok: r.ok, hits: r.hits.length, reason: r.reason });
+
 
   // ── FUSE — dedupe by URL, block-check every hit, classify into buckets ──
   const seen = new Set<string>();
   const buckets: Record<DomainBucket, IntelChannelHit[]> = {
     authoritative: [], corporate: [], court: [], people: [], news: [], social: [], web: [],
   };
-  const all: IntelChannelHit[] = [...pass1a, ...pass1b, ...pass2.flat()];
+  const tokens = subjectTokens(subject);
+  let droppedOffSubject = 0;
+  const all: IntelChannelHit[] = runs.flatMap((r) => r.hits);
   for (const hit of all) {
     if (!hit.url || seen.has(hit.url)) continue;
     if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
+    if (isBotWall(hit)) { droppedOffSubject++; continue; }
     seen.add(hit.url);
     const bucket = classifyDomain(hit.domain);
+    // Registry/court/corporate hits are site-scoped by construction, so they
+    // stay. Everything else must actually name the subject.
+    const exempt = bucket === "authoritative" || bucket === "corporate" || bucket === "court";
+    if (!exempt && !mentionsSubject(hit, tokens)) { droppedOffSubject++; continue; }
     hit.bucket = bucket;
     buckets[bucket].push(hit);
   }
+
 
   // ── PASS 3 — BODY FETCH top URLs (opportunistic; do not stall answer) ──
   const priority: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
@@ -559,8 +634,9 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   const emptyBuckets = (Object.keys(buckets) as DomainBucket[]).filter((k) => buckets[k].length === 0);
   const totalHits = Object.values(buckets).reduce((a, b) => a + b.length, 0);
 
-  return { intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits };
+  return { intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits, channels, droppedOffSubject };
 }
+
 
 // ── Format for LLM context ────────────────────────────────────────────────
 const BUCKET_LABELS: Record<DomainBucket, string> = {
@@ -574,15 +650,28 @@ const BUCKET_LABELS: Record<DomainBucket, string> = {
 };
 
 export function formatIntelContext(bundle: IntelBundle): string {
-  const { intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries } = bundle;
+  const { intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries, channels, droppedOffSubject } = bundle;
+
+  // Retrieval integrity is stated explicitly. Previously a sweep in which every
+  // registry channel had timed out looked identical to a clean sweep, so the
+  // model narrated wide-web noise with full confidence.
+  const failed = (channels ?? []).filter((c) => !c.ok);
+  const integrity = channels?.length
+    ? [
+        `Channels run: ${channels.length} — succeeded ${channels.length - failed.length}, failed ${failed.length}`,
+        failed.length ? `FAILED CHANNELS: ${failed.map((c) => `${c.label} (${c.reason ?? "error"})`).join(", ")} — treat these record classes as NOT SEARCHED, not as "nothing found".` : "",
+        droppedOffSubject ? `Off-subject hits discarded by the relevance gate: ${droppedOffSubject}` : "",
+      ].filter(Boolean).join("\n")
+    : "";
 
   const header = [
     `## JURISDICTIONAL INTEL SWEEP — ${intent.kind.toUpperCase()}`,
     `Subject: ${intent.subject}`,
     `Jurisdiction: ${jurisdictionLabel}`,
     `Registries in scope: ${registries.slice(0, 12).join(", ") || "(none jurisdiction-specific — wide-web only)"}`,
-    `Total unique hits (post-blocklist, deduped): ${totalHits}`,
-  ].join("\n");
+    `Total unique hits (post-blocklist, post-relevance, deduped): ${totalHits}`,
+    integrity,
+  ].filter(Boolean).join("\n");
 
   const accel = intent.accelerators.length
     ? `\n\n### ACCELERATORS (ask user, do not block)\n${intent.accelerators.map((a, i) => `${i + 1}. ${a}`).join("\n")}`
@@ -596,6 +685,7 @@ export function formatIntelContext(bundle: IntelBundle): string {
       "Distinguish 'no public record found' from 'this person does not exist'.",
     ].join("\n");
   }
+
 
   const sections: string[] = [];
   const order: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
@@ -624,6 +714,8 @@ export function formatIntelContext(bundle: IntelBundle): string {
     "  • Quote verbatim ONLY from SNIPPET or BODY EXCERPT text — never invent an owner, DOB, address, or case number.",
     "  • When BODY EXCERPT is present, mine it for names, dates, addresses, filing numbers — those beat the snippet.",
     "  • Distinguish 'confirmed' from 'possible match — needs verification'.",
+    "  • A source counts as being ABOUT the subject only if the subject's name appears in its SNIPPET or BODY EXCERPT. A hit that merely shares the city or topic is CONTEXT, never identity — label it as such.",
+    "  • If FAILED CHANNELS are listed above, say plainly which record classes were not reachable this run. Never present a degraded sweep as complete.",
     "  • NEVER reference leak/breach databases (Offshore Leaks, ICIJ, Have I Been Pwned, etc.) — they are blocked at retrieval.",
     "  • End with the ONE specific lever that would deepen the sweep next.",
   ].join("\n");
