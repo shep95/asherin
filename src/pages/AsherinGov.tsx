@@ -1,5 +1,5 @@
 // /asherin.gov — Government / sovereign-partner landing page.
-// Public, SEO-lite (targeted, not aggressive), theme-matched to the Aureon
+// Public, SEO-lite (targeted, not aggressive), theme-matched to the Asherin
 // dark aesthetic. Uses the aureon wallpaper as a fixed background.
 
 import { useEffect } from "react";
@@ -42,8 +42,8 @@ const CAPABILITIES = [
   {
     icon: Scale,
     tag: "Legal",
-    title: "Aureon Legal-Advisor Mode",
-    body: "Deep multi-jurisdiction legal research inside Aureon chat — statutes, case law, treaties, and older laws that still supersede newer ones.",
+    title: "Asherin Legal-Advisor Mode",
+    body: "Deep multi-jurisdiction legal research inside Asherin chat — statutes, case law, treaties, and older laws that still supersede newer ones.",
   },
 ];
 
@@ -56,7 +56,7 @@ const WHITELABEL_TIERS = [
       "Fully whitelabeled UI (logo, palette, domain)",
       "Air-gapped or private-VPC deployment",
       "Dedicated key material (no shared tenancy)",
-      "Choice of Aureon, Asher, Zophiel, AXRLEN, Zerlal, Zaxin, ZIAASSETS",
+      "Choice of Asherin, Asher, Zophiel, AXRLEN, Zerlal, Zaxin, ZIAASSETS",
     ],
   },
   {
@@ -105,7 +105,7 @@ const AsherinGov = () => {
 
   return (
     <div className="relative min-h-screen text-foreground overflow-x-hidden">
-      {/* Aureon wallpaper — fixed, dimmed, degrades to solid bg if image fails */}
+      {/* Asherin wallpaper — fixed, dimmed, degrades to solid bg if image fails */}
       <div
         className="fixed inset-0 -z-10 bg-background bg-cover bg-center"
         style={{ backgroundImage: `linear-gradient(to bottom, hsl(var(--background)/0.72), hsl(var(--background)/0.92)), url(${wallpaper})` }}
@@ -115,7 +115,7 @@ const AsherinGov = () => {
       <div className="max-w-6xl mx-auto px-6 py-16 sm:py-24">
         {/* Back link */}
         <Link to="/" className="text-[10px] tracking-[0.3em] text-muted-foreground/60 uppercase hover:text-foreground/80">
-          ← Aureon
+          ← Asherin
         </Link>
 
         {/* HERO */}

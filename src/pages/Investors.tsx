@@ -9,9 +9,9 @@ import { ArrowUpRight, Check } from "lucide-react";
  */
 const Investors = () => {
   useEffect(() => {
-    document.title = "Investors · Aureon";
+    document.title = "Investors · Asherin";
     const desc =
-      "Aureon is accepting two public / angel investor slots as of 06/23/2026. Up to 5% equity and 3% royalties on all sales and subscriptions. Strong connections required.";
+      "Asherin is accepting two public / angel investor slots as of 06/23/2026. Up to 5% equity and 3% royalties on all sales and subscriptions. Strong connections required.";
     let m = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
     if (!m) {
       m = document.createElement("meta");
@@ -24,10 +24,10 @@ const Investors = () => {
   const requirements = [
     "Recurring monthly investment (not a one-time cheque)",
     "Verified network of high-influence connections (government, finance, media, defense, or family offices)",
-    "Understands Aureon's mission — a sovereign intelligence stack, not 'another AI app'",
-    "Capable of moving Aureon into foreign government infrastructure",
+    "Understands Asherin's mission — a sovereign intelligence stack, not 'another AI app'",
+    "Capable of moving Asherin into foreign government infrastructure",
     "Long-horizon thesis — minimum 36-month conviction",
-    "Passes Aureon's internal filtering process (we vet you, not the other way around)",
+    "Passes Asherin's internal filtering process (we vet you, not the other way around)",
   ];
 
   return (
@@ -41,7 +41,7 @@ const Investors = () => {
             ◈ Opened 06 / 23 / 2026
           </div>
           <h1 className="text-5xl sm:text-6xl font-extralight tracking-tight leading-[1.05]">
-            Aureon is now accepting
+            Asherin is now accepting
             <span className="block text-muted-foreground/70">public &amp; angel investors.</span>
           </h1>
           <p className="max-w-3xl text-base sm:text-lg font-extralight text-muted-foreground leading-relaxed">
@@ -65,7 +65,7 @@ const Investors = () => {
           </h2>
           <div className="space-y-3 text-base font-extralight leading-relaxed text-muted-foreground">
             <p>
-              No venture capitalist will fund Aureon. Their portfolios are
+              No venture capitalist will fund Asherin. Their portfolios are
               governed by <span className="text-foreground">woke agendas</span>,
               DEI mandates, and propaganda pipelines that we directly oppose.
               They do not invest in truth — they invest in narrative control.
@@ -118,15 +118,15 @@ const Investors = () => {
           </div>
           <div className="rounded-3xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 sm:p-10 space-y-4 text-base font-extralight leading-relaxed text-muted-foreground">
             <p>
-              The server cost to run Aureon at its current scale is heavy and
+              The server cost to run Asherin at its current scale is heavy and
               growing. That alone would justify an investment round — but
               capital is not the bottleneck.
             </p>
             <p>
               We need an investor with <span className="text-foreground">strong connections</span>{" "}
-              who understands what Aureon is and what we are forcing the world
+              who understands what Asherin is and what we are forcing the world
               to see us as. Money keeps the lights on; relationships move
-              Aureon to the next altitude.
+              Asherin to the next altitude.
             </p>
             <p>
               The requirement is a recurring monthly investment{" "}
@@ -178,7 +178,7 @@ const Investors = () => {
           </h2>
           <div className="space-y-3 text-base font-extralight leading-relaxed text-muted-foreground">
             <p>
-              Aureon has already operated alongside several influential
+              Asherin has already operated alongside several influential
               families globally. The growth plan is word-of-mouth at the top —
               not paid acquisition — and the end-state placement is{" "}
               <span className="text-foreground">foreign government infrastructure</span>.
@@ -187,7 +187,7 @@ const Investors = () => {
               Our internal read: the American government infrastructure stack
               is collapsing under its own oversaturation. The next decade
               belongs to sovereign nations that adopt a clean intelligence
-              spine. Aureon is that spine.
+              spine. Asherin is that spine.
             </p>
           </div>
         </section>
@@ -222,7 +222,7 @@ const Investors = () => {
             ◈ Not an investor?
           </p>
           <p className="text-sm font-extralight text-muted-foreground max-w-xl mx-auto">
-            If you do not want to invest but still want to help cover Aureon's
+            If you do not want to invest but still want to help cover Asherin's
             server cost, you can donate any amount:
           </p>
           <a
@@ -231,7 +231,7 @@ const Investors = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-foreground/30 text-sm font-light tracking-[0.2em] uppercase transition-all hover:border-foreground/60 hover:text-foreground"
           >
-            Donate to Aureon
+            Donate to Asherin
             <ArrowUpRight className="h-4 w-4" strokeWidth={1.5} />
           </a>
         </section>

@@ -25,7 +25,7 @@ const TESTIMONIALS: Testimonial[] = [
   {
     badge: "Beta Operator",
     tool: "Aureon Chat",
-    quote: "Every other model gave me caveats. Aureon gave me a forensic dossier — sourced, ranked, cross-validated, and ready to brief. Two hours of research in twelve minutes.",
+    quote: "Every other model gave me caveats. Asherin gave me a forensic dossier — sourced, ranked, cross-validated, and ready to brief. Two hours of research in twelve minutes.",
     initials: "D.K.",
     role: "Daniel K. — Former Federal Investigator",
     meta: "14 years counterintelligence · Pro Tier · 6 months",
@@ -36,7 +36,7 @@ const TESTIMONIALS: Testimonial[] = [
     quote: "Thirty sources, cross-validated in one pass. What used to be a week of tab-juggling is now a single query with a veracity score on every claim.",
     initials: "M.R.",
     role: "Marisa R. — Senior OSINT Analyst",
-    meta: "Defense contractor · Aureon Tier · 4 months",
+    meta: "Defense contractor · Asherin Tier · 4 months",
   },
   {
     badge: "Threat Hunter",
@@ -68,7 +68,7 @@ const TESTIMONIALS: Testimonial[] = [
     quote: "I storyboarded an entire campaign in an afternoon. The prompts feel like talking to an art director, not a slot machine.",
     initials: "L.C.",
     role: "Lena C. — Creative Director",
-    meta: "Indie agency, NYC · Aureon Tier · 7 months",
+    meta: "Indie agency, NYC · Asherin Tier · 7 months",
   },
   {
     badge: "Architect",
@@ -76,7 +76,7 @@ const TESTIMONIALS: Testimonial[] = [
     quote: "FEA and thermal sim wired straight into the chat loop. I iterate three concepts before lunch and the math actually checks out.",
     initials: "R.H.",
     role: "Ravi H. — Mechanical Engineer, PE",
-    meta: "Aerospace contracting · Aureon Tier · 5 months",
+    meta: "Aerospace contracting · Asherin Tier · 5 months",
   },
   {
     badge: "Operator",
@@ -92,11 +92,11 @@ const TESTIMONIALS: Testimonial[] = [
     quote: "I dropped a folder of half-written chapters and got a clean manuscript back — voice intact, grammar fixed, no rewrites I didn't ask for.",
     initials: "T.B.",
     role: "Tomas B. — Non-Fiction Author",
-    meta: "3 published titles · Aureon Tier · 2 months",
+    meta: "3 published titles · Asherin Tier · 2 months",
   },
   {
     badge: "Builder",
-    tool: "Aureon IDE",
+    tool: "Asherin IDE",
     quote: "Imagine-to-Code is unreal. I sketched a UI, it scaffolded the components, and I shipped the prototype the same evening.",
     initials: "K.W.",
     role: "Kai W. — Indie Founder",
@@ -120,7 +120,7 @@ const TrustBand = () => {
     <div className="relative z-10 px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <p className="text-center text-[10px] font-medium tracking-[0.3em] text-muted-foreground/50 uppercase mb-8">
-          Operators run Aureon for
+          Operators run Asherin for
         </p>
 
         {/* Marquee */}

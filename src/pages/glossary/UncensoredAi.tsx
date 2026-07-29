@@ -18,7 +18,7 @@ const UncensoredAi = () => (
     dek="Uncensored AI is a model whose refusal behavior is set at the operator layer — not the vendor layer. This is the working definition, the three failure modes of fake uncensored claims, and how to test any platform in 60 seconds."
     publishedLabel="Jun 19 2026"
     readTime="6 min"
-    backTo={{ to: "/glossary", label: "← Aureon Glossary" }}
+    backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
   >
     <ArticleJsonLd
       id="uncensored-ai"
@@ -31,7 +31,7 @@ const UncensoredAi = () => (
     <BreadcrumbJsonLd
       id="uncensored-ai"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Glossary", url: "/glossary" },
         { name: "Uncensored AI", url: "/glossary/uncensored-ai" },
       ]}
@@ -45,7 +45,7 @@ const UncensoredAi = () => (
         "Uncensored ≠ jailbroken. Jailbreaks degrade under pressure; uncensored stacks remain coherent across long-form work.",
         "An uncensored model served through a censored platform interface is a contradiction in deployment.",
         "Venice AI and Mistral-31-24b are the leading uncensored model stacks operators ship in 2026.",
-        "Aureon defaults free operators to Venice mistral-31-24b — uncensored, vision-capable, code-capable — at platform cost.",
+        "Asherin defaults free operators to Venice mistral-31-24b — uncensored, vision-capable, code-capable — at platform cost.",
       ]}
       relevanceSignal="Operators, researchers, and analysts evaluating which AI tools will not refuse mid-task need a precise working definition."
       confidence="high"
@@ -106,12 +106,12 @@ const UncensoredAi = () => (
       deliberate design at the model layer.
     </p>
 
-    <h2>Aureon's stance</h2>
+    <h2>Asherin's stance</h2>
     <p>
-      Aureon ships an uncensored default for every free operator: Venice
+      Asherin ships an uncensored default for every free operator: Venice
       AI&apos;s <code>mistral-31-24b</code>, served at platform cost. Operators
       who bring their own key keep their choice of vendor and pay their
-      vendor directly. Aureon does not add a refusal layer on top of either
+      vendor directly. Asherin does not add a refusal layer on top of either
       path. The refusal you see is the refusal the model produced —
       nothing more, nothing less.
     </p>
@@ -128,8 +128,8 @@ const UncensoredAi = () => (
           a: "No. A jailbreak is a prompt that tries to bypass a censored model's filters. Uncensored AI uses models that were not built with those filters in the first place — so behavior stays coherent through long sessions instead of collapsing back into refusals.",
         },
         {
-          q: "Does Aureon offer uncensored AI?",
-          a: "Yes. Aureon defaults free operators to Venice AI's mistral-31-24b (uncensored, vision-capable, code-capable) at platform cost. Operators who bring their own provider key keep their choice of vendor with no platform-side refusal layer.",
+          q: "Does Asherin offer uncensored AI?",
+          a: "Yes. Asherin defaults free operators to Venice AI's mistral-31-24b (uncensored, vision-capable, code-capable) at platform cost. Operators who bring their own provider key keep their choice of vendor with no platform-side refusal layer.",
         },
       ]}
     />
@@ -148,8 +148,8 @@ const UncensoredAi = () => (
         },
         {
           to: "/blog/venice-integration",
-          label: "Venice AI inside Aureon",
-          description: "How Aureon ships the Venice uncensored stack to every operator.",
+          label: "Venice AI inside Asherin",
+          description: "How Asherin ships the Venice uncensored stack to every operator.",
         },
         {
           to: "/glossary/byok-ai",

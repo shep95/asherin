@@ -336,7 +336,7 @@ const LiveDemoStrip = () => {
             <span className="text-muted-foreground">Poke the platform.</span>
           </h2>
           <p className="mt-5 max-w-xl mx-auto text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
-            These are not screenshots. Type, drag, watch — three real Aureon modules running right here in your browser.
+            These are not screenshots. Type, drag, watch — three real Asherin modules running right here in your browser.
           </p>
         </div>
 
