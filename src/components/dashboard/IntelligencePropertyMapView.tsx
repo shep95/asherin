@@ -1,9 +1,9 @@
 import IntelligenceMapModule from "@/components/asher/IntelligenceMapModule";
 
 /**
- * ASHERIN PRO — Intelligence Property Map
+ * AUREON PRO — Intelligence Property Map
  *
- * Brings the Asher Dashboard real-time intelligence map into the Asherin
+ * Brings the Asher Dashboard real-time intelligence map into the Aureon
  * dashboard for the Maximum Intelligence (Pro) subscription tier.
  *
  * Click any property / land parcel on the map and the Zophiel engine

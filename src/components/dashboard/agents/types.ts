@@ -89,7 +89,7 @@ export const AGENT_CATEGORIES = [
   { id: "business", label: "Business", icon: "💰" },
   { id: "development", label: "Development", icon: "💻" },
   { id: "personal", label: "Personal", icon: "🧘" },
-  { id: "asherin", label: "Asherin-Specific", icon: "🔮" },
+  { id: "aureon", label: "Aureon-Specific", icon: "🔮" },
   { id: "integration", label: "Integrations", icon: "🔗" },
   { id: "ai", label: "Advanced AI", icon: "🤖" },
 ] as const;
@@ -172,7 +172,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
     name: "Video Analysis Automator",
     description: "Auto-analyze uploaded videos with Video Intelligence",
     icon: "🎬",
-    category: "asherin",
+    category: "aureon",
     trigger: { type: "event", event: { source: "video_upload" } },
     actions: [{ type: "analyze_video", config: {}, order: 1 }, { type: "generate_report", config: { reportType: "video_analysis" }, order: 2 }],
     output: { type: "email" },

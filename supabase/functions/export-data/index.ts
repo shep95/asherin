@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/x-ndjson",
-        "Content-Disposition": `attachment; filename="asherin-data-export-${new Date().toISOString().split("T")[0]}.ndjson"`,
+        "Content-Disposition": `attachment; filename="aureon-data-export-${new Date().toISOString().split("T")[0]}.ndjson"`,
         "Transfer-Encoding": "chunked",
       },
     });

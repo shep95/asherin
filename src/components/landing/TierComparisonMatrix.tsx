@@ -15,9 +15,9 @@ interface Tier {
 
 const TIERS: Tier[] = [
   { key: "chat", name: "Chat", price: "$47", cadence: "one-time", blurb: "Uncensored core chat & basic tools", cta: "Start Chat", href: "/dashboard" },
-  { key: "asherin", name: "Asherin", price: "$199", cadence: "one-time", blurb: "Full creation suite + Zophiel", cta: "Get Asherin", href: "/dashboard" },
+  { key: "aureon", name: "Aureon", price: "$199", cadence: "one-time", blurb: "Full creation suite + Zophiel", cta: "Get Aureon", href: "/dashboard" },
   { key: "pro", name: "Pro", price: "$740", cadence: "one-time", blurb: "Pro intelligence, predictive, trading", cta: "Go Pro", href: "/dashboard" },
-  { key: "lifetime", name: "Lifetime", price: "$470", cadence: "once", blurb: "Everything in Asherin ($199) — forever, one payment", cta: "Claim Lifetime", href: "/dashboard", highlight: true },
+  { key: "lifetime", name: "Lifetime", price: "$470", cadence: "once", blurb: "Everything in Aureon ($199) — forever, one payment", cta: "Claim Lifetime", href: "/dashboard", highlight: true },
 ];
 
 interface Row {
@@ -26,36 +26,36 @@ interface Row {
   tiers: Record<string, true | false | string>;
 }
 
-// Lifetime = everything in the Asherin ($199 one-time) tier and below, forever, for a single one-time payment.
+// Lifetime = everything in the Aureon ($199 one-time) tier and below, forever, for a single one-time payment.
 // Pro-only features stay Pro-only (predictive, trading, automated agents, ZERLAL, Azplen, Google Intelligence).
 const ROWS: Row[] = [
-  { group: "Core", label: "Uncensored chat", tiers: { chat: true, asherin: true, pro: true, lifetime: true } },
-  { group: "Core", label: "Bring Your Own Key (all providers)", tiers: { chat: true, asherin: true, pro: true, lifetime: true } },
-  { group: "Core", label: "Persistent memory & projects", tiers: { chat: "Limited", asherin: true, pro: true, lifetime: true } },
-  { group: "Core", label: "Unlimited messages (BYOK)", tiers: { chat: false, asherin: true, pro: true, lifetime: true } },
+  { group: "Core", label: "Uncensored chat", tiers: { chat: true, aureon: true, pro: true, lifetime: true } },
+  { group: "Core", label: "Bring Your Own Key (all providers)", tiers: { chat: true, aureon: true, pro: true, lifetime: true } },
+  { group: "Core", label: "Persistent memory & projects", tiers: { chat: "Limited", aureon: true, pro: true, lifetime: true } },
+  { group: "Core", label: "Unlimited messages (BYOK)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
 
-  { group: "Intelligence", label: "Zophiel Search (30+ sources)", tiers: { chat: false, asherin: true, pro: true, lifetime: true } },
-  { group: "Intelligence", label: "NOMAD Intelligence (14-pass)", tiers: { chat: false, asherin: true, pro: true, lifetime: true } },
-  { group: "Intelligence", label: "Intelligence Briefings", tiers: { chat: false, asherin: true, pro: true, lifetime: true } },
-  { group: "Intelligence", label: "Predictive Intelligence (Monte Carlo)", tiers: { chat: false, asherin: false, pro: true, lifetime: false } },
-  { group: "Intelligence", label: "Trading Intelligence", tiers: { chat: false, asherin: false, pro: true, lifetime: false } },
-  { group: "Intelligence", label: "Pattern Analysis & Forecasting", tiers: { chat: false, asherin: false, pro: true, lifetime: false } },
+  { group: "Intelligence", label: "Zophiel Search (30+ sources)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
+  { group: "Intelligence", label: "NOMAD Intelligence (14-pass)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
+  { group: "Intelligence", label: "Intelligence Briefings", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
+  { group: "Intelligence", label: "Predictive Intelligence (Monte Carlo)", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
+  { group: "Intelligence", label: "Trading Intelligence", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
+  { group: "Intelligence", label: "Pattern Analysis & Forecasting", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
 
-  { group: "Creation", label: "Vibe Imager & Vibe Video", tiers: { chat: false, asherin: true, pro: true, lifetime: true } },
-  { group: "Creation", label: "E-book / PDF / Slideshow generators", tiers: { chat: false, asherin: true, pro: true, lifetime: true } },
-  { group: "Creation", label: "Whiteboard (infinite canvas)", tiers: { chat: false, asherin: true, pro: true, lifetime: true } },
-  { group: "Creation", label: "Asherin IDE & Imagine-to-Code", tiers: { chat: false, asherin: true, pro: true, lifetime: true } },
-  { group: "Creation", label: "ZANOEM Design Lab (FEA / Thermal)", tiers: { chat: false, asherin: true, pro: true, lifetime: true } },
+  { group: "Creation", label: "Vibe Imager & Vibe Video", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
+  { group: "Creation", label: "E-book / PDF / Slideshow generators", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
+  { group: "Creation", label: "Whiteboard (infinite canvas)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
+  { group: "Creation", label: "Aureon IDE & Imagine-to-Code", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
+  { group: "Creation", label: "ZANOEM Design Lab (FEA / Thermal)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
 
-  { group: "Agents", label: "AI Personas & Persona Store", tiers: { chat: true, asherin: true, pro: true, lifetime: true } },
-  { group: "Agents", label: "Zahten Agent Forge", tiers: { chat: false, asherin: true, pro: true, lifetime: true } },
-  { group: "Agents", label: "Automated Agents (scheduled)", tiers: { chat: false, asherin: false, pro: true, lifetime: false } },
-  { group: "Agents", label: "Voice Chat (ElevenLabs)", tiers: { chat: false, asherin: false, pro: true, lifetime: false } },
+  { group: "Agents", label: "AI Personas & Persona Store", tiers: { chat: true, aureon: true, pro: true, lifetime: true } },
+  { group: "Agents", label: "Zahten Agent Forge", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
+  { group: "Agents", label: "Automated Agents (scheduled)", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
+  { group: "Agents", label: "Voice Chat (ElevenLabs)", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
 
-  { group: "Security", label: "Guardian Vault", tiers: { chat: true, asherin: true, pro: true, lifetime: true } },
-  { group: "Security", label: "ZERLAL Cyber Security", tiers: { chat: false, asherin: false, pro: true, lifetime: false } },
-  { group: "Security", label: "Azplen Data Intelligence", tiers: { chat: false, asherin: false, pro: true, lifetime: false } },
-  { group: "Security", label: "Google Intelligence Suite", tiers: { chat: false, asherin: false, pro: true, lifetime: false } },
+  { group: "Security", label: "Guardian Vault", tiers: { chat: true, aureon: true, pro: true, lifetime: true } },
+  { group: "Security", label: "ZERLAL Cyber Security", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
+  { group: "Security", label: "Azplen Data Intelligence", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
+  { group: "Security", label: "Google Intelligence Suite", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
 ];
 
 const GROUPS = ["Core", "Intelligence", "Creation", "Agents", "Security"];
@@ -104,7 +104,7 @@ const TierComparisonMatrix = () => {
 
               {t.highlight && (
                 <span className="px-1 text-[9px] tracking-wide text-amber-200/60 normal-case text-center leading-snug">
-                  Asherin, paid once.
+                  Aureon, paid once.
                 </span>
               )}
 

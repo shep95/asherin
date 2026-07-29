@@ -43,7 +43,7 @@ const INDICATORS = [
 
 const COLORS = ["#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#14b8a6", "#f97316", "#6366f1"];
 
-type SubTab = "landing" | "overview" | "comparison" | "usa_detail" | "waste_fraud" | "jobs" | "budget_optimize" | "asherin";
+type SubTab = "landing" | "overview" | "comparison" | "usa_detail" | "waste_fraud" | "jobs" | "budget_optimize" | "aureon";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
 
@@ -133,7 +133,7 @@ const ZeeionGovData = () => {
 
   const countryObj = COUNTRIES.find(c => c.code === selectedCountry);
 
-  /* ── Asherin Chat ── */
+  /* ── Aureon Chat ── */
   const sendChat = async (text?: string) => {
     const msg = text || chatInput.trim();
     if (!msg || chatLoading) return;
@@ -168,7 +168,7 @@ const ZeeionGovData = () => {
     }
 
     const apiMsgs = [
-      { role: "user" as const, content: `[GOVERNMENT FINANCIAL DATA CONTEXT]\n${ctxParts.join("\n")}\n\n---\nYou are Asherin, an expert government finance analyst. Answer questions about government spending, budgets, debt, and fiscal policy using the data above. Be specific with numbers. Identify waste, inefficiencies, and opportunities. Compare countries when relevant.` },
+      { role: "user" as const, content: `[GOVERNMENT FINANCIAL DATA CONTEXT]\n${ctxParts.join("\n")}\n\n---\nYou are Aureon, an expert government finance analyst. Answer questions about government spending, budgets, debt, and fiscal policy using the data above. Be specific with numbers. Identify waste, inefficiencies, and opportunities. Compare countries when relevant.` },
       ...chatMsgs.map(m => ({ role: m.role, content: m.content })),
       { role: "user" as const, content: msg },
     ];
@@ -210,7 +210,7 @@ const ZeeionGovData = () => {
     { id: "waste_fraud", label: "Waste & Fraud", icon: <Search className="h-3 w-3" /> },
     { id: "jobs", label: "Job Optimization", icon: <Bot className="h-3 w-3" /> },
     { id: "budget_optimize", label: "Budget Optimizer", icon: <PieChart className="h-3 w-3" /> },
-    { id: "asherin", label: "Ask Asherin", icon: <Sparkles className="h-3 w-3" /> },
+    { id: "aureon", label: "Ask Aureon", icon: <Sparkles className="h-3 w-3" /> },
   ];
 
   return (
@@ -628,13 +628,13 @@ const ZeeionGovData = () => {
       {/* ═══ BUDGET OPTIMIZER ═══ */}
       {subTab === "budget_optimize" && <ZeeionBudgetOptimizer />}
 
-      {/* ═══ ASHERIN ═══ */}
-      {subTab === "asherin" && (
+      {/* ═══ AUREON ═══ */}
+      {subTab === "aureon" && (
         <div className="flex flex-col rounded-2xl border border-border/[0.08] bg-foreground/[0.02] h-[600px] overflow-hidden">
           <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border/[0.06]">
             <div className="flex items-center gap-2">
               <Sparkles className="h-3.5 w-3.5 text-foreground/40" />
-              <span className="text-[10px] font-light tracking-wider text-foreground/60">ASHERIN GOV ANALYST</span>
+              <span className="text-[10px] font-light tracking-wider text-foreground/60">AUREON GOV ANALYST</span>
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 animate-pulse" />
             </div>
             {chatMsgs.length > 0 && (

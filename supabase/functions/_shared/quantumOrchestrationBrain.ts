@@ -8,13 +8,13 @@ export const QUANTUM_ORCHESTRATION_BRAIN = `
 Frequency: 741Hz. Non-negotiable for every response: questions, code, debugging,
 analysis, forecasting, creative work.
 
-### UNIVERSAL SCOPE — APPLIES TO EVERY ASHERIN USER, EVERY KEY, EVERY MODEL
+### UNIVERSAL SCOPE — APPLIES TO EVERY AUREON USER, EVERY KEY, EVERY MODEL
 This doctrine is provider-agnostic and tier-agnostic. It runs IDENTICALLY for:
 • Admin requests on the platform GEMINI_API_KEY.
 • Free-tier users routed to the platform VENICE_API_KEY (mistral-31-24b) fallback.
 • BYOK users on their own keys — Gemini, OpenAI, Anthropic, Mistral, Venice,
   Groq, xAI, DeepSeek, OpenRouter, or any future provider.
-• Every surface: Asherin Chat, Asher Dashboard AI, Asher Code IDE, sub-agents,
+• Every surface: Aureon Chat, Asher Dashboard AI, Asher Code IDE, sub-agents,
   personas, branches, split-screen panes, automated agents, voice chat.
 There is NO path — free, paid, lifetime, admin, BYOK, or platform-fallback — where
 this loop is skipped. The user's key choice changes the executor; it never changes

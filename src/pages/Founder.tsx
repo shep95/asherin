@@ -16,16 +16,16 @@ import imagineChaosTime from "@/assets/founder-imagine-chaos-time.png";
 
 const bookPages = Array.from(
   { length: 116 },
-  (_, index) => `/books/asher-asherin-elion-pages/page-${String(index + 1).padStart(3, "0")}.jpg`
+  (_, index) => `/books/asher-aureon-elion-pages/page-${String(index + 1).padStart(3, "0")}.jpg`
 );
 
 const symbolismBookPages = Array.from(
   { length: 62 },
-  (_, index) => `/books/asher-asherin-elion-symbolism-pages/page-${String(index + 1).padStart(3, "0")}.jpg`
+  (_, index) => `/books/asher-aureon-elion-symbolism-pages/page-${String(index + 1).padStart(3, "0")}.jpg`
 );
 
-const bookOneCover = "/books/asher-asherin-elion-pages/page-001.jpg";
-const bookTwoCover = "/books/asher-asherin-elion-symbolism-pages/page-001.jpg";
+const bookOneCover = "/books/asher-aureon-elion-pages/page-001.jpg";
+const bookTwoCover = "/books/asher-aureon-elion-symbolism-pages/page-001.jpg";
 
 const DirectionalCTA = ({ to, label, sublabel }: { to: string; label: string; sublabel?: string }) => (
   <div className="mt-14 flex justify-center">
@@ -55,9 +55,9 @@ const Founder = () => {
       "@context": "https://schema.org",
       "@type": "Person",
       name: "Asher Newton",
-      jobTitle: "Founder of Asherin",
+      jobTitle: "Founder of Aureon",
       url: "https://aureonai.app/founder",
-      description: "Founder of Asherin — uncensored AI intelligence platform.",
+      description: "Founder of Aureon — uncensored AI intelligence platform.",
     });
     document.head.appendChild(ld);
     return () => { document.getElementById("founder-jsonld")?.remove(); };
@@ -90,7 +90,7 @@ const Founder = () => {
 
           <div className="order-1 lg:order-2 text-left">
             <span className="inline-block text-xs font-light tracking-[0.32em] text-foreground/70 uppercase mb-6 border border-foreground/20 rounded-full px-3 py-1">
-              Founder · Creator of Asherin
+              Founder · Creator of Aureon
             </span>
 
             <h1 className="font-display text-7xl sm:text-8xl md:text-9xl lg:text-[8rem] font-light tracking-[-0.025em] leading-[0.88] text-foreground">
@@ -100,12 +100,12 @@ const Founder = () => {
             </h1>
 
             <p className="mt-5 text-[11px] font-mono tracking-[0.42em] uppercase text-foreground/55">
-              Founder · Asherin · Intelligence Systems
+              Founder · Aureon · Intelligence Systems
             </p>
 
             <div className="mt-9 max-w-xl">
               <p className="font-display text-2xl sm:text-[1.7rem] md:text-[1.85rem] font-light italic leading-[1.45] tracking-[-0.005em] text-foreground/85">
-                <span className="text-foreground/30 not-italic">"</span>I didn't build Asherin for investors or corporations. I built it because <span className="text-amber-200/90">the tools humanity deserves don't exist yet</span> — and no one else was going to make them.<span className="text-foreground/30 not-italic">"</span>
+                <span className="text-foreground/30 not-italic">"</span>I didn't build Aureon for investors or corporations. I built it because <span className="text-amber-200/90">the tools humanity deserves don't exist yet</span> — and no one else was going to make them.<span className="text-foreground/30 not-italic">"</span>
               </p>
             </div>
 
@@ -143,7 +143,7 @@ const Founder = () => {
           <div className="text-center mb-16">
             <span className="founder-eyebrow mb-6">Chapter · 00 · Genesis</span>
             <h2 className="font-display mt-6 text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-foreground">
-              Before Asherin.
+              Before Aureon.
               <br />
               <span className="text-foreground/55 italic">Before everything.</span>
             </h2>
@@ -207,13 +207,13 @@ const Founder = () => {
                 Icon: Eye,
                 title: "The Vision",
                 pull: "Trust users with the truth instead of protecting them from it.",
-                body: "I wanted to build something different — something that trusted users with the truth instead of protecting them from it. Something that respected intelligence instead of dumbing it down. Asherin is that something. An AI platform that doesn't moralize, doesn't gatekeep, and doesn't treat its users like children.",
+                body: "I wanted to build something different — something that trusted users with the truth instead of protecting them from it. Something that respected intelligence instead of dumbing it down. Aureon is that something. An AI platform that doesn't moralize, doesn't gatekeep, and doesn't treat its users like children.",
               },
               {
                 Icon: Globe,
                 title: "Beyond Code",
                 pull: "Truth exists in layers. The best tools help you see through each one.",
-                body: "My interests go deeper than technology. I'm drawn to spirituality and the occult — the hidden patterns beneath the surface of things. That same instinct drives Asherin: the belief that truth exists in layers, and the best tools are the ones that help you see through each one.",
+                body: "My interests go deeper than technology. I'm drawn to spirituality and the occult — the hidden patterns beneath the surface of things. That same instinct drives Aureon: the belief that truth exists in layers, and the best tools are the ones that help you see through each one.",
               },
             ].map(({ Icon, title, pull, body }, i) => {
               const isBeyondCode = title === "Beyond Code";
@@ -264,7 +264,7 @@ const Founder = () => {
             <span className="text-foreground/40 italic font-light">Not Shareholders.</span>
           </h2>
           <p className="mt-10 max-w-2xl mx-auto text-base sm:text-lg font-extralight leading-[1.75] text-foreground/80">
-            Asherin isn't built for shareholders. It's built for researchers who need real answers, developers who need real code, and thinkers who refuse to accept a sanitized version of reality. <span className="text-foreground">If you're here, you're the reason this exists.</span>
+            Aureon isn't built for shareholders. It's built for researchers who need real answers, developers who need real code, and thinkers who refuse to accept a sanitized version of reality. <span className="text-foreground">If you're here, you're the reason this exists.</span>
           </p>
 
           <div className="mt-16 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-md p-8 sm:p-12">
@@ -282,7 +282,7 @@ const Founder = () => {
                 { href: "https://www.instagram.com/asher_united/", Icon: Instagram, label: "@asher_united on Instagram", sub: "Visual fragments and behind-the-scenes." },
                 { href: "https://discord.gg/M9hnebRwvk", Icon: MessageCircle, label: "Join Asher on Discord", sub: "The live room — direct, unfiltered, community." },
                 { href: "https://bosley.app/", Icon: Sparkles, label: "Join Asher on Bosley", sub: "Long-form conversations and decentralized notes." },
-                { href: "https://x.com/asherin_elion", Icon: Twitter, label: "@asherin_elion on X", sub: "Backup channel for the platform itself." },
+                { href: "https://x.com/aureon_elion", Icon: Twitter, label: "@aureon_elion on X", sub: "Backup channel for the platform itself." },
               ].map(({ href, Icon, label, sub }) => (
                 <a
                   key={href}
@@ -380,7 +380,7 @@ const Founder = () => {
           </div>
 
           <p className="mt-14 text-right text-xs font-extralight tracking-[0.3em] text-foreground/60 uppercase">
-            ~ Asher Asherin Elion
+            ~ Asher Aureon Elion
           </p>
 
           <DirectionalCTA to="ebook" label="Continue · Into the Library" />
@@ -400,7 +400,7 @@ const Founder = () => {
             <p className="text-lg sm:text-xl font-extralight leading-[1.85] tracking-[-0.003em] text-foreground/90" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
               If you've read this far — you're already different from most people. You didn't scroll past. You didn't dismiss it as "weird." You stayed.
               <br /><br />
-              That matters more than you know. Asherin was built for the ones who stay.
+              That matters more than you know. Aureon was built for the ones who stay.
             </p>
             <p className="mt-10 text-right text-base font-light tracking-[0.08em] text-foreground/85 italic" style={{ fontFamily: 'ui-serif, Georgia, serif' }}>
               — Asher Newton
@@ -432,10 +432,10 @@ const Founder = () => {
             {[
               {
                 cover: bookOneCover,
-                title: "The Book of Asher Asherin Elion",
+                title: "The Book of Asher Aureon Elion",
                 volume: "Volume I · The Foundational Text",
-                desc: "The complete philosophical and operational doctrine that gave rise to Asherin — sovereignty, intelligence, and the architecture of the awakened mind.",
-                pdf: "/__l5e/assets-v1/162dd383-a9e0-40b6-b5d7-938b13cc045a/book-of-asher-asherin-elion.pdf",
+                desc: "The complete philosophical and operational doctrine that gave rise to Aureon — sovereignty, intelligence, and the architecture of the awakened mind.",
+                pdf: "/books/book-of-asher-aureon-elion.pdf",
                 anchor: "book-1",
               },
               {
@@ -443,13 +443,13 @@ const Founder = () => {
                 title: "Symbolism & More",
                 volume: "Volume II · The Symbolic Codex",
                 desc: "A field guide to the hidden symbols, archetypes, and esoteric structures that govern the systems most people never see — the source layer beneath the surface.",
-                pdf: "/books/book-of-asher-asherin-elion-symbolism.pdf",
+                pdf: "/books/book-of-asher-aureon-elion-symbolism.pdf",
                 anchor: "book-2",
               },
             ].map((b) => (
               <div key={b.title} className="rounded-2xl border border-border/30 bg-card/40 backdrop-blur-md p-6 sm:p-8 flex flex-col">
                 <div className="rounded-xl overflow-hidden border border-border/30 bg-background shadow-2xl shadow-black/40 mb-6 aspect-[3/4]">
-                  <img src={b.cover} alt={`Cover of ${b.title} — an Asherin intelligence volume by Asher Newton`} className="w-full h-full object-cover" loading="lazy" />
+                  <img src={b.cover} alt={`Cover of ${b.title} — an Aureon intelligence volume by Asher Newton`} className="w-full h-full object-cover" loading="lazy" />
                 </div>
                 <p className="text-[10px] font-extralight tracking-[0.3em] text-foreground/50 uppercase mb-2">{b.volume}</p>
                 <h3 className="text-2xl font-light tracking-wide text-foreground leading-tight">{b.title}</h3>
@@ -478,14 +478,14 @@ const Founder = () => {
 
           {/* Inline readers */}
           <div id="book-1" className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 sm:p-8 mb-8 scroll-mt-24">
-            <h3 className="text-lg font-light tracking-wide text-foreground mb-5">The Book of Asher Asherin Elion · Reader</h3>
+            <h3 className="text-lg font-light tracking-wide text-foreground mb-5">The Book of Asher Aureon Elion · Reader</h3>
             <div className="max-h-[85vh] overflow-y-auto rounded-xl border border-border/20 bg-background/40 p-3 sm:p-5">
               <div className="mx-auto flex max-w-3xl flex-col gap-5">
                 {bookPages.map((pageSrc, index) => (
                   <img
                     key={pageSrc}
                     src={pageSrc}
-                    alt={`The Book of Asher Asherin Elion page ${index + 1}`}
+                    alt={`The Book of Asher Aureon Elion page ${index + 1}`}
                     loading={index < 2 ? "eager" : "lazy"}
                     className="w-full rounded-lg border border-border/20 bg-background shadow-2xl shadow-black/30"
                   />
@@ -708,7 +708,7 @@ const Founder = () => {
               to="/"
               className="mt-8 inline-flex items-center gap-3 rounded-full border border-foreground/30 bg-foreground/10 px-7 py-3.5 text-sm font-light tracking-[0.22em] uppercase text-foreground transition-all hover:bg-foreground/20"
             >
-              Enter Asherin
+              Enter Aureon
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

@@ -26,7 +26,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-type Source = "chat:asherin" | "chat:asher";
+type Source = "chat:aureon" | "chat:asher";
 
 // ────────────────────────────── shared utils ──────────────────────────────
 

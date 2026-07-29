@@ -310,7 +310,7 @@ const ZeeionWasteFraud = () => {
         date: new Date().toISOString().split("T")[0],
         status: "identified" as WasteStatus,
         action: "AI detected waste pattern from live government data",
-        user: "Asherin AI"
+        user: "Aureon AI"
       }],
       remediationPlan: null,
     }));
@@ -343,7 +343,7 @@ const ZeeionWasteFraud = () => {
           ...w,
           status: "plan_created" as WasteStatus,
           remediationPlan: plan,
-          timeline: [...(w.timeline || []), { date: new Date().toISOString().split("T")[0], status: "plan_created" as WasteStatus, action: "AI-generated remediation plan created", user: "Asherin AI" }],
+          timeline: [...(w.timeline || []), { date: new Date().toISOString().split("T")[0], status: "plan_created" as WasteStatus, action: "AI-generated remediation plan created", user: "Aureon AI" }],
         } : w));
       }
     } catch (e) { console.error("Plan generation failed:", e); }
@@ -353,7 +353,7 @@ const ZeeionWasteFraud = () => {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // Deep-dive: generate itemized records for a specific pattern
-  const getDetailCacheKey = (patternType: string) => `asherin_detail_v4_${country}_${patternType}`;
+  const getDetailCacheKey = (patternType: string) => `aureon_detail_v4_${country}_${patternType}`;
 
   const generatePatternDetail = async (patternIndex: number) => {
     if (!result) return;
@@ -394,7 +394,7 @@ const ZeeionWasteFraud = () => {
       await streamChat({
         messages: [{
           role: "user",
-          content: `You are Asherin's forensic AI in DEEP REASONING MODE. Produce the MAXIMUM number of records.\n\nCRITICAL RULES:\n- Current date: ${new Date().toISOString().slice(0, 10)}\n- All records from ${new Date().getFullYear() - 2} to present only\n- Do NOT invent personal names. Use TITLE + DEPARTMENT format (e.g., "Director General, Ministry of Transport")\n- Reference REAL documented cases from official audit reports (Contraloría, GAO, National Audit Office, etc.)\n- Include a "source" field citing the audit report or public data source\n- Financial figures must be derived from the live data below — not fabricated\n- Vendor names: use REAL companies from documented contracts or descriptive placeholders ("IT Services Vendor A")\n\nLIVE GOVERNMENT DATA:\n${liveContext}\n\nCountry: ${countryName}\nWaste Type: ${pattern.type}\nEstimated Range: ${fmtUsd(pattern.estimatedWasteLow)} – ${fmtUsd(pattern.estimatedWasteHigh)}\nDescription: ${pattern.description}\nEvidence: ${pattern.evidence}\n\n${colPrompt}\n\nDETERMINISTIC SEED: "${country}_${pattern.type}" — use this for consistency.\n\nReturn ONLY JSON (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary"\n}`
+          content: `You are Aureon's forensic AI in DEEP REASONING MODE. Produce the MAXIMUM number of records.\n\nCRITICAL RULES:\n- Current date: ${new Date().toISOString().slice(0, 10)}\n- All records from ${new Date().getFullYear() - 2} to present only\n- Do NOT invent personal names. Use TITLE + DEPARTMENT format (e.g., "Director General, Ministry of Transport")\n- Reference REAL documented cases from official audit reports (Contraloría, GAO, National Audit Office, etc.)\n- Include a "source" field citing the audit report or public data source\n- Financial figures must be derived from the live data below — not fabricated\n- Vendor names: use REAL companies from documented contracts or descriptive placeholders ("IT Services Vendor A")\n\nLIVE GOVERNMENT DATA:\n${liveContext}\n\nCountry: ${countryName}\nWaste Type: ${pattern.type}\nEstimated Range: ${fmtUsd(pattern.estimatedWasteLow)} – ${fmtUsd(pattern.estimatedWasteHigh)}\nDescription: ${pattern.description}\nEvidence: ${pattern.evidence}\n\n${colPrompt}\n\nDETERMINISTIC SEED: "${country}_${pattern.type}" — use this for consistency.\n\nReturn ONLY JSON (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary"\n}`
         }],
         mode: "research",
         depth: "expert",
@@ -426,7 +426,7 @@ const ZeeionWasteFraud = () => {
     setWasteItems([]);
 
     // Check session cache
-    const mainCacheKey = `asherin_waste_live_v4_${country}`;
+    const mainCacheKey = `aureon_waste_live_v4_${country}`;
     try {
       const cached = sessionStorage.getItem(mainCacheKey);
       if (cached) {
@@ -457,7 +457,7 @@ const ZeeionWasteFraud = () => {
       await streamChat({
         messages: [{
           role: "user",
-          content: `You are Asherin, an elite forensic financial AI. You MUST analyze the following REAL, LIVE government financial data and identify waste, fraud, and inefficiency patterns.\n\nCRITICAL INTEGRITY RULES:\n1. ALL estimates MUST be derived from the real numbers below. Show your math.\n2. Use RANGE estimates (low–high) based on international benchmarks (OECD, World Bank reports, Transparency International CPI).\n3. Do NOT invent personal names. Reference officials by TITLE + DEPARTMENT only.\n4. Every pattern must cite its data source (IMF, World Bank, Treasury, etc.).\n5. Compare this country's spending ratios to peer countries in the data.\n6. Use the deterministic seed "${country}_waste_scan" for consistent results.\n\n${liveDataContext}\n\nReturn ONLY a JSON object (no markdown):\n{\n  "totalWasteLow": <number in USD>,\n  "totalWasteHigh": <number in USD>,\n  "percentOfBudgetLow": <number>,\n  "percentOfBudgetHigh": <number>,\n  "patterns": [\n    {\n      "type": "<ghost_employees|duplicate_payments|overpriced_contracts|inactive_programs|contract_splitting|administrative_overhead|procurement_fraud|embezzlement|ineffective_programs|shell_companies>",\n      "description": "<detailed description citing specific data points from the live data>",\n      "estimatedWasteLow": <number USD>,\n      "estimatedWasteHigh": <number USD>,\n      "severity": "high|medium|low",\n      "evidence": "<specific data points and comparisons from the live data above>",\n      "recommendation": "<actionable recommendation>"\n    }\n  ],\n  "executiveSummary": "<3-4 paragraph summary referencing specific IMF/World Bank data points, peer comparisons, and fiscal trends>"\n}\n\nIMPORTANT:\n- Derive GDP value from World Bank data to calculate USD amounts\n- Compare debt/revenue/spending ratios to peer countries in the data\n- Identify anomalies by comparing year-over-year trends in the IMF data\n- Waste estimates should use conservative (3-5% of budget) to upper (8-15%) ranges based on Transparency International benchmarks for this country\n- Reference specific years and values from the data`
+          content: `You are Aureon, an elite forensic financial AI. You MUST analyze the following REAL, LIVE government financial data and identify waste, fraud, and inefficiency patterns.\n\nCRITICAL INTEGRITY RULES:\n1. ALL estimates MUST be derived from the real numbers below. Show your math.\n2. Use RANGE estimates (low–high) based on international benchmarks (OECD, World Bank reports, Transparency International CPI).\n3. Do NOT invent personal names. Reference officials by TITLE + DEPARTMENT only.\n4. Every pattern must cite its data source (IMF, World Bank, Treasury, etc.).\n5. Compare this country's spending ratios to peer countries in the data.\n6. Use the deterministic seed "${country}_waste_scan" for consistent results.\n\n${liveDataContext}\n\nReturn ONLY a JSON object (no markdown):\n{\n  "totalWasteLow": <number in USD>,\n  "totalWasteHigh": <number in USD>,\n  "percentOfBudgetLow": <number>,\n  "percentOfBudgetHigh": <number>,\n  "patterns": [\n    {\n      "type": "<ghost_employees|duplicate_payments|overpriced_contracts|inactive_programs|contract_splitting|administrative_overhead|procurement_fraud|embezzlement|ineffective_programs|shell_companies>",\n      "description": "<detailed description citing specific data points from the live data>",\n      "estimatedWasteLow": <number USD>,\n      "estimatedWasteHigh": <number USD>,\n      "severity": "high|medium|low",\n      "evidence": "<specific data points and comparisons from the live data above>",\n      "recommendation": "<actionable recommendation>"\n    }\n  ],\n  "executiveSummary": "<3-4 paragraph summary referencing specific IMF/World Bank data points, peer comparisons, and fiscal trends>"\n}\n\nIMPORTANT:\n- Derive GDP value from World Bank data to calculate USD amounts\n- Compare debt/revenue/spending ratios to peer countries in the data\n- Identify anomalies by comparing year-over-year trends in the IMF data\n- Waste estimates should use conservative (3-5% of budget) to upper (8-15%) ranges based on Transparency International benchmarks for this country\n- Reference specific years and values from the data`
         }],
         mode: "research",
         depth: "expert",
@@ -500,7 +500,7 @@ const ZeeionWasteFraud = () => {
       await streamChat({
         messages: [{
           role: "user",
-          content: `You are Asherin, a forensic financial AI. Answer based ONLY on the live government data below. Do NOT invent names, companies, or data points not present in the data.\n\nLIVE DATA:\n${liveContext}\n\n${resultContext ? `CURRENT SCAN RESULTS:\n${resultContext}\n\n` : ""}USER QUESTION: ${msg}`,
+          content: `You are Aureon, a forensic financial AI. Answer based ONLY on the live government data below. Do NOT invent names, companies, or data points not present in the data.\n\nLIVE DATA:\n${liveContext}\n\n${resultContext ? `CURRENT SCAN RESULTS:\n${resultContext}\n\n` : ""}USER QUESTION: ${msg}`,
         }],
         mode: "research",
         onDelta: (chunk) => { aiResp += chunk; },
@@ -684,7 +684,7 @@ const ZeeionWasteFraud = () => {
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/[0.06]">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-3.5 w-3.5 text-foreground/40" />
-                <span className="text-[10px] font-light tracking-wider text-foreground/60">INVESTIGATE WITH ASHERIN</span>
+                <span className="text-[10px] font-light tracking-wider text-foreground/60">INVESTIGATE WITH AUREON</span>
               </div>
               {chatMsgs.length > 0 && (
                 <button onClick={() => setChatMsgs([])} className="p-1 rounded-lg hover:bg-foreground/[0.06]"><X className="h-3 w-3 text-muted-foreground/40" /></button>

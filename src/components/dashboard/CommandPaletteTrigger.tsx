@@ -3,7 +3,7 @@
 import { Search } from "lucide-react";
 
 export default function CommandPaletteTrigger() {
-  const open = () => window.dispatchEvent(new CustomEvent("asherin-open-command-palette"));
+  const open = () => window.dispatchEvent(new CustomEvent("aureon-open-command-palette"));
   return (
     <button
       onClick={open}

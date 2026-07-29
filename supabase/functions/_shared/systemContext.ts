@@ -1,6 +1,6 @@
 // SYSTEM CONTEXT — Temporal awareness injected into every AI system prompt.
 // ─────────────────────────────────────────────────────────────────────────
-// LLMs have no reliable clock. Without this block Asherin and Asher hallucinate
+// LLMs have no reliable clock. Without this block Aureon and Asher hallucinate
 // dates from training data, break "yesterday / this week / N hours ago"
 // reasoning, and situate live evidence (news timestamps, video publishedAt,
 // GDELT records) against the wrong "now".

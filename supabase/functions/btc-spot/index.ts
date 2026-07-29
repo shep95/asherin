@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   for (const s of SOURCES) {
     try {
-      const r = await fetch(s.url, { headers: { "user-agent": "asherin-btc-spot/1.0" } });
+      const r = await fetch(s.url, { headers: { "user-agent": "aureon-btc-spot/1.0" } });
       if (!r.ok) continue;
       const j = await r.json();
       const price = s.pick(j);

@@ -1,5 +1,5 @@
 /**
- * ASHERIN AUTO-SKILL INJECTION ENGINE
+ * AUREON AUTO-SKILL INJECTION ENGINE
  * Reverse-engineered from Anthropic's "Skills" architecture (118K ⭐)
  * Skills "fire when relevant" based on context detection in the conversation.
  * This injects domain-expert system prompts when the AI detects relevant topics.

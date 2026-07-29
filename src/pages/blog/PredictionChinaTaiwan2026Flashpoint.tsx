@@ -35,7 +35,7 @@ const PredictionChinaTaiwan2026Flashpoint = () => (
     <BreadcrumbJsonLd
       id="prediction-china-taiwan-2026-flashpoint"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "AXRLEN — China–Taiwan 2026 Flashpoint", url: "/blog/predictions/china-taiwan-2026-flashpoint" },
       ]}
@@ -46,7 +46,7 @@ const PredictionChinaTaiwan2026Flashpoint = () => (
       claim="AXRLEN forecasts the highest Taiwan Strait kinetic-crisis probability since 1996, weighted at 72%, with the primary escalation path being a PLA-led blockade designed to bypass US carrier strike groups and force a diplomatic surrender rather than a full amphibious invasion."
       primaryTopic="China–Taiwan 2026 flashpoint forecast"
       keyFacts={[
-        "Engine: AXRLEN — NEXUS PRIME (Asherin Predictive Engine).",
+        "Engine: AXRLEN — NEXUS PRIME (Aureon Predictive Engine).",
         "Headline call: blockade-first PLA escalation, not full amphibious invasion.",
         "Dominant pattern: Thucydides–Mahan Convergence (pre-1914 naval arms race analogue).",
         "Kinetic-crisis probability band: 72%.",

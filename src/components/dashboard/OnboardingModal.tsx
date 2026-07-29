@@ -11,7 +11,7 @@ import {
   trackRecentIntent,
 } from "@/lib/navIntents";
 
-const FLAG = "asherin_onboarded_v1";
+const FLAG = "aureon_onboarded_v1";
 
 const EXAMPLE_PROMPTS: Record<IntentGroup, string> = {
   Create: "Write a 4-slide pitch deck for a coffee subscription startup.",
@@ -141,14 +141,14 @@ export default function OnboardingModal({ forceOpen = false, onClose }: Props) {
                 // Pre-fill the chat composer.
                 try {
                   sessionStorage.setItem(
-                    "asherin_prefill_prompt",
+                    "aureon_prefill_prompt",
                     EXAMPLE_PROMPTS[pickedGroup ?? "Create"],
                   );
                 } catch {}
                 try { localStorage.setItem(FLAG, "1"); } catch {}
                 setOpen(false);
                 navigate("/dashboard");
-                window.dispatchEvent(new CustomEvent("asherin-onboarding-prefill"));
+                window.dispatchEvent(new CustomEvent("aureon-onboarding-prefill"));
               }}
               className="mt-4 w-full rounded-xl bg-foreground text-background py-2.5 text-sm font-medium hover:opacity-90 transition"
             >

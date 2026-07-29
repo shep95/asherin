@@ -6,14 +6,14 @@ import { MessageSquare, Bot } from "lucide-react";
 export type IdeMode = "chat" | "agent";
 
 interface Props {
-  scope: "asherin" | "asher";
+  scope: "aureon" | "asher";
   value?: IdeMode;
   onChange?: (mode: IdeMode) => void;
 }
 
 const KEY = (scope: string) => `ide.mode.${scope}`;
 
-export function readIdeMode(scope: "asherin" | "asher"): IdeMode {
+export function readIdeMode(scope: "aureon" | "asher"): IdeMode {
   if (typeof window === "undefined") return "chat";
   return (localStorage.getItem(KEY(scope)) as IdeMode) || "chat";
 }

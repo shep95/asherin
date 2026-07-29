@@ -1,4 +1,4 @@
-// Multi-Agent Orchestrator — shared runner used by asherin-free-chat and asher-ai.
+// Multi-Agent Orchestrator — shared runner used by aureon-free-chat and asher-ai.
 // Trigger prefixes: /agents, /orchestrate, "run agents:" (case-insensitive) on last user turn.
 // Pipeline: Planner → Executor (tools + reasoning) → Critic (1 corrective replan) → Synthesizer.
 // LLM adapter is injected so each surface keeps its own provider/key story.
@@ -59,7 +59,7 @@ const TOOLS: Record<string, Tool> = {
       if (!q) return "web_search: empty query";
       // DuckDuckGo HTML lite — no key, robust.
       const url = `https://duckduckgo.com/html/?q=${encodeURIComponent(q)}`;
-      const resp = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 AsherinOrchestrator" } });
+      const resp = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 AureonOrchestrator" } });
       if (!resp.ok) return `web_search: HTTP ${resp.status}`;
       const html = await resp.text();
       const results: string[] = [];

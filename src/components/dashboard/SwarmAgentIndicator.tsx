@@ -1,5 +1,5 @@
 /**
- * ASHERIN SWARM AGENT INDICATOR
+ * AUREON SWARM AGENT INDICATOR
  * Shows which specialist agent is currently active in the conversation.
  * Inspired by OpenAI's Swarm handoff visualization.
  */
@@ -38,7 +38,7 @@ interface SwarmAgentIndicatorProps {
 
 const SwarmAgentIndicator = memo(({ messages }: SwarmAgentIndicatorProps) => {
   const { activeAgent, intents } = useMemo(() => {
-    if (messages.length === 0) return { activeAgent: { id: "general-assistant", name: "Asherin General Intelligence", module: "chat" }, intents: [] as ClassifiedIntent[] };
+    if (messages.length === 0) return { activeAgent: { id: "general-assistant", name: "Aureon General Intelligence", module: "chat" }, intents: [] as ClassifiedIntent[] };
     return buildSwarmContext(messages);
   }, [messages]);
 

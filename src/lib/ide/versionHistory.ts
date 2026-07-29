@@ -8,7 +8,7 @@ const STORE = "snapshots";
 
 export interface Snapshot {
   id?: number;
-  scope: string; // "asherin" | "asher" — keeps the two IDEs isolated
+  scope: string; // "aureon" | "asher" — keeps the two IDEs isolated
   projectId: string;
   fileId: string;
   filePath: string;

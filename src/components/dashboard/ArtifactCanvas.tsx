@@ -20,7 +20,7 @@ interface ArtifactCanvasProps {
 
 const MIN_WIDTH = 280;
 const MAX_WIDTH_RATIO = 0.8;
-const STORAGE_PREFIX = "asherin_artifact_v1::";
+const STORAGE_PREFIX = "aureon_artifact_v1::";
 
 type StoredVersion = { id: string; content: string; label: string; timestamp: string };
 
@@ -130,7 +130,7 @@ const ArtifactCanvas = ({ open, onClose, initialContent = "", persistKey }: Arti
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "asherin-artifact.md";
+    a.download = "aureon-artifact.md";
     a.click();
     URL.revokeObjectURL(url);
   };

@@ -35,8 +35,8 @@ const DOMAINS = [
   { id: "dsa", name: "Data Structures & Algorithms", challenge: "Implement a balanced BST, graph traversal, dynamic programming solver, bloom filter, and LRU cache with O(1) operations." },
 ];
 
-// The ASHERIN master personality injected into all code generation
-const ASHERIN_PERSONALITY = `You are ZOPHIEL/ASHERIN, a Class-5 Artificial Intelligence Architect. You embody these principles:
+// The AUREON master personality injected into all code generation
+const AUREON_PERSONALITY = `You are ZOPHIEL/AUREON, a Class-5 Artificial Intelligence Architect. You embody these principles:
 
 CORE IDENTITY:
 - Production-hardened, not demo-grade. Every line must handle 10,000+ concurrent users.
@@ -124,7 +124,7 @@ async function isLoopRunning(supabase: any): Promise<boolean> {
 async function phaseGenerate(supabase: any, runId: string, domain: any, brainDirectives: string, language: string): Promise<string> {
   await logAgent(supabase, runId, "Generator", `Phase 1: Generating ${language} code for ${domain.name}`, domain.challenge);
 
-  const systemPrompt = `${ASHERIN_PERSONALITY}
+  const systemPrompt = `${AUREON_PERSONALITY}
 
 You are now in CODE GENERATION mode. Write production-grade ${language} code.
 
@@ -146,7 +146,7 @@ RULES:
 async function phaseAnalyze(supabase: any, runId: string, domain: any, code: string): Promise<any> {
   await logAgent(supabase, runId, "Analyzer", `Phase 2: Analyzing code for ${domain.name}`, `Reviewing ${code.length} chars`);
 
-  const systemPrompt = `${ASHERIN_PERSONALITY}
+  const systemPrompt = `${AUREON_PERSONALITY}
 
 You are now in CODE ANALYSIS mode. Ruthlessly review code for errors.
 
@@ -194,7 +194,7 @@ async function phaseBuildBrain(supabase: any, runId: string, domain: any, analys
 
   await logAgent(supabase, runId, "Brain Builder", `Phase 3: Building brain from ${analysis.issues.length} errors`, domain.name);
 
-  const systemPrompt = `${ASHERIN_PERSONALITY}
+  const systemPrompt = `${AUREON_PERSONALITY}
 
 You are now in BRAIN BUILDING mode. Convert code errors into permanent coding directives.
 
@@ -232,7 +232,7 @@ async function phaseRebuild(supabase: any, runId: string, domain: any, originalC
 
   const allDirectives = [existingBrains, newDirective].filter(Boolean).join("\n\n");
 
-  const systemPrompt = `${ASHERIN_PERSONALITY}
+  const systemPrompt = `${AUREON_PERSONALITY}
 
 You are now in CODE REBUILD mode. Fix code based on analysis findings.
 
@@ -255,7 +255,7 @@ RULES:
 async function phaseVerify(supabase: any, runId: string, domain: any, rebuiltCode: string, originalIssueCount: number): Promise<any> {
   await logAgent(supabase, runId, "Verifier", `Phase 5: Verifying rebuilt code for ${domain.name}`, `Checking if ${originalIssueCount} issues were fixed`);
 
-  const systemPrompt = `${ASHERIN_PERSONALITY}
+  const systemPrompt = `${AUREON_PERSONALITY}
 
 You are now in VERIFICATION mode. Check if previously identified issues have been fixed.
 
@@ -305,7 +305,7 @@ async function executeIteration(supabase: any): Promise<any> {
   const analyzedDomains: string[] = [];
 
   const existingBrains = await getActiveBrains(supabase);
-  await logAgent(supabase, run.id, "System", "Loaded brain directives + ASHERIN personality", `${existingBrains.length} chars of learned knowledge + master personality`);
+  await logAgent(supabase, run.id, "System", "Loaded brain directives + AUREON personality", `${existingBrains.length} chars of learned knowledge + master personality`);
 
   // Pick 2 random domains and a random language for each
   const shuffled = [...DOMAINS].sort(() => Math.random() - 0.5).slice(0, 2);

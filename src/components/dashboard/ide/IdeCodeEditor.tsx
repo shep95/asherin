@@ -16,7 +16,7 @@ interface Props {
   onSelectTab: (id: string) => void;
   onCloseTab: (id: string) => void;
   onContentChange: (id: string, content: string) => void;
-  /** Optional RAG-grounded AI hover provider. When supplied, Monaco hover shows ASHERIN intel. */
+  /** Optional RAG-grounded AI hover provider. When supplied, Monaco hover shows AUREON intel. */
   onHover?: HoverFetcher;
 }
 
@@ -30,13 +30,13 @@ const toMonacoLang = (lang: string): string => {
   return m[lang] ?? lang;
 };
 
-// Custom monochrome Monaco theme matching the Asherin dark glass palette.
+// Custom monochrome Monaco theme matching the Aureon dark glass palette.
 // Registered once on first mount.
 let themeRegistered = false;
-function registerAsherinTheme(monaco: Monaco) {
+function registerAureonTheme(monaco: Monaco) {
   if (themeRegistered) return;
   themeRegistered = true;
-  monaco.editor.defineTheme("asherin-dark", {
+  monaco.editor.defineTheme("aureon-dark", {
     base: "vs-dark",
     inherit: true,
     rules: [
@@ -106,9 +106,9 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
         startColumn: 1,
         endColumn: 1000,
       }));
-      monaco.editor.setModelMarkers(model, "asherin-zanoem", markers);
+      monaco.editor.setModelMarkers(model, "aureon-zanoem", markers);
     } catch {
-      monaco.editor.setModelMarkers(model, "asherin-zanoem", []);
+      monaco.editor.setModelMarkers(model, "aureon-zanoem", []);
     }
   }, [content, language, activeFile]);
 
@@ -127,8 +127,8 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
   const handleMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
-    registerAsherinTheme(monaco);
-    monaco.editor.setTheme("asherin-dark");
+    registerAureonTheme(monaco);
+    monaco.editor.setTheme("aureon-dark");
     editor.onDidChangeCursorPosition((e) => {
       setCursor({ line: e.position.lineNumber, col: e.position.column });
     });
@@ -140,7 +140,7 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
       },
       getByok: () => {
         try {
-          const cached = localStorage.getItem("asherin_byok_active");
+          const cached = localStorage.getItem("aureon_byok_active");
           const parsed = cached ? JSON.parse(cached) : null;
           if (parsed?.provider && parsed.provider !== "default" && parsed?.model) {
             return { provider: parsed.provider, model: parsed.model };
@@ -149,11 +149,11 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
         return { provider: "google", model: "gemini-2.5-flash" };
       },
     });
-    (editor as any).__asherinDetach = detach;
+    (editor as any).__aureonDetach = detach;
     editor.onDidDispose(() => { try { detach(); } catch { /* noop */ } });
   }, []);
 
-  // Register one ASHERIN RAG-grounded hover provider per Monaco language.
+  // Register one AUREON RAG-grounded hover provider per Monaco language.
   useEffect(() => {
     const monaco = monacoRef.current;
     if (!monaco || !monacoLang) return;
@@ -191,7 +191,7 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
           if (!md) return null;
           return {
             range: new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
-            contents: [{ value: `**ASHERIN CODE**\n\n${md}` }],
+            contents: [{ value: `**AUREON CODE**\n\n${md}` }],
           };
         } catch {
           return null;
@@ -266,7 +266,7 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
           value={content}
           onMount={handleMount}
           onChange={(v) => activeFile && onContentChange(activeFile.id, v ?? "")}
-          theme="asherin-dark"
+          theme="aureon-dark"
           options={{
             fontSize: 12,
             fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",

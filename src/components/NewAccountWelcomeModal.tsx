@@ -5,8 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TRIAL_HOURS, TRIAL_MS } from "@/lib/trial";
 import welcomeImg from "@/assets/welcome-silhouette.png.asset.json";
 
-const STORAGE_PREFIX = "asherin_welcome_seen_";
-const EXPIRED_PREFIX = "asherin_trial_expired_seen_";
+const STORAGE_PREFIX = "aureon_welcome_seen_";
+const EXPIRED_PREFIX = "aureon_trial_expired_seen_";
 
 
 /**
@@ -17,7 +17,7 @@ const EXPIRED_PREFIX = "asherin_trial_expired_seen_";
  */
 
 const CAPABILITIES = [
-  { k: "01", t: "Asherin Chat", d: "Multi-model intelligence with consensus, BYOK, personas." },
+  { k: "01", t: "Aureon Chat", d: "Multi-model intelligence with consensus, BYOK, personas." },
   { k: "02", t: "Zophiel Search", d: "30-source OSINT with veracity scoring and cross-validation." },
   { k: "03", t: "Axrlen Predictions", d: "Real-time global event forecasting + Monte Carlo modeling." },
   { k: "04", t: "Zaxin Tactical AR", d: "BLE radar, AR vision, forensic profiling, satellite overlay." },
@@ -26,8 +26,8 @@ const CAPABILITIES = [
 ];
 
 const PLANS = [
-  { tier: "Asherin",     price: "$18",     per: "/mo", desc: "Core uncensored chat, code, research, Zophiel Search (Base)." },
-  { tier: "Asherin Pro", price: "$399",    per: "/mo", desc: "Full intelligence suite — Azplen, NOMAD, Axrlen, Zaxin, Zerlal, Zeeion." },
+  { tier: "Aureon",     price: "$18",     per: "/mo", desc: "Core uncensored chat, code, research, Zophiel Search (Base)." },
+  { tier: "Aureon Pro", price: "$399",    per: "/mo", desc: "Full intelligence suite — Azplen, NOMAD, Axrlen, Zaxin, Zerlal, Zeeion." },
   { tier: "Enterprise", price: "Custom",  per: "",    desc: "Dedicated capacity, SSO, org controls, SLA." },
 ];
 
@@ -108,7 +108,7 @@ export default function NewAccountWelcomeModal() {
           <div className="relative bg-black">
             <img
               src={welcomeImg.url}
-              alt="Asherin initiation silhouette"
+              alt="Aureon initiation silhouette"
               className="h-full w-full object-cover"
               style={{ filter: "grayscale(1) brightness(0.95) contrast(1.05)" }}
             />
@@ -134,7 +134,7 @@ function ActivePanel({ countdown, onBegin, onPlans }: { countdown: string; onBeg
     <div className="p-7 space-y-5 max-h-[80vh] overflow-y-auto">
       <div>
         <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">
-          ◈ ASHERIN · INITIATION
+          ◈ AUREON · INITIATION
         </p>
         <h2 className="mt-2 text-2xl font-extralight tracking-wide text-foreground">
           Welcome. Every door is open.
@@ -143,7 +143,7 @@ function ActivePanel({ countdown, onBegin, onPlans }: { countdown: string; onBeg
 
       <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
         For the next <span className="text-foreground font-normal">24 hours</span>, every
-        module is unlocked — Chat, Asherin, Pro, Enterprise. No paywalls. Explore freely.
+        module is unlocked — Chat, Aureon, Pro, Enterprise. No paywalls. Explore freely.
       </p>
 
       <div className="rounded-md border border-white/10 bg-white/[0.02] px-4 py-3">
@@ -185,7 +185,7 @@ function ExpiredPanel({ onPlans, onDismiss }: { onPlans: () => void; onDismiss: 
     <div className="p-7 space-y-5 max-h-[80vh] overflow-y-auto">
       <div>
         <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">
-          ◈ ASHERIN · ACCESS TIERS
+          ◈ AUREON · ACCESS TIERS
         </p>
         <h2 className="mt-2 text-2xl font-extralight tracking-wide text-foreground">
           Your trial window has closed.

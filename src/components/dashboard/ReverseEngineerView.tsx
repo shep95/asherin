@@ -379,7 +379,7 @@ const ReverseEngineerView = () => {
               <h1 className="text-lg font-extralight tracking-wide text-foreground">Reverse Engineering Intelligence</h1>
             </div>
             <p className="text-xs font-extralight text-muted-foreground">
-              Upload a screenshot or screen recording — Asherin analyzes every frame to deconstruct the entire architecture with 89-98% confidence.
+              Upload a screenshot or screen recording — Aureon analyzes every frame to deconstruct the entire architecture with 89-98% confidence.
             </p>
           </div>
 
@@ -453,7 +453,7 @@ const ReverseEngineerView = () => {
                 <div className="text-center">
                   <p className="text-sm font-light text-foreground/70">Drag & Drop Image or Video</p>
                   <p className="text-[10px] text-muted-foreground mt-1">PNG, JPEG, WebP · MP4, WebM, MOV · Images max 20MB · Videos max 100MB</p>
-                  <p className="text-[10px] text-accent/60 mt-1">Videos are analyzed frame-by-frame by Asherin AI</p>
+                  <p className="text-[10px] text-accent/60 mt-1">Videos are analyzed frame-by-frame by Aureon AI</p>
                 </div>
               </div>
             )}
@@ -1059,13 +1059,13 @@ const ReverseEngineerView = () => {
               )}
               {qaMessages.map((msg) => (
                 <div key={msg.id} className={`rounded-xl p-3 ${msg.role === "user" ? "bg-accent/10 border border-accent/20 ml-8" : "bg-card/20 border border-border/20 mr-8"}`}>
-                  <p className="text-[10px] font-mono text-muted-foreground mb-1">{msg.role === "user" ? "YOU" : "ASHERIN REIS"}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground mb-1">{msg.role === "user" ? "YOU" : "AUREON REIS"}</p>
                   <div className="text-xs font-light text-foreground whitespace-pre-wrap leading-relaxed">{msg.content}</div>
                 </div>
               ))}
               {qaLoading && (
                 <div className="rounded-xl bg-card/20 border border-border/20 p-3 mr-8">
-                  <p className="text-[10px] font-mono text-muted-foreground mb-1">ASHERIN REIS</p>
+                  <p className="text-[10px] font-mono text-muted-foreground mb-1">AUREON REIS</p>
                   <Loader2 className="h-4 w-4 text-accent animate-spin" />
                 </div>
               )}

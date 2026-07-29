@@ -24,7 +24,7 @@ export const ALL_WALLPAPERS: WallpaperOption[] = [
   entry("raven", "Raven", "wallpaper-raven"),
   entry("eclipse", "Eclipse", "wallpaper-eclipse"),
   entry("glitch", "Glitch", "wallpaper-glitch"),
-  entry("asherin", "Asherin", "wallpaper-asherin"),
+  entry("aureon", "Aureon", "wallpaper-aureon"),
   entry("seraph", "Seraph", "wallpaper-seraph"),
   entry("prophet", "Prophet", "wallpaper-prophet"),
   entry("nexus", "Nexus", "wallpaper-nexus"),

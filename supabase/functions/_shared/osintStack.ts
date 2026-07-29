@@ -1,5 +1,5 @@
 // ============================================================================
-// ASHERIN OSINT STACK — Zero-key global intelligence fetchers
+// AUREON OSINT STACK — Zero-key global intelligence fetchers
 // ----------------------------------------------------------------------------
 // Free public APIs, no user credentials required. Every fetcher is timeboxed,
 // summarized to a compact string, and safe under Promise.allSettled.
@@ -18,7 +18,7 @@
 //   - exchangerate.host  keyless FX rates
 // ============================================================================
 
-const UA = "AsherinOSINT/1.0 (aureonai.app; intel@aureonai.app)";
+const UA = "AureonOSINT/1.0 (aureonai.app; intel@aureonai.app)";
 const DEFAULT_TIMEOUT_MS = 4500;
 
 async function timedFetch(url: string, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Response> {
@@ -537,7 +537,7 @@ export function detectIntent(text: string): OsintIntent {
   const COMPANY_STOP = new Set([
     "the","and","for","with","from","about","what","who","why","how","when","where","which","that","this","these","those",
     "give","tell","show","find","list","need","want","help","make","take","said","track","latest","federal","power","new",
-    "usa","sec","fda","dod","cia","fbi","irs","asherin","google","claude",
+    "usa","sec","fda","dod","cia","fbi","irs","aureon","google","claude",
     ...COUNTRY_LEX.flatMap((c) => c.names.map((n) => n.replace(/\s+/g, ""))),
     ...SUBDIVISION_LEX.map((s) => s.name.replace(/[\s-]+/g, "")),
   ]);

@@ -14,7 +14,7 @@ export interface CheckpointFile {
 
 export interface Checkpoint {
   id?: number;
-  scope: "asherin" | "asher";
+  scope: "aureon" | "asher";
   projectId: string;
   label: string;       // "Before agent edit · 14:02"
   createdAt: number;

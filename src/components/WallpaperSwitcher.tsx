@@ -3,20 +3,20 @@ import { Settings } from "lucide-react";
 import { ALL_WALLPAPERS, getWallpaperSrc } from "@/lib/wallpapers";
 
 const WALLPAPERS = ALL_WALLPAPERS;
-const STORAGE_KEY = "asherin_landing_wallpaper";
+const STORAGE_KEY = "aureon_landing_wallpaper";
 
 export const getStoredWallpaper = (): string => {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === "custom") {
-    const customUrl = localStorage.getItem("asherin_custom_wallpaper_url");
+    const customUrl = localStorage.getItem("aureon_custom_wallpaper_url");
     if (customUrl) return customUrl;
   }
-  return getWallpaperSrc(stored ?? "asherin");
+  return getWallpaperSrc(stored ?? "aureon");
 };
 
 const WallpaperSwitcher = () => {
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(() => localStorage.getItem(STORAGE_KEY) || "asherin");
+  const [active, setActive] = useState(() => localStorage.getItem(STORAGE_KEY) || "aureon");
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 

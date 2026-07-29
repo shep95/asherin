@@ -35,7 +35,7 @@ const TheCryptoDumpOctober2026 = () => (
     <BreadcrumbJsonLd
       id="the-crypto-dump-october-2026"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "The Crypto Dump — Oct 2026", url: "/blog/the-crypto-dump-october-2026" },
       ]}
@@ -46,7 +46,7 @@ const TheCryptoDumpOctober2026 = () => (
       claim="AXRLEN predicts a Bitcoin liquidity event between October 12 and October 19, 2026 with a terminal floor of $44,500, at 88% confidence. Live BTC reference at generation: $62,540."
       primaryTopic="Bitcoin price forecast — October 2026 liquidity event"
       keyFacts={[
-        "Engine: AXRLEN — NEXUS PRIME (Asherin Predictive Engine).",
+        "Engine: AXRLEN — NEXUS PRIME (Aureon Predictive Engine).",
         "Generated: 23 June 2026, 16:38:26 UTC.",
         "Live BTC reference at generation: $62,540 (CoinGecko spot).",
         "Event window: October 12 – October 19, 2026.",

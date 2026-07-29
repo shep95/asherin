@@ -8,7 +8,7 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
-const UA = "Mozilla/5.0 (compatible; AsherinZophielMap/1.0; +https://aureonai.app)";
+const UA = "Mozilla/5.0 (compatible; AureonZophielMap/1.0; +https://aureonai.app)";
 const MAX_URLS = 4000;
 const MAX_SITEMAPS = 25;
 const FETCH_TIMEOUT_MS = 12000;

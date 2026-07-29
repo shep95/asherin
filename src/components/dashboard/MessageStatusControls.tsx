@@ -11,7 +11,7 @@ interface MessageFlags {
   pinned: boolean;
 }
 
-const STORAGE_KEY = "asherin_msg_flags";
+const STORAGE_KEY = "aureon_msg_flags";
 
 function loadFlags(): Record<string, MessageFlags> {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }

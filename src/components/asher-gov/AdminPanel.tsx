@@ -150,7 +150,7 @@ function ApiKeyTab({ server, refreshServers }: {
       <div>
         <div className="text-xs font-light text-foreground mb-1">Bring-your-own AI key</div>
         <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
-          The key you set here powers every AI call for this server (Asherin chat, Zophiel search, IDE, cyber audit, forecast). It is AES-GCM encrypted with a per-instance secret and decrypted only inside sovereign edge functions — nobody, including other operators, can read it. The last 4 characters are shown for identification.
+          The key you set here powers every AI call for this server (Aureon chat, Zophiel search, IDE, cyber audit, forecast). It is AES-GCM encrypted with a per-instance secret and decrypted only inside sovereign edge functions — nobody, including other operators, can read it. The last 4 characters are shown for identification.
         </p>
       </div>
 

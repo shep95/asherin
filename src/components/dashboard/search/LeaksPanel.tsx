@@ -527,7 +527,7 @@ const LeaksPanel = () => {
               <button
                 onClick={integrateIntoBrains}
                 disabled={!Object.keys(selected).length || integrating}
-                title="Admin only — pushes selected items into ASHER Brains (shared with Asherin AI + all coding modules)"
+                title="Admin only — pushes selected items into ASHER Brains (shared with Aureon AI + all coding modules)"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/40 bg-foreground/10 px-3 py-1 text-[11px] font-light tracking-wide text-foreground hover:bg-foreground/20 transition-colors disabled:opacity-30"
               >
                 {integrating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BrainCircuit className="h-3.5 w-3.5" />}

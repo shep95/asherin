@@ -35,7 +35,7 @@ const PredictionWorldCup2026GroupMatches0623 = () => (
     <BreadcrumbJsonLd
       id="prediction-wc-2026-0623"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "AXRLEN — World Cup 2026 Slate (23 June)", url: "/blog/predictions/world-cup-2026-group-matches-0623" },
       ]}
@@ -46,7 +46,7 @@ const PredictionWorldCup2026GroupMatches0623 = () => (
       claim="AXRLEN picks for four World Cup 2026 group-stage matches on 23 June 2026: Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo."
       primaryTopic="2026 FIFA World Cup group-stage match forecasts (23 June slate)"
       keyFacts={[
-        "Engine: AXRLEN — NEXUS PRIME (Asherin Predictive Engine).",
+        "Engine: AXRLEN — NEXUS PRIME (Aureon Predictive Engine).",
         "Generated: 22 June 2026, 5:00 PM EST.",
         "Portugal vs. Uzbekistan → AXRLEN picks Portugal.",
         "England vs. Ghana → AXRLEN picks England.",
@@ -63,7 +63,7 @@ const PredictionWorldCup2026GroupMatches0623 = () => (
       id="prediction-wc-2026-0623"
       items={[
         { q: "How did the picks score?", a: "The slate is fully resolved. AXRLEN finished 3/4 on winners. Portugal 5–0 Uzbekistan (pick correct, modal margin exceeded). Croatia 1–0 Panama via Ante Budimir (54') (pick correct, one goal short of the 2–0 modal). Colombia 1–0 DR Congo (pick correct, one goal short of the 2–1 modal). England 0–0 Ghana (pick missed; the result fell into the engine's flagged 'England opens-group under-performs xG' risk vector). The slate landed inside AXRLEN's stated 3/4 calibration band." },
-        { q: "Who generated these picks?", a: "Asherin's AXRLEN engine (NEXUS PRIME) generated the picks on 22 June 2026 for the four group-stage matches scheduled on 23 June 2026. The post renders the engine output verbatim and is updated as matches resolve." },
+        { q: "Who generated these picks?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the picks on 22 June 2026 for the four group-stage matches scheduled on 23 June 2026. The post renders the engine output verbatim and is updated as matches resolve." },
         { q: "What were the four picks?", a: "Portugal beats Uzbekistan, England beats Ghana, Croatia beats Panama, and Colombia beats DR Congo." },
         { q: "Which pick had the lowest pre-match confidence?", a: "Colombia vs. DR Congo at 68%. AXRLEN reads DR Congo's transition threat as more credible than most consensus models." },
         { q: "Which pick had the highest pre-match confidence?", a: "Portugal over Uzbekistan at 84%, driven by the European-club-spine and squad-depth differential. This pick resolved correctly with a 5–0 result." },

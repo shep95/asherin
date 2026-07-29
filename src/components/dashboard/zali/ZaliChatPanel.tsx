@@ -90,7 +90,7 @@ const markdownComponents = {
   },
   img({ src, alt, ...props }: any) {
     return (
-      <span className="relative inline-block group cursor-pointer" onClick={() => (window as any).__asherinLightbox?.(src)}>
+      <span className="relative inline-block group cursor-pointer" onClick={() => (window as any).__aureonLightbox?.(src)}>
         <img
           src={src}
           alt={alt || "Chart analysis"}
@@ -293,7 +293,7 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
             </div>
             <a
               href="/dashboard"
-              onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent("asherin:navigate", { detail: "subscription" })); }}
+              onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent("aureon:navigate", { detail: "subscription" })); }}
               className="group flex items-center gap-1 rounded-lg bg-accent text-accent-foreground px-3 py-1.5 text-[10px] font-light hover:bg-accent/90 transition-all shrink-0"
             >
               Plans <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />

@@ -204,8 +204,8 @@ const createBoard = (name = "Board 1"): WhiteboardBoard => {
   };
 };
 
-const STORAGE_DEVICE_KEY = "asherin-whiteboard-device-key";
-const STORAGE_NAMESPACE = "asherin-whiteboards-v3";
+const STORAGE_DEVICE_KEY = "aureon-whiteboard-device-key";
+const STORAGE_NAMESPACE = "aureon-whiteboards-v3";
 
 const getDeviceKey = () => {
   if (typeof window === "undefined") return "guest-device";
@@ -397,7 +397,7 @@ const normalizeBoard = (raw: Partial<WhiteboardBoard>, index: number): Whiteboar
     id: board.id || uid(),
     name: board.name || `Board ${index + 1}`,
     wallpaperMode: board.wallpaperMode || "current",
-    wallpaperKey: board.wallpaperKey || "asherin",
+    wallpaperKey: board.wallpaperKey || "aureon",
     wallpaperBlur: typeof board.wallpaperBlur === "number" ? board.wallpaperBlur : 10,
     gridMode: board.gridMode || "dots",
     snapMode: board.snapMode || "freeform",
@@ -1502,7 +1502,7 @@ const Whiteboard = () => {
       <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-4">
           <Link to="/" className="flex items-center gap-2 rounded-xl border border-border/30 bg-card/60 backdrop-blur-xl px-5 py-2.5 hover:bg-card/80 transition-colors">
-            <span className="text-base font-extralight tracking-[0.25em] text-foreground">ASHERIN</span>
+            <span className="text-base font-extralight tracking-[0.25em] text-foreground">AUREON</span>
           </Link>
           <div className="hidden sm:flex items-center gap-2 rounded-xl border border-border/30 bg-card/55 px-3 py-2 backdrop-blur-xl">
             <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">Board</span>
@@ -1905,7 +1905,7 @@ const Whiteboard = () => {
       <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center opacity-[0.028]">
         <div className="text-[11rem] font-extralight tracking-[0.35em] text-foreground">A</div>
       </div>
-      <div className="pointer-events-none absolute right-4 top-5 z-10 text-[9px] uppercase tracking-[0.28em] text-muted-foreground/25">◈ ASHERIN INTELLIGENCE PLATFORM</div>
+      <div className="pointer-events-none absolute right-4 top-5 z-10 text-[9px] uppercase tracking-[0.28em] text-muted-foreground/25">◈ AUREON INTELLIGENCE PLATFORM</div>
     </div>
   );
 };

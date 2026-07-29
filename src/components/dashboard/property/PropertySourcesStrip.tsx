@@ -1,5 +1,5 @@
 // PropertySourcesStrip — cited property evidence from Firecrawl scrapes.
-// Renders beneath an Asherin chat message when the property pipeline
+// Renders beneath an Aureon chat message when the property pipeline
 // returned scraped Zillow/Redfin/Realtor/assessor sources.
 
 import { Globe, ExternalLink } from "lucide-react";

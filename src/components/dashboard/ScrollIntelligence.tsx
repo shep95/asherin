@@ -57,7 +57,7 @@ const ScrollIntelligence = ({ containerRef, isStreaming, messagesEndRef }: Scrol
         className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/30 bg-card/90 backdrop-blur-xl px-4 py-2 text-xs font-light text-muted-foreground hover:text-foreground shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] animate-fade-in"
       >
         <ArrowDown className="h-3 w-3" />
-        {isStreaming ? "Asherin is still writing — Jump to latest" : "Jump to present"}
+        {isStreaming ? "Aureon is still writing — Jump to latest" : "Jump to present"}
       </button>
     </div>
   );

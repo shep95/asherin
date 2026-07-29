@@ -35,7 +35,7 @@ const PredictionWorldCup2026GroupMatches0624 = () => (
     <BreadcrumbJsonLd
       id="prediction-wc-2026-0624"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "AXRLEN — World Cup 2026 Deep Dive (23 June)", url: "/blog/predictions/world-cup-2026-group-matches-0624" },
       ]}
@@ -46,7 +46,7 @@ const PredictionWorldCup2026GroupMatches0624 = () => (
       claim="Extended AXRLEN analysis for four World Cup 2026 group-stage matches on 23 June 2026: Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo. Covers structural edges and historical-pattern validation."
       primaryTopic="2026 FIFA World Cup group-stage structural and historical analysis (23 June slate)"
       keyFacts={[
-        "Engine: AXRLEN — NEXUS PRIME (Asherin Predictive Engine).",
+        "Engine: AXRLEN — NEXUS PRIME (Aureon Predictive Engine).",
         "Generated: 23 June 2026, 6:00 PM EST.",
         "Portugal vs. Uzbekistan → structural edge: squad depth + tournament experience + chance creation.",
         "England vs. Ghana → structural edge: talent concentration + set pieces + match-state control.",
@@ -63,7 +63,7 @@ const PredictionWorldCup2026GroupMatches0624 = () => (
       id="prediction-wc-2026-0624"
       items={[
         { q: "How did the picks score?", a: "The slate is fully resolved. AXRLEN finished 3/4 on winners — inside the stated calibration band. Portugal 5–0 Uzbekistan (pick correct, modal margin exceeded — structural read fully validated). Croatia 1–0 Panama via Ante Budimir (54') (pick correct, one goal short of the 2–0 modal). Colombia 1–0 DR Congo (pick correct, one goal short of the 2–1 modal). England 0–0 Ghana (pick missed; result fell into the engine's pre-flagged 'England opens-group under-performs xG' risk vector)." },
-        { q: "Who generated this analysis?", a: "Asherin's AXRLEN engine (NEXUS PRIME) generated the extended structural and historical analysis on 23 June 2026. The post renders the engine output verbatim and is updated as matches resolve." },
+        { q: "Who generated this analysis?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the extended structural and historical analysis on 23 June 2026. The post renders the engine output verbatim and is updated as matches resolve." },
         { q: "What is the difference between this post and the 23 June slate post?", a: "The original 23 June slate post delivers the winner and confidence for each match. This post explains why — through squad-structure signals and historical-pattern validation." },
         { q: "What were the four picks?", a: "Portugal beats Uzbekistan, England beats Ghana, Croatia beats Panama, and Colombia beats DR Congo." },
         { q: "Which pick had the lowest pre-match confidence?", a: "Colombia vs. DR Congo at 68%. AXRLEN reads DR Congo's transition threat as more credible than most consensus models." },

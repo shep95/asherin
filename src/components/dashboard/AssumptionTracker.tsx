@@ -15,7 +15,7 @@ interface AssumptionTrackerProps {
   onRequestReAnswer?: (assumptions: Assumption[]) => void;
 }
 
-const STORAGE_KEY = "asherin_assumptions";
+const STORAGE_KEY = "aureon_assumptions";
 
 function loadAll(): Record<string, Assumption[]> {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }

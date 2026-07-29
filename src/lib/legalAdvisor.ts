@@ -1,7 +1,7 @@
 // legalAdvisor.ts — deterministic client-side legal-research directive.
 //
 // When the "LAW" toggle is on, every send is wrapped with a directive that
-// forces the model (Asherin / Asher) to run deep multi-jurisdiction legal
+// forces the model (Aureon / Asher) to run deep multi-jurisdiction legal
 // research: pull statutes, ordinances, case law, treaties, and — critically —
 // hunt for OLDER, still-in-force laws that supersede newer ones (common in
 // federal/state layering, civil-law codes retained after reform, colonial
@@ -81,7 +81,7 @@ ${trimmed}`,
   };
 }
 
-const STORAGE_KEY = "asherin.chat.legalMode";
+const STORAGE_KEY = "aureon.chat.legalMode";
 
 export function loadLegalMode(): boolean {
   try {

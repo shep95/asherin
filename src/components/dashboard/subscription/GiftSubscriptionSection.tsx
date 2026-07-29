@@ -51,7 +51,7 @@ const GiftSubscriptionSection = () => {
         if (data?.exists) {
           setEmailValidation({ status: "valid", message: "Account found ✓" });
         } else {
-          setEmailValidation({ status: "invalid", message: "No Asherin account found" });
+          setEmailValidation({ status: "invalid", message: "No Aureon account found" });
         }
       } catch (err) {
         setEmailValidation({ status: "invalid", message: "Unable to verify email" });
@@ -75,7 +75,7 @@ const GiftSubscriptionSection = () => {
     if (!recipientEmail || emailValidation.status !== "valid") {
       toast({ 
         title: "Invalid recipient", 
-        description: "Please enter a valid Asherin account email", 
+        description: "Please enter a valid Aureon account email", 
         variant: "destructive" 
       });
       return;
@@ -119,7 +119,7 @@ const GiftSubscriptionSection = () => {
         <h3 className="text-sm font-light text-foreground">Gift a Subscription</h3>
       </div>
       
-      <p className="text-xs font-extralight text-muted-foreground">Give the power of Asherin to someone special. Extended durations receive automatic discounts.</p>
+      <p className="text-xs font-extralight text-muted-foreground">Give the power of Aureon to someone special. Extended durations receive automatic discounts.</p>
 
       <div className="space-y-3">
         <div>

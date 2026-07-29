@@ -18,7 +18,7 @@ const PredictiveIntelligenceAi = () => (
     dek="Predictive intelligence AI is the application of language-model reasoning to produce calibrated probabilistic forecasts of future events — with explicit probabilities, resolution windows, and verification plans. This is the working definition, the scope, and the boundary with related categories."
     publishedLabel="Jun 19 2026"
     readTime="6 min"
-    backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
+    backTo={{ to: "/glossary", label: "← Aureon Glossary" }}
   >
     <ArticleJsonLd
       id="predictive-intelligence-ai"
@@ -36,7 +36,7 @@ const PredictiveIntelligenceAi = () => (
     <BreadcrumbJsonLd
       id="predictive-intelligence-ai"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Glossary", url: "/glossary" },
         { name: "Predictive Intelligence AI", url: "/glossary/predictive-intelligence-ai" },
       ]}
@@ -51,7 +51,7 @@ const PredictiveIntelligenceAi = () => (
         "Distinguished from classical statistical forecasting by the use of LLM reasoning to fuse heterogeneous signal classes.",
         "Distinguished from prediction-market platforms by being a method, not a market.",
         "Real implementations require: probability, resolution window, 5+ signal classes, verification plan, public track record.",
-        "Asherin's AXRLEN engine is a working implementation under public hit-or-miss scoring.",
+        "Aureon's AXRLEN engine is a working implementation under public hit-or-miss scoring.",
       ]}
       relevanceSignal="Operators evaluating the difference between predictive intelligence AI, generic AI predictions content, and classical statistical forecasting."
       confidence="high"
@@ -108,12 +108,12 @@ const PredictiveIntelligenceAi = () => (
       calibrated probabilistic claim a decision-maker can act on.
     </p>
 
-    <h2>Asherin's implementation</h2>
+    <h2>Aureon's implementation</h2>
     <p>
       <a href="/feature/axrlen" className="text-accent hover:underline">
         AXRLEN
       </a>{" "}
-      is Asherin's predictive intelligence engine. It fuses five
+      is Aureon's predictive intelligence engine. It fuses five
       required signal classes per forecast, binds language to
       calibrated probability bands, and publishes verification plans
       with every forecast. The Q4 2026 AI regulation forecast — 72%
@@ -146,7 +146,7 @@ const PredictiveIntelligenceAi = () => (
         },
         {
           q: "What is AXRLEN?",
-          a: "AXRLEN is Asherin's implementation of predictive intelligence AI. It fuses five required signal classes per forecast, binds language to calibrated probability bands, and ships verification plans with every prediction.",
+          a: "AXRLEN is Aureon's implementation of predictive intelligence AI. It fuses five required signal classes per forecast, binds language to calibrated probability bands, and ships verification plans with every prediction.",
         },
       ]}
     />
@@ -156,7 +156,7 @@ const PredictiveIntelligenceAi = () => (
         {
           to: "/feature/axrlen",
           label: "AXRLEN — the engine",
-          description: "Asherin's implementation of predictive intelligence AI in production.",
+          description: "Aureon's implementation of predictive intelligence AI in production.",
         },
         {
           to: "/blog/how-ai-predictive-forecasting-works",

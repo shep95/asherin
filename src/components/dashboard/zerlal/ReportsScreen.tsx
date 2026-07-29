@@ -78,8 +78,8 @@ const ReportsScreen = () => {
           <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Scheduled Reports</h3>
           <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm divide-y divide-border/[0.04]">
             {[
-              { name: "Weekly Security Digest", schedule: "Every Monday 8:00 AM", recipients: "security-team@asherin.io", type: "Executive Summary" },
-              { name: "Monthly Board Report", schedule: "1st of each month", recipients: "board@asherin.io", type: "Compliance Report" },
+              { name: "Weekly Security Digest", schedule: "Every Monday 8:00 AM", recipients: "security-team@aureon.io", type: "Executive Summary" },
+              { name: "Monthly Board Report", schedule: "1st of each month", recipients: "board@aureon.io", type: "Compliance Report" },
             ].map((s) => (
               <div key={s.name} className="px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">

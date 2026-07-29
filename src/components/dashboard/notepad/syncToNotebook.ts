@@ -46,7 +46,7 @@ export async function syncNotepadToNotebook(
       const { data: created, error } = await (supabase.from as any)("notebooks")
         .insert({
           title: notebookTitle,
-          description: "Auto-synced from Asherin Notepad",
+          description: "Auto-synced from Aureon Notepad",
           owner_id: userId,
           tags: ["notepad", "auto-sync"],
         })
@@ -75,7 +75,7 @@ export async function syncNotepadToNotebook(
     cells.push({
       notebook_id: notebookId,
       cell_type: "text",
-      content: `# 📝 Notepad Notes\n\n*Auto-synced from Asherin Notepad*\n*Last synced: ${new Date().toLocaleString()}*`,
+      content: `# 📝 Notepad Notes\n\n*Auto-synced from Aureon Notepad*\n*Last synced: ${new Date().toLocaleString()}*`,
       position: position++,
     });
 

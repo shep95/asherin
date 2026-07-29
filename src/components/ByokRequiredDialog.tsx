@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { KeyRound } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 
-export const BYOK_REQUIRED_EVENT = "asherin:byok-required";
+export const BYOK_REQUIRED_EVENT = "aureon:byok-required";
 
 export function triggerByokRequired(detail?: { source?: string; reason?: string }) {
   try {
@@ -50,7 +50,7 @@ export default function ByokRequiredDialog() {
             <DialogTitle className="text-zinc-100">Bring Your Own API Key</DialogTitle>
           </div>
           <DialogDescription className="text-zinc-400 pt-2 leading-relaxed">
-            The ASHERIN LLM API is being overused right now. To continue without
+            The AUREON LLM API is being overused right now. To continue without
             interruption, please connect your own API key and select a model in
             <span className="text-zinc-200"> Settings → AI Keys</span>.
             {reason ? <span className="block mt-2 text-xs text-zinc-500">{reason}</span> : null}

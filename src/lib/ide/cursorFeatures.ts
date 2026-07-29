@@ -2,7 +2,7 @@
 // Cursor / Claude-Code-style IDE features (shared)
 // ------------------------------------------------------------
 // NARRATIVE:
-//   Asherin + Asher IDEs already have chat, agents, diagnostics,
+//   Aureon + Asher IDEs already have chat, agents, diagnostics,
 //   checkpoints — but the three signature moves that make Cursor
 //   and Claude Code feel "alive" were missing:
 //
@@ -117,7 +117,7 @@ function installInlineEditWidget(
     mounted = true;
 
     overlayEl = document.createElement("div");
-    overlayEl.className = "asherin-inline-edit";
+    overlayEl.className = "aureon-inline-edit";
     overlayEl.style.cssText = [
       "min-width:340px","max-width:520px","padding:8px 10px",
       "background:rgba(10,10,10,0.92)","backdrop-filter:blur(12px)",
@@ -139,7 +139,7 @@ function installInlineEditWidget(
     overlayEl.appendChild(hint);
 
     widget = {
-      getId: () => "asherin.inlineEdit",
+      getId: () => "aureon.inlineEdit",
       getDomNode: () => overlayEl!,
       getPosition: () => ({
         position: pos,
@@ -163,8 +163,8 @@ function installInlineEditWidget(
   };
 
   const action = editor.addAction({
-    id: "asherin.inlineEdit",
-    label: "Asherin: Inline Edit (Cursor-style)",
+    id: "aureon.inlineEdit",
+    label: "Aureon: Inline Edit (Cursor-style)",
     keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK],
     contextMenuGroupId: "1_modification",
     contextMenuOrder: 0,
@@ -216,7 +216,7 @@ async function applyInlineEdit(
     });
     const replacement = extractCodeBlock(res.reply || "").trim();
     if (!replacement) return;
-    editor.executeEdits("asherin.inlineEdit", [{
+    editor.executeEdits("aureon.inlineEdit", [{
       range: sel,
       text: replacement,
       forceMoveMarkers: true,
@@ -235,8 +235,8 @@ function installAddToChat(
   opts: CursorFeaturesOptions,
 ): () => void {
   const action = editor.addAction({
-    id: "asherin.addToChat",
-    label: "Asherin: Add Selection to Chat",
+    id: "aureon.addToChat",
+    label: "Aureon: Add Selection to Chat",
     keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL],
     contextMenuGroupId: "9_cutcopypaste",
     contextMenuOrder: 5,

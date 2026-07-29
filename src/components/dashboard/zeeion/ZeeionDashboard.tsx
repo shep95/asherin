@@ -8,7 +8,7 @@ import WaterfallChart from "./charts/WaterfallChart";
 import SpendingTreemap from "./charts/SpendingTreemap";
 import CorrelationMatrix from "./charts/CorrelationMatrix";
 import AnomalyScatter from "./charts/AnomalyScatter";
-import ZeeionAsherinChat from "./ZeeionAsherinChat";
+import ZeeionAureonChat from "./ZeeionAureonChat";
 import ZeeionDeepDive from "./ZeeionDeepDive";
 import ZeeionAlerts from "./ZeeionAlerts";
 import ZeeionExport from "./ZeeionExport";
@@ -18,7 +18,7 @@ interface Props {
   analysis: AnalysisResult;
 }
 
-type DashTab = "overview" | "visualizations" | "alerts" | "gov_data" | "export" | "asherin";
+type DashTab = "overview" | "visualizations" | "alerts" | "gov_data" | "export" | "aureon";
 
 const ZeeionDashboard = ({ analysis }: Props) => {
   const s = analysis.summary;
@@ -59,7 +59,7 @@ const ZeeionDashboard = ({ analysis }: Props) => {
     { id: "alerts", label: "Alerts", icon: <Bell className="h-3 w-3" /> },
     { id: "gov_data", label: "Gov Data", icon: <Globe className="h-3 w-3" /> },
     { id: "export", label: "Export", icon: <Download className="h-3 w-3" /> },
-    { id: "asherin", label: "Ask Asherin", icon: <Sparkles className="h-3 w-3" /> },
+    { id: "aureon", label: "Ask Aureon", icon: <Sparkles className="h-3 w-3" /> },
   ];
 
   return (
@@ -307,9 +307,9 @@ const ZeeionDashboard = ({ analysis }: Props) => {
         <ZeeionExport analysis={analysis} />
       )}
 
-      {/* ═══ ASHERIN TAB ═══ */}
-      {tab === "asherin" && (
-        <ZeeionAsherinChat analysis={analysis} />
+      {/* ═══ AUREON TAB ═══ */}
+      {tab === "aureon" && (
+        <ZeeionAureonChat analysis={analysis} />
       )}
 
       {/* === DETAIL MODALS === */}

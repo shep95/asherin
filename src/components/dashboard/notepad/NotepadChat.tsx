@@ -34,7 +34,7 @@ const NotepadChat = ({ data, onAiSort, sorting }: NotepadChatProps) => {
     return lines.join("\n");
   };
 
-  const askAsherin = async () => {
+  const askAureon = async () => {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
     setInput("");
@@ -52,7 +52,7 @@ const NotepadChat = ({ data, onAiSort, sorting }: NotepadChatProps) => {
       } catch { /* fallback */ }
 
       const notesCtx = allNotesText();
-      const systemPrompt = `You are Asherin, an intelligent note-taking assistant. The user has the following notes in their notepad:\n\n${notesCtx}\n\nAnswer questions about these notes. Be concise, insightful, and reference specific notes when relevant. If they ask for summaries, patterns, or connections, analyze the notes deeply.`;
+      const systemPrompt = `You are Aureon, an intelligent note-taking assistant. The user has the following notes in their notepad:\n\n${notesCtx}\n\nAnswer questions about these notes. Be concise, insightful, and reference specific notes when relevant. If they ask for summaries, patterns, or connections, analyze the notes deeply.`;
 
       const resp = await fetch(CHAT_URL, {
         method: "POST",
@@ -135,7 +135,7 @@ const NotepadChat = ({ data, onAiSort, sorting }: NotepadChatProps) => {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
         {messages.length === 0 && (
           <div className="text-center py-6 text-muted-foreground/25">
-            <p className="text-[11px] font-light">Ask Asherin about your notes</p>
+            <p className="text-[11px] font-light">Ask Aureon about your notes</p>
             <p className="text-[9px] mt-1 font-light italic">"Summarize my notes" · "Find connections" · "What am I missing?"</p>
           </div>
         )}
@@ -170,12 +170,12 @@ const NotepadChat = ({ data, onAiSort, sorting }: NotepadChatProps) => {
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askAsherin(); } }}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askAureon(); } }}
           placeholder="Ask about your notes…"
           className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none"
           disabled={loading}
         />
-        <button onClick={askAsherin} disabled={loading || !input.trim()} className="p-1 rounded text-amber-500/60 hover:text-amber-500 disabled:opacity-30 transition-colors">
+        <button onClick={askAureon} disabled={loading || !input.trim()} className="p-1 rounded text-amber-500/60 hover:text-amber-500 disabled:opacity-30 transition-colors">
           <Send className="h-3.5 w-3.5" />
         </button>
       </div>

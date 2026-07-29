@@ -1,5 +1,5 @@
 /**
- * ASHERIN Client-Side Encryption Module — Hardened (audit C-05)
+ * AUREON Client-Side Encryption Module — Hardened (audit C-05)
  *
  * AES-256-GCM via Web Crypto API.
  * Key material = PBKDF2(userId + browser-stored random secret, per-user random salt).
@@ -20,7 +20,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-const DB_NAME = "asherin_e2e_db";
+const DB_NAME = "aureon_e2e_db";
 const DB_VERSION = 1;
 const STORE = "keystore";
 const ITERATIONS = 250_000; // bumped from 100k

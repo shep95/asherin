@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     for (const [name, content] of Object.entries(brains)) {
       zip.file(name, content);
     }
-    zip.file("README.md", `# Asherin Chat Brains\n\nExported ${new Date().toISOString()}\n\nContains ${Object.keys(brains).length} cortical brain doctrines.\n`);
+    zip.file("README.md", `# Aureon Chat Brains\n\nExported ${new Date().toISOString()}\n\nContains ${Object.keys(brains).length} cortical brain doctrines.\n`);
 
     const blob = await zip.generateAsync({ type: "uint8array" });
     return new Response(blob, {
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="asherin-brains-${Date.now()}.zip"`,
+        "Content-Disposition": `attachment; filename="aureon-brains-${Date.now()}.zip"`,
       },
     });
   } catch (e) {

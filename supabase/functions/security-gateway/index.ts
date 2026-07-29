@@ -3,7 +3,7 @@ import { getCorsHeaders, getClientIp } from "../_shared/cors.ts";
 import { requireAdmin, authErrorResponse, AuthError } from "../_shared/authMiddleware.ts";
 
 // ============================================================
-// ASHERIN SECURITY GATEWAY
+// AUREON SECURITY GATEWAY
 // WAF + IDS + Rate Limiter + Honeypot + Threat Intel + UBA
 // ============================================================
 

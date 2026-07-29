@@ -1,11 +1,11 @@
 // ============================================================================
-// ASHERIN CROSS — Content Script
+// AUREON CROSS — Content Script
 // Instant pattern recognition overlay for trading tabs
 // ============================================================================
 
 (function () {
   "use strict";
-  if (document.getElementById("asherin-cross-root")) return;
+  if (document.getElementById("aureon-cross-root")) return;
 
   // ── STATE ──
   let isActive = false;
@@ -21,7 +21,7 @@
 
   // ── ROOT CONTAINER ──
   const root = document.createElement("div");
-  root.id = "asherin-cross-root";
+  root.id = "aureon-cross-root";
   document.body.appendChild(root);
 
   // ── VOICE ENGINE ──
@@ -39,56 +39,56 @@
 
   // ── STATUS INDICATOR ──
   const status = document.createElement("div");
-  status.className = "asherin-status";
-  status.innerHTML = `<span class="asherin-status-dot off"></span><span>ASHERIN CROSS</span>`;
+  status.className = "aureon-status";
+  status.innerHTML = `<span class="aureon-status-dot off"></span><span>AUREON CROSS</span>`;
   status.onclick = () => toggleActive();
   root.appendChild(status);
 
   function updateStatus(state, text) {
-    const dot = status.querySelector(".asherin-status-dot");
-    dot.className = "asherin-status-dot " + state;
+    const dot = status.querySelector(".aureon-status-dot");
+    dot.className = "aureon-status-dot " + state;
     status.querySelector("span:last-child").textContent = text;
   }
 
   // ── CHAT BOX ──
   const chat = document.createElement("div");
-  chat.className = "asherin-chat minimized";
+  chat.className = "aureon-chat minimized";
   chat.innerHTML = `
-    <div class="asherin-chat-header">
+    <div class="aureon-chat-header">
       <div>
-        <span class="asherin-chat-header-title">⊕ ASHERIN</span>
-        <span class="asherin-chat-header-status">Cross Vision</span>
+        <span class="aureon-chat-header-title">⊕ AUREON</span>
+        <span class="aureon-chat-header-status">Cross Vision</span>
       </div>
-      <div class="asherin-chat-btns">
+      <div class="aureon-chat-btns">
         
-        <button id="asherin-min-btn" title="Minimize">_</button>
-        <button id="asherin-close-btn" title="Close">×</button>
+        <button id="aureon-min-btn" title="Minimize">_</button>
+        <button id="aureon-close-btn" title="Close">×</button>
       </div>
     </div>
-    <div class="asherin-chat-messages" id="asherin-msgs"></div>
-    <div class="asherin-chat-input-area">
-      <input class="asherin-chat-input" id="asherin-input" placeholder="Ask Asherin..." maxlength="2000" />
-      <button class="asherin-chat-send" id="asherin-send">SEND</button>
+    <div class="aureon-chat-messages" id="aureon-msgs"></div>
+    <div class="aureon-chat-input-area">
+      <input class="aureon-chat-input" id="aureon-input" placeholder="Ask Aureon..." maxlength="2000" />
+      <button class="aureon-chat-send" id="aureon-send">SEND</button>
     </div>
   `;
   root.appendChild(chat);
 
-  const minBtn = chat.querySelector("#asherin-min-btn");
-  const closeBtn = chat.querySelector("#asherin-close-btn");
+  const minBtn = chat.querySelector("#aureon-min-btn");
+  const closeBtn = chat.querySelector("#aureon-close-btn");
 
   minBtn.onclick = () => { isMinimized = !isMinimized; chat.classList.toggle("minimized", isMinimized); };
   closeBtn.onclick = () => { chat.style.display = "none"; };
 
-  makeDraggable(chat, chat.querySelector(".asherin-chat-header"));
+  makeDraggable(chat, chat.querySelector(".aureon-chat-header"));
 
-  const chatInput = chat.querySelector("#asherin-input");
-  const chatSend = chat.querySelector("#asherin-send");
+  const chatInput = chat.querySelector("#aureon-input");
+  const chatSend = chat.querySelector("#aureon-send");
 
   function addMsg(sender, text) {
-    const msgs = document.getElementById("asherin-msgs");
+    const msgs = document.getElementById("aureon-msgs");
     const div = document.createElement("div");
-    div.className = `asherin-msg asherin-msg-${sender === "user" ? "user" : "ai"}`;
-    div.innerHTML = `<div class="asherin-msg-bubble">${escapeHtml(text)}</div>`;
+    div.className = `aureon-msg aureon-msg-${sender === "user" ? "user" : "ai"}`;
+    div.innerHTML = `<div class="aureon-msg-bubble">${escapeHtml(text)}</div>`;
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
   }
@@ -211,21 +211,21 @@
 
       updateStatus("", `WATCHING · F${frameCount}`);
     } catch (e) {
-      console.error("Asherin analysis error:", e);
+      console.error("Aureon analysis error:", e);
     }
   }
 
   // ── INSTANT VERDICT BANNER ──
   function showVerdict(v) {
-    const old = root.querySelector(".asherin-verdict");
+    const old = root.querySelector(".aureon-verdict");
     if (old) old.remove();
 
     const actionMap = {
-      BUY_NOW: { cls: "asherin-verdict-buy", emoji: "🟢", label: "BUY NOW" },
-      SELL_NOW: { cls: "asherin-verdict-sell", emoji: "🔴", label: "SELL NOW" },
-      EXIT_NOW: { cls: "asherin-verdict-exit", emoji: "🚨", label: "EXIT NOW" },
-      HOLD: { cls: "asherin-verdict-hold", emoji: "🔵", label: "HOLD" },
-      WAIT: { cls: "asherin-verdict-wait", emoji: "⏳", label: "WAIT" },
+      BUY_NOW: { cls: "aureon-verdict-buy", emoji: "🟢", label: "BUY NOW" },
+      SELL_NOW: { cls: "aureon-verdict-sell", emoji: "🔴", label: "SELL NOW" },
+      EXIT_NOW: { cls: "aureon-verdict-exit", emoji: "🚨", label: "EXIT NOW" },
+      HOLD: { cls: "aureon-verdict-hold", emoji: "🔵", label: "HOLD" },
+      WAIT: { cls: "aureon-verdict-wait", emoji: "⏳", label: "WAIT" },
     };
 
     const info = actionMap[v.action] || actionMap.HOLD;
@@ -233,19 +233,19 @@
     // Parse the structured message for entry/SL/TP
     const msg = v.message || "";
     const el = document.createElement("div");
-    el.className = `asherin-verdict ${info.cls}`;
+    el.className = `aureon-verdict ${info.cls}`;
 
     el.innerHTML = `
-      <div class="asherin-verdict-top">
-        <span class="asherin-verdict-emoji">${info.emoji}</span>
-        <span class="asherin-verdict-action">${info.label}</span>
-        <span class="asherin-verdict-conf">${v.confidence || 0}%</span>
-        <button class="asherin-verdict-close" title="Dismiss">×</button>
+      <div class="aureon-verdict-top">
+        <span class="aureon-verdict-emoji">${info.emoji}</span>
+        <span class="aureon-verdict-action">${info.label}</span>
+        <span class="aureon-verdict-conf">${v.confidence || 0}%</span>
+        <button class="aureon-verdict-close" title="Dismiss">×</button>
       </div>
-      <div class="asherin-verdict-msg">${escapeHtml(msg)}</div>
+      <div class="aureon-verdict-msg">${escapeHtml(msg)}</div>
     `;
 
-    el.querySelector(".asherin-verdict-close").onclick = () => el.remove();
+    el.querySelector(".aureon-verdict-close").onclick = () => el.remove();
     root.appendChild(el);
 
     // Voice for actionable signals
@@ -260,57 +260,57 @@
   // ── INSTANT ALERT (new format with entry/SL/TP) ──
   function showInstantAlert(alert) {
     const typeMap = {
-      BUY: { cls: "asherin-alert-buy", label: "🟢 BUY" },
-      SELL: { cls: "asherin-alert-sell", label: "🔴 SELL" },
-      WARNING: { cls: "asherin-alert-warn", label: "⚠️ WARNING" },
-      MONITOR: { cls: "asherin-alert-monitor", label: "👀 WATCH" },
-      INFO: { cls: "asherin-alert-monitor", label: "ℹ️ INFO" },
+      BUY: { cls: "aureon-alert-buy", label: "🟢 BUY" },
+      SELL: { cls: "aureon-alert-sell", label: "🔴 SELL" },
+      WARNING: { cls: "aureon-alert-warn", label: "⚠️ WARNING" },
+      MONITOR: { cls: "aureon-alert-monitor", label: "👀 WATCH" },
+      INFO: { cls: "aureon-alert-monitor", label: "ℹ️ INFO" },
     };
 
     const info = typeMap[alert.type] || typeMap.INFO;
 
     const el = document.createElement("div");
-    el.className = `asherin-alert ${info.cls}`;
+    el.className = `aureon-alert ${info.cls}`;
 
     // Build levels row
     let levelsHtml = "";
     if (alert.entry || alert.stopLoss || alert.takeProfit) {
-      levelsHtml = `<div class="asherin-alert-levels">
-        ${alert.entry ? `<div class="asherin-alert-level entry"><span>ENTRY</span><span>${escapeHtml(alert.entry)}</span></div>` : ""}
-        ${alert.stopLoss ? `<div class="asherin-alert-level stop"><span>STOP</span><span>${escapeHtml(alert.stopLoss)}</span></div>` : ""}
-        ${alert.takeProfit ? `<div class="asherin-alert-level target"><span>TARGET</span><span>${escapeHtml(alert.takeProfit)}</span></div>` : ""}
+      levelsHtml = `<div class="aureon-alert-levels">
+        ${alert.entry ? `<div class="aureon-alert-level entry"><span>ENTRY</span><span>${escapeHtml(alert.entry)}</span></div>` : ""}
+        ${alert.stopLoss ? `<div class="aureon-alert-level stop"><span>STOP</span><span>${escapeHtml(alert.stopLoss)}</span></div>` : ""}
+        ${alert.takeProfit ? `<div class="aureon-alert-level target"><span>TARGET</span><span>${escapeHtml(alert.takeProfit)}</span></div>` : ""}
       </div>`;
     }
 
     el.innerHTML = `
-      <div class="asherin-alert-header">
-        <span class="asherin-alert-label">${info.label}</span>
-        <span class="asherin-alert-conf">${alert.confidence || 0}%</span>
-        <button class="asherin-alert-close">×</button>
+      <div class="aureon-alert-header">
+        <span class="aureon-alert-label">${info.label}</span>
+        <span class="aureon-alert-conf">${alert.confidence || 0}%</span>
+        <button class="aureon-alert-close">×</button>
       </div>
-      <div class="asherin-alert-title">${escapeHtml(alert.title || "Signal")}</div>
-      ${alert.reasoning?.length ? `<div class="asherin-alert-reason">${alert.reasoning.map(r => escapeHtml(r)).join(" · ")}</div>` : ""}
+      <div class="aureon-alert-title">${escapeHtml(alert.title || "Signal")}</div>
+      ${alert.reasoning?.length ? `<div class="aureon-alert-reason">${alert.reasoning.map(r => escapeHtml(r)).join(" · ")}</div>` : ""}
       ${levelsHtml}
-      ${alert.validFor ? `<div class="asherin-alert-valid">Valid: ${escapeHtml(alert.validFor)}</div>` : ""}
+      ${alert.validFor ? `<div class="aureon-alert-valid">Valid: ${escapeHtml(alert.validFor)}</div>` : ""}
     `;
 
-    el.querySelector(".asherin-alert-close").onclick = () => el.remove();
+    el.querySelector(".aureon-alert-close").onclick = () => el.remove();
     root.appendChild(el);
 
     // Cap visible alerts to 5 — drop oldest to prevent DOM/CPU blowup over
     // long trading sessions (STRESS-05).
-    const all = root.querySelectorAll(".asherin-alert");
+    const all = root.querySelectorAll(".aureon-alert");
     if (all.length > 5) {
       for (let i = 0; i < all.length - 5; i++) all[i].remove();
     }
     // Stack multiple alerts (forced reflow once per render, not per element).
-    const existing = root.querySelectorAll(".asherin-alert");
+    const existing = root.querySelectorAll(".aureon-alert");
     let offset = 16;
     existing.forEach((a) => { a.style.top = offset + "px"; offset += a.offsetHeight + 8; });
 
     setTimeout(() => {
       if (el.parentElement) {
-        el.style.animation = "asherin-slideIn 0.3s ease reverse";
+        el.style.animation = "aureon-slideIn 0.3s ease reverse";
         setTimeout(() => el.remove(), 300);
       }
     }, 15000);
@@ -331,7 +331,7 @@
     } else {
       if (captureInterval) clearInterval(captureInterval);
       captureInterval = null;
-      updateStatus("off", "ASHERIN CROSS");
+      updateStatus("off", "AUREON CROSS");
     }
   }
 
@@ -369,7 +369,7 @@
   // encrypted token in chrome.storage.session-keyed AES-GCM.
   chrome.runtime.sendMessage({ type: "getConfig" }, (data) => {
     if (data?.settings) settings = { ...settings, ...data.settings };
-    if (data?.asherinEnabled && data?.hasToken) toggleActive();
+    if (data?.aureonEnabled && data?.hasToken) toggleActive();
   });
 
   // ── KEYBOARD SHORTCUT ──

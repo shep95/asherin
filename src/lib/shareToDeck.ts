@@ -1,4 +1,4 @@
-// shareToDeck — one-call bridge that lets any suite (Asherin Chat, AXRLEN,
+// shareToDeck — one-call bridge that lets any suite (Aureon Chat, AXRLEN,
 // Zophiel, ZERLAL, IDE) post an artifact into the currently active channel
 // of the currently active server. The message body is normalized so the
 // channel-side renderer draws a clean "shared from X" card with a fenced
@@ -11,7 +11,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type ShareSource = "asherin-chat" | "zophiel" | "axrlen" | "zerlal" | "ide" | "external";
+export type ShareSource = "aureon-chat" | "zophiel" | "axrlen" | "zerlal" | "ide" | "external";
 
 export interface ShareArgs {
   source: ShareSource;
@@ -26,7 +26,7 @@ export interface ShareArgs {
 }
 
 const SOURCE_LABEL: Record<ShareSource, string> = {
-  "asherin-chat": "Asherin Chat",
+  "aureon-chat": "Aureon Chat",
   zophiel:       "Zophiel Search",
   axrlen:        "AXRLEN Forecast",
   zerlal:        "ZERLAL Cyber",

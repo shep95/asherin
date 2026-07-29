@@ -71,7 +71,7 @@ export function buildIntelligenceReportText(input: ReportInputs): string {
   // ── COVER ───────────────────────────────────────────────────────
   out.push(line("═"));
   out.push("  ZOPHIEL · INTELLIGENCE REPORT");
-  out.push("  House Of Asher · Asherin Search Engine");
+  out.push("  House Of Asher · Aureon Search Engine");
   out.push(line("═"));
   out.push("");
   out.push(`  QUERY        : ${query || "(empty)"}`);

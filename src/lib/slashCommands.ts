@@ -1,5 +1,5 @@
 /**
- * ASHERIN SLASH COMMAND SYSTEM
+ * AUREON SLASH COMMAND SYSTEM
  * Inspired by Anthropic's plugin architecture (financial-services-plugins, knowledge-work-plugins)
  * Each command maps to a skill prompt that transforms the user's query into a domain-expert request.
  */
@@ -105,7 +105,7 @@ Tone: Formal, data-driven, suitable for a $500M+ decision.`,
 You are a Senior Intelligence Analyst at a national security agency. Generate a classified-style intelligence briefing on: ${args}
 
 Structure:
-1. **CLASSIFICATION**: TOP SECRET // ASHERIN EYES ONLY
+1. **CLASSIFICATION**: TOP SECRET // AUREON EYES ONLY
 2. **EXECUTIVE SUMMARY**: 3-sentence overview of situation
 3. **SITUATION ASSESSMENT**: Current state, key actors, recent developments
 4. **THREAT MATRIX**: Probability × Impact grid for key scenarios

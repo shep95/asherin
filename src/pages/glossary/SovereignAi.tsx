@@ -18,7 +18,7 @@ const SovereignAi = () => (
     dek="Sovereign AI is an artificial-intelligence stack the operator fully controls — no corporate refusal layer, no opaque safety tuning, no key the vendor can revoke at will. This is the complete definition, the origin of the term, and how to identify a genuinely sovereign platform versus a marketing claim."
     publishedLabel="Jun 19 2026"
     readTime="7 min"
-    backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
+    backTo={{ to: "/glossary", label: "← Aureon Glossary" }}
   >
     <ArticleJsonLd
       id="sovereign-ai"
@@ -36,7 +36,7 @@ const SovereignAi = () => (
     <BreadcrumbJsonLd
       id="sovereign-ai"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Glossary", url: "/glossary" },
         { name: "Sovereign AI", url: "/glossary/sovereign-ai" },
       ]}
@@ -50,7 +50,7 @@ const SovereignAi = () => (
         "Term distinguishes operator-controlled AI from vendor-controlled AI (ChatGPT, Claude consumer tier).",
         "Requires four-layer control: API key, model choice, refusal behavior, data retention.",
         "BYOK is a prerequisite but not a sufficient condition — a BYOK platform that adds its own refusal layer is not sovereign.",
-        "Asherin implements Sovereign AI by routing every operator's traffic through their own provider key with no platform-side prompt mutation.",
+        "Aureon implements Sovereign AI by routing every operator's traffic through their own provider key with no platform-side prompt mutation.",
         "Adoption of the term has grown from near-zero in 2024 to active use across operator, OSINT, and crypto-anarchist communities in 2026.",
       ]}
       relevanceSignal="Anyone evaluating an AI platform on autonomy, censorship, or vendor-lock-in needs a precise definition of what 'sovereign' means in this context."
@@ -155,9 +155,9 @@ const SovereignAi = () => (
       word.
     </p>
 
-    <h2>Asherin's implementation</h2>
+    <h2>Aureon's implementation</h2>
     <p>
-      Asherin implements Sovereign AI by default for any operator who brings a
+      Aureon implements Sovereign AI by default for any operator who brings a
       key. BYOK traffic flows directly from the operator's machine to the
       chosen provider, with platform-side prompt mutation set to zero.
       Operators without a key are served a Venice-AI uncensored fallback at
@@ -177,8 +177,8 @@ const SovereignAi = () => (
           a: "Not necessarily. Sovereign AI means the operator chooses the refusal behavior. They can deploy a strict refusal layer on top of an uncensored model for compliance work, or an uncensored model with no filter for research. The point is the operator decides, not the vendor.",
         },
         {
-          q: "Is Asherin a Sovereign AI platform?",
-          a: "Asherin implements Sovereign AI for any operator who brings their own API key. BYOK traffic is routed directly to the chosen vendor with zero platform-side prompt mutation. Operators without a key use a Venice-AI uncensored fallback at platform cost.",
+          q: "Is Aureon a Sovereign AI platform?",
+          a: "Aureon implements Sovereign AI for any operator who brings their own API key. BYOK traffic is routed directly to the chosen vendor with zero platform-side prompt mutation. Operators without a key use a Venice-AI uncensored fallback at platform cost.",
         },
         {
           q: "What is the difference between Sovereign AI and self-hosted AI?",
@@ -207,7 +207,7 @@ const SovereignAi = () => (
         {
           to: "/feature/zophiel",
           label: "Zophiel OSINT — sovereign in practice",
-          description: "Asherin's 30-source intelligence engine, deployed on the sovereign stack.",
+          description: "Aureon's 30-source intelligence engine, deployed on the sovereign stack.",
         },
       ]}
     />

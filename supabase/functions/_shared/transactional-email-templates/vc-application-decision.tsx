@@ -34,7 +34,7 @@ const VCDecisionEmail = ({ founderName, companyName, approved, rationale }: Prop
           <>
             <Text style={text}>
               Your application for <strong>{companyName || 'your venture'}</strong> has
-              successfully passed Asherin's multi-phase analytical review and has earned
+              successfully passed Aureon's multi-phase analytical review and has earned
               the attention of the Senate of HouseOfAsher.
             </Text>
             <Text style={text}>
@@ -48,13 +48,13 @@ const VCDecisionEmail = ({ founderName, companyName, approved, rationale }: Prop
           <>
             <Text style={text}>
               Thank you for submitting <strong>{companyName || 'your venture'}</strong> to
-              HouseOfAsher Ventures. After running your application through Asherin's
+              HouseOfAsher Ventures. After running your application through Aureon's
               multi-phase analytical review, we are unable to advance it to the Senate
               for investment consideration at this time.
             </Text>
             {rationale && (
               <Section style={rationaleBox}>
-                <Text style={rationaleLabel}>ASHERIN ADVISORY NOTES</Text>
+                <Text style={rationaleLabel}>AUREON ADVISORY NOTES</Text>
                 <Text style={rationaleText}>{rationale}</Text>
               </Section>
             )}

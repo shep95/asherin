@@ -1,4 +1,4 @@
-// Generalized "Card Protocol" parser for Asherin / Asher assistant streams.
+// Generalized "Card Protocol" parser for Aureon / Asher assistant streams.
 // The model emits fenced blocks of the form:
 //
 //   ```card:<type>

@@ -62,7 +62,7 @@ export const NAV_INTENTS: NavIntent[] = [
   
 
   // BUILD
-  { view: "ide", label: "Code IDE", codename: "Asherin IDE", blurb: "Browser IDE with project files and BYOK AI", keywords: ["ide", "code", "editor", "develop", "monaco", "programming"], group: "Build" },
+  { view: "ide", label: "Code IDE", codename: "Aureon IDE", blurb: "Browser IDE with project files and BYOK AI", keywords: ["ide", "code", "editor", "develop", "monaco", "programming"], group: "Build" },
   { view: "notebooks", label: "Intelligence Notebooks", codename: "Notebooks", blurb: "Shared analysis sessions with SQL execution", keywords: ["notebook", "sql", "jupyter", "analysis"], group: "Build", access: "pro" },
   { view: "zahten", label: "Agent Forge", codename: "Zahten", blurb: "Design, scaffold, and harden agents", keywords: ["forge", "agent builder", "scaffold"], group: "Build" },
   { view: "plugins", label: "Plugin Marketplace", codename: "Plugins", blurb: "Connectors and modules", keywords: ["plugin", "marketplace", "connector", "extension"], group: "Build", access: "pro" },
@@ -79,7 +79,7 @@ export const NAV_INTENTS: NavIntent[] = [
   { view: "persona-store", label: "Persona Store", codename: "Personas", blurb: "Browse and configure AI personas", keywords: ["persona", "character", "personality"], group: "Workspace" },
   { view: "vedic-astrology", label: "Vedic Astrology", codename: "Vedic", blurb: "Sidereal chart calculations", keywords: ["astrology", "vedic", "horoscope", "chart"], group: "Workspace" },
   { view: "guardian-vault", label: "Guardian Vault", codename: "Vault", blurb: "Centralized security command center", keywords: ["vault", "password", "secret", "mfa", "totp"], group: "Workspace" },
-  { view: "knowledge-vault", label: "Knowledge Vault (RAG)", codename: "Knowledge Vault", blurb: "Upload files or connect APIs — Asherin retrieves them live during chat", keywords: ["rag", "knowledge", "vault", "retrieval", "embeddings", "ingest", "upload", "api source"], group: "Workspace", access: "pro" },
+  { view: "knowledge-vault", label: "Knowledge Vault (RAG)", codename: "Knowledge Vault", blurb: "Upload files or connect APIs — Aureon retrieves them live during chat", keywords: ["rag", "knowledge", "vault", "retrieval", "embeddings", "ingest", "upload", "api source"], group: "Workspace", access: "pro" },
 
   // ACCOUNT
   { view: "settings", label: "Settings", codename: "Settings", keywords: ["settings", "preferences", "config", "options"], group: "Account" },
@@ -107,7 +107,7 @@ export const INTENT_GROUP_BLURB: Record<IntentGroup, string> = {
 
 /* ───────────────────────── Recents ───────────────────────── */
 
-const RECENT_KEY = "asherin_recent_intents";
+const RECENT_KEY = "aureon_recent_intents";
 const RECENT_MAX = 6;
 
 export function trackRecentIntent(viewOrRoute: string): void {
@@ -117,7 +117,7 @@ export function trackRecentIntent(viewOrRoute: string): void {
     const filtered = list.filter((x) => x !== viewOrRoute);
     filtered.unshift(viewOrRoute);
     localStorage.setItem(RECENT_KEY, JSON.stringify(filtered.slice(0, RECENT_MAX)));
-    window.dispatchEvent(new CustomEvent("asherin-recents-changed"));
+    window.dispatchEvent(new CustomEvent("aureon-recents-changed"));
   } catch { /* ignore */ }
 }
 

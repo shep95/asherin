@@ -21,7 +21,7 @@ const IdeModelSelector = () => {
   const { subscribed } = useSubscription();
   const [open, setOpen] = useState(false);
   const [storedProviders, setStoredProviders] = useState<string[]>([]);
-  const [active, setActive] = useState<ActiveModel>({ provider: "default", model: "default", label: "Asherin Default" });
+  const [active, setActive] = useState<ActiveModel>({ provider: "default", model: "default", label: "Aureon Default" });
 
   // Load stored keys
   useEffect(() => {
@@ -39,7 +39,7 @@ const IdeModelSelector = () => {
   // Load current preference from localStorage
   useEffect(() => {
     try {
-      const cached = localStorage.getItem("asherin_byok_active");
+      const cached = localStorage.getItem("aureon_byok_active");
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed.provider && parsed.provider !== "default") {
@@ -55,7 +55,7 @@ const IdeModelSelector = () => {
 
   const selectModel = async (provider: string, model: string, label: string) => {
     setActive({ provider, model, label });
-    localStorage.setItem("asherin_byok_active", JSON.stringify({ provider, model }));
+    localStorage.setItem("aureon_byok_active", JSON.stringify({ provider, model }));
 
     // Persist to DB
     if (user) {
@@ -101,7 +101,7 @@ const IdeModelSelector = () => {
             </button>
           </div>
 
-          {/* "Asherin Default" removed — IDE runs on the user's BYOK model only. */}
+          {/* "Aureon Default" removed — IDE runs on the user's BYOK model only. */}
 
           {/* BYOK providers */}
           <div className="space-y-0.5 max-h-[240px] overflow-y-auto">

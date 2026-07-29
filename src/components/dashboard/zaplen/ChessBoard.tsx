@@ -27,7 +27,7 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
   const [legalMoves, setLegalMoves] = useState<Square[]>([]);
   const [moveHistory, setMoveHistory] = useState<MoveLog[]>([]);
   const [aiThinking, setAiThinking] = useState(false);
-  const [asherinCommentary, setAsherinCommentary] = useState("");
+  const [aureonCommentary, setAureonCommentary] = useState("");
   const [challengerCommentary, setChallengerCommentary] = useState("");
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
   const [aiVsAiPaused, setAiVsAiPaused] = useState(false);
@@ -64,12 +64,12 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
     setMoveHistory(logs);
   }, []);
 
-  const executeAiMove = useCallback(async (currentGame: Chess, side: "asherin" | "challenger"): Promise<Chess | null> => {
+  const executeAiMove = useCallback(async (currentGame: Chess, side: "aureon" | "challenger"): Promise<Chess | null> => {
     if (currentGame.isGameOver() || abortRef.current) return null;
 
-    const isAsherin = side === "asherin";
+    const isAureon = side === "aureon";
     const aiColor = currentGame.turn() === "w" ? "white" : "black";
-    const label = isAsherin ? "Asherin" : `${config.byokProvider}/${config.byokModel}`;
+    const label = isAureon ? "Aureon" : `${config.byokProvider}/${config.byokModel}`;
     setCurrentThinkingLabel(label);
     setAiThinking(true);
 
@@ -79,9 +79,9 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
           pgn: currentGame.pgn(),
           fen: currentGame.fen(),
           aiColor,
-          byokProvider: isAsherin ? undefined : config.byokProvider,
-          byokModel: isAsherin ? undefined : config.byokModel,
-          opponent: isAsherin ? "asherin" : "byok",
+          byokProvider: isAureon ? undefined : config.byokProvider,
+          byokModel: isAureon ? undefined : config.byokModel,
+          opponent: isAureon ? "aureon" : "byok",
         },
       });
 
@@ -102,7 +102,7 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
           setGame(new Chess(newGame.fen()));
           setLastMove({ from: result.from as Square, to: result.to as Square });
           updateMoveHistory(newGame);
-          if (isAsherin) setAsherinCommentary(commentary);
+          if (isAureon) setAureonCommentary(commentary);
           else setChallengerCommentary(commentary);
           setAiThinking(false);
           return newGame;
@@ -119,7 +119,7 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
           setGame(new Chess(fbGame.fen()));
           setLastMove({ from: fbResult.from as Square, to: fbResult.to as Square });
           updateMoveHistory(fbGame);
-          if (isAsherin) setAsherinCommentary("An interesting position...");
+          if (isAureon) setAureonCommentary("An interesting position...");
           else setChallengerCommentary("Calculating...");
           setAiThinking(false);
           return fbGame;
@@ -153,7 +153,7 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
 
     const runLoop = async () => {
       let currentGame = new Chess();
-      // Asherin = white, Challenger = black
+      // Aureon = white, Challenger = black
       while (!currentGame.isGameOver() && !abortRef.current) {
         // Wait if paused
         while (pausedRef.current && !abortRef.current) {
@@ -162,8 +162,8 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
         if (abortRef.current) break;
 
         const turn = currentGame.turn();
-        const side = turn === "w" ? "asherin" : "challenger";
-        const result = await executeAiMove(currentGame, side as "asherin" | "challenger");
+        const side = turn === "w" ? "aureon" : "challenger";
+        const result = await executeAiMove(currentGame, side as "aureon" | "challenger");
         if (!result) break;
         currentGame = result;
 
@@ -177,15 +177,15 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
     return () => { abortRef.current = true; };
   }, [isAiVsAi, executeAiMove]);
 
-  // Single AI opponent (asherin mode)
+  // Single AI opponent (aureon mode)
   const requestAiMove = useCallback(async (currentGame: Chess) => {
-    const result = await executeAiMove(currentGame, "asherin");
+    const result = await executeAiMove(currentGame, "aureon");
     return result;
   }, [executeAiMove]);
 
   // AI first move when player is black
   useEffect(() => {
-    if (config.opponent === "asherin" && config.playerColor === "black" && game.history().length === 0) {
+    if (config.opponent === "aureon" && config.playerColor === "black" && game.history().length === 0) {
       requestAiMove(game);
     }
   }, []);
@@ -213,7 +213,7 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
           setLegalMoves([]);
           setLastMove({ from: result.from as Square, to: result.to as Square });
           updateMoveHistory(newGame);
-          if (config.opponent === "asherin" && !newGame.isGameOver()) {
+          if (config.opponent === "aureon" && !newGame.isGameOver()) {
             setTimeout(() => requestAiMove(newGame), 500);
           }
           return;
@@ -249,12 +249,12 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
   };
 
   const status = getGameStatus();
-  const isFlipped = config.opponent === "asherin" && config.playerColor === "black";
+  const isFlipped = config.opponent === "aureon" && config.playerColor === "black";
   const displayRanks = isFlipped ? [...RANKS].reverse() : RANKS;
   const displayFiles = isFlipped ? [...FILES].reverse() : FILES;
 
-  const whiteLabel = isAiVsAi ? "Asherin AI" : (config.playerColor === "white" ? "You" : "Asherin AI");
-  const blackLabel = isAiVsAi ? `${config.byokProvider}/${config.byokModel}` : (config.playerColor === "black" ? "You" : "Asherin AI");
+  const whiteLabel = isAiVsAi ? "Aureon AI" : (config.playerColor === "white" ? "You" : "Aureon AI");
+  const blackLabel = isAiVsAi ? `${config.byokProvider}/${config.byokModel}` : (config.playerColor === "black" ? "You" : "Aureon AI");
   const topLabel = isFlipped ? whiteLabel : blackLabel;
   const bottomLabel = isFlipped ? blackLabel : whiteLabel;
   const topIsAi = isAiVsAi || (isFlipped ? config.playerColor !== "white" : config.playerColor !== "black");
@@ -404,16 +404,16 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
         {/* AI Commentary */}
         {config.opponent !== "human" && (
           <div className="space-y-2">
-            {/* Asherin commentary */}
+            {/* Aureon commentary */}
             <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] backdrop-blur-sm p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Bot className="h-3 w-3 text-muted-foreground/40" />
-                <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 font-light">Asherin</span>
+                <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 font-light">Aureon</span>
               </div>
               <p className="text-[10px] text-muted-foreground/50 font-extralight leading-relaxed min-h-[28px]">
-                {aiThinking && currentThinkingLabel.includes("Asherin") ? (
+                {aiThinking && currentThinkingLabel.includes("Aureon") ? (
                   <span className="animate-pulse text-muted-foreground/30">Calculating...</span>
-                ) : asherinCommentary || (
+                ) : aureonCommentary || (
                   <span className="text-muted-foreground/20">...</span>
                 )}
               </p>
@@ -427,7 +427,7 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
                   <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 font-light">{config.byokModel}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground/50 font-extralight leading-relaxed min-h-[28px]">
-                  {aiThinking && !currentThinkingLabel.includes("Asherin") ? (
+                  {aiThinking && !currentThinkingLabel.includes("Aureon") ? (
                     <span className="animate-pulse text-muted-foreground/30">Calculating...</span>
                   ) : challengerCommentary || (
                     <span className="text-muted-foreground/20">...</span>

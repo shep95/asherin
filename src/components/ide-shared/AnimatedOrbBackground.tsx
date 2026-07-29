@@ -1,6 +1,6 @@
 // Subtle animated particle/orb backdrop for the IDE editor canvas.
 // Pure canvas, no deps, respects prefers-reduced-motion. Monochrome to match
-// the Asher / Asherin dark aesthetic.
+// the Asher / Aureon dark aesthetic.
 import { useEffect, useRef } from "react";
 
 interface Props {

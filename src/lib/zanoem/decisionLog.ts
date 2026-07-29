@@ -4,7 +4,7 @@
 // - Persists each autopilot decision so the human can later review or override.
 import { supabase } from "@/integrations/supabase/client";
 
-export type ZanoemSurface = "asher_ide" | "asherin_ide" | "asher_zanoem";
+export type ZanoemSurface = "asher_ide" | "aureon_ide" | "asher_zanoem";
 
 export interface ZanoemOption {
   label: string;          // short label (first line of the option)

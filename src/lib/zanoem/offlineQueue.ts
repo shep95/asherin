@@ -30,7 +30,7 @@ export interface QueuedJob<P = any> {
   attempts: number;
   status: JobStatus;
   lastError?: string;
-  surface: string;       // "asher_ide" | "asherin_ide"
+  surface: string;       // "asher_ide" | "aureon_ide"
   projectRef?: string;
   ownerUserId?: string;
 }

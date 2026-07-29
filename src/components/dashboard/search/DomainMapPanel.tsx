@@ -283,7 +283,7 @@ const DomainMapPanel = ({ defaultInput = "", presets, title, subtitle }: DomainM
       dl.download = `${result?.domain || "domain"}-bundle.zip`;
       document.body.appendChild(dl); dl.click(); dl.remove();
       setTimeout(() => URL.revokeObjectURL(dl.href), 4000);
-      setZipMsg(`Downloaded ${fmtBytes(blob.size)} — ${res.headers.get("X-Asherin-Files") || "?"} files.`);
+      setZipMsg(`Downloaded ${fmtBytes(blob.size)} — ${res.headers.get("X-Aureon-Files") || "?"} files.`);
     } catch (err: any) {
       setZipMsg(err?.message || "Download failed");
     } finally { setZipping(false); }

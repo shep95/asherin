@@ -1,4 +1,4 @@
-// useCodeRag — Phase 4 Asherin IDE
+// useCodeRag — Phase 4 Aureon IDE
 // Thin client wrapper around the `code-rag` edge function.
 // - indexFiles: debounced background sync of project files into pgvector
 // - search: top-k semantic search of project code for a free-text query

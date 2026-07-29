@@ -1,4 +1,4 @@
-// GHOST TRACE — Asherin / Asher social-post forensics bridge.
+// GHOST TRACE — Aureon / Asher social-post forensics bridge.
 // ─────────────────────────────────────────────────────────────────
 // Operator pastes an Instagram / X / Facebook / TikTok / Threads /
 // Bluesky / Reddit / YouTube-Short URL into chat. This module:
@@ -186,7 +186,7 @@ async function fetchXPost(id: string): Promise<any | null> {
   const url = `https://cdn.syndication.twimg.com/tweet-result?id=${id}&token=${token}`;
   try {
     const r = await withTimeout(fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; AsherinGhostTrace/1.0; +https://aureonai.app)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; AureonGhostTrace/1.0; +https://aureonai.app)" },
     }), 5000, "x_syndication");
     if (!r.ok) return null;
     return await r.json();
@@ -214,7 +214,7 @@ async function autopsyExif(mediaUrl: string): Promise<GhostTraceAttachment["exif
   if (!mediaHostAllowed(mediaUrl)) return { ...base, attempted: false };
   try {
     const r = await withTimeout(fetch(mediaUrl, {
-      headers: { "User-Agent": "Mozilla/5.0 AsherinGhostTrace/1.0", Range: "bytes=0-131071" },
+      headers: { "User-Agent": "Mozilla/5.0 AureonGhostTrace/1.0", Range: "bytes=0-131071" },
     }), 6000, "exif_fetch");
     if (!r.ok) return base;
     const buf = new Uint8Array(await r.arrayBuffer());
@@ -304,7 +304,7 @@ function readTiff(buf: Uint8Array, base: number): Record<string, any> | null {
 async function fetchRedditPost(id: string): Promise<any | null> {
   try {
     const r = await withTimeout(fetch(`https://www.reddit.com/comments/${id}.json?limit=1&raw_json=1`, {
-      headers: { "User-Agent": "AsherinGhostTrace/1.0" },
+      headers: { "User-Agent": "AureonGhostTrace/1.0" },
     }), 5000, "reddit");
     if (!r.ok) return null;
     return await r.json();

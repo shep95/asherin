@@ -1,7 +1,7 @@
 // promptToNarrative.ts — deterministic client-side narrative expansion.
 //
 // Rationale: raw user prompts are often terse, elliptical, or context-poor.
-// The "nar" toggle on Asherin chat wraps the raw prompt in a narrative frame
+// The "nar" toggle on Aureon chat wraps the raw prompt in a narrative frame
 // BEFORE sending it to the model, so the model receives (a) explicit intent,
 // (b) stated context, (c) the literal question, and (d) an instruction to
 // think in narrative form. This is pure text transformation — no network,
@@ -11,7 +11,7 @@
 // long-form (>1200 chars) we skip the frame and only prepend the directive,
 // because re-narrating an already-narrative prompt hurts quality.
 
-const NARRATIVE_DIRECTIVE = `You are Asherin operating in NARRATIVE-FIRST mode.
+const NARRATIVE_DIRECTIVE = `You are Aureon operating in NARRATIVE-FIRST mode.
 
 Before you answer, reason through the request as a short first-person narrative:
 1. What is the user actually asking? (State the underlying intent, not just the surface phrasing.)
@@ -66,7 +66,7 @@ in the phrasing — and only then produce the answer.`,
   };
 }
 
-const STORAGE_KEY = "asherin.chat.narrativeMode";
+const STORAGE_KEY = "aureon.chat.narrativeMode";
 
 export function loadNarrativeMode(): boolean {
   try {

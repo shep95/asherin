@@ -33,8 +33,8 @@ interface Props {
 }
 
 const WELCOME: TerminalLine[] = [
-  { id: "w1", type: "system", text: "ASHERIN Terminal v2.0 — Full Development Console", timestamp: new Date() },
-  { id: "w2", type: "system", text: "Type 'help' for commands • '? <query>' to ask Asherin AI", timestamp: new Date() },
+  { id: "w1", type: "system", text: "AUREON Terminal v2.0 — Full Development Console", timestamp: new Date() },
+  { id: "w2", type: "system", text: "Type 'help' for commands • '? <query>' to ask Aureon AI", timestamp: new Date() },
 ];
 
 function makeLine(type: TerminalLine["type"], text: string): TerminalLine {
@@ -81,7 +81,7 @@ function listDir(files: IdeFile[], cwd: string): IdeFile[] {
 
 const IdeTerminal = ({ onAiCommand, files = [], onCreateFile, onDeleteFile, onUpdateContent, onTerminalOutput, onCrashDetected }: Props) => {
   const [terminals, setTerminals] = useState<TerminalInstance[]>([
-    { id: "t1", name: "Terminal 1", lines: [...WELCOME], cwd: "", history: [], histIdx: -1, env: { USER: "asherin-dev", HOME: "/", SHELL: "/bin/zsh", NODE_ENV: "development" } },
+    { id: "t1", name: "Terminal 1", lines: [...WELCOME], cwd: "", history: [], histIdx: -1, env: { USER: "aureon-dev", HOME: "/", SHELL: "/bin/zsh", NODE_ENV: "development" } },
   ]);
   const [activeTermId, setActiveTermId] = useState("t1");
   const [input, setInput] = useState("");
@@ -145,14 +145,14 @@ const IdeTerminal = ({ onAiCommand, files = [], onCreateFile, onDeleteFile, onUp
     // AI query
     if (cmd.startsWith("? ") || cmd.startsWith("ai ")) {
       const query = cmd.replace(/^\?\s*|^ai\s*/i, "");
-      addLine(tid, "system", `[ASHERIN] Processing: "${query}"`);
+      addLine(tid, "system", `[AUREON] Processing: "${query}"`);
       onAiCommand?.(query);
       return;
     }
 
     // Help
     if (base === "help") {
-      addLine(tid, "output", `ASHERIN Terminal v2.0 — Command Reference
+      addLine(tid, "output", `AUREON Terminal v2.0 — Command Reference
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FILE SYSTEM
   ls [path]         List files and directories
@@ -193,8 +193,8 @@ UTILITIES
   uptime            Show session uptime
 
 AI
-  ? <query>         Ask Asherin AI
-  ai <query>        Ask Asherin AI
+  ? <query>         Ask Aureon AI
+  ai <query>        Ask Aureon AI
   explain <file>    Ask AI to explain file
   fix <file>        Ask AI to fix issues
   test <file>       Ask AI to generate tests
@@ -334,7 +334,7 @@ AI
     if (base === "date") { addLine(tid, "output", new Date().toString()); return; }
 
     // whoami
-    if (base === "whoami") { addLine(tid, "output", term.env.USER ?? "asherin-dev"); return; }
+    if (base === "whoami") { addLine(tid, "output", term.env.USER ?? "aureon-dev"); return; }
 
     // env
     if (base === "env") {
@@ -432,7 +432,7 @@ AI
       const node = resolved ? findAtPath(files, resolved.split("/")) : null;
       const context = node?.content ? `\n\`\`\`\n${node.content.slice(0, 3000)}\n\`\`\`` : "";
       const query = base === "explain" ? `Explain this code:${context}` : base === "fix" ? `Fix issues in this code:${context}` : `Generate unit tests for:${context}`;
-      addLine(tid, "system", `[ASHERIN] ${base} ${target || "current file"}...`);
+      addLine(tid, "system", `[AUREON] ${base} ${target || "current file"}...`);
       onAiCommand?.(query);
       return;
     }
@@ -505,7 +505,7 @@ AI
   const addTerminal = () => {
     const id = crypto.randomUUID();
     const name = `Terminal ${terminals.length + 1}`;
-    setTerminals(prev => [...prev, { id, name, lines: [makeLine("system", `${name} started`)], cwd: "", history: [], histIdx: -1, env: { USER: "asherin-dev", HOME: "/", SHELL: "/bin/zsh", NODE_ENV: "development" } }]);
+    setTerminals(prev => [...prev, { id, name, lines: [makeLine("system", `${name} started`)], cwd: "", history: [], histIdx: -1, env: { USER: "aureon-dev", HOME: "/", SHELL: "/bin/zsh", NODE_ENV: "development" } }]);
     setActiveTermId(id);
   };
 

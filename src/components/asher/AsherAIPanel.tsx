@@ -294,19 +294,11 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
 
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asher-ai`;
-      // Use the signed-in user's access token so adminGate can identify the caller
-      // (admin bypass / BYOK resolution). Falling back to the publishable key makes
-      // the server treat every request as anonymous → 403 BYOK_REQUIRED.
-      let authToken = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) authToken = session.access_token;
-      } catch { /* fallback to publishable key */ }
       const resp = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
           mapContext,
@@ -314,12 +306,6 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
           messages: [...messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: m.content })), { role: "user", content: text }],
         }),
       });
-      if (resp.status === 403) {
-        const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
-        triggerByokRequired({ source: "asher-ai", reason: "Add your Gemini key in Settings → BYOK to use Asherin chat." });
-        setBusy(false);
-        return;
-      }
 
       if (resp.status === 429) { toast.error("Rate limit — slow down"); setBusy(false); return; }
       if (resp.status === 402) { toast.error("AI credits exhausted"); setBusy(false); return; }

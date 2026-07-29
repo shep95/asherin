@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Network, Loader2, X, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
-import AsherinChatFloat from "./AsherinChatFloat";
+import AureonChatFloat from "./AureonChatFloat";
 
 interface Props {
   targetUrl: string;
@@ -71,7 +71,7 @@ const LinkExtractIntelPanel = ({ targetUrl, dossier, onClose }: Props) => {
                     : "border-border/40 bg-background/50 text-foreground/80 hover:border-foreground/60"
                 }`}
               >
-                <MessageSquare className="h-3 w-3" /> Asherin Chat
+                <MessageSquare className="h-3 w-3" /> Aureon Chat
               </button>
               <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5">
                 <X className="h-4 w-4" />
@@ -128,7 +128,7 @@ const LinkExtractIntelPanel = ({ targetUrl, dossier, onClose }: Props) => {
       </div>
 
       {chatOpen && (
-        <AsherinChatFloat
+        <AureonChatFloat
           targetUrl={targetUrl}
           dossier={dossier}
           intelMap={map}

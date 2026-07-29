@@ -366,7 +366,7 @@ const PredictionBtcDaily = () => {
       <BreadcrumbJsonLd
         id="btc-daily-predictions"
         items={[
-          { name: "Asherin", url: "https://aureonai.app" },
+          { name: "Aureon", url: "https://aureonai.app" },
           { name: "Blog", url: "https://aureonai.app/blog" },
           { name: "AXRLEN BTC Daily", url: "https://aureonai.app/blog/btc-daily-predictions" },
         ]}

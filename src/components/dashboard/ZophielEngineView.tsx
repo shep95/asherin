@@ -596,7 +596,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
-              {/* OpenVPN — Asherin Shield full device + browser audit suite */}
+              {/* OpenVPN — Aureon Shield full device + browser audit suite */}
               {mode === "vpn" && (
                 <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
                   <OpenVpnPanel />

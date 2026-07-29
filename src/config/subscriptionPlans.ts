@@ -79,20 +79,20 @@ const CHAT_FEATURES: FeatureId[] = [
   "zerlal",
 ];
 
-const ASHERIN_FEATURES: FeatureId[] = [
+const AUREON_FEATURES: FeatureId[] = [
   ...CHAT_FEATURES,
   "ide", "memory", "personas", "code_snippets",
   "file_scrapper", "cipher", "whiteboard",
   "nomad", "briefings", "zali", "vedic",
-  // Zophiel Engine modules included from Asherin tier and up
+  // Zophiel Engine modules included from Aureon tier and up
   "axrlen", "zeeion",
 ];
 
-// Lifetime ($470 one-time) gets everything in Asherin ($199) and below.
-const LIFETIME_FEATURES: FeatureId[] = [...ASHERIN_FEATURES];
+// Lifetime ($470 one-time) gets everything in Aureon ($199) and below.
+const LIFETIME_FEATURES: FeatureId[] = [...AUREON_FEATURES];
 
 const PRO_FEATURES: FeatureId[] = [
-  ...ASHERIN_FEATURES,
+  ...AUREON_FEATURES,
   "google_intel", "tracker",
   "azplen", "pattern_analysis", "timeseries", "geospatial",
   "teams", "community", "security_dashboard", "plugins", "audit",
@@ -104,31 +104,31 @@ const PRO_FEATURES: FeatureId[] = [
 export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
   {
     id: "algorithm",
-    name: "ASHERIN ALGORITHM",
+    name: "AUREON ALGORITHM",
     tagline: "Entry Access",
     price: "$10",
     period: "one-time",
-    description: "Direct access to the Asherin Algorithm LLM inside the Asherin Free chat — no AI key required. 20 messages per hour, 24/7. The simplest way to start using Asherin intelligence.",
+    description: "Direct access to the Aureon Algorithm LLM inside the Aureon Free chat — no AI key required. 20 messages per hour, 24/7. The simplest way to start using Aureon intelligence.",
     cta: "Get Algorithm Access",
     highlight: false,
     publicVisible: true,
     features: [],
     messageLimit: 20,
     featureLabels: [
-      "Asherin Algorithm LLM access (no API key needed)",
+      "Aureon Algorithm LLM access (no API key needed)",
       "20 messages per hour",
-      "Live in the Asherin Free chat",
+      "Live in the Aureon Free chat",
       "Switch to Bring-Your-Own-Key at any time",
       "No recurring billing",
     ],
   },
   {
     id: "lifetime",
-    name: "ASHERIN LIFETIME",
+    name: "AUREON LIFETIME",
     tagline: "One-Time Purchase",
     price: "$470",
     period: "one-time",
-    description: "Lifetime access to everything in the Asherin $199 one-time tier and below — IDE, persistent memory, personas, NOMAD, Briefings, ZANOEM Design Lab, Vedic Strategy, Zophiel Search, Notebooks, generators, Zahten and Guardian Vault. Unlimited messages. Bring your own AI key — one payment, forever.",
+    description: "Lifetime access to everything in the Aureon $199 one-time tier and below — IDE, persistent memory, personas, NOMAD, Briefings, ZANOEM Design Lab, Vedic Strategy, Zophiel Search, Notebooks, generators, Zahten and Guardian Vault. Unlimited messages. Bring your own AI key — one payment, forever.",
     cta: "Get Lifetime Access",
     highlight: true,
     publicVisible: true,
@@ -137,8 +137,8 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     featureLabels: [
       "Lifetime access — one payment",
       "Unlimited messages (BYOK required)",
-      "Everything in the Asherin $199 one-time tier and below",
-      "Asherin IDE — full cloud development environment",
+      "Everything in the Aureon $199 one-time tier and below",
+      "Aureon IDE — full cloud development environment",
       "Persistent Memory & Custom Personas",
       "Zophiel Search, Notebooks, PDF / Slideshow / E-Book",
       "Zahten Agent Forge & Guardian Vault",
@@ -156,7 +156,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
   },
   {
     id: "chat",
-    name: "ASHERIN CHAT",
+    name: "AUREON CHAT",
     tagline: "Core Intelligence",
     price: "$47",
     period: "one-time",
@@ -180,23 +180,23 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     ],
   },
   {
-    id: "asherin",
-    name: "ASHERIN",
+    id: "aureon",
+    name: "AUREON",
     tagline: "Full AI Suite",
     price: "$199",
     period: "one-time",
-    description: "Everything in Chat plus the Asherin IDE, persistent memory, custom personas, Vibe Imager, File Scrapper, Cipher, Whiteboard, NOMAD Public Intelligence, Daily Intelligence Briefings, ZANOEM Design Lab, and Vedic Strategy.",
-    cta: "Get Asherin",
+    description: "Everything in Chat plus the Aureon IDE, persistent memory, custom personas, Vibe Imager, File Scrapper, Cipher, Whiteboard, NOMAD Public Intelligence, Daily Intelligence Briefings, ZANOEM Design Lab, and Vedic Strategy.",
+    cta: "Get Aureon",
     highlight: false,
     publicVisible: true,
-    features: ASHERIN_FEATURES,
+    features: AUREON_FEATURES,
     messageLimit: 200,
     featureLabels: [
       "Everything in Chat (Zophiel Search, Notebooks, PDF / Slideshow / E-Book, Zahten Agent Forge, Guardian Vault)",
       "Unlimited messages (BYOK required)",
       "Zahten Agent Forge — autonomous agent builder",
       "Guardian Vault — security command center",
-      "Asherin IDE — full cloud development environment",
+      "Aureon IDE — full cloud development environment",
       "Persistent Memory & Calibration",
       "Custom Personas",
       "Code Snippets Vault",
@@ -224,18 +224,18 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
   },
   {
     id: "pro",
-    name: "ASHERIN PRO",
+    name: "AUREON PRO",
     tagline: "Maximum Intelligence",
     price: "$740",
     period: "one-time",
-    description: "Everything in Asherin plus Google Intelligence, Azplen Data, team workspace, and every advanced module.",
+    description: "Everything in Aureon plus Google Intelligence, Azplen Data, team workspace, and every advanced module.",
     cta: "Go Pro",
     highlight: true,
     publicVisible: true,
     features: PRO_FEATURES,
     messageLimit: 200,
     featureLabels: [
-      "Everything in Asherin — expanded",
+      "Everything in Aureon — expanded",
       "Unlimited messages (BYOK required)",
       "Zahten Agent Forge & Guardian Vault",
       "Google Intelligence Suite",
@@ -260,7 +260,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
 
 // ── Access Helpers ───────────────────────────────────────────────────────────
 
-/** Donation Era: Asherin is fully free — every feature is unlocked for every user. */
+/** Donation Era: Aureon is fully free — every feature is unlocked for every user. */
 export function tierHasFeature(_tierKey: TierKey | null, _feature: FeatureId): boolean {
   return true;
 }
@@ -327,14 +327,14 @@ export interface TierFeatureCard {
 }
 
 export const TIER_FEATURE_CARDS: TierFeatureCard[] = [
-  { label: "Asherin AI", desc: "Uncensored intelligence engine with persistent memory and calibration.", tier: "All tiers" },
+  { label: "Aureon AI", desc: "Uncensored intelligence engine with persistent memory and calibration.", tier: "All tiers" },
   { label: "Bring Your Own AI Key", desc: "Connect your own keys from Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more.", tier: "All tiers" },
   { label: "End-to-End Encryption", desc: "Every message encrypted. Never stored as training data.", tier: "All tiers" },
   { label: "Zophiel Search", desc: "Privacy-first search with source credibility tiers and page preview.", tier: "All tiers" },
   { label: "Zahten Agent Forge", desc: "Autonomous agent builder — design, scaffold and harden production-grade automated agents.", tier: "All tiers" },
   { label: "Guardian Vault", desc: "Centralized security command center with TOTP MFA and credential hygiene.", tier: "All tiers" },
-  { label: "Asherin IDE", desc: "Full cloud development environment with AI chat, terminals, sessions, undo/redo, and ZIP export.", tier: "Pro" },
-  { label: "Imagine To Code", desc: "AI-powered pixel art & SVG editor — draw, upload images, or ask ASHERIN to design directly on the canvas.", tier: "Pro" },
+  { label: "Aureon IDE", desc: "Full cloud development environment with AI chat, terminals, sessions, undo/redo, and ZIP export.", tier: "Pro" },
+  { label: "Imagine To Code", desc: "AI-powered pixel art & SVG editor — draw, upload images, or ask AUREON to design directly on the canvas.", tier: "Pro" },
   { label: "Google Intelligence", desc: "Multi-account Google data analysis — email, calendar, contacts, YouTube, Chrome, and more.", tier: "Pro" },
   { label: "NOMAD Public Intelligence", desc: "Public intelligence agent across 40+ data sources with dossier output.", tier: "All tiers" },
   { label: "Azplen Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Pro" },

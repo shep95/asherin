@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (data.settings?.mode) modeSelect.value = data.settings.mode;
     if (data.settings?.sensitivity) sensitivitySelect.value = data.settings.sensitivity;
     if (data.settings?.frameRate) frameRateSelect.value = String(data.settings.frameRate);
-    if (data.asherinEnabled && data.hasToken) {
+    if (data.aureonEnabled && data.hasToken) {
       statusDot.classList.add("active");
       statusText.textContent = "Active — watching tabs";
     } else if (!data.hasToken) {
@@ -35,8 +35,8 @@ document.addEventListener("DOMContentLoaded", () => {
       quality: "medium",
     };
 
-    const payload = { settings, asherinEnabled: true };
-    if (token) payload.asherinToken = token;
+    const payload = { settings, aureonEnabled: true };
+    if (token) payload.aureonToken = token;
 
     chrome.runtime.sendMessage({ type: "saveConfig", data: payload }, () => {
       tokenInput.value = "";
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   deactivateBtn.onclick = () => {
     chrome.runtime.sendMessage(
-      { type: "saveConfig", data: { asherinEnabled: false } },
+      { type: "saveConfig", data: { aureonEnabled: false } },
       () => {
         statusDot.classList.remove("active");
         statusText.textContent = "Inactive";

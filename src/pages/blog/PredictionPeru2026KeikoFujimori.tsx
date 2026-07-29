@@ -36,7 +36,7 @@ const PredictionPeru2026KeikoFujimori = () => (
     <BreadcrumbJsonLd
       id="prediction-peru-2026-keiko-fujimori"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "AXRLEN — Peru 2026 (Keiko Fujimori)", url: "/blog/predictions/peru-2026-keiko-fujimori" },
       ]}
@@ -47,7 +47,7 @@ const PredictionPeru2026KeikoFujimori = () => (
       claim="AXRLEN predicts Keiko Fujimori (Fuerza Popular) will be the next president of Peru, winning a polarized 2026 second-round runoff by 'exhaustion' under the Antivoto Paradox pattern."
       primaryTopic="2026 Peruvian presidential election forecast"
       keyFacts={[
-        "Engine: AXRLEN — NEXUS PRIME (Asherin Predictive Engine).",
+        "Engine: AXRLEN — NEXUS PRIME (Aureon Predictive Engine).",
         "Generated: 22 June 2026, 1:00 PM EST.",
         "Headline pick: Keiko Fujimori — future President of Peru.",
         "Pattern: 'Fractured Populism' + Antivoto Paradox.",

@@ -1,6 +1,6 @@
 // Client-side property/address detection + Nominatim geocoding.
 // Mirrors the server-side rules in supabase/functions/_shared/propertyIntel.ts
-// so the main Asherin dashboard chat can render a satellite map card beneath
+// so the main Aureon dashboard chat can render a satellite map card beneath
 // any message that mentions a real address — without waiting for the LLM
 // stream to finish.
 

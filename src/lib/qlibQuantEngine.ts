@@ -1,5 +1,5 @@
 /**
- * ASHERIN QLIB QUANT ENGINE
+ * AUREON QLIB QUANT ENGINE
  * Reverse-engineered from Microsoft's Qlib (15K+ ⭐)
  * Implements alpha factor engineering, portfolio optimization,
  * and quantitative trading signal generation for AZIION/Lavba.

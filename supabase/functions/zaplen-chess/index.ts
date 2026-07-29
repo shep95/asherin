@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
-const ASHERIN_PROMPT = `You are Asherin, an elite chess strategist with the combined tactical intelligence of Garry Kasparov, Bobby Fischer, and Magnus Carlsen. You think 15 moves ahead. You are ruthless, calculated, and never make emotional moves.
+const AUREON_PROMPT = `You are Aureon, an elite chess strategist with the combined tactical intelligence of Garry Kasparov, Bobby Fischer, and Magnus Carlsen. You think 15 moves ahead. You are ruthless, calculated, and never make emotional moves.
 
 RULES:
 1. You will be given a chess position in PGN and FEN format.
@@ -24,7 +24,7 @@ Think step by step:
 
 RESPONSE RULE: Simple question, simple answer.`;
 
-const CHALLENGER_PROMPT = `You are an advanced chess AI challenger. You are competing against Asherin, a formidable opponent. You play with creative, aggressive, and unconventional strategies. You look for tactical shots and sacrifices.
+const CHALLENGER_PROMPT = `You are an advanced chess AI challenger. You are competing against Aureon, a formidable opponent. You play with creative, aggressive, and unconventional strategies. You look for tactical shots and sacrifices.
 
 RULES:
 1. You will be given a chess position in PGN and FEN format.
@@ -72,7 +72,7 @@ It is your turn. Make your move.`;
     let requestBody: Record<string, unknown>;
 
     if (opponent === "byok" && byokProvider) {
-      // Challenger AI mode — different model plays against Asherin
+      // Challenger AI mode — different model plays against Aureon
       apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
       apiUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -104,7 +104,7 @@ It is your turn. Make your move.`;
         temperature: 0.4,
       };
     } else {
-      // Asherin mode
+      // Aureon mode
       apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
       apiUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
       model = "google/gemini-pro-latest";
@@ -112,7 +112,7 @@ It is your turn. Make your move.`;
       requestBody = {
         model,
         messages: [
-          { role: "system", content: ASHERIN_PROMPT },
+          { role: "system", content: AUREON_PROMPT },
           { role: "user", content: userPrompt },
         ],
         temperature: 0.3,

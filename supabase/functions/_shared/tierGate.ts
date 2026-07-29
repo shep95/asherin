@@ -2,13 +2,13 @@
 // Use for premium features that cost the platform (not gated by BYOK).
 //
 //   import { requireTier } from "../_shared/tierGate.ts";
-//   const gate = await requireTier(req, ["pro", "asherin", "lifetime"]);
+//   const gate = await requireTier(req, ["pro", "aureon", "lifetime"]);
 //   if (!gate.ok) return gate.response;
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCallerEmail, isAdminEmail } from "./adminGate.ts";
 
-export type Tier = "free" | "chat" | "asherin" | "pro" | "lifetime";
+export type Tier = "free" | "chat" | "aureon" | "pro" | "lifetime";
 
 // Explicit Stripe product ID → tier mapping. Substring matching does NOT
 // work because real Stripe product IDs are opaque (e.g. prod_U1PuUztkmieRrE)
@@ -17,11 +17,11 @@ export type Tier = "free" | "chat" | "asherin" | "pro" | "lifetime";
 const PRODUCT_TIER_MAP: Record<string, Tier> = {
   prod_UTrNsrxIQGTBQR: "lifetime",
   prod_U4YWDDwSXK3SGO: "chat",
-  prod_U1rtJ8HXSCtvqO: "asherin",
+  prod_U1rtJ8HXSCtvqO: "aureon",
   prod_U1PuUztkmieRrE: "pro",
-  prod_UjaQPixvFi3Qlr: "asherin",   // monthly_asherin ($18/mo)
+  prod_UjaQPixvFi3Qlr: "aureon",   // monthly_aureon ($18/mo)
   prod_UjaQFcAkQnTOm1: "pro",      // monthly_pro ($399/mo) — Vault, Zahten, premium
-  prod_asherin_algorithm: "lifetime",
+  prod_aureon_algorithm: "lifetime",
 };
 
 function classifyProductId(pid: string | null | undefined): Tier {
@@ -31,7 +31,7 @@ function classifyProductId(pid: string | null | undefined): Tier {
   const s = pid.toLowerCase();
   if (s.includes("lifetime")) return "lifetime";
   if (s.includes("pro")) return "pro";
-  if (s.includes("asherin")) return "asherin";
+  if (s.includes("aureon")) return "aureon";
   if (s.includes("chat")) return "chat";
   return "free";
 }

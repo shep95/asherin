@@ -201,8 +201,8 @@ serve(async (req) => {
         const recipientEmail = userRec?.user?.email;
         if (recipientEmail) {
           const planName = subscriptionType
-            ? `Asherin ${subscriptionType.charAt(0).toUpperCase() + subscriptionType.slice(1)}`
-            : "Asherin";
+            ? `Aureon ${subscriptionType.charAt(0).toUpperCase() + subscriptionType.slice(1)}`
+            : "Aureon";
           let daysLeft: number | undefined;
           let renewalDate: string | undefined;
           if (expiresAt) {
@@ -270,7 +270,7 @@ serve(async (req) => {
       if (recipient) {
         const planName = inv.lines?.data?.[0]?.description
           || (inv.lines?.data?.[0] as any)?.price?.nickname
-          || "Asherin";
+          || "Aureon";
         const amount = new Intl.NumberFormat("en-US", {
           style: "currency",
           currency: (inv.currency || "usd").toUpperCase(),

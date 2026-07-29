@@ -2,7 +2,7 @@
 
 ## The narrative the user asked for
 
-Operators sit inside a sovereign country server. They work in the suites — Asherin
+Operators sit inside a sovereign country server. They work in the suites — Aureon
 Chat, Zophiel Search, AXRLEN forecasting, ZERLAL cyber, and the sovereign IDE.
 Each of those suites produces artifacts: a forecast bullet list, a Zophiel dossier
 paragraph, a snippet of code, an audit narrative. Today those artifacts die inside
@@ -46,7 +46,7 @@ provisioner seeds. **Admins get a full channel CRUD in the AdminPanel.**
 2. **AI Gov command.** `/ai <prompt>` is intercepted by the composer, calls a new
    `hoa-ai-command` edge function that hits Lovable AI Gateway (Gemini 3 Flash),
    and posts the resulting answer into the current channel as a
-   `AsherinAI` bot message. The prompt itself is also posted, so the audit trail
+   `AureonAI` bot message. The prompt itself is also posted, so the audit trail
    is intact. Every call is logged under `AI_COMMAND` in `hoa_audit`.
 
 3. **Rich message renderer.** `ChannelMessage.tsx` parses `\`\`\`` fences and
@@ -58,7 +58,7 @@ provisioner seeds. **Admins get a full channel CRUD in the AdminPanel.**
    `shareToDeck({ source, title, body, channelId, serverId, authorHandle })`.
    Any suite can call it. It emits a structured message prefixed with a source
    badge and a fenced payload block so the receiving channel renders it cleanly.
-   Wired first into Asherin Chat — a "Share to channel" chip appears on every
+   Wired first into Aureon Chat — a "Share to channel" chip appears on every
    assistant reply.
 
 5. **Discord-grade channel management.** New `ChannelsTab` in `AdminPanel` gives
@@ -93,5 +93,5 @@ provisioner seeds. **Admins get a full channel CRUD in the AdminPanel.**
   channels are visible after a refresh; admin flow toasts success).
 - Manual: `/ai what is the mothership?` in a text channel → posts prompt +
   Gemini reply, both visible to all cleared members, both audit-logged.
-- Manual: click "Share to channel" on an Asherin assistant reply → structured
+- Manual: click "Share to channel" on an Aureon assistant reply → structured
   message appears in the currently selected channel, quoted and attributed.

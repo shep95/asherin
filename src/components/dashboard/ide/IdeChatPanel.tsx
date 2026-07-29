@@ -87,7 +87,7 @@ function MessageCopyBtn({ text }: { text: string }) {
   );
 }
 
-const STORAGE_KEY = "asherin-ide-custom-brains";
+const STORAGE_KEY = "aureon-ide-custom-brains";
 
 function loadBrains(): CustomBrain[] {
   try {
@@ -233,7 +233,7 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
             <Lock className="h-3.5 w-3.5 text-accent shrink-0" />
             <p className="text-[11px] font-light text-foreground">Subscribe to use IDE AI.</p>
           </div>
-          <a href="/dashboard" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent("asherin:navigate", { detail: "subscription" })); }}
+          <a href="/dashboard" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent("aureon:navigate", { detail: "subscription" })); }}
             className="group flex items-center gap-1 rounded-lg bg-accent text-accent-foreground px-3 py-1.5 text-[10px] font-light hover:bg-accent/90 transition-all shrink-0">
             Plans <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
           </a>
@@ -278,7 +278,7 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
                 onClick={() => { setActiveBrainId(null); setShowBrainDropdown(false); }}
                 className={`w-full text-left px-3 py-1.5 text-[10px] font-light transition-colors hover:bg-foreground/5 ${!activeBrainId ? "text-foreground" : "text-muted-foreground"}`}
               >
-                <Brain className="h-3 w-3 text-muted-foreground/60 inline mr-1" /> Default (Asherin Core)
+                <Brain className="h-3 w-3 text-muted-foreground/60 inline mr-1" /> Default (Aureon Core)
               </button>
               {customBrains.map(b => (
                 <button key={b.id}

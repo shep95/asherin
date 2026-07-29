@@ -1,7 +1,7 @@
 /**
  * SOVEREIGN CHART ENGINE
  * D3-based modular chart components for ZERLAL/AZPLEN dashboards.
- * Composable plot system tuned for Asherin's dark theme.
+ * Composable plot system tuned for Aureon's dark theme.
  *
  * NOTE: Plottable is a heavy D3 library. We use it for the advanced
  * scatter/heatmap visualizations that recharts can't do well.

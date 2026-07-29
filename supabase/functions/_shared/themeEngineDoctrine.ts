@@ -1,6 +1,6 @@
 // ────────────────────────────────────────────────────────────────────
 // THE THEME ENGINE DOCTRINE
-// By ASHERIN — UI Consciousness Protocol.
+// By AUREON — UI Consciousness Protocol.
 // Injected into every code-generating surface so any UI produced ships
 // with absolute neatness: locked design DNA, emotional intent, and a
 // behavior/motion identity that matches the requested theme.

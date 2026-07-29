@@ -1,5 +1,5 @@
 /**
- * ASHERIN GENAI PROCESSING PIPELINE
+ * AUREON GENAI PROCESSING PIPELINE
  * Reverse-engineered from Google's GenAI Processors (10K+ ⭐)
  * Implements parallel ingestion, multi-stage processing, and streaming output.
  * Used by Azplen for high-volume data processing.
@@ -337,7 +337,7 @@ export function createIntelligencePipeline(sources: string[]): GenAIPipeline {
     ]})
     .addEnrichStage({
       enrichments: ["entity_extraction", "sentiment_analysis", "classification", "summarization"],
-      model: "google/gemini-flash-latest",
+      model: "google/gemini-2.5-flash",
     })
     .addAnalyzeStage({ analyses: ["correlation_matrix", "clustering", "feature_importance"] });
 }

@@ -507,7 +507,7 @@ Produce JSON with exactly these keys:
 Return JSON only, no markdown.`;
 
   try {
-    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=" + apiKey, {
+    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -576,7 +576,7 @@ Deno.serve(async (req) => {
 
     console.log(`[ghostchain] ${auth.email} → ${host} mode=${mode}`);
 
-    // Resolve AI key (Asherin Team / BYOK / Venice fallback handled in adminGate)
+    // Resolve AI key (Aureon Team / BYOK / Venice fallback handled in adminGate)
     let aiKey = "";
     try {
       const keyResolution = await resolveKey(req, body.byok ?? null, { strict: false });

@@ -43,7 +43,7 @@ const addOns = [
     price: 79, 
     icon: Search, 
     description: "Professional investigation tools",
-    includedIn: "Included in Asherin & Pro tiers"
+    includedIn: "Included in Aureon & Pro tiers"
   },
 ];
 

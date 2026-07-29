@@ -65,7 +65,7 @@ const ConfidenceRing = ({ value }: { value: number }) => {
     pct >= 40 ? "stroke-amber-400/85" :
     "stroke-red-400/80";
   return (
-    <div className="relative h-[96px] w-[96px] shrink-0 asherin-confidence-pulse">
+    <div className="relative h-[96px] w-[96px] shrink-0 aureon-confidence-pulse">
       <svg viewBox="0 0 80 80" className="-rotate-90">
         <circle cx="40" cy="40" r={r} className="fill-none stroke-foreground/[0.06]" strokeWidth="4" />
         <circle
@@ -147,7 +147,7 @@ const AxrlenDashboard = ({ session }: Props) => {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-background/40 relative asherin-grid-bg">
+    <div className="flex flex-col h-full bg-background/40 relative aureon-grid-bg">
       {/* ── Top command strip ── */}
       <div className="shrink-0 px-4 pt-4 pb-3 border-b border-border/[0.05] flex items-stretch gap-3">
         <ConfidenceRing value={session.confidenceScore || 0} />
@@ -388,14 +388,14 @@ const AxrlenDashboard = ({ session }: Props) => {
                     <div className="relative p-3 rounded-lg border border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.08] via-emerald-500/[0.04] to-transparent overflow-hidden">
                       <div className="flex items-baseline justify-between mb-1">
                         <span className="text-[8px] font-semibold uppercase tracking-[0.28em] text-emerald-300/90">Branch A</span>
-                        <span className="asherin-branch-pct text-[26px] text-emerald-300">{d.branchA?.probability ?? 0}<span className="text-[12px] text-emerald-300/60">%</span></span>
+                        <span className="aureon-branch-pct text-[26px] text-emerald-300">{d.branchA?.probability ?? 0}<span className="text-[12px] text-emerald-300/60">%</span></span>
                       </div>
                       <p className="text-[9px] text-foreground/70 leading-snug">{d.branchA?.description}</p>
                     </div>
                     <div className="relative p-3 rounded-lg border border-amber-500/25 bg-gradient-to-br from-amber-500/[0.08] via-amber-500/[0.04] to-transparent overflow-hidden">
                       <div className="flex items-baseline justify-between mb-1">
                         <span className="text-[8px] font-semibold uppercase tracking-[0.28em] text-amber-300/90">Branch B</span>
-                        <span className="asherin-branch-pct text-[26px] text-amber-300">{d.branchB?.probability ?? 0}<span className="text-[12px] text-amber-300/60">%</span></span>
+                        <span className="aureon-branch-pct text-[26px] text-amber-300">{d.branchB?.probability ?? 0}<span className="text-[12px] text-amber-300/60">%</span></span>
                       </div>
                       <p className="text-[9px] text-foreground/70 leading-snug">{d.branchB?.description}</p>
                     </div>

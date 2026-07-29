@@ -33,7 +33,7 @@ const SecurityAlertEmail = ({ name, event = 'Account activity detected', device,
 
 export const template = {
   component: SecurityAlertEmail,
-  subject: (d: any) => d?.event ?? 'Security alert on your Asherin account',
+  subject: (d: any) => d?.event ?? 'Security alert on your Aureon account',
   displayName: 'Security alert',
   previewData: { name: 'Asher', event: 'New device signed in', device: 'MacBook Pro · Chrome', location: 'San Francisco, CA, US', time: 'May 26, 2026 · 22:14 UTC' },
 } satisfies TemplateEntry

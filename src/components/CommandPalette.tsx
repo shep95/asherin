@@ -54,12 +54,12 @@ export default function CommandPalette() {
     const onOpenEvt = () => setOpen(true);
     const onRecents = () => setRecents(getRecentIntents());
     window.addEventListener("keydown", onKey);
-    window.addEventListener("asherin-open-command-palette", onOpenEvt as EventListener);
-    window.addEventListener("asherin-recents-changed", onRecents);
+    window.addEventListener("aureon-open-command-palette", onOpenEvt as EventListener);
+    window.addEventListener("aureon-recents-changed", onRecents);
     return () => {
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("asherin-open-command-palette", onOpenEvt as EventListener);
-      window.removeEventListener("asherin-recents-changed", onRecents);
+      window.removeEventListener("aureon-open-command-palette", onOpenEvt as EventListener);
+      window.removeEventListener("aureon-recents-changed", onRecents);
     };
   }, []);
 

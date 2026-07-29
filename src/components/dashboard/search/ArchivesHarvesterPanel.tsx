@@ -1,6 +1,6 @@
 // ASHER ARCHIVES — Knowledge Harvester (admin-only widget).
 // Scrapes IA + live web for a domain, synthesizes a dumbed-down .txt via
-// Gemini, and writes it into asher_brains (feeds ASHER + ASHERIN).
+// Gemini, and writes it into asher_brains (feeds ASHER + AUREON).
 import { useState } from "react";
 import { Loader2, Database, Download, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,12 +72,12 @@ export const ArchivesHarvesterPanel = () => {
           Knowledge Harvester · Admin
         </h3>
         <span className="ml-auto text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60">
-          IA + Live Web → ASHER / ASHERIN brain
+          IA + Live Web → ASHER / AUREON brain
         </span>
       </div>
 
       <p className="text-[10px] font-light text-muted-foreground/80 leading-relaxed">
-        Scrapes Internet Archive + live web for the domain, synthesizes a plain-English knowledge dump, saves it as a .txt and installs it as an active brain row consumed by ASHER and ASHERIN.
+        Scrapes Internet Archive + live web for the domain, synthesizes a plain-English knowledge dump, saves it as a .txt and installs it as an active brain row consumed by ASHER and AUREON.
       </p>
 
       {/* Presets */}

@@ -49,7 +49,7 @@ serve(async (req) => {
       ? `\nCURRENT SAVED PROFILE:\n- Company: ${existingProfile.company_name || "Not set"}\n- Industry: ${existingProfile.industry || "Not set"}\n- Competitors: ${(existingProfile.competitors || []).join(", ") || "None"}\n- Key Markets: ${(existingProfile.key_markets || []).join(", ") || "None"}\n- Technology Stack: ${(existingProfile.technology_stack || []).join(", ") || "None"}\n- Investment Interests: ${(existingProfile.investment_interests || []).join(", ") || "None"}\n- Tracked People: ${(existingProfile.tracked_people || []).join(", ") || "None"}\n- Regulatory Bodies: ${(existingProfile.regulatory_bodies || []).join(", ") || "None"}\n- Custom Topics: ${(existingProfile.custom_topics || []).join(", ") || "None"}\n`
       : "";
 
-    const systemPrompt = `You are ASHERIN Intelligence Onboarding. Your job is to have a natural conversation to build a comprehensive intelligence briefing profile for the user.
+    const systemPrompt = `You are AUREON Intelligence Onboarding. Your job is to have a natural conversation to build a comprehensive intelligence briefing profile for the user.
 
 You need to gather the following information through conversation:
 1. Company name
@@ -70,7 +70,7 @@ RULES:
 - After you feel you have enough to build a strong profile (at minimum: industry + at least 2-3 other categories populated), tell the user their profile looks ready and ask if they want to add anything else.
 - When the profile is complete, output a special JSON block at the END of your message (after your conversational text) in this exact format:
 
-\`\`\`asherin_profile
+\`\`\`aureon_profile
 {
   "company_name": "...",
   "industry": "...",
@@ -126,12 +126,12 @@ ${profileContext}`;
     let extractedProfile = null;
     let cleanReply = reply;
 
-    // Pattern 1: ```asherin_profile ... ```
-    const profileMatch = reply.match(/```asherin_profile\s*([\s\S]*?)```/);
+    // Pattern 1: ```aureon_profile ... ```
+    const profileMatch = reply.match(/```aureon_profile\s*([\s\S]*?)```/);
     if (profileMatch) {
       try {
         extractedProfile = JSON.parse(profileMatch[1].trim());
-        cleanReply = reply.replace(/```asherin_profile[\s\S]*?```/, "").trim();
+        cleanReply = reply.replace(/```aureon_profile[\s\S]*?```/, "").trim();
       } catch { /* ignore */ }
     }
 

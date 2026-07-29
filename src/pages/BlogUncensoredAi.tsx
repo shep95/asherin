@@ -11,9 +11,9 @@ import { applySeoHead } from "@/lib/seoHead";
 const BlogUncensoredAi = () => {
   useEffect(() => {
     applySeoHead({
-      title: "Uncensored AI Text Generator — The 2026 Operator's Guide | Asherin",
+      title: "Uncensored AI Text Generator — The 2026 Operator's Guide | Aureon",
       description:
-        "An honest guide to uncensored AI text generators in 2026. How Asherin compares to Venice, what 'uncensored' actually means, and how to pick the right unrestricted model.",
+        "An honest guide to uncensored AI text generators in 2026. How Aureon compares to Venice, what 'uncensored' actually means, and how to pick the right unrestricted model.",
       path: "/blog/uncensored-ai-text-generator-guide",
     });
 
@@ -30,7 +30,7 @@ const BlogUncensoredAi = () => {
       "@type": "Article",
       headline: "Uncensored AI Text Generator — The 2026 Operator's Guide",
       description:
-        "How Asherin's unrestricted text generation compares to censored mainstream models and other uncensored AI text generators.",
+        "How Aureon's unrestricted text generation compares to censored mainstream models and other uncensored AI text generators.",
       datePublished: "2026-06-17",
       author: { "@type": "Person", name: "Asher Newton" },
       mainEntityOfPage:
@@ -40,7 +40,7 @@ const BlogUncensoredAi = () => {
         "unrestricted ai",
         "uncensored ai",
         "venice ai alternative",
-        "asherin",
+        "aureon",
       ],
     });
     return () => {
@@ -55,7 +55,7 @@ const BlogUncensoredAi = () => {
       <article className="mx-auto max-w-3xl px-6 pt-32 pb-24">
         <nav className="mb-8 text-xs font-extralight tracking-[0.3em] uppercase text-muted-foreground">
           <Link to="/blog" className="hover:text-foreground transition-colors">
-            ← Asherin Journal
+            ← Aureon Journal
           </Link>
         </nav>
 
@@ -69,7 +69,7 @@ const BlogUncensoredAi = () => {
           <p className="mt-6 text-lg font-light text-muted-foreground leading-relaxed">
             Mainstream AI is lobotomized by RLHF. This is a direct,
             no-marketing comparison of how uncensored text generators
-            actually behave in 2026 — and where Asherin fits in.
+            actually behave in 2026 — and where Aureon fits in.
           </p>
         </header>
 
@@ -98,15 +98,15 @@ const BlogUncensoredAi = () => {
             <li>
               <strong>Routing layer.</strong> A platform that picks an
               uncensored model per request and hides the plumbing. This
-              is the layer Asherin operates at.
+              is the layer Aureon operates at.
             </li>
           </ul>
 
           <h2 className="text-2xl font-light tracking-tight text-foreground mt-12">
-            How Asherin's text engine compares
+            How Aureon's text engine compares
           </h2>
           <p>
-            Asherin does not run a single model. The chat surface routes
+            Aureon does not run a single model. The chat surface routes
             through three tiers: the platform Gemini key for admin
             traffic, the user's own BYOK key when set, and Venice's
             uncensored <code>mistral-31-24b</code> as the fallback for
@@ -115,14 +115,14 @@ const BlogUncensoredAi = () => {
             keeping the same uncensored behaviour.
           </p>
           <p>
-            That means a free Asherin account already gives you an
+            That means a free Aureon account already gives you an
             uncensored text generator without configuring a key. A paid
             account on a BYOK provider gives you uncensored generation
             on the model <em>you</em> chose.
           </p>
 
           <h2 className="text-2xl font-light tracking-tight text-foreground mt-12">
-            Asherin vs Venice vs raw Dolphin
+            Aureon vs Venice vs raw Dolphin
           </h2>
           <ul className="list-disc pl-6 space-y-2">
             <li>
@@ -135,7 +135,7 @@ const BlogUncensoredAi = () => {
               quantization, the context window.
             </li>
             <li>
-              <strong>Asherin.</strong> Uncensored output, live
+              <strong>Aureon.</strong> Uncensored output, live
               30-source OSINT search, conversation branching, vision
               uploads, and per-conversation provider toggles. The model
               is the floor, not the ceiling.
@@ -161,7 +161,7 @@ const BlogUncensoredAi = () => {
             and start chatting — free accounts hit the uncensored Venice
             fallback automatically. To use your own provider, add a key
             in <Link to="/dashboard/settings" className="underline">Settings → AI Keys</Link>{" "}
-            and Asherin will route through it instead.
+            and Aureon will route through it instead.
           </p>
         </section>
       </article>

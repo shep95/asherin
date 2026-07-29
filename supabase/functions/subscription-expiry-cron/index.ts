@@ -21,14 +21,14 @@ function formatDate(iso: string) {
 }
 
 function tierToPlanName(tier: string | null | undefined) {
-  if (!tier) return "Asherin";
+  if (!tier) return "Aureon";
   const t = tier.toLowerCase();
-  if (t.includes("life")) return "Asherin Lifetime";
-  if (t.includes("pro")) return "Asherin Pro";
-  if (t.includes("asherin")) return "Asherin";
-  if (t.includes("chat")) return "Asherin Chat";
-  if (t.includes("enterprise")) return "Asherin Enterprise";
-  return `Asherin ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
+  if (t.includes("life")) return "Aureon Lifetime";
+  if (t.includes("pro")) return "Aureon Pro";
+  if (t.includes("aureon")) return "Aureon";
+  if (t.includes("chat")) return "Aureon Chat";
+  if (t.includes("enterprise")) return "Aureon Enterprise";
+  return `Aureon ${tier.charAt(0).toUpperCase() + tier.slice(1)}`;
 }
 
 Deno.serve(async (req) => {

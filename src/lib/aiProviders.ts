@@ -13,7 +13,7 @@ export interface ProviderConfig {
   /** Country of origin — drives the country filter in Settings. */
   country: string;
   models: { id: string; name: string; description: string }[];
-  /** Platform-hosted provider — no user API key required. Asherin-managed. */
+  /** Platform-hosted provider — no user API key required. Aureon-managed. */
   isPlatform?: boolean;
   /** Optional note shown under platform providers (e.g. subscription gating). */
   platformNote?: string;

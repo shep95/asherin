@@ -1,5 +1,5 @@
 /**
- * ASHERIN FINANCIAL MCP CONNECTOR REGISTRY
+ * AUREON FINANCIAL MCP CONNECTOR REGISTRY
  * Derived from Anthropic's financial-services-plugins MCP integrations.
  * These are the live financial data provider endpoints that can be wired into
  * Zeeion, AZIION, and Lavba for real-time market data.

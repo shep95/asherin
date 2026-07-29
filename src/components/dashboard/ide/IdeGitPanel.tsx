@@ -246,7 +246,7 @@ const IdeGitPanel = ({ files, onImportFiles }: Props) => {
     if (toPush.length === 0) { toast({ title: "Nothing selected" }); return; }
     setLoadingAction("push");
     try {
-      const msg = commitMsg.trim() || `Commit ${toPush.length} file(s) from Asherin IDE`;
+      const msg = commitMsg.trim() || `Commit ${toPush.length} file(s) from Aureon IDE`;
       const r = await pushFiles(toPush, msg);
       toast({ title: "Committed & pushed", description: `${r.file_count} files · ${String(r.commit_sha).slice(0, 7)}` });
       setCommitMsg("");

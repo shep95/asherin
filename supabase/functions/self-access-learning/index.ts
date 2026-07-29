@@ -51,7 +51,7 @@ const CODEBASE_FILES = [
   { path: "src/pages/EquityOwnership.tsx", domain: "Frontend", desc: "Equity ownership page" },
   { path: "src/pages/NDA.tsx", domain: "Frontend", desc: "NDA page" },
   { path: "src/pages/PromptEngineering.tsx", domain: "Frontend", desc: "Prompt engineering page" },
-  { path: "src/pages/ProjAsherin.tsx", domain: "Frontend", desc: "Project Asherin page" },
+  { path: "src/pages/ProjAureon.tsx", domain: "Frontend", desc: "Project Aureon page" },
   { path: "src/pages/TrackPage.tsx", domain: "Frontend", desc: "Track page" },
   { path: "src/pages/PrivacyPolicy.tsx", domain: "Frontend", desc: "Privacy policy" },
   { path: "src/pages/TermsOfService.tsx", domain: "Frontend", desc: "Terms of service" },
@@ -144,7 +144,7 @@ const CODEBASE_FILES = [
   { path: "src/components/dashboard/google/modules/SecurityIntelligence.tsx", domain: "Security", desc: "Google security intelligence" },
   { path: "src/components/dashboard/google/modules/LifePredictions.tsx", domain: "Intelligence", desc: "Life predictions engine" },
   // ── IDE ──
-  { path: "src/components/dashboard/ide/AsherinIdeView.tsx", domain: "IDE", desc: "Full IDE with file tree and terminal" },
+  { path: "src/components/dashboard/ide/AureonIdeView.tsx", domain: "IDE", desc: "Full IDE with file tree and terminal" },
   { path: "src/components/dashboard/ide/IdeCodeEditor.tsx", domain: "IDE", desc: "Code editor with syntax highlighting" },
   { path: "src/components/dashboard/ide/IdeFileTree.tsx", domain: "IDE", desc: "File tree navigator" },
   { path: "src/components/dashboard/ide/IdeTerminal.tsx", domain: "IDE", desc: "Integrated terminal emulator" },
@@ -228,7 +228,7 @@ const ANALYSIS_AGENTS = [
   { name: "Logic Flaw Agent", focus: "Hunt for logical flaws at every scale: incorrect conditional branches, off-by-one errors, inverted boolean checks, impossible states, default-case omissions, stale closures, filter/map chains that silently drop data, fallthrough switches, enum/union exhaustiveness gaps, comparison operators that should be strict, timezone/locale-naive date logic, edge cases where arrays are empty or objects are missing keys, memoization dependencies that are wrong or incomplete, and any scenario where the code 'works' in the happy path but breaks under real-world variance. Trace every if/else, ternary, and optional chain to verify it handles null, undefined, empty string, 0, NaN, and negative values correctly." },
   { name: "Workflow Flaw Agent", focus: "Analyze end-to-end user workflows and multi-step feature flows for breakdowns: onboarding sequences that skip steps, form submissions that lose data on error, navigation flows that leave orphaned state, undo/redo paths that corrupt data, multi-panel dashboards where one panel's action doesn't update another, subscription upgrades/downgrades that leave stale UI, file upload pipelines that don't handle partial failures, search-then-act flows where context is lost between steps, session/auth expiration mid-workflow that causes silent data loss, real-time sync conflicts, import/export round-trip data corruption, and any cross-feature interaction where Feature A's state change should propagate to Feature B but doesn't. Check that loading→success→error→retry state machines are complete and that every user-facing action has proper feedback (toast, spinner, disabled state)." },
   { name: "UI Logic Flaw Agent", focus: "Hunt for UI-layer logic flaws where the visual state diverges from the data state: components that render stale props after a parent re-fetch, conditional renders that flash wrong content before settling, disabled buttons that can still be triggered via keyboard/enter, modals that don't trap focus or allow background scroll, dropdowns/popovers that stay open after navigation, lists that don't handle empty/loading/error states causing blank screens, pagination that resets filters on page change, tabs that lose unsaved form data on switch, search inputs that fire requests on every keystroke without debounce, infinite scroll that duplicates items or skips pages, drag-and-drop that leaves ghost elements, toggle switches whose visual state doesn't match the persisted value after optimistic update failure, responsive breakpoints where elements overlap or disappear, z-index wars where tooltips render behind modals, scroll position that jumps after dynamic content loads, clipboard copy buttons that silently fail without feedback, file inputs that accept wrong MIME types, date pickers that allow impossible ranges, number inputs that accept NaN/Infinity, select components that show stale options after data refresh, and any scenario where what the user SEES doesn't match what the database STORES." },
-  { name: "Cross-Module Recommendation Agent", focus: "Identify features, patterns, and capabilities in one module that would significantly benefit another module if integrated or shared. Examples: Asherin Chat's Chain-of-Thought transparency could enhance ZALI's engineering analysis output; AZPLEN's entity extraction pipeline could power Asherin Chat's automatic knowledge graph; the IDE's code editor could embed ZALI's material specs viewer; NOMAD's OSINT investigation results could feed into Predictive Intelligence as signal sources; AZPLEN's data lineage tracking could give the IDE's git panel deeper context; Zophiel's deep search could be embedded in AZPLEN's query bar; the Security Dashboard's threat intel could auto-generate briefings; the IDE's terminal output could feed the Self-Learning Loop as training data; Google Intelligence's life predictions could integrate with the Tracker for personal KPI monitoring; ZALI's simulation engine could use AZPLEN's datasets as input parameters. For each recommendation, specify the SOURCE module (where the capability exists), the TARGET module (where it should be applied), the specific feature/pattern to transfer, the integration approach, and the expected user impact. Think about data flow, shared components, unified APIs, and cross-module state management. Return findings with finding_type 'recommendation'." },
+  { name: "Cross-Module Recommendation Agent", focus: "Identify features, patterns, and capabilities in one module that would significantly benefit another module if integrated or shared. Examples: Aureon Chat's Chain-of-Thought transparency could enhance ZALI's engineering analysis output; AZPLEN's entity extraction pipeline could power Aureon Chat's automatic knowledge graph; the IDE's code editor could embed ZALI's material specs viewer; NOMAD's OSINT investigation results could feed into Predictive Intelligence as signal sources; AZPLEN's data lineage tracking could give the IDE's git panel deeper context; Zophiel's deep search could be embedded in AZPLEN's query bar; the Security Dashboard's threat intel could auto-generate briefings; the IDE's terminal output could feed the Self-Learning Loop as training data; Google Intelligence's life predictions could integrate with the Tracker for personal KPI monitoring; ZALI's simulation engine could use AZPLEN's datasets as input parameters. For each recommendation, specify the SOURCE module (where the capability exists), the TARGET module (where it should be applied), the specific feature/pattern to transfer, the integration approach, and the expected user impact. Think about data flow, shared components, unified APIs, and cross-module state management. Return findings with finding_type 'recommendation'." },
 ];
 
 // Maximum findings cap per analysis run
@@ -365,7 +365,7 @@ serve(async (req) => {
           return `── ${f.path} (${f.domain}: ${f.desc}) ── [code not available — analyze based on file context]`;
         }).join("\n\n");
 
-        const systemPrompt = `You are the ${agent.name} in ASHERIN's Self-Access Learning system — an autonomous intelligence that analyzes its own codebase.
+        const systemPrompt = `You are the ${agent.name} in AUREON's Self-Access Learning system — an autonomous intelligence that analyzes its own codebase.
 Your focus: ${agent.focus}
 
 CRITICAL RULES:
@@ -389,7 +389,7 @@ Each finding must be:
   "output_code": "The exact code snippet or diff to apply as the fix"
 }`;
 
-        const userPrompt = `Analyze these files from the ASHERIN AI intelligence platform codebase. Generate 8-12 high-quality findings:
+        const userPrompt = `Analyze these files from the AUREON AI intelligence platform codebase. Generate 8-12 high-quality findings:
 
 ${fileBlocks}
 

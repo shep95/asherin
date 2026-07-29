@@ -62,7 +62,7 @@ const PersonaStoreView = () => {
     // Increment installs
     await supabase.from("shared_personas" as any).update({ installs: persona.installs + 1 }).eq("id", persona.id);
     // Save to localStorage custom personas
-    const existing = JSON.parse(localStorage.getItem("asherin_custom_personas") || "[]");
+    const existing = JSON.parse(localStorage.getItem("aureon_custom_personas") || "[]");
     const newPersona: Persona = {
       id: `store-${persona.id}`,
       name: persona.name,
@@ -71,11 +71,11 @@ const PersonaStoreView = () => {
       systemPrompt: persona.system_prompt,
       builtIn: false,
     };
-    localStorage.setItem("asherin_custom_personas", JSON.stringify([...existing, newPersona]));
+    localStorage.setItem("aureon_custom_personas", JSON.stringify([...existing, newPersona]));
     setInstalledIds(prev => new Set([...prev, persona.id]));
     toast({ title: "Persona installed", description: `${persona.name} added to your sidebar.` });
     // Dispatch event so Dashboard picks it up
-    window.dispatchEvent(new Event("asherin-personas-change"));
+    window.dispatchEvent(new Event("aureon-personas-change"));
   };
 
   const publishPersona = async (persona: SharedPersona, makePublic: boolean) => {

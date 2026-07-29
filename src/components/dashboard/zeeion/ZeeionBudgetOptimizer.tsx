@@ -97,7 +97,7 @@ const ZeeionBudgetOptimizer = () => {
       let aiContent = "";
       await streamChat({
         messages: [
-          { role: "user", content: `[GOV DATA]\n${ctx.join("\n")}\n\n---\nYou are Asherin's Budget Optimization Engine. Analyze ${countryName}'s budget and recommend optimal reallocations to maximize efficiency while keeping the total budget the same.\n\nReturn JSON:\n{\n  "totalBudget": <number USD>,\n  "currentEfficiency": <0-100>,\n  "projectedEfficiency": <0-100 after optimization>,\n  "totalSavingsFromWaste": <USD saved from waste elimination>,\n  "reallocations": [\n    {\n      "department": "<name>",\n      "currentBudget": <USD>,\n      "recommendedBudget": <USD>,\n      "change": <USD difference>,\n      "changePercent": <percentage>,\n      "rationale": "<why>"\n    }\n  ],\n  "executiveSummary": "<3-4 paragraphs>",\n  "keyRecommendations": ["<rec1>", "<rec2>", ...]\n}\n\nInclude 8-12 department reallocations. Be data-driven. Reduce waste areas, increase underfunded areas. Compare to OECD benchmarks. The total budget should remain the same - just reallocate from wasteful to productive areas.` },
+          { role: "user", content: `[GOV DATA]\n${ctx.join("\n")}\n\n---\nYou are Aureon's Budget Optimization Engine. Analyze ${countryName}'s budget and recommend optimal reallocations to maximize efficiency while keeping the total budget the same.\n\nReturn JSON:\n{\n  "totalBudget": <number USD>,\n  "currentEfficiency": <0-100>,\n  "projectedEfficiency": <0-100 after optimization>,\n  "totalSavingsFromWaste": <USD saved from waste elimination>,\n  "reallocations": [\n    {\n      "department": "<name>",\n      "currentBudget": <USD>,\n      "recommendedBudget": <USD>,\n      "change": <USD difference>,\n      "changePercent": <percentage>,\n      "rationale": "<why>"\n    }\n  ],\n  "executiveSummary": "<3-4 paragraphs>",\n  "keyRecommendations": ["<rec1>", "<rec2>", ...]\n}\n\nInclude 8-12 department reallocations. Be data-driven. Reduce waste areas, increase underfunded areas. Compare to OECD benchmarks. The total budget should remain the same - just reallocate from wasteful to productive areas.` },
         ],
         mode: "research",
         onDelta: (chunk) => { aiContent += chunk; },
@@ -125,7 +125,7 @@ const ZeeionBudgetOptimizer = () => {
     try {
       await streamChat({
         messages: [
-          { role: "user", content: `[CONTEXT]\n${JSON.stringify(rawData).substring(0, 6000)}\nBudget Analysis: ${JSON.stringify(result).substring(0, 4000)}\n\nYou are Asherin's budget optimization analyst. Answer questions.` },
+          { role: "user", content: `[CONTEXT]\n${JSON.stringify(rawData).substring(0, 6000)}\nBudget Analysis: ${JSON.stringify(result).substring(0, 4000)}\n\nYou are Aureon's budget optimization analyst. Answer questions.` },
           ...chatMsgs.map(m => ({ role: m.role, content: m.content })),
           { role: "user" as const, content: msg },
         ],
@@ -274,7 +274,7 @@ const ZeeionBudgetOptimizer = () => {
           {/* Chat */}
           <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/[0.06]">
-              <div className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-foreground/40" /><span className="text-[10px] font-light tracking-wider text-foreground/60">ASHERIN BUDGET ANALYST</span></div>
+              <div className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-foreground/40" /><span className="text-[10px] font-light tracking-wider text-foreground/60">AUREON BUDGET ANALYST</span></div>
               {chatMsgs.length > 0 && <button onClick={() => setChatMsgs([])} className="p-1 rounded-lg hover:bg-foreground/[0.06]"><X className="h-3 w-3 text-muted-foreground/40" /></button>}
             </div>
             <div className="max-h-[300px] overflow-y-auto px-4 py-3 space-y-3">

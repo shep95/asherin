@@ -373,13 +373,13 @@ const ZaliView = () => {
       let personaSystemPrompt: string | null = null;
       let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
       try {
-        const personaId = localStorage.getItem("asherin_active_persona_id");
-        const customPersonas = JSON.parse(localStorage.getItem("asherin_custom_personas") || "[]");
+        const personaId = localStorage.getItem("aureon_active_persona_id");
+        const customPersonas = JSON.parse(localStorage.getItem("aureon_custom_personas") || "[]");
         const activePersona = customPersonas.find((p: any) => p.id === personaId) || builtInPersonas.find((p) => p.id === personaId);
         personaSystemPrompt = activePersona?.systemPrompt || null;
       } catch { /* no persona context */ }
 
-      const activeBrainId = localStorage.getItem("asherin_active_brain_id");
+      const activeBrainId = localStorage.getItem("aureon_active_brain_id");
       if (activeBrainId) {
         try {
           const { data: brain } = await supabase.from("brains").select("system_prompt, file_ids").eq("id", activeBrainId).single();
@@ -706,7 +706,7 @@ const ZaliView = () => {
         </div>
 
         {/* Tabs - scrollable on mobile with edge fade */}
-        <div className="mt-2 sm:mt-4 flex gap-0.5 sm:gap-1 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 asherin-scroll-fade">
+        <div className="mt-2 sm:mt-4 flex gap-0.5 sm:gap-1 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 aureon-scroll-fade">
           {TABS.map((tab) => (
             <button
               key={tab.id}

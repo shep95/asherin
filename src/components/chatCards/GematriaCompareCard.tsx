@@ -13,7 +13,7 @@ const CIPHERS: CipherKey[] = ["ordinal", "reduction", "reverse", "chaldean"];
 
 interface Props {
   phrases: string[];
-  source?: "chat:asherin" | "chat:asher";
+  source?: "chat:aureon" | "chat:asher";
 }
 
 export default function GematriaCompareCard({ phrases, source }: Props) {

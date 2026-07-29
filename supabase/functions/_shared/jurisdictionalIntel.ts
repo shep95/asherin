@@ -401,7 +401,7 @@ async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
   try {
     const resp = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; AsherinIntel/2.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; AureonIntel/2.0)",
         "Accept": "text/html,application/xhtml+xml",
       },
       signal: AbortSignal.timeout(timeoutMs),

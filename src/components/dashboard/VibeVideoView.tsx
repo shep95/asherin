@@ -77,7 +77,7 @@ const ClarifyQuestionsCard = ({
     <div className="space-y-2.5">
       <div className="flex items-center gap-1.5 text-accent/80">
         <HelpCircle className="h-3.5 w-3.5" />
-        <span className="text-[10px] font-medium tracking-wide uppercase">Asherin Needs More Detail</span>
+        <span className="text-[10px] font-medium tracking-wide uppercase">Aureon Needs More Detail</span>
       </div>
       {contextLine && (
         <p className="text-[10px] text-foreground/60 leading-relaxed">{contextLine}</p>
@@ -674,7 +674,7 @@ const VibeVideoView = () => {
             <span className="text-[10px] font-medium tracking-[0.15em] text-amber-400 uppercase">Beta Testing</span>
           </div>
           <p className="text-sm font-extralight text-muted-foreground max-w-md mx-auto leading-relaxed">
-            Upload a video, describe your edits in plain language, and Asherin AI analyzes and guides the transformation. Every version is tracked.
+            Upload a video, describe your edits in plain language, and Aureon AI analyzes and guides the transformation. Every version is tracked.
           </p>
         </div>
 
@@ -851,7 +851,7 @@ const VibeVideoView = () => {
             <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center rounded-b-2xl">
               <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card/80 border border-border/20 backdrop-blur-md">
                 <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                <p className="text-sm font-light text-foreground/70">Asherin is analyzing your request…</p>
+                <p className="text-sm font-light text-foreground/70">Aureon is analyzing your request…</p>
                 <p className="text-[10px] text-muted-foreground/50">This may take a moment</p>
               </div>
             </div>
@@ -985,7 +985,7 @@ const VibeVideoView = () => {
               <div className="flex justify-start">
                 <div className="flex items-center gap-2 bg-foreground/5 rounded-2xl px-3.5 py-2.5">
                   <Loader2 className="h-3 w-3 animate-spin text-accent" />
-                  <span className="text-[10px] text-muted-foreground">Asherin is analyzing…</span>
+                  <span className="text-[10px] text-muted-foreground">Aureon is analyzing…</span>
                 </div>
               </div>
             )}

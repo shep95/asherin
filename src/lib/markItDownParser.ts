@@ -1,5 +1,5 @@
 /**
- * ASHERIN MARKITDOWN UNIVERSAL PARSER
+ * AUREON MARKITDOWN UNIVERSAL PARSER
  * Reverse-engineered from Microsoft's MarkItDown (50K+ ⭐)
  * Converts any file format to clean structured markdown for AI processing.
  * Supports: PDF, DOCX, XLSX, PPTX, CSV, JSON, HTML, XML, images (OCR), audio (transcription)

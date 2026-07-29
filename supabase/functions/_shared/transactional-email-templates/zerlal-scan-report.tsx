@@ -130,7 +130,7 @@ export const template = {
     `ZERLAL · ${d?.projectName ?? 'Project'} — Grade ${d?.riskGrade ?? 'F'} · ${d?.findingsCount ?? 0} findings`,
   displayName: 'ZERLAL scan report',
   previewData: {
-    projectName: 'asherin-core',
+    projectName: 'aureon-core',
     riskGrade: 'C',
     findingsCount: 47,
     criticalCount: 2,

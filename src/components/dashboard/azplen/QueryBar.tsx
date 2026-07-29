@@ -24,7 +24,7 @@ interface ActivePlugin {
   category: string;
 }
 
-const QUEUE_KEY = "asherin_asha_queue";
+const QUEUE_KEY = "aureon_asha_queue";
 
 function loadQueue(): QueryHistoryItem[] {
   try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); } catch { return []; }
@@ -295,7 +295,7 @@ const QueryBar = () => {
                 <div className="text-xs font-light text-foreground leading-relaxed prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3">
                   <ReactMarkdown>{item.response}</ReactMarkdown>
                 </div>
-                {/* Asherin-style action bar */}
+                {/* Aureon-style action bar */}
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <CopyButton text={item.response} />
                   <CalibrationFeedback messageId={item.id} onFeedback={() => {}} />

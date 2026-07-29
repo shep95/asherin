@@ -1,6 +1,6 @@
 // ASHER SCRIBD — Knowledge Harvester (admin-only widget).
 // Scrapes scribd.com for a topic, synthesizes a plain-English .txt knowledge
-// dump via Gemini, and writes it into asher_brains (feeds ASHER + ASHERIN).
+// dump via Gemini, and writes it into asher_brains (feeds ASHER + AUREON).
 // Mirrors ArchivesHarvesterPanel — same UX, same brain pipeline.
 import { useState } from "react";
 import { Loader2, BookOpen, Download, Sparkles } from "lucide-react";
@@ -38,7 +38,7 @@ const ScribdPanel = () => {
       <div className="rounded-2xl border border-border/20 bg-card/40 backdrop-blur-md p-6 text-center">
         <BookOpen className="h-5 w-5 mx-auto mb-2 text-muted-foreground/40" />
         <p className="text-[11px] font-light tracking-wide text-muted-foreground/70">
-          Scribd Harvester is admin-only — it writes directly into the ASHER + ASHERIN brain memory.
+          Scribd Harvester is admin-only — it writes directly into the ASHER + AUREON brain memory.
         </p>
       </div>
     );
@@ -92,12 +92,12 @@ const ScribdPanel = () => {
           Scribd Harvester · Admin
         </h3>
         <span className="ml-auto text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60">
-          scribd.com → ASHER / ASHERIN brain
+          scribd.com → ASHER / AUREON brain
         </span>
       </div>
 
       <p className="text-[10px] font-light text-muted-foreground/80 leading-relaxed">
-        Discovers scribd.com documents for the topic, pulls their titles + descriptions + visible text, synthesizes a plain-English knowledge dump, and installs it as an active brain row consumed by ASHER and ASHERIN.
+        Discovers scribd.com documents for the topic, pulls their titles + descriptions + visible text, synthesizes a plain-English knowledge dump, and installs it as an active brain row consumed by ASHER and AUREON.
       </p>
 
       {/* Presets */}

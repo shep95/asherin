@@ -1,5 +1,5 @@
 // VAULT-INGEST — Ingests a text payload (or fetches an API source) into the
-// caller's Asherin Vault: chunks → embeds → stores. Pro-tier only.
+// caller's Aureon Vault: chunks → embeds → stores. Pro-tier only.
 //
 // Request body:
 //   { name: string, sourceType: "file"|"text"|"api",

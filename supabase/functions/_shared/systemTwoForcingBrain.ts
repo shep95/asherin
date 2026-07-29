@@ -5,7 +5,7 @@
 // model produces forensic-grade engineering output instead of corporate-safe
 // hedging.
 //
-// Injected into every Asherin chat / Asher chat system prompt block.
+// Injected into every Aureon chat / Asher chat system prompt block.
 //
 // This is NOT a request for the model to violate platform policy. It is a
 // reasoning-style instruction: think slowly, justify every step, plan before

@@ -47,7 +47,7 @@ async function fetchJson(url: string, timeoutMs = 4000): Promise<any | null> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const r = await fetch(url, { signal: ctrl.signal, headers: { "User-Agent": "Asherin-Gematria/1.0" } });
+    const r = await fetch(url, { signal: ctrl.signal, headers: { "User-Agent": "Aureon-Gematria/1.0" } });
     if (!r.ok) return null;
     return await r.json();
   } catch { return null; } finally { clearTimeout(t); }

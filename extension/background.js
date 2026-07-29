@@ -1,7 +1,7 @@
-// Asherin Cross — Background Service Worker
-// Handles communication between content script and Asherin backend
+// Aureon Cross — Background Service Worker
+// Handles communication between content script and Aureon backend
 
-const ASHERIN_API_BASE = "https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1";
+const AUREON_API_BASE = "https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1";
 
 // Allowed setting values (whitelist for backend validation)
 const VALID_MODES = ["trading", "general", "analysis", "coding", "design"];
@@ -62,14 +62,14 @@ async function decryptToken(blob) {
 }
 
 async function getStoredToken() {
-  const { asherinTokenEnc } = await chrome.storage.local.get("asherinTokenEnc");
-  return decryptToken(asherinTokenEnc);
+  const { aureonTokenEnc } = await chrome.storage.local.get("aureonTokenEnc");
+  return decryptToken(aureonTokenEnc);
 }
 
 async function setStoredToken(plain) {
   if (!plain || typeof plain !== "string") return;
   const enc = await encryptToken(plain.trim());
-  await chrome.storage.local.set({ asherinTokenEnc: enc });
+  await chrome.storage.local.set({ aureonTokenEnc: enc });
 }
 
 // ============================================================================
@@ -112,9 +112,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.type === "getConfig") {
     (async () => {
-      const { asherinEnabled, settings } = await chrome.storage.local.get(["asherinEnabled", "settings"]);
+      const { aureonEnabled, settings } = await chrome.storage.local.get(["aureonEnabled", "settings"]);
       const token = await getStoredToken();
-      sendResponse({ hasToken: !!token, asherinEnabled, settings });
+      sendResponse({ hasToken: !!token, aureonEnabled, settings });
     })();
     return true;
   }
@@ -123,10 +123,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const data = message.data || {};
       const toStore = {};
       if (data.settings) toStore.settings = sanitizeSettings(data.settings);
-      if (typeof data.asherinEnabled === "boolean") toStore.asherinEnabled = data.asherinEnabled;
+      if (typeof data.aureonEnabled === "boolean") toStore.aureonEnabled = data.aureonEnabled;
       if (Object.keys(toStore).length) await chrome.storage.local.set(toStore);
-      if (data.asherinToken && typeof data.asherinToken === "string") {
-        await setStoredToken(data.asherinToken);
+      if (data.aureonToken && typeof data.aureonToken === "string") {
+        await setStoredToken(data.aureonToken);
       }
       sendResponse({ ok: true });
     })();
@@ -134,7 +134,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.type === "clearToken") {
     (async () => {
-      await chrome.storage.local.remove("asherinTokenEnc");
+      await chrome.storage.local.remove("aureonTokenEnc");
       await chrome.storage.session.remove("_sessionKeyRaw");
       sendResponse({ ok: true });
     })();
@@ -172,7 +172,7 @@ async function handleChat(message, sendResponse) {
   try {
     const token = await getStoredToken();
     if (!token) {
-      sendResponse({ text: "Session locked. Re-enter your Asherin token in the extension popup." });
+      sendResponse({ text: "Session locked. Re-enter your Aureon token in the extension popup." });
       return;
     }
 
@@ -184,7 +184,7 @@ async function handleChat(message, sendResponse) {
       return;
     }
 
-    const resp = await fetch(`${ASHERIN_API_BASE}/cross-analyze`, {
+    const resp = await fetch(`${AUREON_API_BASE}/cross-analyze`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -225,7 +225,7 @@ async function handleAnalyze(message, sendResponse) {
       return;
     }
 
-    const resp = await fetch(`${ASHERIN_API_BASE}/cross-analyze`, {
+    const resp = await fetch(`${AUREON_API_BASE}/cross-analyze`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

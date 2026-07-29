@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Building2, Calendar, FolderOpen, Globe2, Heart, Loader2, MapPin, Megaphone, MessageSquare, Moon, Save, Sparkles, Trash2, TrendingUp, User2 } from "lucide-react";
-const wallpaperAsherin = "/wallpapers/wallpaper-asherin.webp";
+const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
 import {
   getNakshatraFromDeg,
   getRashiFromDeg,
@@ -812,7 +812,7 @@ const VedicAstrologyView = () => {
     <div
       className="h-full overflow-y-auto relative"
       style={{
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.72), rgba(0,0,0,0.78)), url(${wallpaperAsherin})`,
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.72), rgba(0,0,0,0.78)), url(${wallpaperAureon})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed",

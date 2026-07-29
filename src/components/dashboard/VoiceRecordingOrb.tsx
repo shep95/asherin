@@ -13,7 +13,7 @@ interface VoiceRecordingOrbProps {
 /**
  * Animated iridescent morphing orb used as a voice‑recording indicator.
  * Adapted from a reference animation (marble/watercolor sphere) and
- * re-themed for Asherin's dark glassmorphic aesthetic using the app's
+ * re-themed for Aureon's dark glassmorphic aesthetic using the app's
  * purple accent palette.
  */
 const VoiceRecordingOrb = ({

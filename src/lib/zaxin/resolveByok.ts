@@ -83,7 +83,7 @@ export function useResolvedZaxinByok(): ResolvedZaxinByok {
         ) as { provider: string; api_key: string } | undefined;
         if (row?.api_key) {
           const defaultModel =
-            row.provider === "google" ? "gemini-flash-latest" :
+            row.provider === "google" ? "gemini-2.5-flash" :
             row.provider === "openai" ? "gpt-4o-mini" :
             row.provider === "anthropic" ? "claude-haiku-4-5" :
             row.provider === "xai" ? "grok-2-vision-latest" :
@@ -129,10 +129,10 @@ export function useResolvedZaxinByok(): ResolvedZaxinByok {
     // Pick up changes saved elsewhere (Settings → API Keys, Zophiel BYOK).
     const onStorage = () => { void refresh(); };
     window.addEventListener("storage", onStorage);
-    window.addEventListener("asherin-byok-updated", onStorage as EventListener);
+    window.addEventListener("aureon-byok-updated", onStorage as EventListener);
     return () => {
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener("asherin-byok-updated", onStorage as EventListener);
+      window.removeEventListener("aureon-byok-updated", onStorage as EventListener);
     };
   }, [refresh]);
 
@@ -141,7 +141,7 @@ export function useResolvedZaxinByok(): ResolvedZaxinByok {
     setIntelMapByokEnabled(true);
     setByok(cfg);
     setSource("intelmap");
-    try { window.dispatchEvent(new Event("asherin-byok-updated")); } catch { /* noop */ }
+    try { window.dispatchEvent(new Event("aureon-byok-updated")); } catch { /* noop */ }
   }, []);
 
   return { byok, source, loading, refresh, saveInline };

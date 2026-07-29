@@ -1,4 +1,4 @@
-// ZACOON PHANTOM GRID — Asherin Dashboard Console (glass-morphic 3-zone)
+// ZACOON PHANTOM GRID — Aureon Dashboard Console (glass-morphic 3-zone)
 // $399/mo Pro tier only. Mass-banned on aureonai.app for non-admins.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";

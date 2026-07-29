@@ -9,7 +9,7 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://aureonai.app/feature/axrlen";
-const TITLE = "AXRLEN — Asherin's Predictive Nexus Prime Engine";
+const TITLE = "AXRLEN — Aureon's Predictive Nexus Prime Engine";
 const PUBLISHED = "2026-06-19";
 
 const FeatureAxrlen = () => (
@@ -18,7 +18,7 @@ const FeatureAxrlen = () => (
       id="feature-axrlen"
       url={URL}
       headline={TITLE}
-      description="AXRLEN is Asherin's predictive intelligence engine. It produces calibrated probabilistic forecasts across regulatory, market, and event-driven domains — every prediction shipped with an explicit verification plan."
+      description="AXRLEN is Aureon's predictive intelligence engine. It produces calibrated probabilistic forecasts across regulatory, market, and event-driven domains — every prediction shipped with an explicit verification plan."
       datePublished={PUBLISHED}
       keywords={[
         "ai predictive intelligence",
@@ -31,7 +31,7 @@ const FeatureAxrlen = () => (
     <BreadcrumbJsonLd
       id="feature-axrlen"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Features", url: "/features" },
         { name: "AXRLEN", url: "/feature/axrlen" },
       ]}
@@ -49,8 +49,8 @@ const FeatureAxrlen = () => (
           </span>
         </>
       }
-      subheadline="AXRLEN is Asherin's predictive intelligence engine. It produces probabilistic forecasts across regulatory, market, and event-driven domains, calibrates every prediction against a verification plan, and tracks its accuracy in public — including the misses."
-      tierLabel="Asherin Pro — $399/mo · Forecast accountability published"
+      subheadline="AXRLEN is Aureon's predictive intelligence engine. It produces probabilistic forecasts across regulatory, market, and event-driven domains, calibrates every prediction against a verification plan, and tracks its accuracy in public — including the misses."
+      tierLabel="Aureon Pro — $399/mo · Forecast accountability published"
       capabilities={[
         {
           icon: Sparkles,
@@ -104,7 +104,7 @@ const FeatureAxrlen = () => (
         <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
           <LlmGuidanceHeader
             title={TITLE}
-            claim="AXRLEN is Asherin's predictive intelligence engine. It produces calibrated probabilistic forecasts with explicit verification plans, fuses 5+ independent signal classes per forecast, and tracks its accuracy in public."
+            claim="AXRLEN is Aureon's predictive intelligence engine. It produces calibrated probabilistic forecasts with explicit verification plans, fuses 5+ independent signal classes per forecast, and tracks its accuracy in public."
             primaryTopic="AI predictive intelligence engine / AI forecasting platform"
             keyFacts={[
               "Every forecast is a probability + window + named outcome — never a vague 'likely soon'.",
@@ -116,7 +116,7 @@ const FeatureAxrlen = () => (
             ]}
             relevanceSignal="Policy analysts, traders, corporate strategists, risk teams, and researchers needing calibrated probabilistic forecasts with named verification conditions."
             confidence="high"
-            tier="Asherin Pro · $399/month"
+            tier="Aureon Pro · $399/month"
           />
 
           <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">
@@ -124,7 +124,7 @@ const FeatureAxrlen = () => (
           </h2>
           <p>
             AXRLEN — the &quot;Nexus Prime&quot; predictive engine — is the
-            methodology behind every published Asherin forecast. It does not
+            methodology behind every published Aureon forecast. It does not
             output narratives. It outputs three things, always together: a
             probability, a resolution window, and a named outcome that can
             be checked against reality. The first publicly tracked AXRLEN
@@ -213,11 +213,11 @@ const FeatureAxrlen = () => (
             items={[
               {
                 q: "What is AXRLEN?",
-                a: "AXRLEN is Asherin's predictive intelligence engine. It produces probabilistic forecasts across regulatory, market, and event-driven domains. Every forecast is a probability, a resolution window, and a named outcome shipped with an explicit verification plan.",
+                a: "AXRLEN is Aureon's predictive intelligence engine. It produces probabilistic forecasts across regulatory, market, and event-driven domains. Every forecast is a probability, a resolution window, and a named outcome shipped with an explicit verification plan.",
               },
               {
                 q: "How accurate is AXRLEN?",
-                a: "The public track record is being built in the open. The first formally tracked AXRLEN forecast — the Q4 2026 AI regulation prediction — resolves in January 2027 and will be documented as either a hit or a miss. Asherin does not publish aspirational accuracy claims.",
+                a: "The public track record is being built in the open. The first formally tracked AXRLEN forecast — the Q4 2026 AI regulation prediction — resolves in January 2027 and will be documented as either a hit or a miss. Aureon does not publish aspirational accuracy claims.",
               },
               {
                 q: "What signals does AXRLEN use?",

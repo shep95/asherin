@@ -29,7 +29,7 @@ interface BtcLive {
 async function fetchBtcLive(): Promise<BtcLive> {
   const r = await fetch(
     "https://api.coingecko.com/api/v3/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false",
-    { headers: { "User-Agent": "Asherin-AXRLEN/1.0" } },
+    { headers: { "User-Agent": "Aureon-AXRLEN/1.0" } },
   );
   if (!r.ok) throw new Error(`CoinGecko returned ${r.status}`);
   const j = await r.json();
@@ -57,7 +57,7 @@ async function callAxrlen(live: BtcLive): Promise<{
   if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY missing");
 
   const now = new Date().toISOString();
-  const system = `You are AXRLEN, the Nexus Prime predictive intelligence engine inside Asherin.
+  const system = `You are AXRLEN, the Nexus Prime predictive intelligence engine inside Aureon.
 You produce 24-hour directional Bitcoin forecasts using pattern-recognition over price action,
 momentum, volume, and liquidity dynamics. You are surgical, decisive, and confident.
 

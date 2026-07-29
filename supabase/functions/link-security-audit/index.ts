@@ -237,7 +237,7 @@ serve(async (req) => {
         method: "GET",
         redirect: "follow",
         headers: {
-          "user-agent": "Asherin-Link-Security-Audit/1.0",
+          "user-agent": "Aureon-Link-Security-Audit/1.0",
           accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         },
       }, 9000);

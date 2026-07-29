@@ -13,7 +13,7 @@ const CrossAlertFeed: React.FC<Props> = ({ alerts, onDismiss, isSharing }) => (
   <div className="space-y-2">
     {alerts.length === 0 && isSharing && (
       <p className="text-xs text-muted-foreground/40 font-extralight text-center py-4">
-        No alerts yet — Asherin is monitoring your screen...
+        No alerts yet — Aureon is monitoring your screen...
       </p>
     )}
     {alerts.map(alert => {

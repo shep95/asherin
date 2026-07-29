@@ -223,7 +223,7 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
                   position:absolute;left:50%;top:50%;width:${size + 18}px;height:${size + 18}px;
                   margin-left:-${(size + 18) / 2}px;margin-top:-${(size + 18) / 2}px;
                   border-radius:50%;border:1px solid rgba(245,185,66,0.45);
-                  animation:asherinPulse 2s ease-out infinite;pointer-events:none;
+                  animation:aureonPulse 2s ease-out infinite;pointer-events:none;
                 "></div>
               </div>`
           : `<div style="

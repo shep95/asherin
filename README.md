@@ -1,6 +1,6 @@
-# Asherin Intelligence
+# Aureon Intelligence
 
-Asherin is a React + TypeScript intelligence workspace focused on premium AI workflows, visual creation, secure collaboration, and branded analysis experiences.
+Aureon is a React + TypeScript intelligence workspace focused on premium AI workflows, visual creation, secure collaboration, and branded analysis experiences.
 
 ## Stack
 

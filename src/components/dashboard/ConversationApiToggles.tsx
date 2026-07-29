@@ -7,7 +7,7 @@ interface Props {
   storedProviders: string[]; // providers that have API keys stored
 }
 
-const STORAGE_KEY = "asherin_conv_api_toggles";
+const STORAGE_KEY = "aureon_conv_api_toggles";
 
 function loadToggles(convId: string): Record<string, boolean> {
   try {
@@ -86,7 +86,7 @@ const ConversationApiToggles = ({ conversationId, storedProviders }: Props) => {
             </button>
           </div>
 
-          {/* Asherin Default removed — all chat runs on the user's connected BYOK providers. */}
+          {/* Aureon Default removed — all chat runs on the user's connected BYOK providers. */}
 
           {/* BYOK providers */}
           <div className="space-y-1 max-h-64 overflow-y-auto">

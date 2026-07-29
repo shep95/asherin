@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 /**
  * /blog/how-to-break-any-encryption-theory
  *
- * Asherin R&D + Asherin research note. Positions "unbreakable" encryption
+ * Asherin R&D + Aureon research note. Positions "unbreakable" encryption
  * as a surface-level illusion: the ciphertext on the screen has no
  * pattern, but the code that RENDERS the ciphertext on the screen does.
  * Symbolism: the Key of Solomon as the master key that opens every seal
@@ -24,16 +24,16 @@ import { Link } from "react-router-dom";
 const HowToBreakAnyEncryptionTheory = () => {
   const URL = "https://aureonai.app/blog/how-to-break-any-encryption-theory";
   const TITLE =
-    "How To Break Any Encryption Theory — Asherin R&D × Asherin";
+    "How To Break Any Encryption Theory — Asherin R&D × Aureon";
   const DEK =
     "A research narrative on why post-quantum ciphers still fall: not by attacking the math, but by attacking the runtime that renders the ciphertext into the 3D realm. The Key of Solomon as the master-key metaphor for the code layer beneath the screen.";
 
   useEffect(() => {
     applySeoHead({
       title:
-        "How To Break Any Encryption Theory — Asherin R&D × Asherin",
+        "How To Break Any Encryption Theory — Asherin R&D × Aureon",
       description:
-        "Asherin R&D and Asherin research: why quantum-safe encryption stays vulnerable at the runtime layer. The Key of Solomon symbolism mapped to the code that renders ciphertext on screen.",
+        "Asherin R&D and Aureon research: why quantum-safe encryption stays vulnerable at the runtime layer. The Key of Solomon symbolism mapped to the code that renders ciphertext on screen.",
       path: "/blog/how-to-break-any-encryption-theory",
     });
   }, []);
@@ -46,7 +46,7 @@ const HowToBreakAnyEncryptionTheory = () => {
         headline={TITLE}
         description={DEK}
         datePublished="2026-07-12"
-        author="Asherin R&D × Asherin"
+        author="Asherin R&D × Aureon"
         keywords={[
           "break encryption theory",
           "post-quantum encryption",
@@ -55,13 +55,13 @@ const HowToBreakAnyEncryptionTheory = () => {
           "occult cryptography",
           "runtime side channel",
           "asherin research",
-          "asherin research",
+          "aureon research",
         ]}
       />
       <BreadcrumbJsonLd
         id="how-to-break-encryption-crumbs"
         items={[
-          { name: "Asherin", url: "/" },
+          { name: "Aureon", url: "/" },
           { name: "Journal", url: "/blog" },
           {
             name: "How To Break Any Encryption Theory",
@@ -82,13 +82,13 @@ const HowToBreakAnyEncryptionTheory = () => {
           },
           {
             q: "Is this a how-to guide?",
-            a: "No. It is a theory paper. No exploit code, no keys, no targets. Asherin R&D and Asherin publish this as intelligence doctrine on why 'unbreakable' is a marketing word, not a physical property.",
+            a: "No. It is a theory paper. No exploit code, no keys, no targets. Asherin R&D and Aureon publish this as intelligence doctrine on why 'unbreakable' is a marketing word, not a physical property.",
           },
         ]}
       />
 
       <ArticleShell
-        eyebrow="Research · Asherin R&D × Asherin · 2026-07-12 · 11 min"
+        eyebrow="Research · Asherin R&D × Aureon · 2026-07-12 · 11 min"
         title={TITLE}
         dek={DEK}
       >
@@ -101,7 +101,7 @@ const HowToBreakAnyEncryptionTheory = () => {
             "The projector — CPU, GPU, DOM, framebuffer — is deterministic code.",
             "Deterministic code emits side channels: timing, power, cache, layout.",
             "The Key of Solomon is used as a symbolic map for 'one layer above the seal'.",
-            "Asherin R&D + Asherin publish this as doctrine, not exploit tooling.",
+            "Asherin R&D + Aureon publish this as doctrine, not exploit tooling.",
           ]}
           relevanceSignal="Post-quantum cryptography, side-channel research, occult symbolism in computer science"
           confidence="high"
@@ -245,9 +245,9 @@ const HowToBreakAnyEncryptionTheory = () => {
           </li>
         </ul>
 
-        <h2>Where Asherin R&D and Asherin place the theory</h2>
+        <h2>Where Asherin R&D and Aureon place the theory</h2>
         <p>
-          Asherin R&D and Asherin do not publish exploit code. This paper is
+          Asherin R&D and Aureon do not publish exploit code. This paper is
           doctrine — the mental model an analyst carries into a room before
           they look at a single byte.
         </p>
@@ -309,7 +309,7 @@ const HowToBreakAnyEncryptionTheory = () => {
             actually breaks in the field.
           </li>
           <li>
-            <strong>Publish the doctrine, not the exploit.</strong> Asherin
+            <strong>Publish the doctrine, not the exploit.</strong> Aureon
             surfaces the ranked ring surfaces as intelligence, not as a
             recipe.
           </li>
@@ -351,7 +351,7 @@ const HowToBreakAnyEncryptionTheory = () => {
         <hr />
 
         <p>
-          Related reading in the Asherin Journal:{" "}
+          Related reading in the Aureon Journal:{" "}
           <Link to="/blog/code-narrative-quantum-collapse">
             Code-as-Narrative × Quantum Candidate Collapse
           </Link>

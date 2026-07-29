@@ -45,7 +45,7 @@ const EliteCorporationsAlgorithmsVsAxrlen = () => (
     <BreadcrumbJsonLd
       id="elite-corporations-algorithms-vs-axrlen"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "Elite Corporations' Algorithms vs AXRLEN", url: "/blog/elite-corporations-algorithms-vs-axrlen" },
       ]}

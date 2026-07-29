@@ -12,10 +12,10 @@ export interface AppNotification {
   actionView?: string;
 }
 
-const STORAGE_KEY = "asherin_notifications";
-const DND_KEY = "asherin_dnd";
-const SOUND_KEY = "asherin_notif_sound";
-const PUSH_KEY = "asherin_push_enabled";
+const STORAGE_KEY = "aureon_notifications";
+const DND_KEY = "aureon_dnd";
+const SOUND_KEY = "aureon_notif_sound";
+const PUSH_KEY = "aureon_push_enabled";
 
 function loadNotifications(): AppNotification[] {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
@@ -55,7 +55,7 @@ function sendBrowserNotification(title: string, body: string) {
       body,
       icon: "/favicon.png",
       badge: "/favicon.png",
-      tag: "asherin-notif",
+      tag: "aureon-notif",
     });
   } catch {}
 }
@@ -95,7 +95,7 @@ export function pushNotification(notif: Omit<AppNotification, "id" | "read" | "t
   playNotificationSound();
   sendBrowserNotification(notif.title, notif.message);
   
-  window.dispatchEvent(new Event("asherin-notification-update"));
+  window.dispatchEvent(new Event("aureon-notification-update"));
 }
 
 interface NotificationInboxProps {
@@ -112,8 +112,8 @@ const NotificationInbox = ({ onNavigate }: NotificationInboxProps) => {
   const reload = useCallback(() => setNotifications(loadNotifications()), []);
 
   useEffect(() => {
-    window.addEventListener("asherin-notification-update", reload);
-    return () => window.removeEventListener("asherin-notification-update", reload);
+    window.addEventListener("aureon-notification-update", reload);
+    return () => window.removeEventListener("aureon-notification-update", reload);
   }, [reload]);
 
   // Request push permission on mount if enabled

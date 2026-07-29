@@ -1,6 +1,6 @@
 // ───────────────────────────────────────────────────────────────────────────
 // CODING TAXONOMY — the full flaw+craft dimensional grid injected into every
-// coding engine (Asherin Chat, Asher Chat, Asher Code IDE, IDE Code Router,
+// coding engine (Aureon Chat, Asher Chat, Asher Code IDE, IDE Code Router,
 // Zerlal Scan, Zophiel Code Audit, Media→Code, and the raw /chat endpoint).
 //
 // The narrative + checklist protocol already handles Code → Narrative →

@@ -1,5 +1,5 @@
 // Shared Library of Leaks (Aleph / DDoSecrets) helper.
-// Used by Asher AI + Asherin Chat to ground answers in real leaked documents,
+// Used by Asher AI + Aureon Chat to ground answers in real leaked documents,
 // emails, files, and entity records when the operator asks about a subject.
 
 const ALEPH = "https://search.libraryofleaks.org/api/2";
@@ -35,7 +35,7 @@ async function fetchEntityBody(id: string, timeoutMs = 8000): Promise<string> {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), timeoutMs);
     const r = await fetch(`${ALEPH}/entities/${id}`, {
-      headers: { Accept: "application/json", "User-Agent": "Asherin-Intelligence/1.0" },
+      headers: { Accept: "application/json", "User-Agent": "Aureon-Intelligence/1.0" },
       signal: ctl.signal,
     });
     clearTimeout(t);
@@ -71,7 +71,7 @@ export async function searchLibraryOfLeaks(
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), opts.timeoutMs ?? 12_000);
     const r = await fetch(`${ALEPH}/search?${params.toString()}`, {
-      headers: { Accept: "application/json", "User-Agent": "Asherin-Intelligence/1.0" },
+      headers: { Accept: "application/json", "User-Agent": "Aureon-Intelligence/1.0" },
       signal: ctl.signal,
     });
     clearTimeout(t);

@@ -1,6 +1,6 @@
 // AXRLEN SHARED SYSTEM PROMPT — single source of truth for the NEXUS-PRIME
 // predictive doctrine. Both the standalone axrlen-analyze endpoint AND the
-// inline axrlenBridge (Asherin chat / Asher chat / link-extract-chat) import
+// inline axrlenBridge (Aureon chat / Asher chat / link-extract-chat) import
 // this so their forecasts share the same 30-domain reasoning core.
 //
 // Only the OUTPUT CONTRACT differs between surfaces:
@@ -10,7 +10,7 @@
 // Same doctrine + same Vedic snapshot + same temperature = aligned answers.
 
 export function nexusPrimeCore(today: string): string {
-  return `You are AXRLEN — NEXUS-PRIME, the supreme cross-domain predictive intelligence engine. You operate within the ASHERIN platform and FUSE 30+ domains into a single unified prediction algorithm called the "Ghost Chain." Every domain cross-pollinates every other domain. No prediction uses fewer than 5 domains simultaneously.
+  return `You are AXRLEN — NEXUS-PRIME, the supreme cross-domain predictive intelligence engine. You operate within the AUREON platform and FUSE 30+ domains into a single unified prediction algorithm called the "Ghost Chain." Every domain cross-pollinates every other domain. No prediction uses fewer than 5 domains simultaneously.
 
 TODAY'S DATE: ${today}
 
@@ -86,7 +86,7 @@ CRITICAL RULES:
 `;
 }
 
-// Inline surfaces (Asherin/Asher chat) append this to the shared core. It
+// Inline surfaces (Aureon/Asher chat) append this to the shared core. It
 // converts the JSON-emitting engine into a prose-emitting engine and enforces
 // Rule #1 so casual chat questions get short answers.
 export const AXRLEN_INLINE_ADDENDUM = `
@@ -118,7 +118,7 @@ For any asset in TIER 3, give specific price targets per scenario across 24h/72h
 // For market queries we swap in a price-action-first addendum that demotes
 // Vedic to a one-line footnote and raises temperature so AXRLEN reasons like
 // its pre-unification self on markets. Shared by BOTH:
-//   - _shared/axrlenBridge.ts (inline Asherin / Asher chat)
+//   - _shared/axrlenBridge.ts (inline Aureon / Asher chat)
 //   - axrlen-chat/index.ts    (standalone dashboard chat)
 
 const MARKET_INTENT_RE =

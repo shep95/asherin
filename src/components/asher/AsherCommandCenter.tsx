@@ -1,5 +1,5 @@
 // ASHER AI · Command Center — sessioned chat with file uploads (image/video/PDF).
-// Asherin wallpaper background. Sessions stored in `asher_ai_sessions` + messages
+// Aureon wallpaper background. Sessions stored in `asher_ai_sessions` + messages
 // in `asher_ai_messages`. Files uploaded to private `asher-ai-uploads` bucket and
 // streamed to Gemini as inline_data parts via the asher-ai edge function.
 
@@ -15,7 +15,7 @@ import { logAsherEvent } from "@/lib/asherAudit";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { routeBrainsForPrompt, type SwarmRouteResult } from "@/lib/asherBrainRouter";
 import { useAuth } from "@/contexts/AuthContext";
-const wallpaperAsherin = "/wallpapers/wallpaper-asherin.webp";
+const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
 
 interface Attachment {
@@ -369,10 +369,10 @@ const AsherCommandCenter = () => {
 
   return (
     <div className="relative flex h-full w-full text-foreground">
-      {/* Asherin wallpaper background */}
+      {/* Aureon wallpaper background */}
       <div
         className="absolute inset-0 bg-cover bg-center pointer-events-none"
-        style={{ backgroundImage: `url(${wallpaperAsherin})` }}
+        style={{ backgroundImage: `url(${wallpaperAureon})` }}
       />
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm pointer-events-none" />
 

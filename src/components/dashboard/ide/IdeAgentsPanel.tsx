@@ -3,7 +3,7 @@
 // CRUD over `asher_code_agents`. Each agent has a goal and a trigger
 // (manual | on_crash | on_save). The "Run" button hands the goal to
 // the AI chat via onRunAgent. The "on_crash" trigger is auto-fired by
-// the terminal crash hook in AsherinIdeView.
+// the terminal crash hook in AureonIdeView.
 // ============================================================
 import { useCallback, useEffect, useState } from "react";
 import { Bot, Plus, Play, Trash2, Loader2, Power, AlertCircle } from "lucide-react";

@@ -412,7 +412,7 @@ async function generatePredictionText(
   factors: Record<string, number>
 ): Promise<string> {
   const topPatterns = similarPatterns.filter(p => p.similarity >= 0.5).slice(0, 3);
-  const prompt = `You are Asherin, a forensic intelligence analyst. Generate a detailed prediction briefing (3-5 paragraphs).
+  const prompt = `You are Aureon, a forensic intelligence analyst. Generate a detailed prediction briefing (3-5 paragraphs).
 
 COMPANY: ${company}
 EVENT TYPE: ${eventType.replace(/_/g, " ")}
@@ -514,7 +514,7 @@ serve(async (req) => {
         let currentStep = 0;
         const generatedPredictions: any[] = [];
 
-        send({ type: "progress", step: "init", message: `Asherin Prediction Algorithm initialized for ${company}`, progress: 0, total: totalSteps });
+        send({ type: "progress", step: "init", message: `Aureon Prediction Algorithm initialized for ${company}`, progress: 0, total: totalSteps });
 
         for (let configIdx = 0; configIdx < eventConfigs.length; configIdx++) {
           const config = eventConfigs[configIdx];
@@ -681,7 +681,7 @@ serve(async (req) => {
           }
         }
 
-        send({ type: "complete", count: generatedPredictions.length, message: `Asherin generated ${generatedPredictions.length} predictions for ${company}` });
+        send({ type: "complete", count: generatedPredictions.length, message: `Aureon generated ${generatedPredictions.length} predictions for ${company}` });
         controller.close();
       },
     });

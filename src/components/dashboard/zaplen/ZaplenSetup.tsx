@@ -16,7 +16,7 @@ const BYOK_PROVIDERS = [
 ];
 
 const ZaplenSetup = ({ onStart }: Props) => {
-  const [opponent, setOpponent] = useState<OpponentType>("asherin");
+  const [opponent, setOpponent] = useState<OpponentType>("aureon");
   const [playerColor, setPlayerColor] = useState<PlayerColor>("white");
   const [byokProvider, setByokProvider] = useState(BYOK_PROVIDERS[0].id);
   const [byokModel, setByokModel] = useState(BYOK_PROVIDERS[0].models[0]);
@@ -24,9 +24,9 @@ const ZaplenSetup = ({ onStart }: Props) => {
   const selectedProvider = BYOK_PROVIDERS.find(p => p.id === byokProvider);
 
   const modes = [
-    { id: "asherin" as OpponentType, icon: Bot, label: "You vs Asherin", desc: "Challenge the full intelligence stack" },
+    { id: "aureon" as OpponentType, icon: Bot, label: "You vs Aureon", desc: "Challenge the full intelligence stack" },
     { id: "human" as OpponentType, icon: User, label: "Human vs Human", desc: "Local two-player" },
-    { id: "byok" as OpponentType, icon: Zap, label: "AI vs Asherin", desc: "Pit your AI against Asherin" },
+    { id: "byok" as OpponentType, icon: Zap, label: "AI vs Aureon", desc: "Pit your AI against Aureon" },
   ];
 
   return (
@@ -38,7 +38,7 @@ const ZaplenSetup = ({ onStart }: Props) => {
         </div>
         <h2 className="text-base font-extralight tracking-[0.1em] text-foreground/90">Chess — War Scenario I</h2>
         <p className="text-[11px] text-muted-foreground/40 font-extralight leading-relaxed max-w-xs mx-auto">
-          Strategic combat simulation. Play against Asherin, challenge a friend, or watch your AI battle Asherin's intelligence.
+          Strategic combat simulation. Play against Aureon, challenge a friend, or watch your AI battle Aureon's intelligence.
         </p>
       </div>
 
@@ -86,7 +86,7 @@ const ZaplenSetup = ({ onStart }: Props) => {
             <label className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 font-light">Challenger AI</label>
           </div>
           <p className="text-[9px] text-muted-foreground/30 leading-relaxed">
-            Select which AI model will challenge Asherin. Uses API keys from Settings ◇ AI Keys.
+            Select which AI model will challenge Aureon. Uses API keys from Settings ◇ AI Keys.
           </p>
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div className="space-y-1.5">
@@ -122,7 +122,7 @@ const ZaplenSetup = ({ onStart }: Props) => {
       )}
 
       {/* Color Selection (only when user plays) */}
-      {opponent === "asherin" && (
+      {opponent === "aureon" && (
         <div className="space-y-2.5">
           <label className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 font-light">Play As</label>
           <div className="grid grid-cols-2 gap-2">
@@ -159,7 +159,7 @@ const ZaplenSetup = ({ onStart }: Props) => {
           <div>
             <p className="text-[10px] text-foreground/60 font-light">Spectator Mode</p>
             <p className="text-[9px] text-muted-foreground/35 mt-1 leading-relaxed">
-              You will watch {selectedProvider?.label} ({byokModel}) play against Asherin AI in real-time. 
+              You will watch {selectedProvider?.label} ({byokModel}) play against Aureon AI in real-time. 
               Both AIs will alternate moves automatically.
             </p>
           </div>

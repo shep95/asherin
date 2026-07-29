@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
 
     // Split bugs into "clearly-tagged software" vs. "random / uncategorized".
     // Heuristic: title contains obvious module keyword → software; otherwise random.
-    const SOFTWARE_KEYS = /asherin|asher|zaxin|zerlal|zacoon|axrlen|zophiel|nomad|briefing|ide|vault|forum|dashboard|blog|billing|stripe|auth|login|signup/i;
+    const SOFTWARE_KEYS = /aureon|asher|zaxin|zerlal|zacoon|axrlen|zophiel|nomad|briefing|ide|vault|forum|dashboard|blog|billing|stripe|auth|login|signup/i;
     const softwareBugs = bugs.filter((b) => SOFTWARE_KEYS.test(b.title) || SOFTWARE_KEYS.test(b.body));
     const randomBugs = bugs.filter((b) => !SOFTWARE_KEYS.test(b.title) && !SOFTWARE_KEYS.test(b.body));
 

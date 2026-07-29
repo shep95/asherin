@@ -287,7 +287,7 @@ const PredictiveIntelligenceView = () => {
         {showSettings && (
           <div className="rounded-xl border border-purple-500/20 bg-card/30 backdrop-blur-sm p-4 space-y-3">
             <p className="text-xs text-muted-foreground">
-              Asherin's prediction algorithm: signal detection → scoring → Jaccard pattern matching → 5-factor confidence → time estimation → AI intelligence briefing.
+              Aureon's prediction algorithm: signal detection → scoring → Jaccard pattern matching → 5-factor confidence → time estimation → AI intelligence briefing.
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
               <input
@@ -325,7 +325,7 @@ const PredictiveIntelligenceView = () => {
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-purple-400 font-medium flex items-center gap-1.5">
                       <Activity className="h-3 w-3 animate-pulse" />
-                      {progressData?.message || "Initializing Asherin prediction engine..."}
+                      {progressData?.message || "Initializing Aureon prediction engine..."}
                     </span>
                     <span className="text-muted-foreground/50 font-mono">{progressPercent}%</span>
                   </div>
@@ -416,15 +416,15 @@ const PredictiveIntelligenceView = () => {
             <Brain className="h-16 w-16 text-purple-400/40" />
           </div>
           <div className="text-center max-w-md space-y-3">
-            <h3 className="text-lg font-extralight tracking-wide text-foreground">Asherin Prediction Engine</h3>
+            <h3 className="text-lg font-extralight tracking-wide text-foreground">Aureon Prediction Engine</h3>
             <p className="text-xs font-extralight leading-relaxed text-muted-foreground/70">
-              Asherin searches for corporate signals, scores them by relevance/credibility/recency, matches patterns against historical precedents using Jaccard similarity, and calculates confidence with a 5-factor weighted model.
+              Aureon searches for corporate signals, scores them by relevance/credibility/recency, matches patterns against historical precedents using Jaccard similarity, and calculates confidence with a 5-factor weighted model.
             </p>
             <button
               onClick={() => setShowSettings(true)}
               className="mt-4 px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500/20 to-violet-600/20 border border-purple-500/30 hover:from-purple-500/30 hover:to-violet-600/30 text-purple-400 transition-all text-xs font-light"
             >
-              Run Asherin Prediction Algorithm
+              Run Aureon Prediction Algorithm
             </button>
           </div>
         </div>

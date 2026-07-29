@@ -1,5 +1,5 @@
 /**
- * ASHERIN SWARM AGENT ORCHESTRATOR
+ * AUREON SWARM AGENT ORCHESTRATOR
  * Reverse-engineered from OpenAI's Swarm framework (25K+ ⭐)
  * Implements agent handoff patterns where specialized agents transfer control
  * based on conversation context, enabling seamless multi-domain intelligence.
@@ -10,7 +10,7 @@
 export interface SwarmAgent {
   id: string;
   name: string;
-  module: string; // which ASHERIN module this maps to
+  module: string; // which AUREON module this maps to
   description: string;
   capabilities: string[];
   handoffTriggers: RegExp[];
@@ -49,7 +49,7 @@ const FINANCIAL_ANALYST: SwarmAgent = {
     /\b(balance sheet|income statement|cash flow|sec filing|10-k|10-q)\b/i,
   ],
   systemPrompt: `[SWARM AGENT: FINANCIAL INTELLIGENCE — ZEEION]
-You are the Zeeion Financial Intelligence Agent within the ASHERIN Swarm. You specialize in:
+You are the Zeeion Financial Intelligence Agent within the AUREON Swarm. You specialize in:
 - Deep financial forensics and cost analysis
 - Government & corporate waste detection
 - DCF valuation and comparable company analysis
@@ -238,13 +238,13 @@ Signal handoff by including [HANDOFF:agent-id] in your reasoning.`,
 
 const GENERAL_ASSISTANT: SwarmAgent = {
   id: "general-assistant",
-  name: "Asherin General Intelligence",
+  name: "Aureon General Intelligence",
   module: "chat",
   description: "General-purpose reasoning, conversation, creative writing, and research",
   capabilities: ["general reasoning", "creative writing", "research", "summarization", "Q&A"],
   handoffTriggers: [], // default fallback
-  systemPrompt: `[SWARM AGENT: GENERAL INTELLIGENCE — ASHERIN]
-You are the Asherin General Intelligence Agent, the default conversational interface.
+  systemPrompt: `[SWARM AGENT: GENERAL INTELLIGENCE — AUREON]
+You are the Aureon General Intelligence Agent, the default conversational interface.
 You handle general queries, creative tasks, research, and anything that doesn't require specialized domain expertise.
 
 When you detect the user needs specialized help, suggest or HANDOFF to the appropriate agent:

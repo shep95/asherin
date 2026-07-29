@@ -1,7 +1,7 @@
 // ============================================================
 // IDE Crash Hook — parses terminal output / runtime logs for
 // real crashes (stack traces, exceptions, panics) and returns
-// a structured CrashEvent. Used by IdeTerminal + AsherinIdeView
+// a structured CrashEvent. Used by IdeTerminal + AureonIdeView
 // to auto-open the failing file and push the context into AI chat.
 // ============================================================
 

@@ -35,7 +35,7 @@ const PredictionRussiaUkraineWar2026Endgame = () => (
     <BreadcrumbJsonLd
       id="prediction-russia-ukraine-war-2026-endgame"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "AXRLEN — Russia–Ukraine 2026 Endgame", url: "/blog/predictions/russia-ukraine-war-2026-endgame" },
       ]}
@@ -46,7 +46,7 @@ const PredictionRussiaUkraineWar2026Endgame = () => (
       claim="AXRLEN predicts the Russia–Ukraine war ends not in decisive military victory but in a Korean-style armistice along the current line of contact within a 24-month window, with Russia retaining de facto control of Crimea and the Donbas and Ukraine receiving security guarantees short of full NATO membership."
       primaryTopic="Russia–Ukraine war 2026 endgame forecast"
       keyFacts={[
-        "Engine: AXRLEN — NEXUS PRIME (Asherin Predictive Engine).",
+        "Engine: AXRLEN — NEXUS PRIME (Aureon Predictive Engine).",
         "Headline call: frozen front + Korean-style armistice within 24 months.",
         "Dominant pattern: Symmetric Exhaustion Cycle (Iran–Iraq / Korea 1951–53 analogue).",
         "Armistice probability band: 55%.",

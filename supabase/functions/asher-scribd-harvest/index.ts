@@ -1,7 +1,7 @@
 // ASHER SCRIBD — Knowledge Harvester (admin-only).
 // Scrapes scribd.com (via Firecrawl search + scrape text extraction) for a
 // topic, synthesizes a plain-English knowledge dump via Gemini, and inserts
-// it as an ACTIVE row into public.asher_brains so it feeds ASHER + ASHERIN
+// it as an ACTIVE row into public.asher_brains so it feeds ASHER + AUREON
 // brain context automatically.
 //
 // Mirrors asher-archives-harvest. GEMINI ONLY per ASHER DASHBOARD AI policy.
@@ -294,7 +294,7 @@ serve(async (req) => {
       .from("asher_brains")
       .insert({
         name: brainName,
-        description: `Auto-harvested from scribd.com (${hits.length} documents). Feeds ASHER + ASHERIN brains.`,
+        description: `Auto-harvested from scribd.com (${hits.length} documents). Feeds ASHER + AUREON brains.`,
         category,
         content: synthesized,
         file_name: fileName,

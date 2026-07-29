@@ -37,7 +37,7 @@ const PredictionWorldCup2026GroupMatches0625 = () => (
     <BreadcrumbJsonLd
       id="prediction-wc-2026-0625"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "AXRLEN — World Cup 2026 Slate (24 June)", url: "/blog/predictions/world-cup-2026-group-matches-0625" },
       ]}
@@ -48,7 +48,7 @@ const PredictionWorldCup2026GroupMatches0625 = () => (
       claim="AXRLEN picks for six World Cup 2026 group-stage matches on 24 June 2026: Switzerland 2–1 Canada, Bosnia 3–1 Qatar, Morocco 3–0 Haiti, Brazil 3–1 Scotland, South Korea 2–1 South Africa, Mexico 2–1 Czechia."
       primaryTopic="2026 FIFA World Cup group-stage match forecasts (24 June slate)"
       keyFacts={[
-        "Engine: AXRLEN — NEXUS PRIME (Asherin Predictive Engine).",
+        "Engine: AXRLEN — NEXUS PRIME (Aureon Predictive Engine).",
         "Generated: 23 June 2026, 7:00 PM EST.",
         "Switzerland vs. Canada → Switzerland 2–1 (71%).",
         "Bosnia and Herzegovina vs. Qatar → Bosnia 3–1 (78%).",
@@ -66,7 +66,7 @@ const PredictionWorldCup2026GroupMatches0625 = () => (
     <FaqJsonLd
       id="prediction-wc-2026-0625"
       items={[
-        { q: "Who generated these picks?", a: "Asherin's AXRLEN engine (NEXUS PRIME) generated the picks on 23 June 2026 for the six group-stage matches scheduled on 24 June 2026. The post renders the engine output verbatim." },
+        { q: "Who generated these picks?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the picks on 23 June 2026 for the six group-stage matches scheduled on 24 June 2026. The post renders the engine output verbatim." },
         { q: "What are the six picks?", a: "Switzerland 2–1 Canada, Bosnia and Herzegovina 3–1 Qatar, Morocco 3–0 Haiti, Brazil 3–1 Scotland, South Korea 2–1 South Africa, and Mexico 2–1 Czechia." },
         { q: "Which pick has the highest confidence?", a: "Brazil over Scotland at 88%, driven by attacking-trident dominance and Scotland's narrow scoring pathway." },
         { q: "Which pick has the lowest confidence?", a: "South Korea over South Africa at 69%. AXRLEN reads South Africa's low-block plus transition profile as structurally credible." },

@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
  * WebGL-powered liquid ripple displacement overlay.
  * On click, a ripple wave emanates from the click point and distorts
  * the page content beneath via a displacement shader.
- * Adapted from the reference video for Asherin's dark glassmorphic theme.
+ * Adapted from the reference video for Aureon's dark glassmorphic theme.
  */
 
 const VERTEX_SHADER = `

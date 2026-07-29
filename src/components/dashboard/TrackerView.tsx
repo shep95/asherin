@@ -114,7 +114,7 @@ function OnboardingLinkCard({
   onRegenerate: (deviceId: string) => void;
 }) {
   const link = device.onboardingLink;
-  const isBadLink = !link || link.startsWith("asherin://");
+  const isBadLink = !link || link.startsWith("aureon://");
 
   return (
     <div className="rounded-xl border border-accent/20 bg-accent/5 p-4 space-y-3">

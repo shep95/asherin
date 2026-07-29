@@ -156,17 +156,17 @@ const OPERATIONS: CipherOperation[] = [
     execute: async (input) => rot13(input) },
   { id: "xor", name: "XOR Cipher", category: "Encryption", icon: Lock, description: "XOR with a key string",
     execute: async (input, params) => {
-      const key = params?.key || "asherin";
+      const key = params?.key || "aureon";
       const result = xorCipher(input, key);
       return btoa(result);
     },
-    params: [{ key: "key", label: "XOR Key", type: "text", default: "asherin" }] },
+    params: [{ key: "key", label: "XOR Key", type: "text", default: "aureon" }] },
   { id: "xor-decrypt", name: "XOR Decrypt", category: "Encryption", icon: Unlock, description: "Decrypt XOR (Base64 input)",
     execute: async (input, params) => {
-      const key = params?.key || "asherin";
+      const key = params?.key || "aureon";
       try { return xorCipher(atob(input.trim()), key); } catch { return "[Error: Invalid Base64 input]"; }
     },
-    params: [{ key: "key", label: "XOR Key", type: "text", default: "asherin" }] },
+    params: [{ key: "key", label: "XOR Key", type: "text", default: "aureon" }] },
   { id: "aes-encrypt", name: "AES-256-GCM Encrypt", category: "Encryption", icon: Lock, description: "Encrypt with AES-256-GCM (Web Crypto)",
     execute: async (input, params) => {
       const password = params?.password || "default-key";

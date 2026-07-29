@@ -36,7 +36,7 @@ const HowAiPredictiveForecastingWorks = () => (
     <BreadcrumbJsonLd
       id="how-ai-predictive-forecasting-works"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "How AI Predictive Forecasting Works", url: "/blog/how-ai-predictive-forecasting-works" },
       ]}
@@ -176,12 +176,12 @@ const HowAiPredictiveForecastingWorks = () => (
       window now; the resolution post lands January 2027.
     </p>
 
-    <h2>How Asherin implements this</h2>
+    <h2>How Aureon implements this</h2>
     <p>
       <a href="/feature/axrlen" className="text-accent hover:underline">
         AXRLEN
       </a>{" "}
-      — the Nexus Prime engine — is Asherin's implementation. It binds
+      — the Nexus Prime engine — is Aureon's implementation. It binds
       probability to language with the calibration bands above, fuses
       five required signal classes per forecast, and ships verification
       plans with every published prediction. The World Cup 2026 — 22
@@ -215,7 +215,7 @@ const HowAiPredictiveForecastingWorks = () => (
         {
           to: "/feature/axrlen",
           label: "AXRLEN — the Nexus Prime engine",
-          description: "Asherin's implementation of the four-ingredient forecasting method.",
+          description: "Aureon's implementation of the four-ingredient forecasting method.",
         },
         {
           to: "/blog/predictions/world-cup-2026-group-matches-0622",

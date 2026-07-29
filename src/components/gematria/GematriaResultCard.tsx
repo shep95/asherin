@@ -15,7 +15,7 @@ const CIPHERS: CipherKey[] = ["ordinal", "reduction", "reverse", "chaldean"];
 
 interface Props {
   phrase: string;
-  source?: "chat:asherin" | "chat:asher";
+  source?: "chat:aureon" | "chat:asher";
 }
 
 const MAX = 200;

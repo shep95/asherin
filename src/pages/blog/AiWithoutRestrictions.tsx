@@ -35,7 +35,7 @@ const AiWithoutRestrictions = () => (
     <BreadcrumbJsonLd
       id="ai-without-restrictions"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "AI Without Restrictions", url: "/blog/ai-without-restrictions" },
       ]}
@@ -49,7 +49,7 @@ const AiWithoutRestrictions = () => (
         "The leading uncensored model stacks in 2026 are Venice mistral-31-24b and self-hosted Mistral Large.",
         "BYOK through a sovereign platform eliminates the platform refusal layer entirely.",
         "Long-session work fails first on consumer AI — refusal vocabulary leaks back in after token ~5,000.",
-        "Asherin's free tier ships Venice mistral-31-24b by default, no key required.",
+        "Aureon's free tier ships Venice mistral-31-24b by default, no key required.",
       ]}
       relevanceSignal="Analysts, researchers, journalists, and writers who hit refusal walls mid-task on consumer AI need a workflow that survives the full length of the work."
       confidence="high"
@@ -122,13 +122,13 @@ const AiWithoutRestrictions = () => (
         platform routes a single query through multiple models in stages
         (e.g. Zophiel for OSINT collection, AXRLEN for predictive modeling,
         Cipher for storage). The operator interacts with the synthesis,
-        not the underlying models. This is what Asherin ships.
+        not the underlying models. This is what Aureon ships.
       </li>
     </ol>
 
-    <h2>Asherin&apos;s default path</h2>
+    <h2>Aureon&apos;s default path</h2>
     <p>
-      Asherin ships Venice <code>mistral-31-24b</code> as the free-tier
+      Aureon ships Venice <code>mistral-31-24b</code> as the free-tier
       default. No account at venice.ai needed, no key to paste, no monthly
       subscription. Operators who want a different vendor bring their
       key — Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, or
@@ -142,11 +142,11 @@ const AiWithoutRestrictions = () => (
       items={[
         {
           q: "Which AI has no restrictions in 2026?",
-          a: "The leading uncensored model stacks are Venice mistral-31-24b (the platform-paid default inside Asherin), self-hosted Mistral Large, and quantized DeepSeek variants. Each is engineered to behave consistently across long sessions rather than regressing toward refusal.",
+          a: "The leading uncensored model stacks are Venice mistral-31-24b (the platform-paid default inside Aureon), self-hosted Mistral Large, and quantized DeepSeek variants. Each is engineered to behave consistently across long sessions rather than regressing toward refusal.",
         },
         {
           q: "Is there a free uncensored AI?",
-          a: "Yes. Asherin ships Venice mistral-31-24b as the free-tier default — no account, no key, no subscription. Operators who want to use a different vendor bring their own key.",
+          a: "Yes. Aureon ships Venice mistral-31-24b as the free-tier default — no account, no key, no subscription. Operators who want to use a different vendor bring their own key.",
         },
         {
           q: "How do I prompt an uncensored AI?",
@@ -168,7 +168,7 @@ const AiWithoutRestrictions = () => (
         },
         {
           to: "/blog/venice-integration",
-          label: "Venice AI inside Asherin",
+          label: "Venice AI inside Aureon",
           description: "How the platform-paid uncensored default is wired in.",
         },
         {

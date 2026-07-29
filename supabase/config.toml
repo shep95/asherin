@@ -7,7 +7,7 @@ verify_jwt = false
 [functions.verify-asher-passcode]
 verify_jwt = false
 
-[functions.asherin-shield-analyze]
+[functions.aureon-shield-analyze]
 verify_jwt = false
 
 [functions.asher-eyes-proxy]
@@ -16,7 +16,7 @@ verify_jwt = false
 [functions.chat]
 verify_jwt = false
 
-[functions.asherin-free-chat]
+[functions.aureon-free-chat]
 verify_jwt = false
 
 [functions.suggest]

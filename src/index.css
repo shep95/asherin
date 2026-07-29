@@ -264,11 +264,11 @@ body.zophiel-panel-open [data-header-right] {
 }
 
 /* Header — sticky shrink behavior */
-header[data-asherin-header].header-scrolled {
+header[data-aureon-header].header-scrolled {
   --header-pad-y: 0.4rem;
 }
-header[data-asherin-header].header-scrolled > div,
-header[data-asherin-header].header-scrolled > a {
+header[data-aureon-header].header-scrolled > div,
+header[data-aureon-header].header-scrolled > a {
   transform: scale(0.94);
   transform-origin: top center;
   background-color: hsl(var(--card) / 0.92) !important;
@@ -276,11 +276,11 @@ header[data-asherin-header].header-scrolled > a {
   box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.45);
 }
 
-header[data-asherin-header] {
+header[data-aureon-header] {
   transition: padding 220ms cubic-bezier(.2,.7,.3,1);
 }
-header[data-asherin-header] > div,
-header[data-asherin-header] > a {
+header[data-aureon-header] > div,
+header[data-aureon-header] > a {
   transition: transform 220ms cubic-bezier(.2,.7,.3,1), background-color 220ms ease, box-shadow 220ms ease;
 }
 
@@ -515,29 +515,29 @@ header[data-asherin-header] > a {
 }
 
 /* ============================================================
-   ASHERIN SIGNAL LAYER — shared polish primitives
+   AUREON SIGNAL LAYER — shared polish primitives
    ============================================================ */
-.asherin-grid-bg {
+.aureon-grid-bg {
   background-image:
     linear-gradient(to right,  hsl(var(--foreground) / 0.025) 1px, transparent 1px),
     linear-gradient(to bottom, hsl(var(--foreground) / 0.025) 1px, transparent 1px);
   background-size: 32px 32px;
 }
-@keyframes asherin-pulse-ring {
+@keyframes aureon-pulse-ring {
   0%   { box-shadow: 0 0 0 0 hsl(var(--accent) / 0.35); }
   70%  { box-shadow: 0 0 0 14px hsl(var(--accent) / 0); }
   100% { box-shadow: 0 0 0 0 hsl(var(--accent) / 0); }
 }
-.asherin-pulse-ring { animation: asherin-pulse-ring 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.aureon-pulse-ring { animation: aureon-pulse-ring 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 
-@keyframes asherin-scanline {
+@keyframes aureon-scanline {
   0%   { transform: translateY(-100%); opacity: 0; }
   15%  { opacity: 1; }
   85%  { opacity: 1; }
   100% { transform: translateY(100%); opacity: 0; }
 }
-.asherin-scanline { position: relative; overflow: hidden; }
-.asherin-scanline::before {
+.aureon-scanline { position: relative; overflow: hidden; }
+.aureon-scanline::before {
   content: "";
   position: absolute; inset: 0;
   background: linear-gradient(180deg,
@@ -548,19 +548,19 @@ header[data-asherin-header] > a {
     transparent 100%
   );
   pointer-events: none;
-  animation: asherin-scanline 2.2s ease-in-out infinite;
+  animation: aureon-scanline 2.2s ease-in-out infinite;
 }
 
-@keyframes asherin-diffuse {
+@keyframes aureon-diffuse {
   0%, 100% { opacity: 0.25; transform: translate3d(0,0,0); }
   50%      { opacity: 0.7;  transform: translate3d(0,-8px,0); }
 }
-.asherin-diffuse-dot { animation: asherin-diffuse 3.4s ease-in-out infinite; }
+.aureon-diffuse-dot { animation: aureon-diffuse 3.4s ease-in-out infinite; }
 
-@keyframes asherin-marching-ants {
+@keyframes aureon-marching-ants {
   to { background-position: 32px 0, -32px 100%, 0 -32px, 100% 32px; }
 }
-.asherin-dropzone {
+.aureon-dropzone {
   background-image:
     linear-gradient(90deg, hsl(var(--accent) / 0.6) 50%, transparent 50%),
     linear-gradient(90deg, hsl(var(--accent) / 0.6) 50%, transparent 50%),
@@ -569,37 +569,37 @@ header[data-asherin-header] > a {
   background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
   background-size: 16px 1.5px, 16px 1.5px, 1.5px 16px, 1.5px 16px;
   background-position: 0 0, 0 100%, 0 0, 100% 0;
-  animation: asherin-marching-ants 1.4s linear infinite;
+  animation: aureon-marching-ants 1.4s linear infinite;
 }
 
-.asherin-amber-glow {
+.aureon-amber-glow {
   box-shadow:
     0 0 0 1px hsl(38 92% 55% / 0.28),
     0 0 28px -4px hsl(38 92% 55% / 0.4);
 }
 
-.asherin-scroll-fade {
+.aureon-scroll-fade {
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
           mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
 }
 
-.asherin-branch-pct {
+.aureon-branch-pct {
   font-variant-numeric: tabular-nums;
   font-weight: 200;
   letter-spacing: -0.04em;
   line-height: 1;
 }
 
-@keyframes asherin-confidence-pulse {
+@keyframes aureon-confidence-pulse {
   0%, 100% { filter: drop-shadow(0 0 0 hsl(var(--accent) / 0)); }
   50%      { filter: drop-shadow(0 0 8px hsl(var(--accent) / 0.55)); }
 }
-.asherin-confidence-pulse { animation: asherin-confidence-pulse 3.2s ease-in-out infinite; }
+.aureon-confidence-pulse { animation: aureon-confidence-pulse 3.2s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .asherin-pulse-ring,
-  .asherin-scanline::before,
-  .asherin-diffuse-dot,
-  .asherin-dropzone,
-  .asherin-confidence-pulse { animation: none !important; }
+  .aureon-pulse-ring,
+  .aureon-scanline::before,
+  .aureon-diffuse-dot,
+  .aureon-dropzone,
+  .aureon-confidence-pulse { animation: none !important; }
 }
