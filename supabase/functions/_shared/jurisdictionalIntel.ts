@@ -277,9 +277,25 @@ function extractSubject(raw: string, jurisdictionTokens: string[]): string {
        .trim();
 
   const nameMatch = matchName(s);
-  if (nameMatch) return nameMatch;
-  return s;
+  return trimSubjectStopwords(nameMatch || s);
 }
+
+// Connectors left behind after jurisdiction tokens are stripped used to stay
+// glued to the name ("Donna Newton In"), and that polluted every quoted query
+// — an exact-phrase search for a name that does not exist returns strangers.
+const SUBJECT_EDGE_STOPWORDS = new Set([
+  "in", "at", "of", "on", "from", "near", "the", "a", "an", "and", "for",
+  "to", "by", "with", "who", "that", "which", "is", "was", "her", "his",
+  "their", "my", "info", "information", "about", "please", "she", "he",
+]);
+
+function trimSubjectStopwords(value: string): string {
+  const parts = value.split(/\s+/).filter(Boolean);
+  while (parts.length && SUBJECT_EDGE_STOPWORDS.has(parts[0].toLowerCase())) parts.shift();
+  while (parts.length && SUBJECT_EDGE_STOPWORDS.has(parts[parts.length - 1].toLowerCase())) parts.pop();
+  return parts.join(" ");
+}
+
 
 // ── Intent classifier ──────────────────────────────────────────────────────
 export function classifyIntent(rawUserMessage: string): IntelIntent {
