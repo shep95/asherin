@@ -1,4 +1,6 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { normalizeGeminiModel } from "../_shared/geminiModels.ts";
+
 // Zophiel Intel Map - scrapes top search results and extracts an entity graph
 // using Lovable AI Gateway. Returns nodes (sources, people, orgs, locations,
 // topics) and edges (mentions, affiliations, references) for Palantir-style mapping.
