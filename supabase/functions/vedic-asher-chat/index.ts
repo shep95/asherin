@@ -3,7 +3,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { normalizeGeminiModel, GEMINI_ROLLING_FALLBACK } from "../_shared/geminiModels.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+
 
 const PLATFORM_GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("GEMINI_API_KEY_APP");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
