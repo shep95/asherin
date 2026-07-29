@@ -3,7 +3,7 @@ import { Key, Plus, Trash2, Check, Loader2, Eye, EyeOff, ChevronDown, Zap, Alert
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { AI_PROVIDERS, type ProviderConfig } from "@/lib/aiProviders";
+import { AI_PROVIDERS, normalizeModelId, type ProviderConfig } from "@/lib/aiProviders";
 
 // Re-export for legacy imports — new code should import from "@/lib/aiProviders".
 export { AI_PROVIDERS };
