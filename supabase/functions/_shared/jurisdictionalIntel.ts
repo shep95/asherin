@@ -361,7 +361,7 @@ async function zophielQuery(
   // Measured live P50 for zophiel-search is ~10.3s. Any per-call budget below
   // ~12s aborts the call before it can ever answer, which silently starved the
   // registry channels and left only wide-web noise for the model to reason on.
-  const timeoutMs = Math.max(6000, Math.min(options.timeoutMs ?? 20000, 24000));
+  const timeoutMs = Math.max(6000, Math.min(options.timeoutMs ?? 20000, 32000));
   const limit = options.limit ?? 12;
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/zophiel-search`, {
@@ -576,7 +576,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   };
   const tokens = subjectTokens(subject);
   let droppedOffSubject = 0;
-  const all: IntelChannelHit[] = [...r1a.hits, ...r1b.hits, ...pass2Results.flatMap((r) => r.hits)];
+  const all: IntelChannelHit[] = runs.flatMap((r) => r.hits);
   for (const hit of all) {
     if (!hit.url || seen.has(hit.url)) continue;
     if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
