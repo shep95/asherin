@@ -50,7 +50,7 @@ export default function ByokRequiredDialog() {
             <DialogTitle className="text-zinc-100">Bring Your Own API Key</DialogTitle>
           </div>
           <DialogDescription className="text-zinc-400 pt-2 leading-relaxed">
-            The AUREON LLM API is being overused right now. To continue without
+            The ASHERIN LLM API is being overused right now. To continue without
             interruption, please connect your own API key and select a model in
             <span className="text-zinc-200"> Settings → AI Keys</span>.
             {reason ? <span className="block mt-2 text-xs text-zinc-500">{reason}</span> : null}

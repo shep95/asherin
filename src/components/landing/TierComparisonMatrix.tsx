@@ -15,9 +15,9 @@ interface Tier {
 
 const TIERS: Tier[] = [
   { key: "chat", name: "Chat", price: "$47", cadence: "one-time", blurb: "Uncensored core chat & basic tools", cta: "Start Chat", href: "/dashboard" },
-  { key: "aureon", name: "Aureon", price: "$199", cadence: "one-time", blurb: "Full creation suite + Zophiel", cta: "Get Aureon", href: "/dashboard" },
+  { key: "aureon", name: "Asherin", price: "$199", cadence: "one-time", blurb: "Full creation suite + Zophiel", cta: "Get Asherin", href: "/dashboard" },
   { key: "pro", name: "Pro", price: "$740", cadence: "one-time", blurb: "Pro intelligence, predictive, trading", cta: "Go Pro", href: "/dashboard" },
-  { key: "lifetime", name: "Lifetime", price: "$470", cadence: "once", blurb: "Everything in Aureon ($199) — forever, one payment", cta: "Claim Lifetime", href: "/dashboard", highlight: true },
+  { key: "lifetime", name: "Lifetime", price: "$470", cadence: "once", blurb: "Everything in Asherin ($199) — forever, one payment", cta: "Claim Lifetime", href: "/dashboard", highlight: true },
 ];
 
 interface Row {
@@ -26,7 +26,7 @@ interface Row {
   tiers: Record<string, true | false | string>;
 }
 
-// Lifetime = everything in the Aureon ($199 one-time) tier and below, forever, for a single one-time payment.
+// Lifetime = everything in the Asherin ($199 one-time) tier and below, forever, for a single one-time payment.
 // Pro-only features stay Pro-only (predictive, trading, automated agents, ZERLAL, Azplen, Google Intelligence).
 const ROWS: Row[] = [
   { group: "Core", label: "Uncensored chat", tiers: { chat: true, aureon: true, pro: true, lifetime: true } },
@@ -44,7 +44,7 @@ const ROWS: Row[] = [
   { group: "Creation", label: "Vibe Imager & Vibe Video", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Creation", label: "E-book / PDF / Slideshow generators", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Creation", label: "Whiteboard (infinite canvas)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
-  { group: "Creation", label: "Aureon IDE & Imagine-to-Code", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
+  { group: "Creation", label: "Asherin IDE & Imagine-to-Code", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Creation", label: "ZANOEM Design Lab (FEA / Thermal)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
 
   { group: "Agents", label: "AI Personas & Persona Store", tiers: { chat: true, aureon: true, pro: true, lifetime: true } },
@@ -104,7 +104,7 @@ const TierComparisonMatrix = () => {
 
               {t.highlight && (
                 <span className="px-1 text-[9px] tracking-wide text-amber-200/60 normal-case text-center leading-snug">
-                  Aureon, paid once.
+                  Asherin, paid once.
                 </span>
               )}
 

@@ -48,7 +48,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Creation",
     items: [
       { id: "zali", icon: Zap, label: "ZANOEM Design Lab", desc: "FEA / thermal simulation with material and assembly generation for engineering-grade design." },
-      { id: "ide", icon: Terminal, label: "AUREON IDE", desc: "In-dashboard Monaco IDE with BYOK across 9 providers and a sandboxed iframe for published tabs." },
+      { id: "ide", icon: Terminal, label: "ASHERIN IDE", desc: "In-dashboard Monaco IDE with BYOK across 9 providers and a sandboxed iframe for published tabs." },
       { id: "i2c", icon: Code2, label: "Imagine To Code", desc: "Convert sketches, screenshots, and mockups directly into working component code." },
       { id: "snippets", icon: Code2, label: "Code Snippets", desc: "Encrypted vault for reusable code blocks, scripts, and prompts." },
       { id: "projects", icon: Layers, label: "Projects", desc: "Project workspaces with file management, ide_sessions, and constraint tracking." },
@@ -82,7 +82,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "bug-reports", icon: ClipboardList, label: "Bug Reports", desc: "Private RLS portal with AI summarization for the admin." },
       { id: "stats", icon: BarChart3, label: "My Stats", desc: "Personal analytics — credits, runs, and module-level usage breakdown." },
       { id: "vedic-astrology", icon: Moon, label: "Vedic Astrology", desc: "Vedic strategy module — chart-based timing analysis for decisions." },
-      { id: "subscription", icon: CreditCard, label: "Subscription", desc: "Manage Chat, Aureon, Pro, or Lifetime tier and billing." },
+      { id: "subscription", icon: CreditCard, label: "Subscription", desc: "Manage Chat, Asherin, Pro, or Lifetime tier and billing." },
       { id: "settings", icon: Settings, label: "Settings", desc: "Workspace preferences, BYOK provider keys, and security controls." },
     ],
   },
@@ -460,7 +460,7 @@ function IdeMock() {
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 pb-2 border-b border-border/10">
         <Terminal className="h-4 w-4 text-green-400/70" />
-        <span className="text-xs font-light tracking-wider text-foreground">AUREON IDE</span>
+        <span className="text-xs font-light tracking-wider text-foreground">ASHERIN IDE</span>
       </div>
       {/* IDE layout */}
       <div className="flex flex-1 mt-2 gap-1.5 overflow-hidden">
@@ -676,7 +676,7 @@ const DashboardPreview = () => {
             <div className={`${showMobileSidebar ? "absolute inset-y-0 left-0 z-10" : "hidden"} sm:relative sm:flex w-[200px] flex-shrink-0 flex-col border-r border-border/20 bg-card/40 backdrop-blur-xl overflow-hidden`}>
               <div className="flex items-center justify-between p-3 border-b border-border/20">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-extralight tracking-[0.25em] text-foreground">AUREON</span>
+                  <span className="text-[10px] font-extralight tracking-[0.25em] text-foreground">ASHERIN</span>
                   <ShieldCheck className="h-3 w-3 text-emerald-500/70" />
                 </div>
                 <Plus className="h-3 w-3 text-muted-foreground/30" />
@@ -735,7 +735,7 @@ const DashboardPreview = () => {
 
               <div className="px-4 sm:px-5 pb-3">
                 <div className="flex items-center gap-3 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-sm px-4 py-2.5">
-                  <input type="text" placeholder="Ask Aureon anything..." className="flex-1 bg-transparent text-[11px] font-light text-foreground placeholder:text-muted-foreground/40 outline-none cursor-default" readOnly />
+                  <input type="text" placeholder="Ask Asherin anything..." className="flex-1 bg-transparent text-[11px] font-light text-foreground placeholder:text-muted-foreground/40 outline-none cursor-default" readOnly />
                   <Send className="h-3.5 w-3.5 text-muted-foreground/30" />
                 </div>
               </div>

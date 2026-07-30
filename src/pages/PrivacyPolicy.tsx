@@ -8,9 +8,9 @@ import { applySeoHead } from "@/lib/seoHead";
 const PrivacyPolicy = () => {
   useEffect(() => {
     applySeoHead({
-      title: "Privacy Policy — Aureon",
+      title: "Privacy Policy — Asherin",
       description:
-        "How Aureon collects, encrypts, and protects your data. End-to-end encryption, zero training on user content, and the operator-grade privacy stance.",
+        "How Asherin collects, encrypts, and protects your data. End-to-end encryption, zero training on user content, and the operator-grade privacy stance.",
       path: "/privacy",
     });
   }, []);
@@ -96,7 +96,7 @@ const PrivacyPolicy = () => {
                   <li>→ Encryption keys are derived per-user via PBKDF2 (100,000 iterations).</li>
                   <li>→ Data is encrypted in transit (TLS) and at rest.</li>
                   <li>→ All servers are hosted in the United States.</li>
-                  <li>→ No Aureon employee can read your encrypted messages.</li>
+                  <li>→ No Asherin employee can read your encrypted messages.</li>
                 </ul>
               </section>
 
@@ -111,7 +111,7 @@ const PrivacyPolicy = () => {
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">8. Cookies</h2>
-                <p>Aureon uses only essential session cookies required for authentication. We do not use tracking cookies, analytics cookies, or advertising cookies.</p>
+                <p>Asherin uses only essential session cookies required for authentication. We do not use tracking cookies, analytics cookies, or advertising cookies.</p>
               </section>
 
               <section>

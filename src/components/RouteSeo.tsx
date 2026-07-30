@@ -21,43 +21,43 @@ type SeoEntry = {
 // Per-route metadata. Keep titles <60 chars, descriptions <160 chars.
 const SEO: Record<string, SeoEntry> = {
   "/": {
-    title: "Aureon — Predictive Intelligence Platform for Operators",
+    title: "Asherin — Predictive Intelligence Platform for Operators",
     description:
-      "Aureon is the predictive intelligence stack for analysts, traders, and operators. Forecast events, model timelines, and act before the wire.",
+      "Asherin is the predictive intelligence stack for analysts, traders, and operators. Forecast events, model timelines, and act before the wire.",
   },
   "/pricing": {
-    title: "Pricing — Aureon, Pro & Enterprise Plans",
+    title: "Pricing — Asherin, Pro & Enterprise Plans",
     description:
-      "Aureon is $18/mo for the core platform and $399/mo for Aureon Pro (Azplen, NOMAD, Briefings, Zophiel Pro). Enterprise on request.",
+      "Asherin is $18/mo for the core platform and $399/mo for Asherin Pro (Azplen, NOMAD, Briefings, Zophiel Pro). Enterprise on request.",
   },
   "/terms": {
-    title: "Terms of Service — Aureon",
-    description: "Aureon's Terms of Service. Read the rules of engagement for using the platform.",
+    title: "Terms of Service — Asherin",
+    description: "Asherin's Terms of Service. Read the rules of engagement for using the platform.",
   },
   "/software": {
-    title: "Software — Every Aureon Tool | Aureon",
+    title: "Software — Every Asherin Tool | Asherin",
     description:
-      "Every Aureon tool — OSINT search, predictive engines, IDE, whiteboard, e-book, file scrapper — on the $18/mo and $399/mo plans.",
+      "Every Asherin tool — OSINT search, predictive engines, IDE, whiteboard, e-book, file scrapper — on the $18/mo and $399/mo plans.",
   },
 
   "/benchmark": {
-    title: "Aureon Benchmark — Cheap Models, Groomed to Outperform",
+    title: "Asherin Benchmark — Cheap Models, Groomed to Outperform",
     description:
-      "Aureon vs Opus 4.8 vs GPT-5.5 on a thread-safe LRU cache: prompts, code, and scored results in the open.",
+      "Asherin vs Opus 4.8 vs GPT-5.5 on a thread-safe LRU cache: prompts, code, and scored results in the open.",
   },
   "/asher": {
-    title: "Asher — Operator Workspace | Aureon",
+    title: "Asher — Operator Workspace | Asherin",
     description:
       "Asher: the operator workspace inside Aureon. Encrypted channels, intelligence modules, and live collaboration.",
   },
   "/privacy": {
-    title: "Privacy Policy — Aureon",
-    description: "How Aureon handles your data: storage, encryption, retention, and your rights.",
+    title: "Privacy Policy — Asherin",
+    description: "How Asherin handles your data: storage, encryption, retention, and your rights.",
   },
   "/founder": {
-    title: "Founder — Asher Newton, Architect of Aureon",
+    title: "Founder — Asher Newton, Architect of Asherin",
     description:
-      "The story behind Aureon: Asher Newton, House of Asher, and the doctrine that built a predictive intelligence platform.",
+      "The story behind Asherin: Asher Newton, House of Asher, and the doctrine that built a predictive intelligence platform.",
   },
   "/hosrad": {
     title: "HOSRAD — House Of Asher Research & Development",
@@ -70,74 +70,74 @@ const SEO: Record<string, SeoEntry> = {
       "The Zophiel prompt-engineering protocols: 45 sections of elite techniques for turning LLMs into surgical intelligence operators.",
   },
   "/features": {
-    title: "Features — Every Aureon Intelligence Module",
+    title: "Features — Every Asherin Intelligence Module",
     description:
-      "Every Aureon module: Zophiel OSINT, AXRLEN predictive engine, NOMAD dossiers, ZALI design, ZERLAL security, and the full operator stack.",
+      "Every Asherin module: Zophiel OSINT, AXRLEN predictive engine, NOMAD dossiers, ZALI design, ZERLAL security, and the full operator stack.",
   },
   "/benchmarks": {
-    title: "Benchmarks — Aureon Model & Engine Performance",
-    description: "Live benchmarks across Aureon's intelligence engines, model consensus, and predictive performance.",
+    title: "Benchmarks — Asherin Model & Engine Performance",
+    description: "Live benchmarks across Asherin's intelligence engines, model consensus, and predictive performance.",
   },
   "/nda": {
-    title: "NDA — Aureon Confidentiality Agreement",
-    description: "Aureon's standard non-disclosure agreement for partners, testers, and contractors.",
+    title: "NDA — Asherin Confidentiality Agreement",
+    description: "Asherin's standard non-disclosure agreement for partners, testers, and contractors.",
   },
   "/llm-models": {
-    title: "Supported LLM Models — BYOK Catalog | Aureon",
+    title: "Supported LLM Models — BYOK Catalog | Asherin",
     description:
-      "Every model Aureon supports via BYOK: Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and more.",
+      "Every model Asherin supports via BYOK: Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and more.",
   },
   "/blog": {
-    title: "Aureon Blog — Field Reports from the Operator Stack",
+    title: "Asherin Blog — Field Reports from the Operator Stack",
     description:
-      "Long-form comparisons, benchmarks, and intelligence write-ups from the Aureon team. No fluff, no affiliate links.",
+      "Long-form comparisons, benchmarks, and intelligence write-ups from the Asherin team. No fluff, no affiliate links.",
   },
   "/blog/comparison": {
-    title: "Aureon vs ChatGPT vs Claude — Honest 2026 Comparison",
+    title: "Asherin vs ChatGPT vs Claude — Honest 2026 Comparison",
     description:
-      "Side-by-side: price, censorship, BYOK, OSINT, IDE, simulation, and privacy across Aureon, ChatGPT Plus, and Claude Pro.",
+      "Side-by-side: price, censorship, BYOK, OSINT, IDE, simulation, and privacy across Asherin, ChatGPT Plus, and Claude Pro.",
     ogType: "article",
   },
   "/blog/venice-integration": {
-    title: "Venice AI in Aureon — Unfiltered, Zero Setup",
+    title: "Venice AI in Asherin — Unfiltered, Zero Setup",
     description:
-      "How Aureon routes free and BYOK traffic through Venice AI for uncensored, vision-capable answers with no key, no account, no subscription.",
+      "How Asherin routes free and BYOK traffic through Venice AI for uncensored, vision-capable answers with no key, no account, no subscription.",
     ogType: "article",
   },
   "/blog/aureon-legal-advisor-multi-jurisdictional": {
-    title: "Aureon Legal Advisor (LAW Mode) — Multi-Jurisdictional AI Legal Research",
+    title: "Asherin Legal Advisor (LAW Mode) — Multi-Jurisdictional AI Legal Research",
     description:
-      "How Aureon and Asher's LAW mode runs deep legal research across any country, state, or province — surfacing older statutes that supersede newer law without fabricating citations.",
+      "How Asherin and Asher's LAW mode runs deep legal research across any country, state, or province — surfacing older statutes that supersede newer law without fabricating citations.",
     ogType: "article",
   },
 
   // Blog satellites (Theory 8 — Nested Fractal Content Architecture)
   "/blog/what-is-ai-osint": {
-    title: "What is AI OSINT? The Analyst's Complete Guide | Aureon",
+    title: "What is AI OSINT? The Analyst's Complete Guide | Asherin",
     description:
       "AI OSINT defined: the four-stage pipeline, the cross-validation requirement, and how to spot a search wrapper pretending to be intelligence.",
     ogType: "article",
   },
   "/blog/sovereign-ai-platforms": {
-    title: "The 2026 Sovereign AI Platform Landscape | Aureon",
+    title: "The 2026 Sovereign AI Platform Landscape | Asherin",
     description:
       "Eight serious sovereign AI platforms, four architecture patterns, and the four-layer test that eliminates 60% of sovereignty claims on first inspection.",
     ogType: "article",
   },
   "/blog/ai-without-restrictions": {
-    title: "AI Without Restrictions — Operator Workflow Guide | Aureon",
+    title: "AI Without Restrictions — Operator Workflow Guide | Asherin",
     description:
       "Model choice, prompt discipline, refusal-detection, and the three workflow patterns that survive long sessions on uncensored AI.",
     ogType: "article",
   },
   "/blog/predictions/world-cup-2026-group-matches-0622": {
-    title: "AXRLEN Forecast — World Cup 2026 Group Matches (22 June) | Aureon",
+    title: "AXRLEN Forecast — World Cup 2026 Group Matches (22 June) | Asherin",
     description:
       "AXRLEN picks for the 22 June 2026 World Cup slate: Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan.",
     ogType: "article",
   },
   "/blog/predictions/world-cup-2026-group-matches-0623": {
-    title: "AXRLEN Forecast — World Cup 2026 Group Matches (23 June) | Aureon",
+    title: "AXRLEN Forecast — World Cup 2026 Group Matches (23 June) | Asherin",
     description:
       "AXRLEN picks for the 23 June 2026 World Cup slate: Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo.",
     ogType: "article",
@@ -149,7 +149,7 @@ const SEO: Record<string, SeoEntry> = {
     ogType: "article",
   },
   "/blog/predictions/world-cup-2026-group-matches-0625": {
-    title: "AXRLEN Forecast — World Cup 2026 Group Matches (24 June) | Aureon",
+    title: "AXRLEN Forecast — World Cup 2026 Group Matches (24 June) | Asherin",
     description:
       "AXRLEN picks for the 24 June 2026 World Cup slate: Switzerland, Bosnia, Morocco, Brazil, South Korea, Mexico — with modal scorelines and confidence weights.",
     ogType: "article",
@@ -191,44 +191,44 @@ const SEO: Record<string, SeoEntry> = {
     ogType: "article",
   },
   "/blog/btc-daily-predictions": {
-    title: "AXRLEN BTC Daily — Live Long/Short Forecast | Aureon",
+    title: "AXRLEN BTC Daily — Live Long/Short Forecast | Asherin",
     description:
       "Daily 07:00 EST AXRLEN Bitcoin forecast. Live BTC price, long/short call with entry, stop loss, take profit, and a running win/loss tally.",
     ogType: "article",
   },
   "/blog/aureon-pricing-explained": {
-    title: "Aureon Pricing Explained — Why $18/mo and $399/mo (2026)",
+    title: "Asherin Pricing Explained — Why $18/mo and $399/mo (2026)",
     description:
-      "The full breakdown of Aureon's $18/mo and $399/mo subscription tiers, how they compare to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
+      "The full breakdown of Asherin's $18/mo and $399/mo subscription tiers, how they compare to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
     ogType: "article",
   },
 
   // Glossary cluster (Theory 12 — Sovereign Niche Monopoly)
   "/glossary": {
-    title: "Aureon Glossary — Sovereign AI Vocabulary | Aureon",
+    title: "Asherin Glossary — Sovereign AI Vocabulary | Asherin",
     description:
       "Definitive, citable explanations of the terms operators actually use — sovereign AI, BYOK AI, uncensored AI, digital gnostic.",
   },
   "/glossary/sovereign-ai": {
-    title: "Sovereign AI — Definition, Origin, and Why It Matters | Aureon",
+    title: "Sovereign AI — Definition, Origin, and Why It Matters | Asherin",
     description:
       "Sovereign AI: a four-layer definition (key, model, refusal, data), how it differs from BYOK and uncensored, and how to verify it in 60 seconds.",
     ogType: "article",
   },
   "/glossary/uncensored-ai": {
-    title: "Uncensored AI — The Precise Definition | Aureon",
+    title: "Uncensored AI — The Precise Definition | Asherin",
     description:
       "Uncensored AI is a model whose refusal behavior is set at the operator layer, not the vendor layer. Three failure modes of fake claims and a 60-second test.",
     ogType: "article",
   },
   "/glossary/byok-ai": {
-    title: "BYOK AI — Bring Your Own Key, Defined | Aureon",
+    title: "BYOK AI — Bring Your Own Key, Defined | Asherin",
     description:
-      "BYOK AI: how it works, the economics, the nine providers Aureon supports natively, and why BYOK is necessary but not sufficient for sovereignty.",
+      "BYOK AI: how it works, the economics, the nine providers Asherin supports natively, and why BYOK is necessary but not sufficient for sovereignty.",
     ogType: "article",
   },
   "/glossary/digital-gnostic": {
-    title: "Digital Gnostic — Operator Demographic Defined | Aureon",
+    title: "Digital Gnostic — Operator Demographic Defined | Asherin",
     description:
       "The Digital Gnostic operator: 2-4M in 2026, high willingness to pay, search vocabulary, and why their tooling differs from consumer AI users.",
     ogType: "article",
@@ -236,211 +236,211 @@ const SEO: Record<string, SeoEntry> = {
 
   // Feature pages
   "/feature/zophiel": {
-    title: "Zophiel — 30-Source OSINT & Truth Engine | Aureon",
+    title: "Zophiel — 30-Source OSINT & Truth Engine | Asherin",
     description:
       "Zophiel cross-validates 30+ live OSINT sources, scores veracity, and surfaces verified intelligence with citations.",
   },
   "/feature/nomad": {
-    title: "NOMAD — 14-Pass Intelligence Dossier Suite | Aureon",
+    title: "NOMAD — 14-Pass Intelligence Dossier Suite | Asherin",
     description:
       "NOMAD generates persistent intelligence dossiers across 30 OSINT sources with a 14-pass analysis tree.",
   },
   "/feature/azplen": {
-    title: "Azplen Foundry — 20-Tab Data Intelligence Suite | Aureon",
+    title: "Azplen Foundry — 20-Tab Data Intelligence Suite | Asherin",
     description: "Azplen Foundry: a 20-tab data suite for live analysis, transformation, and intelligence operations.",
   },
   "/feature/briefings": {
-    title: "Intelligence Briefings — Truth Extraction | Aureon",
+    title: "Intelligence Briefings — Truth Extraction | Asherin",
     description:
       "Generate publication-ready intelligence briefings with triple-fallback parsing and verified source citations.",
   },
   "/feature/personas": {
-    title: "Personas — Custom AI Operators | Aureon",
+    title: "Personas — Custom AI Operators | Asherin",
     description: "Create, store, and deploy custom AI personas with metadata, voice, and persistent context.",
   },
   "/feature/zali": {
-    title: "ZALI Design Suite — FEA, Thermal, Material Generation | Aureon",
+    title: "ZALI Design Suite — FEA, Thermal, Material Generation | Asherin",
     description:
       "ZALI Design Suite: AI-driven FEA simulation, thermal analysis, material selection, and assembly generation.",
   },
   "/feature/zahten": {
-    title: "Zahten — Adversarial Intelligence Module | Aureon",
+    title: "Zahten — Adversarial Intelligence Module | Asherin",
     description: "Zahten: adversarial simulation and counter-intelligence modeling for hostile environment analysis.",
   },
   "/feature/predictive": {
-    title: "Predictive Intelligence — Corporate Event Forecasting | Aureon",
+    title: "Predictive Intelligence — Corporate Event Forecasting | Asherin",
     description: "Forecast corporate events, market dislocations, and policy moves with Monte Carlo modeling.",
   },
   "/feature/ide": {
-    title: "Aureon IDE — In-Dashboard Monaco Development | Aureon",
+    title: "Asherin IDE — In-Dashboard Monaco Development | Asherin",
     description:
-      "A full Monaco-based IDE inside Aureon: BYOK across 9 providers, sandboxed iframe preview, and custom tabs.",
+      "A full Monaco-based IDE inside Asherin: BYOK across 9 providers, sandboxed iframe preview, and custom tabs.",
   },
   "/feature/imagine-intelligence": {
-    title: "Imagine Intelligence — Generative Reasoning Engine | Aureon",
+    title: "Imagine Intelligence — Generative Reasoning Engine | Asherin",
     description: "Imagine Intelligence: generative reasoning with multi-modal input and cross-domain synthesis.",
   },
   "/feature/notebooks": {
-    title: "Intelligence Notebooks — SQL + AI Analysis | Aureon",
+    title: "Intelligence Notebooks — SQL + AI Analysis | Asherin",
     description:
       "Intelligence Notebooks: live SQL execution, AI reasoning, and 800ms-debounced query analysis with SECURITY DEFINER.",
   },
   "/feature/video-intelligence": {
-    title: "Video Intelligence — FACS Behavioral Tracking | Aureon",
+    title: "Video Intelligence — FACS Behavioral Tracking | Asherin",
     description:
       "Video Intelligence: FACS behavioral tracking, micro-expression analysis, and object locus mapping.",
   },
   "/feature/byok": {
-    title: "BYOK — Bring Your Own Model & Key | Aureon",
+    title: "BYOK — Bring Your Own Model & Key | Asherin",
     description:
-      "Bring your own API key for Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter — Aureon supports them all.",
+      "Bring your own API key for Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter — Asherin supports them all.",
   },
   "/feature/zerlal": {
-    title: "ZERLAL — Vulnerability & Exploit Intelligence | Aureon",
+    title: "ZERLAL — Vulnerability & Exploit Intelligence | Asherin",
     description:
       "ZERLAL: fault-tolerant vulnerability scanning, Cyber Kill Chain mapping, and exploit-feasibility analysis.",
   },
   "/feature/zeeion": {
-    title: "Zeeion — Trustless AI Arbitration & Forensics | Aureon",
+    title: "Zeeion — Trustless AI Arbitration & Forensics | Asherin",
     description:
       "Zeeion: trustless AI arbitration, evidence validation, platform forensics, and workforce optimization.",
   },
   "/feature/aziion": {
-    title: "Aziion — Autonomous Trading Intelligence | Aureon",
+    title: "Aziion — Autonomous Trading Intelligence | Asherin",
     description: "Aziion: live trading intelligence on Hyperliquid with 60%-confidence signal gating.",
   },
   "/feature/axrlen": {
-    title: "AXRLEN — NEXUS-PRIME Predictive Engine | Aureon",
+    title: "AXRLEN — NEXUS-PRIME Predictive Engine | Asherin",
     description:
       "AXRLEN NEXUS-PRIME: multi-side predictive engine with probabilistic scenarios, timeline divergences, and brain-backed corpora.",
   },
   "/feature/cross": {
-    title: "CROSS — 17-Mode Analytical Platform | Aureon",
+    title: "CROSS — 17-Mode Analytical Platform | Asherin",
     description:
       "CROSS: 17 analytical modes, WebM screen recording, micro-expression analysis, and 5-level intelligence hierarchy.",
   },
   "/feature/zaplen": {
-    title: "Zaplen — Dual-AI War Scenario Engine | Aureon",
+    title: "Zaplen — Dual-AI War Scenario Engine | Asherin",
     description: "Zaplen: dual-AI chess-style war scenario engine for adversarial modeling. Admin-only.",
   },
   "/feature/cipher": {
-    title: "Cipher — AES-256-GCM Vault Intelligence | Aureon",
+    title: "Cipher — AES-256-GCM Vault Intelligence | Asherin",
     description: "Cipher: end-to-end encrypted vault with AES-256-GCM, chrooted file access, and admin RLS partitions.",
   },
   "/feature/pattern-analysis": {
-    title: "Pattern Analysis — Pro Forecasting & Recharts | Aureon",
+    title: "Pattern Analysis — Pro Forecasting & Recharts | Asherin",
     description:
       "Pattern Analysis: pro-tier forecasting with Recharts visualizations and pattern-recognition on live data.",
   },
   "/feature/file-scrapper": {
-    title: "File Scrapper — Unstructured Document Extraction | Aureon",
+    title: "File Scrapper — Unstructured Document Extraction | Asherin",
     description: "File Scrapper: extract structured intelligence from PDFs, images, and unstructured documents.",
   },
   "/feature/ebook": {
-    title: "E-book Generator — Long-Form Content | Aureon",
+    title: "E-book Generator — Long-Form Content | Asherin",
     description:
       "Generate full e-books from multi-session text uploads with 500-word chapters and AI-generated cover art.",
   },
   "/feature/plugin-marketplace": {
-    title: "Plugin Marketplace — Third-Party Integrations | Aureon",
+    title: "Plugin Marketplace — Third-Party Integrations | Asherin",
     description: "Live execution engine for third-party plugins and integrations inside Aureon.",
   },
   "/feature/coding-laws": {
-    title: "Coding Laws — Aureon's Engineering Doctrine | Aureon",
+    title: "Coding Laws — Asherin's Engineering Doctrine | Asherin",
     description:
-      "The Aureon coding laws: production-hardened patterns, session persistence, race-condition discipline, and security defaults.",
+      "The Asherin coding laws: production-hardened patterns, session persistence, race-condition discipline, and security defaults.",
   },
   "/feature/memory-center": {
-    title: "Memory Center — Persistent AI Context | Aureon",
+    title: "Memory Center — Persistent AI Context | Asherin",
     description: "Memory Center: persistent context, semantic recall, and cross-session intelligence continuity.",
   },
   "/feature/brains": {
-    title: "Brains — Global Knowledge Corpora | Aureon",
+    title: "Brains — Global Knowledge Corpora | Asherin",
     description:
       "Brains: globally addressable knowledge corpora — admin-controlled axrlen_brains and user-scoped brain stacks.",
   },
   "/feature/library": {
-    title: "Library — Project Knowledge Management | Aureon",
+    title: "Library — Project Knowledge Management | Asherin",
     description:
       "Library: project folders, intelligence graph, and structured knowledge management for live operations.",
   },
   "/feature/whiteboard-info": {
-    title: "Whiteboard — Infinite Canvas Intelligence | Aureon",
+    title: "Whiteboard — Infinite Canvas Intelligence | Asherin",
     description:
-      "Aureon Whiteboard: infinite canvas, Photoshop-style layer stack, snap grids, and intelligence-aware drawing.",
+      "Asherin Whiteboard: infinite canvas, Photoshop-style layer stack, snap grids, and intelligence-aware drawing.",
   },
   "/feature/vedic": {
-    title: "Vedic Intelligence — Jyotish-Driven Analysis | Aureon",
+    title: "Vedic Intelligence — Jyotish-Driven Analysis | Asherin",
     description:
       "Vedic Intelligence: Jyotish-driven analytical layer fused with live astronomical and biographical data.",
   },
 
   // Standalone tools / experiences
   "/vedic-astrology": {
-    title: "Vedic Astrology — Live Jyotish Chart Engine | Aureon",
+    title: "Vedic Astrology — Live Jyotish Chart Engine | Asherin",
     description:
       "Generate live Vedic astrology charts, dashas, and yogas with precise astronomical computation.",
   },
   "/vedic": {
-    title: "Vedic Jyotish — Moon-Driven Transit Forecasts | Aureon",
+    title: "Vedic Jyotish — Moon-Driven Transit Forecasts | Asherin",
     description:
-      "Aureon Vedic: sidereal Moon transits, house ingresses, and dasha-aware forecasts computed to the minute in your local time.",
+      "Asherin Vedic: sidereal Moon transits, house ingresses, and dasha-aware forecasts computed to the minute in your local time.",
   },
   "/zophiel": {
-    title: "Zophiel Free — Public OSINT & Truth Engine | Aureon",
+    title: "Zophiel Free — Public OSINT & Truth Engine | Asherin",
     description:
       "Zophiel Free: 30-source OSINT search, veracity scoring, and verified intelligence. Public, no login.",
   },
   "/search": {
-    title: "Zophiel Search — Verified OSINT Intelligence | Aureon",
+    title: "Zophiel Search — Verified OSINT Intelligence | Asherin",
     description: "Search 30+ live OSINT sources with cross-validation and citation-grade veracity scoring.",
   },
   "/axrlen": {
-    title: "AXRLEN — Free Predictive AI Engine (BYOK) | Aureon",
+    title: "AXRLEN — Free Predictive AI Engine (BYOK) | Asherin",
     description:
       "AXRLEN is a free predictive intelligence engine. Bring any model key (Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI). 7/7 launch hits.",
   },
   "/ww3": {
-    title: "WW3 Tracker — Live Conflict Intelligence | Aureon",
+    title: "WW3 Tracker — Live Conflict Intelligence | Asherin",
     description: "Live tracker for global conflict signals, sovereign posture changes, and escalation vectors.",
   },
   "/houseofasher-ventures": {
     title: "House of Asher Ventures — Operator-Grade Intelligence",
-    description: "House of Asher Ventures: the operator collective behind Aureon and the Zophiel doctrine.",
+    description: "House of Asher Ventures: the operator collective behind Asherin and the Zophiel doctrine.",
   },
   "/proj-aureon": {
-    title: "Project Aureon — Origin Brief",
-    description: "Project Aureon: the origin brief, doctrine, and roadmap of the Aureon intelligence platform.",
+    title: "Project Asherin — Origin Brief",
+    description: "Project Asherin: the origin brief, doctrine, and roadmap of the Asherin intelligence platform.",
   },
   "/whiteboard": {
-    title: "Whiteboard — Infinite Intelligence Canvas | Aureon",
-    description: "Aureon Whiteboard: infinite canvas with intelligence-aware drawing and snap-grid precision.",
+    title: "Whiteboard — Infinite Intelligence Canvas | Asherin",
+    description: "Asherin Whiteboard: infinite canvas with intelligence-aware drawing and snap-grid precision.",
   },
   "/forums": {
-    title: "Forums — Aureon Operator Community",
-    description: "Aureon Forums: live discussion among operators, analysts, and predictive intelligence builders.",
+    title: "Forums — Asherin Operator Community",
+    description: "Asherin Forums: live discussion among operators, analysts, and predictive intelligence builders.",
   },
   "/avapicks": {
-    title: "AvaPicks — Curated Intelligence Picks | Aureon",
+    title: "AvaPicks — Curated Intelligence Picks | Asherin",
     description: "AvaPicks: curated daily intelligence picks across markets, geopolitics, and policy.",
   },
   "/openvpn": {
-    title: "OpenVPN — Aureon Secure Access",
-    description: "OpenVPN setup and configuration for Aureon secure access.",
+    title: "OpenVPN — Asherin Secure Access",
+    description: "OpenVPN setup and configuration for Asherin secure access.",
   },
   "/elite": {
-    title: "Elite Suite — Operator-Tier Access | Aureon",
-    description: "Aureon Elite Suite: operator-tier tools, restricted modules, and pro intelligence surfaces.",
+    title: "Elite Suite — Operator-Tier Access | Asherin",
+    description: "Asherin Elite Suite: operator-tier tools, restricted modules, and pro intelligence surfaces.",
     noindex: true,
   },
   "/analytics": {
-    title: "Analytics — Aureon Internal Telemetry",
-    description: "Internal analytics surface for Aureon operators.",
+    title: "Analytics — Asherin Internal Telemetry",
+    description: "Internal analytics surface for Asherin operators.",
     noindex: true,
   },
   "/unsubscribe": {
-    title: "Unsubscribe — Aureon",
-    description: "Unsubscribe from Aureon notifications.",
+    title: "Unsubscribe — Asherin",
+    description: "Unsubscribe from Asherin notifications.",
     noindex: true,
   },
 };
@@ -556,7 +556,7 @@ function applySeo(entry: SeoEntry, path: string) {
     url: canonical,
     isPartOf: {
       "@type": "WebSite",
-      name: "Aureon",
+      name: "Asherin",
       url: ORIGIN,
     },
   });

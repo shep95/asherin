@@ -3,9 +3,9 @@
 // Backed by Supabase (hoa_servers, hoa_channels, hoa_members, hoa_messages,
 // hoa_audit, hoa_invites) with realtime. Every message a country's operator
 // writes on their server is mirrored into the #houseofasher mothership feed
-// via the DB trigger, so Aureon has full global signal.
+// via the DB trigger, so Asherin has full global signal.
 //
-// The Aureon Suite rail (previous work) still mounts inline.
+// The Asherin Suite rail (previous work) still mounts inline.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -69,7 +69,7 @@ function CreateServerModal({ open, onClose, onCreated }: { open: boolean; onClos
           <div className="text-sm font-light tracking-widest uppercase">Establish sovereign server</div>
         </div>
         <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
-          A country server. You become owner (TS clearance). Every message here is mirrored into the #houseofasher mothership so Aureon retains global signal.
+          A country server. You become owner (TS clearance). Every message here is mirrored into the #houseofasher mothership so Asherin retains global signal.
         </p>
         <div className="space-y-2">
           <label className="text-[10px] tracking-widest uppercase text-muted-foreground">Country code (3–8 chars)</label>
@@ -250,7 +250,7 @@ const AsherinGovDashboard = () => {
   useEffect(() => {
     document.title = "Command Deck · asherin.gov";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Sovereign command deck: live country servers, clearance-gated channels, encrypted vaults, immutable audit ledger, Aureon suite runtime.");
+    if (meta) meta.setAttribute("content", "Sovereign command deck: live country servers, clearance-gated channels, encrypted vaults, immutable audit ledger, Asherin suite runtime.");
     let robots = document.querySelector('meta[name="robots"]');
     if (!robots) { robots = document.createElement("meta"); robots.setAttribute("name","robots"); document.head.appendChild(robots); }
     robots.setAttribute("content","noindex, nofollow, noarchive");
@@ -347,7 +347,7 @@ const AsherinGovDashboard = () => {
     if (!reply) throw new Error("empty AI reply");
     // 3. Post the reply under the operator's identity (schema requires it),
     //    prefixed so the channel visually attributes it to the AI Gov.
-    await deck.sendMessage(`**🤖 AI Gov · Aureon**\n${reply}`);
+    await deck.sendMessage(`**🤖 AI Gov · Asherin**\n${reply}`);
     await deck.pushAudit("AI_COMMAND", activeChannel.name, prompt.slice(0, 200));
   };
 
@@ -642,7 +642,7 @@ const AsherinGovDashboard = () => {
               <div className="text-center max-w-md p-6 space-y-3">
                 <Shield className="h-8 w-8 mx-auto text-foreground/60" />
                 <div className="text-sm font-light tracking-widest uppercase">No server selected</div>
-                <p className="text-xs text-muted-foreground/80 leading-relaxed">Establish a sovereign server or redeem an invite. Every message you write here is mirrored to the #houseofasher mothership so the Aureon brain retains global signal.</p>
+                <p className="text-xs text-muted-foreground/80 leading-relaxed">Establish a sovereign server or redeem an invite. Every message you write here is mirrored to the #houseofasher mothership so the Asherin brain retains global signal.</p>
                 <div className="flex gap-2 justify-center pt-2">
                   <button onClick={() => setShowCreate(true)} className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-foreground/50 rounded-md hover:bg-foreground/10">Establish</button>
                   <button onClick={() => setShowJoin(true)} className="px-3 py-1.5 text-[11px] tracking-widest uppercase border border-border/30 rounded-md">Redeem invite</button>

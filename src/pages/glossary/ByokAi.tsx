@@ -15,23 +15,23 @@ const ByokAi = () => (
   <ArticleShell
     eyebrow="Glossary · Definition"
     title="What Is BYOK AI?"
-    dek="BYOK AI is a platform model where the operator supplies their own provider key — Gemini, OpenAI, Claude, Mistral, xAI — and pays the model vendor directly. This is the full definition, the economics, and the seven providers Aureon supports natively."
+    dek="BYOK AI is a platform model where the operator supplies their own provider key — Gemini, OpenAI, Claude, Mistral, xAI — and pays the model vendor directly. This is the full definition, the economics, and the seven providers Asherin supports natively."
     publishedLabel="Jun 19 2026"
     readTime="5 min"
-    backTo={{ to: "/glossary", label: "← Aureon Glossary" }}
+    backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
   >
     <ArticleJsonLd
       id="byok-ai"
       url={URL}
       headline={TITLE}
-      description="Definitional guide to BYOK AI — how it works, why operators choose it, and how Aureon implements it across nine providers."
+      description="Definitional guide to BYOK AI — how it works, why operators choose it, and how Asherin implements it across nine providers."
       datePublished={PUBLISHED}
       keywords={["byok ai", "bring your own key ai", "byok intelligence platform"]}
     />
     <BreadcrumbJsonLd
       id="byok-ai"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Glossary", url: "/glossary" },
         { name: "BYOK AI", url: "/glossary/byok-ai" },
       ]}
@@ -44,7 +44,7 @@ const ByokAi = () => (
       keyFacts={[
         "Operator pays the model vendor directly — no platform markup on tokens.",
         "Operator chooses the model — not a platform-curated short list.",
-        "Aureon supports BYOK across nine providers: Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, Venice.",
+        "Asherin supports BYOK across nine providers: Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, Venice.",
         "Vendor outages affect only that vendor's traffic — the platform itself stays up across all other providers.",
         "BYOK is a prerequisite for Sovereign AI but not sufficient by itself.",
       ]}
@@ -96,9 +96,9 @@ const ByokAi = () => (
       a platform to be genuinely sovereign.
     </p>
 
-    <h2>Aureon's BYOK implementation</h2>
+    <h2>Asherin's BYOK implementation</h2>
     <p>
-      Aureon supports BYOK across nine providers in 2026: Gemini, OpenAI,
+      Asherin supports BYOK across nine providers in 2026: Gemini, OpenAI,
       Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and Venice. Keys are
       encrypted at rest, scoped to a single user, and used as the
       authentication credential on every request to the chosen vendor.
@@ -120,8 +120,8 @@ const ByokAi = () => (
           a: "For heavy users, yes — operators pay vendor rates with no platform markup. For light users, a subscription plan with bundled tokens may be cheaper at low volumes. BYOK wins on cost transparency, model choice, and lock-in resistance.",
         },
         {
-          q: "Which providers does Aureon support for BYOK?",
-          a: "Aureon supports BYOK across nine providers: Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and Venice. Each key is encrypted at rest and scoped to a single user.",
+          q: "Which providers does Asherin support for BYOK?",
+          a: "Asherin supports BYOK across nine providers: Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and Venice. Each key is encrypted at rest and scoped to a single user.",
         },
       ]}
     />
@@ -135,13 +135,13 @@ const ByokAi = () => (
         },
         {
           to: "/feature/byok",
-          label: "Aureon's BYOK feature",
+          label: "Asherin's BYOK feature",
           description: "Configure keys for nine providers inside the operator dashboard.",
         },
         {
           to: "/llm-models",
           label: "Supported LLM models",
-          description: "The full catalog of vendors and model IDs Aureon routes BYOK traffic to.",
+          description: "The full catalog of vendors and model IDs Asherin routes BYOK traffic to.",
         },
         {
           to: "/glossary/uncensored-ai",

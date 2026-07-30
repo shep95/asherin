@@ -7,7 +7,7 @@ import { useState } from "react";
 const PLANS = [
   {
     id: "monthly_aureon" as const,
-    name: "Aureon",
+    name: "Asherin",
     price: "$18",
     period: "/month",
     tagline: "Core intelligence",
@@ -57,16 +57,16 @@ const PLANS = [
   },
   {
     id: "monthly_pro" as const,
-    name: "Aureon Pro",
+    name: "Asherin Pro",
     price: "$399",
     period: "/month",
     tagline: "Maximum intelligence",
     description:
-      "Everything in Aureon, plus the full intelligence suite — Azplen data platform, NOMAD OSINT, advanced briefings, Zophiel Pro and full team collaboration.",
+      "Everything in Asherin, plus the full intelligence suite — Azplen data platform, NOMAD OSINT, advanced briefings, Zophiel Pro and full team collaboration.",
     cta: "Subscribe — $399 / month",
     highlight: true,
     groups: [
-      { title: "Everything in Aureon", items: ["All core chat, modes, search, memory and workspace features"] },
+      { title: "Everything in Asherin", items: ["All core chat, modes, search, memory and workspace features"] },
       {
         title: "Azplen Data Intelligence Platform",
         items: [
@@ -96,7 +96,7 @@ const PLANS = [
       {
         title: "Plus the full advanced suite",
         items: [
-          "Aureon IDE, Whiteboard, File Scrapper, Cipher",
+          "Asherin IDE, Whiteboard, File Scrapper, Cipher",
           "AXRLEN predictive intelligence",
           "ZEEION financial intelligence",
           "ZERLAL cyber security",
@@ -120,8 +120,8 @@ interface Props {
 /**
  * Public-facing subscription plans card.
  *
- * Replaces the previous "Aureon is free" donation manifesto. Renders the two
- * core monthly tiers (Aureon $18 / Aureon Pro $399) plus an Enterprise
+ * Replaces the previous "Asherin is free" donation manifesto. Renders the two
+ * core monthly tiers (Asherin $18 / Asherin Pro $399) plus an Enterprise
  * contact card.
  */
 export default function SubscriptionPlans({ compact = false }: Props) {
@@ -265,7 +265,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
           </div>
           <div className="flex-shrink-0">
             <a
-              href="mailto:asher@aureonai.app?subject=Aureon%20Enterprise%20Inquiry"
+              href="mailto:asher@aureonai.app?subject=Asherin%20Enterprise%20Inquiry"
               className="inline-flex items-center gap-2 rounded-full border border-foreground/30 px-5 py-3 text-xs font-light tracking-[0.2em] uppercase text-foreground hover:bg-foreground/5 transition-colors"
             >
               Contact sales

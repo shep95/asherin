@@ -97,7 +97,7 @@ interface VideoMeta {
 }
 
 const TOPIC_RULES: { topic: string; match: RegExp }[] = [
-  { topic: "AI & Aureon", match: /\b(aureon|ai|gpt|claude|gemini|llm|model|agent|prompt)\b/i },
+  { topic: "AI & Asherin", match: /\b(aureon|ai|gpt|claude|gemini|llm|model|agent|prompt)\b/i },
   { topic: "Trading & Markets", match: /\b(trade|trading|market|stock|crypto|bitcoin|btc|eth|forex|chart|invest)\b/i },
   { topic: "Astrology & Vedic", match: /\b(vedic|astrology|chart|nakshatra|zodiac|planet|jyotish|horoscope)\b/i },
   { topic: "Security & Intelligence", match: /\b(security|osint|intel|hack|cyber|privacy|surveillance|forensic)\b/i },
@@ -287,7 +287,7 @@ const FounderVideos = () => {
                   {featuredMeta?.title || "Loading…"}
                 </h4>
                 <p className="mt-5 text-sm font-extralight leading-[1.75] text-muted-foreground/90">
-                  The clearest distillation of what Asher actually believes — and why Aureon exists at all. Begin here, then explore the rest of the library below.
+                  The clearest distillation of what Asher actually believes — and why Asherin exists at all. Begin here, then explore the rest of the library below.
                 </p>
                 <span className="mt-6 inline-flex items-center gap-2 text-xs font-light tracking-[0.22em] text-foreground uppercase">
                   Play <Play className="h-3 w-3" fill="currentColor" />

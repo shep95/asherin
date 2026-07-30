@@ -15,10 +15,10 @@ const ZeroDayConfidenceScoring = () => (
   <ArticleShell
     eyebrow="Glossary · Definition"
     title="What Is Zero-Day Confidence Scoring?"
-    dek="Zero-day confidence scoring is a calibrated 0-100 scale used to triage vulnerability findings that do not match any known CVE. This is the definition, the scoring inputs, the band interpretation, and how Aureon's ZERLAL engine assigns it in practice."
+    dek="Zero-day confidence scoring is a calibrated 0-100 scale used to triage vulnerability findings that do not match any known CVE. This is the definition, the scoring inputs, the band interpretation, and how Asherin's ZERLAL engine assigns it in practice."
     publishedLabel="Jun 19 2026"
     readTime="6 min"
-    backTo={{ to: "/glossary", label: "← Aureon Glossary" }}
+    backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
   >
     <ArticleJsonLd
       id="zero-day-confidence-scoring"
@@ -36,7 +36,7 @@ const ZeroDayConfidenceScoring = () => (
     <BreadcrumbJsonLd
       id="zero-day-confidence-scoring"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Glossary", url: "/glossary" },
         { name: "Zero-Day Confidence Scoring", url: "/glossary/zero-day-confidence-scoring" },
       ]}
@@ -52,7 +52,7 @@ const ZeroDayConfidenceScoring = () => (
         "Scores above 70 are surfaced as candidate zero-days for human review.",
         "Scores between 40 and 70 are flagged for analyst triage.",
         "Scores below 40 are documented but do not page the operator.",
-        "Used in production by Aureon's ZERLAL AI vulnerability scanner.",
+        "Used in production by Asherin's ZERLAL AI vulnerability scanner.",
       ]}
       relevanceSignal="Security engineers, AppSec leads, and bug-bounty operators evaluating AI vulnerability scanners that produce scored novel-pattern findings."
       confidence="high"
@@ -156,7 +156,7 @@ const ZeroDayConfidenceScoring = () => (
           a: "Industry-typical practice is to page on 90+ and route to standard triage queue on 70-89. Below 70, surface in the report but do not interrupt. Tune to your team's bandwidth and risk appetite.",
         },
         {
-          q: "Does Aureon's ZERLAL use this scoring?",
+          q: "Does Asherin's ZERLAL use this scoring?",
           a: "Yes. ZERLAL assigns a 0-100 zero-day confidence score to every finding that does not match a known CVE, using the four inputs documented here, and reports the score alongside the finding's attack-path graph.",
         },
       ]}
@@ -167,7 +167,7 @@ const ZeroDayConfidenceScoring = () => (
         {
           to: "/feature/zerlal",
           label: "ZERLAL — the scoring in production",
-          description: "Aureon's AI vulnerability scanner, scoring novel patterns on the 0-100 scale.",
+          description: "Asherin's AI vulnerability scanner, scoring novel patterns on the 0-100 scale.",
         },
         {
           to: "/blog/ai-vulnerability-scanning-explained",

@@ -232,7 +232,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "orgs" as AsherTab, label: "Org Management", icon: Building2, sub: "God-Mode" },
   ]}] : []),
   ...(isPrimaryAdmin ? [{ id: "analytics", label: "Analytics", items: [
-    { id: "aureondata" as AsherTab, label: "Aureon Data", icon: BarChart3, sub: "Operator" },
+    { id: "aureondata" as AsherTab, label: "Asherin Data", icon: BarChart3, sub: "Operator" },
   ]}] : []),
   { id: "ops", label: "Operations", items: [
     { id: "map",     label: "Intelligence Map", icon: MapIcon,  sub: "Primary" },
@@ -256,7 +256,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
       { id: "zahten",  label: "Zahten Agents",   icon: Workflow,  sub: "Builder" },
       { id: "zacoon",  label: "Zacoon Browser",  icon: Bot,       sub: "Agent" },
     ]},
-    { id: "__aureonIntel" as AsherTab, label: "Aureon Disciplines", icon: Satellite, children: [
+    { id: "__aureonIntel" as AsherTab, label: "Asherin Disciplines", icon: Satellite, children: [
       { id: "theater",   label: "Theater Brief",   icon: FileText },
       { id: "targeting", label: "Targeting Aid",   icon: Crosshair },
       { id: "sigint",    label: "SIGINT Fusion",   icon: Radio },

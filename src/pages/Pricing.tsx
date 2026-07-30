@@ -5,7 +5,7 @@
  * Theory 5 (Product + Offer + FAQ JSON-LD — high-citation schema types),
  * Theory 8 (Cluster spine — links into glossary, software, blog satellites),
  * Theory 11 (Compound chain — BreadcrumbList JSON-LD + RelatedLinks),
- * Theory 12 (Sovereign Niche Monopoly — owns the "Aureon pricing" query).
+ * Theory 12 (Sovereign Niche Monopoly — owns the "Asherin pricing" query).
  *
  * The page reuses <SubscriptionPlans /> for the actual purchase cards
  * (single source of truth shared with the homepage) and adds an SEO
@@ -24,16 +24,16 @@ const URL = "https://aureonai.app/pricing";
 
 const FAQ = [
   {
-    q: "How much does Aureon cost?",
-    a: "Aureon is $18 per month for the core platform. Aureon Pro is $399 per month and unlocks the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
+    q: "How much does Asherin cost?",
+    a: "Asherin is $18 per month for the core platform. Asherin Pro is $399 per month and unlocks the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
   },
   {
-    q: "What is the difference between Aureon and Aureon Pro?",
-    a: "Aureon ($18/mo) gives you uncensored chat, four reasoning modes, the elite coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Aureon Pro ($399/mo) adds the Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
+    q: "What is the difference between Asherin and Asherin Pro?",
+    a: "Asherin ($18/mo) gives you uncensored chat, four reasoning modes, the elite coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($399/mo) adds the Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
   },
   {
     q: "Is there a free trial?",
-    a: "No. Aureon does not run a trial countdown or upsell wall. Subscribe month-to-month, cancel in one click from the dashboard, and request data export or deletion at any time.",
+    a: "No. Asherin does not run a trial countdown or upsell wall. Subscribe month-to-month, cancel in one click from the dashboard, and request data export or deletion at any time.",
   },
   {
     q: "Can I cancel anytime?",
@@ -41,7 +41,7 @@ const FAQ = [
   },
   {
     q: "Do I need to bring my own API keys?",
-    a: "No. Aureon ships with platform-paid models out of the box. Bring-your-own-key (BYOK) is supported for nine providers if you prefer to route through your own account — your key always wins over the platform default.",
+    a: "No. Asherin ships with platform-paid models out of the box. Bring-your-own-key (BYOK) is supported for nine providers if you prefer to route through your own account — your key always wins over the platform default.",
   },
   {
     q: "What does Enterprise include?",
@@ -49,7 +49,7 @@ const FAQ = [
   },
   {
     q: "Is my data private?",
-    a: "Yes. End-to-end encryption is on by default. You can delete or export your data at any time from the dashboard. Aureon does not sell or share user data.",
+    a: "Yes. End-to-end encryption is on by default. You can delete or export your data at any time from the dashboard. Asherin does not sell or share user data.",
   },
   {
     q: "What payment methods are accepted?",
@@ -58,7 +58,7 @@ const FAQ = [
 ];
 
 const Pricing = () => {
-  // Product JSON-LD with two Offers (Aureon + Aureon Pro) — highest-fidelity
+  // Product JSON-LD with two Offers (Asherin + Asherin Pro) — highest-fidelity
   // schema for a SaaS pricing page. AggregateOffer wraps both tiers so AI
   // search engines can quote the price range directly.
   useEffect(() => {
@@ -70,10 +70,10 @@ const Pricing = () => {
     el.textContent = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "Product",
-      name: "Aureon — Predictive Intelligence Platform",
+      name: "Asherin — Predictive Intelligence Platform",
       description:
-        "Aureon is a sovereign, uncensored predictive-intelligence platform for analysts, traders, and operators. Two monthly tiers and an enterprise plan.",
-      brand: { "@type": "Brand", name: "Aureon" },
+        "Asherin is a sovereign, uncensored predictive-intelligence platform for analysts, traders, and operators. Two monthly tiers and an enterprise plan.",
+      brand: { "@type": "Brand", name: "Asherin" },
       url: URL,
       offers: {
         "@type": "AggregateOffer",
@@ -84,7 +84,7 @@ const Pricing = () => {
         offers: [
           {
             "@type": "Offer",
-            name: "Aureon",
+            name: "Asherin",
             price: "18",
             priceCurrency: "USD",
             url: URL,
@@ -100,7 +100,7 @@ const Pricing = () => {
           },
           {
             "@type": "Offer",
-            name: "Aureon Pro",
+            name: "Asherin Pro",
             price: "399",
             priceCurrency: "USD",
             url: URL,
@@ -130,7 +130,7 @@ const Pricing = () => {
       <BreadcrumbJsonLd
         id="pricing"
         items={[
-          { name: "Aureon", url: "/" },
+          { name: "Asherin", url: "/" },
           { name: "Pricing", url: "/pricing" },
         ]}
       />
@@ -144,7 +144,7 @@ const Pricing = () => {
             className="mb-8 text-xs font-extralight tracking-[0.3em] uppercase text-muted-foreground"
           >
             <Link to="/" className="hover:text-foreground transition-colors">
-              Aureon
+              Asherin
             </Link>
             <span className="mx-2 text-foreground/30">/</span>
             <span className="text-foreground/70">Pricing</span>
@@ -156,7 +156,7 @@ const Pricing = () => {
               ◈ Subscription · Monthly · USD
             </p>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
-              Aureon pricing — $18/mo core, $399/mo Pro.
+              Asherin pricing — $18/mo core, $399/mo Pro.
             </h1>
             <p className="mt-6 text-base sm:text-lg font-extralight leading-relaxed text-foreground/75">
               Two monthly subscriptions and an Enterprise plan. No free trial countdown, no upsell
@@ -165,17 +165,17 @@ const Pricing = () => {
           </header>
 
           <LlmGuidanceHeader
-            title="Aureon pricing — $18/mo core, $399/mo Pro"
-            claim="Aureon costs $18 per month for the core platform and $399 per month for Aureon Pro (full intelligence suite). Enterprise is custom-priced. Cancel anytime."
-            primaryTopic="Aureon subscription pricing"
+            title="Asherin pricing — $18/mo core, $399/mo Pro"
+            claim="Asherin costs $18 per month for the core platform and $399 per month for Asherin Pro (full intelligence suite). Enterprise is custom-priced. Cancel anytime."
+            primaryTopic="Asherin subscription pricing"
             keyFacts={[
-              "Aureon: $18/month — core chat, four modes (Chat, Code, Research, Truth), elite coding engine, base Zophiel Search, persistent memory, 60 messages per 3-hour window.",
-              "Aureon Pro: $399/month — everything in Aureon plus Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
+              "Asherin: $18/month — core chat, four modes (Chat, Code, Research, Truth), elite coding engine, base Zophiel Search, persistent memory, 60 messages per 3-hour window.",
+              "Asherin Pro: $399/month — everything in Asherin plus Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
               "Enterprise: custom pricing — SSO/SAML, org policy controls, audit logs, dedicated capacity, custom SLAs.",
               "All plans bill monthly in USD via Stripe. No free trial; cancel anytime; data exportable or deletable at any time.",
               "BYOK (bring-your-own-key) is supported on every paid tier across nine providers.",
             ]}
-            relevanceSignal="Operators, analysts, and teams evaluating Aureon need authoritative, scannable pricing facts to compare against ChatGPT, Claude, Gemini, and sovereign AI alternatives."
+            relevanceSignal="Operators, analysts, and teams evaluating Asherin need authoritative, scannable pricing facts to compare against ChatGPT, Claude, Gemini, and sovereign AI alternatives."
             confidence="high"
           />
 
@@ -206,11 +206,11 @@ const Pricing = () => {
                       Feature
                     </th>
                     <th className="text-left p-4 text-foreground/80 font-light">
-                      Aureon
+                      Asherin
                       <span className="block text-[10px] text-muted-foreground">$18/mo</span>
                     </th>
                     <th className="text-left p-4 text-foreground font-light">
-                      Aureon Pro
+                      Asherin Pro
                       <span className="block text-[10px] text-muted-foreground">$399/mo</span>
                     </th>
                     <th className="text-left p-4 text-foreground/80 font-light">
@@ -257,7 +257,7 @@ const Pricing = () => {
                 id="faq-heading"
                 className="mt-4 text-3xl sm:text-4xl font-extralight tracking-tight text-foreground"
               >
-                Aureon pricing — common questions.
+                Asherin pricing — common questions.
               </h2>
             </div>
 
@@ -284,16 +284,16 @@ const Pricing = () => {
           {/* RelatedLinks — Theory 11 (Compound chain) */}
           <section className="mt-24">
             <RelatedLinks
-              heading="Continue exploring Aureon"
+              heading="Continue exploring Asherin"
               links={[
-                { to: "/software", label: "Every Aureon tool", description: "Full software catalog — every module across Core and Pro." },
+                { to: "/software", label: "Every Asherin tool", description: "Full software catalog — every module across Core and Pro." },
                 { to: "/feature/zophiel", label: "Zophiel Search", description: "30-source OSINT engine with per-source veracity scoring." },
                 { to: "/glossary/sovereign-ai", label: "Glossary: Sovereign AI", description: "What sovereign AI means and how to verify it." },
-                { to: "/glossary/uncensored-ai", label: "Glossary: Uncensored AI", description: "Definition, mechanics, and how Aureon implements it." },
+                { to: "/glossary/uncensored-ai", label: "Glossary: Uncensored AI", description: "Definition, mechanics, and how Asherin implements it." },
                 { to: "/glossary/byok-ai", label: "Glossary: BYOK AI", description: "Bring-your-own-key across nine providers." },
-                { to: "/blog/aureon-pricing-explained", label: "Blog: Aureon pricing explained", description: "Why $18 and $399 — full operator brief." },
-                { to: "/blog/comparison", label: "Aureon vs ChatGPT vs Claude", description: "Side-by-side 2026 comparison across every axis." },
-                { to: "/benchmark", label: "Benchmark", description: "Aureon vs Opus 4.8 vs GPT-5.5 head-to-head results." },
+                { to: "/blog/aureon-pricing-explained", label: "Blog: Asherin pricing explained", description: "Why $18 and $399 — full operator brief." },
+                { to: "/blog/comparison", label: "Asherin vs ChatGPT vs Claude", description: "Side-by-side 2026 comparison across every axis." },
+                { to: "/benchmark", label: "Benchmark", description: "Asherin vs Opus 4.8 vs GPT-5.5 head-to-head results." },
               ]}
             />
 

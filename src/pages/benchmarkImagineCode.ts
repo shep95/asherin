@@ -1,5 +1,5 @@
 // Auto-generated from user uploads for the Imagine benchmark.
-export const IMAGINE_AUREON_CODE = `Aureon Ouput:
+export const IMAGINE_AUREON_CODE = `Asherin Ouput:
 
 \`\`\`python
 #!/usr/bin/env python3

@@ -1,4 +1,4 @@
-// Shared IDE upgrade components — used by both Aureon IDE and Asher IDE.
+// Shared IDE upgrade components — used by both Asherin IDE and Asher IDE.
 export { default as IdeValidatorBadge } from "./IdeValidatorBadge";
 export { default as IdeHistoryPanel } from "./IdeHistoryPanel";
 export { default as IdeErrorExplainer } from "./IdeErrorExplainer";

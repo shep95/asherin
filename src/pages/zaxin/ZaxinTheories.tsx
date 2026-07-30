@@ -139,7 +139,7 @@ const ZaxinTheories = () => {
       <BreadcrumbJsonLd
         id="zaxin-theories"
         items={[
-          { name: "Aureon", url: "/" },
+          { name: "Asherin", url: "/" },
           { name: "Zaxin", url: "/dashboard/zaxin" },
           { name: "Theories", url: "/zaxin/theories" },
         ]}
@@ -164,7 +164,7 @@ const ZaxinTheories = () => {
           <p className="mt-4 text-foreground/70 max-w-2xl leading-relaxed">
             Seven AI integration blueprints that fuse camera, BLE, audio,
             geolocation, and AXRLEN into a single tactical picture. Each
-            theory ships as a deployable module inside the Aureon $399
+            theory ships as a deployable module inside the Asherin $399
             subscription — workflows below.
           </p>
         </header>

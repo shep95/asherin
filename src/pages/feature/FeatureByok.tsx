@@ -9,7 +9,7 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://aureonai.app/feature/byok";
-const TITLE = "BYOK on Aureon — Nine Providers, Zero Markup | Aureon";
+const TITLE = "BYOK on Asherin — Nine Providers, Zero Markup | Asherin";
 const PUBLISHED = "2026-06-19";
 
 const PROVIDERS = [
@@ -30,7 +30,7 @@ const FeatureByok = () => (
       id="feature-byok"
       url={URL}
       headline={TITLE}
-      description="Aureon's BYOK implementation across nine providers. Operators bring their own API key, pay the vendor directly, and route every reasoning call through their own account with zero platform markup."
+      description="Asherin's BYOK implementation across nine providers. Operators bring their own API key, pay the vendor directly, and route every reasoning call through their own account with zero platform markup."
       datePublished={PUBLISHED}
       keywords={[
         "byok ai",
@@ -43,7 +43,7 @@ const FeatureByok = () => (
     <BreadcrumbJsonLd
       id="feature-byok"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Features", url: "/features" },
         { name: "BYOK", url: "/feature/byok" },
       ]}
@@ -54,27 +54,27 @@ const FeatureByok = () => (
       eyebrow="Sovereign Stack · BYOK"
       headline={
         <>
-          BYOK on Aureon —
+          BYOK on Asherin —
           <br />
           <span className="text-muted-foreground/70">
             nine providers, zero markup, your billing.
           </span>
         </>
       }
-      subheadline="BYOK — Bring Your Own Key — is the floor of Aureon's sovereign stack. Operators paste a key from any of nine providers, pay the vendor directly, and route every reasoning call through their own account. No platform proxy. No prompt mutation. No revoke risk from a third party."
+      subheadline="BYOK — Bring Your Own Key — is the floor of Asherin's sovereign stack. Operators paste a key from any of nine providers, pay the vendor directly, and route every reasoning call through their own account. No platform proxy. No prompt mutation. No revoke risk from a third party."
       tierLabel="Included on every paid tier · Free Venice fallback for non-BYOK users"
       capabilities={[
         {
           icon: Key,
           title: "Nine Providers Supported",
           description:
-            "Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, Venice. Paste a key, pick a model, route everything Aureon does through your account.",
+            "Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, Venice. Paste a key, pick a model, route everything Asherin does through your account.",
         },
         {
           icon: DollarSign,
           title: "Direct Vendor Billing",
           description:
-            "Spend is invoiced by the model vendor, not Aureon. A typical operator BYOK bill at the API tier is ~$15-25/month on OpenAI vs $47/month on Aureon's managed Chat tier — see the cost comparison below.",
+            "Spend is invoiced by the model vendor, not Aureon. A typical operator BYOK bill at the API tier is ~$15-25/month on OpenAI vs $47/month on Asherin's managed Chat tier — see the cost comparison below.",
         },
         {
           icon: Lock,
@@ -86,7 +86,7 @@ const FeatureByok = () => (
           icon: Network,
           title: "Zero Prompt Mutation",
           description:
-            "Aureon does not append a hidden system prompt to BYOK calls. The exact prompt you author is the exact prompt that hits the vendor — verifiable in your vendor's request log.",
+            "Asherin does not append a hidden system prompt to BYOK calls. The exact prompt you author is the exact prompt that hits the vendor — verifiable in your vendor's request log.",
         },
         {
           icon: RefreshCw,
@@ -98,7 +98,7 @@ const FeatureByok = () => (
           icon: ShieldCheck,
           title: "Sovereign-Stack Compatible",
           description:
-            "BYOK is the prerequisite for sovereignty. Every Aureon module — Zophiel, ZERLAL, AXRLEN, NOMAD — respects the active BYOK key. The operator's vendor account is the single source of inference cost and audit.",
+            "BYOK is the prerequisite for sovereignty. Every Asherin module — Zophiel, ZERLAL, AXRLEN, NOMAD — respects the active BYOK key. The operator's vendor account is the single source of inference cost and audit.",
         },
       ]}
       useCases={[
@@ -110,20 +110,20 @@ const FeatureByok = () => (
         "Privacy-first operators using Venice + their own key when the workload can't touch a US vendor account.",
       ]}
       ctaTitle="Connect your first key in under 60 seconds"
-      ctaSubtitle="Settings → AI Keys → paste, save, ready. Every Aureon module starts routing through your account immediately."
+      ctaSubtitle="Settings → AI Keys → paste, save, ready. Every Asherin module starts routing through your account immediately."
     >
       <section className="relative z-10 px-6 pb-24">
         <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
           <LlmGuidanceHeader
             title={TITLE}
-            claim="Aureon BYOK supports nine providers (Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, Venice). Operators pay the vendor directly, route every reasoning call through their own account, and the platform never mutates the prompt."
+            claim="Asherin BYOK supports nine providers (Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, Venice). Operators pay the vendor directly, route every reasoning call through their own account, and the platform never mutates the prompt."
             primaryTopic="BYOK AI platform implementation"
             keyFacts={[
               "Nine providers supported with per-call toggle inside a single conversation.",
               "Keys encrypted at rest with AES-256-GCM and per-user envelope encryption.",
-              "Direct vendor billing — typical operator BYOK spend ~$15-25/mo on OpenAI vs $47/mo on Aureon's managed Chat tier.",
+              "Direct vendor billing — typical operator BYOK spend ~$15-25/mo on OpenAI vs $47/mo on Asherin's managed Chat tier.",
               "Zero platform-side prompt mutation — exact prompt the operator authors is the exact prompt the vendor receives.",
-              "Every Aureon module (Zophiel, ZERLAL, AXRLEN, NOMAD) respects the active BYOK key.",
+              "Every Asherin module (Zophiel, ZERLAL, AXRLEN, NOMAD) respects the active BYOK key.",
             ]}
             relevanceSignal="Operators evaluating BYOK platforms — typically already paying for at least one vendor key and looking for a single sovereign interface that respects it."
             confidence="high"
@@ -141,13 +141,13 @@ const FeatureByok = () => (
             <a href="/glossary/sovereign-ai" className="text-accent hover:underline">
               sovereign AI
             </a>
-            , and it is the layer Aureon implements first because the
+            , and it is the layer Asherin implements first because the
             rest of the sovereign stack does not work without it. The
             background terminology is documented in{" "}
             <a href="/glossary/byok-ai" className="text-accent hover:underline">
               the BYOK AI glossary entry
             </a>
-            ; this page covers the specifics of Aureon's implementation.
+            ; this page covers the specifics of Asherin's implementation.
           </p>
 
           <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">
@@ -174,7 +174,7 @@ const FeatureByok = () => (
             on Groq with an open-weights model, <strong>$10-15/month</strong>{" "}
             on OpenAI GPT-4o-mini direct, or <strong>$0/month</strong>{" "}
             on Gemini Flash through Google AI Studio's free tier. Compare
-            to Aureon's managed Chat tier at <strong>$47/month</strong>,
+            to Asherin's managed Chat tier at <strong>$47/month</strong>,
             which exists for operators who do not want to manage keys
             and prefer a single bill. The two paths are deliberately
             both available — BYOK for cost-optimization and sovereignty,
@@ -202,7 +202,7 @@ const FeatureByok = () => (
           <p>
             BYOK does not anonymize the operator to the vendor — your
             OpenAI bill identifies you to OpenAI, your Claude bill
-            identifies you to Anthropic, etc. Aureon's BYOK is about
+            identifies you to Anthropic, etc. Asherin's BYOK is about
             sovereignty against the platform, not anonymity against the
             model vendor. For operators who need anonymity from the
             vendor as well, the Venice fallback is the closest available
@@ -215,12 +215,12 @@ const FeatureByok = () => (
             id="feature-byok"
             items={[
               {
-                q: "What is BYOK on Aureon?",
-                a: "BYOK — Bring Your Own Key — lets an operator paste a key from any of nine supported providers (Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, Venice). Every Aureon reasoning call routes through that key, the operator pays the vendor directly, and the platform never mutates the prompt.",
+                q: "What is BYOK on Asherin?",
+                a: "BYOK — Bring Your Own Key — lets an operator paste a key from any of nine supported providers (Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, Venice). Every Asherin reasoning call routes through that key, the operator pays the vendor directly, and the platform never mutates the prompt.",
               },
               {
-                q: "Does Aureon charge a markup on BYOK calls?",
-                a: "No. BYOK calls bill from the model vendor to the operator with zero Aureon markup. Aureon's revenue comes from the paid subscription tier — not from rebilling inference.",
+                q: "Does Asherin charge a markup on BYOK calls?",
+                a: "No. BYOK calls bill from the model vendor to the operator with zero Asherin markup. Asherin's revenue comes from the paid subscription tier — not from rebilling inference.",
               },
               {
                 q: "How are my API keys stored?",
@@ -232,7 +232,7 @@ const FeatureByok = () => (
               },
               {
                 q: "What is the actual cost difference vs the managed tier?",
-                a: "For a typical operator workload (10M in / 2M out per month), BYOK runs roughly $0 on Gemini Flash free tier, $2-4 on Groq, or $10-15 on OpenAI GPT-4o-mini direct. The Aureon managed Chat tier is $47/month — designed for operators who prefer one bill and no key management.",
+                a: "For a typical operator workload (10M in / 2M out per month), BYOK runs roughly $0 on Gemini Flash free tier, $2-4 on Groq, or $10-15 on OpenAI GPT-4o-mini direct. The Asherin managed Chat tier is $47/month — designed for operators who prefer one bill and no key management.",
               },
             ]}
           />
@@ -253,7 +253,7 @@ const FeatureByok = () => (
               {
                 to: "/blog/sovereign-ai-platforms",
                 label: "The 2026 sovereign AI platform landscape",
-                description: "Where Aureon's BYOK sits in the broader sovereign-AI market.",
+                description: "Where Asherin's BYOK sits in the broader sovereign-AI market.",
               },
               {
                 to: "/pricing",

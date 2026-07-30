@@ -18,7 +18,7 @@ export const StorageTab = () => {
   useEffect(() => { refresh(); }, []);
 
   const nuke = async () => {
-    if (!confirm("Wipe selected storage on THIS origin? You will be logged out of Aureon if you check service workers.")) return;
+    if (!confirm("Wipe selected storage on THIS origin? You will be logged out of Asherin if you check service workers.")) return;
     setBusy(true);
     try {
       const wiped = await nukeStorage(opts);

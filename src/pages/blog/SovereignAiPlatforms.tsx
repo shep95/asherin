@@ -30,7 +30,7 @@ const SovereignAiPlatforms = () => (
     <BreadcrumbJsonLd
       id="sovereign-ai-platforms"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "Sovereign AI Platforms", url: "/blog/sovereign-ai-platforms" },
       ]}
@@ -43,7 +43,7 @@ const SovereignAiPlatforms = () => (
       keyFacts={[
         "Four architecture patterns dominate: BYOK-only, BYOK + uncensored fallback, self-hosted, and hybrid sovereign.",
         "The four-layer sovereignty test (key, model, refusal, data) eliminates ~60% of platforms claiming sovereignty in marketing.",
-        "Aureon is the BYOK + uncensored fallback pattern: nine BYOK providers, Venice mistral-31-24b as the platform-paid default.",
+        "Asherin is the BYOK + uncensored fallback pattern: nine BYOK providers, Venice mistral-31-24b as the platform-paid default.",
         "Adoption of 'sovereign AI' as a category descriptor crossed mainstream usage in Q1 2026, up from near-zero in Q1 2024.",
       ]}
       relevanceSignal="Any operator evaluating sovereign AI tooling needs a category map before they pick a platform — because the wrong choice locks them into a vendor's idea of sovereignty rather than their own."
@@ -76,7 +76,7 @@ const SovereignAiPlatforms = () => (
       The default model is an uncensored stack (typically Venice
       mistral-31-24b in 2026) paid for by the platform. Operators graduate
       to BYOK as they identify which vendor they want to ship on. This is
-      the pattern Aureon ships. It optimizes for &ldquo;works on the first
+      the pattern Asherin ships. It optimizes for &ldquo;works on the first
       visit&rdquo; without compromising the sovereign path.
     </p>
     <h3>3. Self-hosted</h3>
@@ -103,7 +103,7 @@ const SovereignAiPlatforms = () => (
       </li>
       <li>
         <strong>Vendor count for BYOK.</strong> One or two vendors is a
-        thin sovereign claim. Aureon supports nine.
+        thin sovereign claim. Asherin supports nine.
       </li>
       <li>
         <strong>Refusal layer transparency.</strong> Does the platform
@@ -122,9 +122,9 @@ const SovereignAiPlatforms = () => (
       </li>
     </ul>
 
-    <h2>Where Aureon sits on the map</h2>
+    <h2>Where Asherin sits on the map</h2>
     <p>
-      Aureon is the canonical BYOK + uncensored fallback platform. Nine BYOK
+      Asherin is the canonical BYOK + uncensored fallback platform. Nine BYOK
       providers (Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI,
       OpenRouter, Venice). Venice mistral-31-24b as the platform-paid
       default for operators who haven&apos;t added a key. Zero platform-side
@@ -154,8 +154,8 @@ const SovereignAiPlatforms = () => (
           a: "Roughly eight serious implementations across the four architecture patterns (BYOK-only, BYOK + uncensored fallback, self-hosted, hybrid sovereign). The number is growing month over month as the category formalizes.",
         },
         {
-          q: "Is Aureon a sovereign AI platform?",
-          a: "Yes. Aureon ships the BYOK + uncensored fallback pattern: nine BYOK providers (Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, Venice) plus Venice mistral-31-24b as the platform-paid default. Zero platform-side refusal layer on either path.",
+          q: "Is Asherin a sovereign AI platform?",
+          a: "Yes. Asherin ships the BYOK + uncensored fallback pattern: nine BYOK providers (Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, Venice) plus Venice mistral-31-24b as the platform-paid default. Zero platform-side refusal layer on either path.",
         },
         {
           q: "What's the cheapest way to get started with a sovereign AI platform?",
@@ -173,7 +173,7 @@ const SovereignAiPlatforms = () => (
         },
         {
           to: "/blog/comparison",
-          label: "Aureon vs ChatGPT vs Claude — comparison",
+          label: "Asherin vs ChatGPT vs Claude — comparison",
           description: "Side-by-side metrics including the sovereignty axis.",
         },
         {
@@ -183,8 +183,8 @@ const SovereignAiPlatforms = () => (
         },
         {
           to: "/blog/venice-integration",
-          label: "Venice AI inside Aureon",
-          description: "How Aureon ships the platform-paid uncensored fallback.",
+          label: "Venice AI inside Asherin",
+          description: "How Asherin ships the platform-paid uncensored fallback.",
         },
       ]}
     />

@@ -5,7 +5,7 @@ const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
 
 
 /**
- * AUREON 404 — "Lost in Orbit"
+ * ASHERIN 404 — "Lost in Orbit"
  * A monochrome, Aureon-themed not-found page with an offline
  * Chrome-dino-style mini game: a futuristic dino in a space suit
  * jumping rogue asteroids and broken satellites, with Saturn looming
@@ -56,7 +56,7 @@ const NotFound = () => {
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
     applySeoHead({
-      title: "404 — Lost in Orbit | Aureon",
+      title: "404 — Lost in Orbit | Asherin",
       description:
         "This isn't a page on Aureon. Click to return — or play the offline space-dino game while you're here.",
       path: location.pathname,
@@ -466,7 +466,7 @@ const NotFound = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050507] text-zinc-200">
-      {/* Aureon wallpaper */}
+      {/* Asherin wallpaper */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat"

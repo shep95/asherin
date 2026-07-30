@@ -180,7 +180,7 @@ export default function AureonEngineToggle() {
             )}
 
             <p className="text-[8px] text-muted-foreground/40 px-2.5 pt-2 border-t border-border/10 leading-relaxed">
-              Manage keys in Settings → AI Keys. Aureon does not ship a default model.
+              Manage keys in Settings → AI Keys. Asherin does not ship a default model.
             </p>
           </div>
         )}

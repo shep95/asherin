@@ -1,5 +1,5 @@
 // SymbolicPassageCard + SymbolicSpineCard — the "Symbolic Deep-Read" surface
-// for Aureon and Asher chats.
+// for Asherin and Asher chats.
 //
 // The model emits one of two fence types (see gematriaChatDirective.ts):
 //
