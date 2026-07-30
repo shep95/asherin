@@ -15,9 +15,6 @@ import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame,
 import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
 import { updateVehicleTracks } from "./core/vehicleTracking";
-import FalconOverlay from "./FalconOverlay";
-import FalconOpsPanel from "./FalconOpsPanel";
-import FalconIdPanel from "./FalconIdPanel";
 import { correlateOptical, type Suggestion } from "./core/deviceCorrelation";
 import RadarIntelPack from "./RadarIntelPack";
 import SonarSweep from "./SonarSweep";
@@ -893,8 +890,6 @@ function ArTab(props: {
   const [optical, setOptical] = useState<OpticalContact[]>([]);
   const [opticalErr, setOpticalErr] = useState<string | null>(null);
   const [opticalReady, setOpticalReady] = useState(false);
-  // Falcon Ops — on-device ALPR + fingerprint + hotlist match on vehicle bboxes
-  const [falconOn, setFalconOn] = useState(true);
   const opticalRef = useRef<OpticalHandle | null>(null);
 
   // Streamed identifications + environment scan from the BYOK Vision panel.
@@ -1338,27 +1333,8 @@ function ArTab(props: {
           });
         })()}
 
-        {/* FALCON OVERLAY — on-device ALPR (tesseract.js) + color/body fingerprint
-            + hashed-hotlist match badge over each vehicle bbox. Sightings feed
-            the local convoy detector shown in FalconOpsPanel below. */}
-        {props.arOn && opticalOn && falconOn && (() => {
-          const v = props.videoRef.current;
-          const vw = v?.videoWidth || 0;
-          const vh = v?.videoHeight || 0;
-          if (!vw || !vh) return null;
-          const tracks = updateVehicleTracks(optical, vw, vh, props.heading);
-          return (
-            <FalconOverlay
-              videoRef={props.videoRef}
-              tracks={tracks}
-              arOn={props.arOn}
-              falconOn={falconOn}
-              projectBbox={projectBbox}
-              heading={props.heading}
-              geo={{ lat: props.geo.fix?.lat ?? null, lng: props.geo.fix?.lon ?? null }}
-            />
-          );
-        })()}
+
+
 
         {/* AI-ONLY IDENT BOXES — top 5 only, with confidence + wrapping labels. */}
         {props.arOn && visionIdents
@@ -1589,28 +1565,6 @@ function ArTab(props: {
         onIdents={setVisionIdents}
         onEnv={setVisionEnv}
       />
-
-      {/* Falcon Ops — hashed hotlist manager, live sightings, co-travel pairs */}
-      <div className="flex items-center gap-2 px-1">
-        <button
-          onClick={() => setFalconOn((v) => !v)}
-          className={`text-[10px] tracking-[0.22em] uppercase px-2 py-1 rounded border transition ${
-            falconOn
-              ? "border-amber-300/40 text-amber-100 bg-amber-500/10"
-              : "border-white/[0.08] text-foreground/60 bg-white/[0.02] hover:bg-white/[0.05]"
-          }`}
-        >
-          {falconOn ? "◉ Falcon ALPR ON" : "◯ Falcon ALPR OFF"}
-        </button>
-        <span className="text-[9px] text-muted-foreground/60">
-          On-device plate OCR + fingerprint + hashed hotlist. No plaintext plates leave this device.
-        </span>
-      </div>
-      <FalconOpsPanel />
-
-      {/* Falcon ID — PDF417 / MRZ / cross-verify. Consent-gated. */}
-      <FalconIdPanel />
-
     </div>
   );
 }
