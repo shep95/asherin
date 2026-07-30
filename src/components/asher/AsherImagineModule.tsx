@@ -1,4 +1,4 @@
-// AsherImagineModule — Imagine canvas + Asher AI side panel (full Aureon brain).
+// AsherImagineModule — Imagine canvas + Asher AI side panel (full Asherin brain).
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import AsherImagineAIPanel from "@/components/asher/AsherImagineAIPanel";

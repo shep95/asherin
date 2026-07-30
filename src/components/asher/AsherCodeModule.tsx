@@ -193,7 +193,7 @@ async function parseZipImport(file: File, currentFiles: AsherCodeFile[]): Promis
   return { archiveName: file.name, entries, totalEntries: zipEntries.length, acceptedBytes };
 }
 
-// Load active Aureon persona + brain (mirrors Aureon Chat / ZALI). Result is spread into every
+// Load active Asherin persona + brain (mirrors Asherin Chat / ZALI). Result is spread into every
 // asher-code-ai call so Asher IDE inherits the same coding brain stack as the rest of the dashboard.
 async function loadAureonContext(): Promise<{
   personaSystemPrompt: string | null;
@@ -239,7 +239,7 @@ async function loadAureonContext(): Promise<{
         brainContext = { prompt: brain.system_prompt || "", fileContents };
       }
     }
-  } catch (e) { console.error("Asher Code: failed to load Aureon brain context:", e); }
+  } catch (e) { console.error("Asher Code: failed to load Asherin brain context:", e); }
   return { personaSystemPrompt, brainContext };
 }
 
@@ -908,7 +908,7 @@ export default function AsherCodeModule() {
     let lastErr: any = null;
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        const aureon = await loadAureonContext();
+        const asherin = await loadAureonContext();
         const result = await callAsherCodeAi({
           mode: "fix",
           byok: byok(),
@@ -937,7 +937,7 @@ export default function AsherCodeModule() {
     // second pass with an explicit "rewrite the file" prompt before giving up.
     if (!corrected || corrected === current.trim()) {
       try {
-        const aureon = await loadAureonContext();
+        const asherin = await loadAureonContext();
         const forced = await callAsherCodeAi({
           mode: "fix",
           byok: byok(),
@@ -1351,7 +1351,7 @@ export default function AsherCodeModule() {
 </head>
 <body>
   <h1>${name}</h1>
-  <p class="hint">Tell Aureon Code what to build — it adapts to any stack.</p>
+  <p class="hint">Tell Asherin Code what to build — it adapts to any stack.</p>
   <script>
     // Your code starts here.
   </script>
@@ -1783,7 +1783,7 @@ export default function AsherCodeModule() {
     setAiBusy(true);
     try {
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
-      const aureon = await loadAureonContext();
+      const asherin = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx, images: imageAttachments, ...aureon } as any);
       const assistantMsg: ChatMsg = { role: "assistant", content: r.reply || "" };
       setChat([...next, assistantMsg]);
@@ -1841,7 +1841,7 @@ export default function AsherCodeModule() {
           mode: "design",
           projectContext: {
             name: activeProject.name,
-            description: activeProject.description || "Software project in Aureon Code IDE",
+            description: activeProject.description || "Software project in Asherin Code IDE",
             designType: "software",
             phase: "Architecture & Implementation",
           },
@@ -2147,7 +2147,7 @@ export default function AsherCodeModule() {
     if (!activeFile) return;
     setAiBusy(true);
     try {
-      const aureon = await loadAureonContext();
+      const asherin = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "explain", byok: byok(), code: activeContent, language: activeFile.language, ...aureon });
       const u: ChatMsg = { role: "user", content: `Explain ${activeFile.path}` };
       const a: ChatMsg = { role: "assistant", content: r.reply || "" };
@@ -2162,7 +2162,7 @@ export default function AsherCodeModule() {
     if (!err) return;
     setAiBusy(true);
     try {
-      const aureon = await loadAureonContext();
+      const asherin = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "fix", byok: byok(), code: activeContent, language: activeFile.language, error: err, ...aureon });
       const u: ChatMsg = { role: "user", content: `Fix: ${err}` };
       const a: ChatMsg = { role: "assistant", content: r.reply || "" };
@@ -2184,7 +2184,7 @@ export default function AsherCodeModule() {
     if (!desc) return;
     setAiBusy(true);
     try {
-      const aureon = await loadAureonContext();
+      const asherin = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "generate", byok: byok(), description: desc, language: activeFile.language, ...aureon });
       const code = extractCodeBlock(r.reply || "");
       animateApply(activeFile.id, code);
@@ -2200,7 +2200,7 @@ export default function AsherCodeModule() {
     if (!activeFile) return;
     setAiBusy(true);
     try {
-      const aureon = await loadAureonContext();
+      const asherin = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "tests", byok: byok(), code: activeContent, language: activeFile.language, framework: "vitest", ...aureon });
       const code = extractCodeBlock(r.reply || "");
       // Create a sibling test file
@@ -2227,7 +2227,7 @@ export default function AsherCodeModule() {
     setAiBusy(true);
     try {
       const projectFiles = files.map(f => ({ path: f.path, content: dirty[f.id] ?? f.content }));
-      const aureon = await loadAureonContext();
+      const asherin = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "edit_plan", byok: byok(), instruction, contextFiles: projectFiles, ...aureon });
       const plan = extractJsonBlock<EditPlan>(r.reply || "");
       if (!plan?.edits?.length) { toast.error("AI did not return a valid edit plan"); return; }
@@ -2285,7 +2285,7 @@ export default function AsherCodeModule() {
         .map(p => ({ provider: p.id, model: p.models[0].id, apiKey: undefined as any }));
       const byoks = [{ provider, model, apiKey: apiKey || undefined }, ...others];
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
-      const aureon = await loadAureonContext();
+      const asherin = await loadAureonContext();
       const r = await callAsherCodeAi({
         mode: "orchestrate",
         subMode: "chat",
@@ -2312,7 +2312,7 @@ export default function AsherCodeModule() {
     if (!targets.length) { toast.info("No `// AI: ...` prompts found in this file"); return; }
     setAiBusy(true);
     try {
-      const aureon = await loadAureonContext();
+      const asherin = await loadAureonContext();
       const newLines = [...lines];
       // Process bottom-up so indices stay stable
       for (const t of [...targets].reverse()) {
@@ -2687,7 +2687,7 @@ export default function AsherCodeModule() {
           <div className="flex items-center justify-between px-3 py-2 border-b border-border/15">
             <div className="flex items-center gap-1.5">
               <Brain className="h-3 w-3 text-foreground/60" />
-              <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">Aureon Code AI</span>
+              <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">Asherin Code AI</span>
             </div>
             <span className="text-[8px] tracking-[0.2em] text-foreground/70 uppercase">{apiKey ? "BYOK" : "No Key"}</span>
           </div>
@@ -2873,7 +2873,7 @@ export default function AsherCodeModule() {
               Type-Anim
             </label>
             <label
-              title="ZANOEM Mode: design brand-new software from first principles. Auto-creates files from generated code blocks. Uses Aureon engine — no BYOK key needed."
+              title="ZANOEM Mode: design brand-new software from first principles. Auto-creates files from generated code blocks. Uses Asherin engine — no BYOK key needed."
               className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${zanoemMode ? "text-foreground" : "text-muted-foreground/70"}`}
             >
               <input type="checkbox" checked={zanoemMode} onChange={(e) => setZanoemMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
@@ -2933,7 +2933,7 @@ export default function AsherCodeModule() {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendChat(); } }}
-              placeholder={zanoemMode ? "ZANOEM: invent brand-new software from first principles…" : (apiKey ? "Ask Aureon Code… (paste image, ZIP, or describe)" : "Add API key in BYOK settings first")}
+              placeholder={zanoemMode ? "ZANOEM: invent brand-new software from first principles…" : (apiKey ? "Ask Asherin Code… (paste image, ZIP, or describe)" : "Add API key in BYOK settings first")}
               disabled={!zanoemMode && !apiKey}
               rows={2}
               className="flex-1 resize-none rounded border border-border/20 bg-card/40 px-2 py-1.5 text-[11px] font-light placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none disabled:opacity-40"
@@ -3262,7 +3262,7 @@ function NewProjectDialog({ onClose, onCreate }: { onClose: () => void; onCreate
           className="w-full rounded-md border border-border/20 bg-card/40 px-3 py-2 text-xs font-light focus:border-foreground/40 focus:outline-none"
         />
         <p className="text-[10px] text-muted-foreground/60 mt-3 leading-relaxed">
-          No template needed. Aureon Code adapts to whatever you describe — vanilla HTML, React, TypeScript, automation scripts, dashboards, charts, anything. Just tell it what to build.
+          No template needed. Asherin Code adapts to whatever you describe — vanilla HTML, React, TypeScript, automation scripts, dashboards, charts, anything. Just tell it what to build.
         </p>
         <div className="flex justify-end gap-2 mt-4">
           <button onClick={onClose} className="rounded-md border border-border/20 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground/5">Cancel</button>

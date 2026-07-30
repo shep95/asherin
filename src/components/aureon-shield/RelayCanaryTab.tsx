@@ -84,7 +84,7 @@ export const RelayCanaryTab = ({ leakScore, recentGeo }: RelayCanaryTabProps) =>
         // Query state
         navigator.serviceWorker.controller?.postMessage({ type: "STATUS" });
       })
-      .catch((e) => console.warn("[Aureon] SW register failed", e));
+      .catch((e) => console.warn("[Asherin] SW register failed", e));
 
     const onMsg = (ev: MessageEvent) => {
       const d = ev.data || {};

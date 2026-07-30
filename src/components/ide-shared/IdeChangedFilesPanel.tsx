@@ -5,7 +5,7 @@ import { ChevronRight, ChevronDown, FilePlus, FileMinus, FileEdit, RotateCcw } f
 import { changedFiles, type ChangedFile } from "@/lib/ide/changedFiles";
 
 interface Props {
-  scope: "aureon" | "asher";
+  scope: "asherin" | "asher";
   projectId: string;
   onOpenFile?: (fileId: string) => void;
   onClearAll?: () => void;

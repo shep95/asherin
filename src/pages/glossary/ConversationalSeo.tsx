@@ -18,7 +18,7 @@ const ConversationalSeo = () => (
     dek="Conversational SEO — C-SEO — is the discipline of being cited inside AI-generated answers from systems like Perplexity, ChatGPT Search, ClaudeBot, and Google AI Overviews. This is the working definition, the origin of the term, the core techniques, and how to evaluate any C-SEO claim."
     publishedLabel="Jun 19 2026"
     readTime="7 min"
-    backTo={{ to: "/glossary", label: "← Aureon Glossary" }}
+    backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
   >
     <ArticleJsonLd
       id="conversational-seo"
@@ -37,7 +37,7 @@ const ConversationalSeo = () => (
     <BreadcrumbJsonLd
       id="conversational-seo"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Glossary", url: "/glossary" },
         { name: "Conversational SEO", url: "/glossary/conversational-seo" },
       ]}
@@ -167,7 +167,7 @@ const ConversationalSeo = () => (
       links={[
         {
           to: "/blog/how-aureon-uses-c-seo-research",
-          label: "How Aureon uses C-SEO research",
+          label: "How Asherin uses C-SEO research",
           description: "The meta-article — how the C-SEO Bench findings are implemented across this site.",
         },
         {

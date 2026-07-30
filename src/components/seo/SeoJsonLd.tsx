@@ -46,7 +46,7 @@ export const ArticleJsonLd = ({
       author: { "@type": "Person", name: author },
       publisher: {
         "@type": "Organization",
-        name: "Aureon",
+        name: "Asherin",
         url: ORIGIN,
       },
       mainEntityOfPage: url,

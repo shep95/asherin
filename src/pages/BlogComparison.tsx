@@ -15,25 +15,25 @@ import {
 } from "recharts";
 
 const RADAR_DATA = [
-  { axis: "Reasoning",    Aureon: 96, "ChatGPT Plus": 88, "Claude Pro": 91, Gemini: 86 },
-  { axis: "Coding",       Aureon: 94, "ChatGPT Plus": 85, "Claude Pro": 92, Gemini: 82 },
-  { axis: "OSINT",        Aureon: 98, "ChatGPT Plus": 55, "Claude Pro": 30, Gemini: 60 },
-  { axis: "Vision",       Aureon: 93, "ChatGPT Plus": 84, "Claude Pro": 80, Gemini: 88 },
-  { axis: "Security",     Aureon: 97, "ChatGPT Plus": 60, "Claude Pro": 65, Gemini: 58 },
-  { axis: "Long context", Aureon: 95, "ChatGPT Plus": 78, "Claude Pro": 90, Gemini: 92 },
+  { axis: "Reasoning",    Asherin: 96, "ChatGPT Plus": 88, "Claude Pro": 91, Gemini: 86 },
+  { axis: "Coding",       Asherin: 94, "ChatGPT Plus": 85, "Claude Pro": 92, Gemini: 82 },
+  { axis: "OSINT",        Asherin: 98, "ChatGPT Plus": 55, "Claude Pro": 30, Gemini: 60 },
+  { axis: "Vision",       Asherin: 93, "ChatGPT Plus": 84, "Claude Pro": 80, Gemini: 88 },
+  { axis: "Security",     Asherin: 97, "ChatGPT Plus": 60, "Claude Pro": 65, Gemini: 58 },
+  { axis: "Long context", Asherin: 95, "ChatGPT Plus": 78, "Claude Pro": 90, Gemini: 92 },
 ];
 
 const SERIES = [
-  { key: "Aureon",        color: "hsl(217, 91%, 60%)" },
+  { key: "Asherin",        color: "hsl(217, 91%, 60%)" },
   { key: "ChatGPT Plus",  color: "hsl(142, 71%, 45%)" },
   { key: "Claude Pro",    color: "hsl(28, 95%, 55%)" },
   { key: "Gemini",        color: "hsl(280, 75%, 65%)" },
 ];
 
 /**
- * /blog/comparison — Aureon vs ChatGPT vs Claude
+ * /blog/comparison — Asherin vs ChatGPT vs Claude
  * Long-form comparison guide. Targets the "uncensored ai" /
- * "aureon vs chatgpt" / "aureon vs claude" search intent.
+ * "asherin vs chatgpt" / "asherin vs claude" search intent.
  *
  * SEO: per-route title/description handled in RouteSeo. This page
  * additionally injects Article + FAQPage + BreadcrumbList JSON-LD
@@ -44,44 +44,44 @@ const PUBLISHED = "2026-06-14";
 const URL_SELF = "https://aureonai.app/blog/comparison";
 
 type Cell = "yes" | "no" | "partial" | string;
-type Row = { feature: string; aureon: Cell; chatgpt: Cell; claude: Cell; note?: string };
+type Row = { feature: string; asherin: Cell; chatgpt: Cell; claude: Cell; note?: string };
 
 const MATRIX: Row[] = [
-  { feature: "Entry price",                        aureon: "$47 one-time", chatgpt: "$20 / month", claude: "$20 / month",  note: "Aureon entry is a single payment. ChatGPT Plus and Claude Pro bill every month." },
-  { feature: "Uncensored responses",               aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Aureon refuses nothing legal; the others refuse a substantial share of legitimate queries." },
-  { feature: "Bring-your-own-key (9 providers)",   aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Use Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, or Venice on your own bill." },
-  { feature: "Multi-model consensus",              aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Five-phase cross-validation across models, 45% confidence threshold." },
-  { feature: "Live 30-source OSINT search",        aureon: "yes",      chatgpt: "partial", claude: "no",       note: "ChatGPT browsing is limited to a handful of curated sources; Claude has no native web." },
-  { feature: "Predictive intelligence engine",     aureon: "yes",      chatgpt: "no",      claude: "no",       note: "AXRLEN NEXUS-PRIME runs probabilistic scenarios with Monte Carlo modelling." },
-  { feature: "Vulnerability & exploit analysis",   aureon: "yes",      chatgpt: "no",      claude: "no",       note: "ZERLAL fault-tolerant scanning with Cyber Kill Chain mapping." },
-  { feature: "Full Monaco IDE inside chat",        aureon: "yes",      chatgpt: "partial", claude: "partial",  note: "Aureon ships a sandboxed-iframe IDE with BYOK across 9 providers." },
-  { feature: "FEA / thermal simulation",           aureon: "yes",      chatgpt: "no",      claude: "no",       note: "ZALI Design Suite runs design-of-experiments and material selection." },
-  { feature: "Infinite whiteboard",                aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Photoshop-style layer stack, dot/square snap grids." },
-  { feature: "E-book generator",                   aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Multi-session text uploads, 500-word chapters, generated cover art." },
-  { feature: "End-to-end encrypted vault",         aureon: "yes",      chatgpt: "no",      claude: "no",       note: "AES-256-GCM, chrooted file access, admin RLS partitions." },
-  { feature: "Persistent intelligence graph",      aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Library + Project Folders + cross-session memory recall." },
-  { feature: "Voice chat",                         aureon: "yes",      chatgpt: "yes",     claude: "no",       note: "Aureon uses ElevenLabs WebRTC with live audio visualisers." },
-  { feature: "Image generation",                   aureon: "yes",      chatgpt: "yes",     claude: "no",       note: "Aureon Imagine module ships with persistent gallery." },
-  { feature: "Vision (image + video) input",       aureon: "yes",      chatgpt: "yes",     claude: "yes",      note: "Aureon adds FACS behavioural video tracking." },
-  { feature: "Lifetime licence option",            aureon: "yes",      chatgpt: "no",      claude: "no",       note: "$470 one-time, no recurring billing ever." },
-  { feature: "No mandatory monthly subscription",  aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Aureon never bills monthly. Pay once or use free. Competitors require ongoing subscriptions." },
+  { feature: "Entry price",                        asherin: "$47 one-time", chatgpt: "$20 / month", claude: "$20 / month",  note: "Asherin entry is a single payment. ChatGPT Plus and Claude Pro bill every month." },
+  { feature: "Uncensored responses",               asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Asherin refuses nothing legal; the others refuse a substantial share of legitimate queries." },
+  { feature: "Bring-your-own-key (9 providers)",   asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Use Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, or Venice on your own bill." },
+  { feature: "Multi-model consensus",              asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Five-phase cross-validation across models, 45% confidence threshold." },
+  { feature: "Live 30-source OSINT search",        asherin: "yes",      chatgpt: "partial", claude: "no",       note: "ChatGPT browsing is limited to a handful of curated sources; Claude has no native web." },
+  { feature: "Predictive intelligence engine",     asherin: "yes",      chatgpt: "no",      claude: "no",       note: "AXRLEN NEXUS-PRIME runs probabilistic scenarios with Monte Carlo modelling." },
+  { feature: "Vulnerability & exploit analysis",   asherin: "yes",      chatgpt: "no",      claude: "no",       note: "ZERLAL fault-tolerant scanning with Cyber Kill Chain mapping." },
+  { feature: "Full Monaco IDE inside chat",        asherin: "yes",      chatgpt: "partial", claude: "partial",  note: "Asherin ships a sandboxed-iframe IDE with BYOK across 9 providers." },
+  { feature: "FEA / thermal simulation",           asherin: "yes",      chatgpt: "no",      claude: "no",       note: "ZALI Design Suite runs design-of-experiments and material selection." },
+  { feature: "Infinite whiteboard",                asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Photoshop-style layer stack, dot/square snap grids." },
+  { feature: "E-book generator",                   asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Multi-session text uploads, 500-word chapters, generated cover art." },
+  { feature: "End-to-end encrypted vault",         asherin: "yes",      chatgpt: "no",      claude: "no",       note: "AES-256-GCM, chrooted file access, admin RLS partitions." },
+  { feature: "Persistent intelligence graph",      asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Library + Project Folders + cross-session memory recall." },
+  { feature: "Voice chat",                         asherin: "yes",      chatgpt: "yes",     claude: "no",       note: "Asherin uses ElevenLabs WebRTC with live audio visualisers." },
+  { feature: "Image generation",                   asherin: "yes",      chatgpt: "yes",     claude: "no",       note: "Asherin Imagine module ships with persistent gallery." },
+  { feature: "Vision (image + video) input",       asherin: "yes",      chatgpt: "yes",     claude: "yes",      note: "Asherin adds FACS behavioural video tracking." },
+  { feature: "Lifetime licence option",            asherin: "yes",      chatgpt: "no",      claude: "no",       note: "$470 one-time, no recurring billing ever." },
+  { feature: "No mandatory monthly subscription",  asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Asherin never bills monthly. Pay once or use free. Competitors require ongoing subscriptions." },
 ];
 
 const FAQ = [
   {
-    q: "Is Aureon really uncensored?",
-    a: "Aureon refuses no lawful request. For users without their own API key, requests are routed through Venice (an uncensored Mistral-based model). Users who bring their own key keep their provider's native behaviour; Aureon itself adds no refusal layer.",
+    q: "Is Asherin really uncensored?",
+    a: "Asherin refuses no lawful request. For users without their own API key, requests are routed through Venice (an uncensored Mistral-based model). Users who bring their own key keep their provider's native behaviour; Asherin itself adds no refusal layer.",
   },
   {
-    q: "How does Aureon compare to ChatGPT Plus on price?",
-    a: "Aureon is $18/month for the core platform — cheaper than ChatGPT Plus ($20/mo) and Claude Pro ($20/mo) and bundles search, code, memory, workspace and E2E encryption in one tier. Aureon Pro ($399/mo) adds the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro and team collaboration). Enterprise is custom-priced.",
+    q: "How does Asherin compare to ChatGPT Plus on price?",
+    a: "Asherin is $18/month for the core platform — cheaper than ChatGPT Plus ($20/mo) and Claude Pro ($20/mo) and bundles search, code, memory, workspace and E2E encryption in one tier. Asherin Pro ($399/mo) adds the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro and team collaboration). Enterprise is custom-priced.",
   },
   {
-    q: "Can I keep using Claude or GPT inside Aureon?",
-    a: "Yes. Aureon's BYOK system supports nine providers — Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and Venice. You pay only your provider's metered cost; Aureon does not mark up tokens.",
+    q: "Can I keep using Claude or GPT inside Asherin?",
+    a: "Yes. Asherin's BYOK system supports nine providers — Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and Venice. You pay only your provider's metered cost; Asherin does not mark up tokens.",
   },
   {
-    q: "Does Aureon train on my conversations?",
+    q: "Does Asherin train on my conversations?",
     a: "No. Conversations are stored encrypted in your private workspace and never enter any model's training set.",
   },
   {
@@ -89,8 +89,8 @@ const FAQ = [
     a: "A five-phase cross-validation pipeline that runs the same prompt across several frontier models, scores agreement, and returns answers only when confidence clears a 45% threshold. It catches the hallucinations a single model misses.",
   },
   {
-    q: "How are the Aureon plans structured?",
-    a: "Two plans. Aureon at $18/month: chat, code, base Zophiel Search, persistent memory, workspace, E2E encryption, 60 messages per 3-hour window. Aureon Pro at $399/month: everything in Aureon plus Azplen data intelligence, NOMAD OSINT, advanced Briefings, Zophiel Pro with higher query limits and priority latency, full team collaboration, and 200 messages per 3-hour window. Enterprise (SSO/SAML, audit, dedicated capacity) is custom-priced.",
+    q: "How are the Asherin plans structured?",
+    a: "Two plans. Asherin at $18/month: chat, code, base Zophiel Search, persistent memory, workspace, E2E encryption, 60 messages per 3-hour window. Asherin Pro at $399/month: everything in Asherin plus Azplen data intelligence, NOMAD OSINT, advanced Briefings, Zophiel Pro with higher query limits and priority latency, full team collaboration, and 200 messages per 3-hour window. Enterprise (SSO/SAML, audit, dedicated capacity) is custom-priced.",
   },
 
 ];
@@ -133,17 +133,17 @@ const BlogComparison = () => {
       {
         "@context": "https://schema.org",
         "@type": "Article",
-        headline: "Aureon vs ChatGPT vs Claude — Honest 2026 Comparison",
+        headline: "Asherin vs ChatGPT vs Claude — Honest 2026 Comparison",
         description:
-          "Side-by-side comparison of Aureon, ChatGPT Plus, and Claude Pro across price, censorship, BYOK, OSINT, IDE, simulation, and privacy.",
+          "Side-by-side comparison of Asherin, ChatGPT Plus, and Claude Pro across price, censorship, BYOK, OSINT, IDE, simulation, and privacy.",
         url: URL_SELF,
         datePublished: PUBLISHED,
         dateModified: PUBLISHED,
         inLanguage: "en-US",
-        author: { "@type": "Organization", name: "Aureon" },
+        author: { "@type": "Organization", name: "Asherin" },
         publisher: {
           "@type": "Organization",
-          name: "Aureon",
+          name: "Asherin",
           logo: { "@type": "ImageObject", url: "https://aureonai.app/favicon.png" },
         },
         mainEntityOfPage: { "@type": "WebPage", "@id": URL_SELF },
@@ -164,7 +164,7 @@ const BlogComparison = () => {
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Home", item: "https://aureonai.app/" },
           { "@type": "ListItem", position: 2, name: "Blog", item: "https://aureonai.app/blog" },
-          { "@type": "ListItem", position: 3, name: "Aureon vs ChatGPT vs Claude", item: URL_SELF },
+          { "@type": "ListItem", position: 3, name: "Asherin vs ChatGPT vs Claude", item: URL_SELF },
         ],
       },
     ]);
@@ -185,7 +185,7 @@ const BlogComparison = () => {
             <li aria-hidden>·</li>
             <li>Blog</li>
             <li aria-hidden>·</li>
-            <li className="text-foreground">Aureon vs ChatGPT vs Claude</li>
+            <li className="text-foreground">Asherin vs ChatGPT vs Claude</li>
           </ol>
         </nav>
 
@@ -196,11 +196,11 @@ const BlogComparison = () => {
               ◈ Comparison · Published {PUBLISHED}
             </div>
             <h1 className="text-4xl sm:text-5xl font-extralight tracking-tight leading-[1.1]">
-              Aureon vs ChatGPT vs Claude — the honest 2026 comparison
+              Asherin vs ChatGPT vs Claude — the honest 2026 comparison
             </h1>
             <p className="max-w-3xl text-base sm:text-lg font-extralight text-muted-foreground leading-relaxed">
               Three platforms, one prompt set, no marketing. Below is a feature-by-feature
-              comparison of Aureon, ChatGPT Plus, and Claude Pro — covering price,
+              comparison of Asherin, ChatGPT Plus, and Claude Pro — covering price,
               censorship policy, bring-your-own-key support, OSINT, the built-in IDE,
               engineering simulation, and privacy.
             </p>
@@ -211,13 +211,13 @@ const BlogComparison = () => {
             <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">◉ TL;DR</p>
             <p className="text-sm font-extralight leading-relaxed text-foreground/90">
               ChatGPT and Claude are excellent general-purpose chat products with
-              mandatory monthly subscriptions. Aureon is a different category: an
+              mandatory monthly subscriptions. Asherin is a different category: an
               operator stack that bundles uncensored chat, multi-model consensus,
               30-source OSINT, predictive intelligence, a Monaco IDE, FEA
               simulation, an encrypted vault, and an infinite whiteboard — with
               <strong> no mandatory monthly fee</strong>. If you only need
               conversation, ChatGPT Plus at $20/month is a simpler pick. If you
-              need to forecast, investigate, build, simulate, and ship — Aureon
+              need to forecast, investigate, build, simulate, and ship — Asherin
               replaces three to five tools with zero recurring billing.
             </p>
           </aside>
@@ -294,7 +294,7 @@ const BlogComparison = () => {
                 <thead>
                   <tr className="border-b border-border/30 text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
                     <th scope="col" className="text-left p-4">Capability</th>
-                    <th scope="col" className="text-left p-4">Aureon</th>
+                    <th scope="col" className="text-left p-4">Asherin</th>
                     <th scope="col" className="text-left p-4">ChatGPT Plus</th>
                     <th scope="col" className="text-left p-4">Claude Pro</th>
                   </tr>
@@ -327,7 +327,7 @@ const BlogComparison = () => {
               ChatGPT and Claude both ship with reinforcement-learning safety layers
               that refuse a measurable share of lawful queries — security research,
               medical detail, geopolitical analysis, adult fiction, and competitive
-              intelligence are common refusal categories. Aureon takes the opposite
+              intelligence are common refusal categories. Asherin takes the opposite
               stance: every lawful request is answered. Users who bring their own
               provider key keep that provider's native behaviour; users without a key
               are routed through Venice, an uncensored Mistral-based model. The
@@ -339,10 +339,10 @@ const BlogComparison = () => {
           <section className="space-y-3">
             <h2 className="text-2xl font-light tracking-tight">Pricing, plainly</h2>
             <p className="text-sm font-extralight leading-relaxed text-foreground/85">
-              Aureon is $18/month for the core platform and $399/month for Aureon Pro,
+              Asherin is $18/month for the core platform and $399/month for Asherin Pro,
               which adds the full intelligence suite (Azplen, NOMAD, advanced Briefings,
               Zophiel Pro, team collaboration). ChatGPT Plus and Claude Pro are both
-              $20/month recurring but cap you at a single chat product. Aureon bundles
+              $20/month recurring but cap you at a single chat product. Asherin bundles
               capabilities ChatGPT and Claude either do not ship or gate behind
               enterprise contracts — multi-model consensus, OSINT search, the predictive
               engine, the IDE, FEA simulation, and the encrypted vault — in two clean
@@ -353,13 +353,13 @@ const BlogComparison = () => {
 
           {/* SECTION: WHEN NOT */}
           <section className="space-y-3">
-            <h2 className="text-2xl font-light tracking-tight">When Aureon is not the right pick</h2>
+            <h2 className="text-2xl font-light tracking-tight">When Asherin is not the right pick</h2>
             <p className="text-sm font-extralight leading-relaxed text-foreground/85">
               If you only need conversational AI for casual writing, brainstorming,
               or homework help, ChatGPT Plus or Claude Pro is the cheaper, simpler
-              choice. Aureon is built for operators — analysts, traders, engineers,
+              choice. Asherin is built for operators — analysts, traders, engineers,
               researchers, security teams — who need the full stack in one place.
-              Buying Aureon to use only the chat module is overspend.
+              Buying Asherin to use only the chat module is overspend.
             </p>
           </section>
 
@@ -388,7 +388,7 @@ const BlogComparison = () => {
               See the stack for yourself
             </h2>
             <p className="text-sm font-extralight text-muted-foreground max-w-xl mx-auto">
-              Aureon is $18/month, Aureon Pro is $399/month. Bring your own key on
+              Asherin is $18/month, Asherin Pro is $399/month. Bring your own key on
               either tier or use the included Venice routing. Cancel from the dashboard with one click.
             </p>
 

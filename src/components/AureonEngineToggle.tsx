@@ -26,7 +26,7 @@ function loadActive(): Active {
     const parsed = JSON.parse(raw);
     if (!parsed?.provider) return null;
     // Ignore legacy in-house engine entries.
-    if (parsed.provider === "aureon" || parsed.provider === "default") return null;
+    if (parsed.provider === "asherin" || parsed.provider === "default") return null;
     const prov = AI_PROVIDERS.find((p) => p.id === parsed.provider);
     const mod = prov?.models.find((m) => m.id === parsed.model);
     if (prov && mod) {
@@ -180,7 +180,7 @@ export default function AureonEngineToggle() {
             )}
 
             <p className="text-[8px] text-muted-foreground/40 px-2.5 pt-2 border-t border-border/10 leading-relaxed">
-              Manage keys in Settings → AI Keys. Aureon does not ship a default model.
+              Manage keys in Settings → AI Keys. Asherin does not ship a default model.
             </p>
           </div>
         )}

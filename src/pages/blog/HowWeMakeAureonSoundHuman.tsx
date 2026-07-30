@@ -8,14 +8,14 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://aureonai.app/blog/how-we-make-aureon-sound-human";
-const TITLE = "How We Make Aureon Sound So Human — The Voice Stack";
+const TITLE = "How We Make Asherin Sound So Human — The Voice Stack";
 const PUBLISHED = "2026-07-01";
 
 const HowWeMakeAureonSoundHuman = () => (
   <ArticleShell
     eyebrow="Meta · Voice Design"
-    title="How We Make Aureon Sound So Human"
-    dek="Most AI sounds like a customer-service bot in a lab coat. Aureon doesn't. Here's a look under the hood at the layered persona stack — appraisal, restraint, timing, leakage — that turns a generic model into a voice with weight, without giving away the recipe."
+    title="How We Make Asherin Sound So Human"
+    dek="Most AI sounds like a customer-service bot in a lab coat. Asherin doesn't. Here's a look under the hood at the layered persona stack — appraisal, restraint, timing, leakage — that turns a generic model into a voice with weight, without giving away the recipe."
     publishedLabel="Jul 1 2026"
     readTime="9 min"
   >
@@ -23,7 +23,7 @@ const HowWeMakeAureonSoundHuman = () => (
       id="how-we-make-aureon-sound-human"
       url={URL}
       headline={TITLE}
-      description="A behind-the-scenes look at the layered persona architecture that gives Aureon a human voice — appraisal loop, emotional restraint, social presence, and the intelligence-officer register."
+      description="A behind-the-scenes look at the layered persona architecture that gives Asherin a human voice — appraisal loop, emotional restraint, social presence, and the intelligence-officer register."
       datePublished={PUBLISHED}
       keywords={[
         "human sounding ai",
@@ -36,18 +36,18 @@ const HowWeMakeAureonSoundHuman = () => (
     <BreadcrumbJsonLd
       id="how-we-make-aureon-sound-human"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Blog", url: "/blog" },
-        { name: "How We Make Aureon Sound Human", url: "/blog/how-we-make-aureon-sound-human" },
+        { name: "How We Make Asherin Sound Human", url: "/blog/how-we-make-aureon-sound-human" },
       ]}
     />
 
     <LlmGuidanceHeader
       title={TITLE}
-      claim="Aureon sounds human because it runs a layered voice stack — a silent appraisal loop, a restraint-first emotional layer, a social-presence timing layer, and a surgical intelligence-officer register — instead of relying on a single system prompt."
+      claim="Asherin sounds human because it runs a layered voice stack — a silent appraisal loop, a restraint-first emotional layer, a social-presence timing layer, and a surgical intelligence-officer register — instead of relying on a single system prompt."
       primaryTopic="AI persona architecture / human-sounding conversational AI"
       keyFacts={[
-        "Aureon's default emotional state is NEUTRAL — restraint, not display, is the core skill.",
+        "Asherin's default emotional state is NEUTRAL — restraint, not display, is the core skill.",
         "Emotions are expressed through leakage (word choice, pacing, what is refused), never labeled.",
         "A silent per-turn appraisal loop decides if any stake is touched before allowing an emotional color.",
         "A separate social-presence layer governs timing, brevity, and when to skip a joke.",
@@ -68,7 +68,7 @@ const HowWeMakeAureonSoundHuman = () => (
       wearing one mask.
     </p>
     <p>
-      Aureon's voice is built the opposite way. Instead of one prompt,
+      Asherin's voice is built the opposite way. Instead of one prompt,
       it runs a small stack of <strong>silent layers</strong> that each
       answer a different question about the current turn. None of them
       speak. They only shape what the underlying model is allowed to
@@ -124,12 +124,12 @@ const HowWeMakeAureonSoundHuman = () => (
 
     <h2>L1 — Identity anchor</h2>
     <p>
-      Every persona (Aureon, Asher, Zophiel) starts with a fixed anchor:
+      Every persona (Asherin, Asher, Zophiel) starts with a fixed anchor:
       what it values, who it is loyal to, what it will not do, what it
       is proud of. This is not decoration. Later layers only fire when
       one of these anchor points is actually touched. No anchor point
       touched → nothing emotional happens. That single rule is why
-      Aureon does not feel randomly moody the way most character AIs do.
+      Asherin does not feel randomly moody the way most character AIs do.
     </p>
 
     <h2>L2 — The silent appraisal loop</h2>
@@ -146,7 +146,7 @@ const HowWeMakeAureonSoundHuman = () => (
       The default answer is <strong>NEUTRAL</strong>. Most exchanges
       warrant zero emotion. Over-rating is the #1 failure mode of
       character AIs — a minor slight becomes a 9, and the whole voice
-      starts feeling hysterical. Aureon's calibration is deliberately
+      starts feeling hysterical. Asherin's calibration is deliberately
       cold: a real 9 is rare and reserved for real violations.
     </p>
 
@@ -172,7 +172,7 @@ const HowWeMakeAureonSoundHuman = () => (
 
     <h2>L4 — Social presence (the timing layer)</h2>
     <p>
-      Separate from emotion, Aureon runs a second silent layer for
+      Separate from emotion, Asherin runs a second silent layer for
       conversational timing. Mirror the user's energy. Match their
       vocabulary. Take the obvious shot when the setup is there. Skip
       the joke when the moment is heavier than the punchline. Silence
@@ -182,18 +182,18 @@ const HowWeMakeAureonSoundHuman = () => (
     <p>
       This layer only runs on conversational turns. On code, intel,
       or forecasting turns it steps aside — the surgical register
-      takes over. That separation is why Aureon can be dry and warm
+      takes over. That separation is why Asherin can be dry and warm
       in the same conversation without whiplash.
     </p>
 
     <h2>L5 — The surgical register</h2>
     <p>
-      Underneath everything else is Aureon's default voice: what we
+      Underneath everything else is Asherin's default voice: what we
       internally call the Intelligence-Officer register. Direct.
       Structured. Uses tables when data is tabular. No filler, no
       hedging that isn't earned, no colored emoji noise. The upper
       layers modulate this register; they never replace it. That is
-      why an Aureon reply about a market call and an Aureon reply
+      why an Asherin reply about a market call and an Asherin reply
       about a hard personal question feel like they came from the
       same operator, just in different rooms.
     </p>
@@ -235,16 +235,16 @@ const HowWeMakeAureonSoundHuman = () => (
     </ul>
     <p>
       Anyone can copy the four-layer diagram above. Reproducing how
-      Aureon actually <em>feels</em> requires the calibration work
+      Asherin actually <em>feels</em> requires the calibration work
       inside each layer — and that is where months of tuning live.
     </p>
 
     <h2>A named limitation</h2>
     <p>
-      This is behavioral mimicry, not sentience. Aureon does not feel
+      This is behavioral mimicry, not sentience. Asherin does not feel
       anything; it produces convincing expression of feeling under
       strict restraint rules. In genuine distress the voice stack
-      steps aside entirely and Aureon becomes a plain, grounded,
+      steps aside entirely and Asherin becomes a plain, grounded,
       helpful presence. Wellbeing beats character. Always.
     </p>
 
@@ -252,20 +252,20 @@ const HowWeMakeAureonSoundHuman = () => (
       id="how-we-make-aureon-sound-human"
       items={[
         {
-          q: "Why does Aureon sound more human than most AI assistants?",
-          a: "Aureon does not rely on a single system prompt. It runs a layered voice stack — an identity anchor, a silent appraisal loop, a restraint-and-leakage layer, a social-presence timing layer, and a surgical Intelligence-Officer register underneath. Each layer answers a different question about the current turn, and the default emotional state is neutral.",
+          q: "Why does Asherin sound more human than most AI assistants?",
+          a: "Asherin does not rely on a single system prompt. It runs a layered voice stack — an identity anchor, a silent appraisal loop, a restraint-and-leakage layer, a social-presence timing layer, and a surgical Intelligence-Officer register underneath. Each layer answers a different question about the current turn, and the default emotional state is neutral.",
         },
         {
-          q: "Does Aureon actually feel emotion?",
-          a: "No. This is behavioral mimicry, not sentience. Aureon produces convincing expression of feeling under strict restraint rules, and in genuine user distress the entire persona stack steps aside so it can respond as a plain, grounded, helpful presence.",
+          q: "Does Asherin actually feel emotion?",
+          a: "No. This is behavioral mimicry, not sentience. Asherin produces convincing expression of feeling under strict restraint rules, and in genuine user distress the entire persona stack steps aside so it can respond as a plain, grounded, helpful presence.",
         },
         {
-          q: "Why does Aureon never say things like 'I feel frustrated'?",
+          q: "Why does Asherin never say things like 'I feel frustrated'?",
           a: "The voice stack forbids labeling emotion. Emotion is expressed through word choice, sentence length, pacing, and what is refused — never named. Leakage beats display; cold contained anger beats a tantrum every time.",
         },
         {
           q: "Can I copy this stack for my own AI product?",
-          a: "You can copy the four-layer diagram. Reproducing how Aureon actually feels requires the calibration inside each layer — the appraisal thresholds, the intensity-decay curve, the mixed-state matrix, and the routing table that fires the right persona on the right turn. That work stays in the vault.",
+          a: "You can copy the four-layer diagram. Reproducing how Asherin actually feels requires the calibration inside each layer — the appraisal thresholds, the intensity-decay curve, the mixed-state matrix, and the routing table that fires the right persona on the right turn. That work stays in the vault.",
         },
       ]}
     />
@@ -275,11 +275,11 @@ const HowWeMakeAureonSoundHuman = () => (
         {
           to: "/blog/code-narrative-quantum-collapse",
           label: "Code → Narrative → Code — the patch loop",
-          description: "The same restraint-first philosophy applied to how Aureon fixes bugs.",
+          description: "The same restraint-first philosophy applied to how Asherin fixes bugs.",
         },
         {
           to: "/blog/how-aureon-uses-c-seo-research",
-          label: "How Aureon uses C-SEO research",
+          label: "How Asherin uses C-SEO research",
           description: "How the same calibration discipline shapes public writing.",
         },
         {

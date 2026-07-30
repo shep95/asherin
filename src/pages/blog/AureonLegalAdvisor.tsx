@@ -11,7 +11,7 @@ import { applySeoHead } from "@/lib/seoHead";
 /**
  * /blog/aureon-legal-advisor-multi-jurisdictional
  *
- * Long-form field report on the July 8, 2026 launch of Aureon & Asher
+ * Long-form field report on the July 8, 2026 launch of Asherin & Asher
  * "LAW mode" — a multi-jurisdictional legal-research reflex that surfaces
  * older statutes, colonial-era carryovers, and precedent that quietly
  * supersedes modern law across any country, state, or province.
@@ -21,7 +21,7 @@ const PUBLISHED = "2026-07-08";
 
 const FAQ = [
   {
-    q: "What is LAW mode in Aureon and Asher?",
+    q: "What is LAW mode in Asherin and Asher?",
     a: "LAW mode is a per-message toggle that wraps every prompt in a strict multi-jurisdictional legal-research directive. The model researches every applicable law in the country, state, or province you named — including older statutes and precedent that can supersede newer law — and returns a structured answer with jurisdiction, controlling authority, conflicts, and a mandatory disclaimer.",
   },
   {
@@ -42,9 +42,9 @@ const AureonLegalAdvisor = () => {
   useEffect(() => {
     applySeoHead({
       title:
-        "Aureon Legal Advisor (LAW Mode) — Multi-Jurisdictional AI Legal Research | Aureon",
+        "Asherin Legal Advisor (LAW Mode) — Multi-Jurisdictional AI Legal Research | Asherin",
       description:
-        "Aureon and Asher now ship LAW mode: a per-message toggle that runs deep multi-jurisdictional legal research across any country, state, or province — including older statutes that supersede newer law.",
+        "Asherin and Asher now ship LAW mode: a per-message toggle that runs deep multi-jurisdictional legal research across any country, state, or province — including older statutes that supersede newer law.",
       path: "/blog/aureon-legal-advisor-multi-jurisdictional",
     });
   }, []);
@@ -54,15 +54,15 @@ const AureonLegalAdvisor = () => {
       <ArticleJsonLd
         id="legal-advisor"
         url={URL}
-        headline="Aureon Legal Advisor (LAW Mode) — Multi-Jurisdictional AI Legal Research"
-        description="A field report on the July 8, 2026 launch of LAW mode across Aureon and Asher — how it researches every applicable law in a jurisdiction, surfaces older statutes that supersede newer ones, and enforces a no-fabrication rule on citations."
+        headline="Asherin Legal Advisor (LAW Mode) — Multi-Jurisdictional AI Legal Research"
+        description="A field report on the July 8, 2026 launch of LAW mode across Asherin and Asher — how it researches every applicable law in a jurisdiction, surfaces older statutes that supersede newer ones, and enforces a no-fabrication rule on citations."
         datePublished={PUBLISHED}
         keywords={[
-          "aureon legal advisor",
+          "asherin legal advisor",
           "ai legal research",
           "multi-jurisdictional law ai",
           "older laws superseding newer",
-          "law mode aureon",
+          "law mode asherin",
           "asher legal ai",
         ]}
       />
@@ -71,7 +71,7 @@ const AureonLegalAdvisor = () => {
         items={[
           { name: "Home", url: "/" },
           { name: "Blog", url: "/blog" },
-          { name: "Aureon Legal Advisor (LAW Mode)", url: URL },
+          { name: "Asherin Legal Advisor (LAW Mode)", url: URL },
         ]}
       />
       <FaqJsonLd id="legal-advisor" items={FAQ} />
@@ -80,8 +80,8 @@ const AureonLegalAdvisor = () => {
         eyebrow="Field Report"
         publishedLabel="July 8, 2026"
         readTime="8 min read"
-        title="Aureon Legal Advisor — LAW mode ships multi-jurisdictional research to every operator"
-        dek="Aureon and Asher now run a dedicated legal-research reflex on demand. Toggle the LAW pill in the composer and every prompt is wrapped in a strict directive that hunts the entire body of applicable law — modern statutes, colonial-era carryovers, uncodified common law, and binding precedent — across any country, state, or province you name."
+        title="Asherin Legal Advisor — LAW mode ships multi-jurisdictional research to every operator"
+        dek="Asherin and Asher now run a dedicated legal-research reflex on demand. Toggle the LAW pill in the composer and every prompt is wrapped in a strict directive that hunts the entire body of applicable law — modern statutes, colonial-era carryovers, uncodified common law, and binding precedent — across any country, state, or province you name."
       >
         <h2>Why LAW mode exists</h2>
         <p>
@@ -103,7 +103,7 @@ const AureonLegalAdvisor = () => {
           path. When it is on, your prompt is wrapped in a legal-research
           directive before it reaches the model. The directive is
           deterministic and lives in <code>src/lib/legalAdvisor.ts</code>{" "}
-          so every surface (Aureon Chat, Asher Chat) speaks the exact
+          so every surface (Asherin Chat, Asher Chat) speaks the exact
           same protocol.
         </p>
         <ol>
@@ -217,7 +217,7 @@ const AureonLegalAdvisor = () => {
         <h2>How to use it right now</h2>
         <ol>
           <li>
-            Open <a href="/dashboard">Aureon Chat</a> or Asher Chat.
+            Open <a href="/dashboard">Asherin Chat</a> or Asher Chat.
           </li>
           <li>
             Click the <strong>LAW</strong> pill in the composer. It
@@ -251,7 +251,7 @@ const AureonLegalAdvisor = () => {
             },
             {
               to: "/updates",
-              label: "Aureon changelog",
+              label: "Asherin changelog",
               description:
                 "Daily engineering updates from the operator stack, including the July 8, 2026 LAW mode ship.",
             },
@@ -259,7 +259,7 @@ const AureonLegalAdvisor = () => {
               to: "/blog/ai-without-restrictions",
               label: "AI without restrictions — the operator workflow",
               description:
-                "How Aureon's model-choice, prompt-discipline, and refusal-detection layers keep long sessions honest.",
+                "How Asherin's model-choice, prompt-discipline, and refusal-detection layers keep long sessions honest.",
             },
             {
               to: "/blog/what-is-ai-osint",

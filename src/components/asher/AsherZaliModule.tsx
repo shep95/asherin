@@ -1,6 +1,6 @@
 // AsherZaliModule — ZALI Design Intelligence reskinned for the Asher Dashboard.
 // Reuses every live ZALI panel + the same Supabase data plumbing as ZaliView,
-// but wrapped in monochrome / glassmorphic Asher chrome (no Aureon header,
+// but wrapped in monochrome / glassmorphic Asher chrome (no Asherin header,
 // no atom logo, no accent colors — just the dossier aesthetic).
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import {

@@ -8,7 +8,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const [timedOut, setTimedOut] = useState(false);
 
   // Escape hatch: if auth hydration stalls past 8s, fall back to home
-  // instead of trapping the user on an infinite "AUREON" pulse.
+  // instead of trapping the user on an infinite "ASHERIN" pulse.
   useEffect(() => {
     if (!loading) return;
     const t = window.setTimeout(() => setTimedOut(true), 8000);
@@ -19,7 +19,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">
-          AUREON
+          ASHERIN
         </div>
       </div>
     );

@@ -184,7 +184,7 @@ const Dashboard = () => {
   const [depth, setDepth] = useState<ResponseDepth>("standard");
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  // Donation Era: Aureon is fully free. Everyone gets the toggle and can pick
+  // Donation Era: Asherin is fully free. Everyone gets the toggle and can pick
   // between the Algorithm LLM and BYOK chat. Nothing is locked behind a tier.
   const isAdminUser = isAdminEmail(user?.email);
   const isFreeUser = false;
@@ -234,15 +234,15 @@ const Dashboard = () => {
   });
   const [wallpaperKey, setWallpaperKey] = useState(() => {
     try {
-      // Newbies: seed the default Aureon wallpaper so it persists across reloads
+      // Newbies: seed the default Asherin wallpaper so it persists across reloads
       // until they explicitly change it in Settings.
       const existing = localStorage.getItem("aureon_wallpaper");
       if (!existing) {
-        localStorage.setItem("aureon_wallpaper", "aureon");
-        return "aureon";
+        localStorage.setItem("aureon_wallpaper", "asherin");
+        return "asherin";
       }
       return existing;
-    } catch { return "aureon"; }
+    } catch { return "asherin"; }
   });
   const [prevDashWallpaper, setPrevDashWallpaper] = useState<string | null>(null);
   const [isDashTransitioning, setIsDashTransitioning] = useState(false);
@@ -251,9 +251,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     applySeoHead({
-      title: "Dashboard — Aureon Workspace",
+      title: "Dashboard — Asherin Workspace",
       description:
-        "Your Aureon workspace — chats, agents, projects, intelligence modules, and BYOK controls in one private dashboard.",
+        "Your Asherin workspace — chats, agents, projects, intelligence modules, and BYOK controls in one private dashboard.",
       path: "/dashboard",
     });
   }, []);
@@ -261,7 +261,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     const handler = () => {
-      const newKey = localStorage.getItem("aureon_wallpaper") || "aureon";
+      const newKey = localStorage.getItem("aureon_wallpaper") || "asherin";
       const newSrc = getWallpaperSrc(newKey);
       const oldSrc = getWallpaperSrc(wallpaperKey);
       if (newSrc !== oldSrc) {
@@ -529,17 +529,17 @@ const Dashboard = () => {
       const view = (e as CustomEvent).detail as DashboardView;
       if (view) setActiveView(view);
     };
-    window.addEventListener("aureon:navigate", handler);
-    return () => window.removeEventListener("aureon:navigate", handler);
+    window.addEventListener("asherin:navigate", handler);
+    return () => window.removeEventListener("asherin:navigate", handler);
   }, []);
 
   // Load stored BYOK providers for consensus selector.
-  // "aureon" is platform-hosted (no key) and always available as a switchable provider.
+  // "asherin" is platform-hosted (no key) and always available as a switchable provider.
   useEffect(() => {
     if (!user) return;
     supabase.from("user_api_keys").select("provider").eq("user_id", user.id).eq("is_active", true).then(({ data }) => {
       const byok = data ? data.map(d => d.provider) : [];
-      setStoredProviders(["aureon", ...byok.filter(p => p !== "aureon")]);
+      setStoredProviders(["asherin", ...byok.filter(p => p !== "asherin")]);
     });
   }, [user]);
 
@@ -902,7 +902,7 @@ const Dashboard = () => {
       }
       await supabase.from("user_intelligence_profile").update(updates).eq("user_id", user.id);
     }
-    toast({ title: "Calibrated", description: "Aureon adjusted to your preference." });
+    toast({ title: "Calibrated", description: "Asherin adjusted to your preference." });
   }, [user, toast]);
 
   const stopStreaming = useCallback(() => {
@@ -945,7 +945,7 @@ const Dashboard = () => {
       if (match) {
         toast({
           title: `Persona suggestion: ${match.label}`,
-          description: "Aureon detected a task that matches this persona.",
+          description: "Asherin detected a task that matches this persona.",
           action: React.createElement(ToastAction, {
             altText: "Switch persona",
             onClick: () => setPersonaId(match.personaId),
@@ -1206,7 +1206,7 @@ const Dashboard = () => {
             setSuggestions(sug);
           } catch { /* suggestions are non-critical */ }
           pushNotification({
-            title: "Aureon responded",
+            title: "Asherin responded",
             message: assistantContent.slice(0, 80) + (assistantContent.length > 80 ? "…" : ""),
             type: "success",
             actionLabel: "View",
@@ -1488,8 +1488,8 @@ const Dashboard = () => {
       case "audit": return gatedView("audit", AuditLogView, "Audit Trail", "Complete access and activity logging for compliance and security. Available on Pro plans.");
       case "zahten": return gatedView("zahten" as DashboardView, AsherZahtenModule, "Zahten Agent Forge", "Autonomous agent builder — design, scaffold, and harden production-grade automated agents. Available on the Chat plan and above.");
       
-      case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
-      case "cross": return gatedView("cross", CrossView, "Cross — Live Screen Intelligence", "Real-time screen analysis — share your screen with Aureon for instant pattern detection, alerts, and recommendations. Admin only.");
+      case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Asherin powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
+      case "cross": return gatedView("cross", CrossView, "Cross — Live Screen Intelligence", "Real-time screen analysis — share your screen with Asherin for instant pattern detection, alerts, and recommendations. Admin only.");
       case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.");
       case "axrlen": return gatedView("axrlen", AxrlenView, "Axrlen — Predictive Intelligence", "Real-time global event prediction and policy simulation — powered by live data from 9+ intelligence sources. Available on Pro plans.");
       case "zerlal": return gatedView("zerlal", ZerlalView, "ZERLAL — Cyber Recon", "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.");
@@ -1498,13 +1498,13 @@ const Dashboard = () => {
       
       
       // case "imagine-intelligence" removed
-      case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Aureon and above.");
+      case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Asherin and above.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro plans.");
       
       case "bug-reports": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense></ErrorBoundary>;
       case "guardian-vault": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GuardianVaultView /></Suspense></ErrorBoundary>;
-      case "knowledge-vault": return gatedView("knowledge-vault", KnowledgeVaultView, "Knowledge Vault (RAG)", "Private retrieval-augmented memory — upload files or connect APIs and Aureon will cite them automatically in every chat. Available on the $399/mo Pro plan.");
-      case "cipher": return gatedView("cipher", CipherView, "Cipher — Data Operations", "Intelligence-grade data toolkit — encoding, hashing, encryption, format conversion, and recipe chaining. All operations run client-side. Available on Aureon and above.");
+      case "knowledge-vault": return gatedView("knowledge-vault", KnowledgeVaultView, "Knowledge Vault (RAG)", "Private retrieval-augmented memory — upload files or connect APIs and Asherin will cite them automatically in every chat. Available on the $399/mo Pro plan.");
+      case "cipher": return gatedView("cipher", CipherView, "Cipher — Data Operations", "Intelligence-grade data toolkit — encoding, hashing, encryption, format conversion, and recipe chaining. All operations run client-side. Available on Asherin and above.");
       case "gematria": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GematriaView /></Suspense></ErrorBoundary>;
       // Always-accessible views
       case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;
@@ -1562,7 +1562,7 @@ const Dashboard = () => {
       ) : (
         <div className="flex h-full w-full items-center justify-center px-6">
           <div className="max-w-md text-center space-y-4">
-            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">◈ AUREON</p>
+            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">◈ ASHERIN</p>
             <h2 className="text-xl font-extralight tracking-wide text-foreground">Welcome to your workspace.</h2>
             <p className="text-sm font-extralight text-muted-foreground">
               Spin up your first conversation, or pick a module from the sidebar.
@@ -1592,7 +1592,7 @@ const Dashboard = () => {
   if (!loaded) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">AUREON</div>
+        <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">ASHERIN</div>
       </div>
     );
   }
@@ -1602,7 +1602,7 @@ const Dashboard = () => {
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       <Suspense fallback={null}><NewAccountWelcomeModal /></Suspense>
-      <h1 className="sr-only">Aureon Dashboard — Your Intelligence Workspace</h1>
+      <h1 className="sr-only">Asherin Dashboard — Your Intelligence Workspace</h1>
       {/* Previous wallpaper (fades out during transition) */}
       {prevDashWallpaper && isDashTransitioning && (
         <div className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${prevDashWallpaper})`, zIndex: 0 }} />

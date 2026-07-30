@@ -1,5 +1,5 @@
 // ASHER AI · Command Center — sessioned chat with file uploads (image/video/PDF).
-// Aureon wallpaper background. Sessions stored in `asher_ai_sessions` + messages
+// Asherin wallpaper background. Sessions stored in `asher_ai_sessions` + messages
 // in `asher_ai_messages`. Files uploaded to private `asher-ai-uploads` bucket and
 // streamed to Gemini as inline_data parts via the asher-ai edge function.
 
@@ -369,7 +369,7 @@ const AsherCommandCenter = () => {
 
   return (
     <div className="relative flex h-full w-full text-foreground">
-      {/* Aureon wallpaper background */}
+      {/* Asherin wallpaper background */}
       <div
         className="absolute inset-0 bg-cover bg-center pointer-events-none"
         style={{ backgroundImage: `url(${wallpaperAureon})` }}

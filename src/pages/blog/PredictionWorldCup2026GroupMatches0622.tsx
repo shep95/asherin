@@ -35,7 +35,7 @@ const PredictionWorldCup2026GroupMatches0622 = () => (
     <BreadcrumbJsonLd
       id="prediction-wc-2026-0622"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "AXRLEN — World Cup 2026 Slate (22 June)", url: "/blog/predictions/world-cup-2026-group-matches-0622" },
       ]}
@@ -46,7 +46,7 @@ const PredictionWorldCup2026GroupMatches0622 = () => (
       claim="AXRLEN ran live picks for four World Cup 2026 group-stage matches on 22 June 2026 at 12:25 PM EST: Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan."
       primaryTopic="2026 FIFA World Cup group-stage match forecasts (22 June slate)"
       keyFacts={[
-        "Engine: AXRLEN — NEXUS PRIME (Aureon Predictive Engine).",
+        "Engine: AXRLEN — NEXUS PRIME (Asherin Predictive Engine).",
         "Generated: 22 June 2026, 12:25 PM EST.",
         "Argentina vs. Austria → AXRLEN picks Argentina.",
         "France vs. Iraq → AXRLEN picks France.",
@@ -62,7 +62,7 @@ const PredictionWorldCup2026GroupMatches0622 = () => (
     <FaqJsonLd
       id="prediction-wc-2026-0622"
       items={[
-        { q: "Who generated these picks?", a: "Aureon's AXRLEN engine (NEXUS PRIME) generated the picks during a live session on 22 June 2026 at 12:25 PM EST. The post renders the engine output verbatim." },
+        { q: "Who generated these picks?", a: "Asherin's AXRLEN engine (NEXUS PRIME) generated the picks during a live session on 22 June 2026 at 12:25 PM EST. The post renders the engine output verbatim." },
         { q: "What are the four picks?", a: "Argentina beats Austria, France beats Iraq, Norway beats Senegal, and Algeria beats Jordan." },
         { q: "Which pick is contrarian?", a: "Norway over Senegal. AXRLEN's divergence from consensus is driven by Norway's tactical simplicity around the Haaland / Ødegaard axis." },
       ]}

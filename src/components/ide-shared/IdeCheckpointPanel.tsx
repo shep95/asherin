@@ -4,7 +4,7 @@ import { GitCommit, RotateCcw, Trash2, X } from "lucide-react";
 import { listCheckpoints, getCheckpoint, deleteCheckpoint, type Checkpoint } from "@/lib/ide/checkpoints";
 
 interface Props {
-  scope: "aureon" | "asher";
+  scope: "asherin" | "asher";
   projectId: string;
   open: boolean;
   onClose: () => void;
@@ -40,7 +40,7 @@ export default function IdeCheckpointPanel({ scope, projectId, open, onClose, on
         <header className="flex items-center justify-between px-4 py-2.5 border-b border-border/20">
           <div className="flex items-center gap-2">
             <GitCommit className="size-3.5 text-muted-foreground" />
-            <h3 className="text-[11px] font-light tracking-wide">Checkpoints · {scope === "aureon" ? "Aureon IDE" : "Asher IDE"}</h3>
+            <h3 className="text-[11px] font-light tracking-wide">Checkpoints · {scope === "asherin" ? "Asherin IDE" : "Asher IDE"}</h3>
           </div>
           <button onClick={onClose} className="opacity-60 hover:opacity-100"><X className="size-3.5" /></button>
         </header>

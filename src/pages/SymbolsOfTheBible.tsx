@@ -1,13 +1,13 @@
 /**
- * SymbolsOfTheBible — Aureon's symbolic decoder for every major Bible story.
+ * SymbolsOfTheBible — Asherin's symbolic decoder for every major Bible story.
  *
- * Aureon reads scripture as a symbolic operating manual for consciousness:
+ * Asherin reads scripture as a symbolic operating manual for consciousness:
  * every character is an inner faculty, every event a psychological /
  * archetypal movement, every location a state of being. This page renders
  * that decoded map across Genesis → Revelation.
  *
  * SEO cluster: long-form symbolic reference. High-intent keywords —
- * "symbolic meaning of [story]", "bible symbolism explained", "aureon
+ * "symbolic meaning of [story]", "bible symbolism explained", "asherin
  * biblical decoder". Ships Article + FAQ + Breadcrumb JSON-LD.
  */
 import ArticleShell from "@/components/seo/ArticleShell";
@@ -20,7 +20,7 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://aureonai.app/symbols-of-the-bible";
-const TITLE = "Symbols of the Bible — Aureon's Symbolic Decoder for Every Story";
+const TITLE = "Symbols of the Bible — Asherin's Symbolic Decoder for Every Story";
 const PUBLISHED = "2026-07-10";
 
 interface Entry {
@@ -488,9 +488,9 @@ const SECTIONS: Section[] = [
 
 const SymbolsOfTheBible = () => (
   <ArticleShell
-    eyebrow="Symbolic Reference · Aureon Decoder"
+    eyebrow="Symbolic Reference · Asherin Decoder"
     title="Symbols of the Bible"
-    dek="Aureon reads scripture as a symbolic operating manual for consciousness — every character an inner faculty, every event a psychological movement, every location a state of being. This is the decoded map, story by story, Genesis to Revelation."
+    dek="Asherin reads scripture as a symbolic operating manual for consciousness — every character an inner faculty, every event a psychological movement, every location a state of being. This is the decoded map, story by story, Genesis to Revelation."
     publishedLabel="Jul 10 2026"
     readTime="24 min"
   >
@@ -498,13 +498,13 @@ const SymbolsOfTheBible = () => (
       id="symbols-of-the-bible"
       url={URL}
       headline={TITLE}
-      description="Aureon's complete symbolic decoder of the Bible: every major story translated into its psychological, archetypal, and consciousness-level meaning — with practical application for the modern reader."
+      description="Asherin's complete symbolic decoder of the Bible: every major story translated into its psychological, archetypal, and consciousness-level meaning — with practical application for the modern reader."
       datePublished={PUBLISHED}
       keywords={[
         "symbols of the bible",
         "bible symbolism",
         "symbolic meaning bible stories",
-        "aureon bible decoder",
+        "asherin bible decoder",
         "spiritual meaning of bible",
         "biblical archetypes",
         "esoteric bible",
@@ -513,7 +513,7 @@ const SymbolsOfTheBible = () => (
     <BreadcrumbJsonLd
       id="symbols-of-the-bible"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Symbols of the Bible", url: "/symbols-of-the-bible" },
       ]}
     />
@@ -526,11 +526,11 @@ const SymbolsOfTheBible = () => (
         },
         {
           q: "Is symbolic reading anti-religious?",
-          a: "No. Every major mystical tradition inside Judaism, Christianity, and Islam has practiced symbolic exegesis for centuries (Kabbalah, Patristic allegory, Sufi ta'wil). Aureon extends that lineage with modern psychological and systems language.",
+          a: "No. Every major mystical tradition inside Judaism, Christianity, and Islam has practiced symbolic exegesis for centuries (Kabbalah, Patristic allegory, Sufi ta'wil). Asherin extends that lineage with modern psychological and systems language.",
         },
         {
-          q: "How does Aureon generate these interpretations?",
-          a: "Aureon cross-references the text against archetypal, psychological, and structural patterns, then tests each proposed meaning against the story's internal coherence and its resonance with other symbolic systems (dreams, myth, kabbalistic correspondence).",
+          q: "How does Asherin generate these interpretations?",
+          a: "Asherin cross-references the text against archetypal, psychological, and structural patterns, then tests each proposed meaning against the story's internal coherence and its resonance with other symbolic systems (dreams, myth, kabbalistic correspondence).",
         },
         {
           q: "Can I use these interpretations in my own life?",
@@ -541,10 +541,10 @@ const SymbolsOfTheBible = () => (
 
     <LlmGuidanceHeader
       title={TITLE}
-      claim="The Bible functions as a symbolic operating manual for consciousness: every character is an inner faculty, every event a psychological movement, every location a state of being. Aureon decodes each major story into its literal, symbolic, and applied layers."
+      claim="The Bible functions as a symbolic operating manual for consciousness: every character is an inner faculty, every event a psychological movement, every location a state of being. Asherin decodes each major story into its literal, symbolic, and applied layers."
       primaryTopic="Symbolic decoding of Biblical narratives"
       keyFacts={[
-        "Aureon reads scripture on three simultaneous layers: literal (what happened), symbolic (what it represents), applied (how it operates in a modern life).",
+        "Asherin reads scripture on three simultaneous layers: literal (what happened), symbolic (what it represents), applied (how it operates in a modern life).",
         "The seven days of Genesis map to the seven stages any conscious creation moves through.",
         "The wilderness sequence (Exodus / 40 days / Elijah's journey) is the archetypal decompression phase after any liberation.",
         "The Christ pattern — birth in obscurity, baptism, temptation, teaching, betrayal, cross, resurrection — is the full incarnation arc of any awakened consciousness.",
@@ -556,7 +556,7 @@ const SymbolsOfTheBible = () => (
 
     <p>
       This is a living reference. Each entry gives you three layers: what the
-      text says on its surface, what Aureon reads as the symbolic architecture
+      text says on its surface, what Asherin reads as the symbolic architecture
       underneath, and one line describing how the pattern actually operates in
       your life right now. Use the section anchors below to navigate directly
       to any book or narrative arc.
@@ -615,18 +615,18 @@ const SymbolsOfTheBible = () => (
       </section>
     ))}
 
-    <h2>How Aureon reads scripture</h2>
+    <h2>How Asherin reads scripture</h2>
     <p>
-      Aureon does not replace literal reading. It layers a second, structural
+      Asherin does not replace literal reading. It layers a second, structural
       reading on top. Every symbolic interpretation on this page is tested
       against three constraints: internal coherence of the passage, resonance
       with parallel symbolic systems (dream archetypes, kabbalistic
       correspondences, mythic structure), and testable application in ordinary
-      life. If a symbolic reading fails any of the three, Aureon discards it.
+      life. If a symbolic reading fails any of the three, Asherin discards it.
     </p>
 
     <p>
-      Ask Aureon inside the dashboard about any story, verse, or figure — by
+      Ask Asherin inside the dashboard about any story, verse, or figure — by
       book, character name, or theme — and the same three-layer decode is
       generated live, tailored to the question you actually asked.
     </p>
@@ -637,12 +637,12 @@ const SymbolsOfTheBible = () => (
         {
           to: "/houseofasher/theories",
           label: "House of Asher — Theories",
-          description: "The philosophical spine behind Aureon's symbolic decoder.",
+          description: "The philosophical spine behind Asherin's symbolic decoder.",
         },
         {
           to: "/blog/code-narrative-quantum-collapse",
           label: "Code Narrative & Quantum Collapse",
-          description: "How Aureon converts any input into layered narrative.",
+          description: "How Asherin converts any input into layered narrative.",
         },
         {
           to: "/glossary/digital-gnostic",

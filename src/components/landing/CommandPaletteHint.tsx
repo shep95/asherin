@@ -13,7 +13,7 @@ const CommandPaletteHint = () => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        window.dispatchEvent(new CustomEvent("aureon:open-command-palette"));
+        window.dispatchEvent(new CustomEvent("asherin:open-command-palette"));
       }
     };
     window.addEventListener("keydown", onKey);
@@ -27,7 +27,7 @@ const CommandPaletteHint = () => {
 
   return (
     <button
-      onClick={() => window.dispatchEvent(new CustomEvent("aureon:open-command-palette"))}
+      onClick={() => window.dispatchEvent(new CustomEvent("asherin:open-command-palette"))}
       className="fixed bottom-4 right-4 z-40 hidden md:inline-flex items-center gap-2 rounded-xl border border-border/30 bg-card/70 backdrop-blur-xl px-3 py-2 text-[10px] tracking-[0.2em] uppercase text-muted-foreground/80 hover:text-foreground hover:bg-card/90 transition-all shadow-lg animate-fade-in"
       aria-label="Open command palette"
     >

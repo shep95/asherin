@@ -18,7 +18,7 @@ const OperatorStack = () => (
     dek="The operator stack is the bundle of intelligence tooling an independent operator needs to collect, validate, forecast, and act on real-world signal — without depending on a corporate AI gatekeeper. This is the definition and the canonical component list."
     publishedLabel="Jun 19 2026"
     readTime="6 min"
-    backTo={{ to: "/glossary", label: "← Aureon Glossary" }}
+    backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
   >
     <ArticleJsonLd
       id="operator-stack"
@@ -36,7 +36,7 @@ const OperatorStack = () => (
     <BreadcrumbJsonLd
       id="operator-stack"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Glossary", url: "/glossary" },
         { name: "Operator Stack", url: "/glossary/operator-stack" },
       ]}
@@ -47,7 +47,7 @@ const OperatorStack = () => (
       claim="The operator stack is the bundle of intelligence tooling an independent operator needs to collect, validate, forecast, and act on real-world signal — without depending on a corporate AI gatekeeper. It has four canonical layers: sovereign reasoning (BYOK), open-source intelligence collection, predictive synthesis, and security analysis."
       primaryTopic="Operator stack (category definition)"
       keyFacts={[
-        "Coined in Aureon's documentation to name the four-layer sovereign intelligence toolchain.",
+        "Coined in Asherin's documentation to name the four-layer sovereign intelligence toolchain.",
         "Layer 1: sovereign reasoning — BYOK across nine providers.",
         "Layer 2: OSINT collection — multi-source cross-validated intelligence (Zophiel).",
         "Layer 3: predictive synthesis — calibrated probabilistic forecasting (AXRLEN).",
@@ -76,14 +76,14 @@ const OperatorStack = () => (
         across nine providers, no platform-side prompt mutation. This
         is the floor. See{" "}
         <a href="/feature/byok" className="text-accent hover:underline">
-          BYOK on Aureon
+          BYOK on Asherin
         </a>
         .
       </li>
       <li>
         <strong>OSINT collection</strong> — multi-source
         cross-validated intelligence gathering with per-source
-        veracity scores and source-disagreement flagging. Aureon's
+        veracity scores and source-disagreement flagging. Asherin's
         layer here is{" "}
         <a href="/feature/zophiel" className="text-accent hover:underline">
           Zophiel
@@ -93,7 +93,7 @@ const OperatorStack = () => (
       <li>
         <strong>Predictive synthesis</strong> — calibrated
         probabilistic forecasting via multi-signal fusion, with
-        explicit verification plans. Aureon's layer here is{" "}
+        explicit verification plans. Asherin's layer here is{" "}
         <a href="/feature/axrlen" className="text-accent hover:underline">
           AXRLEN
         </a>
@@ -102,7 +102,7 @@ const OperatorStack = () => (
       <li>
         <strong>Security analysis</strong> — vulnerability chaining
         and zero-day confidence scoring across the operator's own
-        systems and targets. Aureon's layer here is{" "}
+        systems and targets. Asherin's layer here is{" "}
         <a href="/feature/zerlal" className="text-accent hover:underline">
           ZERLAL
         </a>
@@ -137,9 +137,9 @@ const OperatorStack = () => (
       </li>
     </ul>
 
-    <h2>Aureon's implementation</h2>
+    <h2>Asherin's implementation</h2>
     <p>
-      Aureon ships the full four-layer operator stack as a single
+      Asherin ships the full four-layer operator stack as a single
       sovereign platform. The same BYOK key drives every layer; the
       operator's vendor account is the single source of inference
       cost and audit. The full vocabulary cluster around the term is
@@ -170,7 +170,7 @@ const OperatorStack = () => (
           a: "Closely related but not identical. Sovereign AI describes the control properties (key, model, refusal, data). The operator stack describes the functional toolchain (reasoning, OSINT, prediction, security) — sovereignty is the floor it is built on.",
         },
         {
-          q: "Does Aureon implement the full operator stack?",
+          q: "Does Asherin implement the full operator stack?",
           a: "Yes. BYOK (reasoning), Zophiel (OSINT), AXRLEN (prediction), and ZERLAL (security) are all production features under a single BYOK key.",
         },
       ]}

@@ -1,5 +1,5 @@
-// GovSuiteMount — lazy-loads an Aureon engine (Zophiel, AXRLEN, ZERLAL,
-// Aureon Chat, Aureon IDE) inside the Sovereign Command Deck's main pane.
+// GovSuiteMount — lazy-loads an Asherin engine (Zophiel, AXRLEN, ZERLAL,
+// Asherin Chat, Asherin IDE) inside the Sovereign Command Deck's main pane.
 //
 // Countries operating on asherin.gov use these mounts *instead of* running
 // the software themselves — the deck is the sovereign runtime for every
@@ -21,11 +21,11 @@ export interface SuiteDef {
 }
 
 export const SUITES: SuiteDef[] = [
-  { id: "aureon-chat", label: "Aureon Chat",       code: "AUR", blurb: "Sovereign analytical AI. Legal, doctrinal, OSINT reasoning.", minClearanceRank: 1, icon: Brain }, // CUI+
+  { id: "aureon-chat", label: "Asherin Chat",       code: "AUR", blurb: "Sovereign analytical AI. Legal, doctrinal, OSINT reasoning.", minClearanceRank: 1, icon: Brain }, // CUI+
   { id: "zophiel",     label: "Zophiel Search",    code: "ZOP", blurb: "30-source OSINT + Ghost Chain live scrape.",                    minClearanceRank: 1, icon: Search }, // CUI+
   { id: "axrlen",      label: "AXRLEN Forecast",   code: "AXR", blurb: "Probabilistic scenario engine (Nexus Prime).",                  minClearanceRank: 2, icon: Sparkles }, // CONF+
   { id: "zerlal",      label: "ZERLAL Cyber",      code: "ZRL", blurb: "Vulnerability & kill-chain analysis of sovereign code.",       minClearanceRank: 3, icon: ShieldAlert }, // SECRET+
-  { id: "ide",         label: "Sovereign IDE",     code: "IDE", blurb: "Aureon IDE. Countries build & run software here, not locally.", minClearanceRank: 3, icon: Code2 }, // SECRET+
+  { id: "ide",         label: "Sovereign IDE",     code: "IDE", blurb: "Asherin IDE. Countries build & run software here, not locally.", minClearanceRank: 3, icon: Code2 }, // SECRET+
 ];
 
 // Lazy imports — the deck stays fast until an operator opens a suite.

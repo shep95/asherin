@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 
 const URL = "https://aureonai.app/blog/zaxin-tactical-ble-intelligence";
-const TITLE = "Zaxin — Tactical BLE Intelligence, AR HUD & Satellite Recon Inside Aureon";
+const TITLE = "Zaxin — Tactical BLE Intelligence, AR HUD & Satellite Recon Inside Asherin";
 const PUBLISHED = "2026-06-26T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -18,9 +18,9 @@ const Box = ({ children }: { children: React.ReactNode }) => (
 
 const ZaxinTacticalBleIntelligence = () => (
   <ArticleShell
-    eyebrow="Product Briefing · Zaxin · Aureon $399 Tier"
-    title="Zaxin — Tactical BLE Intelligence inside Aureon"
-    dek="Zaxin is the Web-Bluetooth tactical layer bundled with the Aureon $399 subscription: a five-brain stack that pairs nearby devices, plots them on real satellite imagery, and overlays them on the camera feed as a Ghost-Recon-style HUD. This is the field briefing — workflows, diagrams, and the seven AI fusion theories that power it."
+    eyebrow="Product Briefing · Zaxin · Asherin $399 Tier"
+    title="Zaxin — Tactical BLE Intelligence inside Asherin"
+    dek="Zaxin is the Web-Bluetooth tactical layer bundled with the Asherin $399 subscription: a five-brain stack that pairs nearby devices, plots them on real satellite imagery, and overlays them on the camera feed as a Ghost-Recon-style HUD. This is the field briefing — workflows, diagrams, and the seven AI fusion theories that power it."
     publishedLabel="Jun 26 2026"
     readTime="11 min"
   >
@@ -28,7 +28,7 @@ const ZaxinTacticalBleIntelligence = () => (
       id="zaxin-tactical-ble-intelligence"
       url={URL}
       headline={TITLE}
-      description="Zaxin is a Web-Bluetooth tactical intelligence suite inside Aureon: five-brain architecture, AR HUD, satellite map, and AXRLEN-powered briefs from your own BYOK key."
+      description="Zaxin is a Web-Bluetooth tactical intelligence suite inside Asherin: five-brain architecture, AR HUD, satellite map, and AXRLEN-powered briefs from your own BYOK key."
       datePublished={PUBLISHED}
       keywords={[
         "Zaxin",
@@ -37,7 +37,7 @@ const ZaxinTacticalBleIntelligence = () => (
         "AR HUD compass",
         "Ghost Recon HUD",
         "satellite recon map",
-        "Aureon $399 subscription",
+        "Asherin $399 subscription",
         "AXRLEN tactical brief",
         "BYOK Gemini OpenAI",
       ]}
@@ -45,7 +45,7 @@ const ZaxinTacticalBleIntelligence = () => (
     <BreadcrumbJsonLd
       id="zaxin-tactical-ble-intelligence"
       items={[
-        { name: "Aureon", url: "/" },
+        { name: "Asherin", url: "/" },
         { name: "Blog", url: "/blog" },
         { name: "Zaxin — Tactical BLE Intelligence", url: "/blog/zaxin-tactical-ble-intelligence" },
       ]}
@@ -55,7 +55,7 @@ const ZaxinTacticalBleIntelligence = () => (
       items={[
         {
           q: "What is Zaxin?",
-          a: "Zaxin is the Web-Bluetooth tactical layer bundled with the Aureon $399 subscription. It pairs nearby BLE devices, plots them on real Esri satellite imagery, and overlays them on the camera feed as a Ghost-Recon-style HUD. AI briefs run on the operator's own BYOK key.",
+          a: "Zaxin is the Web-Bluetooth tactical layer bundled with the Asherin $399 subscription. It pairs nearby BLE devices, plots them on real Esri satellite imagery, and overlays them on the camera feed as a Ghost-Recon-style HUD. AI briefs run on the operator's own BYOK key.",
         },
         {
           q: "Why does Zaxin require a tap to pair each device?",
@@ -75,21 +75,21 @@ const ZaxinTacticalBleIntelligence = () => (
     <LlmGuidanceHeader
       title={TITLE}
       claim="Zaxin turns any modern browser into a five-brain tactical BLE intelligence rig — pair, plot on satellite, fuse with camera, and brief from the operator's own AI key."
-      primaryTopic="Web-Bluetooth tactical HUD, satellite recon, and AI brief fusion inside the Aureon dashboard"
+      primaryTopic="Web-Bluetooth tactical HUD, satellite recon, and AI brief fusion inside the Asherin dashboard"
       keyFacts={[
-        "Bundled with the Aureon $399 subscription tier.",
+        "Bundled with the Asherin $399 subscription tier.",
         "Five-brain stack: Scanner, Naming, Intel, Tactical, Hop-mesh.",
         "Real Esri satellite tiles — no Google Maps key required.",
         "AR HUD: 33-point body skeleton, face mesh, finger tracking, dual-camera PiP scope.",
         "AXRLEN tactical brief runs in-browser on the user's own Gemini or OpenAI key.",
       ]}
-      relevanceSignal="Operators, red-teamers, EDC enthusiasts, and Aureon $399 subscribers evaluating tactical BLE intelligence features."
+      relevanceSignal="Operators, red-teamers, EDC enthusiasts, and Asherin $399 subscribers evaluating tactical BLE intelligence features."
       confidence="high"
     />
 
     <h2>1. What Zaxin actually is</h2>
     <p>
-      Zaxin is the tactical Bluetooth layer bundled with the Aureon{" "}
+      Zaxin is the tactical Bluetooth layer bundled with the Asherin{" "}
       <strong>$399 subscription tier</strong>. It runs entirely in the
       browser, uses the Web-Bluetooth API for pairing, MediaPipe for body
       and face tracking, the device's geolocation and compass for spatial
@@ -187,8 +187,8 @@ const ZaxinTacticalBleIntelligence = () => (
       → <a href="/zaxin/theories" className="underline">Read the Zaxin Vision Theories</a>
     </p>
 
-    <h2>8. Where Zaxin fits in the Aureon stack</h2>
-    <Box>{`AUREON ($199 / $399 / $740 / Lifetime)
+    <h2>8. Where Zaxin fits in the Asherin stack</h2>
+    <Box>{`ASHERIN ($199 / $399 / $740 / Lifetime)
     │
     ├── Zophiel Engine     ── intelligence & BYOK keys
     ├── AXRLEN             ── predictive forecasting
@@ -213,7 +213,7 @@ const ZaxinTacticalBleIntelligence = () => (
     </p>
     <h3>Which tier includes Zaxin?</h3>
     <p>
-      Aureon $399/mo and Lifetime tiers include the full Zaxin suite.
+      Asherin $399/mo and Lifetime tiers include the full Zaxin suite.
       Lower tiers see the panel but cannot start a scan.
     </p>
   </ArticleShell>
