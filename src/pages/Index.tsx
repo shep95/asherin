@@ -298,7 +298,7 @@ const Index = () => {
           <div className="flex items-center justify-between text-[9px] tracking-[0.4em] text-muted-foreground/50 uppercase font-mono mb-6">
             <span className="flex items-center gap-2">
               <span className="h-px w-6 bg-foreground/30" />
-              NODE / AUREON-01
+              NODE / ASHERIN-01
             </span>
             <span className="hidden sm:flex items-center gap-2">
               CHANNEL · ZOPHIEL
@@ -1088,7 +1088,7 @@ const Index = () => {
             <h2 className="text-3xl sm:text-5xl md:text-6xl font-extralight tracking-tight text-foreground leading-[1.05]">
               Don't see the software you need?
               <br />
-              <span className="text-muted-foreground">Build it. Ship it. Run it inside Aureon.</span>
+              <span className="text-muted-foreground">Build it. Ship it. Run it inside Asherin.</span>
             </h2>
           </div>
 
