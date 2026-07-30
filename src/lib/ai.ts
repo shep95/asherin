@@ -267,10 +267,23 @@ export async function streamChat({
 
   onDone();
 
-  // ── Cross-chat persistent memory: DISABLED ───────────────────────────────
-  // Every conversation is now stateless: no rules/facts are mined from a chat
-  // and carried into future chats. Nothing is extracted here by design.
-
+  // ── Fire-and-forget memory extraction (cross-chat persistent rules) ──
+  // Only mine the LAST user message; skip if no auth token (anon).
+  try {
+    const lastUser = [...messages].reverse().find(m => m.role === "user");
+    if (lastUser?.content && authToken && authToken !== import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
+      const EXTRACT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/memory-extract`;
+      fetch(EXTRACT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          userMessage: lastUser.content,
+          assistantMessage: assistantAccum,
+          conversationId,
+        }),
+      }).catch(() => { /* silent */ });
+    }
+  } catch { /* silent */ }
 }
 
 // ── Multi-Model Consensus ──────────────────────────────────────────────

@@ -10,9 +10,9 @@ const TermsOfService = () => {
 
   useEffect(() => {
     applySeoHead({
-      title: "Terms of Service — Asherin",
+      title: "Terms of Service — Aureon",
       description:
-        "Asherin Terms of Service: subscription tiers, acceptable use, data privacy commitments, and the contract between operators and the platform.",
+        "Aureon Terms of Service: subscription tiers, acceptable use, data privacy commitments, and the contract between operators and the platform.",
       path: "/terms",
     });
   }, []);
@@ -36,17 +36,17 @@ const TermsOfService = () => {
             <div className="space-y-10 text-sm font-extralight leading-relaxed text-muted-foreground">
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">1. Acceptance of Terms</h2>
-                <p>By accessing or using Asherin ("the Service"), operated by Zorak Corp & House Of Asher, you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the Service.</p>
+                <p>By accessing or using Aureon ("the Service"), operated by Zorak Corp & House Of Asher, you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the Service.</p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">2. Service Description</h2>
-                <p>Asherin is an AI-powered intelligence platform providing uncensored responses, an elite coding engine and in-dashboard IDE, live web search, persistent memory across sessions, team workspace functionality, multi-language output, voice chat, image and video generation, file scraping, and a full intelligence suite (Zophiel, Zerlal, Zeeion, NOMAD, Azplen, Aziion, AXRLEN, CROSS, ZANOEM Design Lab, Predictive Intelligence, Automated Agents, Plugin Marketplace, Guardian Vault, and more). A free Vedic Astrology module is available on the landing page without an account. The Service is offered on two monthly subscription tiers: Asherin ($18/month) and Asherin Pro ($399/month), with a custom-priced Enterprise tier.</p>
+                <p>Aureon is an AI-powered intelligence platform providing uncensored responses, an elite coding engine and in-dashboard IDE, live web search, persistent memory across sessions, team workspace functionality, multi-language output, voice chat, image and video generation, file scraping, and a full intelligence suite (Zophiel, Zerlal, Zeeion, NOMAD, Azplen, Aziion, AXRLEN, CROSS, ZANOEM Design Lab, Predictive Intelligence, Automated Agents, Plugin Marketplace, Guardian Vault, and more). A free Vedic Astrology module is available on the landing page without an account. The Service is offered on two monthly subscription tiers: Aureon ($18/month) and Aureon Pro ($399/month), with a custom-priced Enterprise tier.</p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">3. Data Privacy & Security</h2>
-                <p className="mb-3">Your privacy is foundational to Asherin, not an afterthought. We commit to the following:</p>
+                <p className="mb-3">Your privacy is foundational to Aureon, not an afterthought. We commit to the following:</p>
                 <ul className="space-y-2 ml-4">
                   <li>→ All prompts and conversations are encrypted end-to-end (AES-256-GCM).</li>
                   <li>→ Your data is never sold to third parties.</li>
@@ -61,15 +61,15 @@ const TermsOfService = () => {
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">4. Uncensored Output Policy</h2>
-                <p>Asherin provides uncensored AI responses. The Service does not apply corporate-filtered RLHF (Reinforcement Learning from Human Feedback) to suppress or sanitize outputs. Users acknowledge that responses are generated without editorial filtering and accept full responsibility for how they use the information provided.</p>
+                <p>Aureon provides uncensored AI responses. The Service does not apply corporate-filtered RLHF (Reinforcement Learning from Human Feedback) to suppress or sanitize outputs. Users acknowledge that responses are generated without editorial filtering and accept full responsibility for how they use the information provided.</p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">5. Subscription & Billing</h2>
                 <p className="mb-3">The Service is offered on two monthly subscription tiers plus a custom Enterprise tier:</p>
                 <ul className="space-y-2 ml-4">
-                  <li>→ Asherin — <strong>$18/month</strong>. Core chat (Chat / Code / Research / Truth modes), uncensored AI, elite coding engine, multi-language output, response-depth control, base Zophiel Search, code snippets library, command palette, limited team workspace, persistent memory (standard limits), end-to-end encryption, delete + export anytime. 60 messages per 3-hour window.</li>
-                  <li>→ Asherin Pro — <strong>$399/month</strong>. Everything in Asherin plus Azplen Data Intelligence Platform (ingestion, entity resolution, workflow automation, scenario simulation, threat modeling), NOMAD Public Intelligence Agent, Advanced Intelligence Briefings (daily, industry-customised), Zophiel Search Pro (higher query limits, deeper crawling, priority latency), full team workspace with shared threads and admin controls, and the rest of the advanced suite (AXRLEN, ZEEION, ZERLAL, CROSS, ZANOEM, Plugin Marketplace, Automated Agents, Video Intelligence). 200 messages per 3-hour window.</li>
+                  <li>→ Aureon — <strong>$18/month</strong>. Core chat (Chat / Code / Research / Truth modes), uncensored AI, elite coding engine, multi-language output, response-depth control, base Zophiel Search, code snippets library, command palette, limited team workspace, persistent memory (standard limits), end-to-end encryption, delete + export anytime. 60 messages per 3-hour window.</li>
+                  <li>→ Aureon Pro — <strong>$399/month</strong>. Everything in Aureon plus Azplen Data Intelligence Platform (ingestion, entity resolution, workflow automation, scenario simulation, threat modeling), NOMAD Public Intelligence Agent, Advanced Intelligence Briefings (daily, industry-customised), Zophiel Search Pro (higher query limits, deeper crawling, priority latency), full team workspace with shared threads and admin controls, and the rest of the advanced suite (AXRLEN, ZEEION, ZERLAL, CROSS, ZANOEM, Plugin Marketplace, Automated Agents, Video Intelligence). 200 messages per 3-hour window.</li>
                   <li>→ Enterprise — Custom pricing. SSO / SAML, org policy controls, audit logs with retention controls, dedicated capacity, and custom SLAs.</li>
                   <li>→ Subscriptions renew monthly. Cancel anytime from the dashboard — access continues until the end of the current billing period.</li>
                   <li>→ No hidden fees, no overage charges, no markup on BYOK provider tokens.</li>
@@ -79,12 +79,12 @@ const TermsOfService = () => {
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">6. User Responsibilities</h2>
-                <p>You are solely responsible for your use of the Service and any content generated through your interactions. You agree not to use Asherin for any activity that violates applicable law. The uncensored nature of the platform does not constitute encouragement or endorsement of illegal activity.</p>
+                <p>You are solely responsible for your use of the Service and any content generated through your interactions. You agree not to use Aureon for any activity that violates applicable law. The uncensored nature of the platform does not constitute encouragement or endorsement of illegal activity.</p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">7. Intellectual Property</h2>
-                <p>Content you generate through Asherin is yours. We claim no ownership over your prompts, outputs, or code generated through the Service. The Asherin name, branding, and platform technology are the property of Zorak Corp & House Of Asher.</p>
+                <p>Content you generate through Aureon is yours. We claim no ownership over your prompts, outputs, or code generated through the Service. The Aureon name, branding, and platform technology are the property of Zorak Corp & House Of Asher.</p>
               </section>
 
               <section>
@@ -94,7 +94,7 @@ const TermsOfService = () => {
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">9. Limitation of Liability</h2>
-                <p>Asherin is provided "as is." Zorak Corp & House Of Asher shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service. AI-generated content should not be treated as professional, legal, medical, or financial advice.</p>
+                <p>Aureon is provided "as is." Zorak Corp & House Of Asher shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service. AI-generated content should not be treated as professional, legal, medical, or financial advice.</p>
               </section>
 
               <section>

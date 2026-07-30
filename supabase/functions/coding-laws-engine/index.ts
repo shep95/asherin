@@ -10,19 +10,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // ── Authorization gate ──
-  // resolveKey() is a COST gate, not an auth gate: any signed-in user fell
-  // through to the platform key and could inject rows into the globally
-  // readable coding_laws table. Writes here are platform-wide, so require admin.
-  try {
-    const { requireAdmin } = await import("../_shared/authMiddleware.ts");
-    await requireAdmin(req);
-  } catch (e) {
-    const { authErrorResponse } = await import("../_shared/authMiddleware.ts");
-    return authErrorResponse(e, corsHeaders);
-  }
-
-  // ── Cost gate (admin uses platform key, others must BYOK) ──
+  // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   try {
     const _b = await req.clone().json().catch(() => ({} as any));
     const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
@@ -32,7 +20,6 @@ serve(async (req) => {
     const _gate = await import('../_shared/adminGate.ts');
     return _gate.byokErrorResponse(_e, corsHeaders);
   }
-
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

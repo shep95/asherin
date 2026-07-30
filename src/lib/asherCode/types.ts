@@ -49,9 +49,8 @@ export type AiMode = "chat" | "inline" | "generate" | "explain" | "fix" | "tests
 export const ASHER_CODE_PROVIDERS = [
   { id: "google", label: "Google Gemini", models: [
     { id: "gemini-3-pro-preview", label: "Gemini 3 Pro" },
-    { id: "gemini-pro-latest", label: "Gemini Pro (latest)" },
-    { id: "gemini-flash-latest", label: "Gemini Flash (latest)" },
-
+    { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+    { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
   ]},
   { id: "openai", label: "OpenAI", models: [
     { id: "gpt-5.5", label: "GPT-5.5" },

@@ -4,7 +4,6 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { statusForError } from "../_shared/errorStatus.ts";
 
 const log = (s: string, d?: any) =>
   console.log(`[LIST-RECEIPTS] ${s}${d ? ` - ${JSON.stringify(d)}` : ""}`);
@@ -80,7 +79,7 @@ serve(async (req) => {
     log("ERROR", { message });
     return new Response(JSON.stringify({ error: message, receipts: [] }), {
       headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      status: statusForError(err),
+      status: 500,
     });
   }
 });

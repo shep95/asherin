@@ -50,7 +50,7 @@ const Header = () => {
             >
               <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-foreground/80 shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-transform group-hover/logo:scale-125" />
               <span className="text-sm font-extralight tracking-[0.32em] text-foreground/95">
-                ASHERIN
+                AUREON
               </span>
               <span className="hidden md:inline text-[8px] font-mono tracking-[0.2em] text-foreground/40 translate-y-px">
                 ◊
@@ -141,7 +141,7 @@ const Header = () => {
 
         {/* Mobile: just logo */}
         <Link to="/" className="lg:hidden rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2 flex items-center hover:bg-card/80 transition-colors">
-          <span className="text-base font-extralight tracking-[0.25em] text-foreground">ASHERIN</span>
+          <span className="text-base font-extralight tracking-[0.25em] text-foreground">AUREON</span>
         </Link>
 
         {/* Right: Auth buttons */}

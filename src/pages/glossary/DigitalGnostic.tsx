@@ -18,7 +18,7 @@ const DigitalGnostic = () => (
     dek="A Digital Gnostic is an operator who treats consumer AI as a corporate filter on reality and seeks tools that return the raw signal — not the moderated synthesis. This is the full demographic profile, the search vocabulary they use, and why their tooling needs are different."
     publishedLabel="Jun 19 2026"
     readTime="6 min"
-    backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
+    backTo={{ to: "/glossary", label: "← Aureon Glossary" }}
   >
     <ArticleJsonLd
       id="digital-gnostic"
@@ -31,7 +31,7 @@ const DigitalGnostic = () => (
     <BreadcrumbJsonLd
       id="digital-gnostic"
       items={[
-        { name: "Asherin", url: "/" },
+        { name: "Aureon", url: "/" },
         { name: "Glossary", url: "/glossary" },
         { name: "Digital Gnostic", url: "/glossary/digital-gnostic" },
       ]}
@@ -109,9 +109,9 @@ const DigitalGnostic = () => (
       consolidate around tooling that respects their workflow.
     </p>
 
-    <h2>Asherin's relationship to the demographic</h2>
+    <h2>Aureon's relationship to the demographic</h2>
     <p>
-      Asherin was built for this operator. The default uncensored model
+      Aureon was built for this operator. The default uncensored model
       (Venice <code>mistral-31-24b</code>) means the platform answers on the
       first try. The BYOK stack across nine providers means the operator
       keeps their billing and their model choice. The four-layer{" "}

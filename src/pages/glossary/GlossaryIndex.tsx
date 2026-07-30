@@ -6,7 +6,7 @@ import { ArrowUpRight } from "lucide-react";
 
 /**
  * /glossary — Theory 12 (Sovereign Niche Monopoly).
- * Asherin owns the definitions of the vocabulary used by its niche
+ * Aureon owns the definitions of the vocabulary used by its niche
  * (sovereign / digital-gnostic / BYOK operators) before competitors do.
  * Definitional pages attract editorial backlinks — the highest E-E-A-T signal.
  */
@@ -78,7 +78,7 @@ const GlossaryIndex = () => {
     el.textContent = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "DefinedTermSet",
-      name: "Asherin Glossary",
+      name: "Aureon Glossary",
       url: "https://aureonai.app/glossary",
       hasDefinedTerm: GLOSSARY.map((e) => ({
         "@type": "DefinedTerm",
@@ -103,7 +103,7 @@ const GlossaryIndex = () => {
             ◈ Definitional Reference
           </div>
           <h1 className="text-4xl sm:text-5xl font-extralight tracking-tight leading-[1.1] max-w-3xl">
-            The Asherin Glossary —
+            The Aureon Glossary —
             <span className="block text-muted-foreground/70">
               vocabulary of the sovereign AI niche.
             </span>

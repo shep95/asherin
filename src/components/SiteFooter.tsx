@@ -16,7 +16,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
       <footer className="relative z-10 px-6 pb-8 pt-4">
         <div className="mx-auto max-w-5xl">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-6">
-            <p className="text-sm font-light tracking-[0.2em] text-foreground">ASHERIN</p>
+            <p className="text-sm font-light tracking-[0.2em] text-foreground">AUREON</p>
             <div className="flex items-center gap-x-6 gap-y-2 flex-wrap justify-center">
               <Link to="/" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Home</Link>
               <Link to="/forums" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Forums</Link>
@@ -93,7 +93,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
         <div className="relative mb-16 flex items-center justify-center">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/40 to-border/20" />
           <span className="px-6 text-[10px] font-light tracking-[0.4em] text-muted-foreground/60 uppercase">
-            Asherin · Zophiel Engine
+            Aureon · Zophiel Engine
           </span>
           <div className="h-px flex-1 bg-gradient-to-l from-transparent via-border/40 to-border/20" />
         </div>
@@ -108,7 +108,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
             <div className="lg:col-span-4 flex flex-col gap-6">
               <div>
                 <h2 className="text-5xl sm:text-6xl font-extralight tracking-[0.18em] text-foreground leading-none">
-                  ASHERIN
+                  AUREON
                 </h2>
                 <p className="mt-4 text-xs font-extralight leading-relaxed tracking-wide text-muted-foreground max-w-sm">
                   Forensic-grade intelligence platform. Powered by Zorak Corp & House Of Asher — orchestrated by the Zophiel Engine.

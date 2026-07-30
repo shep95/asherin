@@ -19,14 +19,14 @@ import {
 } from "recharts";
 
 /**
- * /valuation — Asherin company valuation dossier.
+ * /valuation — Aureon company valuation dossier.
  * Public, SEO-optimized, sourced from comparable-company analysis.
  */
 
 const VALUATION_HEADLINE = 48000; // $M  → displayed as $48.0B (asset-based, private co.)
 const VALUATION_DATE = "07/08/2026";
 
-// ── Software inventory inside the Asherin Dashboard ──────────────────────────
+// ── Software inventory inside the Aureon Dashboard ──────────────────────────
 const SOFTWARE = [
   { name: "Aureon Chat", desc: "Uncensored sovereign chat with BYOK + multi-model consensus.", tier: "Core" },
   { name: "Asher", desc: "Agentic dashboard, code IDE, whiteboard, notebooks, workflow map.", tier: "Core" },
@@ -64,7 +64,7 @@ const SOFTWARE_ASSET_DEALS = [
   { peer: "DeepMind → Google (2014)", priceB: 0.5, note: "Pre-revenue AI lab. Pure IP value." },
   { peer: "GitHub → Microsoft (2018)", priceB: 7.5, note: "Software & community asset." },
   { peer: "Figma → Adobe (2022, blocked)", priceB: 20, note: "Software + design-graph asset." },
-  { peer: "Asherin (modeled)", priceB: 0.95, note: "20 shipped modules, sovereign AI stack." },
+  { peer: "Aureon (modeled)", priceB: 0.95, note: "20 shipped modules, sovereign AI stack." },
 ];
 
 // Software-asset value (NOT revenue). Modeled as cumulative engineering value of
@@ -88,17 +88,17 @@ const SCENARIOS = [
 ];
 
 const CAPABILITY_RADAR = [
-  { axis: "OSINT Depth", Asherin: 9, Palantir: 9, Recorded: 8, Maltego: 7, Perplexity: 5 },
-  { axis: "Predictive AI", Asherin: 9, Palantir: 7, Recorded: 6, Maltego: 3, Perplexity: 6 },
-  { axis: "Cyber / Vuln", Asherin: 8, Palantir: 6, Recorded: 7, Maltego: 5, Perplexity: 2 },
-  { axis: "Tactical / AR", Asherin: 8, Palantir: 5, Recorded: 2, Maltego: 1, Perplexity: 1 },
-  { axis: "Sovereign / BYOK", Asherin: 10, Palantir: 3, Recorded: 2, Maltego: 4, Perplexity: 3 },
-  { axis: "Dashboard Breadth", Asherin: 10, Palantir: 8, Recorded: 5, Maltego: 4, Perplexity: 3 },
+  { axis: "OSINT Depth", Aureon: 9, Palantir: 9, Recorded: 8, Maltego: 7, Perplexity: 5 },
+  { axis: "Predictive AI", Aureon: 9, Palantir: 7, Recorded: 6, Maltego: 3, Perplexity: 6 },
+  { axis: "Cyber / Vuln", Aureon: 8, Palantir: 6, Recorded: 7, Maltego: 5, Perplexity: 2 },
+  { axis: "Tactical / AR", Aureon: 8, Palantir: 5, Recorded: 2, Maltego: 1, Perplexity: 1 },
+  { axis: "Sovereign / BYOK", Aureon: 10, Palantir: 3, Recorded: 2, Maltego: 4, Perplexity: 3 },
+  { axis: "Dashboard Breadth", Aureon: 10, Palantir: 8, Recorded: 5, Maltego: 4, Perplexity: 3 },
 ];
 
 const Valuation = () => {
   useEffect(() => {
-    document.title = "Asherin Valuation $48.0B (Private Company) · 07/08/2026";
+    document.title = "Aureon Valuation $48.0B (Private Company) · 07/08/2026";
 
     const upsertMeta = (selector: string, attrs: Record<string, string>) => {
       let el = document.head.querySelector<HTMLMetaElement>(selector);
@@ -110,10 +110,10 @@ const Valuation = () => {
     };
 
     const description =
-      "Asherin (private company, not public — no plans to IPO) software-asset valuation $48.0B as of 07/08/2026. Asset + portfolio-based, not revenue. Comparable analysis vs Palantir, Anduril Lattice, Recorded Future, Maltego.";
+      "Aureon (private company, not public — no plans to IPO) software-asset valuation $48.0B as of 07/08/2026. Asset + portfolio-based, not revenue. Comparable analysis vs Palantir, Anduril Lattice, Recorded Future, Maltego.";
 
     upsertMeta('meta[name="description"]', { name: "description", content: description });
-    upsertMeta('meta[property="og:title"]', { property: "og:title", content: "Asherin Valuation · $48.0B" });
+    upsertMeta('meta[property="og:title"]', { property: "og:title", content: "Aureon Valuation · $48.0B" });
     upsertMeta('meta[property="og:description"]', { property: "og:description", content: description });
     upsertMeta('meta[property="og:url"]', { property: "og:url", content: "https://aureonai.app/valuation" });
     upsertMeta('meta[property="og:type"]', { property: "og:type", content: "article" });
@@ -136,11 +136,11 @@ const Valuation = () => {
     ld.text = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "Article",
-      headline: "Asherin Company Valuation: $48.0B",
+      headline: "Aureon Company Valuation: $48.0B",
       datePublished: "2026-07-08",
       dateModified: "2026-07-08",
-      author: { "@type": "Organization", name: "Asherin" },
-      publisher: { "@type": "Organization", name: "Asherin" },
+      author: { "@type": "Organization", name: "Aureon" },
+      publisher: { "@type": "Organization", name: "Aureon" },
       about: "Private-company asset + portfolio valuation. Not a public company.",
       mainEntityOfPage: "https://aureonai.app/valuation",
     });
@@ -157,7 +157,7 @@ const Valuation = () => {
         {/* HERO */}
         <div className="mb-16">
           <Link to="/" className="text-[10px] tracking-[0.3em] text-muted-foreground/60 uppercase hover:text-foreground/80">
-            ← Asherin
+            ← Aureon
           </Link>
           <div className="mt-8 flex flex-wrap items-center gap-2">
             <span className="text-[10px] tracking-[0.3em] text-amber-200/70 uppercase">◈ Company Valuation</span>
@@ -172,7 +172,7 @@ const Valuation = () => {
             As of <span className="text-foreground/90">{VALUATION_DATE}</span> · asset + portfolio-based · updated 07/08/2026.
           </p>
           <p className="mt-6 max-w-2xl text-sm font-light leading-relaxed text-muted-foreground/80">
-            Asherin is a <span className="text-foreground/90">private company</span>. This valuation reflects
+            Aureon is a <span className="text-foreground/90">private company</span>. This valuation reflects
             <span className="text-amber-200/90"> company + full software portfolio asset value</span> — not revenue.
             We are <span className="text-foreground/90">not a public company</span> and have{" "}
             <span className="text-foreground/90">no plans</span> to become one. There is no ticker, no IPO
@@ -185,7 +185,7 @@ const Valuation = () => {
               ◈ Private Company · Not Public
             </p>
             <p className="text-sm font-light leading-relaxed text-foreground/80">
-              Asherin operates as a fully private entity under the Asherin Empire.
+              Aureon operates as a fully private entity under the Asherin Empire.
               This valuation is disclosed voluntarily for transparency with
               partners, licensees, and prospective enterprise / government
               clients — it is not a solicitation of investment, and no equity
@@ -201,7 +201,7 @@ const Valuation = () => {
             <p className="text-sm font-light leading-relaxed text-foreground/85">
               <span className="text-amber-200/90">WhatsApp had effectively zero revenue</span> when Facebook acquired it
               for <span className="text-amber-200/90">$19,000M ($19B)</span> in 2014. The price reflected the
-              software, the user-graph, and the strategic asset — not the income statement. Asherin's
+              software, the user-graph, and the strategic asset — not the income statement. Aureon's
               multi-module sovereign stack is modeled on the same asset logic, scaled to a
               20+ module portfolio.
             </p>
@@ -322,7 +322,7 @@ const Valuation = () => {
                 <PolarGrid stroke="hsl(var(--border))" />
                 <PolarAngleAxis dataKey="axis" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
                 <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fontSize: 9 }} />
-                <Radar name="Asherin" dataKey="Asherin" stroke="hsl(45 80% 60%)" fill="hsl(45 80% 60%)" fillOpacity={0.35} />
+                <Radar name="Aureon" dataKey="Aureon" stroke="hsl(45 80% 60%)" fill="hsl(45 80% 60%)" fillOpacity={0.35} />
                 <Radar name="Palantir" dataKey="Palantir" stroke="hsl(200 60% 60%)" fill="hsl(200 60% 60%)" fillOpacity={0.15} />
                 <Radar name="Recorded" dataKey="Recorded" stroke="hsl(160 50% 55%)" fill="hsl(160 50% 55%)" fillOpacity={0.1} />
                 <Radar name="Maltego" dataKey="Maltego" stroke="hsl(0 50% 60%)" fill="hsl(0 50% 60%)" fillOpacity={0.1} />
@@ -383,10 +383,10 @@ const Valuation = () => {
         {/* SOFTWARE INVENTORY */}
         <section className="mb-16">
           <h2 className="text-xs tracking-[0.3em] uppercase text-foreground/70 mb-2">
-            ◉ Asherin Dashboard Software Inventory
+            ◉ Aureon Dashboard Software Inventory
           </h2>
           <p className="text-xs text-muted-foreground/60 mb-4 font-light">
-            {SOFTWARE.length} integrated modules shipping inside the Asherin dashboard.
+            {SOFTWARE.length} integrated modules shipping inside the Aureon dashboard.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {SOFTWARE.map((s) => (
@@ -417,7 +417,7 @@ const Valuation = () => {
               GitHub $7.5B) pulled from Reuters, WSJ, and SEC filings.
             </li>
             <li>
-              Asherin is a <span className="text-foreground/90">private company</span>; this is a software
+              Aureon is a <span className="text-foreground/90">private company</span>; this is a software
               / technology asset valuation, not a revenue or P&amp;L valuation.
             </li>
             <li>
@@ -444,7 +444,7 @@ const Valuation = () => {
           <div className="space-y-5 text-sm md:text-base text-muted-foreground/90 font-light leading-relaxed">
             <p>
               The comparable-set analysis above (Palantir, Anduril, Recorded Future, Glean, Scale AI,
-              Databricks, ServiceNow) was run for one reason: to prove Asherin's software surface is
+              Databricks, ServiceNow) was run for one reason: to prove Aureon's software surface is
               already at parity or ahead of the pure-play incumbents in its lanes. It was
               <span className="text-foreground/90"> not </span> built as a pitch deck for corporate
               acquirers. It will not be shown to one.
@@ -503,7 +503,7 @@ const Valuation = () => {
               partners with a larger competitor. The valuation meeting <em>is</em> the theft.
             </p>
 
-            <p className="text-foreground/90">Asherin's posture, therefore:</p>
+            <p className="text-foreground/90">Aureon's posture, therefore:</p>
 
             <ul className="list-none space-y-2 ml-1">
               <li className="flex gap-3">
@@ -545,7 +545,7 @@ const Valuation = () => {
 
             <p className="text-foreground/80">
               This is the reality of corporations. The competitive analysis above is not a signal
-              that Asherin is for sale to them. It is a signal that Asherin does not need them.
+              that Aureon is for sale to them. It is a signal that Aureon does not need them.
             </p>
           </div>
         </section>

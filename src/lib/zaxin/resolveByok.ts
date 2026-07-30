@@ -83,7 +83,7 @@ export function useResolvedZaxinByok(): ResolvedZaxinByok {
         ) as { provider: string; api_key: string } | undefined;
         if (row?.api_key) {
           const defaultModel =
-            row.provider === "google" ? "gemini-flash-latest" :
+            row.provider === "google" ? "gemini-2.5-flash" :
             row.provider === "openai" ? "gpt-4o-mini" :
             row.provider === "anthropic" ? "claude-haiku-4-5" :
             row.provider === "xai" ? "grok-2-vision-latest" :

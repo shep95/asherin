@@ -4,8 +4,8 @@ import { Link } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const tiers = [
-  { id: "aureon", name: "Asherin", price: "$18", period: "/month", highlight: false, tagline: "Core" },
-  { id: "pro", name: "Asherin Pro", price: "$399", period: "/month", highlight: true, tagline: "Full Suite" },
+  { id: "aureon", name: "Aureon", price: "$18", period: "/month", highlight: false, tagline: "Core" },
+  { id: "pro", name: "Aureon Pro", price: "$399", period: "/month", highlight: true, tagline: "Full Suite" },
   { id: "enterprise", name: "Enterprise", price: "Custom", period: "", highlight: false, tagline: "Org" },
 ];
 
@@ -40,12 +40,12 @@ const features: Feature[] = [
   { name: "Keyboard shortcuts / command palette", desc: "⌘K command palette and full keyboard shortcut set.", aureon: true, pro: true, enterprise: true },
 
   // Workspace + Collaboration
-  { name: "Team workspace", desc: "Asherin: limited workspace with basic sharing. Pro: full team workspace with shared threads, outputs, admin controls.", aureon: "Limited", pro: "Full", enterprise: "Full + SSO" },
+  { name: "Team workspace", desc: "Aureon: limited workspace with basic sharing. Pro: full team workspace with shared threads, outputs, admin controls.", aureon: "Limited", pro: "Full", enterprise: "Full + SSO" },
   { name: "Basic sharing / collaboration", desc: "Share threads and outputs with teammates.", aureon: true, pro: true, enterprise: true },
   { name: "Admin controls", desc: "Workspace-level permissions, role-based access, member management.", aureon: false, pro: true, enterprise: true },
 
   // Memory + Privacy
-  { name: "Persistent memory", desc: "Long-term recall across sessions. Standard limits on Asherin, expanded on Pro and Enterprise.", aureon: "Standard", pro: "Expanded", enterprise: "Unlimited" },
+  { name: "Persistent memory", desc: "Long-term recall across sessions. Standard limits on Aureon, expanded on Pro and Enterprise.", aureon: "Standard", pro: "Expanded", enterprise: "Unlimited" },
   { name: "End-to-end encryption", desc: "AES-256-GCM in transit and at rest. Only you can read your conversations.", aureon: true, pro: true, enterprise: true },
   { name: "Delete + export anytime", desc: "Export your entire workspace or wipe it permanently in one click.", aureon: true, pro: true, enterprise: true },
 
@@ -64,7 +64,7 @@ const features: Feature[] = [
   { name: "Video Intelligence", desc: "Frame-by-frame video analysis: objects, faces, micro-expressions, behavior.", aureon: false, pro: true, enterprise: true },
   { name: "Plugin Marketplace", desc: "Install third-party plugins with a live execution engine.", aureon: false, pro: true, enterprise: true },
   { name: "Automated Agents", desc: "Scheduled autonomous tasks with multi-channel webhook delivery and retry logic.", aureon: false, pro: true, enterprise: true },
-  { name: "Asherin IDE", desc: "Full in-browser Monaco IDE with AI pair-programming and sandboxed execution.", aureon: false, pro: true, enterprise: true },
+  { name: "Aureon IDE", desc: "Full in-browser Monaco IDE with AI pair-programming and sandboxed execution.", aureon: false, pro: true, enterprise: true },
 
   // Enterprise-only
   { name: "SSO / SAML", desc: "Single sign-on via your corporate identity provider.", aureon: false, pro: false, enterprise: true },
@@ -151,7 +151,7 @@ const PricingComparisonTable = () => {
               </div>
               {tier.id === "enterprise" ? (
                 <a
-                  href="mailto:asher@aureonai.app?subject=Asherin%20Enterprise%20Inquiry"
+                  href="mailto:asher@aureonai.app?subject=Aureon%20Enterprise%20Inquiry"
                   className="block w-full rounded-lg py-2.5 text-xs font-light tracking-wide transition-all border border-foreground/30 text-foreground hover:bg-foreground/5"
                 >
                   Contact sales

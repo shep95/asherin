@@ -33,13 +33,12 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     models: [
       { id: "gemini-3-pro-preview", name: "Gemini 3 Pro", description: "Newest — frontier reasoning, 1M context" },
       { id: "gemini-3-flash-preview", name: "Gemini 3 Flash", description: "Next-gen flash, balanced speed + capability" },
-      { id: "gemini-pro-latest", name: "Gemini Pro (latest)", description: "Rolling alias — strong reasoning + multimodal" },
-      { id: "gemini-flash-latest", name: "Gemini Flash (latest)", description: "Rolling alias — fast, balanced, recommended" },
-      { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", description: "Cheapest — high volume, low latency" },
-      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", description: "Previous generation flash" },
+      { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", description: "Strong reasoning + multimodal" },
+      { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", description: "Fast, balanced performance" },
+      { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "Legacy — 2M context" },
+      { id: "gemini-1.0-pro", name: "Gemini 1.0 Pro", description: "Oldest available — original Gemini API" },
     ],
   },
-
   {
     id: "openai",
     name: "OpenAI",
@@ -483,32 +482,3 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     ],
   },
 ];
-
-// ── Stale model-id auto-heal ──────────────────────────────────────────────
-// Providers retire pinned model ids (Google does this on the v1beta endpoint
-// every few months). A user's saved preference keeps replaying the dead id and
-// every AI call comes back 404 as an opaque "AI error". These maps let the UI
-// migrate the saved id to the currently-served equivalent on load, mirroring
-// the server-side alias table in supabase/functions/_shared/geminiModels.ts.
-export const RETIRED_MODEL_ALIASES: Record<string, Record<string, string>> = {
-  google: {
-    "gemini-pro": "gemini-flash-latest",
-    "gemini-1.0-pro": "gemini-flash-latest",
-    "gemini-1.5-pro": "gemini-pro-latest",
-    "gemini-1.5-pro-latest": "gemini-pro-latest",
-    "gemini-1.5-flash": "gemini-flash-latest",
-    "gemini-1.5-flash-latest": "gemini-flash-latest",
-    "gemini-1.5-flash-8b": "gemini-2.5-flash-lite",
-    "gemini-2.5-pro": "gemini-pro-latest",
-    "gemini-2.5-pro-latest": "gemini-pro-latest",
-    "gemini-2.5-flash": "gemini-flash-latest",
-    "gemini-2.5-flash-latest": "gemini-flash-latest",
-    "gemini-2.0-flash-exp": "gemini-2.0-flash",
-  },
-};
-
-/** Returns the currently-served id for a saved (provider, model) pair. */
-export function normalizeModelId(provider: string, model: string): string {
-  if (!provider || !model || model === "default") return model;
-  return RETIRED_MODEL_ALIASES[provider]?.[model] ?? model;
-}

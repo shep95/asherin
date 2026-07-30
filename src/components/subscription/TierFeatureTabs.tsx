@@ -9,7 +9,7 @@ const CHAT_FEATURE_GROUPS = [
     features: [
       { name: "Uncensored AI chat", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
       { name: "Unlimited messages", desc: "Bring your own AI key — message as much as you want.", link: null },
-      { name: "Bring Your Own AI Key (required)", desc: "Connect your own keys from Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more — required to use Asherin.", link: "/feature/byok" },
+      { name: "Bring Your Own AI Key (required)", desc: "Connect your own keys from Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more — required to use Aureon.", link: "/feature/byok" },
     ],
   },
   {
@@ -39,20 +39,20 @@ const CHAT_FEATURE_GROUPS = [
   },
 ];
 
-const ASHERIN_FEATURE_GROUPS = [
+const AUREON_FEATURE_GROUPS = [
   {
     category: "AI Engine",
     features: [
       { name: "Uncensored AI responses", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
       { name: "Unlimited messages", desc: "Bring your own AI key — no throttling.", link: null },
-      { name: "Persistent memory", desc: "Asherin remembers your context across every session.", link: null },
+      { name: "Persistent memory", desc: "Aureon remembers your context across every session.", link: null },
       { name: "Custom Personas", desc: "Switch between specialized AI personas for different workflows.", link: "/feature/personas" },
     ],
   },
   {
     category: "Development",
     features: [
-      { name: "Asherin IDE", desc: "Full cloud development environment with AI chat, terminals, sessions, undo/redo and ZIP export.", link: "/feature/ide" },
+      { name: "Aureon IDE", desc: "Full cloud development environment with AI chat, terminals, sessions, undo/redo and ZIP export.", link: "/feature/ide" },
       { name: "Code Snippets Vault", desc: "Save, tag, and organize reusable code fragments.", link: null },
       { name: "Imagine To Code", desc: "AI-powered pixel art & SVG editor — draw, upload images, or ask Aureon to design directly on the canvas.", link: "/feature/imagine-to-code" },
     ],
@@ -61,7 +61,7 @@ const ASHERIN_FEATURE_GROUPS = [
     category: "Creation & Vision",
     features: [
       
-      { name: "Reverse Engineering Intelligence", desc: "Upload screenshots of any software or hardware system — Asherin deconstructs the architecture.", link: "/feature/reverse-engineer" },
+      { name: "Reverse Engineering Intelligence", desc: "Upload screenshots of any software or hardware system — Aureon deconstructs the architecture.", link: "/feature/reverse-engineer" },
       { name: "File Scrapper", desc: "Extract text from any document — PDF, DOCX, images and more.", link: "/feature/file-scrapper" },
       { name: "Cipher Toolkit", desc: "Encoding, hashing, encryption, format conversion and recipe chaining — all client-side.", link: "/feature/cipher" },
       { name: "Whiteboard", desc: "Infinite canvas with Photoshop-style layers, dot/square snap grids and freeform sketching.", link: "/feature/whiteboard" },
@@ -133,7 +133,7 @@ const PRO_FEATURE_GROUPS = [
       { name: "AXRLEN", desc: "Real-time global event prediction and policy simulation engine.", link: "/feature/axrlen" },
       { name: "ZEEION FI", desc: "AI forensic financial intelligence and dispute resolution platform.", link: "/feature/zeeion" },
       { name: "ZERLAL", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence.", link: "/feature/zerlal" },
-      { name: "Vibe Video", desc: "Conversational AI video editing — upload, describe edits, and Asherin analyzes your footage.", link: "/feature/vibe-video" },
+      { name: "Vibe Video", desc: "Conversational AI video editing — upload, describe edits, and Aureon analyzes your footage.", link: "/feature/vibe-video" },
     ],
   },
   {
@@ -142,16 +142,16 @@ const PRO_FEATURE_GROUPS = [
       { name: "Security Dashboard", desc: "WAF, honeypots, threat intelligence feeds, and behavioral analytics.", link: "/feature/security" },
       { name: "Audit Trail", desc: "Full compliance-grade audit logging of all platform activity.", link: null },
       { name: "Team Workspace", desc: "RBAC, email invites, and collaborative workspaces.", link: null },
-      { name: "Plugin Marketplace", desc: "Extend Asherin's capabilities with 3rd-party integrations.", link: "/feature/plugins" },
+      { name: "Plugin Marketplace", desc: "Extend Aureon's capabilities with 3rd-party integrations.", link: "/feature/plugins" },
       { name: "Automated Agents", desc: "Scheduled tasks with multi-channel webhook delivery.", link: "/feature/automated-agents" },
       { name: "Zahten Agent Forge", desc: "Autonomous agent foundry — design, scaffold, harden and deploy production-grade agents with scheduled triggers and webhook delivery.", link: "/feature/zahten" },
     ],
   },
   {
-    category: "Inherited from Asherin",
+    category: "Inherited from Aureon",
     features: [
-      { name: "Asherin IDE", desc: "Full cloud development environment with AI chat, terminals and ZIP export.", link: "/feature/ide" },
-      { name: "Persistent Memory", desc: "Asherin remembers your context across every session.", link: null },
+      { name: "Aureon IDE", desc: "Full cloud development environment with AI chat, terminals and ZIP export.", link: "/feature/ide" },
+      { name: "Persistent Memory", desc: "Aureon remembers your context across every session.", link: null },
       { name: "Custom Personas & Persona Store", desc: "Switch between specialized AI personas; browse community-built ones.", link: "/feature/personas" },
       
       { name: "Imagine To Code", desc: "AI-powered pixel art & SVG editor that draws directly on canvas.", link: "/feature/imagine-to-code" },
@@ -195,7 +195,7 @@ interface TierFeatureTabsProps {
 const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
   const [activeTab, setActiveTab] = useState<"chat" | "aureon" | "pro">("chat");
 
-  const groups = activeTab === "chat" ? CHAT_FEATURE_GROUPS : activeTab === "aureon" ? ASHERIN_FEATURE_GROUPS : PRO_FEATURE_GROUPS;
+  const groups = activeTab === "chat" ? CHAT_FEATURE_GROUPS : activeTab === "aureon" ? AUREON_FEATURE_GROUPS : PRO_FEATURE_GROUPS;
   const plan = SUBSCRIPTION_PLANS.find(p => p.id === activeTab);
 
   return (
@@ -224,7 +224,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          ASHERIN — $199
+          AUREON — $199
         </button>
         <button
           onClick={() => setActiveTab("pro")}
@@ -252,7 +252,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
         )}
         {activeTab === "pro" && (
           <p className="text-[10px] tracking-wider text-accent/70 uppercase mt-2">
-            Includes everything in Asherin +
+            Includes everything in Aureon +
           </p>
         )}
       </div>

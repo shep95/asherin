@@ -49,7 +49,7 @@ const SCORES_FULL = [
   { metric: "Documentation", aureon: 6, opus: 4, gpt: 1 },
 ];
 
-const ASHERIN_CODE = `import java.util.HashMap;
+const AUREON_CODE = `import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -373,14 +373,14 @@ const Benchmark = () => {
     el.textContent = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      headline: "Asherin vs Opus 4.8 vs GPT-5.5 — Thread-Safe LRU Cache Benchmark",
+      headline: "Aureon vs Opus 4.8 vs GPT-5.5 — Thread-Safe LRU Cache Benchmark",
       description:
         "Same prompt, three models, scored head-to-head on a thread-safe LRU cache with O(1) get and put.",
       url: "https://aureonai.app/benchmark",
-      author: { "@type": "Organization", name: "Asherin" },
+      author: { "@type": "Organization", name: "Aureon" },
       publisher: {
         "@type": "Organization",
-        name: "Asherin",
+        name: "Aureon",
         logo: { "@type": "ImageObject", url: "https://aureonai.app/favicon.png" },
       },
       proficiencyLevel: "Expert",
@@ -404,7 +404,7 @@ const Benchmark = () => {
             ◈ Benchmark
           </div>
           <h1 className="text-4xl sm:text-5xl font-extralight tracking-tight">
-            Asherin vs Opus 4.8 vs GPT-5.5
+            Aureon vs Opus 4.8 vs GPT-5.5
           </h1>
           <p className="max-w-2xl mx-auto text-sm sm:text-base font-extralight text-muted-foreground leading-relaxed">
             Same prompt. Three models. One scored head-to-head on a thread-safe LRU cache —
@@ -429,7 +429,7 @@ const Benchmark = () => {
 
           {/* Podium short scores */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Podium rank="Winner" name="Asherin" lang="Java" score={27} total={30} highlight />
+            <Podium rank="Winner" name="Aureon" lang="Java" score={27} total={30} highlight />
             <Podium rank="2nd" name="Opus 4.8" lang="Python" score={24} total={30} />
             <Podium rank="3rd" name="GPT-5.5" lang="Python" score={17} total={30} />
           </div>
@@ -447,7 +447,7 @@ const Benchmark = () => {
                   <YAxis tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} domain={[0, 6]} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Asherin (Java)" fill="#b8860b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)" fill="#b8860b" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)" fill="#facc15" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)" fill="#ffffff" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -457,14 +457,14 @@ const Benchmark = () => {
 
           {/* Code outputs */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <CodeBlock title="Asherin" lang="Java"   code={ASHERIN_CODE} accent="#b8860b" subtitle="Asherin · refined output" />
+            <CodeBlock title="Aureon" lang="Java"   code={AUREON_CODE} accent="#b8860b" subtitle="Aureon · refined output" />
             <CodeBlock title="Opus 4.8" lang="Python" code={OPUS_CODE} accent="#facc15" />
             <CodeBlock title="GPT-5.5"  lang="Python" code={GPT_CODE}  accent="#ffffff" />
           </div>
 
           {/* Expanded rubric */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Podium rank="Winner" name="Asherin · Java" lang="Verified by execution" score={50} total={60} highlight />
+            <Podium rank="Winner" name="Aureon · Java" lang="Verified by execution" score={50} total={60} highlight />
             <Podium rank="2nd" name="Opus 4.8 · Python" lang="Verified by execution" score={47} total={60} />
             <Podium rank="3rd" name="GPT-5.5 · Python" lang="Verified by execution" score={33} total={60} />
           </div>
@@ -481,7 +481,7 @@ const Benchmark = () => {
                   <YAxis type="category" dataKey="metric" width={170} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Asherin (Java)" fill="#b8860b" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)" fill="#b8860b" radius={[0, 3, 3, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)" fill="#facc15" radius={[0, 3, 3, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)" fill="#ffffff" radius={[0, 3, 3, 0]} />
                 </BarChart>
@@ -493,7 +493,7 @@ const Benchmark = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
               <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">Security winner</p>
-              <p className="text-2xl font-extralight text-foreground">Asherin</p>
+              <p className="text-2xl font-extralight text-foreground">Aureon</p>
               <p className="text-[11px] font-light text-muted-foreground mt-1">by a hair · clears evicted data</p>
             </div>
             <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
@@ -524,7 +524,7 @@ const Benchmark = () => {
                   <YAxis domain={[0, 6]} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Asherin (Java)"      fill="#b8860b" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#b8860b" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#facc15" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#ffffff" radius={[3, 3, 0, 0]} />
                 </BarChart>
@@ -549,7 +549,7 @@ const Benchmark = () => {
                   <YAxis domain={[0, 2]} allowDecimals={false} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Asherin (Java)"      fill="#b8860b" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Java)"      fill="#b8860b" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#facc15" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#ffffff" radius={[3, 3, 0, 0]} />
                 </BarChart>
@@ -558,7 +558,7 @@ const Benchmark = () => {
 
             <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
               The two charts tell the split story: the top one is the scored verdict (higher = better),
-              the bottom one is the raw evidence (lower = better). Asherin edges Opus 4.8 on security
+              the bottom one is the raw evidence (lower = better). Aureon edges Opus 4.8 on security
               by explicitly wiping evicted entries from memory, while Opus 4.8 ships with zero
               verified bugs and no dead code. GPT-5.5 leaks sensitive references and ships a real
               correctness bug — the cost of running a raw base model with no grooming protocol.
@@ -569,14 +569,14 @@ const Benchmark = () => {
           {/* Method explanation */}
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-4">
             <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-              ◉ How Asherin wins on a cheaper base model
+              ◉ How Aureon wins on a cheaper base model
             </p>
             <h2 className="text-2xl font-extralight tracking-tight text-foreground">
               We don't train a bigger brain. We groom a cheaper one — harder.
             </h2>
             <div className="space-y-3 text-sm font-extralight leading-relaxed text-muted-foreground/90">
               <p>
-                Asherin runs on <span className="text-foreground">GPT-5.2</span> — a normal,
+                Aureon runs on <span className="text-foreground">GPT-5.2</span> — a normal,
                 cheap-to-run base model. The exact same family of model that, raw, scored
                 17/30 on this benchmark as GPT-5.5.
               </p>
@@ -637,7 +637,7 @@ const Benchmark = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Podium rank="Winner" name="Asherin · Python AST CLI" lang="Strict-mode whole-project analyzer" score={57} total={80} highlight />
+            <Podium rank="Winner" name="Aureon · Python AST CLI" lang="Strict-mode whole-project analyzer" score={57} total={80} highlight />
             <Podium rank="2nd" name="Opus 4.8 · React heuristic tool" lang="Single-file in-browser linter" score={40} total={80} />
           </div>
 
@@ -653,7 +653,7 @@ const Benchmark = () => {
                   <YAxis type="category" dataKey="metric" width={170} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Asherin (Python AST CLI)"  fill="#b8860b" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"  fill="#b8860b" radius={[0, 3, 3, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#facc15" radius={[0, 3, 3, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -668,7 +668,7 @@ const Benchmark = () => {
                 <p className="text-xs font-light text-muted-foreground">total bug</p>
               </div>
               <p className="text-[11px] font-light text-muted-foreground mt-1">
-                Asherin · 0 real · 0 silent · 1 edge-case missing
+                Aureon · 0 real · 0 silent · 1 edge-case missing
               </p>
             </div>
             <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
@@ -695,7 +695,7 @@ const Benchmark = () => {
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="aureon" name="Asherin (Python AST CLI)"   fill="#b8860b" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Aureon (Python AST CLI)"   fill="#b8860b" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#facc15" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -707,15 +707,15 @@ const Benchmark = () => {
               ◉ Same base model. Different operator.
             </p>
             <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
-              The Asherin output below was produced by our internal refinement pipeline running
+              The Aureon output below was produced by our internal refinement pipeline running
               on top of a <span className="text-foreground">GPT-5.2</span> base model — the same family of cheap, off-the-shelf model
               that scores in the mid-teens raw. The Opus 4.8 output is straight from Anthropic's flagship.
-              Compare what the model says when nobody grooms it vs. when Asherin does.
+              Compare what the model says when nobody grooms it vs. when Aureon does.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CodeBlock title="Asherin" lang="Python" code={IMAGINE_AUREON_CODE} accent="#b8860b" subtitle="Asherin · refined output" />
+            <CodeBlock title="Aureon" lang="Python" code={IMAGINE_AUREON_CODE} accent="#b8860b" subtitle="Aureon · refined output" />
             <CodeBlock title="Opus 4.8" lang="React / JS" code={IMAGINE_OPUS_CODE} accent="#facc15" subtitle="Anthropic flagship · raw output" />
           </div>
 
@@ -725,7 +725,7 @@ const Benchmark = () => {
             </p>
             <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
               Opus 4.8 built a slick in-browser linter — great for demos, useless on a real repo.
-              Asherin shipped a strict-mode AST analyzer that ingests a whole project as a ZIP,
+              Aureon shipped a strict-mode AST analyzer that ingests a whole project as a ZIP,
               refuses heuristic fallbacks when parsing fails, and demands ≥2 evidence anchors across
               ≥2 files before claiming a pattern. One is a toy. The other is an audit tool.
             </p>
@@ -746,7 +746,7 @@ const Benchmark = () => {
             </h2>
             <p className="max-w-2xl mx-auto text-sm font-extralight text-muted-foreground leading-relaxed">
               We pointed three security AIs at the same real-world codebases and counted the
-              issues each one actually found. Asherin's security agent — ZERLAL — wasn't close.
+              issues each one actually found. Aureon's security agent — ZERLAL — wasn't close.
               It was in a different category.
             </p>
           </div>
@@ -763,7 +763,7 @@ const Benchmark = () => {
               <p className="text-xs font-extralight text-muted-foreground mt-2">security bugs found</p>
             </div>
             <div className="rounded-2xl border-2 border-foreground/40 bg-foreground/5 backdrop-blur-sm p-6 text-center">
-              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-foreground mb-3">Asherin · ZERLAL</p>
+              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-foreground mb-3">Aureon · ZERLAL</p>
               <div className="text-5xl font-extralight text-foreground">200+</div>
               <p className="text-xs font-extralight text-muted-foreground mt-2">security flaws found in the same project</p>
             </div>
@@ -921,7 +921,7 @@ const Benchmark = () => {
             </p>
             <h3 className="text-2xl font-extralight tracking-tight text-foreground max-w-3xl mx-auto">
               Anthropic charges $200/month for Fable 5. It found a handful of bugs on this project.
-              Asherin's ZERLAL agent found 200+ on the same code, in less time.
+              Aureon's ZERLAL agent found 200+ on the same code, in less time.
             </h3>
             <p className="text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
               The future of AI security isn't in boardrooms. It's in basements.

@@ -3,7 +3,6 @@
 // ("data that improves coding knowledge", "cybersecurity dossiers", etc.)
 // and returns the ids that actually match, ranked, with a one-line reason.
 // GEMINI ONLY (per Asher Dashboard policy).
-import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");

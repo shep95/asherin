@@ -1,6 +1,4 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { normalizeGeminiModel } from "../_shared/geminiModels.ts";
-
 // Zophiel Intel Map - scrapes top search results and extracts an entity graph
 // using Lovable AI Gateway. Returns nodes (sources, people, orgs, locations,
 // topics) and edges (mentions, affiliations, references) for Palantir-style mapping.
@@ -191,15 +189,12 @@ Return JSON with this exact shape:
     // If `useByok`, route to the user's chosen provider. Otherwise use the platform
     // Gemini key with our standard retry/fallback chain.
 
-    const callGemini = async (apiKey: string, rawModel: string, timeoutMs: number) => {
-      // Saved BYOK ids go stale when Google retires a pinned model; normalize
-      // first so a user's old "gemini-2.5-flash" preference doesn't 404.
-      const model = normalizeGeminiModel(rawModel);
+    const callGemini = async (apiKey: string, model: string, timeoutMs: number) => {
       const ctl = new AbortController();
       const t = setTimeout(() => ctl.abort(), timeoutMs);
       try {
         const r = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -211,7 +206,6 @@ Return JSON with this exact shape:
             }),
           },
         );
-
         if (!r.ok) {
           const txt = await r.text();
           console.error(`[intelmap] gemini ${model} error ${r.status}`, txt.slice(0, 200));

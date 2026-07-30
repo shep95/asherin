@@ -8,7 +8,6 @@
 //   - All content is treated as UNVERIFIED (low veracity floor). Onion sources
 //     are NEVER promoted above clearnet primary/established sources by sort.
 
-import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 interface OnionResult {

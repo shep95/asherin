@@ -2,7 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { statusForError } from "../_shared/errorStatus.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 type ReconFinding = {
@@ -1140,7 +1139,7 @@ serve(async (req) => {
 
     console.error("[ZERLAL-DOMAIN-RECON] Error:", message);
     return new Response(JSON.stringify({ error: message }), {
-      status: statusForError(error),
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

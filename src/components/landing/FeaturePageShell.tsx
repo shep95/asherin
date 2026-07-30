@@ -36,7 +36,7 @@ const FeaturePageShell = ({
   useCasesTitle = "Operational Use Cases",
   useCases,
   ctaTitle,
-  ctaSubtitle = "Available inside the Asherin dashboard.",
+  ctaSubtitle = "Available inside the Aureon dashboard.",
   children,
 }: FeaturePageShellProps) => {
   useEffect(() => {
@@ -207,7 +207,7 @@ const FeaturePageShell = ({
 
       <footer className="relative z-10 border-t border-border/10 py-10 text-center">
         <p className="text-[10px] font-extralight tracking-[0.32em] uppercase text-muted-foreground/40">
-          © {new Date().getFullYear()} Asherin · All rights reserved
+          © {new Date().getFullYear()} Aureon · All rights reserved
         </p>
       </footer>
 

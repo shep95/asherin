@@ -1,7 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { statusForError } from "../_shared/errorStatus.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 function parseCSVLine(line: string): string[] {
@@ -187,7 +186,7 @@ Deno.serve(async (req) => {
     const msg = error instanceof Error ? error.message : String(error);
     return new Response(
       JSON.stringify({ output: `Error: ${msg}` }),
-      { status: statusForError(error), headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

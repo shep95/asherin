@@ -130,10 +130,7 @@ const PredictionBtcDaily = () => {
     fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/btc-settle`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: ANON, Authorization: `Bearer ${ANON}` },
-      // Only the prediction id is sent — the function fetches spot itself so a
-      // browser can never dictate the settlement price.
-      body: JSON.stringify({ id: latest.id }),
-
+      body: JSON.stringify({ id: latest.id, price: livePrice }),
     })
       .then((r) => r.json())
       .then((j) => { if (j?.settled) {

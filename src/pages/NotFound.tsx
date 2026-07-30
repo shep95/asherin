@@ -1,12 +1,12 @@
 import { useLocation } from "react-router-dom";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { applySeoHead } from "@/lib/seoHead";
-const wallpaperAsherin = "/wallpapers/wallpaper-aureon.webp";
+const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
 
 
 /**
- * ASHERIN 404 — "Lost in Orbit"
- * A monochrome, Asherin-themed not-found page with an offline
+ * AUREON 404 — "Lost in Orbit"
+ * A monochrome, Aureon-themed not-found page with an offline
  * Chrome-dino-style mini game: a futuristic dino in a space suit
  * jumping rogue asteroids and broken satellites, with Saturn looming
  * in the background. Funny flavor text included.
@@ -56,9 +56,9 @@ const NotFound = () => {
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
     applySeoHead({
-      title: "404 — Lost in Orbit | Asherin",
+      title: "404 — Lost in Orbit | Aureon",
       description:
-        "This isn't a page on Asherin. Click to return — or play the offline space-dino game while you're here.",
+        "This isn't a page on Aureon. Click to return — or play the offline space-dino game while you're here.",
       path: location.pathname,
     });
     // Dork-hardening: every 404 must be de-indexable so recon probes for
@@ -466,11 +466,11 @@ const NotFound = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050507] text-zinc-200">
-      {/* Asherin wallpaper */}
+      {/* Aureon wallpaper */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${wallpaperAsherin})`, zIndex: 0 }}
+        style={{ backgroundImage: `url(${wallpaperAureon})`, zIndex: 0 }}
       />
       <div aria-hidden className="pointer-events-none fixed inset-0 bg-black/70" style={{ zIndex: 1 }} />
       {/* ambient grid + glow */}

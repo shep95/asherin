@@ -4,14 +4,9 @@
 // endpoints to any origin.
 
 const ALLOWED_ORIGINS = [
-  // Canonical production origin (also the fallback echoed to unknown origins).
-  "https://www.asherin.com",
-  "https://asherin.com",
-  // Lovable-hosted published origin.
-  "https://ziali-magic-pixels.lovable.app",
-  // Legacy brand domains — kept so old bookmarks keep working.
   "https://aureonai.app",
   "https://www.aureonai.app",
+  "https://ziali-magic-pixels.lovable.app",
   "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app",
   "https://5d5e1e10-9f71-4760-8dad-575a93313745.lovableproject.com",
   "http://localhost:5173",
@@ -21,12 +16,8 @@ const ALLOWED_ORIGINS = [
 
 function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.includes(origin)) return true;
-  // Lovable preview/sandbox hosts for this project only.
-  if (/^https:\/\/[a-z0-9-]+\.lovableproject\.com$/.test(origin)) return true;
-  // Published + preview Lovable app hosts (e.g. id-preview--<uuid>.lovable.app).
-  return /^https:\/\/[a-z0-9-]+\.lovable\.app$/.test(origin);
+  return /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/.test(origin);
 }
-
 
 const BASE_ALLOWED_HEADERS =
   "authorization, x-client-info, apikey, content-type, x-supabase-api-version, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";

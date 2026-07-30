@@ -4,7 +4,6 @@
 // Jargon Mode: every advanced term is written as `Term (plain-English description of what it is, does, and why it matters)`.
 // GEMINI ONLY (per Asher Dashboard policy).
 
-import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
