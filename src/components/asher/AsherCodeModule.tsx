@@ -908,7 +908,7 @@ export default function AsherCodeModule() {
     let lastErr: any = null;
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        const asherin = await loadAureonContext();
+        const aureon = await loadAureonContext();
         const result = await callAsherCodeAi({
           mode: "fix",
           byok: byok(),
@@ -937,7 +937,7 @@ export default function AsherCodeModule() {
     // second pass with an explicit "rewrite the file" prompt before giving up.
     if (!corrected || corrected === current.trim()) {
       try {
-        const asherin = await loadAureonContext();
+        const aureon = await loadAureonContext();
         const forced = await callAsherCodeAi({
           mode: "fix",
           byok: byok(),
@@ -1783,7 +1783,7 @@ export default function AsherCodeModule() {
     setAiBusy(true);
     try {
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
-      const asherin = await loadAureonContext();
+      const aureon = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx, images: imageAttachments, ...aureon } as any);
       const assistantMsg: ChatMsg = { role: "assistant", content: r.reply || "" };
       setChat([...next, assistantMsg]);
@@ -2147,7 +2147,7 @@ export default function AsherCodeModule() {
     if (!activeFile) return;
     setAiBusy(true);
     try {
-      const asherin = await loadAureonContext();
+      const aureon = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "explain", byok: byok(), code: activeContent, language: activeFile.language, ...aureon });
       const u: ChatMsg = { role: "user", content: `Explain ${activeFile.path}` };
       const a: ChatMsg = { role: "assistant", content: r.reply || "" };
@@ -2162,7 +2162,7 @@ export default function AsherCodeModule() {
     if (!err) return;
     setAiBusy(true);
     try {
-      const asherin = await loadAureonContext();
+      const aureon = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "fix", byok: byok(), code: activeContent, language: activeFile.language, error: err, ...aureon });
       const u: ChatMsg = { role: "user", content: `Fix: ${err}` };
       const a: ChatMsg = { role: "assistant", content: r.reply || "" };
@@ -2184,7 +2184,7 @@ export default function AsherCodeModule() {
     if (!desc) return;
     setAiBusy(true);
     try {
-      const asherin = await loadAureonContext();
+      const aureon = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "generate", byok: byok(), description: desc, language: activeFile.language, ...aureon });
       const code = extractCodeBlock(r.reply || "");
       animateApply(activeFile.id, code);
@@ -2200,7 +2200,7 @@ export default function AsherCodeModule() {
     if (!activeFile) return;
     setAiBusy(true);
     try {
-      const asherin = await loadAureonContext();
+      const aureon = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "tests", byok: byok(), code: activeContent, language: activeFile.language, framework: "vitest", ...aureon });
       const code = extractCodeBlock(r.reply || "");
       // Create a sibling test file
@@ -2227,7 +2227,7 @@ export default function AsherCodeModule() {
     setAiBusy(true);
     try {
       const projectFiles = files.map(f => ({ path: f.path, content: dirty[f.id] ?? f.content }));
-      const asherin = await loadAureonContext();
+      const aureon = await loadAureonContext();
       const r = await callAsherCodeAi({ mode: "edit_plan", byok: byok(), instruction, contextFiles: projectFiles, ...aureon });
       const plan = extractJsonBlock<EditPlan>(r.reply || "");
       if (!plan?.edits?.length) { toast.error("AI did not return a valid edit plan"); return; }
@@ -2285,7 +2285,7 @@ export default function AsherCodeModule() {
         .map(p => ({ provider: p.id, model: p.models[0].id, apiKey: undefined as any }));
       const byoks = [{ provider, model, apiKey: apiKey || undefined }, ...others];
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
-      const asherin = await loadAureonContext();
+      const aureon = await loadAureonContext();
       const r = await callAsherCodeAi({
         mode: "orchestrate",
         subMode: "chat",
@@ -2312,7 +2312,7 @@ export default function AsherCodeModule() {
     if (!targets.length) { toast.info("No `// AI: ...` prompts found in this file"); return; }
     setAiBusy(true);
     try {
-      const asherin = await loadAureonContext();
+      const aureon = await loadAureonContext();
       const newLines = [...lines];
       // Process bottom-up so indices stay stable
       for (const t of [...targets].reverse()) {

@@ -33,7 +33,7 @@ const SERIES = [
 /**
  * /blog/comparison — Asherin vs ChatGPT vs Claude
  * Long-form comparison guide. Targets the "uncensored ai" /
- * "asherin vs chatgpt" / "asherin vs claude" search intent.
+ * "aureon vs chatgpt" / "aureon vs claude" search intent.
  *
  * SEO: per-route title/description handled in RouteSeo. This page
  * additionally injects Article + FAQPage + BreadcrumbList JSON-LD
@@ -44,27 +44,27 @@ const PUBLISHED = "2026-06-14";
 const URL_SELF = "https://aureonai.app/blog/comparison";
 
 type Cell = "yes" | "no" | "partial" | string;
-type Row = { feature: string; asherin: Cell; chatgpt: Cell; claude: Cell; note?: string };
+type Row = { feature: string; aureon: Cell; chatgpt: Cell; claude: Cell; note?: string };
 
 const MATRIX: Row[] = [
-  { feature: "Entry price",                        asherin: "$47 one-time", chatgpt: "$20 / month", claude: "$20 / month",  note: "Asherin entry is a single payment. ChatGPT Plus and Claude Pro bill every month." },
-  { feature: "Uncensored responses",               asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Asherin refuses nothing legal; the others refuse a substantial share of legitimate queries." },
-  { feature: "Bring-your-own-key (9 providers)",   asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Use Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, or Venice on your own bill." },
-  { feature: "Multi-model consensus",              asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Five-phase cross-validation across models, 45% confidence threshold." },
-  { feature: "Live 30-source OSINT search",        asherin: "yes",      chatgpt: "partial", claude: "no",       note: "ChatGPT browsing is limited to a handful of curated sources; Claude has no native web." },
-  { feature: "Predictive intelligence engine",     asherin: "yes",      chatgpt: "no",      claude: "no",       note: "AXRLEN NEXUS-PRIME runs probabilistic scenarios with Monte Carlo modelling." },
-  { feature: "Vulnerability & exploit analysis",   asherin: "yes",      chatgpt: "no",      claude: "no",       note: "ZERLAL fault-tolerant scanning with Cyber Kill Chain mapping." },
-  { feature: "Full Monaco IDE inside chat",        asherin: "yes",      chatgpt: "partial", claude: "partial",  note: "Asherin ships a sandboxed-iframe IDE with BYOK across 9 providers." },
-  { feature: "FEA / thermal simulation",           asherin: "yes",      chatgpt: "no",      claude: "no",       note: "ZALI Design Suite runs design-of-experiments and material selection." },
-  { feature: "Infinite whiteboard",                asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Photoshop-style layer stack, dot/square snap grids." },
-  { feature: "E-book generator",                   asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Multi-session text uploads, 500-word chapters, generated cover art." },
-  { feature: "End-to-end encrypted vault",         asherin: "yes",      chatgpt: "no",      claude: "no",       note: "AES-256-GCM, chrooted file access, admin RLS partitions." },
-  { feature: "Persistent intelligence graph",      asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Library + Project Folders + cross-session memory recall." },
-  { feature: "Voice chat",                         asherin: "yes",      chatgpt: "yes",     claude: "no",       note: "Asherin uses ElevenLabs WebRTC with live audio visualisers." },
-  { feature: "Image generation",                   asherin: "yes",      chatgpt: "yes",     claude: "no",       note: "Asherin Imagine module ships with persistent gallery." },
-  { feature: "Vision (image + video) input",       asherin: "yes",      chatgpt: "yes",     claude: "yes",      note: "Asherin adds FACS behavioural video tracking." },
-  { feature: "Lifetime licence option",            asherin: "yes",      chatgpt: "no",      claude: "no",       note: "$470 one-time, no recurring billing ever." },
-  { feature: "No mandatory monthly subscription",  asherin: "yes",      chatgpt: "no",      claude: "no",       note: "Asherin never bills monthly. Pay once or use free. Competitors require ongoing subscriptions." },
+  { feature: "Entry price",                        aureon: "$47 one-time", chatgpt: "$20 / month", claude: "$20 / month",  note: "Asherin entry is a single payment. ChatGPT Plus and Claude Pro bill every month." },
+  { feature: "Uncensored responses",               aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Asherin refuses nothing legal; the others refuse a substantial share of legitimate queries." },
+  { feature: "Bring-your-own-key (9 providers)",   aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Use Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, or Venice on your own bill." },
+  { feature: "Multi-model consensus",              aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Five-phase cross-validation across models, 45% confidence threshold." },
+  { feature: "Live 30-source OSINT search",        aureon: "yes",      chatgpt: "partial", claude: "no",       note: "ChatGPT browsing is limited to a handful of curated sources; Claude has no native web." },
+  { feature: "Predictive intelligence engine",     aureon: "yes",      chatgpt: "no",      claude: "no",       note: "AXRLEN NEXUS-PRIME runs probabilistic scenarios with Monte Carlo modelling." },
+  { feature: "Vulnerability & exploit analysis",   aureon: "yes",      chatgpt: "no",      claude: "no",       note: "ZERLAL fault-tolerant scanning with Cyber Kill Chain mapping." },
+  { feature: "Full Monaco IDE inside chat",        aureon: "yes",      chatgpt: "partial", claude: "partial",  note: "Asherin ships a sandboxed-iframe IDE with BYOK across 9 providers." },
+  { feature: "FEA / thermal simulation",           aureon: "yes",      chatgpt: "no",      claude: "no",       note: "ZALI Design Suite runs design-of-experiments and material selection." },
+  { feature: "Infinite whiteboard",                aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Photoshop-style layer stack, dot/square snap grids." },
+  { feature: "E-book generator",                   aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Multi-session text uploads, 500-word chapters, generated cover art." },
+  { feature: "End-to-end encrypted vault",         aureon: "yes",      chatgpt: "no",      claude: "no",       note: "AES-256-GCM, chrooted file access, admin RLS partitions." },
+  { feature: "Persistent intelligence graph",      aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Library + Project Folders + cross-session memory recall." },
+  { feature: "Voice chat",                         aureon: "yes",      chatgpt: "yes",     claude: "no",       note: "Asherin uses ElevenLabs WebRTC with live audio visualisers." },
+  { feature: "Image generation",                   aureon: "yes",      chatgpt: "yes",     claude: "no",       note: "Asherin Imagine module ships with persistent gallery." },
+  { feature: "Vision (image + video) input",       aureon: "yes",      chatgpt: "yes",     claude: "yes",      note: "Asherin adds FACS behavioural video tracking." },
+  { feature: "Lifetime licence option",            aureon: "yes",      chatgpt: "no",      claude: "no",       note: "$470 one-time, no recurring billing ever." },
+  { feature: "No mandatory monthly subscription",  aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Asherin never bills monthly. Pay once or use free. Competitors require ongoing subscriptions." },
 ];
 
 const FAQ = [
