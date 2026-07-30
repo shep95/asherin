@@ -7,6 +7,7 @@ import JSZip from "https://esm.sh/jszip@3.10.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { runNarrativeLoop, CodeFile } from "../_shared/codeNarrativeProtocol.ts";
 import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
+import { statusForError } from "../_shared/errorStatus.ts";
 
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
   } catch (e: any) {
     console.error("[code-narrative-fix]", e);
     return new Response(JSON.stringify({ error: e?.message || "Unknown error" }), {
-      status: 500,
+      status: statusForError(e),
       headers: { ...cors, "Content-Type": "application/json" },
     });
   }

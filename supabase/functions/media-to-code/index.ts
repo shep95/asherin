@@ -6,6 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { CODE_NARRATIVE_PROTOCOL } from "../_shared/codeNarrativeProtocol.ts";
 import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
+import { statusForError } from "../_shared/errorStatus.ts";
 
 const SYSTEM_PROMPT = `You are MEDIA-TO-CODE, an elite front-end engineer specialized in rewriting
 HTML/CSS embed snippets for images and videos based on plain-English instructions.
@@ -129,7 +130,7 @@ serve(async (req) => {
     console.error("media-to-code error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: statusForError(e), headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });

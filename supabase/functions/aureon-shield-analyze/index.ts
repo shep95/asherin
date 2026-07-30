@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { statusForError } from "../_shared/errorStatus.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 serve(async (req) => {
@@ -82,7 +83,7 @@ Return STRICT JSON ONLY (no markdown), schema:
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
+      status: statusForError(err),
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

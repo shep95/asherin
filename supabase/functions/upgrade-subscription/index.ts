@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { statusForError } from "../_shared/errorStatus.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const logStep = (step: string, details?: any) => {
@@ -232,7 +233,7 @@ serve(async (req) => {
     logStep("ERROR", { message: msg });
     return new Response(
       JSON.stringify({ error: msg }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: statusForError(error) }
     );
   }
 });

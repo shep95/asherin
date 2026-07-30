@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
+import { statusForError } from "../_shared/errorStatus.ts";
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -132,7 +133,7 @@ serve(async (req) => {
     console.error("plugin-checkout error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: statusForError(error) }
     );
   }
 });
