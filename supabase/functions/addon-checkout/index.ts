@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
+import { statusForError } from "../_shared/errorStatus.ts";
 
 // Server-authoritative addon catalog. Client sends addonId; price is resolved
 // here. Populate with real Stripe price IDs as addons are launched.
@@ -70,7 +71,7 @@ serve(async (req) => {
     console.error("addon-checkout error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: statusForError(error) },
     );
   }
 });

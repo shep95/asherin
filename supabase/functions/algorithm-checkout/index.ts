@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
+import { statusForError } from "../_shared/errorStatus.ts";
 
 const ALGORITHM_PRICE_ID = "price_1TfC3oRxgCpmPfiFniV2cXAu";
 
@@ -61,7 +62,7 @@ serve(async (req) => {
   } catch (e) {
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "checkout failed" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: statusForError(e), headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });

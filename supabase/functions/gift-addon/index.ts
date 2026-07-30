@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
+import { statusForError } from "../_shared/errorStatus.ts";
 
 // Server-authoritative allowlist of gift-able addon Stripe product IDs.
 // Empty by default = no gifts can be created until product IDs are added.
@@ -119,7 +120,7 @@ serve(async (req) => {
     logStep("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      status: statusForError(error),
     });
   }
 });

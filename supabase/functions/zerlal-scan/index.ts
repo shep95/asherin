@@ -13,6 +13,7 @@ ${QUANTUM_ORCHESTRATION_BRAIN}
 Return ONLY valid JSON. No markdown fences. No prose outside the JSON payload.`;
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { statusForError } from "../_shared/errorStatus.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const CODE_EXTS = [".ts",".tsx",".js",".jsx",".py",".go",".rs",".java",".c",".cpp",".h",".php",".rb",".swift",".kt",".cs",".sh",".sql",".yaml",".yml",".json",".toml",".tf",".dockerfile",".env",".vue",".svelte"];
@@ -637,7 +638,7 @@ CODE:\n\`\`\`\n${pass2Slice}\n\`\`\``;
       }
     }
     return new Response(JSON.stringify({ error: e.message || "Unknown error" }), {
-      status: 500,
+      status: statusForError(e),
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

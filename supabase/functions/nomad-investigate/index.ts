@@ -2816,8 +2816,22 @@ serve(async (req) => {
 
   try {
     const startTime = Date.now();
-    const { messages, userId: bodyUserId, byok = null } = await req.json();
+    const body = await req.json().catch(() => null) as
+      | { messages?: Array<{ content?: string }>; userId?: string; byok?: unknown }
+      | null;
+    const messages = Array.isArray(body?.messages) ? body!.messages : [];
+    const bodyUserId = body?.userId;
+    const byok = body?.byok ?? null;
     const lastUserMessage = messages[messages.length - 1]?.content || '';
+    // A malformed or empty body previously threw on `messages.length` and
+    // surfaced as an opaque 500. Reject it as the client error it is.
+    if (!lastUserMessage.trim()) {
+      return new Response(
+        JSON.stringify({ error: 'messages[] with a non-empty last message is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
 
     // Resolve userId from JWT — never trust body for identity.
     // Admin callers may override via body only when paired with CRON_SECRET.
