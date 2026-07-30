@@ -193,9 +193,9 @@ interface TierFeatureTabsProps {
 }
 
 const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
-  const [activeTab, setActiveTab] = useState<"chat" | "asherin" | "pro">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "aureon" | "pro">("chat");
 
-  const groups = activeTab === "chat" ? CHAT_FEATURE_GROUPS : activeTab === "asherin" ? AUREON_FEATURE_GROUPS : PRO_FEATURE_GROUPS;
+  const groups = activeTab === "chat" ? CHAT_FEATURE_GROUPS : activeTab === "aureon" ? AUREON_FEATURE_GROUPS : PRO_FEATURE_GROUPS;
   const plan = SUBSCRIPTION_PLANS.find(p => p.id === activeTab);
 
   return (
@@ -215,11 +215,11 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
           CHAT — $47
         </button>
         <button
-          onClick={() => setActiveTab("asherin")}
-          onMouseEnter={() => setActiveTab("asherin")}
-          onFocus={() => setActiveTab("asherin")}
+          onClick={() => setActiveTab("aureon")}
+          onMouseEnter={() => setActiveTab("aureon")}
+          onFocus={() => setActiveTab("aureon")}
           className={`px-5 py-2.5 rounded-lg text-xs font-light tracking-wide transition-all ${
-            activeTab === "asherin"
+            activeTab === "aureon"
               ? "bg-foreground text-background"
               : "text-muted-foreground hover:text-foreground"
           }`}
@@ -245,7 +245,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
         <p className="text-sm font-extralight text-muted-foreground max-w-lg mx-auto">
           {plan?.description}
         </p>
-        {activeTab === "asherin" && (
+        {activeTab === "aureon" && (
           <p className="text-[10px] tracking-wider text-foreground/50 uppercase mt-2">
             Includes everything in Chat +
           </p>

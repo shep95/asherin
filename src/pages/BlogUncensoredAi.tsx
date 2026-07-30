@@ -40,7 +40,7 @@ const BlogUncensoredAi = () => {
         "unrestricted ai",
         "uncensored ai",
         "venice ai alternative",
-        "asherin",
+        "aureon",
       ],
     });
     return () => {

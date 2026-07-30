@@ -26,7 +26,7 @@ function loadActive(): Active {
     const parsed = JSON.parse(raw);
     if (!parsed?.provider) return null;
     // Ignore legacy in-house engine entries.
-    if (parsed.provider === "asherin" || parsed.provider === "default") return null;
+    if (parsed.provider === "aureon" || parsed.provider === "default") return null;
     const prov = AI_PROVIDERS.find((p) => p.id === parsed.provider);
     const mod = prov?.models.find((m) => m.id === parsed.model);
     if (prov && mod) {

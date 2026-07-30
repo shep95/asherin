@@ -1,6 +1,6 @@
 // /asherin.gov — Government / sovereign-partner landing page.
 // Public, SEO-lite (targeted, not aggressive), theme-matched to the Asherin
-// dark aesthetic. Uses the asherin wallpaper as a fixed background.
+// dark aesthetic. Uses the aureon wallpaper as a fixed background.
 
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -101,7 +101,7 @@ const AsherinGov = () => {
     canonical.href = "https://aureonai.app/asherin.gov";
   }, []);
 
-  const wallpaper = getWallpaperSrc("asherin");
+  const wallpaper = getWallpaperSrc("aureon");
 
   return (
     <div className="relative min-h-screen text-foreground overflow-x-hidden">

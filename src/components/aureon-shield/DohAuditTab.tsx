@@ -16,8 +16,8 @@ export const DohAuditTab = () => {
 
   useEffect(() => {
     const h = () => setAudit(readAudit());
-    window.addEventListener("asherin:audit", h);
-    return () => window.removeEventListener("asherin:audit", h);
+    window.addEventListener("aureon:audit", h);
+    return () => window.removeEventListener("aureon:audit", h);
   }, []);
 
   const run = async () => { setBusy(true); try { setDoh(await testDoh(host)); } finally { setBusy(false); } };

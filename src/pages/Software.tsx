@@ -23,7 +23,7 @@ const TOOLTIP_STYLE = {
   backdropFilter: "blur(12px)",
 };
 
-type Tier = "asherin" | "pro";
+type Tier = "aureon" | "pro";
 
 type Product = {
   name: string;
@@ -40,7 +40,7 @@ type Product = {
 
 /* ─────────────────────────────────────────────────────────────
    FULL SOFTWARE CATALOG — mirrors dashboard NAV_INTENTS
-   tier: "asherin" = $18/mo · "pro" = $399/mo
+   tier: "aureon" = $18/mo · "pro" = $399/mo
    ───────────────────────────────────────────────────────────── */
 
 const PRODUCTS: Product[] = [
@@ -63,7 +63,7 @@ const PRODUCTS: Product[] = [
     ],
     competitors: ["ChatGPT Plus", "Claude Pro", "Gemini Advanced"],
     route: "/dashboard/chat",
-    tier: "asherin",
+    tier: "aureon",
     badge: "Flagship",
   },
   {
@@ -81,7 +81,7 @@ const PRODUCTS: Product[] = [
     ],
     competitors: ["Perplexity", "Google", "Kagi"],
     route: "/dashboard/search",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "File Scrapper",
@@ -91,7 +91,7 @@ const PRODUCTS: Product[] = [
     icon: FileText,
     features: ["OCR on scans & images", "PDF / DOCX / XLSX / CSV parsing", "Table structure preservation", "Multi-file batch mode"],
     route: "/dashboard/file-scrapper",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Cipher Toolkit",
@@ -101,7 +101,7 @@ const PRODUCTS: Product[] = [
     icon: Lock,
     features: ["Base64 / hex / ROT / URL encoders", "SHA / BLAKE / Argon2 hashing", "AES-GCM & RSA-OAEP", "Key-pair generation"],
     route: "/dashboard/cipher",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Asherin IDE",
@@ -119,7 +119,7 @@ const PRODUCTS: Product[] = [
     ],
     competitors: ["Cursor", "Replit", "Lovable"],
     route: "/dashboard/ide",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Asherin Whiteboard",
@@ -129,7 +129,7 @@ const PRODUCTS: Product[] = [
     features: ["Infinite pan + zoom", "Layer stack with blend modes", "Snap grids + smart guides", "AI object generation"],
     competitors: ["Miro", "FigJam", "Excalidraw"],
     route: "/dashboard/whiteboard",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Document Studio",
@@ -139,7 +139,7 @@ const PRODUCTS: Product[] = [
     features: ["Long-form eBook mode", "Slide deck generator", "PDF layout engine", "AI cover art"],
     competitors: ["Sudowrite", "NovelAI", "Canva"],
     route: "/dashboard/pdf-generator",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Gematria Engine",
@@ -148,7 +148,7 @@ const PRODUCTS: Product[] = [
     icon: Fingerprint,
     features: ["4 gematria systems", "Personal corpus matching", "Date fingerprint resonance", "World-event correlation"],
     route: "/dashboard/gematria",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Vedic Astrology",
@@ -158,7 +158,7 @@ const PRODUCTS: Product[] = [
     features: ["Swiss Ephemeris (arcsecond)", "Full Dasha reading", "Compatibility engine", "27 nakshatra decoder", "Moon-driven local transits"],
     competitors: ["Astro-Seek", "AstroSage"],
     route: "/dashboard/vedic-astrology",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Zerlal Cyber",
@@ -168,7 +168,7 @@ const PRODUCTS: Product[] = [
     features: ["Domain + subdomain recon", "CVE + exploit intelligence", "Cyber Kill Chain mapping", "Dark-web indicator sweep"],
     competitors: ["Tenable Nessus", "Qualys", "Rapid7"],
     route: "/dashboard/zerlal",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "NOMAD OSINT",
@@ -178,7 +178,7 @@ const PRODUCTS: Product[] = [
     features: ["30+ live OSINT sources", "14-pass correlation engine", "Persistent dossier tree", "Entity + relationship graph"],
     competitors: ["Maltego", "Palantir Gotham"],
     route: "/dashboard/nomad",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Zaxin Tactical",
@@ -187,7 +187,7 @@ const PRODUCTS: Product[] = [
     icon: Bluetooth,
     features: ["BLE scanner + RSSI mapping", "GATT service enumeration", "Hop-graph visualization", "Web Mercator + Esri satellite map"],
     route: "/dashboard/zaxin",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "ZANOEM Design Lab",
@@ -198,7 +198,7 @@ const PRODUCTS: Product[] = [
     features: ["Parametric CAD-class output", "FEA + thermal simulation", "Material property library", "Assembly + tolerance solver"],
     competitors: ["Fusion 360", "ANSYS", "Onshape"],
     route: "/dashboard/zali",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Media → Code",
@@ -207,7 +207,7 @@ const PRODUCTS: Product[] = [
     icon: ImageIcon,
     features: ["Image → responsive HTML", "Video → embedded player", "Semantic markup output", "Tailwind class extraction"],
     route: "/dashboard/media2code",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Zahten Agent Forge",
@@ -216,7 +216,7 @@ const PRODUCTS: Product[] = [
     icon: Bot,
     features: ["Template-driven scaffolding", "Prompt hardening lint", "Tool-permission scoping", "One-click deploy to sidebar"],
     route: "/dashboard/zahten",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Briefings",
@@ -225,7 +225,7 @@ const PRODUCTS: Product[] = [
     icon: Rss,
     features: ["Industry-tuned feeds", "Competitor tracking", "Regulatory watch", "Signal-vs-noise summarization"],
     route: "/dashboard/briefing",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Snippets & Blocks",
@@ -234,7 +234,7 @@ const PRODUCTS: Product[] = [
     icon: Puzzle,
     features: ["Tagged library", "Cross-workspace search", "Prompt + code blocks", "Keyboard-first insert"],
     route: "/dashboard/snippets",
-    tier: "asherin",
+    tier: "aureon",
   },
   {
     name: "Asherin Shield",
@@ -243,7 +243,7 @@ const PRODUCTS: Product[] = [
     icon: Globe,
     features: ["Tracker eviction", "DoH provider audit", "Storage forensics", "Extension hardening"],
     competitors: ["DuckDuckGo Privacy", "uBlock Origin"],
-    tier: "asherin",
+    tier: "aureon",
   },
 
   /* ═══════════════ PRO — ASHERIN PRO $399 ═══════════════ */
@@ -448,11 +448,11 @@ const PRODUCTS: Product[] = [
 ];
 
 const BENCHMARK_DATA = [
-  { metric: "Capability", asherin: 95, chatgpt: 78, claude: 82, gemini: 75, perplexity: 60 },
-  { metric: "Sources", asherin: 92, chatgpt: 50, claude: 45, gemini: 70, perplexity: 88 },
-  { metric: "Censorship-free", asherin: 98, chatgpt: 20, claude: 25, gemini: 18, perplexity: 35 },
-  { metric: "Tool breadth", asherin: 96, chatgpt: 55, claude: 50, gemini: 65, perplexity: 30 },
-  { metric: "Price/value", asherin: 100, chatgpt: 40, claude: 38, gemini: 45, perplexity: 50 },
+  { metric: "Capability", aureon: 95, chatgpt: 78, claude: 82, gemini: 75, perplexity: 60 },
+  { metric: "Sources", aureon: 92, chatgpt: 50, claude: 45, gemini: 70, perplexity: 88 },
+  { metric: "Censorship-free", aureon: 98, chatgpt: 20, claude: 25, gemini: 18, perplexity: 35 },
+  { metric: "Tool breadth", aureon: 96, chatgpt: 55, claude: 50, gemini: 65, perplexity: 30 },
+  { metric: "Price/value", aureon: 100, chatgpt: 40, claude: 38, gemini: 45, perplexity: 50 },
 ];
 
 const RADAR_DATA = [
@@ -547,7 +547,7 @@ const ProductCard = ({ p }: { p: Product }) => {
 };
 
 const Software = () => {
-  const aureonProducts = PRODUCTS.filter((p) => p.tier === "asherin");
+  const aureonProducts = PRODUCTS.filter((p) => p.tier === "aureon");
   const proProducts = PRODUCTS.filter((p) => p.tier === "pro");
 
   useEffect(() => {
@@ -738,7 +738,7 @@ const Software = () => {
                     <YAxis domain={[0, 100]} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                     <Tooltip contentStyle={TOOLTIP_STYLE} />
                     <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                    <Bar dataKey="asherin"    name="Asherin"        fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="aureon"    name="Asherin"        fill="#3b82f6" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="chatgpt"   name="ChatGPT Plus"  fill="#10b981" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="claude"    name="Claude Pro"    fill="#f59e0b" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="gemini"    name="Gemini Adv."   fill="#8b5cf6" radius={[4, 4, 0, 0]} />

@@ -58,11 +58,11 @@ const AureonLegalAdvisor = () => {
         description="A field report on the July 8, 2026 launch of LAW mode across Asherin and Asher — how it researches every applicable law in a jurisdiction, surfaces older statutes that supersede newer ones, and enforces a no-fabrication rule on citations."
         datePublished={PUBLISHED}
         keywords={[
-          "asherin legal advisor",
+          "aureon legal advisor",
           "ai legal research",
           "multi-jurisdictional law ai",
           "older laws superseding newer",
-          "law mode asherin",
+          "law mode aureon",
           "asher legal ai",
         ]}
       />

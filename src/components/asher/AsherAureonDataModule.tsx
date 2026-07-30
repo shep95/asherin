@@ -267,7 +267,7 @@ export default function AsherAureonDataModule() {
   const maxCountry = Math.max(1, ...countryBars.map((c) => c.count));
 
   // Build module-by-tier matrix
-  const tierOrder = ["chat", "asherin", "pro", "lifetime", "free"];
+  const tierOrder = ["chat", "aureon", "pro", "lifetime", "free"];
   const moduleMatrix = useMemo(() => {
     const map: Record<string, Record<string, number>> = {};
     moduleUsage.forEach((m) => {

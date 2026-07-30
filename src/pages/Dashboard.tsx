@@ -238,11 +238,11 @@ const Dashboard = () => {
       // until they explicitly change it in Settings.
       const existing = localStorage.getItem("aureon_wallpaper");
       if (!existing) {
-        localStorage.setItem("aureon_wallpaper", "asherin");
-        return "asherin";
+        localStorage.setItem("aureon_wallpaper", "aureon");
+        return "aureon";
       }
       return existing;
-    } catch { return "asherin"; }
+    } catch { return "aureon"; }
   });
   const [prevDashWallpaper, setPrevDashWallpaper] = useState<string | null>(null);
   const [isDashTransitioning, setIsDashTransitioning] = useState(false);
@@ -261,7 +261,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     const handler = () => {
-      const newKey = localStorage.getItem("aureon_wallpaper") || "asherin";
+      const newKey = localStorage.getItem("aureon_wallpaper") || "aureon";
       const newSrc = getWallpaperSrc(newKey);
       const oldSrc = getWallpaperSrc(wallpaperKey);
       if (newSrc !== oldSrc) {
@@ -529,17 +529,17 @@ const Dashboard = () => {
       const view = (e as CustomEvent).detail as DashboardView;
       if (view) setActiveView(view);
     };
-    window.addEventListener("asherin:navigate", handler);
-    return () => window.removeEventListener("asherin:navigate", handler);
+    window.addEventListener("aureon:navigate", handler);
+    return () => window.removeEventListener("aureon:navigate", handler);
   }, []);
 
   // Load stored BYOK providers for consensus selector.
-  // "asherin" is platform-hosted (no key) and always available as a switchable provider.
+  // "aureon" is platform-hosted (no key) and always available as a switchable provider.
   useEffect(() => {
     if (!user) return;
     supabase.from("user_api_keys").select("provider").eq("user_id", user.id).eq("is_active", true).then(({ data }) => {
       const byok = data ? data.map(d => d.provider) : [];
-      setStoredProviders(["asherin", ...byok.filter(p => p !== "asherin")]);
+      setStoredProviders(["aureon", ...byok.filter(p => p !== "aureon")]);
     });
   }, [user]);
 

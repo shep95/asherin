@@ -30,7 +30,7 @@
 import { useMemo, useState } from "react";
 import { BookOpen, Sparkles as SparkIcon, GitBranch, ExternalLink, ChevronDown } from "lucide-react";
 
-type Source = "chat:asherin" | "chat:asher";
+type Source = "chat:aureon" | "chat:asher";
 
 const clamp = (s: unknown, max = 400) =>
   typeof s === "string" ? s.trim().slice(0, max) : "";

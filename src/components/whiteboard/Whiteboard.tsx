@@ -397,7 +397,7 @@ const normalizeBoard = (raw: Partial<WhiteboardBoard>, index: number): Whiteboar
     id: board.id || uid(),
     name: board.name || `Board ${index + 1}`,
     wallpaperMode: board.wallpaperMode || "current",
-    wallpaperKey: board.wallpaperKey || "asherin",
+    wallpaperKey: board.wallpaperKey || "aureon",
     wallpaperBlur: typeof board.wallpaperBlur === "number" ? board.wallpaperBlur : 10,
     gridMode: board.gridMode || "dots",
     snapMode: board.snapMode || "freeform",

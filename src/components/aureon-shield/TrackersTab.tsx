@@ -12,9 +12,9 @@ export const TrackersTab = () => {
   const [stats, setStats] = useState(getTrackerStats());
   useEffect(() => {
     const h = () => setStats(getTrackerStats());
-    window.addEventListener("asherin:trackers", h);
+    window.addEventListener("aureon:trackers", h);
     const i = setInterval(h, 1500);
-    return () => { window.removeEventListener("asherin:trackers", h); clearInterval(i); };
+    return () => { window.removeEventListener("aureon:trackers", h); clearInterval(i); };
   }, []);
 
   return (

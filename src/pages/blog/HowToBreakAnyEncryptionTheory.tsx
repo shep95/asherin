@@ -54,8 +54,8 @@ const HowToBreakAnyEncryptionTheory = () => {
           "key of solomon",
           "occult cryptography",
           "runtime side channel",
-          "asherin research",
-          "asherin research",
+          "aureon research",
+          "aureon research",
         ]}
       />
       <BreadcrumbJsonLd

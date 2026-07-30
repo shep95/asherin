@@ -33,7 +33,7 @@ const BlogVeniceIntegration = () => {
         "venice ai integration",
         "unfiltered ai",
         "uncensored ai",
-        "asherin",
+        "aureon",
       ],
     });
     return () => {

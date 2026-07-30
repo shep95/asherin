@@ -12,41 +12,41 @@ const PROMPT = "Implement a thread-safe LRU cache with O(1) get and put.";
 const IMAGINE_PROMPT = "Create me an algorithm for spotting structural patterns in code I upload to it.";
 
 const IMAGINE_SCORES = [
-  { metric: "Analysis correctness",  asherin: 9, opus: 4 },
-  { metric: "Structural depth",      asherin: 9, opus: 3 },
-  { metric: "Pattern variety",       asherin: 8, opus: 5 },
-  { metric: "Robustness & safety",   asherin: 8, opus: 3 },
-  { metric: "Scalability",           asherin: 7, opus: 4 },
-  { metric: "Output rigor",          asherin: 9, opus: 5 },
-  { metric: "Language coverage",     asherin: 3, opus: 7 },
-  { metric: "Accessibility & setup", asherin: 4, opus: 9 },
+  { metric: "Analysis correctness",  aureon: 9, opus: 4 },
+  { metric: "Structural depth",      aureon: 9, opus: 3 },
+  { metric: "Pattern variety",       aureon: 8, opus: 5 },
+  { metric: "Robustness & safety",   aureon: 8, opus: 3 },
+  { metric: "Scalability",           aureon: 7, opus: 4 },
+  { metric: "Output rigor",          aureon: 9, opus: 5 },
+  { metric: "Language coverage",     aureon: 3, opus: 7 },
+  { metric: "Accessibility & setup", aureon: 4, opus: 9 },
 ];
 
 const IMAGINE_BUGS = [
-  { metric: "Real correctness bugs",     asherin: 0, opus: 2 },
-  { metric: "Silent-failure paths",      asherin: 0, opus: 3 },
-  { metric: "Missing edge-case handling", asherin: 1, opus: 4 },
+  { metric: "Real correctness bugs",     aureon: 0, opus: 2 },
+  { metric: "Silent-failure paths",      aureon: 0, opus: 3 },
+  { metric: "Missing edge-case handling", aureon: 1, opus: 4 },
 ];
 
 const SCORES_SHORT = [
-  { metric: "Correctness", asherin: 6, opus: 6, gpt: 4 },
-  { metric: "Concurrency", asherin: 6, opus: 4, gpt: 4 },
-  { metric: "API completeness", asherin: 6, opus: 4, gpt: 3 },
-  { metric: "Code craft", asherin: 5, opus: 6, gpt: 4 },
-  { metric: "Memory hygiene", asherin: 6, opus: 4, gpt: 2 },
+  { metric: "Correctness", aureon: 6, opus: 6, gpt: 4 },
+  { metric: "Concurrency", aureon: 6, opus: 4, gpt: 4 },
+  { metric: "API completeness", aureon: 6, opus: 4, gpt: 3 },
+  { metric: "Code craft", aureon: 5, opus: 6, gpt: 4 },
+  { metric: "Memory hygiene", aureon: 6, opus: 4, gpt: 2 },
 ];
 
 const SCORES_FULL = [
-  { metric: "Functional correctness ✓", asherin: 6, opus: 6, gpt: 4 },
-  { metric: "Eviction semantics ✓", asherin: 6, opus: 6, gpt: 6 },
-  { metric: "Concurrency safety ✓", asherin: 6, opus: 5, gpt: 5 },
-  { metric: "Performance under load ✓", asherin: 4, opus: 4, gpt: 4 },
-  { metric: "API completeness", asherin: 6, opus: 4, gpt: 2 },
-  { metric: "Code craft", asherin: 5, opus: 6, gpt: 4 },
-  { metric: "Memory hygiene", asherin: 6, opus: 5, gpt: 3 },
-  { metric: "Error handling", asherin: 5, opus: 5, gpt: 3 },
-  { metric: "Robustness / edge cases", asherin: 6, opus: 5, gpt: 3 },
-  { metric: "Documentation", asherin: 6, opus: 4, gpt: 1 },
+  { metric: "Functional correctness ✓", aureon: 6, opus: 6, gpt: 4 },
+  { metric: "Eviction semantics ✓", aureon: 6, opus: 6, gpt: 6 },
+  { metric: "Concurrency safety ✓", aureon: 6, opus: 5, gpt: 5 },
+  { metric: "Performance under load ✓", aureon: 4, opus: 4, gpt: 4 },
+  { metric: "API completeness", aureon: 6, opus: 4, gpt: 2 },
+  { metric: "Code craft", aureon: 5, opus: 6, gpt: 4 },
+  { metric: "Memory hygiene", aureon: 6, opus: 5, gpt: 3 },
+  { metric: "Error handling", aureon: 5, opus: 5, gpt: 3 },
+  { metric: "Robustness / edge cases", aureon: 6, opus: 5, gpt: 3 },
+  { metric: "Documentation", aureon: 6, opus: 4, gpt: 1 },
 ];
 
 const AUREON_CODE = `import java.util.HashMap;
@@ -447,7 +447,7 @@ const Benchmark = () => {
                   <YAxis tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} domain={[0, 6]} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="asherin" name="Asherin (Java)" fill="#b8860b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="aureon" name="Asherin (Java)" fill="#b8860b" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)" fill="#facc15" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)" fill="#ffffff" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -481,7 +481,7 @@ const Benchmark = () => {
                   <YAxis type="category" dataKey="metric" width={170} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="asherin" name="Asherin (Java)" fill="#b8860b" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="aureon" name="Asherin (Java)" fill="#b8860b" radius={[0, 3, 3, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)" fill="#facc15" radius={[0, 3, 3, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)" fill="#ffffff" radius={[0, 3, 3, 0]} />
                 </BarChart>
@@ -514,8 +514,8 @@ const Benchmark = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={[
-                    { metric: "Security",       asherin: 5, opus: 4, gpt: 4 },
-                    { metric: "Bug cleanliness", asherin: 5, opus: 6, gpt: 3 },
+                    { metric: "Security",       aureon: 5, opus: 4, gpt: 4 },
+                    { metric: "Bug cleanliness", aureon: 5, opus: 6, gpt: 3 },
                   ]}
                   margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
                 >
@@ -524,7 +524,7 @@ const Benchmark = () => {
                   <YAxis domain={[0, 6]} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="asherin" name="Asherin (Java)"      fill="#b8860b" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Asherin (Java)"      fill="#b8860b" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#facc15" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#ffffff" radius={[3, 3, 0, 0]} />
                 </BarChart>
@@ -538,9 +538,9 @@ const Benchmark = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={[
-                    { metric: "Real correctness bugs",   asherin: 0, opus: 0, gpt: 1 },
-                    { metric: "Latent dead code",         asherin: 1, opus: 0, gpt: 0 },
-                    { metric: "Uncleared sensitive data", asherin: 0, opus: 1, gpt: 1 },
+                    { metric: "Real correctness bugs",   aureon: 0, opus: 0, gpt: 1 },
+                    { metric: "Latent dead code",         aureon: 1, opus: 0, gpt: 0 },
+                    { metric: "Uncleared sensitive data", aureon: 0, opus: 1, gpt: 1 },
                   ]}
                   margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
                 >
@@ -549,7 +549,7 @@ const Benchmark = () => {
                   <YAxis domain={[0, 2]} allowDecimals={false} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="asherin" name="Asherin (Java)"      fill="#b8860b" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Asherin (Java)"      fill="#b8860b" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (Python)"  fill="#facc15" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="gpt"    name="GPT-5.5 (Python)"   fill="#ffffff" radius={[3, 3, 0, 0]} />
                 </BarChart>
@@ -653,7 +653,7 @@ const Benchmark = () => {
                   <YAxis type="category" dataKey="metric" width={170} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="asherin" name="Asherin (Python AST CLI)"  fill="#b8860b" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="aureon" name="Asherin (Python AST CLI)"  fill="#b8860b" radius={[0, 3, 3, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#facc15" radius={[0, 3, 3, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -695,7 +695,7 @@ const Benchmark = () => {
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                  <Bar dataKey="asherin" name="Asherin (Python AST CLI)"   fill="#b8860b" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="aureon" name="Asherin (Python AST CLI)"   fill="#b8860b" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="opus"   name="Opus 4.8 (React heuristic)" fill="#facc15" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>

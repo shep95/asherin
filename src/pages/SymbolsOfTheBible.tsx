@@ -7,7 +7,7 @@
  * that decoded map across Genesis → Revelation.
  *
  * SEO cluster: long-form symbolic reference. High-intent keywords —
- * "symbolic meaning of [story]", "bible symbolism explained", "asherin
+ * "symbolic meaning of [story]", "bible symbolism explained", "aureon
  * biblical decoder". Ships Article + FAQ + Breadcrumb JSON-LD.
  */
 import ArticleShell from "@/components/seo/ArticleShell";
@@ -504,7 +504,7 @@ const SymbolsOfTheBible = () => (
         "symbols of the bible",
         "bible symbolism",
         "symbolic meaning bible stories",
-        "asherin bible decoder",
+        "aureon bible decoder",
         "spiritual meaning of bible",
         "biblical archetypes",
         "esoteric bible",

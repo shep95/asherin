@@ -66,12 +66,12 @@ const AureonPricingExplained = () => (
       description="The full breakdown of Asherin's $18/mo and $399/mo subscription tiers — what each unlocks, how it compares to ChatGPT Plus, Claude Pro, and Gemini Advanced, and the predictive trajectory of AI pricing."
       datePublished={PUBLISHED}
       keywords={[
-        "asherin pricing",
-        "asherin subscription",
-        "asherin vs chatgpt pricing",
+        "aureon pricing",
+        "aureon subscription",
+        "aureon vs chatgpt pricing",
         "sovereign ai pricing",
         "ai osint pricing",
-        "asherin pro",
+        "aureon pro",
       ]}
     />
     <BreadcrumbJsonLd

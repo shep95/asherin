@@ -245,7 +245,7 @@ const AsherinGovDashboard = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastNavRef = useRef<{ server?: string; channel?: string }>({});
 
-  const wallpaper = getWallpaperSrc("asherin");
+  const wallpaper = getWallpaperSrc("aureon");
 
   useEffect(() => {
     document.title = "Command Deck · asherin.gov";

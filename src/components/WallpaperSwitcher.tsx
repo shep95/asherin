@@ -11,12 +11,12 @@ export const getStoredWallpaper = (): string => {
     const customUrl = localStorage.getItem("aureon_custom_wallpaper_url");
     if (customUrl) return customUrl;
   }
-  return getWallpaperSrc(stored ?? "asherin");
+  return getWallpaperSrc(stored ?? "aureon");
 };
 
 const WallpaperSwitcher = () => {
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(() => localStorage.getItem(STORAGE_KEY) || "asherin");
+  const [active, setActive] = useState(() => localStorage.getItem(STORAGE_KEY) || "aureon");
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { KeyRound } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 
-export const BYOK_REQUIRED_EVENT = "asherin:byok-required";
+export const BYOK_REQUIRED_EVENT = "aureon:byok-required";
 
 export function triggerByokRequired(detail?: { source?: string; reason?: string }) {
   try {

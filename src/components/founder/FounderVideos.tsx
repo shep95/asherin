@@ -97,7 +97,7 @@ interface VideoMeta {
 }
 
 const TOPIC_RULES: { topic: string; match: RegExp }[] = [
-  { topic: "AI & Asherin", match: /\b(asherin|ai|gpt|claude|gemini|llm|model|agent|prompt)\b/i },
+  { topic: "AI & Asherin", match: /\b(aureon|ai|gpt|claude|gemini|llm|model|agent|prompt)\b/i },
   { topic: "Trading & Markets", match: /\b(trade|trading|market|stock|crypto|bitcoin|btc|eth|forex|chart|invest)\b/i },
   { topic: "Astrology & Vedic", match: /\b(vedic|astrology|chart|nakshatra|zodiac|planet|jyotish|horoscope)\b/i },
   { topic: "Security & Intelligence", match: /\b(security|osint|intel|hack|cyber|privacy|surveillance|forensic)\b/i },
