@@ -455,7 +455,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   const startedAt = Date.now();
   // Tightened from 24.5s → 20s so the sweep leaves comfortable headroom
   // inside the 150s /chat budget even when zophiel-search runs slow.
-  const deadlineMs = 20000;
+  const deadlineMs = 30000;
   const src = sourcesFor(intent.country, intent.state, intent.county);
   const registries = Array.from(new Set([
     ...src.ownership, ...src.tax, ...src.permits, ...src.entities, ...src.courts, ...src.people,
