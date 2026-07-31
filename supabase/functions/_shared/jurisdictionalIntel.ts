@@ -596,12 +596,23 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     .sort((a, b) => scoreEnrichQuery(intent, b.label) - scoreEnrichQuery(intent, a.label))
     .slice(0, maxEnrich);
 
+  // Bounded-concurrency waves (3 at a time). Fully sequential could only fit
+  // ~4 channels inside the 30s deadline, which silently starved the business,
+  // criminal and contact channels; an unbounded fan-out previously caused
+  // upstream timeouts. Waves of 3 fit all 9 channels inside the same budget.
   const pass2: IntelChannelHit[][] = [];
-  for (const q of selectedEnrich) {
+  const WAVE = 3;
+  for (let i = 0; i < selectedEnrich.length; i += WAVE) {
     const remaining = deadlineMs - (Date.now() - startedAt) - 3000;
     if (remaining < 4500) break;
-    pass2.push(await zophielQuery(q.query, { timeoutMs: Math.min(7000, remaining), limit: 10 }));
+    const wave = selectedEnrich.slice(i, i + WAVE);
+    const results = await Promise.all(
+      wave.map((q) => zophielQuery(q.query, { timeoutMs: Math.min(7000, remaining), limit: 10 })
+        .catch(() => [] as IntelChannelHit[])),
+    );
+    pass2.push(...results);
   }
+
 
   // ── FUSE — dedupe by URL, block-check every hit, classify into buckets ──
   const seen = new Set<string>();
