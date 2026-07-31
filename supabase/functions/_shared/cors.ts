@@ -4,6 +4,8 @@
 // endpoints to any origin.
 
 const ALLOWED_ORIGINS = [
+  "https://asherin.com",
+  "https://www.asherin.com",
   "https://aureonai.app",
   "https://www.aureonai.app",
   "https://ziali-magic-pixels.lovable.app",
@@ -16,8 +18,11 @@ const ALLOWED_ORIGINS = [
 
 function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.includes(origin)) return true;
-  return /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/.test(origin);
+  // Lovable preview/published subdomains
+  return /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/.test(origin)
+    || /^https:\/\/[a-z0-9-]+\.lovable\.app$/.test(origin);
 }
+
 
 const BASE_ALLOWED_HEADERS =
   "authorization, x-client-info, apikey, content-type, x-supabase-api-version, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
