@@ -294,28 +294,54 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
 
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asher-ai`;
+      // The edge function identifies the caller from this JWT (admin bypass /
+      // tier gate / free-tier fallback all key off it). Sending the anon
+      // publishable key made every request look anonymous → hard 403.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        toast.error("Session expired — sign in again to use Asher AI.");
+        setBusy(false);
+        return;
+      }
+      const mapByok = getActiveIntelMapByok();
       const resp = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${accessToken}`,
+          ...(mapByok?.provider === "google" && mapByok.apiKey
+            ? { "x-byok-gemini-key": mapByok.apiKey }
+            : {}),
         },
         body: JSON.stringify({
           mapContext,
           numberedFormat: isNumberedFormatEnabled("asher-ai"),
+          ...(mapByok ? { byok: mapByok } : {}),
           messages: [...messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: m.content })), { role: "user", content: text }],
         }),
       });
 
       if (resp.status === 429) { toast.error("Rate limit — slow down"); setBusy(false); return; }
       if (resp.status === 402) { toast.error("AI credits exhausted"); setBusy(false); return; }
+      if (resp.status === 401 || resp.status === 403) {
+        const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
+        triggerByokRequired({ source: "asher-ai", reason: "Add your AI key to run the map co-pilot." });
+        setBusy(false);
+        return;
+      }
       if (resp.status === 503 || resp.status === 502) {
         const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
         triggerByokRequired({ source: "asher-ai", reason: "Asher Dashboard core model is overloaded." });
         setBusy(false);
         return;
       }
-      if (!resp.ok || !resp.body) throw new Error("stream failed");
+      if (!resp.ok || !resp.body) {
+        const detail = await resp.text().catch(() => "");
+        throw new Error(detail?.slice(0, 200) || `Asher AI request failed (${resp.status})`);
+      }
+
 
       const assistantId = crypto.randomUUID();
       let assistantText = "";
