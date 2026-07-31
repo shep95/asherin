@@ -471,14 +471,21 @@ async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
 function scoreEnrichQuery(intent: IntelIntent, label: string): number {
   if (intent.kind === "person") {
     if (label === "people") return 100;
-    if (label === "entities") return 85;
+    // Legal-document channels are part of the core dossier, not an optional
+    // tail: an operator asking "who is X" expects LLCs, filings and records.
+    if (label === "business") return 95;
+    if (label === "criminal") return 88;
+    if (label === "contact") return 82;
+    if (label === "entities") return 60;
     if (label === "news") return 70;
     if (label === "courts") return intent.state || intent.city ? 65 : 35;
     if (label === "ownership" || label === "tax" || label === "permits") return intent.state || intent.city ? 45 : 15;
   }
   if (intent.kind === "entity") {
     if (label === "entities") return 100;
+    if (label === "business") return 95;
     if (label === "courts") return 75;
+    if (label === "criminal") return 70;
     if (label === "news") return 55;
   }
   if (intent.kind === "property") {
@@ -489,6 +496,7 @@ function scoreEnrichQuery(intent: IntelIntent, label: string): number {
   }
   return 10;
 }
+
 
 // ── Three-pass sweep + fusion ───────────────────────────────────────────────
 export async function runJurisdictionalSearch(intent: IntelIntent): Promise<IntelBundle> {
