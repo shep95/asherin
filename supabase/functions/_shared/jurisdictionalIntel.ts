@@ -345,7 +345,7 @@ async function zophielQuery(query: string, options: { timeoutMs?: number; limit?
   if (!SUPABASE_URL || !SUPABASE_ANON) return [];
   // Hard-cap any per-call timeout at 10s so a slow/degraded zophiel-search
   // cannot chain into pushing the outer /chat request past the 150s edge limit.
-  const timeoutMs = Math.min(options.timeoutMs ?? 10000, 10000);
+  const timeoutMs = Math.min(options.timeoutMs ?? 15000, 15000);
   const limit = options.limit ?? 12;
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/zophiel-search`, {
@@ -355,7 +355,10 @@ async function zophielQuery(query: string, options: { timeoutMs?: number; limit?
         "Authorization": `Bearer ${SUPABASE_ANON}`,
         "apikey": SUPABASE_ANON,
       },
-      body: JSON.stringify({ query, page: 1, mode: "web" }),
+      // fast:true → zophiel-search runs only the engines that still return
+      // data from edge IPs. The full fan-out costs >10s, which this call used
+      // to abort on, silently zeroing out the entire web layer.
+      body: JSON.stringify({ query, page: 1, mode: "web", fast: true }),
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!resp.ok) return [];
@@ -390,7 +393,7 @@ function classifyDomain(domain: string): DomainBucket {
   if (/\.gov\b|\.gov\.|\.us\b|leepa\.org|floridaparcels\.com|sunbiz\.org|bcpa\.net|hcad\.org|acris\.nyc\.gov|nswlrs\.com\.au|landregistry\.data\.gov\.uk|companies-house|company-information\.service\.gov\.uk/.test(d)) return "authoritative";
   if (/opencorporates\.com|sec\.gov|efts\.sec\.gov|linkedin\.com\/company|asic\.gov\.au|corporationscanada|handelsregister\.de|infogreffe\.fr/.test(d)) return "corporate";
   if (/pacer\.gov|courtlistener\.com|justia\.com|austlii|myflcourtaccess/.test(d)) return "court";
-  if (/truepeoplesearch|whitepages|spokeo|beenverified|fastpeoplesearch|radaris|thatsthem|voterrecords|usphonebook|canada411|192\.com/.test(d)) return "people";
+  if (/truepeoplesearch|whitepages|spokeo|beenverified|fastpeoplesearch|fastbackgroundcheck|freepeoplesearch|peoplefinders|searchpeoplefree|unmask\.com|idcrawl|intelius|nuwber|clustrmaps|cyberbackgroundchecks|ussearch|instantcheckmate|peekyou|zabasearch|addresses\.com|smartbackgroundchecks|officialusa|radaris|thatsthem|voterrecords|usphonebook|canada411|192\.com/.test(d)) return "people";
   if (/news\.google\.com|reuters\.com|apnews\.com|bbc\.com|nytimes\.com|washingtonpost\.com|news-press\.com|winknews\.com|nbc-2\.com/.test(d)) return "news";
   if (/facebook\.com|instagram\.com|x\.com|twitter\.com|linkedin\.com|tiktok\.com|youtube\.com|pinterest\.com/.test(d)) return "social";
   return "web";
@@ -452,7 +455,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   const startedAt = Date.now();
   // Tightened from 24.5s → 20s so the sweep leaves comfortable headroom
   // inside the 150s /chat budget even when zophiel-search runs slow.
-  const deadlineMs = 20000;
+  const deadlineMs = 30000;
   const src = sourcesFor(intent.country, intent.state, intent.county);
   const registries = Array.from(new Set([
     ...src.ownership, ...src.tax, ...src.permits, ...src.entities, ...src.courts, ...src.people,
@@ -483,6 +486,14 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
 
   // ── PASS 1 — WEB-TAB PARITY ─────────────────────────────────────────────
   // Unquoted, no site: restrictor. This is exactly what the Zophiel web tab runs.
+  // A fully-quoted three-part name ("First Middle Last") is near-unindexable —
+  // directories file people as First Last. Without a collapsed variant the
+  // person channel returns nothing and the answer drifts to whatever generic
+  // .gov documents matched the loose tokens. Emit both forms.
+  const nameParts = subject.split(/\s+/).filter(Boolean);
+  const firstLast = intent.kind === "person" && nameParts.length >= 3
+    ? `"${nameParts[0]} ${nameParts[nameParts.length - 1]}"`
+    : "";
   const pass1Queries: string[] = [
     `${subject} ${locus}`.trim(),
     `${subjectQuoted} ${locus}`.trim(),
@@ -500,8 +511,16 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     if (src.courts.length)   enrichQueries.push({ label: "courts",   query: `${subjectQuoted} ${locus} case filing ${siteFilter(src.courts)}` });
   }
   if (intent.kind === "person") {
-    if (src.people.length) enrichQueries.push({ label: "people", query: `${subjectQuoted} ${locus} ${siteFilter(src.people)}` });
-    enrichQueries.push({ label: "news", query: `${subjectQuoted} ${locus} ${siteFilter(NEWS_SITES)}` });
+    // A 9-way `site:a OR site:b …` restrictor returns near-zero on every real
+    // SERP backend, so the people channel was structurally dead. Natural-language
+    // record phrasing surfaces the same directories organically.
+    if (src.people.length) enrichQueries.push({ label: "people", query: `${subjectQuoted} ${locus} address phone age relatives public records` });
+    if (firstLast) {
+      enrichQueries.push({ label: "people", query: `${firstLast} ${locus} age relatives address phone` });
+      enrichQueries.push({ label: "people", query: `${firstLast} ${locus}` });
+    }
+    enrichQueries.push({ label: "news", query: `${subjectQuoted} ${locus} news` });
+    enrichQueries.push({ label: "social", query: `${subjectQuoted} ${locus} linkedin facebook instagram profile` });
   }
 
   // Pass 1 is deliberately first, not part of a large Promise fan-out. The
@@ -513,7 +532,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(4000, Math.min(8000, deadlineMs - (Date.now() - startedAt) - 3500)), limit: 12 });
 
   const countryOnlyPerson = intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
-  const maxEnrich = countryOnlyPerson ? 2 : 4;
+  const maxEnrich = countryOnlyPerson ? 3 : 6;
   const selectedEnrich = enrichQueries
     .sort((a, b) => scoreEnrichQuery(intent, b.label) - scoreEnrichQuery(intent, a.label))
     .slice(0, maxEnrich);

@@ -1144,7 +1144,41 @@ async function searchGoogleBooks(query: string, limit = 8): Promise<SearchResult
 }
 
 // ── Multi-Engine Aggregated Search ──────────────────────────────────────────
-async function multiEngineSearch(query: string, page: number, dateFilter?: string): Promise<SearchResult[]> {
+async function multiEngineSearch(query: string, page: number, dateFilter?: string, fast = false): Promise<SearchResult[]> {
+  // FAST LANE — used by chat's jurisdictional sweep, which aborts at ~10s.
+  // The full 22-engine fan-out now costs >10s wall-clock, so every chat-side
+  // call was being aborted and the sweep saw ZERO web hits (the "only gov
+  // sites" symptom). Fast mode runs only the engines that actually return
+  // people/entity data from edge IPs, and drops the scrapers that are
+  // bot-blocked (DDG/Brave/Mojeek/MetaGer/Gigablast/Yandex/SearXNG) plus the
+  // academic/blockchain/IoT layers that are irrelevant to a person lookup.
+  if (fast) {
+    const [fc, wiki, edgar, gh] = await Promise.allSettled([
+      searchFirecrawl(query, 20),
+      searchWikipedia(query),
+      searchEDGAR(query),
+      searchGitHubCode(query),
+    ]);
+    const out: SearchResult[] = [];
+    const seen = new Set<string>();
+    const push = (st: PromiseSettledResult<SearchResult[]>, engine: string, layer: PantheonLayer) => {
+      if (st.status !== 'fulfilled') return;
+      for (const r of st.value) {
+        if (!r.layer) r.layer = layer;
+        if (!r.engine) r.engine = engine;
+        const k = r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://');
+        if (seen.has(k)) continue;
+        seen.add(k);
+        out.push(r);
+      }
+    };
+    push(fc, 'firecrawl', 'surface');
+    push(wiki, 'wikipedia', 'surface');
+    push(edgar, 'sec-edgar', 'deep');
+    push(gh, 'github', 'code');
+    return out;
+  }
+
   // PANTHEON v3: surface engines + deep/code/academic/social/chain/breach/iot/vuln in parallel.
   const [
     firecrawlResults,
@@ -1370,6 +1404,7 @@ Deno.serve(async (req) => {
   try {
     const body: SearchRequest = await req.json();
     const { query, page = 1, mode = 'web', filters, operatorOverrides } = body;
+    const fast = (body as { fast?: boolean }).fast === true;
 
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
       return new Response(
@@ -1389,9 +1424,9 @@ Deno.serve(async (req) => {
     // Run multi-engine search + instant answer + always-on onion search in parallel.
     // Onion is gated to text/research modes — never runs for code/docs/data lookups
     // where it would only add noise.
-    const onionEligible = mode === 'web' || mode === 'news' || mode === 'academic';
+    const onionEligible = !fast && (mode === 'web' || mode === 'news' || mode === 'academic');
     const [searchResults, instantAnswer, onionResults] = await Promise.all([
-      multiEngineSearch(builtQuery, page, filters?.dateRange),
+      multiEngineSearch(builtQuery, page, filters?.dateRange, fast),
       fetchInstantAnswer(trimmed),
       onionEligible ? searchAhmiaOnion(trimmed, 8).catch(() => []) : Promise.resolve([] as SearchResult[]),
     ]);
@@ -1449,7 +1484,11 @@ Deno.serve(async (req) => {
     let omniEngineCounts: Record<string, number> = {};
     let omniCrawledCount = 0;
     try {
-      const onionClearnet = filtered.filter(r => !r.onion).slice(0, 10);
+      // Fast lane skips OmniSpider entirely: its 15s crawl budget was the
+      // dominant cost of every search (10s+ wall clock), which is exactly what
+      // pushed chat's sweep past its abort deadline. Chat performs its own
+      // body-fetch pass on the top hits, so nothing is lost.
+      const onionClearnet = fast ? [] : filtered.filter(r => !r.onion).slice(0, 10);
       if (onionClearnet.length > 0) {
         const seeds = onionClearnet.map(r => r.url);
         const allowedDomains = Array.from(new Set(onionClearnet.map(r => extractDomain(r.url))));
