@@ -345,7 +345,7 @@ async function zophielQuery(query: string, options: { timeoutMs?: number; limit?
   if (!SUPABASE_URL || !SUPABASE_ANON) return [];
   // Hard-cap any per-call timeout at 10s so a slow/degraded zophiel-search
   // cannot chain into pushing the outer /chat request past the 150s edge limit.
-  const timeoutMs = Math.min(options.timeoutMs ?? 10000, 10000);
+  const timeoutMs = Math.min(options.timeoutMs ?? 15000, 15000);
   const limit = options.limit ?? 12;
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/zophiel-search`, {
@@ -355,7 +355,10 @@ async function zophielQuery(query: string, options: { timeoutMs?: number; limit?
         "Authorization": `Bearer ${SUPABASE_ANON}`,
         "apikey": SUPABASE_ANON,
       },
-      body: JSON.stringify({ query, page: 1, mode: "web" }),
+      // fast:true → zophiel-search runs only the engines that still return
+      // data from edge IPs. The full fan-out costs >10s, which this call used
+      // to abort on, silently zeroing out the entire web layer.
+      body: JSON.stringify({ query, page: 1, mode: "web", fast: true }),
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!resp.ok) return [];
@@ -500,8 +503,12 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     if (src.courts.length)   enrichQueries.push({ label: "courts",   query: `${subjectQuoted} ${locus} case filing ${siteFilter(src.courts)}` });
   }
   if (intent.kind === "person") {
-    if (src.people.length) enrichQueries.push({ label: "people", query: `${subjectQuoted} ${locus} ${siteFilter(src.people)}` });
-    enrichQueries.push({ label: "news", query: `${subjectQuoted} ${locus} ${siteFilter(NEWS_SITES)}` });
+    // A 9-way `site:a OR site:b …` restrictor returns near-zero on every real
+    // SERP backend, so the people channel was structurally dead. Natural-language
+    // record phrasing surfaces the same directories organically.
+    if (src.people.length) enrichQueries.push({ label: "people", query: `${subjectQuoted} ${locus} address phone age relatives public records` });
+    enrichQueries.push({ label: "news", query: `${subjectQuoted} ${locus} news` });
+    enrichQueries.push({ label: "social", query: `${subjectQuoted} ${locus} linkedin facebook instagram profile` });
   }
 
   // Pass 1 is deliberately first, not part of a large Promise fan-out. The
