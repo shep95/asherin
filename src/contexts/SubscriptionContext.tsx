@@ -94,8 +94,18 @@ function productToTier(productId: string | null): TierKey | null {
   for (const [key, val] of Object.entries(TIERS)) {
     if (val.product_id === productId) return key as TierKey;
   }
+  // Keyword fallback — mirrors supabase/functions/_shared/tierGate.ts so
+  // internally-granted product ids (e.g. "aureon_admin_lifetime_max") don't
+  // read as "no subscription" on the client.
+  const s = productId.toLowerCase();
+  if (s.includes("lifetime")) return "lifetime";
+  if (s.includes("algorithm")) return "algorithm";
+  if (s.includes("pro")) return "pro";
+  if (s.includes("aureon")) return "aureon";
+  if (s.includes("chat")) return "chat";
   return null;
 }
+
 
 // ── Access helpers ───────────────────────────────────────────────────────────
 // Real tier-based gating. Tier ladder:
