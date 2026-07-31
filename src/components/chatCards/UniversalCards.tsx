@@ -251,10 +251,10 @@ export function RelationshipCard({ payload, source }: { payload: Record<string, 
   const Attributes = ({ rows }: { rows: { label: string; value: string }[] }) => rows.length === 0 ? null : (
     <dl className="mt-1.5 grid grid-cols-[minmax(72px,auto)_1fr] gap-x-2 gap-y-0.5">
       {rows.map((row, i) => (
-        <React.Fragment key={i}>
+        <Fragment key={i}>
           <dt className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{row.label}</dt>
           <dd className="text-[11px] text-foreground/80 break-words">{row.value}</dd>
-        </React.Fragment>
+        </Fragment>
       ))}
     </dl>
   );
