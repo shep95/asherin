@@ -1484,7 +1484,11 @@ Deno.serve(async (req) => {
     let omniEngineCounts: Record<string, number> = {};
     let omniCrawledCount = 0;
     try {
-      const onionClearnet = filtered.filter(r => !r.onion).slice(0, 10);
+      // Fast lane skips OmniSpider entirely: its 15s crawl budget was the
+      // dominant cost of every search (10s+ wall clock), which is exactly what
+      // pushed chat's sweep past its abort deadline. Chat performs its own
+      // body-fetch pass on the top hits, so nothing is lost.
+      const onionClearnet = fast ? [] : filtered.filter(r => !r.onion).slice(0, 10);
       if (onionClearnet.length > 0) {
         const seeds = onionClearnet.map(r => r.url);
         const allowedDomains = Array.from(new Set(onionClearnet.map(r => extractDomain(r.url))));
