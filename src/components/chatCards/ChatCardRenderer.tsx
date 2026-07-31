@@ -9,6 +9,7 @@ import { SymbolicPassageCard, SymbolicSpineCard } from "@/components/chatCards/S
 import {
   InfoCard,
   EntityCard,
+  RelationshipCard,
   TimelineCard,
   ComparisonCard,
   StatCard,
@@ -71,6 +72,7 @@ export default function ChatCardRenderer({ segment, source }: Props) {
     // ── universal shape cards ────────────────────────
     case "info":       return <InfoCard payload={payload} source={source} />;
     case "entity":     return <EntityCard payload={payload} source={source} />;
+    case "relationship": return <RelationshipCard payload={payload} source={source} />;
     case "timeline":   return <TimelineCard payload={payload} source={source} />;
     case "comparison": return <ComparisonCard payload={payload} source={source} />;
     case "stat":       return <StatCard payload={payload} source={source} />;

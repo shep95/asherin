@@ -16,6 +16,7 @@ import remarkGfm from "remark-gfm";
 import {
   Info,
   User,
+  Network,
   Clock,
   Columns3,
   TrendingUp,
@@ -217,6 +218,42 @@ export function EntityCard({ payload, source }: { payload: Record<string, unknow
             </dl>
           )}
         </div>
+      </div>
+    </CardShell>
+  );
+}
+
+export function RelationshipCard({ payload, source }: { payload: Record<string, unknown>; source?: Source }) {
+  const subject = s(payload.subject, 200);
+  const rawNodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+  const nodes = rawNodes.filter((node): node is Record<string, unknown> => !!node && typeof node === "object")
+    .map((node) => ({ id: s(node.id, 100), label: s(node.label, 200), detail: s(node.detail, 300) }))
+    .filter((node) => node.id && node.label).slice(0, 24);
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const rawEdges = Array.isArray(payload.edges) ? payload.edges : [];
+  const edges = rawEdges.filter((edge): edge is Record<string, unknown> => !!edge && typeof edge === "object")
+    .map((edge) => ({ from: s(edge.from, 100), to: s(edge.to, 100), label: s(edge.label, 120), confidence: s(edge.confidence, 40), sources: normSources(edge.sources) }))
+    .filter((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to) && edge.label).slice(0, 32);
+  const sources = normSources(payload.sources);
+  if (!subject || nodes.length === 0) return null;
+  const subjectNode = nodes.find((node) => node.id === "subject") || nodes[0];
+  const related = edges.map((edge) => ({ edge, node: nodes.find((node) => node.id === (edge.from === subjectNode.id ? edge.to : edge.from)) })).filter((item) => item.node);
+  return (
+    <CardShell icon={Network} label="Intelligence tree" title={subject} sources={sources} origin={source}>
+      <div className="space-y-2">
+        <div className="rounded border border-border/30 bg-foreground/[0.03] px-3 py-2">
+          <div className="text-sm text-foreground">{subjectNode.label}</div>
+          {subjectNode.detail && <div className="text-[11px] text-muted-foreground mt-0.5">{subjectNode.detail}</div>}
+        </div>
+        {related.length > 0 ? <div className="ml-3 border-l border-border/30 pl-3 space-y-2">
+          {related.map(({ edge, node }, index) => <div key={`${edge.from}-${edge.to}-${index}`} className="relative rounded border border-border/20 px-3 py-2">
+            <span className="absolute -left-3 top-1/2 w-3 border-t border-border/30" />
+            <div className="flex items-center justify-between gap-2"><span className="text-xs text-foreground">{node?.label}</span><span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">{edge.confidence || "verified"}</span></div>
+            <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">{edge.label}</div>
+            {node?.detail && <div className="text-[11px] text-muted-foreground mt-1">{node.detail}</div>}
+            {edge.sources.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5">{edge.sources.map((citation, citationIndex) => <a key={citationIndex} href={citation.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">{citation.title || new URL(citation.url).hostname.replace(/^www\./, "")}</a>)}</div>}
+          </div>)}
+        </div> : <div className="text-xs text-muted-foreground">No relationships met the corroboration threshold.</div>}
       </div>
     </CardShell>
   );
