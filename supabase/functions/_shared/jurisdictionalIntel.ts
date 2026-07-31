@@ -727,7 +727,10 @@ export function formatIntelContext(bundle: IntelBundle): string {
     "  • A STRONG hit is evidence, not automatic confirmation. POSSIBLE hits belong only in 'Unverified candidates' and cannot supply profile facts.",
     "  • If sources conflict on age, address, employer, or relatives, show the conflict and withhold that fact from the confirmed profile.",
     "  • Add a relationship only when two independent domains name it, or one authoritative record directly establishes it. Never infer relationships from co-location, follows, likes, or shared surname alone.",
-    "  • For person reports emit readable text plus card:entity, card:relationship when corroborated associates exist, and card:sources.",
+    "  • MANDATORY PERSON DOSSIER SHAPE — emit, in this order: (1) readable summary text, (2) card:entity for the subject, (3) card:relationship for the intelligence tree whenever ANY corroborated associate exists, (4) card:list titled 'Legal, Business & Court Filings' enumerating every LLC / corporation / registered-agent role / court case / lien / permit found — one item per filing with entity name, filing number, status, date and jurisdiction, (5) card:sources.",
+    "  • In card:relationship, every node MUST carry an `attributes` array covering, where evidenced: Age, Address, Phone, Email, Employer/Job, Businesses (LLC / officer roles), Court or criminal records, Tier (parent / sibling / extended / associate). Write 'no public record found' for an attribute you searched and could not evidence — never silently drop the row.",
+    "  • Do not omit the legal-filings list because the subject is young or low-profile: state explicitly 'no corporate or court filings surfaced' when the corporate and court buckets are empty.",
+
     "  • NEVER reference leak/breach databases (Offshore Leaks, ICIJ, Have I Been Pwned, etc.) — they are blocked at retrieval.",
     "  • End with the ONE specific lever that would deepen the sweep next.",
   ].join("\n");
