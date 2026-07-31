@@ -549,6 +549,43 @@ async function searchSearXNG(query: string): Promise<SearchResult[]> {
   return [];
 }
 
+// ── Firecrawl live SERP (primary surface engine) ────────────────────────────
+// Scraper-based engines (DDG/Brave/Mojeek/Yandex HTML) are bot-blocked from
+// edge IPs, which collapsed the open-web layer and left only API registries
+// (SEC/Wikipedia/academic) — the "everything is a gov site" symptom. Firecrawl
+// runs a real search backend server-side with a key we already hold.
+async function searchFirecrawl(query: string, limit = 15): Promise<SearchResult[]> {
+  const key = Deno.env.get('FIRECRAWL_API_KEY');
+  if (!key) return [];
+  try {
+    const resp = await fetch('https://api.firecrawl.dev/v2/search', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, limit }),
+      signal: AbortSignal.timeout(9000),
+    });
+    if (!resp.ok) {
+      console.error('[zophiel-search] firecrawl status', resp.status);
+      return [];
+    }
+    const j = await resp.json();
+    const items: any[] = Array.isArray(j?.data?.web) ? j.data.web
+      : Array.isArray(j?.web) ? j.web
+      : Array.isArray(j?.data) ? j.data : [];
+    const out: SearchResult[] = [];
+    for (const it of items) {
+      if (typeof it?.url !== 'string') continue;
+      const built = buildSearchResult(String(it.title || it.url), it.url, String(it.description || it.snippet || ''));
+      if (built) out.push(built);
+    }
+    console.log(`[zophiel-search] firecrawl hits=${out.length}`);
+    return out;
+  } catch (e) {
+    console.error('[zophiel-search] firecrawl failed', e instanceof Error ? e.message : String(e));
+    return [];
+  }
+}
+
 // ── Mojeek Search (independent web crawler — no reliance on Google/Bing index) ──
 async function searchMojeek(query: string): Promise<SearchResult[]> {
   try {
