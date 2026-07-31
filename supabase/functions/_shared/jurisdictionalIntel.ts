@@ -393,7 +393,7 @@ function classifyDomain(domain: string): DomainBucket {
   if (/\.gov\b|\.gov\.|\.us\b|leepa\.org|floridaparcels\.com|sunbiz\.org|bcpa\.net|hcad\.org|acris\.nyc\.gov|nswlrs\.com\.au|landregistry\.data\.gov\.uk|companies-house|company-information\.service\.gov\.uk/.test(d)) return "authoritative";
   if (/opencorporates\.com|sec\.gov|efts\.sec\.gov|linkedin\.com\/company|asic\.gov\.au|corporationscanada|handelsregister\.de|infogreffe\.fr/.test(d)) return "corporate";
   if (/pacer\.gov|courtlistener\.com|justia\.com|austlii|myflcourtaccess/.test(d)) return "court";
-  if (/truepeoplesearch|whitepages|spokeo|beenverified|fastpeoplesearch|radaris|thatsthem|voterrecords|usphonebook|canada411|192\.com/.test(d)) return "people";
+  if (/truepeoplesearch|whitepages|spokeo|beenverified|fastpeoplesearch|fastbackgroundcheck|freepeoplesearch|peoplefinders|searchpeoplefree|unmask\.com|idcrawl|intelius|nuwber|clustrmaps|cyberbackgroundchecks|ussearch|instantcheckmate|peekyou|zabasearch|addresses\.com|smartbackgroundchecks|officialusa|radaris|thatsthem|voterrecords|usphonebook|canada411|192\.com/.test(d)) return "people";
   if (/news\.google\.com|reuters\.com|apnews\.com|bbc\.com|nytimes\.com|washingtonpost\.com|news-press\.com|winknews\.com|nbc-2\.com/.test(d)) return "news";
   if (/facebook\.com|instagram\.com|x\.com|twitter\.com|linkedin\.com|tiktok\.com|youtube\.com|pinterest\.com/.test(d)) return "social";
   return "web";
@@ -486,6 +486,14 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
 
   // ── PASS 1 — WEB-TAB PARITY ─────────────────────────────────────────────
   // Unquoted, no site: restrictor. This is exactly what the Zophiel web tab runs.
+  // A fully-quoted three-part name ("First Middle Last") is near-unindexable —
+  // directories file people as First Last. Without a collapsed variant the
+  // person channel returns nothing and the answer drifts to whatever generic
+  // .gov documents matched the loose tokens. Emit both forms.
+  const nameParts = subject.split(/\s+/).filter(Boolean);
+  const firstLast = intent.kind === "person" && nameParts.length >= 3
+    ? `"${nameParts[0]} ${nameParts[nameParts.length - 1]}"`
+    : "";
   const pass1Queries: string[] = [
     `${subject} ${locus}`.trim(),
     `${subjectQuoted} ${locus}`.trim(),
@@ -507,6 +515,10 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     // SERP backend, so the people channel was structurally dead. Natural-language
     // record phrasing surfaces the same directories organically.
     if (src.people.length) enrichQueries.push({ label: "people", query: `${subjectQuoted} ${locus} address phone age relatives public records` });
+    if (firstLast) {
+      enrichQueries.push({ label: "people", query: `${firstLast} ${locus} age relatives address phone` });
+      enrichQueries.push({ label: "people", query: `${firstLast} ${locus}` });
+    }
     enrichQueries.push({ label: "news", query: `${subjectQuoted} ${locus} news` });
     enrichQueries.push({ label: "social", query: `${subjectQuoted} ${locus} linkedin facebook instagram profile` });
   }
@@ -520,7 +532,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(4000, Math.min(8000, deadlineMs - (Date.now() - startedAt) - 3500)), limit: 12 });
 
   const countryOnlyPerson = intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
-  const maxEnrich = countryOnlyPerson ? 2 : 4;
+  const maxEnrich = countryOnlyPerson ? 3 : 6;
   const selectedEnrich = enrichQueries
     .sort((a, b) => scoreEnrichQuery(intent, b.label) - scoreEnrichQuery(intent, a.label))
     .slice(0, maxEnrich);
