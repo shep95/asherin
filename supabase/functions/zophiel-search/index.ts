@@ -1147,6 +1147,7 @@ async function searchGoogleBooks(query: string, limit = 8): Promise<SearchResult
 async function multiEngineSearch(query: string, page: number, dateFilter?: string): Promise<SearchResult[]> {
   // PANTHEON v3: surface engines + deep/code/academic/social/chain/breach/iot/vuln in parallel.
   const [
+    firecrawlResults,
     ddgResults, searxResults, mojeekResults, metagerResults, gigablastResults,
     wikiResults, braveResults, yandexResults,
     // PANTHEON layers
@@ -1155,6 +1156,7 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
     hnResults, redditResults,
     chainResults, breachResults, shodanResults, cveResults, booksResults,
   ] = await Promise.allSettled([
+    searchFirecrawl(query, 15),
     searchDDG(query, page, dateFilter),
     searchSearXNG(query),
     searchMojeek(query),
@@ -1203,6 +1205,7 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   };
 
   // Surface
+  addResults(firecrawlResults, 'firecrawl', 'surface');
   addResults(ddgResults, 'ddg', 'surface');
   addResults(searxResults, 'searxng', 'surface');
   addResults(mojeekResults, 'mojeek', 'surface');
