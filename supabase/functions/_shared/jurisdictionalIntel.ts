@@ -559,9 +559,20 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
       enrichQueries.push({ label: "people", query: `${firstLast} ${locus} age relatives address phone` });
       enrichQueries.push({ label: "people", query: `${firstLast} ${locus}` });
     }
+    // Corporate / legal-document channel. The site:-restricted `entities` query
+    // above is near-dead on real SERP backends, which is why LLC and corporate
+    // filings never reached the model. These natural-language forms hit Sunbiz,
+    // OpenCorporates, Bizapedia and state registries organically.
+    enrichQueries.push({ label: "business", query: `${subjectQuoted} LLC registered agent officer ${locus}` });
+    if (firstLast) enrichQueries.push({ label: "business", query: `${firstLast} LLC corporation filing ${locus} sunbiz opencorporates bizapedia` });
+    // Criminal / civil record channel — clerk of court, sheriff booking, dockets.
+    enrichQueries.push({ label: "criminal", query: `${subjectQuoted} ${locus} clerk of court case docket arrest record` });
+    // Employment + contact channel — jobs, emails, phone numbers.
+    enrichQueries.push({ label: "contact", query: `${subjectQuoted} ${locus} email phone employer job title` });
     enrichQueries.push({ label: "news", query: `${subjectQuoted} ${locus} news` });
     enrichQueries.push({ label: "social", query: `${subjectQuoted} ${locus} linkedin facebook instagram profile` });
   }
+
 
   // Pass 1 is deliberately first, not part of a large Promise fan-out. The
   // Zophiel web tab succeeds on single wide calls; flooding it with 6+ nested
