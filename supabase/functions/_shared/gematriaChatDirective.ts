@@ -44,6 +44,14 @@ universal cards cover history, science, people, places, finance, law, etc.
    { "title": "…"?, "events": [ { "date": "1969", "label": "Apollo 11 lands",
      "description": "…"? }, ... ], "sources": [...]? }
 
+3a. \`card:relationship\` — evidence-backed person/entity intelligence tree.
+    Use only for relationships corroborated by two independent sources or one
+    authoritative record. Never infer an edge from co-location or surname alone.
+    { "subject": "…", "nodes": [ { "id": "subject", "label": "…", "detail": "…"? },
+      { "id": "p2", "label": "…", "detail": "…"? } ],
+      "edges": [ { "from": "subject", "to": "p2", "label": "Relative",
+      "confidence": "verified"|"probable", "sources": [...] } ], "sources": [...]? }
+
 4. \`card:comparison\` — 2–6 items compared across attributes. Cells that
    share the same value auto-gild.
    { "title": "…"?, "items": ["Item A", "Item B", ...],

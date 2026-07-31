@@ -28,6 +28,7 @@ export type CardType =
   // Universal shape-based cards
   | "info"
   | "entity"
+  | "relationship"
   | "timeline"
   | "comparison"
   | "stat"
@@ -63,6 +64,7 @@ const KNOWN: ReadonlySet<CardType> = new Set([
   "symbolic-spine",
   "info",
   "entity",
+  "relationship",
   "timeline",
   "comparison",
   "stat",

@@ -50,6 +50,9 @@ export interface IntelChannelHit {
   domain: string;
   body?: string; // populated on Pass-3 body fetch
   bucket?: DomainBucket;
+  identityScore?: number;
+  identityReasons?: string[];
+  identityBand?: "strong" | "possible" | "rejected";
 }
 
 export type DomainBucket =
@@ -68,6 +71,7 @@ export interface IntelBundle {
   jurisdictionLabel: string;
   emptyBuckets: DomainBucket[];
   totalHits: number;
+  rejectedIdentityHits: number;
 }
 
 // ── Lookup tables (kept from v1 — proven to work) ─────────────────────────
@@ -399,6 +403,42 @@ function classifyDomain(domain: string): DomainBucket {
   return "web";
 }
 
+function normalizeIdentityText(value: string): string {
+  return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function scorePersonIdentity(hit: IntelChannelHit, intent: IntelIntent): IntelChannelHit {
+  if (intent.kind !== "person") return hit;
+  const haystack = normalizeIdentityText(`${hit.title} ${hit.snippet} ${hit.body || ""}`);
+  const name = normalizeIdentityText(intent.subject);
+  const parts = name.split(" ").filter(Boolean);
+  const first = parts[0] || "";
+  const last = parts[parts.length - 1] || "";
+  const middle = parts.length > 2 ? parts.slice(1, -1).join(" ") : "";
+  const middleInitial = middle.charAt(0);
+  const firstLast = `${first} ${last}`.trim();
+  let score = 0;
+  const reasons: string[] = [];
+  if (name && haystack.includes(name)) { score += 60; reasons.push("exact full name"); }
+  else if (firstLast && haystack.includes(firstLast)) { score += 32; reasons.push("first + last name"); }
+  else if (first && last && (haystack.includes(`${last} ${first}`) || haystack.includes(`${last} ${first} ${middleInitial}`))) { score += 32; reasons.push("registry name order"); }
+  else if (first && last && haystack.includes(first) && haystack.includes(last)) { score += 22; reasons.push("name tokens"); }
+  if (middle && haystack.includes(middle)) { score += 15; reasons.push("middle name"); }
+  const locators = [
+    [intent.city, 25, "city"], [intent.county, 15, "county"],
+    [intent.state, 10, "state"], [intent.country, 5, "country"],
+  ] as const;
+  for (const [value, weight, label] of locators) {
+    const normalized = normalizeIdentityText(value);
+    if (normalized && new RegExp(`\\b${normalized}\\b`).test(haystack)) { score += weight; reasons.push(label); }
+  }
+  hit.identityScore = Math.min(score, 100);
+  hit.identityReasons = reasons;
+  hit.identityBand = score >= 70 ? "strong" : score >= 45 ? "possible" : "rejected";
+  return hit;
+}
+
 // ── Body fetch (optional deep pass) ────────────────────────────────────────
 async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
   try {
@@ -550,9 +590,15 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     authoritative: [], corporate: [], court: [], people: [], news: [], social: [], web: [],
   };
   const all: IntelChannelHit[] = [...pass1a, ...pass1b, ...pass2.flat()];
+  let rejectedIdentityHits = 0;
   for (const hit of all) {
     if (!hit.url || seen.has(hit.url)) continue;
     if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
+    scorePersonIdentity(hit, intent);
+    if (intent.kind === "person" && hit.identityBand === "rejected") {
+      rejectedIdentityHits += 1;
+      continue;
+    }
     seen.add(hit.url);
     const bucket = classifyDomain(hit.domain);
     hit.bucket = bucket;
@@ -578,7 +624,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   const emptyBuckets = (Object.keys(buckets) as DomainBucket[]).filter((k) => buckets[k].length === 0);
   const totalHits = Object.values(buckets).reduce((a, b) => a + b.length, 0);
 
-  return { intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits };
+  return { intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits, rejectedIdentityHits };
 }
 
 // ── Format for LLM context ────────────────────────────────────────────────
@@ -593,7 +639,7 @@ const BUCKET_LABELS: Record<DomainBucket, string> = {
 };
 
 export function formatIntelContext(bundle: IntelBundle): string {
-  const { intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries } = bundle;
+  const { intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries, rejectedIdentityHits } = bundle;
 
   const header = [
     `## JURISDICTIONAL INTEL SWEEP — ${intent.kind.toUpperCase()}`,
@@ -601,6 +647,7 @@ export function formatIntelContext(bundle: IntelBundle): string {
     `Jurisdiction: ${jurisdictionLabel}`,
     `Registries in scope: ${registries.slice(0, 12).join(", ") || "(none jurisdiction-specific — wide-web only)"}`,
     `Total unique hits (post-blocklist, deduped): ${totalHits}`,
+    `Rejected as identity mismatches: ${rejectedIdentityHits}`,
   ].join("\n");
 
   const accel = intent.accelerators.length
@@ -623,7 +670,10 @@ export function formatIntelContext(bundle: IntelBundle): string {
     if (!hits.length) continue;
     const lines = hits.slice(0, 8).map((h, i) => {
       const bodyBlock = h.body ? `\n     BODY EXCERPT: ${h.body.slice(0, 900)}` : "";
-      return `  ${i + 1}. [${h.domain}] ${h.title}\n     URL: ${h.url}\n     SNIPPET: ${h.snippet}${bodyBlock}`;
+      const identity = intent.kind === "person"
+        ? `\n     IDENTITY MATCH: ${h.identityBand?.toUpperCase()} (${h.identityScore}/100) — ${(h.identityReasons || []).join(", ")}`
+        : "";
+      return `  ${i + 1}. [${h.domain}] ${h.title}\n     URL: ${h.url}\n     SNIPPET: ${h.snippet}${identity}${bodyBlock}`;
     }).join("\n");
     sections.push(`### ${BUCKET_LABELS[b]}\n${lines}`);
   }
@@ -643,6 +693,11 @@ export function formatIntelContext(bundle: IntelBundle): string {
     "  • Quote verbatim ONLY from SNIPPET or BODY EXCERPT text — never invent an owner, DOB, address, or case number.",
     "  • When BODY EXCERPT is present, mine it for names, dates, addresses, filing numbers — those beat the snippet.",
     "  • Distinguish 'confirmed' from 'possible match — needs verification'.",
+    "  • Never merge records merely because names match. Confirm identity only when two independent domains agree on the name plus one shared locator (city, address, employer, age band, or known associate).",
+    "  • A STRONG hit is evidence, not automatic confirmation. POSSIBLE hits belong only in 'Unverified candidates' and cannot supply profile facts.",
+    "  • If sources conflict on age, address, employer, or relatives, show the conflict and withhold that fact from the confirmed profile.",
+    "  • Add a relationship only when two independent domains name it, or one authoritative record directly establishes it. Never infer relationships from co-location, follows, likes, or shared surname alone.",
+    "  • For person reports emit readable text plus card:entity, card:relationship when corroborated associates exist, and card:sources.",
     "  • NEVER reference leak/breach databases (Offshore Leaks, ICIJ, Have I Been Pwned, etc.) — they are blocked at retrieval.",
     "  • End with the ONE specific lever that would deepen the sweep next.",
   ].join("\n");
