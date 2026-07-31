@@ -416,11 +416,13 @@ function scorePersonIdentity(hit: IntelChannelHit, intent: IntelIntent): IntelCh
   const first = parts[0] || "";
   const last = parts[parts.length - 1] || "";
   const middle = parts.length > 2 ? parts.slice(1, -1).join(" ") : "";
+  const middleInitial = middle.charAt(0);
   const firstLast = `${first} ${last}`.trim();
   let score = 0;
   const reasons: string[] = [];
   if (name && haystack.includes(name)) { score += 60; reasons.push("exact full name"); }
   else if (firstLast && haystack.includes(firstLast)) { score += 32; reasons.push("first + last name"); }
+  else if (first && last && (haystack.includes(`${last} ${first}`) || haystack.includes(`${last} ${first} ${middleInitial}`))) { score += 32; reasons.push("registry name order"); }
   else if (first && last && haystack.includes(first) && haystack.includes(last)) { score += 22; reasons.push("name tokens"); }
   if (middle && haystack.includes(middle)) { score += 15; reasons.push("middle name"); }
   const locators = [
