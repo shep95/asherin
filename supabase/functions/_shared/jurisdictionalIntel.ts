@@ -591,7 +591,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(4000, Math.min(8000, deadlineMs - (Date.now() - startedAt) - 3500)), limit: 12 });
 
   const countryOnlyPerson = intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
-  const maxEnrich = countryOnlyPerson ? 3 : 6;
+  const maxEnrich = countryOnlyPerson ? 3 : 9;
   const selectedEnrich = enrichQueries
     .sort((a, b) => scoreEnrichQuery(intent, b.label) - scoreEnrichQuery(intent, a.label))
     .slice(0, maxEnrich);
