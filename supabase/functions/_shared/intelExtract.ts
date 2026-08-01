@@ -317,13 +317,28 @@ function licenseHits(text: string): Hit[] {
  * Persons" heading. Grab the heading, then harvest capitalized 2-3 token names
  * from the following window. Bounded window = no runaway scan.
  */
+/**
+ * Relative / associate capture.
+ *
+ * The window MUST terminate at the next section of the document. A flat 600-char
+ * slice bled past the relatives list and swallowed the following lines, producing
+ * phantom associates like "Asherin Technologies" (an employer) and "Lee County"
+ * (a venue). We stop at the first section terminator and reject any candidate
+ * whose tokens include a structural or geographic noise word.
+ */
+const REL_TERMINATOR = /\b(?:also\s+known\s+as|a\.?k\.?a\.?|works?\s+at|employer|employed|email|e-mail|phone|current\s+address|previous\s+address|address(?:es)?|case\s+no|docket|parcel|folio|view\s+full|background\s+report|sponsored|advertisement|copyright)\b/i;
+const REL_NOISE = /\b(RELATIVES|RELATIVE|ASSOCIATED|ASSOCIATES|PERSONS|PEOPLE|SEARCH|RESULTS|BACKGROUND|CHECK|PHONE|ADDRESS|ADDRESSES|PUBLIC|RECORDS|RECORD|VIEW|FULL|REPORT|CURRENT|POSSIBLE|UNITED|STATES|ALSO|KNOWN|CASE|NO|DOCKET|PARCEL|FOLIO|COUNTY|CITY|STATE|STREET|COURT|DRIVE|AVENUE|LANE|TERRACE|APT|SUITE|WORKS|EMPLOYER|TECHNOLOGIES|INC|LLC|CORP|COMPANY|GROUP|SERVICES|EMAIL|NUMBER|NUMBERS|AGE|BORN|DIED|MORE|LESS|SEE|CLICK|FREE|PREMIUM|LOGIN|SIGN)\b/;
+
 function relativeHits(text: string, subjectCanonical: string): Hit[] {
   const out: Hit[] = [];
   const headRe = /\b(?:relatives?|possible\s+relatives?|associated\s+(?:persons?|people)|known\s+associates?|family\s+members?|household\s+members?|also\s+known\s+residents?)\b/gi;
   const nameRe = /\b([A-Z][a-z'’\-]{1,15})(?:\s+([A-Z][a-z'’\-]{1,15}|[A-Z]\.))?\s+([A-Z][a-z'’\-]{1,20})\b/g;
   let h: RegExpExecArray | null;
   while ((h = headRe.exec(text)) !== null) {
-    const window = text.slice(h.index, h.index + 600);
+    // Skip the heading itself, then clip at the first terminator inside the slice.
+    const raw = text.slice(h.index + h[0].length, h.index + h[0].length + 420);
+    const stop = raw.search(REL_TERMINATOR);
+    const window = stop > 0 ? raw.slice(0, stop) : raw;
     nameRe.lastIndex = 0;
     let n: RegExpExecArray | null;
     while ((n = nameRe.exec(window)) !== null) {
@@ -331,12 +346,13 @@ function relativeHits(text: string, subjectCanonical: string): Hit[] {
       const canonical = canonicalizeName(display);
       if (canonical === subjectCanonical) continue;
       if (canonical.split(" ").length < 2) continue;
-      if (/\b(RELATIVES|ASSOCIATED|PERSONS|PEOPLE|SEARCH|RESULTS|BACKGROUND|CHECK|PHONE|ADDRESS|PUBLIC|RECORDS|VIEW|FULL|REPORT|CURRENT|POSSIBLE|UNITED|STATES)\b/.test(canonical)) continue;
+      if (REL_NOISE.test(canonical)) continue;
       out.push({ display, canonical, index: h.index + n.index });
     }
   }
   return out;
 }
+
 
 /** Alias / AKA capture: "also known as", "aka", "goes by". */
 function aliasHits(text: string, subjectCanonical: string): Hit[] {
