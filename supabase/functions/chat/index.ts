@@ -1984,7 +1984,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
 
 
     // Helper: call OpenAI-compatible API (OpenAI, xAI, Mistral, Venice, DeepSeek, Together/Meta)
-    const STREAM_OUTPUT_TOKEN_BUDGET = 16_384;
+    const STREAM_OUTPUT_TOKEN_BUDGET = 32_768;
 
     async function callOpenAICompatible(apiKey: string, endpoint: string, model: string) {
       const isNewOpenAI = /^(gpt-5|o1|o3|o4)/i.test(model);
