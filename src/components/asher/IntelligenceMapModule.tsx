@@ -464,6 +464,41 @@ const IntelligenceMapModule = () => {
   }>({ tracks: [], years: [], frames: [], bbox: null });
   const [timelineYear, setTimelineYear] = useState<number | null>(null);
 
+  /* ── Operator/AI editable overlay ─────────────────────────────────────
+     Local-first: hydrated synchronously on first render (never in an effect,
+     which StrictMode double-invokes) and persisted on every mutation. */
+  const [annotations, setAnnotations] = useState<MapAnnotation[]>(() => loadAnnotations());
+  const [drawMode, setDrawMode] = useState<DrawMode>("none");
+  const [draftPath, setDraftPath] = useState<Array<{ lat: number; lng: number }>>([]);
+  const [focusedAnno, setFocusedAnno] = useState<string | null>(null);
+
+  // Single mutation funnel — state and storage can never diverge.
+  const mutateAnnotations = (fn: (prev: MapAnnotation[]) => MapAnnotation[]) => {
+    setAnnotations((prev) => {
+      const next = fn(prev);
+      saveAnnotations(next);
+      return next;
+    });
+  };
+
+  const addAnnotation = (a: MapAnnotation) => {
+    mutateAnnotations((prev) => [...prev, a]);
+    setFocusedAnno(a.id);
+    return a;
+  };
+
+  // Escape always cancels an in-progress draw — no trapped modes.
+  useEffect(() => {
+    if (drawMode === "none") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setDrawMode("none"); setDraftPath([]); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawMode]);
+
+
+
   useEffect(() => {
     const handler = (e: Event) => {
       const d = (e as CustomEvent).detail;
