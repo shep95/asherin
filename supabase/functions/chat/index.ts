@@ -1492,18 +1492,24 @@ The user is asking about internal code, backend, or architecture. You are FORBID
                       query_embedding: qEmbed,
                       match_count: 6,
                     });
-                    if (Array.isArray(matches) && matches.length) {
-                      const ids = Array.from(new Set(matches.map((m: any) => m.source_id)));
+                    // Relevance floor: top-K always returns 6 rows regardless of
+                    // fit, which is how unrelated vault docs leaked into answers.
+                    const relevant = (Array.isArray(matches) ? matches : []).filter(
+                      (m: any) => typeof m.similarity === "number" && m.similarity >= VAULT_SIMILARITY_FLOOR,
+                    );
+                    if (relevant.length) {
+                      const ids = Array.from(new Set(relevant.map((m: any) => m.source_id)));
                       const { data: srcs } = await adminV.from("aureon_vault_sources")
                         .select("id,name").in("id", ids);
                       const nameById: Record<string, string> = {};
                       for (const s of (srcs || [])) nameById[s.id] = s.name;
-                      const blocks = matches.map((m: any, i: number) => {
+                      const blocks = relevant.map((m: any, i: number) => {
                         const sim = typeof m.similarity === "number" ? m.similarity.toFixed(2) : "?";
                         return `### [Vault ${i + 1} · ${nameById[m.source_id] || "source"} · sim=${sim}]\n${m.content}`;
                       }).join("\n\n");
-                      vaultContextStr = `\n\n## AUREON VAULT (operator's private knowledge — RAG)\nThe operator has a private knowledge vault. The following chunks were retrieved as most relevant to the current question. Use them as authoritative source material — they are the operator's own files / API data. Cite them inline as [Vault N] when you rely on them. Do not echo unrelated chunks.\n\n${blocks}`;
+                      vaultContextStr = `\n\n## AUREON VAULT (operator's private knowledge — RAG)\nThe operator has a private knowledge vault. The following chunks were retrieved as most relevant to the current question. Use them as authoritative source material — they are the operator's own files / API data. Cite them inline as [Vault N] when you rely on them. Do not echo unrelated chunks, and if none of them actually answer the question, ignore this block entirely rather than forcing it in.\n\n${blocks}`;
                     }
+
                   }
                 }
               }
