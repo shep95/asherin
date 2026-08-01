@@ -810,10 +810,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, worker));
   };
 
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, worker));
-  };
+
 
   const allHits = () => (Object.keys(buckets) as DomainBucket[]).flatMap((b) => buckets[b]);
   const bodyBudget = deadlineMs - (Date.now() - startedAt) > 12000 ? 26
