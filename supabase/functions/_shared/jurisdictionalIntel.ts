@@ -567,18 +567,23 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
       enrichQueries.push({ label: "people", query: `${firstLast} ${locus} age relatives address phone` });
       enrichQueries.push({ label: "people", query: `${firstLast} ${locus}` });
     }
-    // Corporate / legal-document channel. The site:-restricted `entities` query
-    // above is near-dead on real SERP backends, which is why LLC and corporate
-    // filings never reached the model. These natural-language forms hit Sunbiz,
-    // OpenCorporates, Bizapedia and state registries organically.
-    enrichQueries.push({ label: "business", query: `${subjectQuoted} LLC registered agent officer ${locus}` });
-    if (firstLast) enrichQueries.push({ label: "business", query: `${firstLast} LLC corporation filing ${locus} sunbiz opencorporates bizapedia` });
-    // Criminal / civil record channel — clerk of court, sheriff booking, dockets.
-    enrichQueries.push({ label: "criminal", query: `${subjectQuoted} ${locus} clerk of court case docket arrest record` });
-    // Employment + contact channel — jobs, emails, phone numbers.
-    enrichQueries.push({ label: "contact", query: `${subjectQuoted} ${locus} email phone employer job title` });
-    enrichQueries.push({ label: "news", query: `${subjectQuoted} ${locus} news` });
-    enrichQueries.push({ label: "social", query: `${subjectQuoted} ${locus} linkedin facebook instagram profile` });
+    // Corporate / legal-document, criminal and contact channels.
+    //
+    // Measured live against the fast lane: over-specified queries (full middle
+    // name + 5-6 keywords, e.g. `"Asher Shepherd Newton" LLC registered agent
+    // officer Cape Coral Florida`) return ZERO hits, while the short indexable
+    // form (`"Asher Newton" Cape Coral Florida court records`) returns 7-11.
+    // Directory indexes key on "First Last" + locus, so every record channel
+    // below uses the two-token name and at most two intent keywords. The long
+    // middle-name form is kept only as a low-priority secondary probe.
+    const recordName = firstLast || subjectQuoted;
+    enrichQueries.push({ label: "business", query: `${recordName} ${locus} LLC` });
+    enrichQueries.push({ label: "business", query: `${recordName} ${locus} registered agent` });
+    enrichQueries.push({ label: "criminal", query: `${recordName} ${locus} court records` });
+    enrichQueries.push({ label: "contact", query: `${recordName} ${locus} phone email` });
+    enrichQueries.push({ label: "news", query: `${recordName} ${locus} news` });
+    enrichQueries.push({ label: "social", query: `${recordName} ${locus} linkedin instagram` });
+
   }
 
 
