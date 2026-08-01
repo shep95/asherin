@@ -638,7 +638,11 @@ const IntelligenceMapModule = () => {
     } finally { setSearching(false); }
   };
 
+  // One-shot guard so the BYOK dialog can't fire on every map click / fly-to.
+  const byokPromptedRef = useRef(false);
+
   const flyTo = (lat: number, lng: number, zoom = 11) => {
+
     mapRef.current?.flyTo([lat, lng], zoom, { duration: 0.8 });
   };
 
