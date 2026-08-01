@@ -294,11 +294,14 @@ function caseHits(text: string): Hit[] {
 
 function parcelHits(text: string): Hit[] {
   const out: Hit[] = [];
-  const re = /\b(?:parcel|folio|strap|apn|tax\s*id)\s*(?:id|no\.?|number|#)?\s*:?\s*([0-9][0-9\-\.]{6,32})\b/gi;
+  // Florida STRAPs embed letters ("30-44-23-C3-04066.0180"); a digits-only class
+  // truncated the ID at the first letter and produced a useless "30-44-23-".
+  const re = /\b(?:parcel|folio|strap|apn|tax\s*id)\s*(?:id|no\.?|number|#)?\s*:?\s*([0-9][0-9A-Za-z\-\.]{6,36}[0-9A-Za-z])\b/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    out.push({ display: m[1], canonical: m[1].replace(/[^0-9]/g, ""), index: m.index });
+    out.push({ display: m[1], canonical: m[1].toUpperCase().replace(/[^0-9A-Z]/g, ""), index: m.index });
   }
+
   return out;
 }
 
