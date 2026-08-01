@@ -638,7 +638,11 @@ const IntelligenceMapModule = () => {
     } finally { setSearching(false); }
   };
 
+  // One-shot guard so the BYOK dialog can't fire on every map click / fly-to.
+  const byokPromptedRef = useRef(false);
+
   const flyTo = (lat: number, lng: number, zoom = 11) => {
+
     mapRef.current?.flyTo([lat, lng], zoom, { duration: 0.8 });
   };
 
@@ -713,12 +717,24 @@ const IntelligenceMapModule = () => {
         sources: [],
         error: "BYOK_REQUIRED",
       });
-      triggerByokRequired({
-        source: "intelligence-property-map",
-        reason: "Property intel requires your own AI key (Settings → AI Keys).",
-      });
+      // Prompt at most once per session: every fly-to / map click reaches this
+      // path, and a dialog on each one would be an interruption storm. The
+      // inline BYOK_REQUIRED state in the panel remains the persistent signal.
+      if (!byokPromptedRef.current) {
+        byokPromptedRef.current = true;
+        triggerByokRequired({
+          source: "intelligence-property-map",
+          reason: "Property intel requires your own AI key (Settings → AI Keys).",
+          // The map owns the operator's workspace. Without this flag, paid
+          // subscribers were silently navigated to /dashboard?tab=settings,
+          // which remounts the dashboard on the default chat view and yanked
+          // the operator off the map mid-task (e.g. right after a fly-to).
+          noRedirect: true,
+        });
+      }
       return;
     }
+
 
     setPropertyIntel({ loading: true, intel: null, sources: [], error: null });
     try {
