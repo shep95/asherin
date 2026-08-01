@@ -472,27 +472,49 @@ const IntelligenceMapModule = () => {
   const [timelineYear, setTimelineYear] = useState<number | null>(null);
 
   /* ── Operator/AI editable overlay ─────────────────────────────────────
-     Local-first: hydrated synchronously on first render (never in an effect,
-     which StrictMode double-invokes) and persisted on every mutation. */
-  const [annotations, setAnnotations] = useState<MapAnnotation[]>(() => loadAnnotations());
+     Local-first and partitioned by operation (case folder): hydrated
+     synchronously on first render (never in an effect, which StrictMode
+     double-invokes) and persisted on every mutation. Two investigations can
+     never contaminate each other because the storage key carries the case id. */
+  const [activeCaseId, setActiveCaseId] = useState<string>(() => getActiveCaseId());
+  const [annotations, setAnnotations] = useState<MapAnnotation[]>(() => loadCaseAnnotations(getActiveCaseId()));
   const [drawMode, setDrawMode] = useState<DrawMode>("none");
   const [draftPath, setDraftPath] = useState<Array<{ lat: number; lng: number }>>([]);
   const [focusedAnno, setFocusedAnno] = useState<string | null>(null);
+  const [viewshedOverlay, setViewshedOverlay] = useState<ViewshedResult | null>(null);
 
-  // Single mutation funnel — state and storage can never diverge.
-  const mutateAnnotations = (fn: (prev: MapAnnotation[]) => MapAnnotation[]) => {
+  // The case id must be readable from inside the persistence funnel without
+  // re-creating it on every render — a ref keeps the closure permanently fresh.
+  const caseIdRef = useRef(activeCaseId);
+  useEffect(() => { caseIdRef.current = activeCaseId; }, [activeCaseId]);
+
+  // Single mutation funnel — state, storage and the audit trail can never diverge.
+  const mutateAnnotations = (fn: (prev: MapAnnotation[]) => MapAnnotation[], audit?: { action: string; detail?: string; actor?: "operator" | "asher-ai" }) => {
     setAnnotations((prev) => {
       const next = fn(prev);
-      saveAnnotations(next);
+      saveCaseAnnotations(caseIdRef.current, next);
       return next;
     });
+    if (audit) appendAudit({ caseId: caseIdRef.current, actor: audit.actor ?? "operator", action: audit.action, detail: audit.detail });
   };
 
   const addAnnotation = (a: MapAnnotation) => {
-    mutateAnnotations((prev) => [...prev, a]);
+    mutateAnnotations((prev) => [...prev, a], { action: `add_${a.kind}`, detail: a.label, actor: a.source });
     setFocusedAnno(a.id);
     return a;
   };
+
+  /** Switching operations swaps the entire overlay and drops stale products. */
+  const switchCase = (id: string) => {
+    setActiveCaseId(id);
+    caseIdRef.current = id;
+    setAnnotations(loadCaseAnnotations(id));
+    setFocusedAnno(null);
+    setDrawMode("none");
+    setDraftPath([]);
+    setViewshedOverlay(null);
+  };
+
 
   /** Map clicks are shared between entity inspection and manual drawing. */
   const handleMapClick = (lat: number, lng: number) => {
