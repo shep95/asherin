@@ -94,6 +94,21 @@ async function fetchJson(url: string, signal?: AbortSignal, timeoutMs = ELEV_TIM
   }
 }
 
+/** Bounded-concurrency map that never rejects — failures surface as null. */
+async function pooled<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<Array<R | null>> {
+  const out: Array<R | null> = new Array(items.length).fill(null);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      try { out[i] = await fn(items[i]); } catch { out[i] = null; }
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
 /** Retry only idempotent GETs, and only on throttling / transient upstream faults. */
 async function fetchJsonResilient(url: string, signal?: AbortSignal): Promise<any> {
   let lastErr: any;
