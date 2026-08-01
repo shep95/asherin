@@ -897,21 +897,38 @@ export function formatIntelContext(bundle: IntelBundle): string {
 
 
 
+  const ledgerBlock = fieldLedger && fieldLedger.documentsParsed > 0
+    ? `\n\n${formatFieldLedger(fieldLedger)}`
+    : "";
+
   const sections: string[] = [];
   const order: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
   for (const b of order) {
     const hits = buckets[b];
     if (!hits.length) continue;
-    const lines = hits.slice(0, 16).map((h, i) => {
-      const bodyBlock = h.body ? `\n     BODY EXCERPT: ${h.body.slice(0, 1600)}` : "";
+    const lines = hits.slice(0, 20).map((h, i) => {
+      const bodyBlock = h.body ? `\n     BODY EXCERPT: ${h.body.slice(0, 2600)}` : "";
       const identity = intent.kind === "person"
         ? `\n     IDENTITY MATCH: ${h.identityBand?.toUpperCase()} (${h.identityScore}/100) — ${(h.identityReasons || []).join(", ")}`
         : "";
       return `  ${i + 1}. [${h.domain}] ${h.title}\n     URL: ${h.url}\n     SNIPPET: ${h.snippet}${identity}${bodyBlock}`;
     }).join("\n");
-    sections.push(`### ${BUCKET_LABELS[b]} (${hits.length} hit${hits.length === 1 ? "" : "s"}, showing ${Math.min(hits.length, 16)})\n${lines}`);
+    sections.push(`### ${BUCKET_LABELS[b]} (${hits.length} hit${hits.length === 1 ? "" : "s"}, showing ${Math.min(hits.length, 20)})\n${lines}`);
 
   }
+
+  const coverage = [
+    "",
+    "### COLLECTION COVERAGE MATRIX (reproduce this table verbatim at the end of your report)",
+    "| Channel | Hits | Status |",
+    "|---|---|---|",
+    ...order.map((b) => {
+      const n = buckets[b].length;
+      return `| ${BUCKET_LABELS[b]} | ${n} | ${n ? "COLLECTED" : "NO RETURN"} |`;
+    }),
+    `| Documents opened & parsed | ${documentsFetched ?? 0} | ${(documentsFetched ?? 0) > 0 ? "PARSED" : "NONE"} |`,
+    `| Recursive HOP-1 seeds | ${hopSeeds?.length ?? 0} | ${(hopSeeds?.length ?? 0) > 0 ? "PURSUED" : "NOT REACHED"} |`,
+  ].join("\n");
 
   const emptyNote = emptyBuckets.length
     ? `\n\n### EMPTY BUCKETS: ${emptyBuckets.map((b) => BUCKET_LABELS[b].split(" ")[0]).join(", ")} — name the missing lever that would unlock each.`
@@ -919,10 +936,17 @@ export function formatIntelContext(bundle: IntelBundle): string {
 
   return [
     header, accel, "",
+    ledgerBlock,
+    "",
     sections.join("\n\n"),
     emptyNote,
+    coverage,
     "",
     "INSTRUCTIONS TO YOU:",
+    "  • The RESOLVED FIELD LEDGER above is authoritative and already deduped, normalized and confidence-scored by a deterministic extraction layer. Report EVERY row of the confirmed ledger — every address, every phone, every email, every handle, every entity, every relative. Do not summarize it, do not sample it, do not silently drop low-confidence rows: print them with their computed label.",
+    "  • Render the ledger's confidence labels EXACTLY (VERIFIED / CORROBORATED / REPORTED). You may not upgrade or downgrade them; they are computed from independent-domain counts, not from your judgement.",
+    "  • The ledger is the SPINE of the report. The bucket hits below it are the supporting evidence you cite and mine for anything the extractor could not type (narrative detail, filing status, dates, job titles).",
+
     "  • Write an INTELLIGENCE REPORT organized by the bucket headers above.",
     "  • Cite every claim inline as [domain](url).",
     "  • Quote verbatim ONLY from SNIPPET or BODY EXCERPT text — never invent an owner, DOB, address, or case number.",
