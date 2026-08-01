@@ -562,11 +562,12 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     // A 9-way `site:a OR site:b …` restrictor returns near-zero on every real
     // SERP backend, so the people channel was structurally dead. Natural-language
     // record phrasing surfaces the same directories organically.
-    if (src.people.length) enrichQueries.push({ label: "people", query: `${subjectQuoted} ${locus} address phone age relatives public records` });
+    if (src.people.length) enrichQueries.push({ label: "people", query: `${firstLast || subjectQuoted} ${locus} address phone relatives` });
     if (firstLast) {
-      enrichQueries.push({ label: "people", query: `${firstLast} ${locus} age relatives address phone` });
+      enrichQueries.push({ label: "people", query: `${firstLast} ${locus} age relatives` });
       enrichQueries.push({ label: "people", query: `${firstLast} ${locus}` });
     }
+
     // Corporate / legal-document, criminal and contact channels.
     //
     // Measured live against the fast lane: over-specified queries (full middle
