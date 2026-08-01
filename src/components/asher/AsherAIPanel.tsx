@@ -50,6 +50,7 @@ export type MapAction =
 
 
 export interface AsherAIPanelHandle {
+
   appendSystemNote: (text: string) => void;
 }
 
