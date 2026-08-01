@@ -1421,7 +1421,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
             .limit(100);
           if (mems && mems.length) {
             const lines = mems.map((m: any) => `- [${m.category}] ${m.content}`).join("\n");
-            memoryContextStr = `\n\n## PERSISTENT USER MEMORY (apply to every response)\nThese are durable preferences, rules, and facts the user has saved or that have been learned across chats. Honor them silently — do not announce them. If two rules conflict, prefer the most recent.\n\n${lines}`;
+            memoryContextStr = `\n\n## PERSISTENT USER MEMORY (style and preference layer only)\nThese are durable preferences and rules the user saved in other conversations. Honor them silently — do not announce them. If two rules conflict, prefer the most recent.\nHARD LIMIT: this block is NOT evidence. Never present anything here as a research finding, a public record, a sourced fact, or a citation, and never attribute it to a website or registry. If a claim exists only here, it does not go in a dossier, profile, entity card, or sources list.\n\n${lines}`;
           }
         }
       }
@@ -1432,11 +1432,15 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     // ── AUREON VAULT (RAG) — Pro tier only ─────────────────────────────────
     // For $399 monthly_pro / lifetime users, embed the latest user message and
     // pull the top relevant chunks from their private knowledge vault.
+    // Suppressed on intel turns, and gated behind a similarity floor otherwise,
+    // so unrelated vault documents cannot bleed into an unrelated answer.
+    const VAULT_SIMILARITY_FLOOR = 0.78;
     let vaultContextStr = "";
     try {
-      const authV = req.headers.get("Authorization");
+      const authV = isIntelTurn ? null : req.headers.get("Authorization");
       const lastUserMsg = (messages || []).filter((m: any) => m.role === "user").slice(-1)[0]?.content;
       if (authV && lastUserMsg && typeof lastUserMsg === "string" && lastUserMsg.trim().length > 3) {
+
         const SUPABASE_URL_V = Deno.env.get("SUPABASE_URL") || "";
         const SRK_V = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
         const ANON_V = Deno.env.get("SUPABASE_ANON_KEY") || "";
