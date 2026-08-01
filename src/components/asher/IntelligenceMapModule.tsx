@@ -716,7 +716,13 @@ const IntelligenceMapModule = () => {
       triggerByokRequired({
         source: "intelligence-property-map",
         reason: "Property intel requires your own AI key (Settings → AI Keys).",
+        // The map owns the operator's workspace. Without this flag, paid
+        // subscribers were silently navigated to /dashboard?tab=settings,
+        // which remounts the dashboard on the default chat view and yanks the
+        // operator off the map mid-task (e.g. right after a fly-to).
+        noRedirect: true,
       });
+
       return;
     }
 
