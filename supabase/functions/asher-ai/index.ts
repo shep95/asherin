@@ -547,8 +547,50 @@ serve(async (req) => {
       return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
-    // BYOK-ONLY: text path requires the operator to bring their own LLM key.
-    // No in-house / self-hosted fallback is used.
+    // ── TEXT PATH: Gemini + function calling ──────────────────────────────
+    // This is the branch that actually drives the map. Previously it did not
+    // exist: every text message fell straight through to a hard 403, which the
+    // client translated into "add a BYOK key" and a navigation away from the
+    // map. Now the whole tool surface (navigation, layers, recon, and the new
+    // overlay-editing tools) runs on the resolved key — platform key for admin,
+    // BYOK for everyone else.
+    if (apiKey) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+      const upstream = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: fullSystem }] },
+          contents: toGeminiContents(cleaned),
+          tools: [{ function_declarations: geminiFunctionDeclarations(TOOLS) }],
+          toolConfig: { functionCallingConfig: { mode: mapEditFast ? "ANY" : "AUTO" } },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
+          ],
+          generationConfig: { temperature: 0.35, maxOutputTokens: 8192 },
+        }),
+      });
+
+      if (!upstream.ok || !upstream.body) {
+        const detail = await upstream.text().catch(() => "");
+        console.error("[asher-ai] text path gemini:", upstream.status, detail.slice(0, 400));
+        // Surface the upstream status honestly instead of masking it as a BYOK gate.
+        return new Response(
+          JSON.stringify({ error: `Intelligence core error ${upstream.status}`, details: detail.slice(0, 400) }),
+          { status: upstream.status === 429 ? 429 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      return new Response(geminiSseToOpenAi(upstream.body), {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
+    // No platform key and no BYOK — the only genuine BYOK condition.
     return new Response(
       JSON.stringify({
         error: "Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.",
@@ -556,6 +598,7 @@ serve(async (req) => {
       }),
       { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (e) {
     console.error("asher-ai error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
