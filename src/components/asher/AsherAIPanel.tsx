@@ -26,6 +26,9 @@ export type TemporalTrack = {
   confidence: number; reason?: string;
 };
 
+/** A point the AI can express either as coordinates or as a geocodable place. */
+export type GeoRef = { lat?: number; lng?: number; place?: string };
+
 export type MapAction =
   | { type: "search"; query: string }
   | { type: "toggle_threat"; layer: "earthquakes" | "wildfires" | "aircraft"; enabled: boolean }
@@ -34,7 +37,17 @@ export type MapAction =
   | { type: "property_intel"; address?: string; entityName?: string }
   | { type: "visual_recon"; center: { lat: number; lng: number }; bbox: [number, number, number, number]; detections: ReconDetection[]; summary?: string; area?: string; landmark?: string }
   | { type: "temporal_recon"; center: { lat: number; lng: number }; bbox: [number, number, number, number]; tracks: TemporalTrack[]; years: number[]; frames: Array<{ year: number; source: string; detection_count: number; summary: string }>; area?: string; landmark?: string }
-  | { type: "set_base"; layer: "street" | "satellite" | "topo" | "dark" };
+  | { type: "set_base"; layer: "street" | "satellite" | "topo" | "dark" }
+  /* ── Overlay editing ── */
+  | { type: "place_marker"; label: string; ref: GeoRef; note?: string; category?: string; color?: string }
+  | { type: "add_label"; text: string; ref: GeoRef; color?: string }
+  | { type: "draw_radius"; label: string; radiusKm: number; ref: GeoRef; note?: string; category?: string; color?: string }
+  | { type: "draw_zone"; label: string; points: GeoRef[]; note?: string; category?: string; color?: string }
+  | { type: "draw_route"; label: string; waypoints: GeoRef[]; note?: string; color?: string }
+  | { type: "measure"; from: GeoRef; to: GeoRef }
+  | { type: "clear_annotations"; scope: string }
+  | { type: "list_annotations" };
+
 
 export interface AsherAIPanelHandle {
   appendSystemNote: (text: string) => void;
