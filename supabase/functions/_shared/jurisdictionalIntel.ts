@@ -766,14 +766,15 @@ export function formatIntelContext(bundle: IntelBundle): string {
   for (const b of order) {
     const hits = buckets[b];
     if (!hits.length) continue;
-    const lines = hits.slice(0, 8).map((h, i) => {
-      const bodyBlock = h.body ? `\n     BODY EXCERPT: ${h.body.slice(0, 900)}` : "";
+    const lines = hits.slice(0, 16).map((h, i) => {
+      const bodyBlock = h.body ? `\n     BODY EXCERPT: ${h.body.slice(0, 1600)}` : "";
       const identity = intent.kind === "person"
         ? `\n     IDENTITY MATCH: ${h.identityBand?.toUpperCase()} (${h.identityScore}/100) — ${(h.identityReasons || []).join(", ")}`
         : "";
       return `  ${i + 1}. [${h.domain}] ${h.title}\n     URL: ${h.url}\n     SNIPPET: ${h.snippet}${identity}${bodyBlock}`;
     }).join("\n");
-    sections.push(`### ${BUCKET_LABELS[b]}\n${lines}`);
+    sections.push(`### ${BUCKET_LABELS[b]} (${hits.length} hit${hits.length === 1 ? "" : "s"}, showing ${Math.min(hits.length, 16)})\n${lines}`);
+
   }
 
   const emptyNote = emptyBuckets.length
