@@ -795,15 +795,21 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     return out;
   };
 
-  const harvest = async (targets: IntelChannelHit[], concurrency = 8) => {
+  const harvest = async (targets: IntelChannelHit[], concurrency = 10) => {
     let cursor = 0;
     const worker = async () => {
       for (;;) {
         const i = cursor++;
         if (i >= targets.length) return;
         const remaining = deadlineMs - (Date.now() - startedAt);
-        if (remaining < 2500) return;
-        targets[i].body = await fetchBody(targets[i].url, Math.max(2200, Math.min(4000, remaining - 800)));
+        // A rendered fetch needs real time; below 6s there is no point starting one.
+        if (remaining < 6000) return;
+        targets[i].body = await fetchBody(targets[i].url, Math.max(6000, Math.min(15000, remaining - 3000)));
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, worker));
+  };
+
       }
     };
     await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, worker));
