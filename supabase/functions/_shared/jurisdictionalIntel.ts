@@ -72,7 +72,16 @@ export interface IntelBundle {
   emptyBuckets: DomainBucket[];
   totalHits: number;
   rejectedIdentityHits: number;
+  /** deterministic extraction + resolution output (see intelExtract.ts) */
+  fieldLedger?: FieldLedger;
+  /** how many full documents were actually opened and parsed */
+  documentsFetched?: number;
+  /** seeds actually queried during the recursive HOP-1 collection */
+  hopSeeds?: Seed[];
+  elapsedMs?: number;
+  queriesRun?: number;
 }
+
 
 // ── Lookup tables (kept from v1 — proven to work) ─────────────────────────
 const US_STATES: Record<string, string> = {
