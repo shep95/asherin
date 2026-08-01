@@ -123,7 +123,13 @@ async function fetchJsonResilient(url: string, signal?: AbortSignal): Promise<an
       if (!retryable || attempt === ELEV_RETRIES - 1) throw e;
       // Honour Retry-After when the server sends it; otherwise exponential
       // backoff with jitter so parallel workers do not resynchronise.
-      const wait = e?.retryAfterMs ?? Math.min(600 * 2 ** attempt, 6_000) + Math.random() * 250;
+      // Honour Retry-After when the server sends it. Otherwise back off by
+      // fault class: a 429 here is a MINUTELY quota, so sub-second retries are
+      // guaranteed to fail again — the wait must cross into the next window.
+      // Transient 5xx faults clear far faster and get the short ladder.
+      const ladder = status === 429 ? [6_000, 22_000, 46_000] : [600, 1_800, 4_000];
+      const wait = e?.retryAfterMs ?? ladder[Math.min(attempt, ladder.length - 1)] + Math.random() * 400;
+
       await new Promise((r) => setTimeout(r, wait));
     }
   }
