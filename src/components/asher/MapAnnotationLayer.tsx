@@ -6,9 +6,14 @@ import { annoColor, annoMetric, type MapAnnotation } from "@/lib/asher/mapAnnota
 
 interface Props {
   annotations: MapAnnotation[];
-  onDelete: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onSelect?: (id: string) => void;
   focusedId?: string | null;
+  /** Vertices captured so far in a manual draw, previewed live. */
+  draftPath?: Array<{ lat: number; lng: number }>;
+  drawMode?: string;
 }
+
 
 const labelIcon = (text: string, color: string) =>
   L.divIcon({
