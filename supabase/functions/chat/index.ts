@@ -1348,7 +1348,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           // Wall-clock ceiling: never let jurisdictional intel push /chat past the 150s edge limit.
           const bundle = await Promise.race([
             runJurisdictionalSearch(intent),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 25000)),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 75000)),
           ]);
           jurisdictionalContext = bundle ? formatIntelContext(bundle) : "";
         }
