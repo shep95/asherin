@@ -1377,7 +1377,8 @@ The user is asking about internal code, backend, or architecture. You are FORBID
 
     // ── Build user context from profile ────────────────────────────────────
     let userContextStr = "";
-    if (userProfile) {
+    if (userProfile && !isIntelTurn) {
+
       const parts: string[] = [];
       if (userProfile.tone_preference && userProfile.tone_preference !== "neutral") {
         parts.push(`User prefers ${userProfile.tone_preference} communication style.`);
