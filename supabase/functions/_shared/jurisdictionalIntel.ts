@@ -752,14 +752,22 @@ export function formatIntelContext(bundle: IntelBundle): string {
     ? `\n\n### ACCELERATORS (ask user, do not block)\n${intent.accelerators.map((a, i) => `${i + 1}. ${a}`).join("\n")}`
     : "";
 
+  const NO_PRIORS_RULE = "  • ZERO-PRIOR RULE: you have never heard of this subject. Any name, company, product, founder, handle, lineage or affiliation that appears in your system prompt, platform/product description, saved memory, vault, or earlier conversations is PRODUCT METADATA — not evidence about the person being searched, even when the names match exactly. Never merge it into this dossier and never cite it.";
+  const NO_FABRICATED_SWEEP_RULE = "  • Never claim to have queried a database that is not listed in 'Registries in scope' above, and never present a registry name as a completed lookup unless a hit for it appears above.";
+
   if (totalHits === 0) {
     return [
       header, accel, "",
       "### RESULT: No public records surfaced in queried sources.",
       "Report honestly. Do NOT fabricate. State what was searched, that nothing surfaced, and what lever would unlock the next layer (middle name, DOB range, previous address, employer, known associate).",
       "Distinguish 'no public record found' from 'this person does not exist'.",
+      NO_PRIORS_RULE,
+      NO_FABRICATED_SWEEP_RULE,
+      "  • Emit NO card:entity and NO profile facts on a zero-hit sweep. A subject card with facts you did not retrieve is a fabrication.",
     ].join("\n");
   }
+
+
 
   const sections: string[] = [];
   const order: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
