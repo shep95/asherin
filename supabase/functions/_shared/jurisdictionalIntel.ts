@@ -799,9 +799,13 @@ export function formatIntelContext(bundle: IntelBundle): string {
     "  • MANDATORY PERSON DOSSIER SHAPE — emit, in this order: (1) readable summary text, (2) card:entity for the subject, (3) card:relationship for the intelligence tree whenever ANY corroborated associate exists, (4) card:list titled 'Legal, Business & Court Filings' enumerating every LLC / corporation / registered-agent role / court case / lien / permit found — one item per filing with entity name, filing number, status, date and jurisdiction, (5) card:sources.",
     "  • In card:relationship, every node MUST carry an `attributes` array covering, where evidenced: Age, Address, Phone, Email, Employer/Job, Businesses (LLC / officer roles), Court or criminal records, Tier (parent / sibling / extended / associate). Write 'no public record found' for an attribute you searched and could not evidence — never silently drop the row.",
     "  • Do not omit the legal-filings list because the subject is young or low-profile: state explicitly 'no corporate or court filings surfaced' when the corporate and court buckets are empty.",
-
+    "  • EVIDENCE-ONLY TURN: every fact you print must trace to a SNIPPET or BODY EXCERPT above. You have no prior knowledge of this subject. Do not import anything from earlier conversations, saved memory, the operator's vault, or your own assumptions about who this person is — no employers, organizations, titles, lineage, or affiliations that are not in the retrieved text.",
+    "  • MAXIMUM EXTRACTION — be exhaustive, not brief. Report EVERY distinct data point present in the retrieved text: full name and every name variant/alias, age and DOB range, current and ALL prior addresses, every phone number, every email, every username/handle and profile URL, employers and job titles, schools, every named relative and associate with their relationship, every business entity with role, every case/filing/permit/license number with status and date, and every property/parcel detail. One row per data point — do not compress a list of five addresses into 'multiple addresses'.",
+    "  • Include an 'Unverified candidates' section listing POSSIBLE-band hits with the reason each fell short, and a 'Conflicts' section listing every field where sources disagree, with both values and both sources. Do not silently drop them.",
+    "  • Include a coverage table: one row per bucket (authoritative, corporate, court, people, news, social, web) with hit count and status, so the user can see everything that was searched.",
     "  • NEVER reference leak/breach databases (Offshore Leaks, ICIJ, Have I Been Pwned, etc.) — they are blocked at retrieval.",
     "  • End with the ONE specific lever that would deepen the sweep next.",
+
   ].join("\n");
 }
 
