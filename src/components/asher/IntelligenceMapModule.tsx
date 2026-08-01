@@ -178,7 +178,10 @@ function zoomForHit(map: L.Map | null, hit?: SearchHit | null, fallback = 16): n
 
 /** Short, human label for the card badge. */
 function hitBadge(hit?: SearchHit | null): string | undefined {
-  const t = (hit?.addresstype || hit?.type || hit?.class || "").replace(/_/g, " ").trim();
+  // `type` is the precise class ("house", "supermarket"); `addresstype` only
+  // appears on reverse hits and `class` is the coarse bucket ("place").
+  const t = (hit?.type || hit?.addresstype || hit?.class || "").replace(/_/g, " ").trim();
+
   return t ? t.toUpperCase() : undefined;
 }
 
