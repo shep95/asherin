@@ -663,6 +663,15 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     enrichQueries.push({ label: "business", query: `${recordName} ${locus} registered agent` });
     enrichQueries.push({ label: "criminal", query: `${recordName} ${locus} court records` });
     enrichQueries.push({ label: "contact", query: `${recordName} ${locus} phone email` });
+    // Additional collection channels — each targets a record family the old
+    // 9-query budget could never reach.
+    enrichQueries.push({ label: "people", query: `${recordName} ${locus} previous addresses history` });
+    enrichQueries.push({ label: "criminal", query: `${recordName} ${locus} arrest booking` });
+    enrichQueries.push({ label: "business", query: `${recordName} sunbiz corporation filing` });
+    enrichQueries.push({ label: "contact", query: `${recordName} ${locus} email address` });
+    enrichQueries.push({ label: "social", query: `${recordName} facebook profile` });
+    enrichQueries.push({ label: "ownership", query: `${recordName} ${locus} property owner parcel` });
+
     enrichQueries.push({ label: "news", query: `${recordName} ${locus} news` });
     enrichQueries.push({ label: "social", query: `${recordName} ${locus} linkedin instagram` });
 
