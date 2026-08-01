@@ -494,6 +494,55 @@ const IntelligenceMapModule = () => {
     return a;
   };
 
+  /** Map clicks are shared between entity inspection and manual drawing. */
+  const handleMapClick = (lat: number, lng: number) => {
+    if (drawMode === "none") { void loadEntity(lat, lng); return; }
+    if (drawMode === "marker") {
+      addAnnotation(makeAnnotation({ kind: "marker", label: `Pin ${annotations.length + 1}`, lat, lng, category: "observation" }));
+      setDrawMode("none");
+      toast.success("Marker placed — rename it in the Map Editor");
+      return;
+    }
+    if (drawMode === "label") {
+      const text = window.prompt("Label text");
+      if (text?.trim()) addAnnotation(makeAnnotation({ kind: "label", label: text.trim(), lat, lng, category: "observation" }));
+      setDrawMode("none");
+      return;
+    }
+    if (drawMode === "circle") {
+      if (draftPath.length === 0) { setDraftPath([{ lat, lng }]); return; }
+      const centre = draftPath[0];
+      const radiusM = haversineM(centre, { lat, lng });
+      if (radiusM < 1) { toast.error("Radius too small — click further from the centre"); return; }
+      addAnnotation(makeAnnotation({
+        kind: "circle", label: `Radius ${fmtDistance(radiusM)}`,
+        lat: centre.lat, lng: centre.lng, radiusM, category: "zone",
+      }));
+      setDraftPath([]);
+      setDrawMode("none");
+      return;
+    }
+    // line / polygon accumulate until the operator hits Finish
+    setDraftPath((p) => [...p, { lat, lng }]);
+  };
+
+  const finishDraft = () => {
+    if (drawMode === "line" && draftPath.length >= 2) {
+      addAnnotation(makeAnnotation({ kind: "line", label: `Route ${annotations.length + 1}`, path: draftPath, category: "route" }));
+    } else if (drawMode === "polygon" && draftPath.length >= 3) {
+      addAnnotation(makeAnnotation({ kind: "polygon", label: `Zone ${annotations.length + 1}`, path: draftPath, category: "zone" }));
+    }
+    setDraftPath([]);
+    setDrawMode("none");
+  };
+
+  const focusAnnotation = (a: MapAnnotation) => {
+    const c = annoCenter(a);
+    setFocusedAnno(a.id);
+    if (c) flyTo(c.lat, c.lng, a.kind === "marker" || a.kind === "label" ? 14 : 12);
+  };
+
+
   // Escape always cancels an in-progress draw — no trapped modes.
   useEffect(() => {
     if (drawMode === "none") return;
