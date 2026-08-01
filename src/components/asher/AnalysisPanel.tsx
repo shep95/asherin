@@ -57,7 +57,7 @@ export interface AnalysisPanelProps {
 type Product = "viewshed" | "profile" | "solar" | "coloc" | null;
 
 const Section = ({ icon: Icon, title, children, right }: {
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  icon: LucideIcon;
   title: string; children: React.ReactNode; right?: React.ReactNode;
 }) => (
   <div className="border-t border-border/15">
