@@ -89,7 +89,7 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
       id: "welcome",
       role: "assistant",
       content:
-        "**ASHER AI · Online**\n\nI can drive the map for you. Try:\n- *Find me all red or blue roofs in northern New Delhi near the Kali Temple*\n- *Locate construction cranes in Doha west bay*\n- *Spot blue tarps within 1km of Kharkiv central station*\n- *Look up phone +44 7700 900123* (country / carrier / line type / public OSINT — not live GPS)\n- *Fly to Kyiv* · *Show live earthquakes* · *Switch to satellite*\n- *Property intel on this site* · *Save this target*",
+        "**ASHER AI · Online**\n\nI can drive **and edit** the map for you.\n\n**Navigate & layers**\n- *Fly to Kyiv* · *Show live earthquakes* · *Switch to satellite*\n\n**Edit the overlay**\n- *Pin the port of Odesa as a target, note: crane activity*\n- *Draw a 5km ring around Ramstein Air Base*\n- *Outline a zone over Manhattan south of 14th street*\n- *Draw a route from Warsaw to Lviv to Kyiv*\n- *Measure from here to Sevastopol* · *Clear the overlay*\n\n**Recon & OSINT**\n- *Find all red or blue roofs in northern New Delhi near the Kali Temple*\n- *Locate construction cranes in Doha west bay*\n- *Look up phone +44 7700 900123* (country / carrier / line type / public OSINT — not live GPS)\n- *Property intel on this site* · *Save this target*",
     },
   ]);
   const [input, setInput] = useState("");
