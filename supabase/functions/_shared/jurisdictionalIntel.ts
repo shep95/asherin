@@ -330,11 +330,17 @@ function extractSubject(raw: string, jurisdictionTokens: string[]): string {
        .replace(/\s{2,}/g, " ")
        .replace(/[,\.]+$/g, "")
        .trim();
+  // Kill misspelled/leftover place words ("flordia") before name matching —
+  // otherwise they get absorbed as a fourth name token and every registry
+  // query searches for a person who does not exist.
+  s = scrubGeoNoise(s).replace(/\s{2,}/g, " ").trim();
 
   const nameMatch = matchName(s);
-  if (nameMatch) return nameMatch;
+  // Cap at three tokens: First [Middle] Last. A longer run is noise.
+  if (nameMatch) return nameMatch.split(/\s+/).slice(0, 3).join(" ");
   return s;
 }
+
 
 // ── Intent classifier ──────────────────────────────────────────────────────
 export function classifyIntent(rawUserMessage: string): IntelIntent {
