@@ -1143,6 +1143,7 @@ const IntelligenceMapModule = () => {
             drawMode={drawMode}
             focusedId={focusedAnno}
             onSelect={(id) => setFocusedAnno(id)}
+            onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id)); setFocusedAnno((f) => (f === id ? null : f)); }}
           />
           <CoordDisplay />
 
