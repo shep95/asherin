@@ -1047,7 +1047,21 @@ const IntelligenceMapModule = () => {
             );
           })}
         </div>
+
+        <AnnotationPanel
+          annotations={annotations}
+          drawMode={drawMode}
+          draftPath={draftPath}
+          onSetDrawMode={(m) => { setDrawMode(m); setDraftPath([]); }}
+          onFinishDraft={finishDraft}
+          onCancelDraft={() => { setDrawMode("none"); setDraftPath([]); }}
+          onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id)); setFocusedAnno((f) => (f === id ? null : f)); }}
+          onRename={(id, label) => mutateAnnotations((p) => p.map((x) => (x.id === id ? { ...x, label } : x)))}
+          onClear={() => { mutateAnnotations(() => []); setFocusedAnno(null); }}
+          onFocus={focusAnnotation}
+        />
       </div>
+
 
       {/* MAP COLUMN */}
       <div className="relative flex-1">
