@@ -25,7 +25,24 @@ export interface MapAnnotation {
   createdAt: number;
   updatedAt: number;
   source: "operator" | "asher-ai";
+  /* ── Provenance & confidence ──────────────────────────────────────────
+     Nothing on an elite-tier map is unsourced. `confidence` (0-100) drives
+     stroke styling: low-confidence objects render dashed and translucent so
+     an analyst can never mistake an assertion for a verified fact. */
+  confidence?: number;
+  sourceUrl?: string;
+  harvestedAt?: number;
+  /** Analytical products the layer renders differently (e.g. viewshed rings). */
+  role?: "viewshed" | "profile" | "roadroute" | "colocation";
 }
+
+/** Clamp an untrusted confidence value into [0,100]; undefined stays undefined. */
+export function normConfidence(v: unknown): number | undefined {
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  if (typeof n !== "number" || !Number.isFinite(n)) return undefined;
+  return Math.max(0, Math.min(100, Math.round(n <= 1 ? n * 100 : n)));
+}
+
 
 export const CATEGORY_COLORS: Record<NonNullable<MapAnnotation["category"]>, string> = {
   target: "#ef4444",
