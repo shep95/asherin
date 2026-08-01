@@ -350,9 +350,12 @@ serve(async (req) => {
       const userBroughtGemini = !!(headerKey || byokGeminiKey);
       const isAdminPath = !!adminKey && !userBroughtGemini && apiKey === adminKey;
       const { runYouTubePipeline } = await import("../_shared/youtubeIntel.ts");
-      const yt = await runYouTubePipeline(latestUserText(cleaned), { hasByokGemini: userBroughtGemini || isAdminPath });
+      const yt = mapEditFast
+        ? { fired: false, evidence: "" }
+        : await runYouTubePipeline(latestUserText(cleaned), { hasByokGemini: userBroughtGemini || isAdminPath });
       if (yt.fired) youtubeBlock = yt.evidence;
     } catch (e) { console.error("[asher-ai] youtube intel:", (e as Error).message); }
+
 
     // ── Temporal context (day + timestamp awareness) ─────────────────────
     const { getTemporalContext } = await import("../_shared/systemContext.ts");
