@@ -22,6 +22,11 @@
 //     stripBlocked + per-URL isBlockedSource check on every fused hit.
 
 import { sourcesFor, siteFilter, parseJurisdiction, isBlockedSource } from "./jurisdictions.ts";
+import {
+  buildFieldLedger, formatFieldLedger, selectSeeds,
+  type FieldLedger, type Seed,
+} from "./intelExtract.ts";
+
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("VITE_SUPABASE_URL") ?? "";
 const SUPABASE_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") ?? "";
@@ -72,7 +77,16 @@ export interface IntelBundle {
   emptyBuckets: DomainBucket[];
   totalHits: number;
   rejectedIdentityHits: number;
+  /** deterministic extraction + resolution output (see intelExtract.ts) */
+  fieldLedger?: FieldLedger;
+  /** how many full documents were actually opened and parsed */
+  documentsFetched?: number;
+  /** seeds actually queried during the recursive HOP-1 collection */
+  hopSeeds?: Seed[];
+  elapsedMs?: number;
+  queriesRun?: number;
 }
+
 
 // ── Lookup tables (kept from v1 — proven to work) ─────────────────────────
 const US_STATES: Record<string, string> = {
@@ -501,34 +515,79 @@ function scorePersonIdentity(hit: IntelChannelHit, intent: IntelIntent): IntelCh
   return hit;
 }
 
-// ── Body fetch (optional deep pass) ────────────────────────────────────────
-async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
+// ── Body fetch (deep pass) ─────────────────────────────────────────────────
+/** Collapse an HTML document to parseable plain text. */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim()
+    // 3.5 KB truncated people-directory pages before the relatives block. The
+    // extraction layer parses the whole document, so keep 14 KB.
+    .slice(0, 14000);
+}
+
+/**
+ * Firecrawl fallback.
+ *
+ * Live measurement: every people-directory target (unmask, fastbackgroundcheck,
+ * idcrawl) sits behind Cloudflare and answers a datacenter fetch with 403 or a
+ * challenge page, so the direct pass harvested ZERO documents and the whole
+ * extraction layer starved. Firecrawl renders through a residential path and
+ * returns the article text those pages actually contain.
+ */
+async function fetchBodyViaFirecrawl(url: string, timeoutMs: number): Promise<string> {
+  const key = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!key || timeoutMs < 3000) return "";
   try {
-    const resp = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; AureonIntel/2.0)",
-        "Accept": "text/html,application/xhtml+xml",
-      },
+    const resp = await fetch("https://api.firecrawl.dev/v2/scrape", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true, timeout: Math.min(timeoutMs - 500, 20000) }),
       signal: AbortSignal.timeout(timeoutMs),
-      redirect: "follow",
     });
     if (!resp.ok) return "";
-    const ct = resp.headers.get("content-type") || "";
-    if (!/text\/html|application\/xhtml/.test(ct)) return "";
-    const html = await resp.text();
-    // Strip scripts/styles, then collapse HTML tags to spaces.
-    const stripped = html
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    return stripped.slice(0, 3500);
+    const json = await resp.json().catch(() => null) as any;
+    const md: string = json?.data?.markdown || json?.data?.html || "";
+    if (!md) return "";
+    return htmlToText(md);
   } catch {
     return "";
   }
 }
+
+async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
+  let direct = "";
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        // A self-identifying bot UA is auto-403'd by every major directory.
+        // Present as a real browser; we only read publicly served pages.
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(Math.min(timeoutMs, 6000)),
+      redirect: "follow",
+    });
+    if (resp.ok) {
+      const ct = resp.headers.get("content-type") || "";
+      if (/text\/html|application\/xhtml|text\/plain/.test(ct)) direct = htmlToText(await resp.text());
+    }
+  } catch { /* fall through to Firecrawl */ }
+
+  // A challenge/interstitial returns 200 with almost no text — treat as failure.
+  if (direct.length >= 600 && !/just a moment|enable javascript|access denied|verify you are human/i.test(direct.slice(0, 400))) {
+    return direct;
+  }
+  const rendered = await fetchBodyViaFirecrawl(url, timeoutMs);
+  return rendered.length > direct.length ? rendered : direct;
+}
+
 
 function scoreEnrichQuery(intent: IntelIntent, label: string): number {
   if (intent.kind === "person") {
@@ -563,9 +622,11 @@ function scoreEnrichQuery(intent: IntelIntent, label: string): number {
 // ── Three-pass sweep + fusion ───────────────────────────────────────────────
 export async function runJurisdictionalSearch(intent: IntelIntent): Promise<IntelBundle> {
   const startedAt = Date.now();
-  // Tightened from 24.5s → 20s so the sweep leaves comfortable headroom
-  // inside the 150s /chat budget even when zophiel-search runs slow.
-  const deadlineMs = 30000;
+  // 30s only ever bought a snippet sweep. The deep harvest (26 documents) plus
+  // the recursive HOP-1 collection need real wall clock; 68s still leaves the
+  // /chat request ~80s of streaming headroom inside its 150s edge limit.
+  const deadlineMs = 68000;
+
   const src = sourcesFor(intent.country, intent.state, intent.county);
   const registries = Array.from(new Set([
     ...src.ownership, ...src.tax, ...src.permits, ...src.entities, ...src.courts, ...src.people,
@@ -644,6 +705,15 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     enrichQueries.push({ label: "business", query: `${recordName} ${locus} registered agent` });
     enrichQueries.push({ label: "criminal", query: `${recordName} ${locus} court records` });
     enrichQueries.push({ label: "contact", query: `${recordName} ${locus} phone email` });
+    // Additional collection channels — each targets a record family the old
+    // 9-query budget could never reach.
+    enrichQueries.push({ label: "people", query: `${recordName} ${locus} previous addresses history` });
+    enrichQueries.push({ label: "criminal", query: `${recordName} ${locus} arrest booking` });
+    enrichQueries.push({ label: "business", query: `${recordName} sunbiz corporation filing` });
+    enrichQueries.push({ label: "contact", query: `${recordName} ${locus} email address` });
+    enrichQueries.push({ label: "social", query: `${recordName} facebook profile` });
+    enrichQueries.push({ label: "ownership", query: `${recordName} ${locus} property owner parcel` });
+
     enrichQueries.push({ label: "news", query: `${recordName} ${locus} news` });
     enrichQueries.push({ label: "social", query: `${recordName} ${locus} linkedin instagram` });
 
@@ -659,7 +729,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(4000, Math.min(8000, deadlineMs - (Date.now() - startedAt) - 3500)), limit: 12 });
 
   const countryOnlyPerson = intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
-  const maxEnrich = countryOnlyPerson ? 3 : 9;
+  const maxEnrich = countryOnlyPerson ? 4 : 14;
   const selectedEnrich = enrichQueries
     .sort((a, b) => scoreEnrichQuery(intent, b.label) - scoreEnrichQuery(intent, a.label))
     .slice(0, maxEnrich);
@@ -703,27 +773,123 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     buckets[bucket].push(hit);
   }
 
-  // ── PASS 3 — BODY FETCH top URLs (opportunistic; do not stall answer) ──
-  const priority: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
-  const fetchTargets: IntelChannelHit[] = [];
-  const remainingForBodies = deadlineMs - (Date.now() - startedAt);
-  const bodyLimit = remainingForBodies > 6500 ? 4 : remainingForBodies > 4200 ? 2 : 0;
-  for (const b of priority) {
-    for (const h of buckets[b]) {
-      if (fetchTargets.length >= bodyLimit) break;
-      fetchTargets.push(h);
+  // ── PASS 3 — DEEP BODY HARVEST ─────────────────────────────────────────
+  // Previously capped at 4 documents (usually 2, often 0). That single number
+  // was the reason dossiers were thin: ~90% of what the model saw was a
+  // 160-char SERP snippet, and snippets do not contain phone numbers, prior
+  // addresses, officer roles or case numbers. We now open up to 26 documents
+  // through a bounded worker pool so the extraction layer has real text to
+  // parse, while the pool cap keeps us off the upstream-timeout cliff.
+  const priority: DomainBucket[] = ["authoritative", "corporate", "court", "people", "social", "news", "web"];
+  const pickTargets = (limit: number, pool: IntelChannelHit[]): IntelChannelHit[] => {
+    const out: IntelChannelHit[] = [];
+    for (const b of priority) {
+      for (const h of pool.filter((x) => x.bucket === b)) {
+        if (out.length >= limit) return out;
+        if (h.body) continue;
+        // Weak-identity documents are not worth a fetch slot on a person sweep.
+        if (intent.kind === "person" && h.identityBand === "rejected") continue;
+        out.push(h);
+      }
     }
-    if (fetchTargets.length >= bodyLimit) break;
+    return out;
+  };
+
+  const harvest = async (targets: IntelChannelHit[], concurrency = 10) => {
+    let cursor = 0;
+    const worker = async () => {
+      for (;;) {
+        const i = cursor++;
+        if (i >= targets.length) return;
+        const remaining = deadlineMs - (Date.now() - startedAt);
+        // A rendered fetch needs real time; below 6s there is no point starting one.
+        if (remaining < 6000) return;
+        targets[i].body = await fetchBody(targets[i].url, Math.max(6000, Math.min(15000, remaining - 3000)));
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, worker));
+  };
+
+
+
+  const allHits = () => (Object.keys(buckets) as DomainBucket[]).flatMap((b) => buckets[b]);
+  const bodyBudget = deadlineMs - (Date.now() - startedAt) > 12000 ? 26
+    : deadlineMs - (Date.now() - startedAt) > 7000 ? 10 : 3;
+  await harvest(pickTargets(bodyBudget, allHits()));
+
+  // Re-score identity now that bodies exist — a body can promote a POSSIBLE
+  // hit to STRONG by supplying the locator the snippet lacked.
+  for (const h of allHits()) scorePersonIdentity(h, intent);
+
+  // ── RESOLUTION — deterministic extraction, normalization, scoring ──────
+  const toDocs = () => allHits()
+    .filter((h) => h.body && h.body.length > 40)
+    .map((h) => ({
+      domain: h.domain,
+      url: h.url,
+      bucket: h.bucket,
+      text: `${h.title}\n${h.snippet}\n${h.body}`,
+      authoritative: h.bucket === "authoritative" || h.bucket === "court",
+      band: h.identityBand,
+    }));
+
+  let fieldLedger = buildFieldLedger(toDocs(), intent.subject);
+
+  // ── HOP 1 — RECURSIVE GRAPH COLLECTION ─────────────────────────────────
+  // The old sweep discovered a relative and stopped. Every extracted entity is
+  // now a seed: querying a relative reciprocally confirms the edge that
+  // produced it, an address unlocks co-residents and deed history, an LLC
+  // unlocks co-officers. Seeds are selected by information gain and the hop is
+  // hard-bounded by the remaining wall clock.
+  const hopSeeds: Seed[] = intent.kind === "person" ? selectSeeds(fieldLedger, 6) : [];
+  const hopExecuted: Seed[] = [];
+  if (hopSeeds.length && deadlineMs - (Date.now() - startedAt) > 14000) {
+    const hopQueries = hopSeeds.map((s) => ({
+      seed: s,
+      query: s.kind === "relative"
+        ? `"${s.value}" ${locus} relatives address`
+        : s.kind === "address"
+          ? `"${s.value}" ${locus} owner residents`
+          : `"${s.value}" ${locus} officer registered agent`,
+    }));
+    for (let i = 0; i < hopQueries.length; i += 3) {
+      const remaining = deadlineMs - (Date.now() - startedAt) - 6000;
+      if (remaining < 5000) break;
+      const wave = hopQueries.slice(i, i + 3);
+      const results = await Promise.all(
+        wave.map((q) => zophielQuery(q.query, { timeoutMs: Math.min(6500, remaining), limit: 8 })
+          .catch(() => [] as IntelChannelHit[])),
+      );
+      wave.forEach((q) => hopExecuted.push(q.seed));
+      const fresh: IntelChannelHit[] = [];
+      for (const hit of results.flat()) {
+        if (!hit.url || seen.has(hit.url)) continue;
+        if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
+        seen.add(hit.url);
+        scorePersonIdentity(hit, intent);
+        hit.bucket = classifyDomain(hit.domain);
+        buckets[hit.bucket].push(hit);
+        fresh.push(hit);
+      }
+      const hopBodyBudget = deadlineMs - (Date.now() - startedAt) > 9000 ? 8 : 3;
+      await harvest(pickTargets(hopBodyBudget, fresh), 6);
+    }
+    fieldLedger = buildFieldLedger(toDocs(), intent.subject);
   }
-  await Promise.all(fetchTargets.map(async (h) => {
-    h.body = await fetchBody(h.url, Math.max(2200, Math.min(4500, deadlineMs - (Date.now() - startedAt) - 500)));
-  }));
 
   const emptyBuckets = (Object.keys(buckets) as DomainBucket[]).filter((k) => buckets[k].length === 0);
   const totalHits = Object.values(buckets).reduce((a, b) => a + b.length, 0);
+  const documentsFetched = allHits().filter((h) => h.body && h.body.length > 40).length;
 
-  return { intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits, rejectedIdentityHits };
+  return {
+    intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits,
+    rejectedIdentityHits, fieldLedger, documentsFetched,
+    hopSeeds: hopExecuted,
+    elapsedMs: Date.now() - startedAt,
+    queriesRun: 2 + selectedEnrich.length + hopExecuted.length,
+  };
 }
+
 
 // ── Format for LLM context ────────────────────────────────────────────────
 const BUCKET_LABELS: Record<DomainBucket, string> = {
@@ -737,7 +903,10 @@ const BUCKET_LABELS: Record<DomainBucket, string> = {
 };
 
 export function formatIntelContext(bundle: IntelBundle): string {
-  const { intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries, rejectedIdentityHits } = bundle;
+  const {
+    intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries,
+    rejectedIdentityHits, fieldLedger, documentsFetched, hopSeeds, elapsedMs, queriesRun,
+  } = bundle;
 
   const header = [
     `## JURISDICTIONAL INTEL SWEEP — ${intent.kind.toUpperCase()}`,
@@ -745,8 +914,12 @@ export function formatIntelContext(bundle: IntelBundle): string {
     `Jurisdiction: ${jurisdictionLabel}`,
     `Registries in scope: ${registries.slice(0, 12).join(", ") || "(none jurisdiction-specific — wide-web only)"}`,
     `Total unique hits (post-blocklist, deduped): ${totalHits}`,
+    `Full documents opened and parsed: ${documentsFetched ?? 0}`,
+    `Queries executed: ${queriesRun ?? "n/a"} · Collection wall clock: ${elapsedMs ? `${(elapsedMs / 1000).toFixed(1)}s` : "n/a"}`,
+    `Recursive HOP-1 seeds pursued: ${hopSeeds && hopSeeds.length ? hopSeeds.map((s) => `${s.value} (${s.kind})`).join("; ") : "none"}`,
     `Rejected as identity mismatches: ${rejectedIdentityHits}`,
   ].join("\n");
+
 
   const accel = intent.accelerators.length
     ? `\n\n### ACCELERATORS (ask user, do not block)\n${intent.accelerators.map((a, i) => `${i + 1}. ${a}`).join("\n")}`
@@ -769,21 +942,38 @@ export function formatIntelContext(bundle: IntelBundle): string {
 
 
 
+  const ledgerBlock = fieldLedger && fieldLedger.documentsParsed > 0
+    ? `\n\n${formatFieldLedger(fieldLedger)}`
+    : "";
+
   const sections: string[] = [];
   const order: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
   for (const b of order) {
     const hits = buckets[b];
     if (!hits.length) continue;
-    const lines = hits.slice(0, 16).map((h, i) => {
-      const bodyBlock = h.body ? `\n     BODY EXCERPT: ${h.body.slice(0, 1600)}` : "";
+    const lines = hits.slice(0, 20).map((h, i) => {
+      const bodyBlock = h.body ? `\n     BODY EXCERPT: ${h.body.slice(0, 2600)}` : "";
       const identity = intent.kind === "person"
         ? `\n     IDENTITY MATCH: ${h.identityBand?.toUpperCase()} (${h.identityScore}/100) — ${(h.identityReasons || []).join(", ")}`
         : "";
       return `  ${i + 1}. [${h.domain}] ${h.title}\n     URL: ${h.url}\n     SNIPPET: ${h.snippet}${identity}${bodyBlock}`;
     }).join("\n");
-    sections.push(`### ${BUCKET_LABELS[b]} (${hits.length} hit${hits.length === 1 ? "" : "s"}, showing ${Math.min(hits.length, 16)})\n${lines}`);
+    sections.push(`### ${BUCKET_LABELS[b]} (${hits.length} hit${hits.length === 1 ? "" : "s"}, showing ${Math.min(hits.length, 20)})\n${lines}`);
 
   }
+
+  const coverage = [
+    "",
+    "### COLLECTION COVERAGE MATRIX (reproduce this table verbatim at the end of your report)",
+    "| Channel | Hits | Status |",
+    "|---|---|---|",
+    ...order.map((b) => {
+      const n = buckets[b].length;
+      return `| ${BUCKET_LABELS[b]} | ${n} | ${n ? "COLLECTED" : "NO RETURN"} |`;
+    }),
+    `| Documents opened & parsed | ${documentsFetched ?? 0} | ${(documentsFetched ?? 0) > 0 ? "PARSED" : "NONE"} |`,
+    `| Recursive HOP-1 seeds | ${hopSeeds?.length ?? 0} | ${(hopSeeds?.length ?? 0) > 0 ? "PURSUED" : "NOT REACHED"} |`,
+  ].join("\n");
 
   const emptyNote = emptyBuckets.length
     ? `\n\n### EMPTY BUCKETS: ${emptyBuckets.map((b) => BUCKET_LABELS[b].split(" ")[0]).join(", ")} — name the missing lever that would unlock each.`
@@ -791,10 +981,17 @@ export function formatIntelContext(bundle: IntelBundle): string {
 
   return [
     header, accel, "",
+    ledgerBlock,
+    "",
     sections.join("\n\n"),
     emptyNote,
+    coverage,
     "",
     "INSTRUCTIONS TO YOU:",
+    "  • The RESOLVED FIELD LEDGER above is authoritative and already deduped, normalized and confidence-scored by a deterministic extraction layer. Report EVERY row of the confirmed ledger — every address, every phone, every email, every handle, every entity, every relative. Do not summarize it, do not sample it, do not silently drop low-confidence rows: print them with their computed label.",
+    "  • Render the ledger's confidence labels EXACTLY (VERIFIED / CORROBORATED / REPORTED). You may not upgrade or downgrade them; they are computed from independent-domain counts, not from your judgement.",
+    "  • The ledger is the SPINE of the report. The bucket hits below it are the supporting evidence you cite and mine for anything the extractor could not type (narrative detail, filing status, dates, job titles).",
+
     "  • Write an INTELLIGENCE REPORT organized by the bucket headers above.",
     "  • Cite every claim inline as [domain](url).",
     "  • Quote verbatim ONLY from SNIPPET or BODY EXCERPT text — never invent an owner, DOB, address, or case number.",

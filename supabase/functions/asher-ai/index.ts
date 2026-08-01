@@ -300,7 +300,7 @@ serve(async (req) => {
           // Wall-clock ceiling: never let jurisdictional intel push asher-ai past the 150s edge limit.
           const bundle = await Promise.race([
             runJurisdictionalSearch(intent),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 25000)),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 75000)),
           ]);
           jurisdictionalBlock = bundle ? "\n\n" + formatIntelContext(bundle) : "";
         }
