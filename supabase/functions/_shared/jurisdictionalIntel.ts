@@ -471,14 +471,21 @@ async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
 function scoreEnrichQuery(intent: IntelIntent, label: string): number {
   if (intent.kind === "person") {
     if (label === "people") return 100;
-    if (label === "entities") return 85;
+    // Legal-document channels are part of the core dossier, not an optional
+    // tail: an operator asking "who is X" expects LLCs, filings and records.
+    if (label === "business") return 95;
+    if (label === "criminal") return 88;
+    if (label === "contact") return 82;
+    if (label === "entities") return 60;
     if (label === "news") return 70;
     if (label === "courts") return intent.state || intent.city ? 65 : 35;
     if (label === "ownership" || label === "tax" || label === "permits") return intent.state || intent.city ? 45 : 15;
   }
   if (intent.kind === "entity") {
     if (label === "entities") return 100;
+    if (label === "business") return 95;
     if (label === "courts") return 75;
+    if (label === "criminal") return 70;
     if (label === "news") return 55;
   }
   if (intent.kind === "property") {
@@ -489,6 +496,7 @@ function scoreEnrichQuery(intent: IntelIntent, label: string): number {
   }
   return 10;
 }
+
 
 // ── Three-pass sweep + fusion ───────────────────────────────────────────────
 export async function runJurisdictionalSearch(intent: IntelIntent): Promise<IntelBundle> {
@@ -554,14 +562,31 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     // A 9-way `site:a OR site:b …` restrictor returns near-zero on every real
     // SERP backend, so the people channel was structurally dead. Natural-language
     // record phrasing surfaces the same directories organically.
-    if (src.people.length) enrichQueries.push({ label: "people", query: `${subjectQuoted} ${locus} address phone age relatives public records` });
+    if (src.people.length) enrichQueries.push({ label: "people", query: `${firstLast || subjectQuoted} ${locus} address phone relatives` });
     if (firstLast) {
-      enrichQueries.push({ label: "people", query: `${firstLast} ${locus} age relatives address phone` });
+      enrichQueries.push({ label: "people", query: `${firstLast} ${locus} age relatives` });
       enrichQueries.push({ label: "people", query: `${firstLast} ${locus}` });
     }
-    enrichQueries.push({ label: "news", query: `${subjectQuoted} ${locus} news` });
-    enrichQueries.push({ label: "social", query: `${subjectQuoted} ${locus} linkedin facebook instagram profile` });
+
+    // Corporate / legal-document, criminal and contact channels.
+    //
+    // Measured live against the fast lane: over-specified queries (full middle
+    // name + 5-6 keywords, e.g. `"Asher Shepherd Newton" LLC registered agent
+    // officer Cape Coral Florida`) return ZERO hits, while the short indexable
+    // form (`"Asher Newton" Cape Coral Florida court records`) returns 7-11.
+    // Directory indexes key on "First Last" + locus, so every record channel
+    // below uses the two-token name and at most two intent keywords. The long
+    // middle-name form is kept only as a low-priority secondary probe.
+    const recordName = firstLast || subjectQuoted;
+    enrichQueries.push({ label: "business", query: `${recordName} ${locus} LLC` });
+    enrichQueries.push({ label: "business", query: `${recordName} ${locus} registered agent` });
+    enrichQueries.push({ label: "criminal", query: `${recordName} ${locus} court records` });
+    enrichQueries.push({ label: "contact", query: `${recordName} ${locus} phone email` });
+    enrichQueries.push({ label: "news", query: `${recordName} ${locus} news` });
+    enrichQueries.push({ label: "social", query: `${recordName} ${locus} linkedin instagram` });
+
   }
+
 
   // Pass 1 is deliberately first, not part of a large Promise fan-out. The
   // Zophiel web tab succeeds on single wide calls; flooding it with 6+ nested
@@ -572,17 +597,28 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(4000, Math.min(8000, deadlineMs - (Date.now() - startedAt) - 3500)), limit: 12 });
 
   const countryOnlyPerson = intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
-  const maxEnrich = countryOnlyPerson ? 3 : 6;
+  const maxEnrich = countryOnlyPerson ? 3 : 9;
   const selectedEnrich = enrichQueries
     .sort((a, b) => scoreEnrichQuery(intent, b.label) - scoreEnrichQuery(intent, a.label))
     .slice(0, maxEnrich);
 
+  // Bounded-concurrency waves (3 at a time). Fully sequential could only fit
+  // ~4 channels inside the 30s deadline, which silently starved the business,
+  // criminal and contact channels; an unbounded fan-out previously caused
+  // upstream timeouts. Waves of 3 fit all 9 channels inside the same budget.
   const pass2: IntelChannelHit[][] = [];
-  for (const q of selectedEnrich) {
+  const WAVE = 3;
+  for (let i = 0; i < selectedEnrich.length; i += WAVE) {
     const remaining = deadlineMs - (Date.now() - startedAt) - 3000;
     if (remaining < 4500) break;
-    pass2.push(await zophielQuery(q.query, { timeoutMs: Math.min(7000, remaining), limit: 10 }));
+    const wave = selectedEnrich.slice(i, i + WAVE);
+    const results = await Promise.all(
+      wave.map((q) => zophielQuery(q.query, { timeoutMs: Math.min(7000, remaining), limit: 10 })
+        .catch(() => [] as IntelChannelHit[])),
+    );
+    pass2.push(...results);
   }
+
 
   // ── FUSE — dedupe by URL, block-check every hit, classify into buckets ──
   const seen = new Set<string>();
@@ -697,7 +733,10 @@ export function formatIntelContext(bundle: IntelBundle): string {
     "  • A STRONG hit is evidence, not automatic confirmation. POSSIBLE hits belong only in 'Unverified candidates' and cannot supply profile facts.",
     "  • If sources conflict on age, address, employer, or relatives, show the conflict and withhold that fact from the confirmed profile.",
     "  • Add a relationship only when two independent domains name it, or one authoritative record directly establishes it. Never infer relationships from co-location, follows, likes, or shared surname alone.",
-    "  • For person reports emit readable text plus card:entity, card:relationship when corroborated associates exist, and card:sources.",
+    "  • MANDATORY PERSON DOSSIER SHAPE — emit, in this order: (1) readable summary text, (2) card:entity for the subject, (3) card:relationship for the intelligence tree whenever ANY corroborated associate exists, (4) card:list titled 'Legal, Business & Court Filings' enumerating every LLC / corporation / registered-agent role / court case / lien / permit found — one item per filing with entity name, filing number, status, date and jurisdiction, (5) card:sources.",
+    "  • In card:relationship, every node MUST carry an `attributes` array covering, where evidenced: Age, Address, Phone, Email, Employer/Job, Businesses (LLC / officer roles), Court or criminal records, Tier (parent / sibling / extended / associate). Write 'no public record found' for an attribute you searched and could not evidence — never silently drop the row.",
+    "  • Do not omit the legal-filings list because the subject is young or low-profile: state explicitly 'no corporate or court filings surfaced' when the corporate and court buckets are empty.",
+
     "  • NEVER reference leak/breach databases (Offshore Leaks, ICIJ, Have I Been Pwned, etc.) — they are blocked at retrieval.",
     "  • End with the ONE specific lever that would deepen the sweep next.",
   ].join("\n");

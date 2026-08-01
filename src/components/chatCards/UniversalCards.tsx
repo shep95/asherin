@@ -11,6 +11,7 @@
 //  - Every card has an "empty valid payload" path that renders nothing rather
 //    than throwing.
 
+import { Fragment } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -227,7 +228,16 @@ export function RelationshipCard({ payload, source }: { payload: Record<string, 
   const subject = s(payload.subject, 200);
   const rawNodes = Array.isArray(payload.nodes) ? payload.nodes : [];
   const nodes = rawNodes.filter((node): node is Record<string, unknown> => !!node && typeof node === "object")
-    .map((node) => ({ id: s(node.id, 100), label: s(node.label, 200), detail: s(node.detail, 300) }))
+    .map((node) => ({
+      id: s(node.id, 100),
+      label: s(node.label, 200),
+      detail: s(node.detail, 300),
+      attributes: (Array.isArray(node.attributes) ? node.attributes : [])
+        .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
+        .map((a) => ({ label: s(a.label, 60), value: s(a.value, 400) }))
+        .filter((a) => a.label && a.value)
+        .slice(0, 12),
+    }))
     .filter((node) => node.id && node.label).slice(0, 24);
   const nodeIds = new Set(nodes.map((node) => node.id));
   const rawEdges = Array.isArray(payload.edges) ? payload.edges : [];
@@ -238,12 +248,23 @@ export function RelationshipCard({ payload, source }: { payload: Record<string, 
   if (!subject || nodes.length === 0) return null;
   const subjectNode = nodes.find((node) => node.id === "subject") || nodes[0];
   const related = edges.map((edge) => ({ edge, node: nodes.find((node) => node.id === (edge.from === subjectNode.id ? edge.to : edge.from)) })).filter((item) => item.node);
+  const Attributes = ({ rows }: { rows: { label: string; value: string }[] }) => rows.length === 0 ? null : (
+    <dl className="mt-1.5 grid grid-cols-[minmax(72px,auto)_1fr] gap-x-2 gap-y-0.5">
+      {rows.map((row, i) => (
+        <Fragment key={i}>
+          <dt className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{row.label}</dt>
+          <dd className="text-[11px] text-foreground/80 break-words">{row.value}</dd>
+        </Fragment>
+      ))}
+    </dl>
+  );
   return (
     <CardShell icon={Network} label="Intelligence tree" title={subject} sources={sources} origin={source}>
       <div className="space-y-2">
         <div className="rounded border border-border/30 bg-foreground/[0.03] px-3 py-2">
           <div className="text-sm text-foreground">{subjectNode.label}</div>
           {subjectNode.detail && <div className="text-[11px] text-muted-foreground mt-0.5">{subjectNode.detail}</div>}
+          <Attributes rows={subjectNode.attributes} />
         </div>
         {related.length > 0 ? <div className="ml-3 border-l border-border/30 pl-3 space-y-2">
           {related.map(({ edge, node }, index) => <div key={`${edge.from}-${edge.to}-${index}`} className="relative rounded border border-border/20 px-3 py-2">
@@ -251,6 +272,7 @@ export function RelationshipCard({ payload, source }: { payload: Record<string, 
             <div className="flex items-center justify-between gap-2"><span className="text-xs text-foreground">{node?.label}</span><span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">{edge.confidence || "verified"}</span></div>
             <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">{edge.label}</div>
             {node?.detail && <div className="text-[11px] text-muted-foreground mt-1">{node.detail}</div>}
+            {node && <Attributes rows={node.attributes} />}
             {edge.sources.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5">{edge.sources.map((citation, citationIndex) => <a key={citationIndex} href={citation.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">{citation.title || new URL(citation.url).hostname.replace(/^www\./, "")}</a>)}</div>}
           </div>)}
         </div> : <div className="text-xs text-muted-foreground">No relationships met the corroboration threshold.</div>}
@@ -258,6 +280,7 @@ export function RelationshipCard({ payload, source }: { payload: Record<string, 
     </CardShell>
   );
 }
+
 
 // ────────────────────────────── timeline ──────────────────────────────
 // { title?, events: [{ date, label, description? }] }
