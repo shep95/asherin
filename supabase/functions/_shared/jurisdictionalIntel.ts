@@ -858,7 +858,10 @@ const BUCKET_LABELS: Record<DomainBucket, string> = {
 };
 
 export function formatIntelContext(bundle: IntelBundle): string {
-  const { intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries, rejectedIdentityHits } = bundle;
+  const {
+    intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries,
+    rejectedIdentityHits, fieldLedger, documentsFetched, hopSeeds, elapsedMs, queriesRun,
+  } = bundle;
 
   const header = [
     `## JURISDICTIONAL INTEL SWEEP — ${intent.kind.toUpperCase()}`,
@@ -866,8 +869,12 @@ export function formatIntelContext(bundle: IntelBundle): string {
     `Jurisdiction: ${jurisdictionLabel}`,
     `Registries in scope: ${registries.slice(0, 12).join(", ") || "(none jurisdiction-specific — wide-web only)"}`,
     `Total unique hits (post-blocklist, deduped): ${totalHits}`,
+    `Full documents opened and parsed: ${documentsFetched ?? 0}`,
+    `Queries executed: ${queriesRun ?? "n/a"} · Collection wall clock: ${elapsedMs ? `${(elapsedMs / 1000).toFixed(1)}s` : "n/a"}`,
+    `Recursive HOP-1 seeds pursued: ${hopSeeds && hopSeeds.length ? hopSeeds.map((s) => `${s.value} (${s.kind})`).join("; ") : "none"}`,
     `Rejected as identity mismatches: ${rejectedIdentityHits}`,
   ].join("\n");
+
 
   const accel = intent.accelerators.length
     ? `\n\n### ACCELERATORS (ask user, do not block)\n${intent.accelerators.map((a, i) => `${i + 1}. ${a}`).join("\n")}`
