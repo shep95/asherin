@@ -538,7 +538,10 @@ async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
       .replace(/&nbsp;/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    return stripped.slice(0, 3500);
+    // 3.5 KB truncated people-directory pages before the relatives block. The
+    // extraction layer parses the whole document, so keep 14 KB.
+    return stripped.slice(0, 14000);
+
   } catch {
     return "";
   }
