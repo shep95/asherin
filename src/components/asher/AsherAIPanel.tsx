@@ -127,6 +127,71 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
           await onAction({ type: "set_base", layer: args?.layer });
           return `Base layer → ${args?.layer}.`;
         }
+
+        /* ── Overlay editing — the map is writable ─────────────────────── */
+        case "place_marker": {
+          const r = await onAction({
+            type: "place_marker",
+            label: String(args?.label ?? "Marker"),
+            ref: { lat: num(args?.lat), lng: num(args?.lng), place: str(args?.place) },
+            note: str(args?.note), category: str(args?.category), color: str(args?.color),
+          });
+          return typeof r === "string" ? r : "Marker placed.";
+        }
+        case "add_label": {
+          const r = await onAction({
+            type: "add_label",
+            text: String(args?.text ?? "Label"),
+            ref: { lat: num(args?.lat), lng: num(args?.lng), place: str(args?.place) },
+            color: str(args?.color),
+          });
+          return typeof r === "string" ? r : "Label placed.";
+        }
+        case "draw_radius": {
+          const r = await onAction({
+            type: "draw_radius",
+            label: String(args?.label ?? "Radius"),
+            radiusKm: Number(args?.radiusKm) || 1,
+            ref: { lat: num(args?.lat), lng: num(args?.lng), place: str(args?.place) },
+            note: str(args?.note), category: str(args?.category), color: str(args?.color),
+          });
+          return typeof r === "string" ? r : "Radius drawn.";
+        }
+        case "draw_zone": {
+          const r = await onAction({
+            type: "draw_zone",
+            label: String(args?.label ?? "Zone"),
+            points: toGeoRefs(args?.points),
+            note: str(args?.note), category: str(args?.category), color: str(args?.color),
+          });
+          return typeof r === "string" ? r : "Zone drawn.";
+        }
+        case "draw_route": {
+          const r = await onAction({
+            type: "draw_route",
+            label: String(args?.label ?? "Route"),
+            waypoints: toGeoRefs(args?.waypoints),
+            note: str(args?.note), color: str(args?.color),
+          });
+          return typeof r === "string" ? r : "Route drawn.";
+        }
+        case "measure": {
+          const r = await onAction({
+            type: "measure",
+            from: toGeoRef(args?.from),
+            to: toGeoRef(args?.to),
+          });
+          return typeof r === "string" ? r : "Measurement drawn.";
+        }
+        case "clear_annotations": {
+          const r = await onAction({ type: "clear_annotations", scope: String(args?.scope ?? "all") });
+          return typeof r === "string" ? r : "Overlay cleared.";
+        }
+        case "list_annotations": {
+          const r = await onAction({ type: "list_annotations" });
+          return typeof r === "string" ? r : "Overlay is empty.";
+        }
+
         case "property_intel": {
           // Notify parent (so its property panel can refresh too)
           try { await onAction({ type: "property_intel", address: args?.address, entityName: args?.entityName }); } catch {}
