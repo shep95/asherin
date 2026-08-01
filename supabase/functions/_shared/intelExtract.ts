@@ -259,7 +259,10 @@ function handleHits(text: string, subjectCanonical = ""): Hit[] {
     const slug = handle.toLowerCase();
     if (RESERVED.has(slug)) continue;
     // Ownership guard: the slug must contain a subject name token.
-    if (nameTokens.length && !nameTokens.some((t) => slug.includes(t))) continue;
+    // Surname alone is NOT ownership — relatives share it ("regan-newton-perry"
+    // was being reported as the subject's LinkedIn). Require the GIVEN name.
+    if (nameTokens.length && !slug.includes(nameTokens[0])) continue;
+
     const canonical = `${platform === "x" ? "twitter" : platform}/${slug}`;
     out.push({ display: `${platform}.com/${handle}`, canonical, index: m.index });
   }
