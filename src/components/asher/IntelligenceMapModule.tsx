@@ -18,8 +18,10 @@ import { Video, Globe2, ExternalLink, RefreshCw, Building2, User, Hash, Calendar
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { triggerByokRequired } from "@/components/ByokRequiredDialog";
 import MapAnnotationLayer from "@/components/asher/MapAnnotationLayer";
+import MapFocusPin, { type FocusPinTarget, type FocusPinRow } from "@/components/asher/MapFocusPin";
 import AnnotationPanel, { type DrawMode } from "@/components/asher/AnnotationPanel";
 import AnalysisPanel from "@/components/asher/AnalysisPanel";
+
 import {
   makeAnnotation, annoCenter, annoMetric,
   haversineM, fmtDistance, type MapAnnotation,
@@ -126,8 +128,68 @@ const TACTICAL_BORDER_OVERLAY = {
 interface SearchHit {
   display_name: string; lat: string; lon: string;
   type?: string; class?: string;
-  address?: { country?: string; country_code?: string; state?: string; city?: string; town?: string; village?: string; suburb?: string; neighbourhood?: string; };
+  name?: string; addresstype?: string;
+  /** Nominatim returns [south, north, west, east] as strings. */
+  boundingbox?: [string, string, string, string] | string[];
+  address?: { country?: string; country_code?: string; state?: string; city?: string; town?: string; village?: string; suburb?: string; neighbourhood?: string; house_number?: string; road?: string; postcode?: string; county?: string; };
 }
+
+/* ─────────────── Precision focus ───────────────
+   A geocoder hit is not a single zoom level. "Cape Coral" is a 30 km polygon;
+   "1234 SE 5th Ave" is a 12 m rooftop. Flying to a fixed z10 for both is why
+   an address request used to land the operator a mile up in the air.
+   Resolution order: the hit's own bounding box (Leaflet computes the exact
+   zoom that frames it), then a semantic floor so rooftop-class targets are
+   never framed wider than z18, then a hard clamp at the imagery ceiling. */
+const BUILDING_CLASSES = new Set(["building", "shop", "office", "amenity", "tourism", "healthcare", "craft"]);
+const BUILDING_TYPES = new Set([
+  "house", "detached", "residential", "apartments", "semidetached_house", "terrace",
+  "bungalow", "farm", "yes", "building", "commercial", "retail", "industrial",
+  "hotel", "school", "hospital", "church", "warehouse",
+]);
+
+function isRooftopHit(hit?: SearchHit | null): boolean {
+  if (!hit) return false;
+  if (hit.address?.house_number) return true;
+  const cls = (hit.class || "").toLowerCase();
+  const type = (hit.type || "").toLowerCase();
+  const at = (hit.addresstype || "").toLowerCase();
+  if (at === "building" || at === "house" || at === "place_house") return true;
+  if (cls === "place" && (type === "house" || type === "building")) return true;
+  return BUILDING_CLASSES.has(cls) && BUILDING_TYPES.has(type);
+}
+
+/** The zoom that actually frames this hit, given the live map viewport. */
+function zoomForHit(map: L.Map | null, hit?: SearchHit | null, fallback = 16): number {
+  let z = fallback;
+  const bb = hit?.boundingbox;
+  if (map && Array.isArray(bb) && bb.length === 4) {
+    const [s, n, w, e] = bb.map((v) => parseFloat(String(v)));
+    if ([s, n, w, e].every(Number.isFinite) && n >= s && e >= w) {
+      try {
+        z = map.getBoundsZoom(L.latLngBounds([s, w], [n, e]), false, L.point(64, 64));
+      } catch { /* degenerate bbox — keep the fallback */ }
+    }
+  }
+  if (isRooftopHit(hit)) z = Math.max(z, 18);
+  if (!Number.isFinite(z)) z = fallback;
+  return Math.max(3, Math.min(19, Math.round(z)));
+}
+
+/** Short, human label for the card badge. */
+function hitBadge(hit?: SearchHit | null): string | undefined {
+  // `type` is the precise class ("house", "supermarket"); `addresstype` only
+  // appears on reverse hits and `class` is the coarse bucket ("place").
+  const t = (hit?.type || hit?.addresstype || hit?.class || "").replace(/_/g, " ").trim();
+
+  return t ? t.toUpperCase() : undefined;
+}
+
+/** Title shown while the reverse-geocode for a freshly clicked point is in flight. */
+const PIN_PLACEHOLDER = "Selected point";
+
+
+
 
 async function nominatimSearch(q: string): Promise<SearchHit[]> {
   if (!q.trim()) return [];
@@ -492,6 +554,12 @@ const IntelligenceMapModule = () => {
   const [focusedAnno, setFocusedAnno] = useState<string | null>(null);
   const [viewshedOverlay, setViewshedOverlay] = useState<ViewshedResult | null>(null);
 
+  /* The golden "target acquired" pin. One at a time by design: it marks the
+     single site the operator (or the AI) is currently interrogating, and its
+     card streams the same entity slices the side drawer shows. */
+  const [focusPin, setFocusPin] = useState<FocusPinTarget | null>(null);
+
+
   // The case id must be readable from inside the persistence funnel without
   // re-creating it on every render — a ref keeps the closure permanently fresh.
   const caseIdRef = useRef(activeCaseId);
@@ -527,7 +595,14 @@ const IntelligenceMapModule = () => {
 
   /** Map clicks are shared between entity inspection and manual drawing. */
   const handleMapClick = (lat: number, lng: number) => {
-    if (drawMode === "none") { void loadEntity(lat, lng); return; }
+    if (drawMode === "none") {
+      // A click is also an acquisition: drop the golden pin immediately so the
+      // operator gets instant feedback, then let the reverse-geocode name it.
+      setFocusPin({ lat, lng, title: PIN_PLACEHOLDER });
+      void loadEntity(lat, lng);
+      return;
+    }
+
     if (drawMode === "marker") {
       addAnnotation(makeAnnotation({ kind: "marker", label: `Pin ${annotations.length + 1}`, lat, lng, category: "observation" }));
       setDrawMode("none");
@@ -646,6 +721,47 @@ const IntelligenceMapModule = () => {
     mapRef.current?.flyTo([lat, lng], zoom, { duration: 0.8 });
   };
 
+  /* ── focusOn ────────────────────────────────────────────────────────────
+     The single entry point for "take me to X". It replaces the old
+     `flyTo(lat, lng, 10) + loadEntity(...)` pair, which framed a rooftop the
+     same way it framed a country and left nothing on the map to show WHAT was
+     found. Now: precision zoom from the hit's own footprint, a golden pin on
+     the target, imagery under it when we are at building scale, and the intel
+     drawer loading in parallel. */
+  const focusOn = async (
+    lat: number,
+    lng: number,
+    hit?: SearchHit | null,
+    opts?: { title?: string; subtitle?: string; badge?: string; minZoom?: number },
+  ) => {
+    const zoom = Math.max(zoomForHit(mapRef.current, hit), opts?.minZoom ?? 0);
+    /* For a rooftop hit Nominatim's `name` is just the house number ("1213"),
+       which is a useless card title. Rebuild the street line instead. */
+    const street = [hit?.address?.house_number, hit?.address?.road].filter(Boolean).join(" ").trim();
+    const label = opts?.title
+      || street
+      || hit?.name
+      || hit?.display_name?.split(",")[0]?.trim()
+      || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+
+    setFocusPin({
+      lat, lng,
+      title: label,
+      subtitle: opts?.subtitle ?? hit?.display_name,
+      badge: opts?.badge ?? hitBadge(hit),
+    });
+
+    // At rooftop scale a dark vector basemap shows an empty grey block; the
+    // operator asked to see the house, so put imagery under the pin. Street/
+    // topo choices are respected — only the label-only dark base is swapped.
+    if (zoom >= 17 && activeBase === "carto-dark") setActiveBase("esri-sat");
+
+    flyTo(lat, lng, zoom);
+    await loadEntity(lat, lng);
+  };
+
+
   const loadEntity = async (lat: number, lng: number) => {
     // Paint the drawer immediately with whatever we have; stream the rest in.
     setEntity({ lat, lng, hit: null, country: null, weather: null, elevation: null, celestial: null, features: null, wiki: null, loading: true });
@@ -660,6 +776,20 @@ const IntelligenceMapModule = () => {
     // reverse-geocode promise so it doesn't add a serial round-trip.
     const pReverse = reverseGeocode(lat, lng).then(async (hit) => {
       patch({ hit });
+      // Backfill the golden card for this exact point once the address lands.
+      // Guarded on coordinates so a slow reverse-geocode from a previous
+      // target can never relabel the pin the operator is looking at now.
+      setFocusPin((p) => {
+        if (!p || p.lat !== lat || p.lng !== lng || !hit) return p;
+        const primary = hit.name || hit.display_name?.split(",")[0]?.trim();
+        return {
+          ...p,
+          title: p.title === PIN_PLACEHOLDER && primary ? primary : p.title,
+          subtitle: p.subtitle || hit.display_name,
+          badge: p.badge || hitBadge(hit),
+        };
+      });
+
       // Kick off property intel the moment we have an address — don't wait for Overpass.
       const cc = hit?.address?.country_code?.toUpperCase();
       if (cc) {
@@ -799,11 +929,11 @@ const IntelligenceMapModule = () => {
 
   const handleSearchPick = (h: SearchHit) => {
     const lat = parseFloat(h.lat); const lng = parseFloat(h.lon);
-    flyTo(lat, lng, 10);
-    loadEntity(lat, lng);
+    void focusOn(lat, lng, h);
     setSearchResults([]);
     setSearchQ(h.display_name);
   };
+
 
   // Map context exposed to Asher AI
   const mapContext = {
@@ -824,17 +954,57 @@ const IntelligenceMapModule = () => {
     })() : null,
   };
 
+  /* Card body for the golden pin. Derived from the same `entity` slices the
+     side drawer renders, so the card can never disagree with the dossier, and
+     it fills in progressively as each live source lands. Every row is real
+     harvested data — a source that hasn't answered simply omits its row. */
+  const focusPinRows: FocusPinRow[] = useMemo(() => {
+    if (!focusPin || !entity || entity.lat !== focusPin.lat || entity.lng !== focusPin.lng) return [];
+    const rows: FocusPinRow[] = [];
+    const addr: any = entity.hit?.address || {};
+    const street = [addr.house_number, addr.road].filter(Boolean).join(" ");
+    const locality = [addr.city || addr.town || addr.village, addr.state, addr.postcode].filter(Boolean).join(", ");
+    if (street) rows.push({ label: "Street", value: street });
+    if (locality) rows.push({ label: "Locality", value: locality });
+
+    const { primary, cls } = classifyClick(entity.features);
+    if (cls && cls !== "unknown") rows.push({ label: "Class", value: cls });
+    const tags = primary?.tags || {};
+    const name = tags.name || tags["name:en"] || tags.operator;
+    if (name) rows.push({ label: "Site", value: String(name) });
+    const structure = tags.building && tags.building !== "yes" ? String(tags.building) : tags.amenity || tags.shop || tags.office;
+    if (structure) rows.push({ label: "Structure", value: String(structure).replace(/_/g, " ") });
+    if (tags["building:levels"]) rows.push({ label: "Levels", value: String(tags["building:levels"]) });
+    if (tags["addr:postcode"] && !addr.postcode) rows.push({ label: "Postcode", value: String(tags["addr:postcode"]) });
+
+    if (entity.country?.name?.common) rows.push({ label: "Country", value: entity.country.name.common });
+    if (typeof entity.elevation === "number") rows.push({ label: "Elevation", value: `${Math.round(entity.elevation)} m` });
+    const cur: any = entity.weather?.current;
+    if (cur && typeof cur.temperature_2m === "number") {
+      rows.push({ label: "Weather", value: `${Math.round(cur.temperature_2m)}°C · wind ${Math.round(cur.wind_speed_10m ?? 0)} km/h` });
+    }
+    if (entity.features?.length) rows.push({ label: "Nearby", value: `${entity.features.length} mapped features` });
+    return rows;
+  }, [focusPin, entity]);
+
+
+
   // Asher AI dispatcher — drives the map from the right-side panel
   const handleAIAction = async (a: MapAction): Promise<string | void> => {
     if (a.type === "search") {
       const hits = await nominatimSearch(a.query);
       if (!hits.length) { toast.error(`No results for ${a.query}`); return "No results."; }
-      const h = hits[0];
+      /* Prefer the most precise hit the geocoder returned. Asking for a street
+         address used to land on hits[0] even when a rooftop match sat lower in
+         the list, because Nominatim ranks by importance (population), not by
+         precision. */
+      const h = hits.find(isRooftopHit) ?? hits[0];
       const lat = parseFloat(h.lat); const lng = parseFloat(h.lon);
-      flyTo(lat, lng, 10);
-      await loadEntity(lat, lng);
-      return `Centered on ${h.display_name}`;
+      await focusOn(lat, lng, h);
+      const z = mapRef.current?.getZoom() ?? 0;
+      return `Centered on ${h.display_name} at zoom ${Math.round(z)} — golden target pin dropped with the site card.`;
     }
+
     if (a.type === "toggle_threat") {
       const map: Record<string, ThreatId> = { earthquakes: "h-quake", wildfires: "h-fire", aircraft: "h-air" };
       const id = map[a.layer]; if (!id) return;
@@ -903,14 +1073,17 @@ const IntelligenceMapModule = () => {
        currently selected entity → current map centre. The AI never has to
        guess coordinates, and a failed geocode degrades to an honest error
        instead of silently dropping a pin at 0,0. */
-    const resolveRef = async (ref?: GeoRef): Promise<{ lat: number; lng: number } | null> => {
+    const resolveRef = async (ref?: GeoRef): Promise<{ lat: number; lng: number; hit?: SearchHit } | null> => {
       if (ref && Number.isFinite(ref.lat) && Number.isFinite(ref.lng)) {
         return { lat: ref.lat as number, lng: ref.lng as number };
       }
       if (ref?.place) {
         const hits = await nominatimSearch(ref.place);
-        if (hits.length) return { lat: parseFloat(hits[0].lat), lng: parseFloat(hits[0].lon) };
-        return null;
+        if (!hits.length) return null;
+        // Same precision-first rule as map_search: a rooftop match beats a
+        // higher-"importance" city centroid when the AI names an address.
+        const h = hits.find(isRooftopHit) ?? hits[0];
+        return { lat: parseFloat(h.lat), lng: parseFloat(h.lon), hit: h };
       }
       if (entity) return { lat: entity.lat, lng: entity.lng };
       const c = mapRef.current?.getCenter();
@@ -921,7 +1094,7 @@ const IntelligenceMapModule = () => {
       const out: Array<{ lat: number; lng: number }> = [];
       for (const r of refs) {
         const p = await resolveRef(r);
-        if (p) out.push(p);
+        if (p) out.push({ lat: p.lat, lng: p.lng });
       }
       return out;
     };
@@ -933,9 +1106,17 @@ const IntelligenceMapModule = () => {
         kind: "marker", label: a.label, lat: p.lat, lng: p.lng,
         note: a.note, category: a.category as MapAnnotation["category"], color: a.color, source: "asher-ai",
       }));
-      flyTo(p.lat, p.lng, Math.max(mapRef.current?.getZoom() ?? 0, 12));
-      return `Marker **${anno.label}** placed at ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}.`;
+      // A pin the operator can't see is not a pin: frame the target at its own
+      // scale and raise the golden card over it with live site detail.
+      await focusOn(p.lat, p.lng, p.hit, {
+        title: a.label,
+        subtitle: a.note ?? p.hit?.display_name,
+        badge: a.category?.toUpperCase() ?? hitBadge(p.hit),
+        minZoom: p.hit ? 0 : 16,
+      });
+      return `Marker **${anno.label}** placed at ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)} and framed with the site card.`;
     }
+
 
     if (a.type === "add_label") {
       const p = await resolveRef(a.ref);
@@ -1381,6 +1562,16 @@ const IntelligenceMapModule = () => {
             />
           )}
           <MapClick onClick={handleMapClick} />
+          {focusPin && (
+            <MapFocusPin
+              key={`${focusPin.lat},${focusPin.lng}`}
+              target={focusPin}
+              rows={focusPinRows}
+              loading={!!entity?.loading}
+              onClose={() => setFocusPin(null)}
+            />
+          )}
+
           <MapAnnotationLayer
             annotations={annotations}
             draftPath={draftPath}
