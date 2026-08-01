@@ -1122,8 +1122,16 @@ const IntelligenceMapModule = () => {
               className="asher-tactical-border-overlay"
             />
           )}
-          <MapClick onClick={loadEntity} />
+          <MapClick onClick={handleMapClick} />
+          <MapAnnotationLayer
+            annotations={annotations}
+            draftPath={draftPath}
+            drawMode={drawMode}
+            focusedId={focusedAnno}
+            onSelect={(id) => setFocusedAnno(id)}
+          />
           <CoordDisplay />
+
 
           {/* Threat overlays — live data */}
           {activeThreats["h-quake"] && threatData["h-quake"].map((p, i) => (
