@@ -28,10 +28,11 @@ export default function ByokRequiredDialog() {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const ce = e as CustomEvent<{ reason?: string }>;
+      const ce = e as CustomEvent<{ reason?: string; noRedirect?: boolean }>;
       // Paid subscribers: skip the dialog and route straight to the AI Keys tab
-      // so they can hook up a key without an extra click.
-      if (subscribed) {
+      // so they can hook up a key without an extra click — unless the calling
+      // surface asked us not to navigate away from it.
+      if (subscribed && !ce.detail?.noRedirect) {
         try {
           const url = "/dashboard?tab=settings&panel=ai-keys";
           if (!window.location.pathname.startsWith("/dashboard") ||
@@ -47,6 +48,7 @@ export default function ByokRequiredDialog() {
     window.addEventListener(BYOK_REQUIRED_EVENT, handler);
     return () => window.removeEventListener(BYOK_REQUIRED_EVENT, handler);
   }, [subscribed, navigate]);
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
