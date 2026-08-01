@@ -1166,7 +1166,12 @@ const IntelligenceMapModule = () => {
           zoomControl={false}
           attributionControl={false}
           worldCopyJump
+          /* Canvas rendering: SVG vector layers stall past ~2k features, and an
+             elite overlay routinely carries recon detections plus a 36-ray
+             viewshed ring. Canvas holds 60fps under that load. */
+          preferCanvas
         >
+
           <TileLayer
             key={activeBase}
             url={tile.url}
