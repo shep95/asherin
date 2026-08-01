@@ -4,7 +4,7 @@ import "https://deno.land/std@0.224.0/dotenv/load.ts";
 import { classifyIntent, runJurisdictionalSearch, formatIntelContext } from "./jurisdictionalIntel.ts";
 
 Deno.test("asher shepherd newton — cape coral florida", async () => {
-  const msg = "asher shepherd newton who lives in cape coral florida";
+  const msg = "who is asher shepherd newton who lives in cape coral flordia";
   const intent = classifyIntent(msg);
   console.log("\n=== INTENT ===");
   console.log(JSON.stringify(intent, null, 2));
