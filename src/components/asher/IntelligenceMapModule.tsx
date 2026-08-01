@@ -21,12 +21,11 @@ import MapAnnotationLayer from "@/components/asher/MapAnnotationLayer";
 import AnnotationPanel, { type DrawMode } from "@/components/asher/AnnotationPanel";
 import AnalysisPanel from "@/components/asher/AnalysisPanel";
 import {
-  makeAnnotation, annoCenter, annoMetric, normConfidence,
+  makeAnnotation, annoCenter, annoMetric,
   haversineM, fmtDistance, type MapAnnotation,
 } from "@/lib/asher/mapAnnotations";
 import {
-  getActiveCaseId, loadCaseAnnotations, saveCaseAnnotations, appendAudit,
-  listCases, takeSnapshot,
+  getActiveCaseId, loadCaseAnnotations, saveCaseAnnotations, appendAudit, listCases,
 } from "@/lib/asher/mapCases";
 import {
   computeViewshed, elevationProfile, solarPosition, detectColocations, roadRoute,
