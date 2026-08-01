@@ -253,6 +253,20 @@ function scanLocation(raw: string): { country: string; state: string; county: st
       }
     }
   }
+  // Fuzzy pass — operators misspell places ("flordia", "califorina",
+  // "cape corral"). Without this the misspelled token survives into the
+  // subject name and poisons every downstream registry query.
+  if (!state) {
+    for (const word of low.split(/[^a-z]+/)) {
+      if (word.length < 5) continue;
+      for (const [name, code] of Object.entries(US_STATES)) {
+        if (!name.includes(" ") && isFuzzyGeoMatch(word, name)) {
+          state = code; if (!country) country = "US"; break;
+        }
+      }
+      if (state) break;
+    }
+  }
 
   // County explicit
   const co = t.match(/([A-Za-z\-\.\s]+?)\s+County/i);
@@ -260,6 +274,48 @@ function scanLocation(raw: string): { country: string; state: string; county: st
 
   return { country, state, county, city };
 }
+
+// ── Fuzzy geo vocabulary ───────────────────────────────────────────────────
+// Single-word place names used to scrub location noise out of subject names.
+const GEO_WORDS: string[] = Array.from(new Set([
+  ...Object.keys(US_STATES), ...Object.keys(AU_STATES), ...Object.keys(CA_PROVINCES),
+  ...Object.keys(CITY_TO_COUNTY),
+  "usa", "america", "united", "states", "canada", "canadian", "england", "scotland",
+  "wales", "britain", "british", "australia", "australian", "mexico", "germany",
+  "france", "spain", "italy", "netherlands", "ireland", "japan", "singapore",
+  "county", "city", "town", "state", "province", "country",
+].flatMap((v) => v.split(/\s+/)))).filter((w) => w.length >= 4);
+
+/** Levenshtein distance capped at 2 — enough for one typo/transposition. */
+function editDistance(a: string, b: string): number {
+  if (Math.abs(a.length - b.length) > 2) return 3;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+/** Exact for short words; tolerate one edit at 6+ chars, two at 9+. */
+function isFuzzyGeoMatch(word: string, vocab: string): boolean {
+  if (word === vocab) return true;
+  const budget = vocab.length >= 9 ? 2 : vocab.length >= 6 ? 1 : 0;
+  if (budget === 0) return false;
+  return editDistance(word, vocab) <= budget;
+}
+
+function scrubGeoNoise(s: string): string {
+  return s.split(/\s+/).filter((tok) => {
+    const w = tok.toLowerCase().replace(/[^a-z]/g, "");
+    if (w.length < 4) return true;
+    return !GEO_WORDS.some((g) => isFuzzyGeoMatch(w, g));
+  }).join(" ");
+}
+
 
 /** Extract a plausible subject (proper-noun name or address) from the message. */
 function extractSubject(raw: string, jurisdictionTokens: string[]): string {
