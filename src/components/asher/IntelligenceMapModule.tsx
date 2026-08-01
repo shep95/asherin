@@ -17,6 +17,13 @@ import CinematicDossierPanel from "@/components/asher/CinematicDossierPanel";
 import { Video, Globe2, ExternalLink, RefreshCw, Building2, User, Hash, CalendarDays, Ruler, DollarSign, Users as UsersIcon, History, AlertTriangle, Activity, Radio } from "lucide-react";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { triggerByokRequired } from "@/components/ByokRequiredDialog";
+import MapAnnotationLayer from "@/components/asher/MapAnnotationLayer";
+import AnnotationPanel, { type DrawMode } from "@/components/asher/AnnotationPanel";
+import {
+  loadAnnotations, saveAnnotations, makeAnnotation, annoCenter, annoMetric,
+  haversineM, fmtDistance, type MapAnnotation,
+} from "@/lib/asher/mapAnnotations";
+
 
 /* ─────────────────────────────────────────────────────────────
    ASHER — Real-time Intelligence Map
