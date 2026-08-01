@@ -577,9 +577,11 @@ function scoreEnrichQuery(intent: IntelIntent, label: string): number {
 // ── Three-pass sweep + fusion ───────────────────────────────────────────────
 export async function runJurisdictionalSearch(intent: IntelIntent): Promise<IntelBundle> {
   const startedAt = Date.now();
-  // Tightened from 24.5s → 20s so the sweep leaves comfortable headroom
-  // inside the 150s /chat budget even when zophiel-search runs slow.
-  const deadlineMs = 30000;
+  // 30s only ever bought a snippet sweep. The deep harvest (26 documents) plus
+  // the recursive HOP-1 collection need real wall clock; 68s still leaves the
+  // /chat request ~80s of streaming headroom inside its 150s edge limit.
+  const deadlineMs = 68000;
+
   const src = sourcesFor(intent.country, intent.state, intent.county);
   const registries = Array.from(new Set([
     ...src.ownership, ...src.tax, ...src.permits, ...src.entities, ...src.courts, ...src.people,
