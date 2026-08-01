@@ -26,6 +26,9 @@ export type TemporalTrack = {
   confidence: number; reason?: string;
 };
 
+/** A point the AI can express either as coordinates or as a geocodable place. */
+export type GeoRef = { lat?: number; lng?: number; place?: string };
+
 export type MapAction =
   | { type: "search"; query: string }
   | { type: "toggle_threat"; layer: "earthquakes" | "wildfires" | "aircraft"; enabled: boolean }
@@ -34,11 +37,36 @@ export type MapAction =
   | { type: "property_intel"; address?: string; entityName?: string }
   | { type: "visual_recon"; center: { lat: number; lng: number }; bbox: [number, number, number, number]; detections: ReconDetection[]; summary?: string; area?: string; landmark?: string }
   | { type: "temporal_recon"; center: { lat: number; lng: number }; bbox: [number, number, number, number]; tracks: TemporalTrack[]; years: number[]; frames: Array<{ year: number; source: string; detection_count: number; summary: string }>; area?: string; landmark?: string }
-  | { type: "set_base"; layer: "street" | "satellite" | "topo" | "dark" };
+  | { type: "set_base"; layer: "street" | "satellite" | "topo" | "dark" }
+  /* ── Overlay editing ── */
+  | { type: "place_marker"; label: string; ref: GeoRef; note?: string; category?: string; color?: string }
+  | { type: "add_label"; text: string; ref: GeoRef; color?: string }
+  | { type: "draw_radius"; label: string; radiusKm: number; ref: GeoRef; note?: string; category?: string; color?: string }
+  | { type: "draw_zone"; label: string; points: GeoRef[]; note?: string; category?: string; color?: string }
+  | { type: "draw_route"; label: string; waypoints: GeoRef[]; note?: string; color?: string }
+  | { type: "measure"; from: GeoRef; to: GeoRef }
+  | { type: "clear_annotations"; scope: string }
+  | { type: "list_annotations" };
+
+/* Tool arguments arrive as untyped JSON from the model — coerce defensively so
+   a hallucinated string ("2km") or null never reaches the map as NaN. */
+const num = (v: unknown): number | undefined => {
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  return typeof n === "number" && Number.isFinite(n) ? n : undefined;
+};
+const str = (v: unknown): string | undefined => {
+  const s = typeof v === "string" ? v.trim() : "";
+  return s ? s : undefined;
+};
+const toGeoRef = (v: any): GeoRef => ({
+  lat: num(v?.lat), lng: num(v?.lng), place: str(v?.place ?? v?.name ?? (typeof v === "string" ? v : undefined)),
+});
+const toGeoRefs = (v: any): GeoRef[] => (Array.isArray(v) ? v.map(toGeoRef) : []);
 
 export interface AsherAIPanelHandle {
   appendSystemNote: (text: string) => void;
 }
+
 
 interface Props {
   mapContext: Record<string, any>;
@@ -61,7 +89,7 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
       id: "welcome",
       role: "assistant",
       content:
-        "**ASHER AI · Online**\n\nI can drive the map for you. Try:\n- *Find me all red or blue roofs in northern New Delhi near the Kali Temple*\n- *Locate construction cranes in Doha west bay*\n- *Spot blue tarps within 1km of Kharkiv central station*\n- *Look up phone +44 7700 900123* (country / carrier / line type / public OSINT — not live GPS)\n- *Fly to Kyiv* · *Show live earthquakes* · *Switch to satellite*\n- *Property intel on this site* · *Save this target*",
+        "**ASHER AI · Online**\n\nI can drive **and edit** the map for you.\n\n**Navigate & layers**\n- *Fly to Kyiv* · *Show live earthquakes* · *Switch to satellite*\n\n**Edit the overlay**\n- *Pin the port of Odesa as a target, note: crane activity*\n- *Draw a 5km ring around Ramstein Air Base*\n- *Outline a zone over Manhattan south of 14th street*\n- *Draw a route from Warsaw to Lviv to Kyiv*\n- *Measure from here to Sevastopol* · *Clear the overlay*\n\n**Recon & OSINT**\n- *Find all red or blue roofs in northern New Delhi near the Kali Temple*\n- *Locate construction cranes in Doha west bay*\n- *Look up phone +44 7700 900123* (country / carrier / line type / public OSINT — not live GPS)\n- *Property intel on this site* · *Save this target*",
     },
   ]);
   const [input, setInput] = useState("");
@@ -114,6 +142,71 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
           await onAction({ type: "set_base", layer: args?.layer });
           return `Base layer → ${args?.layer}.`;
         }
+
+        /* ── Overlay editing — the map is writable ─────────────────────── */
+        case "place_marker": {
+          const r = await onAction({
+            type: "place_marker",
+            label: String(args?.label ?? "Marker"),
+            ref: { lat: num(args?.lat), lng: num(args?.lng), place: str(args?.place) },
+            note: str(args?.note), category: str(args?.category), color: str(args?.color),
+          });
+          return typeof r === "string" ? r : "Marker placed.";
+        }
+        case "add_label": {
+          const r = await onAction({
+            type: "add_label",
+            text: String(args?.text ?? "Label"),
+            ref: { lat: num(args?.lat), lng: num(args?.lng), place: str(args?.place) },
+            color: str(args?.color),
+          });
+          return typeof r === "string" ? r : "Label placed.";
+        }
+        case "draw_radius": {
+          const r = await onAction({
+            type: "draw_radius",
+            label: String(args?.label ?? "Radius"),
+            radiusKm: Number(args?.radiusKm) || 1,
+            ref: { lat: num(args?.lat), lng: num(args?.lng), place: str(args?.place) },
+            note: str(args?.note), category: str(args?.category), color: str(args?.color),
+          });
+          return typeof r === "string" ? r : "Radius drawn.";
+        }
+        case "draw_zone": {
+          const r = await onAction({
+            type: "draw_zone",
+            label: String(args?.label ?? "Zone"),
+            points: toGeoRefs(args?.points),
+            note: str(args?.note), category: str(args?.category), color: str(args?.color),
+          });
+          return typeof r === "string" ? r : "Zone drawn.";
+        }
+        case "draw_route": {
+          const r = await onAction({
+            type: "draw_route",
+            label: String(args?.label ?? "Route"),
+            waypoints: toGeoRefs(args?.waypoints),
+            note: str(args?.note), color: str(args?.color),
+          });
+          return typeof r === "string" ? r : "Route drawn.";
+        }
+        case "measure": {
+          const r = await onAction({
+            type: "measure",
+            from: toGeoRef(args?.from),
+            to: toGeoRef(args?.to),
+          });
+          return typeof r === "string" ? r : "Measurement drawn.";
+        }
+        case "clear_annotations": {
+          const r = await onAction({ type: "clear_annotations", scope: String(args?.scope ?? "all") });
+          return typeof r === "string" ? r : "Overlay cleared.";
+        }
+        case "list_annotations": {
+          const r = await onAction({ type: "list_annotations" });
+          return typeof r === "string" ? r : "Overlay is empty.";
+        }
+
         case "property_intel": {
           // Notify parent (so its property panel can refresh too)
           try { await onAction({ type: "property_intel", address: args?.address, entityName: args?.entityName }); } catch {}
@@ -323,20 +416,33 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
         }),
       });
 
-      if (resp.status === 429) { toast.error("Rate limit — slow down"); setBusy(false); return; }
-      if (resp.status === 402) { toast.error("AI credits exhausted"); setBusy(false); return; }
+      // Failures stay INSIDE the map. Previously every non-2xx fired the global
+      // BYOK dialog, which navigated subscribers to Settings and remounted the
+      // dashboard on the chat view — the "it keeps taking me to Aureon chat" bug.
+      const failInline = (content: string) => {
+        setMessages((p) => [...p, { id: crypto.randomUUID(), role: "assistant", content }]);
+        setBusy(false);
+      };
+
+      if (resp.status === 429) {
+        return failInline("**RATE LIMITED**\n\nThe intelligence core is throttling requests. Wait a few seconds and re-send.");
+      }
+      if (resp.status === 402) {
+        return failInline("**CREDITS EXHAUSTED**\n\nAI credits are spent for this workspace. Top up, or add your own key in Settings → AI Keys.");
+      }
       if (resp.status === 401 || resp.status === 403) {
         const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
-        triggerByokRequired({ source: "asher-ai", reason: "Add your AI key to run the map co-pilot." });
-        setBusy(false);
-        return;
+        triggerByokRequired({
+          source: "asher-ai",
+          reason: "Add your AI key to run the map co-pilot.",
+          noRedirect: true,
+        });
+        return failInline("**KEY REQUIRED**\n\nThis session has no usable model key. Add one in Settings → AI Keys — the map and your overlay stay exactly as they are.");
       }
       if (resp.status === 503 || resp.status === 502) {
-        const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
-        triggerByokRequired({ source: "asher-ai", reason: "Asher Dashboard core model is overloaded." });
-        setBusy(false);
-        return;
+        return failInline("**CORE OVERLOADED**\n\nThe intelligence core is saturated or upstream returned an error. Re-send the command in a moment.");
       }
+
       if (!resp.ok || !resp.body) {
         const detail = await resp.text().catch(() => "");
         throw new Error(detail?.slice(0, 200) || `Asher AI request failed (${resp.status})`);

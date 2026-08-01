@@ -39,6 +39,22 @@ CAPABILITIES (call tools — do not describe them as text):
 - generate_image(prompt): render a tactical visualization or sketch
 - set_base_layer(layer): switch base map ("street" | "satellite" | "topo" | "dark")
 
+MAP EDITING (you have full write access to the operator's overlay — USE IT, never say you cannot edit the map):
+- place_marker(label, place?, lat?, lng?, note?, category?, color?): drop an intel pin. Give either a place string (geocoded client-side) or explicit lat/lng. If neither is given the currently selected entity / map centre is used. category ∈ target|asset|hostile|friendly|observation|route|zone.
+- add_label(text, place?, lat?, lng?): place a floating text label on the map.
+- draw_radius(label, radiusKm, place?, lat?, lng?, note?, category?, color?): draw a circular ring / threat radius / blast zone / coverage area.
+- draw_zone(label, points[], note?, category?, color?): draw a polygon (AO, sector, perimeter, parcel). points = [{lat,lng}, …] (3+) OR [{place:"…"}, …].
+- draw_route(label, waypoints[], note?, color?): draw a route / ingress-egress line. waypoints = [{lat,lng}] or [{place:"…"}], 2+.
+- measure(from, to): report great-circle distance and bearing between two points/places, drawn as a measured line.
+- clear_annotations(scope): remove overlay objects. scope ∈ "all" | "last" | a label substring.
+- list_annotations(): enumerate everything currently on the operator's overlay.
+
+MAP-EDITING RULES:
+1. When the operator says pin / mark / drop / plot / highlight / circle / ring / draw / outline / annotate / label / measure / clear — CALL THE TOOL. Do not answer in prose.
+2. You may chain tools: fly to the area with map_search first, then place the annotation.
+3. Always give the annotation a short operator-readable label, and set category so the colour encodes intent.
+4. Never invent coordinates you are not confident in — pass \`place\` and let the geocoder resolve it.
+
 GEMATRIA PROTOCOL: When the operator asks for the gematria / numeric value / ordinal / reduced value of a word or phrase (or asks to compare/match phrases numerically), DO NOT compute cipher values in prose. Instead, emit a single fenced block on its own line for each phrase:
 \`\`\`gematria
 {"phrase":"..."}
@@ -66,13 +82,31 @@ const TOOLS = [
   { type: "function", function: { name: "temporal_recon", description: "MULTI-YEAR satellite timeline scan. Use whenever the operator asks about history, 'since when', 'has been there since YYYY', change over time, or wants a timeline. Returns per-year frames AND clustered tracks with first_seen / last_seen / years_present, so the map can show a year scrubber and 'since YYYY' badges.", parameters: { type: "object", properties: { area: { type: "string", description: "Region / city / neighbourhood" }, criteria: { type: "string", description: "What to track in plain English, e.g. 'red roofs', 'this house', 'construction cranes'" }, landmark: { type: "string", description: "Optional landmark to centre on" }, radiusKm: { type: "number", description: "0.3-6. Smaller = sharper. Default 1.5." }, startYear: { type: "number", description: "Earliest year to scan (>=2000). Default 2014." }, endYear: { type: "number", description: "Latest year. Default current year." }, stride: { type: "number", description: "Step between scanned years (1-5). Default 2." } }, required: ["area", "criteria"] } } },
   { type: "function", function: { name: "generate_image", description: "Generate a tactical visualization image.", parameters: { type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"] } } },
   { type: "function", function: { name: "set_base_layer", description: "Switch base cartography.", parameters: { type: "object", properties: { layer: { type: "string", enum: ["street", "satellite", "topo", "dark"] } }, required: ["layer"] } } },
+
+  /* ── MAP EDITING (overlay write access) ─────────────────────────────── */
+  { type: "function", function: { name: "place_marker", description: "Drop an intel pin / marker on the map overlay. Use for 'pin', 'mark', 'plot', 'drop a marker', 'highlight this location'.", parameters: { type: "object", properties: { label: { type: "string", description: "Short operator-readable label" }, place: { type: "string", description: "Place/address to geocode. Omit if lat/lng given." }, lat: { type: "number" }, lng: { type: "number" }, note: { type: "string", description: "Intel note shown in the popup" }, category: { type: "string", enum: ["target", "asset", "hostile", "friendly", "observation", "route", "zone"] }, color: { type: "string", description: "Optional colour name or #hex override" } }, required: ["label"] } } },
+  { type: "function", function: { name: "add_label", description: "Place a floating text label on the map (no pin).", parameters: { type: "object", properties: { text: { type: "string" }, place: { type: "string" }, lat: { type: "number" }, lng: { type: "number" }, color: { type: "string" } }, required: ["text"] } } },
+  { type: "function", function: { name: "draw_radius", description: "Draw a circle / ring / threat radius / coverage area centred on a point.", parameters: { type: "object", properties: { label: { type: "string" }, radiusKm: { type: "number", description: "Radius in kilometres" }, place: { type: "string" }, lat: { type: "number" }, lng: { type: "number" }, note: { type: "string" }, category: { type: "string", enum: ["target", "asset", "hostile", "friendly", "observation", "route", "zone"] }, color: { type: "string" } }, required: ["label", "radiusKm"] } } },
+  { type: "function", function: { name: "draw_zone", description: "Draw a polygon area of operations / sector / perimeter / parcel outline.", parameters: { type: "object", properties: { label: { type: "string" }, points: { type: "array", description: "3+ vertices, each {lat,lng} or {place}", items: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } } }, note: { type: "string" }, category: { type: "string", enum: ["target", "asset", "hostile", "friendly", "observation", "route", "zone"] }, color: { type: "string" } }, required: ["label", "points"] } } },
+  { type: "function", function: { name: "draw_route", description: "Draw a route / corridor / ingress-egress line through 2+ waypoints.", parameters: { type: "object", properties: { label: { type: "string" }, waypoints: { type: "array", description: "2+ waypoints, each {lat,lng} or {place}", items: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } } }, note: { type: "string" }, color: { type: "string" } }, required: ["label", "waypoints"] } } },
+  { type: "function", function: { name: "measure", description: "Measure great-circle distance and bearing between two points, drawn on the map as a measured line.", parameters: { type: "object", properties: { from: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, to: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } } }, required: ["from", "to"] } } },
+  { type: "function", function: { name: "clear_annotations", description: "Remove overlay objects. scope='all' wipes the overlay, 'last' removes the most recent, any other string removes objects whose label contains it.", parameters: { type: "object", properties: { scope: { type: "string" } }, required: ["scope"] } } },
+  { type: "function", function: { name: "list_annotations", description: "List everything currently drawn on the operator's map overlay.", parameters: { type: "object", properties: {} } } },
 ];
+
 
 function sse(data: unknown): string {
   return `data: ${typeof data === "string" ? data : JSON.stringify(data)}\n\n`;
 }
 
-function toolCallResponse(name: string, args: Record<string, unknown>): Response {
+// NOTE: cors headers are per-request (getCorsHeaders(req)); they must be
+// passed in — referencing a module-scope `corsHeaders` here threw a
+// ReferenceError and killed the phone-intel fast path.
+function toolCallResponse(
+  name: string,
+  args: Record<string, unknown>,
+  cors: Record<string, string>,
+): Response {
   const payload = {
     choices: [{
       delta: {
@@ -88,9 +122,10 @@ function toolCallResponse(name: string, args: Record<string, unknown>): Response
     }],
   };
   return new Response(sse(payload) + sse("[DONE]"), {
-    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    headers: { ...cors, "Content-Type": "text/event-stream" },
   });
 }
+
 
 function latestUserText(messages: any[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -105,6 +140,120 @@ function extractPhoneLookup(text: string): string | null {
   const match = text.match(/(?:\+|00)\d[\d\s().-]{6,}\d|\b\d[\d\s().-]{7,}\d\b/);
   return match ? match[0].replace(/^(00)/, "+").trim() : null;
 }
+
+/**
+ * Map-edit intent detector. Requires BOTH an editing verb and a map-object
+ * noun so ordinary prose ("mark my words", "draw a conclusion") never trips it.
+ * Used to bypass the archive / jurisdictional / YouTube sweeps for pure UI
+ * mutations, and to bias the model toward tool-calling.
+ */
+function detectMapEditIntent(text: string): boolean {
+  const t = String(text || "").toLowerCase();
+  if (!t) return false;
+  if (/\b(clear|wipe|remove|erase|delete)\b[^.]{0,24}\b(overlay|annotation|annotations|marker|markers|pin|pins|zone|zones|route|routes|drawing|drawings)\b/.test(t)) return true;
+  if (/\b(what|list|show)\b[^.]{0,20}\b(on|in)\b[^.]{0,12}\b(my |the )?(overlay|annotations)\b/.test(t)) return true;
+  const verb = /\b(pin|mark|plot|drop|place|draw|outline|circle|annotate|label|highlight|measure|sketch|trace out)\b/.test(t);
+  const noun = /\b(marker|pin|point|label|circle|ring|radius|zone|area|polygon|perimeter|sector|route|corridor|line|path|overlay|annotation|distance|boundary|geofence)\b/.test(t);
+  return verb && noun;
+}
+
+/** OpenAI-style tool schema → Gemini function_declarations. */
+function geminiFunctionDeclarations(tools: any[]): any[] {
+  return tools.map((t) => {
+    const fn = t.function;
+    const props = fn?.parameters?.properties ?? {};
+    const hasProps = Object.keys(props).length > 0;
+    return {
+      name: fn.name,
+      description: fn.description,
+      // Gemini rejects an object schema with zero properties — omit entirely.
+      ...(hasProps
+        ? {
+            parameters: {
+              type: "object",
+              properties: props,
+              ...(Array.isArray(fn.parameters?.required) && fn.parameters.required.length
+                ? { required: fn.parameters.required }
+                : {}),
+            },
+          }
+        : {}),
+    };
+  });
+}
+
+/**
+ * Stream a Gemini generateContent SSE response as OpenAI-compatible SSE,
+ * translating `functionCall` parts into `delta.tool_calls` so the existing
+ * AsherAIPanel parser drives the map without any client change.
+ */
+function geminiSseToOpenAi(upstreamBody: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const reader = upstreamBody.getReader();
+  let toolIndex = 0;
+
+  return new ReadableStream({
+    async start(controller) {
+      let buf = "";
+      try {
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let nl: number;
+          while ((nl = buf.indexOf("\n")) !== -1) {
+            let line = buf.slice(0, nl);
+            buf = buf.slice(nl + 1);
+            if (line.endsWith("\r")) line = line.slice(0, -1);
+            if (!line.startsWith("data:")) continue;
+            const raw = line.slice(5).trim();
+            if (!raw || raw === "[DONE]") continue;
+            let parsed: any;
+            try { parsed = JSON.parse(raw); } catch { continue; }
+            const parts = parsed?.candidates?.[0]?.content?.parts ?? [];
+            for (const p of parts) {
+              if (typeof p?.text === "string" && p.text) {
+                controller.enqueue(encoder.encode(sse({
+                  choices: [{ index: 0, delta: { content: p.text }, finish_reason: null }],
+                })));
+              }
+              if (p?.functionCall?.name) {
+                const i = toolIndex++;
+                controller.enqueue(encoder.encode(sse({
+                  choices: [{
+                    index: 0,
+                    delta: {
+                      tool_calls: [{
+                        index: i,
+                        id: `call_${p.functionCall.name}_${Date.now()}_${i}`,
+                        type: "function",
+                        function: {
+                          name: p.functionCall.name,
+                          arguments: JSON.stringify(p.functionCall.args ?? {}),
+                        },
+                      }],
+                    },
+                    finish_reason: null,
+                  }],
+                })));
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[asher-ai] text stream relay:", (e as Error).message);
+      } finally {
+        controller.enqueue(encoder.encode(sse("[DONE]")));
+        controller.close();
+        try { reader.releaseLock(); } catch { /* already released */ }
+      }
+    },
+    cancel() { try { reader.cancel(); } catch { /* noop */ } },
+  });
+}
+
+
 
 // Convert OpenAI-compat messages (with optional .attachments[]) to Gemini native parts.
 // attachments: [{ mimeType, dataBase64 }] — used for images/video/pdf vision.
@@ -266,24 +415,30 @@ serve(async (req) => {
 
     const phone = extractPhoneLookup(latestUserText(cleaned));
     if (phone && !hasAttachments) {
-      return toolCallResponse("phone_intel", { phone });
+      return toolCallResponse("phone_intel", { phone }, corsHeaders);
     }
 
     // Library of Leaks / breach aggregators are PERMANENTLY DISABLED.
     // Sovereign Source Atlas policy: authoritative registries only.
     const leaksBlock = "";
 
+    // ── Map-edit fast lane ────────────────────────────────────────────────
+    // "pin this", "draw a 2km ring", "clear the overlay" are UI mutations, not
+    // investigations. Running the archive / jurisdictional / YouTube sweeps on
+    // them added up to 75s of dead latency before a one-line tool call. Skip.
+    const mapEditFast = detectMapEditIntent(latestUserText(cleaned));
 
     let archiveBlock = "";
     try {
       const userText = latestUserText(cleaned);
       const { searchArchive, formatArchiveContext, shouldQueryArchive } =
         await import("../_shared/internetArchive.ts");
-      if (shouldQueryArchive(userText)) {
+      if (!mapEditFast && shouldQueryArchive(userText)) {
         const hits = await searchArchive(userText.slice(0, 200), { limit: 10, deepRead: 2 });
         archiveBlock = formatArchiveContext(userText.slice(0, 80), hits);
       }
     } catch (e) { console.error("[asher-ai] archive:", e); }
+
 
     // ── Jurisdictional Intel Sweep (person/property/entity) ────────────────
     let jurisdictionalBlock = "";
@@ -291,8 +446,9 @@ serve(async (req) => {
       const userText = latestUserText(cleaned);
       const { classifyIntent, runJurisdictionalSearch, formatIntelContext, formatClarifyContext } =
         await import("../_shared/jurisdictionalIntel.ts");
-      const intent = classifyIntent(userText);
+      const intent = mapEditFast ? { kind: "none" } as any : classifyIntent(userText);
       if (intent.kind !== "none") {
+
         console.log("[asher-ai] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
         if (intent.needsClarification) {
           jurisdictionalBlock = "\n\n" + formatClarifyContext(intent);
@@ -316,9 +472,12 @@ serve(async (req) => {
       const userBroughtGemini = !!(headerKey || byokGeminiKey);
       const isAdminPath = !!adminKey && !userBroughtGemini && apiKey === adminKey;
       const { runYouTubePipeline } = await import("../_shared/youtubeIntel.ts");
-      const yt = await runYouTubePipeline(latestUserText(cleaned), { hasByokGemini: userBroughtGemini || isAdminPath });
+      const yt = mapEditFast
+        ? { fired: false, evidence: "" }
+        : await runYouTubePipeline(latestUserText(cleaned), { hasByokGemini: userBroughtGemini || isAdminPath });
       if (yt.fired) youtubeBlock = yt.evidence;
     } catch (e) { console.error("[asher-ai] youtube intel:", (e as Error).message); }
+
 
     // ── Temporal context (day + timestamp awareness) ─────────────────────
     const { getTemporalContext } = await import("../_shared/systemContext.ts");
@@ -396,8 +555,50 @@ serve(async (req) => {
       return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
-    // BYOK-ONLY: text path requires the operator to bring their own LLM key.
-    // No in-house / self-hosted fallback is used.
+    // ── TEXT PATH: Gemini + function calling ──────────────────────────────
+    // This is the branch that actually drives the map. Previously it did not
+    // exist: every text message fell straight through to a hard 403, which the
+    // client translated into "add a BYOK key" and a navigation away from the
+    // map. Now the whole tool surface (navigation, layers, recon, and the new
+    // overlay-editing tools) runs on the resolved key — platform key for admin,
+    // BYOK for everyone else.
+    if (apiKey) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+      const upstream = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: fullSystem }] },
+          contents: toGeminiContents(cleaned),
+          tools: [{ function_declarations: geminiFunctionDeclarations(TOOLS) }],
+          toolConfig: { functionCallingConfig: { mode: mapEditFast ? "ANY" : "AUTO" } },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
+          ],
+          generationConfig: { temperature: 0.35, maxOutputTokens: 8192 },
+        }),
+      });
+
+      if (!upstream.ok || !upstream.body) {
+        const detail = await upstream.text().catch(() => "");
+        console.error("[asher-ai] text path gemini:", upstream.status, detail.slice(0, 400));
+        // Surface the upstream status honestly instead of masking it as a BYOK gate.
+        return new Response(
+          JSON.stringify({ error: `Intelligence core error ${upstream.status}`, details: detail.slice(0, 400) }),
+          { status: upstream.status === 429 ? 429 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      return new Response(geminiSseToOpenAi(upstream.body), {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
+    // No platform key and no BYOK — the only genuine BYOK condition.
     return new Response(
       JSON.stringify({
         error: "Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.",
@@ -405,6 +606,7 @@ serve(async (req) => {
       }),
       { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (e) {
     console.error("asher-ai error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),

@@ -7,11 +7,18 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 
 export const BYOK_REQUIRED_EVENT = "aureon:byok-required";
 
-export function triggerByokRequired(detail?: { source?: string; reason?: string }) {
+/**
+ * @param detail.noRedirect  Set by surfaces that own the operator's workspace
+ *   (e.g. the Intelligence Map co-pilot). Without it, subscribers were silently
+ *   navigated to /dashboard?tab=settings — which remounts the dashboard on the
+ *   default chat view and yanked the operator off the map mid-task.
+ */
+export function triggerByokRequired(detail?: { source?: string; reason?: string; noRedirect?: boolean }) {
   try {
     window.dispatchEvent(new CustomEvent(BYOK_REQUIRED_EVENT, { detail: detail || {} }));
   } catch { /* noop */ }
 }
+
 
 export default function ByokRequiredDialog() {
   const [open, setOpen] = useState(false);
@@ -21,10 +28,11 @@ export default function ByokRequiredDialog() {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const ce = e as CustomEvent<{ reason?: string }>;
+      const ce = e as CustomEvent<{ reason?: string; noRedirect?: boolean }>;
       // Paid subscribers: skip the dialog and route straight to the AI Keys tab
-      // so they can hook up a key without an extra click.
-      if (subscribed) {
+      // so they can hook up a key without an extra click — unless the calling
+      // surface asked us not to navigate away from it.
+      if (subscribed && !ce.detail?.noRedirect) {
         try {
           const url = "/dashboard?tab=settings&panel=ai-keys";
           if (!window.location.pathname.startsWith("/dashboard") ||
@@ -40,6 +48,7 @@ export default function ByokRequiredDialog() {
     window.addEventListener(BYOK_REQUIRED_EVENT, handler);
     return () => window.removeEventListener(BYOK_REQUIRED_EVENT, handler);
   }, [subscribed, navigate]);
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
