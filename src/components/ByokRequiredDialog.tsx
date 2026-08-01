@@ -7,11 +7,18 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 
 export const BYOK_REQUIRED_EVENT = "aureon:byok-required";
 
-export function triggerByokRequired(detail?: { source?: string; reason?: string }) {
+/**
+ * @param detail.noRedirect  Set by surfaces that own the operator's workspace
+ *   (e.g. the Intelligence Map co-pilot). Without it, subscribers were silently
+ *   navigated to /dashboard?tab=settings — which remounts the dashboard on the
+ *   default chat view and yanked the operator off the map mid-task.
+ */
+export function triggerByokRequired(detail?: { source?: string; reason?: string; noRedirect?: boolean }) {
   try {
     window.dispatchEvent(new CustomEvent(BYOK_REQUIRED_EVENT, { detail: detail || {} }));
   } catch { /* noop */ }
 }
+
 
 export default function ByokRequiredDialog() {
   const [open, setOpen] = useState(false);
