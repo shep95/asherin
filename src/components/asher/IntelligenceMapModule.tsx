@@ -19,10 +19,20 @@ import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { triggerByokRequired } from "@/components/ByokRequiredDialog";
 import MapAnnotationLayer from "@/components/asher/MapAnnotationLayer";
 import AnnotationPanel, { type DrawMode } from "@/components/asher/AnnotationPanel";
+import AnalysisPanel from "@/components/asher/AnalysisPanel";
 import {
-  loadAnnotations, saveAnnotations, makeAnnotation, annoCenter, annoMetric,
+  makeAnnotation, annoCenter, annoMetric, normConfidence,
   haversineM, fmtDistance, type MapAnnotation,
 } from "@/lib/asher/mapAnnotations";
+import {
+  getActiveCaseId, loadCaseAnnotations, saveCaseAnnotations, appendAudit,
+  listCases, takeSnapshot,
+} from "@/lib/asher/mapCases";
+import {
+  computeViewshed, elevationProfile, solarPosition, detectColocations, roadRoute,
+  fmtM, fmtDuration, compass, type ViewshedResult,
+} from "@/lib/asher/geoAnalysis";
+import { buildBriefing } from "@/lib/asher/mapExport";
 
 
 /* ─────────────────────────────────────────────────────────────
