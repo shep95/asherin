@@ -1395,9 +1395,13 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     }
 
     // ── Persistent user memory (ChatGPT-style cross-chat rules) ────────────
+    // Suppressed entirely on intel turns: saved memories are the operator's own
+    // assertions from OTHER conversations, not public-record evidence, and were
+    // leaking into dossiers as if they had been sourced.
     let memoryContextStr = "";
     try {
-      const authH = req.headers.get("Authorization");
+      const authH = isIntelTurn ? null : req.headers.get("Authorization");
+
       if (authH) {
         const SUPABASE_URL_M = Deno.env.get("SUPABASE_URL") || "";
         const SRK_M = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
