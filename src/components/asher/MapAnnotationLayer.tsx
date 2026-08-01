@@ -24,7 +24,7 @@ const labelIcon = (text: string, color: string) =>
     iconSize: [0, 0],
   });
 
-const AnnoPopup = ({ a, onDelete }: { a: MapAnnotation; onDelete: (id: string) => void }) => {
+const AnnoPopup = ({ a, onDelete }: { a: MapAnnotation; onDelete?: (id: string) => void }) => {
   const metric = annoMetric(a);
   return (
     <Popup>
@@ -37,18 +37,20 @@ const AnnoPopup = ({ a, onDelete }: { a: MapAnnotation; onDelete: (id: string) =
           {a.lat != null && a.lng != null ? `${a.lat.toFixed(5)}, ${a.lng.toFixed(5)}` : `${a.path?.length ?? 0} vertices`}
         </div>
         <div className="opacity-50 text-[10px]">{a.source === "asher-ai" ? "placed by Asher AI" : "placed by operator"}</div>
-        <button
-          onClick={() => onDelete(a.id)}
-          className="mt-1 rounded border border-red-400/40 px-2 py-0.5 text-[10px] text-red-500 hover:bg-red-500/10"
-        >
-          Delete
-        </button>
+        {onDelete && (
+          <button
+            onClick={() => onDelete(a.id)}
+            className="mt-1 rounded border border-red-400/40 px-2 py-0.5 text-[10px] text-red-500 hover:bg-red-500/10"
+          >
+            Delete
+          </button>
+        )}
       </div>
     </Popup>
   );
 };
 
-const MapAnnotationLayer = ({ annotations, onDelete, focusedId }: Props) => (
+const MapAnnotationLayer = ({ annotations, onDelete, onSelect, focusedId, draftPath = [], drawMode = "none" }: Props) => (
   <>
     {annotations.map((a) => {
       const color = annoColor(a);
@@ -59,6 +61,7 @@ const MapAnnotationLayer = ({ annotations, onDelete, focusedId }: Props) => (
           return (
             <CircleMarker
               key={a.id}
+              eventHandlers={{ click: () => onSelect?.(a.id) }}
               center={[a.lat!, a.lng!]}
               radius={focused ? 11 : 8}
               pathOptions={{ ...stroke, fillOpacity: 0.7 }}
@@ -69,19 +72,21 @@ const MapAnnotationLayer = ({ annotations, onDelete, focusedId }: Props) => (
           );
         case "label":
           return (
-            <Marker key={a.id} position={[a.lat!, a.lng!]} icon={labelIcon(a.label, color)}>
+            <Marker key={a.id} eventHandlers={{ click: () => onSelect?.(a.id) }} position={[a.lat!, a.lng!]} icon={labelIcon(a.label, color)}>
               <AnnoPopup a={a} onDelete={onDelete} />
             </Marker>
           );
         case "circle":
           return (
-            <Circle key={a.id} center={[a.lat!, a.lng!]} radius={a.radiusM!} pathOptions={stroke}>
+            <Circle key={a.id}
+              eventHandlers={{ click: () => onSelect?.(a.id) }} center={[a.lat!, a.lng!]} radius={a.radiusM!} pathOptions={stroke}>
               <AnnoPopup a={a} onDelete={onDelete} />
             </Circle>
           );
         case "polygon":
           return (
-            <Polygon key={a.id} positions={a.path!.map((p) => [p.lat, p.lng]) as [number, number][]} pathOptions={stroke}>
+            <Polygon key={a.id}
+              eventHandlers={{ click: () => onSelect?.(a.id) }} positions={a.path!.map((p) => [p.lat, p.lng]) as [number, number][]} pathOptions={stroke}>
               <AnnoPopup a={a} onDelete={onDelete} />
             </Polygon>
           );
@@ -89,6 +94,7 @@ const MapAnnotationLayer = ({ annotations, onDelete, focusedId }: Props) => (
           return (
             <Polyline
               key={a.id}
+              eventHandlers={{ click: () => onSelect?.(a.id) }}
               positions={a.path!.map((p) => [p.lat, p.lng]) as [number, number][]}
               pathOptions={{ ...stroke, fillOpacity: 0, dashArray: "6 5" }}
             >
@@ -99,6 +105,31 @@ const MapAnnotationLayer = ({ annotations, onDelete, focusedId }: Props) => (
           return null;
       }
     })}
+
+    {/* Live draft preview — shows the operator exactly what will be committed. */}
+    {draftPath.length > 0 && (
+      <>
+        {draftPath.map((p, i) => (
+          <CircleMarker
+            key={`draft-${i}`}
+            center={[p.lat, p.lng]}
+            radius={4}
+            pathOptions={{ color: "#fbbf24", fillColor: "#fbbf24", fillOpacity: 0.9, weight: 1 }}
+          />
+        ))}
+        {drawMode === "polygon" && draftPath.length >= 3 ? (
+          <Polygon
+            positions={draftPath.map((p) => [p.lat, p.lng]) as [number, number][]}
+            pathOptions={{ color: "#fbbf24", weight: 2, dashArray: "5 5", fillOpacity: 0.12 }}
+          />
+        ) : draftPath.length >= 2 ? (
+          <Polyline
+            positions={draftPath.map((p) => [p.lat, p.lng]) as [number, number][]}
+            pathOptions={{ color: "#fbbf24", weight: 2, dashArray: "5 5" }}
+          />
+        ) : null}
+      </>
+    )}
   </>
 );
 
