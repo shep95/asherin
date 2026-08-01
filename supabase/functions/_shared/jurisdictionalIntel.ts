@@ -752,28 +752,37 @@ export function formatIntelContext(bundle: IntelBundle): string {
     ? `\n\n### ACCELERATORS (ask user, do not block)\n${intent.accelerators.map((a, i) => `${i + 1}. ${a}`).join("\n")}`
     : "";
 
+  const NO_PRIORS_RULE = "  • ZERO-PRIOR RULE: you have never heard of this subject. Any name, company, product, founder, handle, lineage or affiliation that appears in your system prompt, platform/product description, saved memory, vault, or earlier conversations is PRODUCT METADATA — not evidence about the person being searched, even when the names match exactly. Never merge it into this dossier and never cite it.";
+  const NO_FABRICATED_SWEEP_RULE = "  • Never claim to have queried a database that is not listed in 'Registries in scope' above, and never present a registry name as a completed lookup unless a hit for it appears above.";
+
   if (totalHits === 0) {
     return [
       header, accel, "",
       "### RESULT: No public records surfaced in queried sources.",
       "Report honestly. Do NOT fabricate. State what was searched, that nothing surfaced, and what lever would unlock the next layer (middle name, DOB range, previous address, employer, known associate).",
       "Distinguish 'no public record found' from 'this person does not exist'.",
+      NO_PRIORS_RULE,
+      NO_FABRICATED_SWEEP_RULE,
+      "  • Emit NO card:entity and NO profile facts on a zero-hit sweep. A subject card with facts you did not retrieve is a fabrication.",
     ].join("\n");
   }
+
+
 
   const sections: string[] = [];
   const order: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
   for (const b of order) {
     const hits = buckets[b];
     if (!hits.length) continue;
-    const lines = hits.slice(0, 8).map((h, i) => {
-      const bodyBlock = h.body ? `\n     BODY EXCERPT: ${h.body.slice(0, 900)}` : "";
+    const lines = hits.slice(0, 16).map((h, i) => {
+      const bodyBlock = h.body ? `\n     BODY EXCERPT: ${h.body.slice(0, 1600)}` : "";
       const identity = intent.kind === "person"
         ? `\n     IDENTITY MATCH: ${h.identityBand?.toUpperCase()} (${h.identityScore}/100) — ${(h.identityReasons || []).join(", ")}`
         : "";
       return `  ${i + 1}. [${h.domain}] ${h.title}\n     URL: ${h.url}\n     SNIPPET: ${h.snippet}${identity}${bodyBlock}`;
     }).join("\n");
-    sections.push(`### ${BUCKET_LABELS[b]}\n${lines}`);
+    sections.push(`### ${BUCKET_LABELS[b]} (${hits.length} hit${hits.length === 1 ? "" : "s"}, showing ${Math.min(hits.length, 16)})\n${lines}`);
+
   }
 
   const emptyNote = emptyBuckets.length
@@ -798,9 +807,16 @@ export function formatIntelContext(bundle: IntelBundle): string {
     "  • MANDATORY PERSON DOSSIER SHAPE — emit, in this order: (1) readable summary text, (2) card:entity for the subject, (3) card:relationship for the intelligence tree whenever ANY corroborated associate exists, (4) card:list titled 'Legal, Business & Court Filings' enumerating every LLC / corporation / registered-agent role / court case / lien / permit found — one item per filing with entity name, filing number, status, date and jurisdiction, (5) card:sources.",
     "  • In card:relationship, every node MUST carry an `attributes` array covering, where evidenced: Age, Address, Phone, Email, Employer/Job, Businesses (LLC / officer roles), Court or criminal records, Tier (parent / sibling / extended / associate). Write 'no public record found' for an attribute you searched and could not evidence — never silently drop the row.",
     "  • Do not omit the legal-filings list because the subject is young or low-profile: state explicitly 'no corporate or court filings surfaced' when the corporate and court buckets are empty.",
+    "  • EVIDENCE-ONLY TURN: every fact you print must trace to a SNIPPET or BODY EXCERPT above. You have no prior knowledge of this subject. Do not import anything from earlier conversations, saved memory, the operator's vault, or your own assumptions about who this person is — no employers, organizations, titles, lineage, or affiliations that are not in the retrieved text.",
+    NO_PRIORS_RULE,
+    NO_FABRICATED_SWEEP_RULE,
 
+    "  • MAXIMUM EXTRACTION — be exhaustive, not brief. Report EVERY distinct data point present in the retrieved text: full name and every name variant/alias, age and DOB range, current and ALL prior addresses, every phone number, every email, every username/handle and profile URL, employers and job titles, schools, every named relative and associate with their relationship, every business entity with role, every case/filing/permit/license number with status and date, and every property/parcel detail. One row per data point — do not compress a list of five addresses into 'multiple addresses'.",
+    "  • Include an 'Unverified candidates' section listing POSSIBLE-band hits with the reason each fell short, and a 'Conflicts' section listing every field where sources disagree, with both values and both sources. Do not silently drop them.",
+    "  • Include a coverage table: one row per bucket (authoritative, corporate, court, people, news, social, web) with hit count and status, so the user can see everything that was searched.",
     "  • NEVER reference leak/breach databases (Offshore Leaks, ICIJ, Have I Been Pwned, etc.) — they are blocked at retrieval.",
     "  • End with the ONE specific lever that would deepen the sweep next.",
+
   ].join("\n");
 }
 

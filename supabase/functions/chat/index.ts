@@ -1327,7 +1327,11 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     }
 
     // ── Jurisdictional Intel Sweep (person/property/entity) ────────────────
+    // An intel turn is EVIDENCE-ONLY: cross-conversation memory, learned profile
+    // traits and vault RAG are all suppressed below so priors can never be
+    // reported as if they were sourced public records.
     let jurisdictionalContext = "";
+    let isIntelTurn = false;
     try {
       const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
       const userText = lastUser?.content || "";
@@ -1335,7 +1339,9 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         await import("../_shared/jurisdictionalIntel.ts");
       const intent = classifyIntent(userText);
       if (!isDefensiveSecurityAuditRequest && intent.kind !== "none") {
+        isIntelTurn = true;
         console.log("[chat] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
+
         if (intent.needsClarification) {
           jurisdictionalContext = formatClarifyContext(intent);
         } else {
@@ -1371,7 +1377,8 @@ The user is asking about internal code, backend, or architecture. You are FORBID
 
     // ── Build user context from profile ────────────────────────────────────
     let userContextStr = "";
-    if (userProfile) {
+    if (userProfile && !isIntelTurn) {
+
       const parts: string[] = [];
       if (userProfile.tone_preference && userProfile.tone_preference !== "neutral") {
         parts.push(`User prefers ${userProfile.tone_preference} communication style.`);
@@ -1388,9 +1395,13 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     }
 
     // ── Persistent user memory (ChatGPT-style cross-chat rules) ────────────
+    // Suppressed entirely on intel turns: saved memories are the operator's own
+    // assertions from OTHER conversations, not public-record evidence, and were
+    // leaking into dossiers as if they had been sourced.
     let memoryContextStr = "";
     try {
-      const authH = req.headers.get("Authorization");
+      const authH = isIntelTurn ? null : req.headers.get("Authorization");
+
       if (authH) {
         const SUPABASE_URL_M = Deno.env.get("SUPABASE_URL") || "";
         const SRK_M = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -1410,7 +1421,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
             .limit(100);
           if (mems && mems.length) {
             const lines = mems.map((m: any) => `- [${m.category}] ${m.content}`).join("\n");
-            memoryContextStr = `\n\n## PERSISTENT USER MEMORY (apply to every response)\nThese are durable preferences, rules, and facts the user has saved or that have been learned across chats. Honor them silently — do not announce them. If two rules conflict, prefer the most recent.\n\n${lines}`;
+            memoryContextStr = `\n\n## PERSISTENT USER MEMORY (style and preference layer only)\nThese are durable preferences and rules the user saved in other conversations. Honor them silently — do not announce them. If two rules conflict, prefer the most recent.\nHARD LIMIT: this block is NOT evidence. Never present anything here as a research finding, a public record, a sourced fact, or a citation, and never attribute it to a website or registry. If a claim exists only here, it does not go in a dossier, profile, entity card, or sources list.\n\n${lines}`;
           }
         }
       }
@@ -1421,11 +1432,15 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     // ── AUREON VAULT (RAG) — Pro tier only ─────────────────────────────────
     // For $399 monthly_pro / lifetime users, embed the latest user message and
     // pull the top relevant chunks from their private knowledge vault.
+    // Suppressed on intel turns, and gated behind a similarity floor otherwise,
+    // so unrelated vault documents cannot bleed into an unrelated answer.
+    const VAULT_SIMILARITY_FLOOR = 0.78;
     let vaultContextStr = "";
     try {
-      const authV = req.headers.get("Authorization");
+      const authV = isIntelTurn ? null : req.headers.get("Authorization");
       const lastUserMsg = (messages || []).filter((m: any) => m.role === "user").slice(-1)[0]?.content;
       if (authV && lastUserMsg && typeof lastUserMsg === "string" && lastUserMsg.trim().length > 3) {
+
         const SUPABASE_URL_V = Deno.env.get("SUPABASE_URL") || "";
         const SRK_V = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
         const ANON_V = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -1477,18 +1492,24 @@ The user is asking about internal code, backend, or architecture. You are FORBID
                       query_embedding: qEmbed,
                       match_count: 6,
                     });
-                    if (Array.isArray(matches) && matches.length) {
-                      const ids = Array.from(new Set(matches.map((m: any) => m.source_id)));
+                    // Relevance floor: top-K always returns 6 rows regardless of
+                    // fit, which is how unrelated vault docs leaked into answers.
+                    const relevant = (Array.isArray(matches) ? matches : []).filter(
+                      (m: any) => typeof m.similarity === "number" && m.similarity >= VAULT_SIMILARITY_FLOOR,
+                    );
+                    if (relevant.length) {
+                      const ids = Array.from(new Set(relevant.map((m: any) => m.source_id)));
                       const { data: srcs } = await adminV.from("aureon_vault_sources")
                         .select("id,name").in("id", ids);
                       const nameById: Record<string, string> = {};
                       for (const s of (srcs || [])) nameById[s.id] = s.name;
-                      const blocks = matches.map((m: any, i: number) => {
+                      const blocks = relevant.map((m: any, i: number) => {
                         const sim = typeof m.similarity === "number" ? m.similarity.toFixed(2) : "?";
                         return `### [Vault ${i + 1} · ${nameById[m.source_id] || "source"} · sim=${sim}]\n${m.content}`;
                       }).join("\n\n");
-                      vaultContextStr = `\n\n## AUREON VAULT (operator's private knowledge — RAG)\nThe operator has a private knowledge vault. The following chunks were retrieved as most relevant to the current question. Use them as authoritative source material — they are the operator's own files / API data. Cite them inline as [Vault N] when you rely on them. Do not echo unrelated chunks.\n\n${blocks}`;
+                      vaultContextStr = `\n\n## AUREON VAULT (operator's private knowledge — RAG)\nThe operator has a private knowledge vault. The following chunks were retrieved as most relevant to the current question. Use them as authoritative source material — they are the operator's own files / API data. Cite them inline as [Vault N] when you rely on them. Do not echo unrelated chunks, and if none of them actually answer the question, ignore this block entirely rather than forcing it in.\n\n${blocks}`;
                     }
+
                   }
                 }
               }
@@ -1963,7 +1984,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
 
 
     // Helper: call OpenAI-compatible API (OpenAI, xAI, Mistral, Venice, DeepSeek, Together/Meta)
-    const STREAM_OUTPUT_TOKEN_BUDGET = 16_384;
+    const STREAM_OUTPUT_TOKEN_BUDGET = 32_768;
 
     async function callOpenAICompatible(apiKey: string, endpoint: string, model: string) {
       const isNewOpenAI = /^(gpt-5|o1|o3|o4)/i.test(model);
