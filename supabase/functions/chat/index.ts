@@ -1327,7 +1327,11 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     }
 
     // ── Jurisdictional Intel Sweep (person/property/entity) ────────────────
+    // An intel turn is EVIDENCE-ONLY: cross-conversation memory, learned profile
+    // traits and vault RAG are all suppressed below so priors can never be
+    // reported as if they were sourced public records.
     let jurisdictionalContext = "";
+    let isIntelTurn = false;
     try {
       const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
       const userText = lastUser?.content || "";
@@ -1335,7 +1339,9 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         await import("../_shared/jurisdictionalIntel.ts");
       const intent = classifyIntent(userText);
       if (!isDefensiveSecurityAuditRequest && intent.kind !== "none") {
+        isIntelTurn = true;
         console.log("[chat] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
+
         if (intent.needsClarification) {
           jurisdictionalContext = formatClarifyContext(intent);
         } else {
