@@ -1196,8 +1196,26 @@ const IntelligenceMapModule = () => {
             drawMode={drawMode}
             focusedId={focusedAnno}
             onSelect={(id) => setFocusedAnno(id)}
-            onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id)); setFocusedAnno((f) => (f === id ? null : f)); }}
+            onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id), { action: "delete", detail: id }); setFocusedAnno((f) => (f === id ? null : f)); }}
           />
+          {/* Viewshed observer: the ring itself persists as an annotation; this
+              marks where the sensor actually stands so the product is readable. */}
+          {viewshedOverlay && (
+            <CircleMarker
+              center={[viewshedOverlay.observer.lat, viewshedOverlay.observer.lng]}
+              radius={5}
+              pathOptions={{ color: "#f59e0b", weight: 2, fillColor: "#f59e0b", fillOpacity: 0.9 }}
+            >
+              <Popup>
+                <div className="text-[11px] space-y-0.5">
+                  <div className="font-medium">Viewshed observer</div>
+                  <div className="opacity-70">eye {viewshedOverlay.observerHeightM} m AGL · ground {Math.round(viewshedOverlay.observerElevM)} m</div>
+                  <div className="opacity-70">visible {viewshedOverlay.visibleFraction}% of {fmtM(viewshedOverlay.radiusM)} radius</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          )}
+
           <CoordDisplay />
 
 
