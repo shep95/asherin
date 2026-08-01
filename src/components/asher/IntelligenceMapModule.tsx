@@ -850,7 +850,137 @@ const IntelligenceMapModule = () => {
       }
       return `Temporal scan: ${a.tracks?.length || 0} tracks across ${a.years?.length || 0} year frames.`;
     }
+
+    /* ── Overlay editing ────────────────────────────────────────────────
+       Resolution order for a point: explicit coordinates → geocoded place →
+       currently selected entity → current map centre. The AI never has to
+       guess coordinates, and a failed geocode degrades to an honest error
+       instead of silently dropping a pin at 0,0. */
+    const resolveRef = async (ref?: GeoRef): Promise<{ lat: number; lng: number } | null> => {
+      if (ref && Number.isFinite(ref.lat) && Number.isFinite(ref.lng)) {
+        return { lat: ref.lat as number, lng: ref.lng as number };
+      }
+      if (ref?.place) {
+        const hits = await nominatimSearch(ref.place);
+        if (hits.length) return { lat: parseFloat(hits[0].lat), lng: parseFloat(hits[0].lon) };
+        return null;
+      }
+      if (entity) return { lat: entity.lat, lng: entity.lng };
+      const c = mapRef.current?.getCenter();
+      return c ? { lat: c.lat, lng: c.lng } : null;
+    };
+
+    const resolveMany = async (refs: GeoRef[]) => {
+      const out: Array<{ lat: number; lng: number }> = [];
+      for (const r of refs) {
+        const p = await resolveRef(r);
+        if (p) out.push(p);
+      }
+      return out;
+    };
+
+    if (a.type === "place_marker") {
+      const p = await resolveRef(a.ref);
+      if (!p) return `Could not resolve "${a.ref?.place ?? "that location"}" — give me coordinates or a more specific place.`;
+      const anno = addAnnotation(makeAnnotation({
+        kind: "marker", label: a.label, lat: p.lat, lng: p.lng,
+        note: a.note, category: a.category as MapAnnotation["category"], color: a.color, source: "asher-ai",
+      }));
+      flyTo(p.lat, p.lng, Math.max(mapRef.current?.getZoom() ?? 0, 12));
+      return `Marker **${anno.label}** placed at ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}.`;
+    }
+
+    if (a.type === "add_label") {
+      const p = await resolveRef(a.ref);
+      if (!p) return `Could not resolve "${a.ref?.place ?? "that location"}".`;
+      addAnnotation(makeAnnotation({
+        kind: "label", label: a.text, lat: p.lat, lng: p.lng, color: a.color, source: "asher-ai",
+      }));
+      flyTo(p.lat, p.lng, Math.max(mapRef.current?.getZoom() ?? 0, 12));
+      return `Label **${a.text}** placed.`;
+    }
+
+    if (a.type === "draw_radius") {
+      const p = await resolveRef(a.ref);
+      if (!p) return `Could not resolve "${a.ref?.place ?? "that location"}".`;
+      const radiusM = Math.max(10, Math.min(a.radiusKm * 1000, 2_000_000));
+      const anno = addAnnotation(makeAnnotation({
+        kind: "circle", label: a.label, lat: p.lat, lng: p.lng, radiusM,
+        note: a.note, category: (a.category as MapAnnotation["category"]) ?? "zone", color: a.color, source: "asher-ai",
+      }));
+      try {
+        mapRef.current?.fitBounds(L.circle([p.lat, p.lng], { radius: radiusM }).getBounds(), { padding: [40, 40] });
+      } catch { flyTo(p.lat, p.lng, 11); }
+      return `Ring **${anno.label}** drawn — ${annoMetric(anno)}.`;
+    }
+
+    if (a.type === "draw_zone") {
+      const pts = await resolveMany(a.points || []);
+      if (pts.length < 3) return "Need at least 3 resolvable vertices to draw a zone.";
+      const anno = addAnnotation(makeAnnotation({
+        kind: "polygon", label: a.label, path: pts, note: a.note,
+        category: (a.category as MapAnnotation["category"]) ?? "zone", color: a.color, source: "asher-ai",
+      }));
+      try { mapRef.current?.fitBounds(pts.map((p) => [p.lat, p.lng]) as any, { padding: [40, 40] }); } catch {}
+      return `Zone **${anno.label}** drawn — ${annoMetric(anno)}.`;
+    }
+
+    if (a.type === "draw_route") {
+      const pts = await resolveMany(a.waypoints || []);
+      if (pts.length < 2) return "Need at least 2 resolvable waypoints to draw a route.";
+      const anno = addAnnotation(makeAnnotation({
+        kind: "line", label: a.label, path: pts, note: a.note,
+        category: "route", color: a.color, source: "asher-ai",
+      }));
+      try { mapRef.current?.fitBounds(pts.map((p) => [p.lat, p.lng]) as any, { padding: [40, 40] }); } catch {}
+      return `Route **${anno.label}** drawn — ${annoMetric(anno)}.`;
+    }
+
+    if (a.type === "measure") {
+      const [from, to] = [await resolveRef(a.from), await resolveRef(a.to)];
+      if (!from || !to) return "Could not resolve both endpoints for the measurement.";
+      const distM = haversineM(from, to);
+      // Initial great-circle bearing.
+      const φ1 = (from.lat * Math.PI) / 180, φ2 = (to.lat * Math.PI) / 180;
+      const Δλ = ((to.lng - from.lng) * Math.PI) / 180;
+      const bearing = (
+        (Math.atan2(
+          Math.sin(Δλ) * Math.cos(φ2),
+          Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ),
+        ) * 180) / Math.PI + 360
+      ) % 360;
+      addAnnotation(makeAnnotation({
+        kind: "line", label: `Measure · ${fmtDistance(distM)}`, path: [from, to],
+        note: `Bearing ${bearing.toFixed(1)}°`, category: "observation", source: "asher-ai",
+      }));
+      try { mapRef.current?.fitBounds([[from.lat, from.lng], [to.lat, to.lng]] as any, { padding: [60, 60] }); } catch {}
+      return `**${fmtDistance(distM)}** · initial bearing **${bearing.toFixed(1)}°**.`;
+    }
+
+    if (a.type === "clear_annotations") {
+      const scope = (a.scope || "all").trim().toLowerCase();
+      let removed = 0;
+      mutateAnnotations((prev) => {
+        if (scope === "all") { removed = prev.length; return []; }
+        if (scope === "last") { removed = prev.length ? 1 : 0; return prev.slice(0, -1); }
+        const next = prev.filter((x) => !x.label.toLowerCase().includes(scope));
+        removed = prev.length - next.length;
+        return next;
+      });
+      setFocusedAnno(null);
+      return removed ? `Removed ${removed} overlay object${removed === 1 ? "" : "s"}.` : "Nothing matched — overlay unchanged.";
+    }
+
+    if (a.type === "list_annotations") {
+      if (!annotations.length) return "Overlay is empty.";
+      const rows = annotations.map((x, i) => {
+        const c = annoCenter(x);
+        return `| ${i + 1} | ${x.label} | ${x.kind} | ${x.category ?? "—"} | ${c ? `${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}` : "—"} | ${annoMetric(x) ?? "—"} |`;
+      });
+      return `**OVERLAY — ${annotations.length} OBJECT${annotations.length === 1 ? "" : "S"}**\n\n| # | Label | Kind | Class | Centre | Metric |\n|---|---|---|---|---|---|\n${rows.join("\n")}`;
+    }
   };
+
 
   return (
     <div className="relative flex h-full w-full bg-background">
