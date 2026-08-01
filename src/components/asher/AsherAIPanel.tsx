@@ -425,6 +425,16 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
     return "";
   };
 
+  /* ── Autonomous execution loop ────────────────────────────────────────
+     A single round can only ever be "call tools, stop". Elite tradecraft is
+     multi-step: geocode → viewshed → read the visible fraction → decide where
+     the second sensor goes. So each round's tool output is fed back as a new
+     turn and the model runs again, up to MAX_ROUNDS. The loop terminates on
+     the first round that emits no tool calls, which is also the round that
+     produces the analyst-facing prose — so a plain question still costs one
+     round, exactly as before. */
+  const MAX_ROUNDS = 4;
+
   const send = async () => {
     const text = input.trim();
     if (!text || busy) return;
@@ -432,6 +442,18 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
     const userMsg: Msg = { id: crypto.randomUUID(), role: "user", content: text };
     setMessages((p) => [...p, userMsg]);
     setBusy(true);
+
+    // Transcript the loop reasons over. Kept local so mid-loop React state
+    // updates can never produce a stale-closure history.
+    const transcript: Array<{ role: string; content: string }> = [
+      ...messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: m.content })),
+      { role: "user", content: text },
+    ];
+
+    /** Non-2xx handling stays INSIDE the map — never bounce to Aureon chat. */
+    const failInline = (content: string) => {
+      setMessages((p) => [...p, { id: crypto.randomUUID(), role: "assistant", content }]);
+    };
 
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asher-ai`;
@@ -446,121 +468,127 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
         return;
       }
       const mapByok = getActiveIntelMapByok();
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          Authorization: `Bearer ${accessToken}`,
-          ...(mapByok?.provider === "google" && mapByok.apiKey
-            ? { "x-byok-gemini-key": mapByok.apiKey }
-            : {}),
-        },
-        body: JSON.stringify({
-          mapContext,
-          numberedFormat: isNumberedFormatEnabled("asher-ai"),
-          ...(mapByok ? { byok: mapByok } : {}),
-          messages: [...messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: m.content })), { role: "user", content: text }],
-        }),
-      });
 
-      // Failures stay INSIDE the map. Previously every non-2xx fired the global
-      // BYOK dialog, which navigated subscribers to Settings and remounted the
-      // dashboard on the chat view — the "it keeps taking me to Aureon chat" bug.
-      const failInline = (content: string) => {
-        setMessages((p) => [...p, { id: crypto.randomUUID(), role: "assistant", content }]);
-        setBusy(false);
-      };
-
-      if (resp.status === 429) {
-        return failInline("**RATE LIMITED**\n\nThe intelligence core is throttling requests. Wait a few seconds and re-send.");
-      }
-      if (resp.status === 402) {
-        return failInline("**CREDITS EXHAUSTED**\n\nAI credits are spent for this workspace. Top up, or add your own key in Settings → AI Keys.");
-      }
-      if (resp.status === 401 || resp.status === 403) {
-        const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
-        triggerByokRequired({
-          source: "asher-ai",
-          reason: "Add your AI key to run the map co-pilot.",
-          noRedirect: true,
+      for (let round = 0; round < MAX_ROUNDS; round++) {
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${accessToken}`,
+            ...(mapByok?.provider === "google" && mapByok.apiKey
+              ? { "x-byok-gemini-key": mapByok.apiKey }
+              : {}),
+          },
+          body: JSON.stringify({
+            mapContext,
+            numberedFormat: isNumberedFormatEnabled("asher-ai"),
+            ...(mapByok ? { byok: mapByok } : {}),
+            messages: transcript,
+          }),
         });
-        return failInline("**KEY REQUIRED**\n\nThis session has no usable model key. Add one in Settings → AI Keys — the map and your overlay stay exactly as they are.");
-      }
-      if (resp.status === 503 || resp.status === 502) {
-        return failInline("**CORE OVERLOADED**\n\nThe intelligence core is saturated or upstream returned an error. Re-send the command in a moment.");
-      }
 
-      if (!resp.ok || !resp.body) {
-        const detail = await resp.text().catch(() => "");
-        throw new Error(detail?.slice(0, 200) || `Asher AI request failed (${resp.status})`);
-      }
+        if (resp.status === 429) return failInline("**RATE LIMITED**\n\nThe intelligence core is throttling requests. Wait a few seconds and re-send.");
+        if (resp.status === 402) return failInline("**CREDITS EXHAUSTED**\n\nAI credits are spent for this workspace. Top up, or add your own key in Settings → AI Keys.");
+        if (resp.status === 401 || resp.status === 403) {
+          const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
+          triggerByokRequired({ source: "asher-ai", reason: "Add your AI key to run the map co-pilot.", noRedirect: true });
+          return failInline("**KEY REQUIRED**\n\nThis session has no usable model key. Add one in Settings → AI Keys — the map and your overlay stay exactly as they are.");
+        }
+        if (resp.status === 503 || resp.status === 502) return failInline("**CORE OVERLOADED**\n\nThe intelligence core is saturated or upstream returned an error. Re-send the command in a moment.");
+        if (!resp.ok || !resp.body) {
+          const detail = await resp.text().catch(() => "");
+          throw new Error(detail?.slice(0, 200) || `Asher AI request failed (${resp.status})`);
+        }
 
+        const assistantId = crypto.randomUUID();
+        let assistantText = "";
+        const actionsList: { label: string; status: "ok" | "fail" | "info" }[] = [];
+        setMessages((p) => [...p, { id: assistantId, role: "assistant", content: "" }]);
 
-      const assistantId = crypto.randomUUID();
-      let assistantText = "";
-      const actionsList: { label: string; status: "ok" | "fail" | "info" }[] = [];
-      setMessages((p) => [...p, { id: assistantId, role: "assistant", content: "" }]);
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        let done = false;
 
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-      let done = false;
+        // Aggregate tool calls across deltas
+        const toolBuf: Record<number, { name: string; args: string }> = {};
 
-      // Aggregate tool calls across deltas
-      const toolBuf: Record<number, { name: string; args: string }> = {};
-
-      while (!done) {
-        const { value, done: d } = await reader.read();
-        if (d) break;
-        buf += decoder.decode(value, { stream: true });
-        let idx;
-        while ((idx = buf.indexOf("\n")) !== -1) {
-          let line = buf.slice(0, idx); buf = buf.slice(idx + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (!line.startsWith("data: ")) continue;
-          const json = line.slice(6).trim();
-          if (json === "[DONE]") { done = true; break; }
-          try {
-            const parsed = JSON.parse(json);
-            const delta = parsed.choices?.[0]?.delta;
-            if (delta?.content) {
-              assistantText += delta.content;
-              setMessages((p) => p.map((m) => m.id === assistantId ? { ...m, content: assistantText } : m));
-            }
-            if (delta?.tool_calls) {
-              for (const tc of delta.tool_calls) {
-                const i = tc.index ?? 0;
-                if (!toolBuf[i]) toolBuf[i] = { name: "", args: "" };
-                if (tc.function?.name) toolBuf[i].name = tc.function.name;
-                if (tc.function?.arguments) toolBuf[i].args += tc.function.arguments;
+        while (!done) {
+          const { value, done: d } = await reader.read();
+          if (d) break;
+          buf += decoder.decode(value, { stream: true });
+          let idx;
+          while ((idx = buf.indexOf("\n")) !== -1) {
+            let line = buf.slice(0, idx); buf = buf.slice(idx + 1);
+            if (line.endsWith("\r")) line = line.slice(0, -1);
+            if (!line.startsWith("data: ")) continue;
+            const json = line.slice(6).trim();
+            if (json === "[DONE]") { done = true; break; }
+            try {
+              const parsed = JSON.parse(json);
+              const delta = parsed.choices?.[0]?.delta;
+              if (delta?.content) {
+                assistantText += delta.content;
+                setMessages((p) => p.map((m) => m.id === assistantId ? { ...m, content: assistantText } : m));
               }
+              if (delta?.tool_calls) {
+                for (const tc of delta.tool_calls) {
+                  const i = tc.index ?? 0;
+                  if (!toolBuf[i]) toolBuf[i] = { name: "", args: "" };
+                  if (tc.function?.name) toolBuf[i].name = tc.function.name;
+                  if (tc.function?.arguments) toolBuf[i].args += tc.function.arguments;
+                }
+              }
+            } catch {
+              buf = line + "\n" + buf; break;
             }
-          } catch {
-            buf = line + "\n" + buf; break;
           }
         }
-      }
 
-      // Execute tool calls after stream
-      const toolCalls = Object.values(toolBuf);
-      const toolResults: string[] = [];
-      for (const tc of toolCalls) {
-        if (!tc.name) continue;
-        let args: any = {};
-        try { args = JSON.parse(tc.args || "{}"); } catch {}
-        const result = await dispatchToolCall(tc.name, args);
-        if (result) toolResults.push(result);
-        actionsList.push({ label: result || tc.name, status: result.startsWith("Tool failed") ? "fail" : "ok" });
-      }
-      if (!assistantText.trim()) {
-        assistantText = toolResults.length
-          ? toolResults.join("\n\n")
-          : "**ASHER AI · NO RESPONSE PAYLOAD**\n\nThe intelligence core returned an empty stream. Re-send the command or narrow the request.";
-        setMessages((p) => p.map((m) => m.id === assistantId ? { ...m, content: assistantText } : m));
-      }
-      if (actionsList.length) {
-        setMessages((p) => p.map((m) => m.id === assistantId ? { ...m, actions: actionsList } : m));
+        // Execute tool calls after the stream closes.
+        const toolCalls = Object.values(toolBuf).filter((t) => t.name);
+        const toolResults: string[] = [];
+        for (const tc of toolCalls) {
+          let args: any = {};
+          try { args = JSON.parse(tc.args || "{}"); } catch {}
+          const result = await dispatchToolCall(tc.name, args);
+          if (result) toolResults.push(`### ${tc.name}\n${result}`);
+          actionsList.push({ label: result || tc.name, status: result.startsWith("Tool failed") ? "fail" : "ok" });
+        }
+        if (actionsList.length) {
+          setMessages((p) => p.map((m) => m.id === assistantId ? { ...m, actions: actionsList } : m));
+        }
+
+        // No tools this round → the model has delivered its final analysis.
+        if (!toolCalls.length) {
+          if (!assistantText.trim()) {
+            const fallback = "**ASHER AI · NO RESPONSE PAYLOAD**\n\nThe intelligence core returned an empty stream. Re-send the command or narrow the request.";
+            setMessages((p) => p.map((m) => m.id === assistantId ? { ...m, content: fallback } : m));
+          }
+          return;
+        }
+
+        // Tools ran. Drop the empty placeholder bubble (the visible product is
+        // the action chip list) and feed results back for the next round.
+        if (!assistantText.trim()) {
+          setMessages((p) => p.map((m) => m.id === assistantId
+            ? { ...m, content: toolResults.length ? toolResults.join("\n\n") : "Executed." }
+            : m));
+        }
+        transcript.push({ role: "assistant", content: assistantText.trim() || `Executed: ${toolCalls.map((t) => t.name).join(", ")}` });
+        transcript.push({
+          role: "user",
+          content: `TOOL RESULTS (system-generated, not operator speech). Use these facts to continue the task, or give the final analysis if the objective is met.\n\n${toolResults.join("\n\n") || "(no output)"}`,
+        });
+
+        // Final round guard: never leave the operator without prose.
+        if (round === MAX_ROUNDS - 1) {
+          setMessages((p) => [...p, {
+            id: crypto.randomUUID(), role: "assistant",
+            content: "**STEP LIMIT REACHED**\n\nExecuted the maximum autonomous steps for one command. Review the overlay and issue the next instruction.",
+          }]);
+        }
       }
     } catch (e: any) {
       toast.error(e?.message || "Asher AI failed");
@@ -568,6 +596,7 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
       setBusy(false);
     }
   };
+
 
   if (collapsed) {
     return (
