@@ -416,20 +416,33 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
         }),
       });
 
-      if (resp.status === 429) { toast.error("Rate limit — slow down"); setBusy(false); return; }
-      if (resp.status === 402) { toast.error("AI credits exhausted"); setBusy(false); return; }
+      // Failures stay INSIDE the map. Previously every non-2xx fired the global
+      // BYOK dialog, which navigated subscribers to Settings and remounted the
+      // dashboard on the chat view — the "it keeps taking me to Aureon chat" bug.
+      const failInline = (content: string) => {
+        setMessages((p) => [...p, { id: crypto.randomUUID(), role: "assistant", content }]);
+        setBusy(false);
+      };
+
+      if (resp.status === 429) {
+        return failInline("**RATE LIMITED**\n\nThe intelligence core is throttling requests. Wait a few seconds and re-send.");
+      }
+      if (resp.status === 402) {
+        return failInline("**CREDITS EXHAUSTED**\n\nAI credits are spent for this workspace. Top up, or add your own key in Settings → AI Keys.");
+      }
       if (resp.status === 401 || resp.status === 403) {
         const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
-        triggerByokRequired({ source: "asher-ai", reason: "Add your AI key to run the map co-pilot." });
-        setBusy(false);
-        return;
+        triggerByokRequired({
+          source: "asher-ai",
+          reason: "Add your AI key to run the map co-pilot.",
+          noRedirect: true,
+        });
+        return failInline("**KEY REQUIRED**\n\nThis session has no usable model key. Add one in Settings → AI Keys — the map and your overlay stay exactly as they are.");
       }
       if (resp.status === 503 || resp.status === 502) {
-        const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
-        triggerByokRequired({ source: "asher-ai", reason: "Asher Dashboard core model is overloaded." });
-        setBusy(false);
-        return;
+        return failInline("**CORE OVERLOADED**\n\nThe intelligence core is saturated or upstream returned an error. Re-send the command in a moment.");
       }
+
       if (!resp.ok || !resp.body) {
         const detail = await resp.text().catch(() => "");
         throw new Error(detail?.slice(0, 200) || `Asher AI request failed (${resp.status})`);
