@@ -515,37 +515,79 @@ function scorePersonIdentity(hit: IntelChannelHit, intent: IntelIntent): IntelCh
   return hit;
 }
 
-// ── Body fetch (optional deep pass) ────────────────────────────────────────
-async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
-  try {
-    const resp = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; AureonIntel/2.0)",
-        "Accept": "text/html,application/xhtml+xml",
-      },
-      signal: AbortSignal.timeout(timeoutMs),
-      redirect: "follow",
-    });
-    if (!resp.ok) return "";
-    const ct = resp.headers.get("content-type") || "";
-    if (!/text\/html|application\/xhtml/.test(ct)) return "";
-    const html = await resp.text();
-    // Strip scripts/styles, then collapse HTML tags to spaces.
-    const stripped = html
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+// ── Body fetch (deep pass) ─────────────────────────────────────────────────
+/** Collapse an HTML document to parseable plain text. */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim()
     // 3.5 KB truncated people-directory pages before the relatives block. The
     // extraction layer parses the whole document, so keep 14 KB.
-    return stripped.slice(0, 14000);
+    .slice(0, 14000);
+}
 
+/**
+ * Firecrawl fallback.
+ *
+ * Live measurement: every people-directory target (unmask, fastbackgroundcheck,
+ * idcrawl) sits behind Cloudflare and answers a datacenter fetch with 403 or a
+ * challenge page, so the direct pass harvested ZERO documents and the whole
+ * extraction layer starved. Firecrawl renders through a residential path and
+ * returns the article text those pages actually contain.
+ */
+async function fetchBodyViaFirecrawl(url: string, timeoutMs: number): Promise<string> {
+  const key = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!key || timeoutMs < 3000) return "";
+  try {
+    const resp = await fetch("https://api.firecrawl.dev/v2/scrape", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true, timeout: Math.min(timeoutMs - 500, 20000) }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!resp.ok) return "";
+    const json = await resp.json().catch(() => null) as any;
+    const md: string = json?.data?.markdown || json?.data?.html || "";
+    if (!md) return "";
+    return htmlToText(md);
   } catch {
     return "";
   }
 }
+
+async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
+  let direct = "";
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        // A self-identifying bot UA is auto-403'd by every major directory.
+        // Present as a real browser; we only read publicly served pages.
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(Math.min(timeoutMs, 6000)),
+      redirect: "follow",
+    });
+    if (resp.ok) {
+      const ct = resp.headers.get("content-type") || "";
+      if (/text\/html|application\/xhtml|text\/plain/.test(ct)) direct = htmlToText(await resp.text());
+    }
+  } catch { /* fall through to Firecrawl */ }
+
+  // A challenge/interstitial returns 200 with almost no text — treat as failure.
+  if (direct.length >= 600 && !/just a moment|enable javascript|access denied|verify you are human/i.test(direct.slice(0, 400))) {
+    return direct;
+  }
+  const rendered = await fetchBodyViaFirecrawl(url, timeoutMs);
+  return rendered.length > direct.length ? rendered : direct;
+}
+
 
 function scoreEnrichQuery(intent: IntelIntent, label: string): number {
   if (intent.kind === "person") {
