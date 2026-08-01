@@ -55,7 +55,22 @@ const MapAnnotationLayer = ({ annotations, onDelete, onSelect, focusedId, draftP
     {annotations.map((a) => {
       const color = annoColor(a);
       const focused = focusedId === a.id;
-      const stroke = { color, weight: focused ? 4 : 2, fillColor: color, fillOpacity: 0.2 };
+      /* Provenance styling: an object below 60% confidence renders dashed and
+         translucent so an analyst can never mistake an assertion for a
+         verified fact. Analytical products (viewsheds) are non-filling by
+         default so the terrain underneath stays readable. */
+      const conf = typeof a.confidence === "number" ? a.confidence : 100;
+      const lowConf = conf < 60;
+      const isProduct = a.role === "viewshed";
+      const stroke = {
+        color,
+        weight: focused ? 4 : lowConf ? 1.5 : 2,
+        fillColor: color,
+        fillOpacity: isProduct ? 0.12 : lowConf ? 0.08 : 0.2,
+        opacity: lowConf ? 0.6 : 1,
+        ...(lowConf ? { dashArray: "4 4" } : {}),
+      };
+
       switch (a.kind) {
         case "marker":
           return (
