@@ -22,6 +22,11 @@
 //     stripBlocked + per-URL isBlockedSource check on every fused hit.
 
 import { sourcesFor, siteFilter, parseJurisdiction, isBlockedSource } from "./jurisdictions.ts";
+import {
+  buildFieldLedger, formatFieldLedger, selectSeeds,
+  type FieldLedger, type Seed,
+} from "./intelExtract.ts";
+
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("VITE_SUPABASE_URL") ?? "";
 const SUPABASE_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") ?? "";
