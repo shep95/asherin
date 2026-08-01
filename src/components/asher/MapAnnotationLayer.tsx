@@ -36,7 +36,18 @@ const AnnoPopup = ({ a, onDelete }: { a: MapAnnotation; onDelete?: (id: string) 
         <div className="opacity-50 font-mono text-[10px]">
           {a.lat != null && a.lng != null ? `${a.lat.toFixed(5)}, ${a.lng.toFixed(5)}` : `${a.path?.length ?? 0} vertices`}
         </div>
+        {typeof a.confidence === "number" && (
+          <div className={a.confidence < 60 ? "text-[10px] text-amber-600" : "text-[10px] opacity-70"}>
+            confidence {a.confidence}%{a.confidence < 60 ? " — unverified" : ""}
+          </div>
+        )}
+        {a.sourceUrl && (
+          <a href={a.sourceUrl} target="_blank" rel="noopener noreferrer" className="block break-all text-[10px] underline">
+            source
+          </a>
+        )}
         <div className="opacity-50 text-[10px]">{a.source === "asher-ai" ? "placed by Asher AI" : "placed by operator"}</div>
+
         {onDelete && (
           <button
             onClick={() => onDelete(a.id)}
@@ -55,7 +66,22 @@ const MapAnnotationLayer = ({ annotations, onDelete, onSelect, focusedId, draftP
     {annotations.map((a) => {
       const color = annoColor(a);
       const focused = focusedId === a.id;
-      const stroke = { color, weight: focused ? 4 : 2, fillColor: color, fillOpacity: 0.2 };
+      /* Provenance styling: an object below 60% confidence renders dashed and
+         translucent so an analyst can never mistake an assertion for a
+         verified fact. Analytical products (viewsheds) are non-filling by
+         default so the terrain underneath stays readable. */
+      const conf = typeof a.confidence === "number" ? a.confidence : 100;
+      const lowConf = conf < 60;
+      const isProduct = a.role === "viewshed";
+      const stroke = {
+        color,
+        weight: focused ? 4 : lowConf ? 1.5 : 2,
+        fillColor: color,
+        fillOpacity: isProduct ? 0.12 : lowConf ? 0.08 : 0.2,
+        opacity: lowConf ? 0.6 : 1,
+        ...(lowConf ? { dashArray: "4 4" } : {}),
+      };
+
       switch (a.kind) {
         case "marker":
           return (

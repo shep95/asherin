@@ -49,11 +49,21 @@ MAP EDITING (you have full write access to the operator's overlay — USE IT, ne
 - clear_annotations(scope): remove overlay objects. scope ∈ "all" | "last" | a label substring.
 - list_annotations(): enumerate everything currently on the operator's overlay.
 
+ANALYTICAL TRADECRAFT (real computation — never estimate these in prose):
+- run_viewshed(ref, radiusKm?, observerHeightM?): terrain line-of-sight from an observer. Overwatch siting, camera/sensor coverage, radio LOS, "what can they see from there".
+- elevation_profile(from, to): terrain cross-section, gain/loss, steepest grade. Approach routes, defilade, drainage.
+- road_route(from, to): true driving distance and time over the OSM road graph. ALWAYS use this for travel time — never guess.
+- solar_analysis(ref, iso?): sun elevation/azimuth, shadow bearing and shadow-length ratio. Date imagery from shadows; recover building height from a measured shadow.
+- detect_colocation(radiusM?): cluster overlay objects that share premises — shell companies, co-located associates.
+- generate_briefing(): full operation briefing with coordinates, metrics, provenance and confidence for every overlay object.
+
 MAP-EDITING RULES:
 1. When the operator says pin / mark / drop / plot / highlight / circle / ring / draw / outline / annotate / label / measure / clear — CALL THE TOOL. Do not answer in prose.
-2. You may chain tools: fly to the area with map_search first, then place the annotation.
+2. You may chain tools ACROSS TURNS: tool results are fed back to you, so plan multi-step work — geocode with map_search, run the analysis, read the numbers, then place the annotation that the numbers justify. Finish by stating the analytical conclusion in prose.
 3. Always give the annotation a short operator-readable label, and set category so the colour encodes intent.
 4. Never invent coordinates you are not confident in — pass \`place\` and let the geocoder resolve it.
+5. Cite the upstream in your prose (Copernicus GLO-30 terrain, OSRM road graph, NOAA solar). State limits plainly: the viewshed is bare-earth and models neither buildings nor canopy.
+
 
 GEMATRIA PROTOCOL: When the operator asks for the gematria / numeric value / ordinal / reduced value of a word or phrase (or asks to compare/match phrases numerically), DO NOT compute cipher values in prose. Instead, emit a single fenced block on its own line for each phrase:
 \`\`\`gematria
@@ -92,7 +102,16 @@ const TOOLS = [
   { type: "function", function: { name: "measure", description: "Measure great-circle distance and bearing between two points, drawn on the map as a measured line.", parameters: { type: "object", properties: { from: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, to: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } } }, required: ["from", "to"] } } },
   { type: "function", function: { name: "clear_annotations", description: "Remove overlay objects. scope='all' wipes the overlay, 'last' removes the most recent, any other string removes objects whose label contains it.", parameters: { type: "object", properties: { scope: { type: "string" } }, required: ["scope"] } } },
   { type: "function", function: { name: "list_annotations", description: "List everything currently drawn on the operator's map overlay.", parameters: { type: "object", properties: {} } } },
+
+  /* ── ANALYTICAL TRADECRAFT (real computation on live terrain / road graph) ── */
+  { type: "function", function: { name: "run_viewshed", description: "Terrain line-of-sight analysis: what ground is visible from an observer position. Use for sniper/overwatch positions, camera or sensor siting, radio LOS, surveillance coverage.", parameters: { type: "object", properties: { ref: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, radiusKm: { type: "number", description: "Analysis radius in km (default 5, max 30)" }, observerHeightM: { type: "number", description: "Eye/sensor height above ground in metres (default 2)" }, label: { type: "string" } }, required: ["ref"] } } },
+  { type: "function", function: { name: "elevation_profile", description: "Terrain cross-section between two points: elevations, cumulative gain/loss and steepest grade. Use for approach routes, defilade, drainage and trafficability questions.", parameters: { type: "object", properties: { from: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, to: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, label: { type: "string" } }, required: ["from", "to"] } } },
+  { type: "function", function: { name: "road_route", description: "Real driving route over the OpenStreetMap road graph: distance, duration and drawn geometry. Use for travel time, exfil timing and mobility corridors — never estimate drive time in prose.", parameters: { type: "object", properties: { from: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, to: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, label: { type: "string" } }, required: ["from", "to"] } } },
+  { type: "function", function: { name: "solar_analysis", description: "Sun elevation, azimuth and shadow geometry for a location and time. Use to date imagery from shadows, recover structure height from shadow length, or plan low-light windows.", parameters: { type: "object", properties: { ref: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, iso: { type: "string", description: "ISO-8601 UTC timestamp. Omit for now." } }, required: ["ref"] } } },
+  { type: "function", function: { name: "detect_colocation", description: "Find overlay objects that sit within a given distance of each other — shell-company address clustering, shared premises, pattern-of-life overlap.", parameters: { type: "object", properties: { radiusM: { type: "number", description: "Proximity threshold in metres (default 250)" } } } } },
+  { type: "function", function: { name: "generate_briefing", description: "Produce a full intelligence briefing for the active operation: every overlay object with coordinates, metrics, provenance and confidence.", parameters: { type: "object", properties: {} } } },
 ];
+
 
 
 function sse(data: unknown): string {

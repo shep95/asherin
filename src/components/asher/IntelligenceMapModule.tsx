@@ -19,10 +19,19 @@ import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { triggerByokRequired } from "@/components/ByokRequiredDialog";
 import MapAnnotationLayer from "@/components/asher/MapAnnotationLayer";
 import AnnotationPanel, { type DrawMode } from "@/components/asher/AnnotationPanel";
+import AnalysisPanel from "@/components/asher/AnalysisPanel";
 import {
-  loadAnnotations, saveAnnotations, makeAnnotation, annoCenter, annoMetric,
+  makeAnnotation, annoCenter, annoMetric,
   haversineM, fmtDistance, type MapAnnotation,
 } from "@/lib/asher/mapAnnotations";
+import {
+  getActiveCaseId, loadCaseAnnotations, saveCaseAnnotations, appendAudit, listCases,
+} from "@/lib/asher/mapCases";
+import {
+  computeViewshed, elevationProfile, solarPosition, detectColocations, roadRoute,
+  fmtM, fmtDuration, compass, type ViewshedResult,
+} from "@/lib/asher/geoAnalysis";
+import { buildBriefing } from "@/lib/asher/mapExport";
 
 
 /* ─────────────────────────────────────────────────────────────
@@ -472,27 +481,49 @@ const IntelligenceMapModule = () => {
   const [timelineYear, setTimelineYear] = useState<number | null>(null);
 
   /* ── Operator/AI editable overlay ─────────────────────────────────────
-     Local-first: hydrated synchronously on first render (never in an effect,
-     which StrictMode double-invokes) and persisted on every mutation. */
-  const [annotations, setAnnotations] = useState<MapAnnotation[]>(() => loadAnnotations());
+     Local-first and partitioned by operation (case folder): hydrated
+     synchronously on first render (never in an effect, which StrictMode
+     double-invokes) and persisted on every mutation. Two investigations can
+     never contaminate each other because the storage key carries the case id. */
+  const [activeCaseId, setActiveCaseId] = useState<string>(() => getActiveCaseId());
+  const [annotations, setAnnotations] = useState<MapAnnotation[]>(() => loadCaseAnnotations(getActiveCaseId()));
   const [drawMode, setDrawMode] = useState<DrawMode>("none");
   const [draftPath, setDraftPath] = useState<Array<{ lat: number; lng: number }>>([]);
   const [focusedAnno, setFocusedAnno] = useState<string | null>(null);
+  const [viewshedOverlay, setViewshedOverlay] = useState<ViewshedResult | null>(null);
 
-  // Single mutation funnel — state and storage can never diverge.
-  const mutateAnnotations = (fn: (prev: MapAnnotation[]) => MapAnnotation[]) => {
+  // The case id must be readable from inside the persistence funnel without
+  // re-creating it on every render — a ref keeps the closure permanently fresh.
+  const caseIdRef = useRef(activeCaseId);
+  useEffect(() => { caseIdRef.current = activeCaseId; }, [activeCaseId]);
+
+  // Single mutation funnel — state, storage and the audit trail can never diverge.
+  const mutateAnnotations = (fn: (prev: MapAnnotation[]) => MapAnnotation[], audit?: { action: string; detail?: string; actor?: "operator" | "asher-ai" }) => {
     setAnnotations((prev) => {
       const next = fn(prev);
-      saveAnnotations(next);
+      saveCaseAnnotations(caseIdRef.current, next);
       return next;
     });
+    if (audit) appendAudit({ caseId: caseIdRef.current, actor: audit.actor ?? "operator", action: audit.action, detail: audit.detail });
   };
 
   const addAnnotation = (a: MapAnnotation) => {
-    mutateAnnotations((prev) => [...prev, a]);
+    mutateAnnotations((prev) => [...prev, a], { action: `add_${a.kind}`, detail: a.label, actor: a.source });
     setFocusedAnno(a.id);
     return a;
   };
+
+  /** Switching operations swaps the entire overlay and drops stale products. */
+  const switchCase = (id: string) => {
+    setActiveCaseId(id);
+    caseIdRef.current = id;
+    setAnnotations(loadCaseAnnotations(id));
+    setFocusedAnno(null);
+    setDrawMode("none");
+    setDraftPath([]);
+    setViewshedOverlay(null);
+  };
+
 
   /** Map clicks are shared between entity inspection and manual drawing. */
   const handleMapClick = (lat: number, lng: number) => {
@@ -979,7 +1010,183 @@ const IntelligenceMapModule = () => {
       });
       return `**OVERLAY — ${annotations.length} OBJECT${annotations.length === 1 ? "" : "S"}**\n\n| # | Label | Kind | Class | Centre | Metric |\n|---|---|---|---|---|---|\n${rows.join("\n")}`;
     }
+
+    /* ── Analytical tradecraft ─────────────────────────────────────────
+       Every product below is computed from live upstreams (Copernicus GLO-30
+       terrain, OSRM road graph, NOAA solar equations) and lands on the map as
+       a persisted, provenance-tagged annotation. The returned text is the
+       payload the AI reads back on its next autonomous round. */
+    if (a.type === "run_viewshed") {
+      const p = await resolveRef(a.ref);
+      if (!p) return `Could not resolve "${a.ref?.place ?? "that location"}" for a viewshed.`;
+      const radiusM = Math.max(200, Math.min((a.radiusKm ?? 5) * 1000, 30_000));
+      const eye = Math.max(0, Math.min(a.observerHeightM ?? 2, 500));
+      try {
+        const res = await computeViewshed({ lat: p.lat, lng: p.lng }, radiusM, eye);
+        setViewshedOverlay(res);
+        const obsElev = res.observerElevM == null ? "unresolved" : `${Math.round(res.observerElevM)} m`;
+        const visPct = Math.round(res.visibleFraction * 100);
+        addAnnotation(makeAnnotation({
+          kind: "polygon",
+          label: a.label || `Viewshed · ${fmtM(radiusM)} @ ${eye} m`,
+          path: res.ring,
+          note: `Visible ${visPct}% · observer ${obsElev} + ${eye} m AGL · Copernicus GLO-30`,
+          category: "zone", color: "#f59e0b", source: "asher-ai",
+          // Terrain-only viewshed: it models ground, never buildings or canopy,
+          // so it is a strong indication rather than a verified sightline.
+          confidence: res.degraded ? 45 : 85,
+          role: "viewshed", sourceUrl: "https://www.opentopodata.org/datasets/copernicus/",
+        }));
+        try { mapRef.current?.fitBounds(res.ring.map((q) => [q.lat, q.lng]) as any, { padding: [40, 40] }); } catch {}
+        const sorted = res.rays.slice().sort((x, y) => x.visibleM - y.visibleM);
+        const worst = sorted[0], best = sorted[sorted.length - 1];
+        return [
+          `**VIEWSHED — ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}**`,
+          "",
+          `| Metric | Value |`, `|---|---|`,
+          `| Observer ground elevation | ${obsElev} |`,
+          `| Eye height | ${eye} m AGL |`,
+          `| Analysis radius | ${fmtM(radiusM)} |`,
+          `| Visible fraction | **${visPct}%** |`,
+          `| Longest sightline | ${fmtM(best.visibleM)} toward ${compass(best.bearing)} (${best.bearing.toFixed(0)}°) |`,
+          `| Most obstructed | ${fmtM(worst.visibleM)} toward ${compass(worst.bearing)} (${worst.bearing.toFixed(0)}°) |`,
+          `| DEM coverage | ${Math.round(res.coverage * 100)}% |`,
+          "",
+          `Terrain: Copernicus GLO-30 DEM, ${res.rays.length} radial rays, earth-curvature and refraction corrected. Bare-earth only — buildings and canopy are not modelled.`,
+          res.degraded ? `\n⚠ Degraded: ${res.degraded}` : "",
+        ].filter(Boolean).join("\n");
+
+      } catch (e: any) {
+        return `Viewshed failed — ${e?.message || "terrain service unreachable"}.`;
+      }
+    }
+
+    if (a.type === "elevation_profile") {
+      const [from, to] = await Promise.all([resolveRef(a.from), resolveRef(a.to)]);
+      if (!from || !to) return "Could not resolve both endpoints for an elevation profile.";
+      try {
+        const prof = await elevationProfile([from, to]);
+        const first = prof.samples[0]?.elevM, last = prof.samples[prof.samples.length - 1]?.elevM;
+        const m = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v)} m`);
+        addAnnotation(makeAnnotation({
+          kind: "line", label: a.label || `Profile · ${fmtM(prof.totalM)}`,
+          path: [from, to],
+          note: `Min ${m(prof.minM)} · Max ${m(prof.maxM)} · gain ${Math.round(prof.gainM)} m · max grade ${prof.maxGradePct.toFixed(1)}%`,
+          category: "observation", color: "#0ea5e9", source: "asher-ai",
+          confidence: Math.round(prof.coverage * 90), role: "profile",
+          sourceUrl: "https://www.opentopodata.org/datasets/copernicus/",
+        }));
+        try { mapRef.current?.fitBounds([[from.lat, from.lng], [to.lat, to.lng]] as any, { padding: [60, 60] }); } catch {}
+        return [
+          `**ELEVATION PROFILE — ${fmtM(prof.totalM)}**`, "",
+          `| Metric | Value |`, `|---|---|`,
+          `| Start / end elevation | ${m(first)} → ${m(last)} |`,
+          `| Min / max along path | ${m(prof.minM)} / ${m(prof.maxM)} |`,
+          `| Cumulative gain / loss | +${Math.round(prof.gainM)} m / −${Math.round(prof.lossM)} m |`,
+          `| Steepest grade | ${prof.maxGradePct.toFixed(1)}% |`,
+          `| Samples resolved | ${prof.samples.length} (${Math.round(prof.coverage * 100)}% DEM coverage) |`,
+          prof.degraded ? `\n⚠ Degraded: ${prof.degraded}` : "",
+        ].filter(Boolean).join("\n");
+      } catch (e: any) {
+        return `Elevation profile failed — ${e?.message || "terrain service unreachable"}.`;
+      }
+    }
+
+    if (a.type === "road_route") {
+      const [from, to] = await Promise.all([resolveRef(a.from), resolveRef(a.to)]);
+      if (!from || !to) return "Could not resolve both endpoints for a road route.";
+      try {
+        const r = await roadRoute([from, to]);
+        addAnnotation(makeAnnotation({
+          kind: "line", label: a.label || `Drive · ${fmtM(r.distanceM)} / ${fmtDuration(r.durationS)}`,
+          path: r.path, note: `OSRM driving profile · ${r.path.length} geometry points`,
+          category: "route", color: "#22c55e", source: "asher-ai",
+          confidence: r.degraded ? 40 : 88, role: "roadroute", sourceUrl: "https://project-osrm.org/",
+        }));
+        try { mapRef.current?.fitBounds(r.path.map((q) => [q.lat, q.lng]) as any, { padding: [40, 40] }); } catch {}
+        const straight = haversineM(from, to);
+        return [
+          `**ROAD ROUTE**`, "",
+          `| Metric | Value |`, `|---|---|`,
+          `| Driving distance | ${fmtM(r.distanceM)} |`,
+          `| Estimated time | ${fmtDuration(r.durationS)} |`,
+          `| Straight-line distance | ${fmtM(straight)} |`,
+          `| Detour factor | ${(r.distanceM / Math.max(straight, 1)).toFixed(2)}× |`,
+          "", `Graph: OSRM public driving profile (OpenStreetMap).`,
+          r.degraded ? `\n⚠ Degraded: ${r.degraded}` : "",
+        ].filter(Boolean).join("\n");
+      } catch (e: any) {
+        return `Road routing failed — ${e?.message || "routing service unreachable"}.`;
+      }
+    }
+
+    if (a.type === "solar_analysis") {
+      const p = await resolveRef(a.ref);
+      if (!p) return "Could not resolve a location for solar geometry.";
+      const when = a.iso ? new Date(a.iso) : new Date();
+      if (Number.isNaN(when.getTime())) return "Invalid timestamp for solar analysis.";
+      const s = solarPosition({ lat: p.lat, lng: p.lng }, when);
+      return [
+        `**SOLAR GEOMETRY — ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}**`,
+        `${when.toISOString()} (UTC)`, "",
+        `| Metric | Value |`, `|---|---|`,
+        `| Sun elevation | ${s.elevationDeg.toFixed(2)}° |`,
+        `| Sun azimuth | ${s.azimuthDeg.toFixed(2)}° (${compass(s.azimuthDeg)}) |`,
+        `| Condition | ${s.isDaylight ? "Daylight" : s.elevationDeg > -6 ? "Civil twilight" : "Night"} |`,
+        `| Shadow direction | ${compass(s.shadowBearingDeg)} (${s.shadowBearingDeg.toFixed(1)}°) |`,
+        `| Shadow length | ${s.shadowRatio == null ? "n/a — sun below usable altitude" : `${s.shadowRatio.toFixed(2)} × object height`} |`,
+        `| Solar declination | ${s.declinationDeg.toFixed(2)}° |`,
+        `| Solar noon (UTC) | ${s.solarNoonUtcHours.toFixed(2)} h |`,
+        "",
+        s.shadowRatio == null
+          ? "Shadow-based height recovery is unavailable while the sun is at or below the horizon."
+          : `Height recovery: divide a measured shadow length by ${s.shadowRatio.toFixed(2)} to obtain structure height. NOAA solar position algorithm.`,
+      ].join("\n");
+    }
+
+    if (a.type === "detect_colocation") {
+      const radiusM = Math.max(10, Math.min(a.radiusM ?? 250, 20_000));
+      const pairs = detectColocations(
+        annotations.map((x) => { const c = annoCenter(x); return { id: x.id, label: x.label, lat: c?.lat, lng: c?.lng }; }),
+        radiusM,
+      );
+      if (!pairs.length) return `No overlay objects fall within ${fmtM(radiusM)} of each other.`;
+      const shown = pairs.slice(0, 12);
+      shown.forEach((pr) => {
+        const A = annotations.find((x) => x.id === pr.aId), B = annotations.find((x) => x.id === pr.bId);
+        const ca = A && annoCenter(A), cb = B && annoCenter(B);
+        if (!ca || !cb) return;
+        addAnnotation(makeAnnotation({
+          kind: "line", label: `Co-located · ${fmtM(pr.distanceM)}`,
+          path: [ca, cb], note: `${pr.aLabel} ↔ ${pr.bLabel}`,
+          category: "observation", color: "#a855f7", source: "asher-ai",
+          confidence: 70, role: "colocation",
+        }));
+      });
+      return [
+        `**CO-LOCATION — ${pairs.length} PAIR${pairs.length === 1 ? "" : "S"} WITHIN ${fmtM(radiusM)}**`, "",
+        `| # | Object A | Object B | Separation |`, `|---|---|---|---|`,
+        ...shown.map((pr, i) => `| ${i + 1} | ${pr.aLabel} | ${pr.bLabel} | ${fmtM(pr.distanceM)} |`),
+        pairs.length > shown.length ? `\n${pairs.length - shown.length} further pair(s) not drawn — narrow the radius.` : "",
+      ].filter(Boolean).join("\n");
+    }
+
+    if (a.type === "generate_briefing") {
+      const caseRec = listCases().find((c) => c.id === caseIdRef.current);
+      if (!caseRec) return "No active operation — create a case folder first.";
+      const md = buildBriefing({
+        caseRec,
+        annotations,
+        mapCenter: { lat: coord.lat, lng: coord.lng, zoom: coord.zoom },
+        baseLayer: activeBase,
+        activeLayers: THREAT_IDS.filter((t) => activeThreats[t]),
+      });
+      appendAudit({ caseId: caseIdRef.current, actor: "asher-ai", action: "generate_briefing", detail: `${annotations.length} objects` });
+      return md;
+    }
+
   };
+
 
 
   return (
@@ -1055,12 +1262,28 @@ const IntelligenceMapModule = () => {
           onSetDrawMode={(m) => { setDrawMode(m); setDraftPath([]); }}
           onFinishDraft={finishDraft}
           onCancelDraft={() => { setDrawMode("none"); setDraftPath([]); }}
-          onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id)); setFocusedAnno((f) => (f === id ? null : f)); }}
-          onRename={(id, label) => mutateAnnotations((p) => p.map((x) => (x.id === id ? { ...x, label } : x)))}
-          onClear={() => { mutateAnnotations(() => []); setFocusedAnno(null); }}
+          onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id), { action: "delete", detail: id }); setFocusedAnno((f) => (f === id ? null : f)); }}
+          onRename={(id, label) => mutateAnnotations((p) => p.map((x) => (x.id === id ? { ...x, label, updatedAt: Date.now() } : x)), { action: "rename", detail: label })}
+          onClear={() => { mutateAnnotations(() => [], { action: "clear_all" }); setFocusedAnno(null); setViewshedOverlay(null); }}
           onFocus={focusAnnotation}
         />
+
+        <AnalysisPanel
+          focus={entity ? { lat: entity.lat, lng: entity.lng } : { lat: coord.lat, lng: coord.lng }}
+          annotations={annotations}
+          activeCaseId={activeCaseId}
+          mapCenter={coord}
+          baseLayer={activeBase}
+          activeLayers={THREAT_IDS.filter((t) => activeThreats[t])}
+          onAddAnnotation={addAnnotation}
+          onViewshed={setViewshedOverlay}
+          onSwitchCase={switchCase}
+          onRestoreSnapshot={(list) => { mutateAnnotations(() => list, { action: "restore_snapshot", detail: `${list.length} objects` }); setFocusedAnno(null); }}
+          onFlyTo={flyTo}
+        />
       </div>
+
+
 
 
       {/* MAP COLUMN */}
@@ -1118,7 +1341,12 @@ const IntelligenceMapModule = () => {
           zoomControl={false}
           attributionControl={false}
           worldCopyJump
+          /* Canvas rendering: SVG vector layers stall past ~2k features, and an
+             elite overlay routinely carries recon detections plus a 36-ray
+             viewshed ring. Canvas holds 60fps under that load. */
+          preferCanvas
         >
+
           <TileLayer
             key={activeBase}
             url={tile.url}
@@ -1143,8 +1371,26 @@ const IntelligenceMapModule = () => {
             drawMode={drawMode}
             focusedId={focusedAnno}
             onSelect={(id) => setFocusedAnno(id)}
-            onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id)); setFocusedAnno((f) => (f === id ? null : f)); }}
+            onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id), { action: "delete", detail: id }); setFocusedAnno((f) => (f === id ? null : f)); }}
           />
+          {/* Viewshed observer: the ring itself persists as an annotation; this
+              marks where the sensor actually stands so the product is readable. */}
+          {viewshedOverlay && (
+            <CircleMarker
+              center={[viewshedOverlay.observer.lat, viewshedOverlay.observer.lng]}
+              radius={5}
+              pathOptions={{ color: "#f59e0b", weight: 2, fillColor: "#f59e0b", fillOpacity: 0.9 }}
+            >
+              <Popup>
+                <div className="text-[11px] space-y-0.5">
+                  <div className="font-medium">Viewshed observer</div>
+                  <div className="opacity-70">eye {viewshedOverlay.observerHeightM} m AGL · ground {Math.round(viewshedOverlay.observerElevM)} m</div>
+                  <div className="opacity-70">visible {viewshedOverlay.visibleFraction}% of {fmtM(viewshedOverlay.radiusM)} radius</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          )}
+
           <CoordDisplay />
 
 
