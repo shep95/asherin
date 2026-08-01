@@ -275,7 +275,12 @@ function entityHits(text: string): Hit[] {
     if (name.length < 6 || name.length > 80) continue;
     // Drop sentence-fragment captures ("The Company Inc" style noise words)
     if (/^(The|This|That|Our|Your|A|An|And|Of|For|With|From)\s/i.test(name) && name.split(" ").length <= 2) continue;
+    // Drop registry TYPE descriptors, which are not entity names:
+    // "Florida Profit Corporation", "Domestic Limited Liability Company".
+    if (/\b(Profit|Nonprofit|Non-Profit|Domestic|Foreign|Limited\s+Liability|General|Professional)\b/i.test(name)) continue;
+    if (/^(Registered|Principal|Mailing|Document|Filing|Agent|Officer|Status|Address)\b/i.test(name)) continue;
     out.push({ display: name, canonical: name.toUpperCase().replace(/[.,]/g, ""), index: m.index });
+
   }
   return out;
 }
