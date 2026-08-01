@@ -703,27 +703,120 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     buckets[bucket].push(hit);
   }
 
-  // ── PASS 3 — BODY FETCH top URLs (opportunistic; do not stall answer) ──
-  const priority: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
-  const fetchTargets: IntelChannelHit[] = [];
-  const remainingForBodies = deadlineMs - (Date.now() - startedAt);
-  const bodyLimit = remainingForBodies > 6500 ? 4 : remainingForBodies > 4200 ? 2 : 0;
-  for (const b of priority) {
-    for (const h of buckets[b]) {
-      if (fetchTargets.length >= bodyLimit) break;
-      fetchTargets.push(h);
+  // ── PASS 3 — DEEP BODY HARVEST ─────────────────────────────────────────
+  // Previously capped at 4 documents (usually 2, often 0). That single number
+  // was the reason dossiers were thin: ~90% of what the model saw was a
+  // 160-char SERP snippet, and snippets do not contain phone numbers, prior
+  // addresses, officer roles or case numbers. We now open up to 26 documents
+  // through a bounded worker pool so the extraction layer has real text to
+  // parse, while the pool cap keeps us off the upstream-timeout cliff.
+  const priority: DomainBucket[] = ["authoritative", "corporate", "court", "people", "social", "news", "web"];
+  const pickTargets = (limit: number, pool: IntelChannelHit[]): IntelChannelHit[] => {
+    const out: IntelChannelHit[] = [];
+    for (const b of priority) {
+      for (const h of pool.filter((x) => x.bucket === b)) {
+        if (out.length >= limit) return out;
+        if (h.body) continue;
+        // Weak-identity documents are not worth a fetch slot on a person sweep.
+        if (intent.kind === "person" && h.identityBand === "rejected") continue;
+        out.push(h);
+      }
     }
-    if (fetchTargets.length >= bodyLimit) break;
+    return out;
+  };
+
+  const harvest = async (targets: IntelChannelHit[], concurrency = 8) => {
+    let cursor = 0;
+    const worker = async () => {
+      for (;;) {
+        const i = cursor++;
+        if (i >= targets.length) return;
+        const remaining = deadlineMs - (Date.now() - startedAt);
+        if (remaining < 2500) return;
+        targets[i].body = await fetchBody(targets[i].url, Math.max(2200, Math.min(4000, remaining - 800)));
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, worker));
+  };
+
+  const allHits = () => (Object.keys(buckets) as DomainBucket[]).flatMap((b) => buckets[b]);
+  const bodyBudget = deadlineMs - (Date.now() - startedAt) > 12000 ? 26
+    : deadlineMs - (Date.now() - startedAt) > 7000 ? 10 : 3;
+  await harvest(pickTargets(bodyBudget, allHits()));
+
+  // Re-score identity now that bodies exist — a body can promote a POSSIBLE
+  // hit to STRONG by supplying the locator the snippet lacked.
+  for (const h of allHits()) scorePersonIdentity(h, intent);
+
+  // ── RESOLUTION — deterministic extraction, normalization, scoring ──────
+  const toDocs = () => allHits()
+    .filter((h) => h.body && h.body.length > 40)
+    .map((h) => ({
+      domain: h.domain,
+      url: h.url,
+      bucket: h.bucket,
+      text: `${h.title}\n${h.snippet}\n${h.body}`,
+      authoritative: h.bucket === "authoritative" || h.bucket === "court",
+      band: h.identityBand,
+    }));
+
+  let fieldLedger = buildFieldLedger(toDocs(), intent.subject);
+
+  // ── HOP 1 — RECURSIVE GRAPH COLLECTION ─────────────────────────────────
+  // The old sweep discovered a relative and stopped. Every extracted entity is
+  // now a seed: querying a relative reciprocally confirms the edge that
+  // produced it, an address unlocks co-residents and deed history, an LLC
+  // unlocks co-officers. Seeds are selected by information gain and the hop is
+  // hard-bounded by the remaining wall clock.
+  const hopSeeds: Seed[] = intent.kind === "person" ? selectSeeds(fieldLedger, 6) : [];
+  const hopExecuted: Seed[] = [];
+  if (hopSeeds.length && deadlineMs - (Date.now() - startedAt) > 14000) {
+    const hopQueries = hopSeeds.map((s) => ({
+      seed: s,
+      query: s.kind === "relative"
+        ? `"${s.value}" ${locus} relatives address`
+        : s.kind === "address"
+          ? `"${s.value}" ${locus} owner residents`
+          : `"${s.value}" ${locus} officer registered agent`,
+    }));
+    for (let i = 0; i < hopQueries.length; i += 3) {
+      const remaining = deadlineMs - (Date.now() - startedAt) - 6000;
+      if (remaining < 5000) break;
+      const wave = hopQueries.slice(i, i + 3);
+      const results = await Promise.all(
+        wave.map((q) => zophielQuery(q.query, { timeoutMs: Math.min(6500, remaining), limit: 8 })
+          .catch(() => [] as IntelChannelHit[])),
+      );
+      wave.forEach((q) => hopExecuted.push(q.seed));
+      const fresh: IntelChannelHit[] = [];
+      for (const hit of results.flat()) {
+        if (!hit.url || seen.has(hit.url)) continue;
+        if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
+        seen.add(hit.url);
+        scorePersonIdentity(hit, intent);
+        hit.bucket = classifyDomain(hit.domain);
+        buckets[hit.bucket].push(hit);
+        fresh.push(hit);
+      }
+      const hopBodyBudget = deadlineMs - (Date.now() - startedAt) > 9000 ? 8 : 3;
+      await harvest(pickTargets(hopBodyBudget, fresh), 6);
+    }
+    fieldLedger = buildFieldLedger(toDocs(), intent.subject);
   }
-  await Promise.all(fetchTargets.map(async (h) => {
-    h.body = await fetchBody(h.url, Math.max(2200, Math.min(4500, deadlineMs - (Date.now() - startedAt) - 500)));
-  }));
 
   const emptyBuckets = (Object.keys(buckets) as DomainBucket[]).filter((k) => buckets[k].length === 0);
   const totalHits = Object.values(buckets).reduce((a, b) => a + b.length, 0);
+  const documentsFetched = allHits().filter((h) => h.body && h.body.length > 40).length;
 
-  return { intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits, rejectedIdentityHits };
+  return {
+    intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits,
+    rejectedIdentityHits, fieldLedger, documentsFetched,
+    hopSeeds: hopExecuted,
+    elapsedMs: Date.now() - startedAt,
+    queriesRun: 2 + selectedEnrich.length + hopExecuted.length,
+  };
 }
+
 
 // ── Format for LLM context ────────────────────────────────────────────────
 const BUCKET_LABELS: Record<DomainBucket, string> = {
