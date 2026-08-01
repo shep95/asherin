@@ -9,7 +9,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { toast } from "sonner";
-import AsherAIPanel, { type MapAction } from "@/components/asher/AsherAIPanel";
+import AsherAIPanel, { type MapAction, type GeoRef } from "@/components/asher/AsherAIPanel";
 import LiveFeedsPanel from "@/components/asher/LiveFeedsPanel";
 import Property3DPanel from "@/components/asher/Property3DPanel";
 import PropertyInteriorPanel from "@/components/asher/PropertyInteriorPanel";
