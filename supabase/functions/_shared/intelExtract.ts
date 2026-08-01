@@ -239,20 +239,33 @@ function dobHits(text: string): Hit[] {
   return out;
 }
 
-function handleHits(text: string): Hit[] {
+/**
+ * Social handle capture, SUBJECT-SCOPED.
+ *
+ * A people-aggregator page about a relative lists that relative's profiles too.
+ * Attributing every handle on the page to the subject produced false profile
+ * ownership (a relative's LinkedIn reported as the subject's). A handle is only
+ * accepted when its slug carries a token of the SUBJECT's own name.
+ */
+function handleHits(text: string, subjectCanonical = ""): Hit[] {
   const out: Hit[] = [];
   const re = /\b(?:https?:\/\/)?(?:www\.)?(instagram|twitter|x|tiktok|facebook|linkedin|github|youtube|reddit)\.com\/(?:in\/|@|u\/|user\/|c\/)?([A-Za-z0-9_.\-]{2,40})\b/gi;
   let m: RegExpExecArray | null;
-  const RESERVED = new Set(["share", "login", "signup", "home", "explore", "about", "privacy", "terms", "help", "search", "watch", "policies", "legal", "sharer", "intent", "hashtag", "p", "pages", "groups", "posts", "feed", "company", "jobs", "tv", "reel"]);
+  const RESERVED = new Set(["share", "login", "signup", "home", "explore", "about", "privacy", "terms", "help", "search", "watch", "policies", "legal", "sharer", "intent", "hashtag", "p", "pages", "groups", "posts", "feed", "company", "jobs", "tv", "reel", "discover", "pub", "profile", "people", "photo", "video"]);
+  const nameTokens = subjectCanonical.toLowerCase().split(/\s+/).filter((t) => t.length >= 3);
   while ((m = re.exec(text)) !== null) {
     const platform = m[1].toLowerCase();
     const handle = m[2];
-    if (RESERVED.has(handle.toLowerCase())) continue;
-    const canonical = `${platform === "x" ? "twitter" : platform}/${handle.toLowerCase()}`;
+    const slug = handle.toLowerCase();
+    if (RESERVED.has(slug)) continue;
+    // Ownership guard: the slug must contain a subject name token.
+    if (nameTokens.length && !nameTokens.some((t) => slug.includes(t))) continue;
+    const canonical = `${platform === "x" ? "twitter" : platform}/${slug}`;
     out.push({ display: `${platform}.com/${handle}`, canonical, index: m.index });
   }
   return out;
 }
+
 
 function employerHits(text: string): Hit[] {
   const out: Hit[] = [];
