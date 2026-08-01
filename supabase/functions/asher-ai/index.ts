@@ -133,6 +133,120 @@ function extractPhoneLookup(text: string): string | null {
   return match ? match[0].replace(/^(00)/, "+").trim() : null;
 }
 
+/**
+ * Map-edit intent detector. Requires BOTH an editing verb and a map-object
+ * noun so ordinary prose ("mark my words", "draw a conclusion") never trips it.
+ * Used to bypass the archive / jurisdictional / YouTube sweeps for pure UI
+ * mutations, and to bias the model toward tool-calling.
+ */
+function detectMapEditIntent(text: string): boolean {
+  const t = String(text || "").toLowerCase();
+  if (!t) return false;
+  if (/\b(clear|wipe|remove|erase|delete)\b[^.]{0,24}\b(overlay|annotation|annotations|marker|markers|pin|pins|zone|zones|route|routes|drawing|drawings)\b/.test(t)) return true;
+  if (/\b(what|list|show)\b[^.]{0,20}\b(on|in)\b[^.]{0,12}\b(my |the )?(overlay|annotations)\b/.test(t)) return true;
+  const verb = /\b(pin|mark|plot|drop|place|draw|outline|circle|annotate|label|highlight|measure|sketch|trace out)\b/.test(t);
+  const noun = /\b(marker|pin|point|label|circle|ring|radius|zone|area|polygon|perimeter|sector|route|corridor|line|path|overlay|annotation|distance|boundary|geofence)\b/.test(t);
+  return verb && noun;
+}
+
+/** OpenAI-style tool schema → Gemini function_declarations. */
+function geminiFunctionDeclarations(tools: any[]): any[] {
+  return tools.map((t) => {
+    const fn = t.function;
+    const props = fn?.parameters?.properties ?? {};
+    const hasProps = Object.keys(props).length > 0;
+    return {
+      name: fn.name,
+      description: fn.description,
+      // Gemini rejects an object schema with zero properties — omit entirely.
+      ...(hasProps
+        ? {
+            parameters: {
+              type: "object",
+              properties: props,
+              ...(Array.isArray(fn.parameters?.required) && fn.parameters.required.length
+                ? { required: fn.parameters.required }
+                : {}),
+            },
+          }
+        : {}),
+    };
+  });
+}
+
+/**
+ * Stream a Gemini generateContent SSE response as OpenAI-compatible SSE,
+ * translating `functionCall` parts into `delta.tool_calls` so the existing
+ * AsherAIPanel parser drives the map without any client change.
+ */
+function geminiSseToOpenAi(upstreamBody: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const reader = upstreamBody.getReader();
+  let toolIndex = 0;
+
+  return new ReadableStream({
+    async start(controller) {
+      let buf = "";
+      try {
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let nl: number;
+          while ((nl = buf.indexOf("\n")) !== -1) {
+            let line = buf.slice(0, nl);
+            buf = buf.slice(nl + 1);
+            if (line.endsWith("\r")) line = line.slice(0, -1);
+            if (!line.startsWith("data:")) continue;
+            const raw = line.slice(5).trim();
+            if (!raw || raw === "[DONE]") continue;
+            let parsed: any;
+            try { parsed = JSON.parse(raw); } catch { continue; }
+            const parts = parsed?.candidates?.[0]?.content?.parts ?? [];
+            for (const p of parts) {
+              if (typeof p?.text === "string" && p.text) {
+                controller.enqueue(encoder.encode(sse({
+                  choices: [{ index: 0, delta: { content: p.text }, finish_reason: null }],
+                })));
+              }
+              if (p?.functionCall?.name) {
+                const i = toolIndex++;
+                controller.enqueue(encoder.encode(sse({
+                  choices: [{
+                    index: 0,
+                    delta: {
+                      tool_calls: [{
+                        index: i,
+                        id: `call_${p.functionCall.name}_${Date.now()}_${i}`,
+                        type: "function",
+                        function: {
+                          name: p.functionCall.name,
+                          arguments: JSON.stringify(p.functionCall.args ?? {}),
+                        },
+                      }],
+                    },
+                    finish_reason: null,
+                  }],
+                })));
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[asher-ai] text stream relay:", (e as Error).message);
+      } finally {
+        controller.enqueue(encoder.encode(sse("[DONE]")));
+        controller.close();
+        try { reader.releaseLock(); } catch { /* already released */ }
+      }
+    },
+    cancel() { try { reader.cancel(); } catch { /* noop */ } },
+  });
+}
+
+
+
 // Convert OpenAI-compat messages (with optional .attachments[]) to Gemini native parts.
 // attachments: [{ mimeType, dataBase64 }] — used for images/video/pdf vision.
 function toGeminiContents(messages: any[]): any[] {
