@@ -36,7 +36,18 @@ const AnnoPopup = ({ a, onDelete }: { a: MapAnnotation; onDelete?: (id: string) 
         <div className="opacity-50 font-mono text-[10px]">
           {a.lat != null && a.lng != null ? `${a.lat.toFixed(5)}, ${a.lng.toFixed(5)}` : `${a.path?.length ?? 0} vertices`}
         </div>
+        {typeof a.confidence === "number" && (
+          <div className={a.confidence < 60 ? "text-[10px] text-amber-600" : "text-[10px] opacity-70"}>
+            confidence {a.confidence}%{a.confidence < 60 ? " — unverified" : ""}
+          </div>
+        )}
+        {a.sourceUrl && (
+          <a href={a.sourceUrl} target="_blank" rel="noopener noreferrer" className="block break-all text-[10px] underline">
+            source
+          </a>
+        )}
         <div className="opacity-50 text-[10px]">{a.source === "asher-ai" ? "placed by Asher AI" : "placed by operator"}</div>
+
         {onDelete && (
           <button
             onClick={() => onDelete(a.id)}
