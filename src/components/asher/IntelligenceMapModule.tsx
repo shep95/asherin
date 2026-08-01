@@ -1066,24 +1066,28 @@ const IntelligenceMapModule = () => {
       const [from, to] = await Promise.all([resolveRef(a.from), resolveRef(a.to)]);
       if (!from || !to) return "Could not resolve both endpoints for an elevation profile.";
       try {
-        const prof = await elevationProfile(from, to);
+        const prof = await elevationProfile([from, to]);
+        const first = prof.samples[0]?.elevM, last = prof.samples[prof.samples.length - 1]?.elevM;
+        const m = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v)} m`);
         addAnnotation(makeAnnotation({
-          kind: "line", label: a.label || `Profile · ${fmtM(prof.distanceM)}`,
+          kind: "line", label: a.label || `Profile · ${fmtM(prof.totalM)}`,
           path: [from, to],
-          note: `Min ${Math.round(prof.minM)} m · Max ${Math.round(prof.maxM)} m · gain ${Math.round(prof.gainM)} m · LOS ${prof.lineOfSight ? "CLEAR" : "BLOCKED"}`,
+          note: `Min ${m(prof.minM)} · Max ${m(prof.maxM)} · gain ${Math.round(prof.gainM)} m · max grade ${prof.maxGradePct.toFixed(1)}%`,
           category: "observation", color: "#0ea5e9", source: "asher-ai",
-          confidence: 90, role: "profile", sourceUrl: "https://www.opentopodata.org/datasets/copernicus/",
+          confidence: Math.round(prof.coverage * 90), role: "profile",
+          sourceUrl: "https://www.opentopodata.org/datasets/copernicus/",
         }));
         try { mapRef.current?.fitBounds([[from.lat, from.lng], [to.lat, to.lng]] as any, { padding: [60, 60] }); } catch {}
         return [
-          `**ELEVATION PROFILE — ${fmtM(prof.distanceM)}**`, "",
+          `**ELEVATION PROFILE — ${fmtM(prof.totalM)}**`, "",
           `| Metric | Value |`, `|---|---|`,
-          `| Start / end elevation | ${Math.round(prof.startM)} m → ${Math.round(prof.endM)} m |`,
-          `| Min / max along path | ${Math.round(prof.minM)} m / ${Math.round(prof.maxM)} m |`,
+          `| Start / end elevation | ${m(first)} → ${m(last)} |`,
+          `| Min / max along path | ${m(prof.minM)} / ${m(prof.maxM)} |`,
           `| Cumulative gain / loss | +${Math.round(prof.gainM)} m / −${Math.round(prof.lossM)} m |`,
-          `| Line of sight | **${prof.lineOfSight ? "CLEAR" : "BLOCKED"}**${prof.blockedAtM != null ? ` (first obstruction at ${fmtM(prof.blockedAtM)})` : ""} |`,
-          `| Samples | ${prof.samples.length} @ Copernicus GLO-30 |`,
-        ].join("\n");
+          `| Steepest grade | ${prof.maxGradePct.toFixed(1)}% |`,
+          `| Samples resolved | ${prof.samples.length} (${Math.round(prof.coverage * 100)}% DEM coverage) |`,
+          prof.degraded ? `\n⚠ Degraded: ${prof.degraded}` : "",
+        ].filter(Boolean).join("\n");
       } catch (e: any) {
         return `Elevation profile failed — ${e?.message || "terrain service unreachable"}.`;
       }
@@ -1093,12 +1097,12 @@ const IntelligenceMapModule = () => {
       const [from, to] = await Promise.all([resolveRef(a.from), resolveRef(a.to)]);
       if (!from || !to) return "Could not resolve both endpoints for a road route.";
       try {
-        const r = await roadRoute(from, to);
+        const r = await roadRoute([from, to]);
         addAnnotation(makeAnnotation({
           kind: "line", label: a.label || `Drive · ${fmtM(r.distanceM)} / ${fmtDuration(r.durationS)}`,
           path: r.path, note: `OSRM driving profile · ${r.path.length} geometry points`,
           category: "route", color: "#22c55e", source: "asher-ai",
-          confidence: 88, role: "roadroute", sourceUrl: "https://project-osrm.org/",
+          confidence: r.degraded ? 40 : 88, role: "roadroute", sourceUrl: "https://project-osrm.org/",
         }));
         try { mapRef.current?.fitBounds(r.path.map((q) => [q.lat, q.lng]) as any, { padding: [40, 40] }); } catch {}
         const straight = haversineM(from, to);
@@ -1110,7 +1114,8 @@ const IntelligenceMapModule = () => {
           `| Straight-line distance | ${fmtM(straight)} |`,
           `| Detour factor | ${(r.distanceM / Math.max(straight, 1)).toFixed(2)}× |`,
           "", `Graph: OSRM public driving profile (OpenStreetMap).`,
-        ].join("\n");
+          r.degraded ? `\n⚠ Degraded: ${r.degraded}` : "",
+        ].filter(Boolean).join("\n");
       } catch (e: any) {
         return `Road routing failed — ${e?.message || "routing service unreachable"}.`;
       }
@@ -1121,28 +1126,40 @@ const IntelligenceMapModule = () => {
       if (!p) return "Could not resolve a location for solar geometry.";
       const when = a.iso ? new Date(a.iso) : new Date();
       if (Number.isNaN(when.getTime())) return "Invalid timestamp for solar analysis.";
-      const s = solarPosition(p.lat, p.lng, when);
+      const s = solarPosition({ lat: p.lat, lng: p.lng }, when);
       return [
         `**SOLAR GEOMETRY — ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}**`,
         `${when.toISOString()} (UTC)`, "",
         `| Metric | Value |`, `|---|---|`,
-        `| Sun altitude | ${s.altitude.toFixed(2)}° |`,
-        `| Sun azimuth | ${s.azimuth.toFixed(2)}° (${compass(s.azimuth)}) |`,
-        `| Condition | ${s.altitude > 0 ? "Daylight" : s.altitude > -6 ? "Civil twilight" : "Night"} |`,
-        `| Shadow direction | ${compass((s.azimuth + 180) % 360)} (${((s.azimuth + 180) % 360).toFixed(1)}°) |`,
-        `| Shadow length | ${s.altitude > 0.5 ? `${s.shadowRatio.toFixed(2)} × object height` : "n/a — sun below usable altitude"} |`,
-        "", `Use: divide a measured shadow length by ${s.altitude > 0.5 ? s.shadowRatio.toFixed(2) : "the ratio"} to recover structure height. NOAA solar position algorithm.`,
+        `| Sun elevation | ${s.elevationDeg.toFixed(2)}° |`,
+        `| Sun azimuth | ${s.azimuthDeg.toFixed(2)}° (${compass(s.azimuthDeg)}) |`,
+        `| Condition | ${s.isDaylight ? "Daylight" : s.elevationDeg > -6 ? "Civil twilight" : "Night"} |`,
+        `| Shadow direction | ${compass(s.shadowBearingDeg)} (${s.shadowBearingDeg.toFixed(1)}°) |`,
+        `| Shadow length | ${s.shadowRatio == null ? "n/a — sun below usable altitude" : `${s.shadowRatio.toFixed(2)} × object height`} |`,
+        `| Solar declination | ${s.declinationDeg.toFixed(2)}° |`,
+        `| Solar noon (UTC) | ${s.solarNoonUtcHours.toFixed(2)} h |`,
+        "",
+        s.shadowRatio == null
+          ? "Shadow-based height recovery is unavailable while the sun is at or below the horizon."
+          : `Height recovery: divide a measured shadow length by ${s.shadowRatio.toFixed(2)} to obtain structure height. NOAA solar position algorithm.`,
       ].join("\n");
     }
 
     if (a.type === "detect_colocation") {
       const radiusM = Math.max(10, Math.min(a.radiusM ?? 250, 20_000));
-      const pairs = detectColocations(annotations, radiusM);
+      const pairs = detectColocations(
+        annotations.map((x) => { const c = annoCenter(x); return { id: x.id, label: x.label, lat: c?.lat, lng: c?.lng }; }),
+        radiusM,
+      );
       if (!pairs.length) return `No overlay objects fall within ${fmtM(radiusM)} of each other.`;
-      pairs.slice(0, 12).forEach((pr) => {
+      const shown = pairs.slice(0, 12);
+      shown.forEach((pr) => {
+        const A = annotations.find((x) => x.id === pr.aId), B = annotations.find((x) => x.id === pr.bId);
+        const ca = A && annoCenter(A), cb = B && annoCenter(B);
+        if (!ca || !cb) return;
         addAnnotation(makeAnnotation({
           kind: "line", label: `Co-located · ${fmtM(pr.distanceM)}`,
-          path: [pr.a, pr.b], note: `${pr.labelA} ↔ ${pr.labelB}`,
+          path: [ca, cb], note: `${pr.aLabel} ↔ ${pr.bLabel}`,
           category: "observation", color: "#a855f7", source: "asher-ai",
           confidence: 70, role: "colocation",
         }));
@@ -1150,23 +1167,25 @@ const IntelligenceMapModule = () => {
       return [
         `**CO-LOCATION — ${pairs.length} PAIR${pairs.length === 1 ? "" : "S"} WITHIN ${fmtM(radiusM)}**`, "",
         `| # | Object A | Object B | Separation |`, `|---|---|---|---|`,
-        ...pairs.slice(0, 12).map((pr, i) => `| ${i + 1} | ${pr.labelA} | ${pr.labelB} | ${fmtM(pr.distanceM)} |`),
-      ].join("\n");
+        ...shown.map((pr, i) => `| ${i + 1} | ${pr.aLabel} | ${pr.bLabel} | ${fmtM(pr.distanceM)} |`),
+        pairs.length > shown.length ? `\n${pairs.length - shown.length} further pair(s) not drawn — narrow the radius.` : "",
+      ].filter(Boolean).join("\n");
     }
 
     if (a.type === "generate_briefing") {
-      const activeCase = listCases().find((c) => c.id === caseIdRef.current);
+      const caseRec = listCases().find((c) => c.id === caseIdRef.current);
+      if (!caseRec) return "No active operation — create a case folder first.";
       const md = buildBriefing({
-        caseName: activeCase?.name ?? "Untitled operation",
+        caseRec,
         annotations,
-        center: { lat: coord.lat, lng: coord.lng, zoom: coord.zoom },
+        mapCenter: { lat: coord.lat, lng: coord.lng, zoom: coord.zoom },
         baseLayer: activeBase,
-        layers: THREAT_IDS.filter((t) => activeThreats[t]),
-        entity: entity ? { name: entity.name, lat: entity.lat, lng: entity.lng } : undefined,
+        activeLayers: THREAT_IDS.filter((t) => activeThreats[t]),
       });
       appendAudit({ caseId: caseIdRef.current, actor: "asher-ai", action: "generate_briefing", detail: `${annotations.length} objects` });
       return md;
     }
+
   };
 
 
