@@ -1025,30 +1025,38 @@ const IntelligenceMapModule = () => {
       try {
         const res = await computeViewshed({ lat: p.lat, lng: p.lng }, radiusM, eye);
         setViewshedOverlay(res);
+        const obsElev = res.observerElevM == null ? "unresolved" : `${Math.round(res.observerElevM)} m`;
+        const visPct = Math.round(res.visibleFraction * 100);
         addAnnotation(makeAnnotation({
           kind: "polygon",
           label: a.label || `Viewshed · ${fmtM(radiusM)} @ ${eye} m`,
           path: res.ring,
-          note: `Visible ${res.visibleFraction}% · observer ${Math.round(res.observerElevM)} m + ${eye} m AGL · Copernicus GLO-30`,
+          note: `Visible ${visPct}% · observer ${obsElev} + ${eye} m AGL · Copernicus GLO-30`,
           category: "zone", color: "#f59e0b", source: "asher-ai",
-          confidence: 85, role: "viewshed", sourceUrl: "https://www.opentopodata.org/datasets/copernicus/",
+          // Terrain-only viewshed: it models ground, never buildings or canopy,
+          // so it is a strong indication rather than a verified sightline.
+          confidence: res.degraded ? 45 : 85,
+          role: "viewshed", sourceUrl: "https://www.opentopodata.org/datasets/copernicus/",
         }));
         try { mapRef.current?.fitBounds(res.ring.map((q) => [q.lat, q.lng]) as any, { padding: [40, 40] }); } catch {}
-        const worst = res.rays.slice().sort((x, y) => x.visibleM - y.visibleM)[0];
-        const best = res.rays.slice().sort((x, y) => y.visibleM - x.visibleM)[0];
+        const sorted = res.rays.slice().sort((x, y) => x.visibleM - y.visibleM);
+        const worst = sorted[0], best = sorted[sorted.length - 1];
         return [
           `**VIEWSHED — ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}**`,
           "",
           `| Metric | Value |`, `|---|---|`,
-          `| Observer ground elevation | ${Math.round(res.observerElevM)} m |`,
+          `| Observer ground elevation | ${obsElev} |`,
           `| Eye height | ${eye} m AGL |`,
           `| Analysis radius | ${fmtM(radiusM)} |`,
-          `| Visible fraction | **${res.visibleFraction}%** |`,
-          `| Longest sightline | ${fmtM(best.visibleM)} toward ${compass(best.bearing)} (${best.bearing}°) |`,
-          `| Most obstructed | ${fmtM(worst.visibleM)} toward ${compass(worst.bearing)} (${worst.bearing}°) |`,
+          `| Visible fraction | **${visPct}%** |`,
+          `| Longest sightline | ${fmtM(best.visibleM)} toward ${compass(best.bearing)} (${best.bearing.toFixed(0)}°) |`,
+          `| Most obstructed | ${fmtM(worst.visibleM)} toward ${compass(worst.bearing)} (${worst.bearing.toFixed(0)}°) |`,
+          `| DEM coverage | ${Math.round(res.coverage * 100)}% |`,
           "",
-          `Terrain: Copernicus GLO-30 DEM, ${res.rays.length} radial rays, earth-curvature and refraction corrected.`,
-        ].join("\n");
+          `Terrain: Copernicus GLO-30 DEM, ${res.rays.length} radial rays, earth-curvature and refraction corrected. Bare-earth only — buildings and canopy are not modelled.`,
+          res.degraded ? `\n⚠ Degraded: ${res.degraded}` : "",
+        ].filter(Boolean).join("\n");
+
       } catch (e: any) {
         return `Viewshed failed — ${e?.message || "terrain service unreachable"}.`;
       }
