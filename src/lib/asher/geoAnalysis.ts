@@ -63,8 +63,15 @@ export function destinationPoint(origin: LatLng, brg: number, distM: number): La
 
 const ELEV_ENDPOINT = "https://api.open-meteo.com/v1/elevation";
 const ELEV_BATCH = 100;
-const ELEV_CONCURRENCY = 4;
+/* Open-Meteo rate-limits per REQUEST, not per coordinate, and a single viewshed
+   issues dozens of batches. Unbounded fan-out burns the minutely budget and
+   every follow-up analysis comes back empty — which reads to an analyst as
+   "flat terrain" rather than "no data". Two workers plus a request-spacing
+   floor plus 429-aware backoff keeps a whole session inside the budget. */
+const ELEV_CONCURRENCY = 2;
+const ELEV_MIN_SPACING_MS = 120;
 const ELEV_TIMEOUT_MS = 12_000;
+const ELEV_RETRIES = 3;
 
 async function fetchJson(url: string, signal?: AbortSignal, timeoutMs = ELEV_TIMEOUT_MS): Promise<any> {
   const ctl = new AbortController();
@@ -73,7 +80,13 @@ async function fetchJson(url: string, signal?: AbortSignal, timeoutMs = ELEV_TIM
   signal?.addEventListener("abort", onAbort, { once: true });
   try {
     const r = await fetch(url, { signal: ctl.signal });
-    if (!r.ok) throw new Error(`upstream ${r.status}`);
+    if (!r.ok) {
+      const err = new Error(`upstream ${r.status}`) as Error & { status?: number; retryAfterMs?: number };
+      err.status = r.status;
+      const ra = parseFloat(r.headers.get("retry-after") ?? "");
+      if (Number.isFinite(ra)) err.retryAfterMs = Math.min(ra * 1000, 20_000);
+      throw err;
+    }
     return await r.json();
   } finally {
     clearTimeout(timer);
@@ -81,19 +94,39 @@ async function fetchJson(url: string, signal?: AbortSignal, timeoutMs = ELEV_TIM
   }
 }
 
-/** Bounded-concurrency map that never rejects — failures surface as null. */
-async function pooled<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<Array<R | null>> {
-  const out: Array<R | null> = new Array(items.length).fill(null);
-  let cursor = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    for (;;) {
-      const i = cursor++;
-      if (i >= items.length) return;
-      try { out[i] = await fn(items[i]); } catch { out[i] = null; }
+/** Retry only idempotent GETs, and only on throttling / transient upstream faults. */
+async function fetchJsonResilient(url: string, signal?: AbortSignal): Promise<any> {
+  let lastErr: any;
+  for (let attempt = 0; attempt < ELEV_RETRIES; attempt++) {
+    try {
+      return await fetchJson(url, signal);
+    } catch (e: any) {
+      lastErr = e;
+      if (signal?.aborted) throw e;
+      const status = e?.status;
+      const retryable = status === 429 || status === 502 || status === 503 || status === 504 || status === undefined;
+      if (!retryable || attempt === ELEV_RETRIES - 1) throw e;
+      // Honour Retry-After when the server sends it; otherwise exponential
+      // backoff with jitter so parallel workers do not resynchronise.
+      const wait = e?.retryAfterMs ?? Math.min(600 * 2 ** attempt, 6_000) + Math.random() * 250;
+      await new Promise((r) => setTimeout(r, wait));
     }
-  });
-  await Promise.all(workers);
-  return out;
+  }
+  throw lastErr;
+}
+
+/* Session-scoped elevation cache. Terrain is static, so a coordinate resolved
+   once is never re-requested — repeat viewsheds over the same target are free
+   and, more importantly, do not re-spend the rate-limit budget. */
+const elevCache = new Map<string, number | null>();
+const elevKey = (p: LatLng) => `${p.lat.toFixed(4)},${normLng(p.lng).toFixed(4)}`;
+
+/** Serialises request starts so bursts cannot exceed the upstream's tolerance. */
+let elevGate: Promise<void> = Promise.resolve();
+function elevSlot(): Promise<void> {
+  const wait = elevGate.then(() => new Promise<void>((r) => setTimeout(r, ELEV_MIN_SPACING_MS)));
+  elevGate = wait.catch(() => undefined);
+  return wait;
 }
 
 /**
@@ -103,25 +136,42 @@ async function pooled<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>)
  */
 export async function fetchElevations(points: LatLng[], signal?: AbortSignal): Promise<Array<number | null>> {
   if (!points.length) return [];
-  const batches: LatLng[][] = [];
-  for (let i = 0; i < points.length; i += ELEV_BATCH) batches.push(points.slice(i, i + ELEV_BATCH));
 
-  const results = await pooled(batches, ELEV_CONCURRENCY, async (batch) => {
+  // Resolve from cache first; only unknown coordinates reach the network.
+  const out: Array<number | null> = new Array(points.length).fill(null);
+  const missIdx: number[] = [];
+  points.forEach((p, i) => {
+    const k = elevKey(p);
+    if (elevCache.has(k)) out[i] = elevCache.get(k)!;
+    else missIdx.push(i);
+  });
+  if (!missIdx.length) return out;
+
+  const batches: number[][] = [];
+  for (let i = 0; i < missIdx.length; i += ELEV_BATCH) batches.push(missIdx.slice(i, i + ELEV_BATCH));
+
+  const results = await pooled(batches, ELEV_CONCURRENCY, async (idxBatch) => {
+    await elevSlot();
+    const batch = idxBatch.map((i) => points[i]);
     const lat = batch.map((p) => p.lat.toFixed(6)).join(",");
     const lng = batch.map((p) => normLng(p.lng).toFixed(6)).join(",");
-    const json = await fetchJson(`${ELEV_ENDPOINT}?latitude=${lat}&longitude=${lng}`, signal);
+    const json = await fetchJsonResilient(`${ELEV_ENDPOINT}?latitude=${lat}&longitude=${lng}`, signal);
     const arr = json?.elevation;
     return Array.isArray(arr) ? arr.map((v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null)) : null;
   });
 
-  const flat: Array<number | null> = [];
-  results.forEach((r, i) => {
-    const expect = batches[i].length;
-    if (r && r.length === expect) flat.push(...r);
-    else flat.push(...new Array(expect).fill(null));
+  results.forEach((r, b) => {
+    const idxBatch = batches[b];
+    idxBatch.forEach((pointIdx, j) => {
+      const v = r && r.length === idxBatch.length ? r[j] : null;
+      out[pointIdx] = v;
+      // Only cache resolved values — a throttled null must not become permanent.
+      if (v != null) elevCache.set(elevKey(points[pointIdx]), v);
+    });
   });
-  return flat;
+  return out;
 }
+
 
 /* ── Elevation profile ──────────────────────────────────────────────────── */
 
