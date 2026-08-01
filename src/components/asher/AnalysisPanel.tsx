@@ -22,6 +22,7 @@
 //    instant under prefers-reduced-motion (handled by the global stylesheet).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
   Eye, Mountain, Sun, Link2, FileText, FolderOpen, Plus, Trash2, Camera,
   RotateCcw, Loader2, Download, ShieldAlert, History, Route as RouteIcon,
