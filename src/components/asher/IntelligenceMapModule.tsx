@@ -735,10 +735,15 @@ const IntelligenceMapModule = () => {
     opts?: { title?: string; subtitle?: string; badge?: string; minZoom?: number },
   ) => {
     const zoom = Math.max(zoomForHit(mapRef.current, hit), opts?.minZoom ?? 0);
+    /* For a rooftop hit Nominatim's `name` is just the house number ("1213"),
+       which is a useless card title. Rebuild the street line instead. */
+    const street = [hit?.address?.house_number, hit?.address?.road].filter(Boolean).join(" ").trim();
     const label = opts?.title
+      || street
       || hit?.name
       || hit?.display_name?.split(",")[0]?.trim()
       || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
 
     setFocusPin({
       lat, lng,
