@@ -1011,7 +1011,156 @@ const IntelligenceMapModule = () => {
       });
       return `**OVERLAY — ${annotations.length} OBJECT${annotations.length === 1 ? "" : "S"}**\n\n| # | Label | Kind | Class | Centre | Metric |\n|---|---|---|---|---|---|\n${rows.join("\n")}`;
     }
+
+    /* ── Analytical tradecraft ─────────────────────────────────────────
+       Every product below is computed from live upstreams (Copernicus GLO-30
+       terrain, OSRM road graph, NOAA solar equations) and lands on the map as
+       a persisted, provenance-tagged annotation. The returned text is the
+       payload the AI reads back on its next autonomous round. */
+    if (a.type === "run_viewshed") {
+      const p = await resolveRef(a.ref);
+      if (!p) return `Could not resolve "${a.ref?.place ?? "that location"}" for a viewshed.`;
+      const radiusM = Math.max(200, Math.min((a.radiusKm ?? 5) * 1000, 30_000));
+      const eye = Math.max(0, Math.min(a.observerHeightM ?? 2, 500));
+      try {
+        const res = await computeViewshed({ lat: p.lat, lng: p.lng }, radiusM, eye);
+        setViewshedOverlay(res);
+        addAnnotation(makeAnnotation({
+          kind: "polygon",
+          label: a.label || `Viewshed · ${fmtM(radiusM)} @ ${eye} m`,
+          path: res.ring,
+          note: `Visible ${res.visibleFraction}% · observer ${Math.round(res.observerElevM)} m + ${eye} m AGL · Copernicus GLO-30`,
+          category: "zone", color: "#f59e0b", source: "asher-ai",
+          confidence: 85, role: "viewshed", sourceUrl: "https://www.opentopodata.org/datasets/copernicus/",
+        }));
+        try { mapRef.current?.fitBounds(res.ring.map((q) => [q.lat, q.lng]) as any, { padding: [40, 40] }); } catch {}
+        const worst = res.rays.slice().sort((x, y) => x.visibleM - y.visibleM)[0];
+        const best = res.rays.slice().sort((x, y) => y.visibleM - x.visibleM)[0];
+        return [
+          `**VIEWSHED — ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}**`,
+          "",
+          `| Metric | Value |`, `|---|---|`,
+          `| Observer ground elevation | ${Math.round(res.observerElevM)} m |`,
+          `| Eye height | ${eye} m AGL |`,
+          `| Analysis radius | ${fmtM(radiusM)} |`,
+          `| Visible fraction | **${res.visibleFraction}%** |`,
+          `| Longest sightline | ${fmtM(best.visibleM)} toward ${compass(best.bearing)} (${best.bearing}°) |`,
+          `| Most obstructed | ${fmtM(worst.visibleM)} toward ${compass(worst.bearing)} (${worst.bearing}°) |`,
+          "",
+          `Terrain: Copernicus GLO-30 DEM, ${res.rays.length} radial rays, earth-curvature and refraction corrected.`,
+        ].join("\n");
+      } catch (e: any) {
+        return `Viewshed failed — ${e?.message || "terrain service unreachable"}.`;
+      }
+    }
+
+    if (a.type === "elevation_profile") {
+      const [from, to] = await Promise.all([resolveRef(a.from), resolveRef(a.to)]);
+      if (!from || !to) return "Could not resolve both endpoints for an elevation profile.";
+      try {
+        const prof = await elevationProfile(from, to);
+        addAnnotation(makeAnnotation({
+          kind: "line", label: a.label || `Profile · ${fmtM(prof.distanceM)}`,
+          path: [from, to],
+          note: `Min ${Math.round(prof.minM)} m · Max ${Math.round(prof.maxM)} m · gain ${Math.round(prof.gainM)} m · LOS ${prof.lineOfSight ? "CLEAR" : "BLOCKED"}`,
+          category: "observation", color: "#0ea5e9", source: "asher-ai",
+          confidence: 90, role: "profile", sourceUrl: "https://www.opentopodata.org/datasets/copernicus/",
+        }));
+        try { mapRef.current?.fitBounds([[from.lat, from.lng], [to.lat, to.lng]] as any, { padding: [60, 60] }); } catch {}
+        return [
+          `**ELEVATION PROFILE — ${fmtM(prof.distanceM)}**`, "",
+          `| Metric | Value |`, `|---|---|`,
+          `| Start / end elevation | ${Math.round(prof.startM)} m → ${Math.round(prof.endM)} m |`,
+          `| Min / max along path | ${Math.round(prof.minM)} m / ${Math.round(prof.maxM)} m |`,
+          `| Cumulative gain / loss | +${Math.round(prof.gainM)} m / −${Math.round(prof.lossM)} m |`,
+          `| Line of sight | **${prof.lineOfSight ? "CLEAR" : "BLOCKED"}**${prof.blockedAtM != null ? ` (first obstruction at ${fmtM(prof.blockedAtM)})` : ""} |`,
+          `| Samples | ${prof.samples.length} @ Copernicus GLO-30 |`,
+        ].join("\n");
+      } catch (e: any) {
+        return `Elevation profile failed — ${e?.message || "terrain service unreachable"}.`;
+      }
+    }
+
+    if (a.type === "road_route") {
+      const [from, to] = await Promise.all([resolveRef(a.from), resolveRef(a.to)]);
+      if (!from || !to) return "Could not resolve both endpoints for a road route.";
+      try {
+        const r = await roadRoute(from, to);
+        addAnnotation(makeAnnotation({
+          kind: "line", label: a.label || `Drive · ${fmtM(r.distanceM)} / ${fmtDuration(r.durationS)}`,
+          path: r.path, note: `OSRM driving profile · ${r.path.length} geometry points`,
+          category: "route", color: "#22c55e", source: "asher-ai",
+          confidence: 88, role: "roadroute", sourceUrl: "https://project-osrm.org/",
+        }));
+        try { mapRef.current?.fitBounds(r.path.map((q) => [q.lat, q.lng]) as any, { padding: [40, 40] }); } catch {}
+        const straight = haversineM(from, to);
+        return [
+          `**ROAD ROUTE**`, "",
+          `| Metric | Value |`, `|---|---|`,
+          `| Driving distance | ${fmtM(r.distanceM)} |`,
+          `| Estimated time | ${fmtDuration(r.durationS)} |`,
+          `| Straight-line distance | ${fmtM(straight)} |`,
+          `| Detour factor | ${(r.distanceM / Math.max(straight, 1)).toFixed(2)}× |`,
+          "", `Graph: OSRM public driving profile (OpenStreetMap).`,
+        ].join("\n");
+      } catch (e: any) {
+        return `Road routing failed — ${e?.message || "routing service unreachable"}.`;
+      }
+    }
+
+    if (a.type === "solar_analysis") {
+      const p = await resolveRef(a.ref);
+      if (!p) return "Could not resolve a location for solar geometry.";
+      const when = a.iso ? new Date(a.iso) : new Date();
+      if (Number.isNaN(when.getTime())) return "Invalid timestamp for solar analysis.";
+      const s = solarPosition(p.lat, p.lng, when);
+      return [
+        `**SOLAR GEOMETRY — ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}**`,
+        `${when.toISOString()} (UTC)`, "",
+        `| Metric | Value |`, `|---|---|`,
+        `| Sun altitude | ${s.altitude.toFixed(2)}° |`,
+        `| Sun azimuth | ${s.azimuth.toFixed(2)}° (${compass(s.azimuth)}) |`,
+        `| Condition | ${s.altitude > 0 ? "Daylight" : s.altitude > -6 ? "Civil twilight" : "Night"} |`,
+        `| Shadow direction | ${compass((s.azimuth + 180) % 360)} (${((s.azimuth + 180) % 360).toFixed(1)}°) |`,
+        `| Shadow length | ${s.altitude > 0.5 ? `${s.shadowRatio.toFixed(2)} × object height` : "n/a — sun below usable altitude"} |`,
+        "", `Use: divide a measured shadow length by ${s.altitude > 0.5 ? s.shadowRatio.toFixed(2) : "the ratio"} to recover structure height. NOAA solar position algorithm.`,
+      ].join("\n");
+    }
+
+    if (a.type === "detect_colocation") {
+      const radiusM = Math.max(10, Math.min(a.radiusM ?? 250, 20_000));
+      const pairs = detectColocations(annotations, radiusM);
+      if (!pairs.length) return `No overlay objects fall within ${fmtM(radiusM)} of each other.`;
+      pairs.slice(0, 12).forEach((pr) => {
+        addAnnotation(makeAnnotation({
+          kind: "line", label: `Co-located · ${fmtM(pr.distanceM)}`,
+          path: [pr.a, pr.b], note: `${pr.labelA} ↔ ${pr.labelB}`,
+          category: "observation", color: "#a855f7", source: "asher-ai",
+          confidence: 70, role: "colocation",
+        }));
+      });
+      return [
+        `**CO-LOCATION — ${pairs.length} PAIR${pairs.length === 1 ? "" : "S"} WITHIN ${fmtM(radiusM)}**`, "",
+        `| # | Object A | Object B | Separation |`, `|---|---|---|---|`,
+        ...pairs.slice(0, 12).map((pr, i) => `| ${i + 1} | ${pr.labelA} | ${pr.labelB} | ${fmtM(pr.distanceM)} |`),
+      ].join("\n");
+    }
+
+    if (a.type === "generate_briefing") {
+      const activeCase = listCases().find((c) => c.id === caseIdRef.current);
+      const md = buildBriefing({
+        caseName: activeCase?.name ?? "Untitled operation",
+        annotations,
+        center: { lat: coord.lat, lng: coord.lng, zoom: coord.zoom },
+        baseLayer: activeBase,
+        layers: THREAT_IDS.filter((t) => activeThreats[t]),
+        entity: entity ? { name: entity.name, lat: entity.lat, lng: entity.lng } : undefined,
+      });
+      appendAudit({ caseId: caseIdRef.current, actor: "asher-ai", action: "generate_briefing", detail: `${annotations.length} objects` });
+      return md;
+    }
   };
+
 
 
   return (
