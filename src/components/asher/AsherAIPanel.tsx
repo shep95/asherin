@@ -48,11 +48,25 @@ export type MapAction =
   | { type: "clear_annotations"; scope: string }
   | { type: "list_annotations" };
 
+/* Tool arguments arrive as untyped JSON from the model — coerce defensively so
+   a hallucinated string ("2km") or null never reaches the map as NaN. */
+const num = (v: unknown): number | undefined => {
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  return typeof n === "number" && Number.isFinite(n) ? n : undefined;
+};
+const str = (v: unknown): string | undefined => {
+  const s = typeof v === "string" ? v.trim() : "";
+  return s ? s : undefined;
+};
+const toGeoRef = (v: any): GeoRef => ({
+  lat: num(v?.lat), lng: num(v?.lng), place: str(v?.place ?? v?.name ?? (typeof v === "string" ? v : undefined)),
+});
+const toGeoRefs = (v: any): GeoRef[] => (Array.isArray(v) ? v.map(toGeoRef) : []);
 
 export interface AsherAIPanelHandle {
-
   appendSystemNote: (text: string) => void;
 }
+
 
 interface Props {
   mapContext: Record<string, any>;
