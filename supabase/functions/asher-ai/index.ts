@@ -99,7 +99,14 @@ function sse(data: unknown): string {
   return `data: ${typeof data === "string" ? data : JSON.stringify(data)}\n\n`;
 }
 
-function toolCallResponse(name: string, args: Record<string, unknown>): Response {
+// NOTE: cors headers are per-request (getCorsHeaders(req)); they must be
+// passed in — referencing a module-scope `corsHeaders` here threw a
+// ReferenceError and killed the phone-intel fast path.
+function toolCallResponse(
+  name: string,
+  args: Record<string, unknown>,
+  cors: Record<string, string>,
+): Response {
   const payload = {
     choices: [{
       delta: {
@@ -115,9 +122,10 @@ function toolCallResponse(name: string, args: Record<string, unknown>): Response
     }],
   };
   return new Response(sse(payload) + sse("[DONE]"), {
-    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    headers: { ...cors, "Content-Type": "text/event-stream" },
   });
 }
+
 
 function latestUserText(messages: any[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
