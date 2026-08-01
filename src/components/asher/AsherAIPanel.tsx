@@ -46,7 +46,15 @@ export type MapAction =
   | { type: "draw_route"; label: string; waypoints: GeoRef[]; note?: string; color?: string }
   | { type: "measure"; from: GeoRef; to: GeoRef }
   | { type: "clear_annotations"; scope: string }
-  | { type: "list_annotations" };
+  | { type: "list_annotations" }
+  /* ── Analytical tradecraft (terrain, mobility, pattern-of-life) ── */
+  | { type: "run_viewshed"; ref: GeoRef; radiusKm?: number; observerHeightM?: number; label?: string }
+  | { type: "elevation_profile"; from: GeoRef; to: GeoRef; label?: string }
+  | { type: "road_route"; from: GeoRef; to: GeoRef; label?: string }
+  | { type: "solar_analysis"; ref: GeoRef; iso?: string }
+  | { type: "detect_colocation"; radiusM?: number }
+  | { type: "generate_briefing" };
+
 
 /* Tool arguments arrive as untyped JSON from the model — coerce defensively so
    a hallucinated string ("2km") or null never reaches the map as NaN. */
