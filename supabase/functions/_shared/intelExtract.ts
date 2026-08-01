@@ -480,7 +480,7 @@ export function buildFieldLedger(docs: ExtractInput[], subject: string): FieldLe
       ["email", emailHits(text)],
       ["age", ageHits(text)],
       ["dob", dobHits(text)],
-      ["handle", handleHits(text)],
+      ["handle", handleHits(text, subjectCanonical)],
       ["employer", employerHits(text)],
       ["entity", entityHits(text)],
       ["case", caseHits(text)],
