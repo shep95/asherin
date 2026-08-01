@@ -215,6 +215,46 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
           return typeof r === "string" ? r : "Overlay is empty.";
         }
 
+        /* ── Analytical tradecraft ──────────────────────────────────────
+           Each of these runs a real computation against live terrain,
+           ephemeris or road-graph data and returns a text product the model
+           reads back in the follow-up turn. */
+        case "run_viewshed": {
+          const r = await onAction({
+            type: "run_viewshed",
+            ref: toGeoRef(args?.ref ?? args),
+            radiusKm: num(args?.radiusKm),
+            observerHeightM: num(args?.observerHeightM),
+            label: str(args?.label),
+          });
+          return typeof r === "string" ? r : "Viewshed computed.";
+        }
+        case "elevation_profile": {
+          const r = await onAction({
+            type: "elevation_profile", from: toGeoRef(args?.from), to: toGeoRef(args?.to), label: str(args?.label),
+          });
+          return typeof r === "string" ? r : "Profile computed.";
+        }
+        case "road_route": {
+          const r = await onAction({
+            type: "road_route", from: toGeoRef(args?.from), to: toGeoRef(args?.to), label: str(args?.label),
+          });
+          return typeof r === "string" ? r : "Route computed.";
+        }
+        case "solar_analysis": {
+          const r = await onAction({ type: "solar_analysis", ref: toGeoRef(args?.ref ?? args), iso: str(args?.iso) });
+          return typeof r === "string" ? r : "Solar geometry computed.";
+        }
+        case "detect_colocation": {
+          const r = await onAction({ type: "detect_colocation", radiusM: num(args?.radiusM) });
+          return typeof r === "string" ? r : "Co-location scan complete.";
+        }
+        case "generate_briefing": {
+          const r = await onAction({ type: "generate_briefing" });
+          return typeof r === "string" ? r : "Briefing generated.";
+        }
+
+
         case "property_intel": {
           // Notify parent (so its property panel can refresh too)
           try { await onAction({ type: "property_intel", address: args?.address, entityName: args?.entityName }); } catch {}
