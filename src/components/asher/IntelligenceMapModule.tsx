@@ -1087,12 +1087,28 @@ const IntelligenceMapModule = () => {
           onSetDrawMode={(m) => { setDrawMode(m); setDraftPath([]); }}
           onFinishDraft={finishDraft}
           onCancelDraft={() => { setDrawMode("none"); setDraftPath([]); }}
-          onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id)); setFocusedAnno((f) => (f === id ? null : f)); }}
-          onRename={(id, label) => mutateAnnotations((p) => p.map((x) => (x.id === id ? { ...x, label } : x)))}
-          onClear={() => { mutateAnnotations(() => []); setFocusedAnno(null); }}
+          onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id), { action: "delete", detail: id }); setFocusedAnno((f) => (f === id ? null : f)); }}
+          onRename={(id, label) => mutateAnnotations((p) => p.map((x) => (x.id === id ? { ...x, label, updatedAt: Date.now() } : x)), { action: "rename", detail: label })}
+          onClear={() => { mutateAnnotations(() => [], { action: "clear_all" }); setFocusedAnno(null); setViewshedOverlay(null); }}
           onFocus={focusAnnotation}
         />
+
+        <AnalysisPanel
+          focus={entity ? { lat: entity.lat, lng: entity.lng } : { lat: coord.lat, lng: coord.lng }}
+          annotations={annotations}
+          activeCaseId={activeCaseId}
+          mapCenter={coord}
+          baseLayer={activeBase}
+          activeLayers={THREAT_IDS.filter((t) => activeThreats[t])}
+          onAddAnnotation={addAnnotation}
+          onViewshed={setViewshedOverlay}
+          onSwitchCase={switchCase}
+          onRestoreSnapshot={(list) => { mutateAnnotations(() => list, { action: "restore_snapshot", detail: `${list.length} objects` }); setFocusedAnno(null); }}
+          onFlyTo={flyTo}
+        />
       </div>
+
+
 
 
       {/* MAP COLUMN */}
