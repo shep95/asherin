@@ -325,7 +325,9 @@ export function useSelfTracking(opts?: { onFix?: (f: SelfFix) => void; onFenceEv
       setDwellSince(f.ts);
     }
 
+    lastFixRef.current = f;
     setFix(f);
+
     setStatus("live");
     setError(null);
     setTrail((p) => {
