@@ -189,12 +189,12 @@ describe("reasonScene", () => {
     let fused;
     for (let k = 0; k < 20; k++) {
       fused = t2.step([makeContact({ bearing: 100, rssi: rssiFor(3) })], [
-        { id: "opt-9", label: "chair", kind: "object", score: 0.7, x: 0.05, y: 0.6, w: 0.1, h: 0.2, ts: Date.now() },
+        { id: "opt-9", label: "chair", kind: "device", score: 0.7, x: 0.05, y: 0.6, w: 0.1, h: 0.2, ts: Date.now() },
       ], 100);
     }
     const a = reasonScene({
       contacts: fused!,
-      optical: [{ id: "opt-9", label: "chair", kind: "object", score: 0.7, x: 0.05, y: 0.6, w: 0.1, h: 0.2, ts: Date.now() }],
+      optical: [{ id: "opt-9", label: "chair", kind: "device", score: 0.7, x: 0.05, y: 0.6, w: 0.1, h: 0.2, ts: Date.now() }],
       idents: [], env: null, heading: 100, fov: 62, knownIds: new Set(),
     });
     expect(a.discrepancies.join(" ")).toMatch(/no line of sight/i);
