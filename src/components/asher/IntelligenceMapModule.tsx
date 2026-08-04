@@ -784,6 +784,9 @@ const IntelligenceMapModule = () => {
     },
   });
   useEffect(() => { followRef.current = track.follow; }, [track.follow]);
+  // A stopped sensor ends the session: the next acquisition re-frames the map.
+  useEffect(() => { if (track.status !== "live") firstFixRef.current = true; }, [track.status]);
+
 
 
   /* ── focusOn ────────────────────────────────────────────────────────────
