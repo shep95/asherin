@@ -12,8 +12,12 @@ import { startScan, pickOne, detectScanMode, listPaired, type RawAdvert, type Sc
 import { HopBrain } from "./core/hop";
 import { startHeadingStream, startVisualHeadingStream, startCamera, stopCamera, bearingDelta, flipFacing } from "./core/posesense";
 import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
-import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
+import { VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
+import { FusionTracker, type FusedContact } from "./core/fusionEngine";
+import { ContactMemory, formatGap, type MemoryStats, type Reacquisition } from "./core/contactMemory";
+import { reasonScene, type SceneAssessment } from "./core/sceneReasoner";
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
+
 import { updateVehicleTracks } from "./core/vehicleTracking";
 import { correlateOptical, type Suggestion } from "./core/deviceCorrelation";
 import RadarIntelPack from "./RadarIntelPack";
@@ -843,22 +847,16 @@ function ArTab(props: {
 
   const clearBindings = () => setBindings({});
 
-  // ---- Live AI subsystems (T2 SLAM, T5 behavior, T6 anchors, T7 chirp) ----
-  const slamRef = useRef<BearingSlam | null>(null);
-  if (!slamRef.current) slamRef.current = new BearingSlam();
+  // ---- Live AI subsystems (fusion tracker, T5 behavior, T6 anchors, T7 chirp) ----
+  // The bearing/range estimator is the FusionTracker (core/fusionEngine.ts):
+  // an ego-motion-aware EKF with a log-space range filter, M-of-N track
+  // lifecycle, and optical↔radio association. It supersedes BearingSlam, whose
+  // confidence could only ever rise and which ignored the camera entirely.
+  const fusionRef = useRef<FusionTracker | null>(null);
+  if (!fusionRef.current) fusionRef.current = new FusionTracker({ fov: FOV });
   const anchorsRef = useRef<VisualAnchors | null>(null);
   if (!anchorsRef.current) anchorsRef.current = new VisualAnchors();
 
-  const smoothedContacts = useMemo(
-    () => slamRef.current!.apply(props.contacts),
-    [props.contacts],
-  );
-  useEffect(() => {
-    anchorsRef.current!.update(smoothedContacts, props.heading, FOV);
-  }, [smoothedContacts, props.heading]);
-
-  const hasBearings = smoothedContacts.filter((c) => c.bearing != null);
-  const ghosts = anchorsRef.current!.ghosts(smoothedContacts, props.heading, FOV);
 
   // T7 — ultrasonic chirp detector (mic FFT 18–22 kHz)
   const [chirpOn, setChirpOn] = useState(false);
@@ -896,6 +894,74 @@ function ArTab(props: {
   const [visionIdents, setVisionIdents] = useState<VisionIdent[]>([]);
   const [visionEnv, setVisionEnv] = useState<EnvScan | null>(null);
   const [envExpanded, setEnvExpanded] = useState(false);
+
+  /* ══════════════════════════════════════════════════════════════════
+   * FUSION CYCLE — radio + optics + compass, one pass per frame update.
+   * Declared after `optical` so the tracker can consume camera detections
+   * in the same cycle that produced them (no one-frame lag).
+   * ══════════════════════════════════════════════════════════════════ */
+  const fusedContacts = useMemo(
+    () => fusionRef.current!.step(props.contacts, optical, props.heading),
+    [props.contacts, optical, props.heading],
+  );
+  const smoothedContacts = fusedContacts;
+
+  useEffect(() => {
+    anchorsRef.current!.update(smoothedContacts, props.heading, FOV);
+  }, [smoothedContacts, props.heading]);
+
+  const hasBearings = smoothedContacts.filter((c) => c.bearing != null);
+  const ghosts = anchorsRef.current!.ghosts(smoothedContacts, props.heading, FOV);
+
+  /* ── Persistent contact memory (IndexedDB, device-local) ───────────── */
+  const memoryRef = useRef<ContactMemory | null>(null);
+  if (!memoryRef.current) memoryRef.current = new ContactMemory();
+  const [memoryStats, setMemoryStats] = useState<MemoryStats | null>(null);
+  const [reacquisitions, setReacquisitions] = useState<Reacquisition[]>([]);
+  const [knownIds, setKnownIds] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    let alive = true;
+    void memoryRef.current!.boot().then((dossiers) => {
+      if (!alive) return;
+      setKnownIds(new Set(dossiers.map((d) => d.id)));
+      setMemoryStats(memoryRef.current!.stats());
+    });
+    const flush = () => { void memoryRef.current!.flush(); };
+    document.addEventListener("visibilitychange", flush);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      alive = false;
+      document.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!fusedContacts.length) return;
+    const returns = memoryRef.current!.ingest(fusedContacts, classifyBehavior);
+    if (returns.length) setReacquisitions((prev) => [...returns, ...prev].slice(0, 6));
+    setMemoryStats(memoryRef.current!.stats());
+  }, [fusedContacts]);
+
+  /* ── Scene reasoning — deterministic cross-modal synthesis ─────────── */
+  const assessment = useMemo(
+    () =>
+      reasonScene({
+        contacts: fusedContacts,
+        optical,
+        idents: visionIdents,
+        env: visionEnv,
+        heading: props.heading,
+        fov: FOV,
+        watchlist: props.contacts.filter((c) => c.watchlisted).map((c) => c.id),
+        knownIds,
+      }),
+    [fusedContacts, optical, visionIdents, visionEnv, props.heading, props.contacts, knownIds],
+  );
+
+
 
 
   useEffect(() => {
@@ -1556,7 +1622,24 @@ function ArTab(props: {
         )}
       </div>
 
+      {/* Fusion + scene synthesis — deterministic, no second model call */}
+      <SceneAssessmentPanel
+        assessment={assessment}
+        tracks={fusedContacts}
+        memory={memoryStats}
+        reacquisitions={reacquisitions}
+        egoRateDegS={fusionRef.current!.operatorAngularRate}
+        onPurgeMemory={async () => {
+          await memoryRef.current!.purge();
+          setKnownIds(new Set());
+          setReacquisitions([]);
+          setMemoryStats(memoryRef.current!.stats());
+        }}
+        onDismissReacquisition={(id) => setReacquisitions((p) => p.filter((r) => r.id !== id))}
+      />
+
       {/* AI Vision Identify — BYOK Gemini/OpenAI vision over current frame + RSSI ranging */}
+
       <AiVisionIdentifyPanel
         videoRef={props.videoRef}
         optical={optical}
@@ -1568,6 +1651,219 @@ function ArTab(props: {
     </div>
   );
 }
+
+/* ════════════════════════════════════════════════════════════════════
+ * SCENE ASSESSMENT PANEL
+ * Renders the deterministic fusion verdict: posture, per-entity scoring
+ * with cited anchors, cross-modal discrepancies, unresolved signals, and
+ * the device-local contact memory (recall + re-acquisition alerts).
+ * ════════════════════════════════════════════════════════════════════ */
+function SceneAssessmentPanel(props: {
+  assessment: SceneAssessment;
+  tracks: FusedContact[];
+  memory: MemoryStats | null;
+  reacquisitions: Reacquisition[];
+  egoRateDegS: number;
+  onPurgeMemory: () => void | Promise<void>;
+  onDismissReacquisition: (id: string) => void;
+}) {
+  const { assessment: a } = props;
+  const [open, setOpen] = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const postureTone =
+    a.posture === "critical" ? "text-rose-200 border-rose-300/40 bg-rose-400/10"
+    : a.posture === "elevated" ? "text-amber-200 border-amber-300/40 bg-amber-400/10"
+    : a.posture === "watch" ? "text-[#f0d59a] border-[#c69a4a]/40 bg-[#c69a4a]/10"
+    : "text-emerald-200/90 border-emerald-300/30 bg-emerald-400/[0.07]";
+
+  const threatTone = (t: string) =>
+    t === "high" ? "text-rose-200 border-rose-300/40"
+    : t === "elevated" ? "text-amber-200 border-amber-300/40"
+    : t === "low" ? "text-[#f0d59a] border-[#c69a4a]/35"
+    : t === "unresolved" ? "text-foreground/45 border-white/[0.1] border-dashed"
+    : "text-emerald-200/80 border-emerald-300/25";
+
+  const confirmed = props.tracks.filter((t) => t.track.state === "confirmed").length;
+  const coasting = props.tracks.filter((t) => t.track.state === "coasting").length;
+  const bound = props.tracks.filter((t) => t.track.opticalId).length;
+
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] backdrop-blur-xl overflow-hidden">
+      {/* Header */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left hover:bg-white/[0.02] transition"
+      >
+        <span className="text-[#e8c684] text-sm leading-none">◈</span>
+        <span className="text-xs font-mono tracking-[0.18em] uppercase text-foreground/75">Scene Assessment</span>
+        <span
+          aria-live="polite"
+          className={`ml-auto text-[10px] font-mono tracking-[0.16em] uppercase px-2 py-0.5 rounded-full border ${postureTone}`}
+        >
+          {a.posture}
+        </span>
+        <span className="text-[10px] font-mono text-foreground/40">{open ? "−" : "+"}</span>
+      </button>
+
+      {open && (
+        <div className="px-3.5 pb-3.5 space-y-3">
+          {/* Summary line */}
+          <p className="text-[11px] leading-relaxed text-foreground/70">{a.summary}</p>
+
+          {/* Fusion telemetry strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <FusionStat label="Confirmed" value={`${confirmed}`} />
+            <FusionStat label="Coasting" value={`${coasting}`} />
+            <FusionStat label="Optic-bound" value={`${bound}`} />
+            <FusionStat label="Ego rate" value={`${props.egoRateDegS.toFixed(0)}°/s`} />
+          </div>
+
+          {/* Re-acquisition alerts */}
+          {props.reacquisitions.map((r) => (
+            <div key={r.id} className="flex items-center gap-2 rounded-lg border border-[#c69a4a]/30 bg-[#c69a4a]/[0.07] px-2.5 py-1.5">
+              <span className="text-[#e8c684] text-[11px]">◉</span>
+              <span className="text-[10px] font-mono text-[#f0d59a] truncate">
+                RE-ACQUIRED · {r.displayName} · silent {formatGap(r.gapMs)} · session #{r.sessions}
+              </span>
+              <button
+                onClick={() => props.onDismissReacquisition(r.id)}
+                className="ml-auto text-[10px] font-mono text-foreground/40 hover:text-foreground/70 px-1"
+                aria-label={`Dismiss re-acquisition alert for ${r.displayName}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+
+          {/* Entities */}
+          {a.entities.length === 0 ? (
+            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-4 text-center">
+              <div className="text-[10px] font-mono tracking-[0.16em] uppercase text-foreground/40">No entities resolved</div>
+              <div className="mt-1 text-[10px] text-foreground/35">Activate AR and pair or point the camera at the field.</div>
+            </div>
+          ) : (
+            <ul className="space-y-1.5">
+              {a.entities.slice(0, 12).map((e) => {
+                const isOpen = expanded === e.key;
+                return (
+                  <li key={e.key} className="rounded-lg border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+                    <button
+                      onClick={() => setExpanded(isOpen ? null : e.key)}
+                      aria-expanded={isOpen}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-white/[0.03] transition"
+                    >
+                      <span className={`text-[9px] font-mono tracking-[0.14em] uppercase px-1.5 py-0.5 rounded-full border ${threatTone(e.threat)}`}>
+                        {e.threat}
+                      </span>
+                      <span className="text-[11px] font-mono text-foreground/80 truncate">{e.label}</span>
+                      <span className="ml-auto flex items-center gap-1.5 shrink-0">
+                        {/* Corroboration triad — R/O/A */}
+                        <Modality on={e.modalities.radio} glyph="R" title="Radio (BLE)" />
+                        <Modality on={e.modalities.optical} glyph="O" title="Optical detector" />
+                        <Modality on={e.modalities.ai} glyph="A" title="AI identification" />
+                        <span className="text-[10px] font-mono text-foreground/45 w-9 text-right">{e.score}</span>
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div className="px-2.5 pb-2.5 space-y-1.5 border-t border-white/[0.05] pt-2">
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-mono text-foreground/55">
+                          {e.rangeM != null && <span>range {e.rangeM.toFixed(1)}m</span>}
+                          {e.rangeRateMS != null && Math.abs(e.rangeRateMS) > 0.05 && (
+                            <span className={e.rangeRateMS < 0 ? "text-amber-200/80" : ""}>
+                              {e.rangeRateMS < 0 ? "closing" : "opening"} {Math.abs(e.rangeRateMS).toFixed(2)} m/s
+                            </span>
+                          )}
+                          {e.bearing != null && <span>bearing {e.bearing.toFixed(0)}°</span>}
+                          <span>conf {(e.confidence * 100).toFixed(0)}%</span>
+                        </div>
+                        <div>
+                          <div className="text-[9px] tracking-[0.16em] uppercase text-foreground/35 mb-0.5">Anchors</div>
+                          <ul className="space-y-0.5">
+                            {e.anchors.map((an, i) => (
+                              <li key={i} className="text-[10px] text-foreground/60 leading-snug">· {an}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        {e.obstructions.length > 0 && (
+                          <div>
+                            <div className="text-[9px] tracking-[0.16em] uppercase text-foreground/35 mb-0.5">Obstructions</div>
+                            <ul className="space-y-0.5">
+                              {e.obstructions.map((o, i) => (
+                                <li key={i} className="text-[10px] text-amber-200/60 leading-snug">· {o}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {/* Discrepancies + unresolved */}
+          {a.discrepancies.length > 0 && (
+            <div className="rounded-lg border border-amber-300/20 bg-amber-400/[0.05] px-2.5 py-2">
+              <div className="text-[9px] tracking-[0.16em] uppercase text-amber-200/70 mb-1">Cross-modal discrepancies</div>
+              {a.discrepancies.map((d, i) => (
+                <div key={i} className="text-[10px] text-amber-100/70 leading-snug">· {d}</div>
+              ))}
+            </div>
+          )}
+          {a.cannotResolve.length > 0 && (
+            <div className="rounded-lg border border-white/[0.07] border-dashed bg-white/[0.015] px-2.5 py-2">
+              <div className="text-[9px] tracking-[0.16em] uppercase text-foreground/35 mb-1">Cannot resolve</div>
+              {a.cannotResolve.slice(0, 5).map((c, i) => (
+                <div key={i} className="text-[10px] text-foreground/45 leading-snug">· {c}</div>
+              ))}
+            </div>
+          )}
+
+          {/* Memory footer */}
+          <div className="flex items-center gap-2 pt-1 border-t border-white/[0.05]">
+            <span className="text-[9px] font-mono tracking-[0.14em] uppercase text-foreground/35">
+              Memory · {props.memory?.total ?? 0} dossiers · {props.memory?.backend ?? "…"} · on-device
+            </span>
+            <button
+              onClick={() => void props.onPurgeMemory()}
+              className="ml-auto text-[9px] font-mono tracking-[0.14em] uppercase text-rose-200/60 hover:text-rose-200 border border-rose-300/20 hover:border-rose-300/40 rounded-full px-2 py-0.5 transition"
+            >
+              Purge
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FusionStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2 py-1.5">
+      <div className="text-[9px] tracking-[0.16em] uppercase text-foreground/35">{label}</div>
+      <div className="text-[12px] font-mono text-foreground/80">{value}</div>
+    </div>
+  );
+}
+
+function Modality({ on, glyph, title }: { on: boolean; glyph: string; title: string }) {
+  return (
+    <span
+      title={title}
+      aria-label={`${title}: ${on ? "active" : "absent"}`}
+      className={`w-4 h-4 rounded-[4px] grid place-items-center text-[8px] font-mono border ${
+        on ? "border-[#c69a4a]/45 text-[#e8c684] bg-[#c69a4a]/12" : "border-white/[0.07] text-foreground/25"
+      }`}
+    >
+      {glyph}
+    </span>
+  );
+}
+
+
 
 function IconChip({ icon: Icon, onClick, active, tone, label }: {
   icon: any; onClick: () => void; active?: boolean; tone?: "danger"; label?: string;
