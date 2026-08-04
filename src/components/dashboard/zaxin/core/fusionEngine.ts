@@ -73,6 +73,13 @@ interface Tuning {
   lostMisses: number;
   /** Gate width in sigmas for optical↔radio association. */
   gateSigmas: number;
+  /**
+   * Hard absolute gate (degrees) for optical↔radio association. The
+   * Mahalanobis gate alone is not sufficient: an immature track with a wide
+   * posterior will happily swallow a detection 25°+ away. Physical bearing
+   * disagreement past this bound is never the same object.
+   */
+  gateHardDeg: number;
   /** Path-loss exponent for the RSSI→range model. */
   pathLossN: number;
   /** RSSI at 1 m for the RSSI→range model. */
@@ -84,9 +91,11 @@ const DEFAULT_TUNING: Tuning = {
   confirmHits: 3,
   lostMisses: 8,
   gateSigmas: 3,
+  gateHardDeg: 18,
   pathLossN: 2.2,
   txPower: -59,
 };
+
 
 /* ══════════════════════════════════════════════════════════
  * Bearing filter — 2-state EKF on a circular manifold.
