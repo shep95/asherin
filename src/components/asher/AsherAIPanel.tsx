@@ -53,7 +53,13 @@ export type MapAction =
   | { type: "road_route"; from: GeoRef; to: GeoRef; label?: string }
   | { type: "solar_analysis"; ref: GeoRef; iso?: string }
   | { type: "detect_colocation"; radiusM?: number }
-  | { type: "generate_briefing" };
+  | { type: "generate_briefing" }
+  /* ── Own-force tracking. The model may only *request* the sensor; the
+     operator's explicit consent is what actually opens it. ── */
+  | { type: "track_location"; mode: "start" | "stop" | "status" | "center" | "follow" | "unfollow"; reason?: string }
+  | { type: "distance_from_me"; to: GeoRef; label?: string }
+  | { type: "geofence"; label: string; radiusM: number; ref?: GeoRef };
+
 
 
 /* Tool arguments arrive as untyped JSON from the model — coerce defensively so
