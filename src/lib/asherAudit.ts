@@ -11,7 +11,9 @@ export type AsherAuditEvent =
   | "target_deleted"
   | "imagine_generated"
   | "imagine_chat"
+  | "geofence_event"
   | "logout";
+
 
 export async function logAsherEvent(event_type: AsherAuditEvent, detail: Record<string, any> = {}) {
   try {
