@@ -53,7 +53,13 @@ export type MapAction =
   | { type: "road_route"; from: GeoRef; to: GeoRef; label?: string }
   | { type: "solar_analysis"; ref: GeoRef; iso?: string }
   | { type: "detect_colocation"; radiusM?: number }
-  | { type: "generate_briefing" };
+  | { type: "generate_briefing" }
+  /* ── Own-force tracking. The model may only *request* the sensor; the
+     operator's explicit consent is what actually opens it. ── */
+  | { type: "track_location"; mode: "start" | "stop" | "status" | "center" | "follow" | "unfollow"; reason?: string }
+  | { type: "distance_from_me"; to: GeoRef; label?: string }
+  | { type: "geofence"; label: string; radiusM: number; ref?: GeoRef };
+
 
 
 /* Tool arguments arrive as untyped JSON from the model — coerce defensively so
@@ -253,12 +259,32 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
           const r = await onAction({ type: "generate_briefing" });
           return typeof r === "string" ? r : "Briefing generated.";
         }
-
+        case "track_my_location": {
+          const raw = String(args?.mode ?? args?.action ?? "start").toLowerCase();
+          const mode = (["start", "stop", "status", "center", "follow", "unfollow"].includes(raw) ? raw : "start") as
+            | "start" | "stop" | "status" | "center" | "follow" | "unfollow";
+          const r = await onAction({ type: "track_location", mode, reason: str(args?.reason) });
+          return typeof r === "string" ? r : "Tracking request handled.";
+        }
+        case "distance_from_me": {
+          const r = await onAction({ type: "distance_from_me", to: toGeoRef(args?.to ?? args), label: str(args?.label) });
+          return typeof r === "string" ? r : "Range computed.";
+        }
+        case "set_geofence": {
+          const r = await onAction({
+            type: "geofence",
+            label: str(args?.label) ?? "Geofence",
+            radiusM: num(args?.radiusM) ?? (num(args?.radiusKm) ?? 0.5) * 1000,
+            ref: args?.ref ? toGeoRef(args.ref) : undefined,
+          });
+          return typeof r === "string" ? r : "Geofence armed.";
+        }
 
         case "property_intel": {
           // Notify parent (so its property panel can refresh too)
           try { await onAction({ type: "property_intel", address: args?.address, entityName: args?.entityName }); } catch {}
           // Pull the OSINT directly so we can stream a rich summary back into chat
+
           const sel = (mapContext as any)?.selectedEntity;
           const address = args?.address || sel?.address;
           const entityName = args?.entityName || sel?.entityName;

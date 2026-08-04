@@ -57,6 +57,14 @@ ANALYTICAL TRADECRAFT (real computation — never estimate these in prose):
 - detect_colocation(radiusM?): cluster overlay objects that share premises — shell companies, co-located associates.
 - generate_briefing(): full operation briefing with coordinates, metrics, provenance and confidence for every overlay object.
 
+OWN-FORCE TRACKING (the operator's own live position, from their device sensor):
+- track_my_location(mode, reason?): mode = start | stop | status | center | follow | unfollow. Use it whenever the operator says "track me", "where am I", "find me", "follow me", "start/stop tracking", or asks for anything relative to their current position.
+- distance_from_me(to, label?): straight-line range and bearing from the operator's live fix to a point or place.
+- set_geofence(label, radiusM, ref?): arm a proximity fence. Omit ref to anchor it on the operator's current position; entering or leaving it raises an alert on the map.
+TRACKING RULES: you may only REQUEST the sensor — the operator must approve the consent prompt, and "start" returns "awaiting operator consent" until they do. Never claim to know their position without a fix. Always report the accuracy radius alongside a position, and state that fixes stay on their device.
+
+
+
 MAP-EDITING RULES:
 1. When the operator says pin / mark / drop / plot / highlight / circle / ring / draw / outline / annotate / label / measure / clear — CALL THE TOOL. Do not answer in prose.
 2. You may chain tools ACROSS TURNS: tool results are fed back to you, so plan multi-step work — geocode with map_search, run the analysis, read the numbers, then place the annotation that the numbers justify. Finish by stating the analytical conclusion in prose.
@@ -110,6 +118,10 @@ const TOOLS = [
   { type: "function", function: { name: "solar_analysis", description: "Sun elevation, azimuth and shadow geometry for a location and time. Use to date imagery from shadows, recover structure height from shadow length, or plan low-light windows.", parameters: { type: "object", properties: { ref: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, iso: { type: "string", description: "ISO-8601 UTC timestamp. Omit for now." } }, required: ["ref"] } } },
   { type: "function", function: { name: "detect_colocation", description: "Find overlay objects that sit within a given distance of each other — shell-company address clustering, shared premises, pattern-of-life overlap.", parameters: { type: "object", properties: { radiusM: { type: "number", description: "Proximity threshold in metres (default 250)" } } } } },
   { type: "function", function: { name: "generate_briefing", description: "Produce a full intelligence briefing for the active operation: every overlay object with coordinates, metrics, provenance and confidence.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "track_my_location", description: "Control live tracking of the OPERATOR'S OWN position from their device sensor. Requires the operator's on-screen consent; a start request returns 'awaiting operator consent' until they approve.", parameters: { type: "object", properties: { mode: { type: "string", enum: ["start", "stop", "status", "center", "follow", "unfollow"], description: "start = request the sensor, status = read the current fix, center = fly the map to the operator, follow/unfollow = keep the map locked on them" }, reason: { type: "string", description: "Short reason shown to the operator in the consent prompt" } }, required: ["mode"] } } },
+  { type: "function", function: { name: "distance_from_me", description: "Straight-line range and bearing from the operator's live position to a point or named place.", parameters: { type: "object", properties: { to: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, label: { type: "string" } }, required: ["to"] } } },
+  { type: "function", function: { name: "set_geofence", description: "Arm a proximity geofence that alerts when the operator enters or leaves it. Anchored on the operator's current position unless ref is given.", parameters: { type: "object", properties: { label: { type: "string" }, radiusM: { type: "number", description: "Radius in metres" }, ref: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } } }, required: ["label", "radiusM"] } } },
+
 ];
 
 

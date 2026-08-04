@@ -21,6 +21,10 @@ import MapAnnotationLayer from "@/components/asher/MapAnnotationLayer";
 import MapFocusPin, { type FocusPinTarget, type FocusPinRow } from "@/components/asher/MapFocusPin";
 import AnnotationPanel, { type DrawMode } from "@/components/asher/AnnotationPanel";
 import AnalysisPanel from "@/components/asher/AnalysisPanel";
+import SelfLocationLayer from "@/components/asher/SelfLocationLayer";
+import SelfTrackPanel from "@/components/asher/SelfTrackPanel";
+import { useSelfTracking, bearingDeg, compass16, fmtSpeed } from "@/lib/asher/selfTrack";
+
 
 import {
   makeAnnotation, annoCenter, annoMetric,
@@ -460,6 +464,33 @@ const MapClick = ({ onClick }: { onClick: (lat: number, lng: number) => void }) 
   return null;
 };
 
+/* Follow mode must yield to the operator: the instant they drag or zoom the
+   map by hand, auto-recentering stops. A camera that fights the analyst is
+   worse than no camera lock at all. */
+const FollowGuard = ({ active, onRelease }: { active: boolean; onRelease: () => void }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (!active) return;
+    const release = () => onRelease();
+    /* Only *human* camera input releases the lock. Listening to `zoomstart`
+       would also catch our own recenter animation and disarm follow one frame
+       after arming it, so hand input is read from the raw pointer/wheel events
+       on the container instead. */
+    const el = map.getContainer();
+    map.on("dragstart", release);
+    el.addEventListener("wheel", release, { passive: true });
+    el.addEventListener("dblclick", release);
+    return () => {
+      map.off("dragstart", release);
+      el.removeEventListener("wheel", release);
+      el.removeEventListener("dblclick", release);
+    };
+  }, [map, active, onRelease]);
+  return null;
+};
+
+
+
 /* ─────────────── Coordinate display ─────────────── */
 
 const CoordDisplay = () => {
@@ -721,6 +752,43 @@ const IntelligenceMapModule = () => {
     mapRef.current?.flyTo([lat, lng], zoom, { duration: 0.8 });
   };
 
+  /* ── Own-force tracking ──────────────────────────────────────────────────
+     The sensor is owned by the operator, never by the model. Follow mode pans
+     (never zooms) so the analyst's chosen scale survives every fix, and it
+     only recenters when the new fix has actually left the viewport — panning
+     on GPS jitter would make the map crawl under the cursor. */
+  const followRef = useRef(true);
+  /* The first fix of a session always frames the operator; after that the
+     camera only moves when they have genuinely left the viewport, so a jittery
+     fix cannot make the map crawl under the analyst's cursor. */
+  const firstFixRef = useRef(true);
+  const track = useSelfTracking({
+    onFix: (f) => {
+      const map = mapRef.current;
+      if (!map) return;
+      if (firstFixRef.current) {
+        firstFixRef.current = false;
+        if (followRef.current) map.flyTo([f.lat, f.lng], Math.max(map.getZoom(), 15), { duration: 0.9 });
+        return;
+      }
+      if (!followRef.current) return;
+      const b = map.getBounds().pad(-0.25);
+      if (!b.contains([f.lat, f.lng])) map.panTo([f.lat, f.lng], { animate: true, duration: 0.6 });
+    },
+
+    onFenceEvent: (e) => {
+      toast[e.kind === "enter" ? "success" : "warning"](
+        `${e.kind === "enter" ? "Entered" : "Exited"} geofence · ${e.label}`,
+      );
+      logAsherEvent("geofence_event", { label: e.label, kind: e.kind });
+    },
+  });
+  useEffect(() => { followRef.current = track.follow; }, [track.follow]);
+  // A stopped sensor ends the session: the next acquisition re-frames the map.
+  useEffect(() => { if (track.status !== "live") firstFixRef.current = true; }, [track.status]);
+
+
+
   /* ── focusOn ────────────────────────────────────────────────────────────
      The single entry point for "take me to X". It replaces the old
      `flyTo(lat, lng, 10) + loadEntity(...)` pair, which framed a rooftop the
@@ -952,7 +1020,29 @@ const IntelligenceMapModule = () => {
         elevation: entity.elevation,
       };
     })() : null,
+    /* Own-force state. Coordinates are only exposed once the operator has
+       consented and a fix exists; otherwise the model sees the gate, not a
+       position, so it can never narrate a location it was never given. */
+    selfTracking: {
+      status: track.status,
+      consented: track.consent,
+      following: track.follow,
+      fix: track.fix
+        ? {
+            lat: track.fix.lat, lng: track.fix.lng,
+            accuracyM: Math.round(track.fix.accM),
+            altitudeM: track.fix.altM,
+            speedKph: track.fix.speedMps != null ? +(track.fix.speedMps * 3.6).toFixed(1) : null,
+            headingDeg: track.fix.headingDeg != null ? Math.round(track.fix.headingDeg) : null,
+            fixedAt: new Date(track.fix.ts).toISOString(),
+            degraded: track.fix.degraded,
+          }
+        : null,
+      trackedDistanceM: Math.round(track.stats.distanceM),
+      geofences: track.fences.map((g) => ({ label: g.label, radiusM: g.radiusM, operatorInside: g.inside })),
+    },
   };
+
 
   /* Card body for the golden pin. Derived from the same `entity` slices the
      side drawer renders, so the card can never disagree with the dossier, and
@@ -1382,7 +1472,79 @@ const IntelligenceMapModule = () => {
       return md;
     }
 
+    /* ── Own-force tracking ──────────────────────────────────────────────
+       The model can request, read and frame the operator's position, but it
+       cannot consent on their behalf: a "start" with no prior consent only
+       raises the on-screen prompt and says so. */
+    if (a.type === "track_location") {
+      const describe = () => {
+        const f = track.fix;
+        if (!f) return "No fix yet — the sensor is still acquiring.";
+        return `Operator at ${f.lat.toFixed(6)}, ${f.lng.toFixed(6)} (±${Math.round(f.accM)} m${f.degraded ? ", degraded" : ""})`
+          + `, ${fmtSpeed(f.speedMps)}`
+          + (f.headingDeg != null ? ` heading ${compass16(f.headingDeg)} ${Math.round(f.headingDeg)}°` : "")
+          + (f.altM != null ? `, altitude ${Math.round(f.altM)} m` : "")
+          + `. Fix taken ${new Date(f.ts).toLocaleTimeString()}. Track so far ${fmtDistance(track.stats.distanceM)}.`;
+      };
+
+      switch (a.mode) {
+        case "start": {
+          if (track.status === "unsupported") return "This device exposes no geolocation sensor — tracking is unavailable.";
+          if (!track.consent) {
+            track.requestFromAI(a.reason || "Live position tracking for map operations");
+            return "Consent prompt raised in the My Location panel. Tracking stays off until the operator taps Allow — nothing leaves their device.";
+          }
+          track.start();
+          return track.fix ? `Tracking live. ${describe()}` : "Tracking armed — acquiring first fix.";
+        }
+        case "stop":
+          track.stop();
+          return "Tracking stopped. The sensor is closed; the recorded track stays on the operator's device.";
+        case "status":
+          if (!track.consent) return "Tracking is not authorised — the operator has not granted location consent.";
+          return `${track.status === "live" ? "Live" : "Idle"}. ${describe()}`;
+        case "center": {
+          const f = track.fix;
+          if (!f) return "No fix available to center on — request tracking first.";
+          flyTo(f.lat, f.lng, Math.max(mapRef.current?.getZoom() ?? 0, 16));
+          return `Map centered on the operator. ${describe()}`;
+        }
+        case "follow":
+          track.setFollow(true);
+          if (!track.consent) { track.requestFromAI(a.reason || "Follow the operator on the map"); return "Follow armed — awaiting the operator's location consent."; }
+          track.start();
+          return "Follow mode on. The map recenters on each fix and releases the moment the operator pans by hand.";
+        case "unfollow":
+          track.setFollow(false);
+          return "Follow mode off. The camera stays where the operator puts it.";
+        default:
+          return "Unrecognised tracking mode.";
+      }
+    }
+
+    if (a.type === "distance_from_me") {
+      const f = track.fix;
+      if (!f) return "No operator fix — start tracking before asking for range from your position.";
+      const p = await resolveRef(a.to);
+      if (!p) return "Could not resolve the destination.";
+      const m = haversineM({ lat: f.lat, lng: f.lng }, p);
+      const brg = bearingDeg({ lat: f.lat, lng: f.lng }, p);
+      const name = a.label || a.to.place || `${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`;
+      // ±accuracy is carried through: a range is only as honest as its fix.
+      return `${fmtDistance(m)} from your position to ${name}, bearing ${compass16(brg)} ${Math.round(brg)}° (straight line; your fix is ±${Math.round(f.accM)} m). Use road_route for driving distance.`;
+    }
+
+    if (a.type === "geofence") {
+      const anchor = a.ref ? await resolveRef(a.ref) : (track.fix ? { lat: track.fix.lat, lng: track.fix.lng } : null);
+      if (!anchor) return "No anchor for the geofence — give a place, or start tracking to use your own position.";
+      const g = track.addFence({ label: a.label, lat: anchor.lat, lng: anchor.lng, radiusM: a.radiusM });
+      return `Geofence "${g.label}" armed at ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)} with a ${Math.round(g.radiusM)} m radius. ${
+        track.status === "live" ? "Breach alerts are live." : "It will start alerting once tracking is running."
+      }`;
+    }
+
   };
+
 
 
 
@@ -1478,7 +1640,10 @@ const IntelligenceMapModule = () => {
           onRestoreSnapshot={(list) => { mutateAnnotations(() => list, { action: "restore_snapshot", detail: `${list.length} objects` }); setFocusedAnno(null); }}
           onFlyTo={flyTo}
         />
+
+        <SelfTrackPanel track={track} mapCenter={{ lat: coord.lat, lng: coord.lng }} />
       </div>
+
 
 
 
@@ -1562,6 +1727,14 @@ const IntelligenceMapModule = () => {
             />
           )}
           <MapClick onClick={handleMapClick} />
+          <FollowGuard active={track.follow && track.status === "live"} onRelease={() => track.setFollow(false)} />
+          <SelfLocationLayer
+            fix={track.fix}
+            trail={track.trail}
+            fences={track.fences}
+            onRemoveFence={track.removeFence}
+          />
+
           {focusPin && (
             <MapFocusPin
               key={`${focusPin.lat},${focusPin.lng}`}
@@ -1681,6 +1854,19 @@ const IntelligenceMapModule = () => {
               );
             })}
         </MapContainer>
+
+        {/* Always-visible tracking indicator. A live sensor must never be
+            hidden behind a collapsed panel — the operator has to be able to
+            see, at a glance, that their own position is being read. */}
+        {track.status === "live" && (
+          <div className="pointer-events-none absolute top-3 right-3 z-[1001] flex items-center gap-2 rounded-xl border border-sky-400/40 bg-card/90 px-3 py-1.5 backdrop-blur-md">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse motion-reduce:animate-none" />
+            <span className="text-[10px] font-light uppercase tracking-[0.2em] text-sky-300">
+              Tracking{track.fix ? ` · ±${Math.round(track.fix.accM)} m` : " · acquiring"}
+            </span>
+          </div>
+        )}
+
 
         {/* RECON LAYER BANNER */}
         {reconLayer.detections.length > 0 && (
