@@ -1703,6 +1703,14 @@ const IntelligenceMapModule = () => {
             />
           )}
           <MapClick onClick={handleMapClick} />
+          <FollowGuard active={track.follow && track.status === "live"} onRelease={() => track.setFollow(false)} />
+          <SelfLocationLayer
+            fix={track.fix}
+            trail={track.trail}
+            fences={track.fences}
+            onRemoveFence={track.removeFence}
+          />
+
           {focusPin && (
             <MapFocusPin
               key={`${focusPin.lat},${focusPin.lng}`}
