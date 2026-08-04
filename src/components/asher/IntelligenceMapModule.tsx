@@ -1831,6 +1831,19 @@ const IntelligenceMapModule = () => {
             })}
         </MapContainer>
 
+        {/* Always-visible tracking indicator. A live sensor must never be
+            hidden behind a collapsed panel — the operator has to be able to
+            see, at a glance, that their own position is being read. */}
+        {track.status === "live" && (
+          <div className="pointer-events-none absolute top-3 right-3 z-[1001] flex items-center gap-2 rounded-xl border border-sky-400/40 bg-card/90 px-3 py-1.5 backdrop-blur-md">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse motion-reduce:animate-none" />
+            <span className="text-[10px] font-light uppercase tracking-[0.2em] text-sky-300">
+              Tracking{track.fix ? ` · ±${Math.round(track.fix.accM)} m` : " · acquiring"}
+            </span>
+          </div>
+        )}
+
+
         {/* RECON LAYER BANNER */}
         {reconLayer.detections.length > 0 && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-2 rounded-xl border border-foreground/20 bg-card/90 backdrop-blur-md px-3 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase text-foreground">
