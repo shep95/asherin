@@ -177,7 +177,7 @@ class LogRangeKf {
   private lastM: number | null = null;
   private lastTs = 0;
 
-  update(meters: number, sigmaDb: number, dt: number) {
+  update(meters: number, sigmaDb: number, dt: number, now = Date.now()) {
     const z = Math.log10(Math.max(0.05, meters));
     // Measurement sigma in log-space: dB error / (10 n) with n≈2.2.
     const sigma = Math.max(0.03, sigmaDb / 22);
@@ -193,7 +193,7 @@ class LogRangeKf {
       this.v = this.v * 0.7 + inst * 0.3;     // smoothed log-rate
     }
     this.lastM = 10 ** this.x;
-    this.lastTs = Date.now();
+    this.lastTs = now;
   }
 
   get meters() { return this.x == null ? null : 10 ** this.x; }
@@ -244,8 +244,7 @@ export class FusionTracker {
   }
 
   /** Feed the compass so the engine can measure ego-motion smear. */
-  observeHeading(heading: number | null) {
-    const now = Date.now();
+  observeHeading(heading: number | null, now = Date.now()) {
     if (heading == null) { this.lastHeading = null; this.egoRateDegS *= 0.8; return; }
     if (this.lastHeading != null && this.lastHeadingTs) {
       const dt = (now - this.lastHeadingTs) / 1000;
@@ -267,9 +266,19 @@ export class FusionTracker {
    *   3. associate + apply optical measurements (tighter R, so applied last)
    *   4. run lifecycle bookkeeping
    */
-  step(contacts: Contact[], optical: OpticalContact[], heading: number | null): FusedContact[] {
-    this.observeHeading(heading);
-    const now = Date.now();
+  step(
+    contacts: Contact[],
+    optical: OpticalContact[],
+    heading: number | null,
+    /**
+     * Injectable clock. The live AR loop omits it; replay, backtests and
+     * simulations pass a virtual timestamp so rate estimation never depends
+     * on how fast the caller happens to iterate.
+     */
+    nowMs?: number,
+  ): FusedContact[] {
+    const now = Number.isFinite(nowMs) ? (nowMs as number) : Date.now();
+    this.observeHeading(heading, now);
     const seen = new Set<string>();
     const agility = clamp(this.egoRateDegS / 140, 0, 1);
 
@@ -301,7 +310,7 @@ export class FusionTracker {
 
       const meters = pathLossRange(c, this.tuning);
       if (meters != null) {
-        t.range.update(meters, Math.max(3, rssiSigmaDb), dt);
+        t.range.update(meters, Math.max(3, rssiSigmaDb), dt, now);
         got = true;
       }
 
@@ -395,6 +404,9 @@ export class FusionTracker {
       const sigma = sigmaDeg * DEG;
       for (const [id, t] of this.tracks) {
         if (!t.bearing.ready || t.state === "lost") continue;
+        // Hard physical gate first — cheap, and it rejects the wide-posterior
+        // false binds that a pure Mahalanobis test lets through.
+        if (Math.abs(wrap180(bearingDeg - t.bearing.deg)) > this.tuning.gateHardDeg) continue;
         const d2 = t.bearing.mahalanobis2(zRad, sigma);
         if (d2 <= this.tuning.gateSigmas ** 2) candidates.push({ trackId: id, opt: o, zRad, sigma, d2 });
       }
