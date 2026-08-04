@@ -1448,7 +1448,79 @@ const IntelligenceMapModule = () => {
       return md;
     }
 
+    /* ── Own-force tracking ──────────────────────────────────────────────
+       The model can request, read and frame the operator's position, but it
+       cannot consent on their behalf: a "start" with no prior consent only
+       raises the on-screen prompt and says so. */
+    if (a.type === "track_location") {
+      const describe = () => {
+        const f = track.fix;
+        if (!f) return "No fix yet — the sensor is still acquiring.";
+        return `Operator at ${f.lat.toFixed(6)}, ${f.lng.toFixed(6)} (±${Math.round(f.accM)} m${f.degraded ? ", degraded" : ""})`
+          + `, ${fmtSpeed(f.speedMps)}`
+          + (f.headingDeg != null ? ` heading ${compass16(f.headingDeg)} ${Math.round(f.headingDeg)}°` : "")
+          + (f.altM != null ? `, altitude ${Math.round(f.altM)} m` : "")
+          + `. Fix taken ${new Date(f.ts).toLocaleTimeString()}. Track so far ${fmtDistance(track.stats.distanceM)}.`;
+      };
+
+      switch (a.mode) {
+        case "start": {
+          if (track.status === "unsupported") return "This device exposes no geolocation sensor — tracking is unavailable.";
+          if (!track.consent) {
+            track.requestFromAI(a.reason || "Live position tracking for map operations");
+            return "Consent prompt raised in the My Location panel. Tracking stays off until the operator taps Allow — nothing leaves their device.";
+          }
+          track.start();
+          return track.fix ? `Tracking live. ${describe()}` : "Tracking armed — acquiring first fix.";
+        }
+        case "stop":
+          track.stop();
+          return "Tracking stopped. The sensor is closed; the recorded track stays on the operator's device.";
+        case "status":
+          if (!track.consent) return "Tracking is not authorised — the operator has not granted location consent.";
+          return `${track.status === "live" ? "Live" : "Idle"}. ${describe()}`;
+        case "center": {
+          const f = track.fix;
+          if (!f) return "No fix available to center on — request tracking first.";
+          flyTo(f.lat, f.lng, Math.max(mapRef.current?.getZoom() ?? 0, 16));
+          return `Map centered on the operator. ${describe()}`;
+        }
+        case "follow":
+          track.setFollow(true);
+          if (!track.consent) { track.requestFromAI(a.reason || "Follow the operator on the map"); return "Follow armed — awaiting the operator's location consent."; }
+          track.start();
+          return "Follow mode on. The map recenters on each fix and releases the moment the operator pans by hand.";
+        case "unfollow":
+          track.setFollow(false);
+          return "Follow mode off. The camera stays where the operator puts it.";
+        default:
+          return "Unrecognised tracking mode.";
+      }
+    }
+
+    if (a.type === "distance_from_me") {
+      const f = track.fix;
+      if (!f) return "No operator fix — start tracking before asking for range from your position.";
+      const p = await resolveRef(a.to);
+      if (!p) return "Could not resolve the destination.";
+      const m = haversineM({ lat: f.lat, lng: f.lng }, p);
+      const brg = bearingDeg({ lat: f.lat, lng: f.lng }, p);
+      const name = a.label || a.to.place || `${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`;
+      // ±accuracy is carried through: a range is only as honest as its fix.
+      return `${fmtDistance(m)} from your position to ${name}, bearing ${compass16(brg)} ${Math.round(brg)}° (straight line; your fix is ±${Math.round(f.accM)} m). Use road_route for driving distance.`;
+    }
+
+    if (a.type === "geofence") {
+      const anchor = a.ref ? await resolveRef(a.ref) : (track.fix ? { lat: track.fix.lat, lng: track.fix.lng } : null);
+      if (!anchor) return "No anchor for the geofence — give a place, or start tracking to use your own position.";
+      const g = track.addFence({ label: a.label, lat: anchor.lat, lng: anchor.lng, radiusM: a.radiusM });
+      return `Geofence "${g.label}" armed at ${g.lat.toFixed(5)}, ${g.lng.toFixed(5)} with a ${Math.round(g.radiusM)} m radius. ${
+        track.status === "live" ? "Breach alerts are live." : "It will start alerting once tracking is running."
+      }`;
+    }
+
   };
+
 
 
 
