@@ -843,22 +843,16 @@ function ArTab(props: {
 
   const clearBindings = () => setBindings({});
 
-  // ---- Live AI subsystems (T2 SLAM, T5 behavior, T6 anchors, T7 chirp) ----
-  const slamRef = useRef<BearingSlam | null>(null);
-  if (!slamRef.current) slamRef.current = new BearingSlam();
+  // ---- Live AI subsystems (fusion tracker, T5 behavior, T6 anchors, T7 chirp) ----
+  // The bearing/range estimator is the FusionTracker (core/fusionEngine.ts):
+  // an ego-motion-aware EKF with a log-space range filter, M-of-N track
+  // lifecycle, and optical↔radio association. It supersedes BearingSlam, whose
+  // confidence could only ever rise and which ignored the camera entirely.
+  const fusionRef = useRef<FusionTracker | null>(null);
+  if (!fusionRef.current) fusionRef.current = new FusionTracker({ fov: FOV });
   const anchorsRef = useRef<VisualAnchors | null>(null);
   if (!anchorsRef.current) anchorsRef.current = new VisualAnchors();
 
-  const smoothedContacts = useMemo(
-    () => slamRef.current!.apply(props.contacts),
-    [props.contacts],
-  );
-  useEffect(() => {
-    anchorsRef.current!.update(smoothedContacts, props.heading, FOV);
-  }, [smoothedContacts, props.heading]);
-
-  const hasBearings = smoothedContacts.filter((c) => c.bearing != null);
-  const ghosts = anchorsRef.current!.ghosts(smoothedContacts, props.heading, FOV);
 
   // T7 — ultrasonic chirp detector (mic FFT 18–22 kHz)
   const [chirpOn, setChirpOn] = useState(false);
