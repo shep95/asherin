@@ -1551,26 +1551,26 @@ const IntelligenceMapModule = () => {
   return (
     <div className="relative flex h-full w-full bg-background">
       {/* LEFT LAYER PANEL */}
-      <div className="flex h-full w-72 flex-col border-r border-border/15 bg-card/30 backdrop-blur-md">
-        <div className="border-b border-border/15 px-4 py-3 flex items-center gap-2">
-          <LayersIcon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
-          <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase">Layer Tree</p>
+      <div className="flex h-full w-96 flex-col border-r border-border/15 bg-card/30 backdrop-blur-md">
+        <div className="border-b border-border/15 px-5 py-4 flex items-center gap-3">
+          <LayersIcon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+          <p className="text-sm font-medium tracking-[0.2em] text-muted-foreground uppercase">Layer Tree</p>
         </div>
-        <div className="flex-1 overflow-y-auto px-2 py-2 text-sm">
+        <div className="flex-1 overflow-y-auto px-3 py-3 text-sm">
           {LAYER_TREE.map((cat) => {
             const open = !!openCats[cat.id];
             return (
-              <div key={cat.id} className="mb-1">
+              <div key={cat.id} className="mb-2">
                 <button
                   onClick={() => toggleCat(cat.id)}
-                  className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left hover:bg-foreground/5"
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-left hover:bg-foreground/5"
                 >
-                  {open ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-                  <span className="text-[11px] font-light tracking-[0.15em] text-foreground/85 uppercase">{cat.label}</span>
-                  <span className="ml-auto text-[9px] text-muted-foreground/50">{cat.layers.length}</span>
+                  {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                  <span className="text-xs font-medium tracking-[0.12em] text-foreground/90 uppercase">{cat.label}</span>
+                  <span className="ml-auto text-[10px] text-muted-foreground/60">{cat.layers.length}</span>
                 </button>
                 {open && (
-                  <div className="ml-5 mt-0.5 space-y-0.5">
+                  <div className="ml-6 mt-1 space-y-1">
                     {cat.layers.map((l) => {
                       const isBase = cat.id === "base";
                       const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
@@ -1588,21 +1588,21 @@ const IntelligenceMapModule = () => {
                             else if (isBoundary) setShowTacticalBorders((p) => !p);
                           }}
                           disabled={l.status !== "live"}
-                          className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors ${
+                          className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left transition-colors ${
                             isActive ? "bg-foreground/10 text-foreground"
                             : l.status === "live" ? "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                             : "text-muted-foreground/40 cursor-not-allowed"
                           }`}
                         >
-                          <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
+                          <span className={`h-2 w-2 rounded-full flex-shrink-0 ${
                             l.status === "live" ? (isActive ? "bg-emerald-400" : "bg-emerald-400/40") : "bg-muted-foreground/30"
                           }`} />
-                          <span className="text-[11px] font-light flex-1 truncate">{l.label}</span>
+                          <span className="text-sm font-light flex-1 truncate">{l.label}</span>
                           {l.status === "soon" && (
-                            <span className="text-[8px] tracking-[0.2em] text-muted-foreground/40 uppercase">Soon</span>
+                            <span className="text-[10px] tracking-[0.15em] text-muted-foreground/40 uppercase">Soon</span>
                           )}
                           {isThreat && isActive && (
-                            <span className="text-[8px] tracking-[0.2em] text-emerald-400/80 uppercase">{threatData[l.id as ThreatId]?.length ?? 0}</span>
+                            <span className="text-[10px] tracking-[0.15em] text-emerald-400/80 uppercase">{threatData[l.id as ThreatId]?.length ?? 0}</span>
                           )}
                         </button>
                       );
