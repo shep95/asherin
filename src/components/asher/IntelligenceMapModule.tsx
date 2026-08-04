@@ -472,12 +472,23 @@ const FollowGuard = ({ active, onRelease }: { active: boolean; onRelease: () => 
   useEffect(() => {
     if (!active) return;
     const release = () => onRelease();
+    /* Only *human* camera input releases the lock. Listening to `zoomstart`
+       would also catch our own recenter animation and disarm follow one frame
+       after arming it, so hand input is read from the raw pointer/wheel events
+       on the container instead. */
+    const el = map.getContainer();
     map.on("dragstart", release);
-    map.on("zoomstart", release);
-    return () => { map.off("dragstart", release); map.off("zoomstart", release); };
+    el.addEventListener("wheel", release, { passive: true });
+    el.addEventListener("dblclick", release);
+    return () => {
+      map.off("dragstart", release);
+      el.removeEventListener("wheel", release);
+      el.removeEventListener("dblclick", release);
+    };
   }, [map, active, onRelease]);
   return null;
 };
+
 
 
 /* ─────────────── Coordinate display ─────────────── */
