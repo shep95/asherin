@@ -21,6 +21,10 @@ import MapAnnotationLayer from "@/components/asher/MapAnnotationLayer";
 import MapFocusPin, { type FocusPinTarget, type FocusPinRow } from "@/components/asher/MapFocusPin";
 import AnnotationPanel, { type DrawMode } from "@/components/asher/AnnotationPanel";
 import AnalysisPanel from "@/components/asher/AnalysisPanel";
+import SelfLocationLayer from "@/components/asher/SelfLocationLayer";
+import SelfTrackPanel from "@/components/asher/SelfTrackPanel";
+import { useSelfTracking, bearingDeg, compass16, fmtSpeed } from "@/lib/asher/selfTrack";
+
 
 import {
   makeAnnotation, annoCenter, annoMetric,
