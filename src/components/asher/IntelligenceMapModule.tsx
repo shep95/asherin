@@ -464,6 +464,22 @@ const MapClick = ({ onClick }: { onClick: (lat: number, lng: number) => void }) 
   return null;
 };
 
+/* Follow mode must yield to the operator: the instant they drag or zoom the
+   map by hand, auto-recentering stops. A camera that fights the analyst is
+   worse than no camera lock at all. */
+const FollowGuard = ({ active, onRelease }: { active: boolean; onRelease: () => void }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (!active) return;
+    const release = () => onRelease();
+    map.on("dragstart", release);
+    map.on("zoomstart", release);
+    return () => { map.off("dragstart", release); map.off("zoomstart", release); };
+  }, [map, active, onRelease]);
+  return null;
+};
+
+
 /* ─────────────── Coordinate display ─────────────── */
 
 const CoordDisplay = () => {
