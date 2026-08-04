@@ -747,14 +747,24 @@ const IntelligenceMapModule = () => {
      only recenters when the new fix has actually left the viewport — panning
      on GPS jitter would make the map crawl under the cursor. */
   const followRef = useRef(true);
+  /* The first fix of a session always frames the operator; after that the
+     camera only moves when they have genuinely left the viewport, so a jittery
+     fix cannot make the map crawl under the analyst's cursor. */
+  const firstFixRef = useRef(true);
   const track = useSelfTracking({
     onFix: (f) => {
-      if (!followRef.current) return;
       const map = mapRef.current;
       if (!map) return;
+      if (firstFixRef.current) {
+        firstFixRef.current = false;
+        if (followRef.current) map.flyTo([f.lat, f.lng], Math.max(map.getZoom(), 15), { duration: 0.9 });
+        return;
+      }
+      if (!followRef.current) return;
       const b = map.getBounds().pad(-0.25);
       if (!b.contains([f.lat, f.lng])) map.panTo([f.lat, f.lng], { animate: true, duration: 0.6 });
     },
+
     onFenceEvent: (e) => {
       toast[e.kind === "enter" ? "success" : "warning"](
         `${e.kind === "enter" ? "Entered" : "Exited"} geofence · ${e.label}`,
