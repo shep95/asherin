@@ -889,7 +889,74 @@ function ArTab(props: {
   // Streamed identifications + environment scan from the BYOK Vision panel.
   const [visionIdents, setVisionIdents] = useState<VisionIdent[]>([]);
   const [visionEnv, setVisionEnv] = useState<EnvScan | null>(null);
-  const [envExpanded, setEnvExpanded] = useState(false);
+
+  /* ══════════════════════════════════════════════════════════════════
+   * FUSION CYCLE — radio + optics + compass, one pass per frame update.
+   * Declared after `optical` so the tracker can consume camera detections
+   * in the same cycle that produced them (no one-frame lag).
+   * ══════════════════════════════════════════════════════════════════ */
+  const fusedContacts = useMemo(
+    () => fusionRef.current!.step(props.contacts, optical, props.heading),
+    [props.contacts, optical, props.heading],
+  );
+  const smoothedContacts = fusedContacts;
+
+  useEffect(() => {
+    anchorsRef.current!.update(smoothedContacts, props.heading, FOV);
+  }, [smoothedContacts, props.heading]);
+
+  const hasBearings = smoothedContacts.filter((c) => c.bearing != null);
+  const ghosts = anchorsRef.current!.ghosts(smoothedContacts, props.heading, FOV);
+
+  /* ── Persistent contact memory (IndexedDB, device-local) ───────────── */
+  const memoryRef = useRef<ContactMemory | null>(null);
+  if (!memoryRef.current) memoryRef.current = new ContactMemory();
+  const [memoryStats, setMemoryStats] = useState<MemoryStats | null>(null);
+  const [reacquisitions, setReacquisitions] = useState<Reacquisition[]>([]);
+  const [knownIds, setKnownIds] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    let alive = true;
+    void memoryRef.current!.boot().then((dossiers) => {
+      if (!alive) return;
+      setKnownIds(new Set(dossiers.map((d) => d.id)));
+      setMemoryStats(memoryRef.current!.stats());
+    });
+    const flush = () => { void memoryRef.current!.flush(); };
+    document.addEventListener("visibilitychange", flush);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      alive = false;
+      document.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!fusedContacts.length) return;
+    const returns = memoryRef.current!.ingest(fusedContacts, classifyBehavior);
+    if (returns.length) setReacquisitions((prev) => [...returns, ...prev].slice(0, 6));
+    setMemoryStats(memoryRef.current!.stats());
+  }, [fusedContacts]);
+
+  /* ── Scene reasoning — deterministic cross-modal synthesis ─────────── */
+  const assessment = useMemo(
+    () =>
+      reasonScene({
+        contacts: fusedContacts,
+        optical,
+        idents: visionIdents,
+        env: visionEnv,
+        heading: props.heading,
+        fov: FOV,
+        watchlist: props.contacts.filter((c) => c.watchlisted).map((c) => c.id),
+        knownIds,
+      }),
+    [fusedContacts, optical, visionIdents, visionEnv, props.heading, props.contacts, knownIds],
+  );
+
+
 
 
   useEffect(() => {
