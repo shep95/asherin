@@ -1616,7 +1616,10 @@ const IntelligenceMapModule = () => {
           onRestoreSnapshot={(list) => { mutateAnnotations(() => list, { action: "restore_snapshot", detail: `${list.length} objects` }); setFocusedAnno(null); }}
           onFlyTo={flyTo}
         />
+
+        <SelfTrackPanel track={track} mapCenter={{ lat: coord.lat, lng: coord.lng }} />
       </div>
+
 
 
 
