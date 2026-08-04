@@ -12,8 +12,12 @@ import { startScan, pickOne, detectScanMode, listPaired, type RawAdvert, type Sc
 import { HopBrain } from "./core/hop";
 import { startHeadingStream, startVisualHeadingStream, startCamera, stopCamera, bearingDelta, flipFacing } from "./core/posesense";
 import { startBodyVision, POSE_EDGES, HAND_EDGES, type BodyMode, type BodyFrame, type PoseHit } from "./core/bodyvision";
-import { BearingSlam, VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
+import { VisualAnchors, classifyBehavior, startChirpDetector, type ChirpHandle, type DeviceBehavior } from "./core/visionAi";
+import { FusionTracker, type FusedContact } from "./core/fusionEngine";
+import { ContactMemory, formatGap, type MemoryStats, type Reacquisition } from "./core/contactMemory";
+import { reasonScene, type SceneAssessment } from "./core/sceneReasoner";
 import { startOpticalScan, type OpticalContact, type OpticalHandle } from "./core/opticalContacts";
+
 import { updateVehicleTracks } from "./core/vehicleTracking";
 import { correlateOptical, type Suggestion } from "./core/deviceCorrelation";
 import RadarIntelPack from "./RadarIntelPack";
