@@ -741,6 +741,30 @@ const IntelligenceMapModule = () => {
     mapRef.current?.flyTo([lat, lng], zoom, { duration: 0.8 });
   };
 
+  /* ── Own-force tracking ──────────────────────────────────────────────────
+     The sensor is owned by the operator, never by the model. Follow mode pans
+     (never zooms) so the analyst's chosen scale survives every fix, and it
+     only recenters when the new fix has actually left the viewport — panning
+     on GPS jitter would make the map crawl under the cursor. */
+  const followRef = useRef(true);
+  const track = useSelfTracking({
+    onFix: (f) => {
+      if (!followRef.current) return;
+      const map = mapRef.current;
+      if (!map) return;
+      const b = map.getBounds().pad(-0.25);
+      if (!b.contains([f.lat, f.lng])) map.panTo([f.lat, f.lng], { animate: true, duration: 0.6 });
+    },
+    onFenceEvent: (e) => {
+      toast[e.kind === "enter" ? "success" : "warning"](
+        `${e.kind === "enter" ? "Entered" : "Exited"} geofence · ${e.label}`,
+      );
+      logAsherEvent("geofence_event", { label: e.label, kind: e.kind });
+    },
+  });
+  useEffect(() => { followRef.current = track.follow; }, [track.follow]);
+
+
   /* ── focusOn ────────────────────────────────────────────────────────────
      The single entry point for "take me to X". It replaces the old
      `flyTo(lat, lng, 10) + loadEntity(...)` pair, which framed a rooftop the
