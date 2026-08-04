@@ -1714,10 +1714,10 @@ function SceneAssessmentPanel(props: {
 
           {/* Fusion telemetry strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Stat label="Confirmed" value={`${confirmed}`} />
-            <Stat label="Coasting" value={`${coasting}`} />
-            <Stat label="Optic-bound" value={`${bound}`} />
-            <Stat label="Ego rate" value={`${props.egoRateDegS.toFixed(0)}°/s`} />
+            <FusionStat label="Confirmed" value={`${confirmed}`} />
+            <FusionStat label="Coasting" value={`${coasting}`} />
+            <FusionStat label="Optic-bound" value={`${bound}`} />
+            <FusionStat label="Ego rate" value={`${props.egoRateDegS.toFixed(0)}°/s`} />
           </div>
 
           {/* Re-acquisition alerts */}
@@ -1840,7 +1840,7 @@ function SceneAssessmentPanel(props: {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function FusionStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2 py-1.5">
       <div className="text-[9px] tracking-[0.16em] uppercase text-foreground/35">{label}</div>
