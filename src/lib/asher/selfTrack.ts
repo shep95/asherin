@@ -418,18 +418,25 @@ export function useSelfTracking(opts?: { onFix?: (f: SelfFix) => void; onFenceEv
   }, [start]);
 
   const addFence = useCallback((f: { label: string; lat: number; lng: number; radiusM: number }): Geofence => {
+    const radiusM = Math.max(20, Math.min(200_000, f.radiusM));
+    /* Seed containment from the current fix. Without this a fence drawn
+       around where the operator already stands reads "outside" until the next
+       fix lands, and an exit alert then fires for a boundary never crossed. */
+    const now = lastFixRef.current;
+    const inside = !!now && !now.degraded && haversineM({ lat: f.lat, lng: f.lng }, now) <= radiusM;
     const fence: Geofence = {
       id: crypto.randomUUID(),
       label: f.label,
       lat: f.lat,
       lng: f.lng,
-      radiusM: Math.max(20, Math.min(200_000, f.radiusM)),
+      radiusM,
       createdAt: Date.now(),
-      inside: false,
+      inside,
     };
     setFences((p) => [...p, fence]);
     return fence;
   }, []);
+
 
   const removeFence = useCallback((id: string) => setFences((p) => p.filter((x) => x.id !== id)), []);
 
