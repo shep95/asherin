@@ -263,6 +263,8 @@ export function useSelfTracking(opts?: { onFix?: (f: SelfFix) => void; onFenceEv
   const distRef = useRef(0);
   const maxSpeedRef = useRef<number | null>(null);
   const dwellAnchorRef = useRef<{ lat: number; lng: number; ts: number } | null>(null);
+  const lastFixRef = useRef<SelfFix | null>(null);
+
   const [dwellSince, setDwellSince] = useState<number | null>(null);
 
   useEffect(() => { trailRef.current = trail; }, [trail]);
