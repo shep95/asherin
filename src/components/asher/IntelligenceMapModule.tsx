@@ -996,7 +996,29 @@ const IntelligenceMapModule = () => {
         elevation: entity.elevation,
       };
     })() : null,
+    /* Own-force state. Coordinates are only exposed once the operator has
+       consented and a fix exists; otherwise the model sees the gate, not a
+       position, so it can never narrate a location it was never given. */
+    selfTracking: {
+      status: track.status,
+      consented: track.consent,
+      following: track.follow,
+      fix: track.fix
+        ? {
+            lat: track.fix.lat, lng: track.fix.lng,
+            accuracyM: Math.round(track.fix.accM),
+            altitudeM: track.fix.altM,
+            speedKph: track.fix.speedMps != null ? +(track.fix.speedMps * 3.6).toFixed(1) : null,
+            headingDeg: track.fix.headingDeg != null ? Math.round(track.fix.headingDeg) : null,
+            fixedAt: new Date(track.fix.ts).toISOString(),
+            degraded: track.fix.degraded,
+          }
+        : null,
+      trackedDistanceM: Math.round(track.stats.distanceM),
+      geofences: track.fences.map((g) => ({ label: g.label, radiusM: g.radiusM, operatorInside: g.inside })),
+    },
   };
+
 
   /* Card body for the golden pin. Derived from the same `entity` slices the
      side drawer renders, so the card can never disagree with the dossier, and
