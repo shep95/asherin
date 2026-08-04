@@ -889,6 +889,7 @@ function ArTab(props: {
   // Streamed identifications + environment scan from the BYOK Vision panel.
   const [visionIdents, setVisionIdents] = useState<VisionIdent[]>([]);
   const [visionEnv, setVisionEnv] = useState<EnvScan | null>(null);
+  const [envExpanded, setEnvExpanded] = useState(false);
 
   /* ══════════════════════════════════════════════════════════════════
    * FUSION CYCLE — radio + optics + compass, one pass per frame update.
