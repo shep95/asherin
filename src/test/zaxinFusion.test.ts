@@ -10,6 +10,7 @@ import { reasonScene } from "@/components/dashboard/zaxin/core/sceneReasoner";
 import type { Contact, RssiSample } from "@/components/dashboard/zaxin/core/types";
 import type { OpticalContact } from "@/components/dashboard/zaxin/core/opticalContacts";
 
+const T0 = 1_760_000_000_000; // fixed virtual epoch for deterministic replay
 const TX = -59;
 const N = 2.2;
 const rssiFor = (m: number) => TX - 10 * N * Math.log10(Math.max(0.1, m));
@@ -61,7 +62,7 @@ describe("FusionTracker", () => {
       const rssi = rssiFor(8) + noise(k + 500, 4);
       samples = [...samples, { ts: Date.now() + k * 125, rssi }].slice(-24);
       const c = makeContact({ bearing: measured, rssi, bearingConfidence: 0.5, samples });
-      const [out] = tracker.step([c], [], heading);
+      const [out] = tracker.step([c], [], heading, T0 + k * 125);
       if (k >= 20) {
         rawErr += Math.abs(measured - truthBearing);
         fusedErr += Math.abs(((out.bearing! - truthBearing + 540) % 360) - 180);
@@ -80,7 +81,7 @@ describe("FusionTracker", () => {
       const rssi = rssiFor(trueRange) + noise(k, 3);
       samples = [...samples, { ts: Date.now() + k * 125, rssi }].slice(-24);
       const c = makeContact({ rssi, samples, bearing: 100 });
-      [last] = tracker.step([c], [], 100);
+      [last] = tracker.step([c], [], 100, T0 + k * 125);
     }
     expect(last!.track.rangeM).toBeGreaterThan(1);
     expect(last!.track.rangeM).toBeLessThan(4.5);      // truth ends at 2m
@@ -92,14 +93,13 @@ describe("FusionTracker", () => {
     const tracker = new FusionTracker();
     let peak = 0;
     for (let k = 0; k < 20; k++) {
-      const [o] = tracker.step([makeContact({ bearing: 90, bearingConfidence: 0.9, rssi: -60 })], [], 90);
+      const [o] = tracker.step([makeContact({ bearing: 90, bearingConfidence: 0.9, rssi: -60 })], [], 90, T0 + k * 125);
       peak = Math.max(peak, o.track.confidence);
     }
     // Contact drops off the air; the engine must coast, not freeze.
     let coastConf = peak;
     for (let k = 0; k < 5; k++) {
-      tracker.step([], [], 90);
-      const [o] = tracker.step([makeContact({ bearing: null, rssi: null, bearingConfidence: 0 })], [], 90);
+      const [o] = tracker.step([makeContact({ bearing: null, rssi: null, bearingConfidence: 0 })], [], 90, T0 + 2500 + k * 500);
       coastConf = o.track.confidence;
     }
     expect(coastConf).toBeLessThan(peak);
@@ -114,7 +114,7 @@ describe("FusionTracker", () => {
     let out;
     for (let k = 0; k < 15; k++) {
       const c = makeContact({ bearing: 101 + noise(k, 10), rssi: rssiFor(4), bearingConfidence: 0.4 });
-      [out] = tracker.step([c], optical, heading);
+      [out] = tracker.step([c], optical, heading, T0 + k * 125);
     }
     expect(out!.track.opticalId).toBe("opt-1");
     expect(out!.track.opticalCorrected).toBe(true);
@@ -171,6 +171,7 @@ describe("reasonScene", () => {
         [makeContact({ watchlisted: true, threatTier: "priority", bearing: 100, rssi: rssiFor(trueRange) + noise(k, 2) })],
         [],
         100,
+        T0 + k * 125,
       );
     }
     const a = reasonScene({
@@ -190,7 +191,7 @@ describe("reasonScene", () => {
     for (let k = 0; k < 20; k++) {
       fused = t2.step([makeContact({ bearing: 100, rssi: rssiFor(3) })], [
         { id: "opt-9", label: "chair", kind: "device", score: 0.7, x: 0.05, y: 0.6, w: 0.1, h: 0.2, ts: Date.now() },
-      ], 100);
+      ], 100, T0 + k * 125);
     }
     const a = reasonScene({
       contacts: fused!,

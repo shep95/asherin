@@ -406,7 +406,8 @@ export class FusionTracker {
         if (!t.bearing.ready || t.state === "lost") continue;
         // Hard physical gate first — cheap, and it rejects the wide-posterior
         // false binds that a pure Mahalanobis test lets through.
-        if (Math.abs(wrap180(bearingDeg - t.bearing.deg)) > this.tuning.gateHardDeg) continue;
+        const tb = t.bearing.bearingDeg;
+        if (tb == null || Math.abs(wrap180(bearingDeg - tb)) > this.tuning.gateHardDeg) continue;
         const d2 = t.bearing.mahalanobis2(zRad, sigma);
         if (d2 <= this.tuning.gateSigmas ** 2) candidates.push({ trackId: id, opt: o, zRad, sigma, d2 });
       }
