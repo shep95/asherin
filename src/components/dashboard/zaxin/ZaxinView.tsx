@@ -1622,7 +1622,24 @@ function ArTab(props: {
         )}
       </div>
 
+      {/* Fusion + scene synthesis — deterministic, no second model call */}
+      <SceneAssessmentPanel
+        assessment={assessment}
+        tracks={fusedContacts}
+        memory={memoryStats}
+        reacquisitions={reacquisitions}
+        egoRateDegS={fusionRef.current!.operatorAngularRate}
+        onPurgeMemory={async () => {
+          await memoryRef.current!.purge();
+          setKnownIds(new Set());
+          setReacquisitions([]);
+          setMemoryStats(memoryRef.current!.stats());
+        }}
+        onDismissReacquisition={(id) => setReacquisitions((p) => p.filter((r) => r.id !== id))}
+      />
+
       {/* AI Vision Identify — BYOK Gemini/OpenAI vision over current frame + RSSI ranging */}
+
       <AiVisionIdentifyPanel
         videoRef={props.videoRef}
         optical={optical}
