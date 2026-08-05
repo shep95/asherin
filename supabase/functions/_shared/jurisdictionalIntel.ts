@@ -432,8 +432,17 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
 }
 
 // ── Zophiel retrieval ──────────────────────────────────────────────────────
-async function zophielQuery(query: string, options: { timeoutMs?: number; limit?: number } = {}): Promise<IntelChannelHit[]> {
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * A single upstream query. `retry` re-issues once after a short pause when the
+ * upstream returns an empty set: bursts of parallel queries were observed to
+ * degrade to zero results mid-sweep while identical queries succeeded seconds
+ * later, so an empty response is treated as soft failure, not as "no data".
+ */
+async function zophielQueryOnce(query: string, options: { timeoutMs?: number; limit?: number } = {}): Promise<IntelChannelHit[]> {
   if (!SUPABASE_URL || !SUPABASE_ANON) return [];
+
   // Hard-cap any per-call timeout at 10s so a slow/degraded zophiel-search
   // cannot chain into pushing the outer /chat request past the 150s edge limit.
   const timeoutMs = Math.min(options.timeoutMs ?? 15000, 15000);
