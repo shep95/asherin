@@ -23,9 +23,14 @@
 
 import { sourcesFor, siteFilter, parseJurisdiction, isBlockedSource } from "./jurisdictions.ts";
 import {
-  buildFieldLedger, formatFieldLedger, selectSeeds,
+  buildFieldLedger, formatFieldLedger,
   type FieldLedger, type Seed,
 } from "./intelExtract.ts";
+import {
+  createGraph, ingestRing1, ingestRing2, ring2Seeds, intersectBranches, formatGraph,
+  type IntelGraph, type GraphNode,
+} from "./intelGraph.ts";
+
 
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("VITE_SUPABASE_URL") ?? "";
