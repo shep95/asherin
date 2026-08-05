@@ -1483,8 +1483,11 @@ Deno.serve(async (req) => {
     
     // ── Semantic Intent Analysis ──
     const semanticIntent = analyzeSemanticIntent(trimmed);
-    
-    const builtQuery = buildSearchQuery(trimmed, mode, semanticIntent, filters, operatorOverrides);
+
+    // ── Stage 1: Query Understanding (pure lexical, sub-ms, no model call) ──
+    const plan = buildQueryPlan(trimmed);
+
+    const builtQuery = buildSearchQuery(plan, mode, semanticIntent, filters, operatorOverrides);
     const instantAnswerType = detectInstantAnswerType(trimmed);
 
     // Run multi-engine search + instant answer + always-on onion search in parallel.
