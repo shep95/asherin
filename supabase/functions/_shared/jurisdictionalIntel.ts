@@ -991,6 +991,9 @@ export function formatIntelContext(bundle: IntelBundle): string {
     ? `\n\n${formatFieldLedger(fieldLedger)}`
     : "";
 
+  const graphBlock = graph && graph.nodes.length > 1 ? `\n\n${formatGraph(graph)}` : "";
+
+
   const sections: string[] = [];
   const order: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
   for (const b of order) {
