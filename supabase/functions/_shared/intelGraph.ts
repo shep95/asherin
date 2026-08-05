@@ -244,6 +244,10 @@ export function ingestRing2(g: IntelGraph, parent: GraphNode, ledger: FieldLedge
       if (!f.display || f.display.length < 3) continue;
       const id = keyFor(kind, f.display);
       if (id === parent.id || id === g.subjectId) continue;
+      // A branch re-asserting the subject ("Asher Newton" found on the father's
+      // record) is reciprocal confirmation of an existing edge, not a new node.
+      if (isSubjectAlias(g, kind, f.display)) continue;
+
       const node = upsertNode(g, {
         id, kind, label: f.display, ring: 2,
         canonical: f.canonical,
