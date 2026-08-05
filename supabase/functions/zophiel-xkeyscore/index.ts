@@ -46,6 +46,12 @@ function stripHtml(html: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&#(\d{1,6});/g, (_, d) => String.fromCharCode(Number(d)))
+    // Framework hydration islands (Astro/Next/Nuxt) survive tag stripping as
+    // serialized JSON. Left in place, their quoted keys read as prose context
+    // and promote nav labels to "people", so the structural punctuation is
+    // scrubbed before any matcher sees the text.
+    .replace(/"[A-Za-z_$][A-Za-z0-9_$]{0,40}"\s*:/g, " ")
+    .replace(/[[\]{}]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
