@@ -1659,13 +1659,22 @@ Deno.serve(async (req) => {
     }
 
 
-    // Boost mode-relevant domains (secondary sort)
+    // Re-rank after OmniSpider enrichment: enriched snippets carry new evidence,
+    // so relevance must be recomputed against the fuller text.
+    applyRanking(filtered);
+
+    // Mode-relevant domains get a bounded score BONUS. The previous version
+    // hoisted every boosted domain above the entire list, which discarded the
+    // ranking that had just been computed.
     const boostDomains = new Set(MODE_DOMAIN_BOOSTS[mode] || []);
     if (boostDomains.size > 0) {
-      const boosted = filtered.filter(r => boostDomains.has(extractDomain(r.url)));
-      const rest = filtered.filter(r => !boostDomains.has(extractDomain(r.url)));
-      filtered = [...boosted, ...rest];
+      for (const r of filtered) {
+        if (boostDomains.has(extractDomain(r.url))) r.score = (r.score ?? 0) + 0.08;
+      }
+      filtered.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+      filtered.forEach((r, i) => { r.rank = i + 1; });
     }
+
 
     // Group results by category
     const grouped: Record<string, SearchResult[]> = {};
