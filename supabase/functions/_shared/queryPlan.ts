@@ -160,7 +160,9 @@ export function buildQueryPlan(raw: string): QueryPlan {
 
   // 7. Entity classification — drives per-engine eligibility upstream.
   //    A person is a multi-word, purely alphabetic name with no acronym token.
+  const phraseNorms = new Set(phrases.map(normalizeTerm));
   const looksPersonal = requiredFinal.some((r) => {
+    if (phraseNorms.has(r)) return false;
     const w = r.split(" ");
     return w.length >= 2 && w.length <= 4 && w.every((x) => /^[a-z]{2,}$/.test(x));
   });
