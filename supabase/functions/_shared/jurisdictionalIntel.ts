@@ -452,14 +452,18 @@ async function zophielQuery(query: string, options: { timeoutMs?: number; limit?
       body: JSON.stringify({ query, page: 1, mode: "web", fast: true }),
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!resp.ok) return [];
+    if (!resp.ok) {
+      console.warn(`[intel:query] HTTP ${resp.status} q="${query.slice(0, 80)}"`);
+      return [];
+    }
     const data = await resp.json();
+
     let raw: any[] = Array.isArray(data?.results) ? data.results : (Array.isArray(data?.hits) ? data.hits : []);
     // Fallback: flatten `grouped` (category → results[]) if `results` empty.
     if (raw.length === 0 && data?.grouped && typeof data.grouped === "object") {
       raw = Object.values(data.grouped).flat() as any[];
     }
-    return raw.slice(0, limit).map((r: any) => {
+    const mapped = raw.slice(0, limit).map((r: any) => {
       const url = String(r.url || r.link || r.source_url || (r.source && !r.source.includes(" ") ? `https://${r.source}` : "") || "");
       let domain = "";
       try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
@@ -470,6 +474,9 @@ async function zophielQuery(query: string, options: { timeoutMs?: number; limit?
         domain,
       } as IntelChannelHit;
     }).filter((h: IntelChannelHit) => h.url && !isBlockedSource(h.domain) && !isBlockedSource(h.url));
+    console.log(`[intel:query] raw=${raw.length} kept=${mapped.length} q="${query.slice(0, 80)}"`);
+    return mapped;
+
 
   } catch (e) {
     console.error("[jurisdictionalIntel] zophiel query failed:", (e as Error).message);
@@ -661,7 +668,14 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     DK: "Denmark", FI: "Finland", CH: "Switzerland", AT: "Austria", BE: "Belgium",
     IN: "India", SG: "Singapore", JP: "Japan", MX: "Mexico", BR: "Brazil",
   };
-  const narrowLocus = [intent.city, intent.county, intent.state].filter(Boolean).join(" ");
+  // County codes ("LEE") inside a query are noise no directory indexes — the
+  // observed recall collapse ("Cape Coral LEE FL" → 0 hits) came from exactly
+  // this token. City+state is the shape directories actually key on; the
+  // county is only useful when no city was resolved.
+  const narrowLocus = intent.city
+    ? [intent.city, intent.state].filter(Boolean).join(" ")
+    : [intent.county ? `${titleCaseForName(intent.county)} County` : "", intent.state].filter(Boolean).join(" ");
+
   const countryLabel = intent.country ? (COUNTRY_LABELS[intent.country] || intent.country) : "";
   const locus = narrowLocus || countryLabel;
 
@@ -833,16 +847,27 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   for (const h of allHits()) scorePersonIdentity(h, intent);
 
   // ── RESOLUTION — deterministic extraction, normalization, scoring ──────
+  // A body is preferred, but people-directory result snippets routinely carry
+  // the exact payload we need ("Relatives: X, Y · Lives in Cape Coral, FL")
+  // while the page itself sits behind a Cloudflare interstitial. Discarding
+  // those hits starved ring 1 and left ring 2 with zero branch documents, so
+  // snippet-only hits are admitted as lower-weight documents.
   const docsOf = (hits: IntelChannelHit[]) => hits
-    .filter((h) => h.body && h.body.length > 40)
-    .map((h) => ({
-      domain: h.domain,
-      url: h.url,
-      bucket: h.bucket,
-      text: `${h.title}\n${h.snippet}\n${h.body}`,
-      authoritative: h.bucket === "authoritative" || h.bucket === "court",
-      band: h.identityBand,
-    }));
+    .map((h) => {
+      const hasBody = !!h.body && h.body.length > 40;
+      const meta = `${h.title}\n${h.snippet}`.trim();
+      if (!hasBody && meta.length < 60) return null;
+      return {
+        domain: h.domain,
+        url: h.url,
+        bucket: h.bucket,
+        text: hasBody ? `${meta}\n${h.body}` : meta,
+        authoritative: hasBody && (h.bucket === "authoritative" || h.bucket === "court"),
+        band: h.identityBand,
+      };
+    })
+    .filter((d): d is NonNullable<typeof d> => d !== null);
+
   const toDocs = () => docsOf(allHits());
 
   let fieldLedger = buildFieldLedger(toDocs(), intent.subject);
@@ -862,18 +887,30 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     const seeds = ring2Seeds(graph, 6);
     const branches = new Map<string, string[]>();
     if (seeds.length && deadlineMs - (Date.now() - startedAt) > 14000) {
-      const queryFor = (n: GraphNode) =>
-        n.kind === "person" ? `"${n.label}" ${locus} relatives address`
-          : n.kind === "address" ? `"${n.label}" ${locus} owner residents`
-            : `"${n.label}" ${locus} officer registered agent`;
+      // Two query shapes per seed. A phrase-quoted query is precise but returns
+      // nothing when the index has no exact-phrase match, which is exactly how
+      // ring 2 was collapsing to zero; the unquoted form is the fallback.
+      const queryFor = (n: GraphNode, loose: boolean) => {
+        const name = loose ? n.label : `"${n.label}"`;
+        return n.kind === "person" ? `${name} ${locus} relatives address`
+          : n.kind === "address" ? `${name} ${locus} owner residents`
+            : `${name} ${locus} officer registered agent`;
+      };
+
+      const runSeed = async (n: GraphNode, budget: number) => {
+        const strict = await zophielQuery(queryFor(n, false), { timeoutMs: budget, limit: 8 })
+          .catch(() => [] as IntelChannelHit[]);
+        if (strict.length) return strict;
+        return await zophielQuery(queryFor(n, true), { timeoutMs: budget, limit: 8 })
+          .catch(() => [] as IntelChannelHit[]);
+      };
 
       for (let i = 0; i < seeds.length; i += 3) {
         const remaining = deadlineMs - (Date.now() - startedAt) - 6000;
         if (remaining < 5000) break;
         const wave = seeds.slice(i, i + 3);
         const results = await Promise.all(
-          wave.map((n) => zophielQuery(queryFor(n), { timeoutMs: Math.min(6500, remaining), limit: 8 })
-            .catch(() => [] as IntelChannelHit[])),
+          wave.map((n) => runSeed(n, Math.min(6500, remaining))),
         );
 
         // Per-seed fresh-hit sets keep ring-2 attribution honest: a node found
@@ -881,8 +918,19 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
         const freshPerSeed: IntelChannelHit[][] = wave.map(() => []);
         results.forEach((hits, k) => {
           for (const hit of hits) {
-            if (!hit.url || seen.has(hit.url)) continue;
+            if (!hit.url) continue;
             if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
+            if (seen.has(hit.url)) {
+              // Already collected on an earlier wave. It is still legitimate
+              // branch evidence when it actually names this seed — attribute it
+              // to the branch without re-adding it to the bucket totals.
+              const prior = allHits().find((x) => x.url === hit.url);
+              if (prior && `${prior.title} ${prior.snippet} ${prior.body || ""}`
+                .toLowerCase().includes(wave[k].label.toLowerCase())) {
+                freshPerSeed[k].push(prior);
+              }
+              continue;
+            }
             seen.add(hit.url);
             scorePersonIdentity(hit, intent);
             hit.bucket = classifyDomain(hit.domain);
@@ -898,14 +946,18 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
           hopExecuted.push({ kind: node.kind === "person" ? "relative" : node.kind === "address" ? "address" : "entity", value: node.label, rationale: `information gain ${node.gain}` });
           ring2Executed += 1;
           const branchDocs = docsOf(freshPerSeed[k]);
+          console.log(`[intel:ring2] seed="${node.label}" hits=${freshPerSeed[k].length} docs=${branchDocs.length}`);
           if (!branchDocs.length) { branches.set(node.id, []); return; }
           // Ring-2 extraction is scoped to the SEED as subject, not the
           // original target — otherwise the seed's relatives would be parsed
           // as the subject's relatives.
           const branchLedger = buildFieldLedger(branchDocs, node.label);
-          branches.set(node.id, ingestRing2(graph, node, branchLedger));
+          const added = ingestRing2(graph, node, branchLedger);
+          console.log(`[intel:ring2] seed="${node.label}" ring2Nodes=${added.length}`);
+          branches.set(node.id, added);
         });
       }
+
 
       // RING 3 — intersection only.
       intersectBranches(graph, branches);
