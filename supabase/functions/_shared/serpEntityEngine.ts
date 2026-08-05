@@ -192,9 +192,9 @@ const RE_NAME = /\b([A-Z][a-z]{1,18})(?:\s+([A-Z][a-z]{1,18}|[A-Z]\.))?\s+([A-Z]
 const RE_ISO_DATE = /\b(20\d{2}|19\d{2})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\b/g;
 const RE_US_DATE = /\b(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\/((?:19|20)\d{2})\b/g;
 /** Left context that precedes a real personal name in prose. */
-const RE_PERSON_LEFT = /(?:\b(?:by|from|with|and|to|of|for|attorney|judge|officer|agent|ceo|cto|cfo|coo|founder|co-founder|president|director|chairman|professor|dr|mr|mrs|ms|sen|rep|gov|said|told|according to|contact)\b[\s:,]{1,3}|["'“(,;]\s?)$/i;
+const RE_PERSON_LEFT = /\b(?:by|from|with|and|to|of|for|attorney|judge|officer|agent|ceo|cto|cfo|coo|founder|co-founder|president|director|chairman|professor|dr|mr|mrs|ms|sen|rep|gov|said|told|according to|contact)\b[\s:,]{1,3}$/i;
 /** Right context that follows a real personal name in prose. */
-const RE_PERSON_RIGHT = /^(?:\s*,?\s*(?:said|says|told|wrote|who|the\s|a\s|an\s|is\s|was\s|has\s|had\s|and\s|joined|serves|founded|leads|owns|age\b|\d{1,3}\b|of\s|at\s|from\s|jr\b|sr\b|iii\b|ceo|cto|cfo|coo|founder|co-founder|president|director|esq)|\s*[.'"”)])/i;
+const RE_PERSON_RIGHT = /^\s*,?\s*(?:said|says|told|wrote|who\s|is\s|was\s|has\s|had\s|joined|serves|founded|leads|owns|age\b|of\s|at\s|from\s|jr\b|sr\b|iii\b|ceo|cto|cfo|coo|founder|co-founder|president|director|esq)/i;
 
 /** Attribution verbs and role titles — unambiguous personal-name context. */
 const RE_PERSON_STRONG_LEFT = /\b(?:by|founder|co-founder|ceo|cto|cfo|coo|president|director|chairman|professor|dr|mr|mrs|ms|sen|rep|gov|attorney|judge|officer|agent|according to|contact|interview with|spokesperson)\b[\s:,]{1,3}$/i;
