@@ -117,6 +117,9 @@ function MessageCopyButton({ text }: { text: string }) {
 
 // Subscription-gated input wrapper
 import type { AdaptiveInputBarHandle } from "./AdaptiveInputBar";
+import IntelReportCard from "./chat/IntelReportCard";
+import { wantsIntelReportFile } from "@/lib/intelligenceReport";
+
 
 
 const SubscriptionGatedInput = forwardRef<AdaptiveInputBarHandle, {
