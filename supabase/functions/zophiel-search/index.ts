@@ -259,7 +259,16 @@ interface SearchResult {
   layer?: PantheonLayer;
   /** Engine that produced this result (e.g. 'ddg', 'github', 'arxiv'). */
   engine?: string;
-  // (relevance/rank fields removed — replaced by new algorithm)
+  /** Stage-3 topical relevance against the operator's QueryPlan (0..1). */
+  relevance?: number;
+  /** Weighted final ordering score: 0.65·relevance + 0.35·credibility. */
+  score?: number;
+  /** Every engine that independently returned this URL (drives corroboration). */
+  engines?: string[];
+  /** Distinct independence classes among `engines`. */
+  independence?: number;
+  /** 1-based position after final ranking. */
+  rank?: number;
 
 }
 
