@@ -14,7 +14,7 @@ import {
   Clock, Layers, AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { SearchResult } from "../types";
+import type { SearchResult } from "./types";
 
 type EntityKind =
   | "person" | "org" | "email" | "phone" | "handle" | "domain"
