@@ -119,6 +119,22 @@ export function informationGain(kind: NodeKind, f: ResolvedField): number {
   return g;
 }
 
+/**
+ * A branch document that names the original target is reciprocal confirmation
+ * of an edge we already hold — never a new node. Matching is canonical and
+ * token-based so "Asher Newton" collapses into "Asher Shepherd Newton".
+ */
+function isSubjectAlias(g: IntelGraph, kind: NodeKind, value: string): boolean {
+  if (kind !== "person") return false;
+  const subj = canonicalizeName(g.nodes[0].label).split(/\s+/).filter(Boolean);
+  const cand = canonicalizeName(value).split(/\s+/).filter(Boolean);
+  if (!subj.length || !cand.length) return false;
+  if (subj.join(" ") === cand.join(" ")) return true;
+  // first + last agreement with one side carrying a middle token
+  return subj[0] === cand[0] && subj[subj.length - 1] === cand[cand.length - 1];
+}
+
+
 function fieldAttributes(kind: NodeKind, f: ResolvedField): Array<{ label: string; value: string }> {
   const rows: Array<{ label: string; value: string }> = [
     { label: "Confidence", value: f.confidence },
