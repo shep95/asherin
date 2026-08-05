@@ -369,7 +369,7 @@ export function formatZophielContext(bundle: ZophielBundle | null): string {
   }
 
   lines.push(
-    `\n### EVIDENCE RULES FOR THIS TURN\n- Report only what the corpus above supports; attach the URL to every specific claim.\n- Weight by corroboration: a fact carried by 2+ distinct domains outranks a single tier-4/5 page. Say so when a claim rests on one source.\n- Ring 3 nodes are intersection-only candidates — label them as leads, never as established facts.\n- If the corpus does not answer part of the question, state the gap explicitly instead of filling it from training data.\n- Never present an entity, link, date or exposure signal that does not appear above.`,
+    `\n### EVIDENCE RULES FOR THIS TURN\n- Report only what the corpus above supports; attach the URL to every specific claim.\n- Read the per-hit metadata: HIGH relevance + 2+ independent engine classes is strong evidence; high relevance from one engine class may be index echo; low relevance is not evidence at all regardless of tier.\n- Weight by corroboration: a fact carried by 2+ distinct domains outranks a single tier-4/5 page. Say so when a claim rests on one source.\n- Any hit flagged WEAK MATCH is missing a required term of the query — never attribute it to the subject unless another hit corroborates the join, and state the basis if you do.\n- Ring 3 nodes are intersection-only candidates — label them as leads, never as established facts.\n- If the corpus does not answer part of the question, state the gap explicitly instead of filling it from training data.\n- Never present an entity, link, date or exposure signal that does not appear above.`,
   );
 
   return lines.join("\n");
