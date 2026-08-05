@@ -687,6 +687,8 @@ function scoreEnrichQuery(intent: IntelIntent, label: string): number {
 // ── Three-pass sweep + fusion ───────────────────────────────────────────────
 export async function runJurisdictionalSearch(intent: IntelIntent): Promise<IntelBundle> {
   const startedAt = Date.now();
+  beginQueryRun(`${startedAt}:${intent.subject}`);
+
   // 30s only ever bought a snippet sweep. The deep harvest (26 documents) plus
   // the recursive HOP-1 collection need real wall clock; 68s still leaves the
   // /chat request ~80s of streaming headroom inside its 150s edge limit.
