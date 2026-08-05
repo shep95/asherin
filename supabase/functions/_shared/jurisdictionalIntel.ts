@@ -87,7 +87,7 @@ export interface IntelBundle {
   /** how many full documents were actually opened and parsed */
   documentsFetched?: number;
   /** seeds actually queried during the recursive HOP-1 collection */
-  /** seeds actually queried during the recursive HOP-1 collection */
+
   hopSeeds?: Seed[];
   /** bounded three-hop relationship graph (person sweeps only) */
   graph?: IntelGraph;
