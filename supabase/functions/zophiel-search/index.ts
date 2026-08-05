@@ -328,20 +328,17 @@ function detectInstantAnswerType(query: string): string | null {
 }
 
 // ── Query Builder ────────────────────────────────────────────────────────────
-function buildSearchQuery(query: string, mode: SearchMode, intent: SemanticIntent, filters?: SearchFilters, operatorOverrides?: string): string {
-  let q = query.trim();
+// The operator's words go on the wire. Intent signals (causal / temporal /
+// forensic) are RANKING hints carried on the QueryPlan — appending them to the
+// wire query was the source of pre-ranking recall drift.
+function buildSearchQuery(plan: QueryPlan, mode: SearchMode, _intent: SemanticIntent, filters?: SearchFilters, operatorOverrides?: string): string {
+  let q = plan.wireQuery.trim();
 
   const prefix = MODE_QUERY_PREFIX[mode];
   if (prefix) q = prefix + q;
 
-  // Semantic Intent augmentation
-  if (intent.causalInterest && !q.includes('cause') && !q.includes('impact')) {
-    q += ' cause effect analysis';
-  }
-  if (intent.temporalBias === 'realtime') q += ' 2026';
-  if (intent.depthRequired === 'forensic') q += ' in-depth analysis';
-
   if (operatorOverrides) q += ' ' + operatorOverrides;
+
 
   if (filters) {
     if (filters.exactPhrase) q = `"${filters.exactPhrase.replace(/"/g, '')}" ${q}`;
