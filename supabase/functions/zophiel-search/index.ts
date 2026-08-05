@@ -554,10 +554,37 @@ async function searchSearXNG(query: string): Promise<SearchResult[]> {
 // edge IPs, which collapsed the open-web layer and left only API registries
 // (SEC/Wikipedia/academic) — the "everything is a gov site" symptom. Firecrawl
 // runs a real search backend server-side with a key we already hold.
+// Firecrawl enforces both a concurrency ceiling and a per-minute rate. A deep
+// dossier sweep fires 30+ queries inside a minute, so past the first ~10 every
+// call returned 429 and the whole open-web layer silently zeroed out mid-run
+// (the "first run rich, second run empty" symptom). Serialise through a small
+// token gate with a minimum spacing, and treat 429 as retryable rather than
+// as "no results".
+const FIRECRAWL_MIN_INTERVAL_MS = 450;
+const FIRECRAWL_MAX_INFLIGHT = 2;
+let firecrawlInflight = 0;
+let firecrawlNextSlot = 0;
+const fcSleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function firecrawlGate<T>(fn: () => Promise<T>): Promise<T> {
+  while (firecrawlInflight >= FIRECRAWL_MAX_INFLIGHT) await fcSleep(120);
+  firecrawlInflight++;
+  try {
+    const now = Date.now();
+    const wait = Math.max(0, firecrawlNextSlot - now);
+    firecrawlNextSlot = Math.max(now, firecrawlNextSlot) + FIRECRAWL_MIN_INTERVAL_MS;
+    if (wait > 0) await fcSleep(wait);
+    return await fn();
+  } finally {
+    firecrawlInflight--;
+  }
+}
+
 async function searchFirecrawl(query: string, limit = 15): Promise<SearchResult[]> {
   const key = Deno.env.get('FIRECRAWL_API_KEY');
   if (!key) return [];
-  try {
+
+  const attempt = async (): Promise<{ status: number; items: any[]; retryAfterMs: number }> => {
     const resp = await fetch('https://api.firecrawl.dev/v2/search', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
@@ -565,15 +592,31 @@ async function searchFirecrawl(query: string, limit = 15): Promise<SearchResult[
       signal: AbortSignal.timeout(9000),
     });
     if (!resp.ok) {
-      console.error('[zophiel-search] firecrawl status', resp.status);
-      return [];
+      const ra = Number(resp.headers.get('retry-after') || 0);
+      // Body must be consumed so the connection is released.
+      await resp.text().catch(() => '');
+      return { status: resp.status, items: [], retryAfterMs: Number.isFinite(ra) && ra > 0 ? Math.min(ra * 1000, 6000) : 0 };
     }
     const j = await resp.json();
     const items: any[] = Array.isArray(j?.data?.web) ? j.data.web
       : Array.isArray(j?.web) ? j.web
       : Array.isArray(j?.data) ? j.data : [];
+    return { status: 200, items, retryAfterMs: 0 };
+  };
+
+  try {
+    let res = await firecrawlGate(attempt);
+    for (let tries = 0; res.status === 429 && tries < 2; tries++) {
+      const backoff = res.retryAfterMs || (900 * (tries + 1));
+      await fcSleep(backoff);
+      res = await firecrawlGate(attempt);
+    }
+    if (res.status !== 200) {
+      console.error('[zophiel-search] firecrawl status', res.status);
+      return [];
+    }
     const out: SearchResult[] = [];
-    for (const it of items) {
+    for (const it of res.items) {
       if (typeof it?.url !== 'string') continue;
       const built = buildSearchResult(String(it.title || it.url), it.url, String(it.description || it.snippet || ''));
       if (built) out.push(built);
@@ -584,6 +627,7 @@ async function searchFirecrawl(query: string, limit = 15): Promise<SearchResult[
     console.error('[zophiel-search] firecrawl failed', e instanceof Error ? e.message : String(e));
     return [];
   }
+
 }
 
 // ── Mojeek Search (independent web crawler — no reliance on Google/Bing index) ──
