@@ -949,7 +949,9 @@ export function formatIntelContext(bundle: IntelBundle): string {
   const {
     intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries,
     rejectedIdentityHits, fieldLedger, documentsFetched, hopSeeds, elapsedMs, queriesRun,
+    graph, ring2Executed,
   } = bundle;
+
 
   const header = [
     `## JURISDICTIONAL INTEL SWEEP — ${intent.kind.toUpperCase()}`,
