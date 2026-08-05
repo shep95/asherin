@@ -1372,11 +1372,13 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     let jurisdictionalContext = "";
     let isIntelTurn = false;
     try {
-      const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
-      const userText = lastUser?.content || "";
-      const { classifyIntent, runJurisdictionalSearch, formatIntelContext, formatClarifyContext } =
+      const { runJurisdictionalSearch, formatIntelContext, formatClarifyContext, classifyIntent } =
         await import("../_shared/jurisdictionalIntel.ts");
-      const intent = classifyIntent(userText);
+      const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
+      // Reuse the classification computed for the retrieval router above; only
+      // re-derive it if that pass failed, so both layers agree on the turn type.
+      const intent = intelIntent ?? classifyIntent(lastUser?.content || "");
+
       if (!isDefensiveSecurityAuditRequest && intent.kind !== "none") {
         isIntelTurn = true;
         console.log("[chat] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
