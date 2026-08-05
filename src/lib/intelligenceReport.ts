@@ -103,6 +103,13 @@ function renderBody(markdown: string): string[] {
   let sectionNo = 0;
   let inFence = false;
   let paragraph: string[] = [];
+  // Block kind of the previous emitted element — a change of kind gets a blank
+  // separator line so lists, quotes, code and tables never fuse into one slab.
+  let lastKind = "";
+  const sep = (kind: string) => {
+    if (lastKind && lastKind !== kind && out.length && out[out.length - 1] !== "") out.push("");
+    lastKind = kind;
+  };
 
   const flush = () => {
     if (!paragraph.length) return;
@@ -116,6 +123,7 @@ function renderBody(markdown: string): string[] {
 
     if (/^\s*```/.test(line)) {
       flush();
+      sep("code");
       inFence = !inFence;
       out.push(inFence ? "    +-- CODE ".padEnd(COLS, "-") : "    " + "-".repeat(COLS - 4));
       continue;
@@ -149,6 +157,7 @@ function renderBody(markdown: string): string[] {
     // Tables are left structurally intact — realigning them loses column meaning.
     if (/^\s*\|.*\|\s*$/.test(line)) {
       flush();
+      sep("table");
       out.push("    " + inline(line.trim()));
       continue;
     }
@@ -156,6 +165,7 @@ function renderBody(markdown: string): string[] {
     const bullet = line.match(/^(\s*)[-*+]\s+(.*)$/);
     if (bullet) {
       flush();
+      sep("bullet");
       const depth = Math.floor(bullet[1].length / 2);
       const marker = depth === 0 ? "  * " : "    ".repeat(depth) + "  - ";
       const wrapped = wrap(inline(bullet[2]), " ".repeat(marker.length));
@@ -168,6 +178,7 @@ function renderBody(markdown: string): string[] {
     const numbered = line.match(/^(\s*)(\d{1,3})[.)]\s+(.*)$/);
     if (numbered) {
       flush();
+      sep("numbered");
       const marker = `  ${numbered[2]}. `;
       const wrapped = wrap(inline(numbered[3]), " ".repeat(marker.length));
       if (wrapped.length) {
@@ -179,6 +190,7 @@ function renderBody(markdown: string): string[] {
     const quote = line.match(/^\s*>\s?(.*)$/);
     if (quote) {
       flush();
+      sep("quote");
       for (const l of wrap(inline(quote[1]), "")) out.push("  | " + l);
       continue;
     }
