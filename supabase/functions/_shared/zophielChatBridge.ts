@@ -248,23 +248,67 @@ export function formatZophielContext(bundle: ZophielBundle | null): string {
     `\n\n## ZOPHIEL SEARCH INTELLIGENCE (live, multi-engine)\nRetrieval substrate: Zophiel web engine — multiple independent indexes, tier-ranked (1 = authoritative registry/primary source, 5 = unverified/onion) with a veracity score per document. This is EVIDENCE. Prefer it over training data for anything current, and cite as [Title](URL).`,
   );
 
+  // ── Retrieval confidence header ────────────────────────────────────────
+  // The model is told what the ranker gated on and how well the corpus matched,
+  // so a weak sweep produces hedged language instead of confident invention.
+  const plan = bundle.plan;
+  if (plan) {
+    const bits = [
+      `entity kind: ${plan.entity || "unknown"}`,
+      plan.required.length ? `required terms: ${plan.required.join(", ")}` : "required terms: none",
+      plan.phrases.length ? `exact phrases: ${plan.phrases.map((p) => `"${p}"`).join(", ")}` : null,
+      plan.negative.length ? `excluded: ${plan.negative.join(", ")}` : null,
+    ].filter(Boolean).join(" · ");
+    lines.push(
+      `\n### QUERY UNDERSTANDING (Stage 1 — what retrieval was gated on)\n${bits}\nMean top-5 relevance: ${bundle.topRelevance.toFixed(2)} (1.00 = every required term present in the strongest field).`,
+    );
+  }
+
+  const offTarget = bundle.topRelevance < OFF_TARGET_RELEVANCE;
+  if (bundle.rescueUsed) {
+    lines.push(
+      `\n> DEGRADATION NOTICE: the strict query returned too little, so the engine re-ran a RELAXED query. Some hits below may match only part of the subject. Verify required terms per hit before asserting anything.`,
+    );
+  }
+  if (offTarget) {
+    lines.push(
+      `\n> LOW-CONFIDENCE RETRIEVAL: no document strongly matches the subject. Treat the corpus as weak leads, say plainly that the subject was not found, and do NOT substitute training-data recall for evidence.`,
+    );
+  }
+
   if (bundle.instantAnswer) {
     lines.push(`\n### INSTANT ANSWER\n${String(bundle.instantAnswer).slice(0, 800)}`);
   }
 
+  const cap = offTarget ? OFF_TARGET_HITS : MAX_CONTEXT_HITS;
+  const shown = bundle.results.slice(0, cap);
   lines.push("\n### RANKED CORPUS");
-  bundle.results.slice(0, MAX_CONTEXT_HITS).forEach((r, i) => {
+  shown.forEach((r, i) => {
+    const missed = missedTerms(plan, r);
     const meta = [
+      r.relevance != null ? `relevance ${r.relevance.toFixed(2)}` : null,
+      r.independence != null
+        ? `${r.independence} independent engine class${r.independence === 1 ? "" : "es"}`
+        : null,
       r.tier != null ? `tier ${r.tier}` : null,
       r.veracity != null ? `veracity ${r.veracity}` : null,
       r.engine || null,
       r.publishDate || null,
       r.onion ? "onion (non-clickable)" : null,
     ].filter(Boolean).join(" · ");
+    const flag = missed.length
+      ? `\n   ⚠ WEAK MATCH — missing required term(s): ${missed.join(", ")}. Do not attribute this page to the subject without corroboration.`
+      : "";
     lines.push(
-      `${i + 1}. **${(r.title || r.url).slice(0, 180)}**\n   URL: ${r.url}\n   ${meta ? `[${meta}]\n   ` : ""}${(r.snippet || "").slice(0, 600)}`,
+      `${i + 1}. **${(r.title || r.url).slice(0, 180)}**\n   URL: ${r.url}\n   ${meta ? `[${meta}]\n   ` : ""}${(r.snippet || "").slice(0, 600)}${flag}`,
     );
   });
+  if (bundle.results.length > shown.length) {
+    lines.push(
+      `\n_(${bundle.results.length - shown.length} further hit${bundle.results.length - shown.length === 1 ? "" : "s"} suppressed as off-target — they scored below the relevance floor and are not evidence.)_`,
+    );
+  }
+
 
   const intel = bundle.intel;
   if (intel) {
