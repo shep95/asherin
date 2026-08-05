@@ -35,6 +35,7 @@ const DataEnginePanel = lazy(() => import("./search/DataEnginePanel"));
 const DorkPanel = lazy(() => import("./search/DorkPanel"));
 const GhostChainPanel = lazy(() => import("./search/GhostChainPanel"));
 const ZophielV2Panel = lazy(() => import("./search/ZophielV2Panel"));
+const XKeyscorePanel = lazy(() => import("./search/XKeyscorePanel"));
 
 
 // Detect when the search query is actually a URL (with or without scheme).
@@ -85,6 +86,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [deepSearchQuery, setDeepSearchQuery] = useState<string | null>(null);
   const [intelMapOpen, setIntelMapOpen] = useState(false);
   const [intelSuiteOpen, setIntelSuiteOpen] = useState(false);
+  const [xkeyscoreOpen, setXkeyscoreOpen] = useState(false);
   const [byokOpen, setByokOpen] = useState(false);
   const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
   const [online, setOnline] = useState(navigator.onLine);
@@ -102,10 +104,10 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
   // Hide global header right-side controls while a side panel is open
   useEffect(() => {
-    const open = (intelMapOpen || intelSuiteOpen) && searched && results.length > 0;
+    const open = (intelMapOpen || intelSuiteOpen || xkeyscoreOpen) && searched && results.length > 0;
     document.body.classList.toggle("zophiel-panel-open", open);
     return () => { document.body.classList.remove("zophiel-panel-open"); };
-  }, [intelMapOpen, intelSuiteOpen, searched, results.length]);
+  }, [intelMapOpen, intelSuiteOpen, xkeyscoreOpen, searched, results.length]);
 
   // High-perf drag-to-resize: bypass React re-renders, write width directly via rAF
   const startResize = useCallback(() => {
@@ -392,7 +394,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
   // Determine if we should use grouped or flat display
   const hasGroups = Object.keys(grouped).length > 1;
-  const canShowSidePanel = (intelMapOpen || intelSuiteOpen) && searched && results.length > 0;
+  const canShowSidePanel = (intelMapOpen || intelSuiteOpen || xkeyscoreOpen) && searched && results.length > 0;
 
   
 
@@ -718,7 +720,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           </div>
                         </div>
                         <button
-                          onClick={() => { setIntelMapOpen((v) => !v); if (!intelMapOpen) setIntelSuiteOpen(false); }}
+                          onClick={() => { setIntelMapOpen((v) => !v); if (!intelMapOpen) { setIntelSuiteOpen(false); setXkeyscoreOpen(false); } }}
                           className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
                             intelMapOpen
                               ? "border-accent/40 bg-accent/15 text-accent"
@@ -746,7 +748,20 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           <span className="sm:hidden">Key</span>
                         </button>
                         <button
-                          onClick={() => { setIntelSuiteOpen((v) => !v); if (!intelSuiteOpen) setIntelMapOpen(false); }}
+                          onClick={() => { setXkeyscoreOpen((v) => !v); if (!xkeyscoreOpen) { setIntelMapOpen(false); setIntelSuiteOpen(false); } }}
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
+                            xkeyscoreOpen
+                              ? "border-accent/40 bg-accent/15 text-accent"
+                              : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
+                          }`}
+                          title="Selector extraction, identity resolution, hop rings 0-3, timeline and exposure surface — derived only from these results"
+                        >
+                          <Fingerprint className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">{xkeyscoreOpen ? "Close XKeyscore" : "XKeyscore"}</span>
+                          <span className="sm:hidden">XKS</span>
+                        </button>
+                        <button
+                          onClick={() => { setIntelSuiteOpen((v) => !v); if (!intelSuiteOpen) { setIntelMapOpen(false); setXkeyscoreOpen(false); } }}
                           className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
                             intelSuiteOpen
                               ? "border-accent/40 bg-accent/15 text-accent"
@@ -843,6 +858,23 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         >
           <div className="h-full w-px bg-border/30 group-hover:bg-accent/60 transition-colors" />
           <div className="absolute h-12 w-1 rounded-full bg-foreground/20 group-hover:bg-accent/70 transition-colors" />
+        </div>
+      )}
+
+      {/* XKeyscore intelligence panel */}
+      {xkeyscoreOpen && searched && results.length > 0 && (
+        <div
+          ref={rightPanelRef}
+          className="fixed inset-0 z-40 bg-background animate-fade-in lg:static lg:z-auto lg:min-w-0 lg:bg-transparent"
+          style={{ width: window.innerWidth >= 1024 ? `${splitPct}%` : undefined }}
+        >
+          <Suspense fallback={null}>
+            <XKeyscorePanel
+              query={query}
+              results={results}
+              onClose={() => setXkeyscoreOpen(false)}
+            />
+          </Suspense>
         </div>
       )}
 
