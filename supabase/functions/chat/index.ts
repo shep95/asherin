@@ -2093,6 +2093,12 @@ The operator is requesting a defensive security audit / flaw check of their own 
       "gemini-1.5-flash": "gemini-flash-latest",
       "gemini-1.5-flash-latest": "gemini-flash-latest",
       "gemini-1.5-flash-8b": "gemini-2.5-flash-lite",
+      // Preview ids are pulled from v1beta without notice; map them to the
+      // rolling channel of the same class so a saved preview model never 404s.
+      "gemini-3-pro-preview": "gemini-pro-latest",
+      "gemini-3-flash-preview": "gemini-flash-latest",
+      "gemini-2.5-pro": "gemini-pro-latest",
+      "gemini-2.5-flash": "gemini-flash-latest",
     };
     const GEMINI_404_FALLBACK_CHAT = "gemini-flash-latest";
 
@@ -2123,13 +2129,59 @@ The operator is requesting a defensive security audit / flaw check of their own 
       const primary = GEMINI_MODEL_ALIASES_CHAT[model] || model;
       let r = await geminiStreamFetch(apiKey, primary);
       if (r.status === 404 && primary !== GEMINI_404_FALLBACK_CHAT) {
-        // Drain body so the socket is reusable, then retry on the rolling alias.
+        // Drain body so the socket is reusable, then step down one class at a
+        // time: a pro request degrades to the pro channel before flash, so a
+        // retired id never silently costs the user analytical depth.
         try { await r.body?.cancel(); } catch { /* noop */ }
-        console.warn(`[chat:byok:google] model ${primary} returned 404 — retrying on ${GEMINI_404_FALLBACK_CHAT}`);
-        r = await geminiStreamFetch(apiKey, GEMINI_404_FALLBACK_CHAT);
+        const ladder = /pro/i.test(primary)
+          ? ["gemini-pro-latest", GEMINI_404_FALLBACK_CHAT]
+          : [GEMINI_404_FALLBACK_CHAT];
+        for (const next of ladder) {
+          if (next === primary) continue;
+          console.warn(`[chat:byok:google] model ${primary} returned 404 — retrying on ${next}`);
+          r = await geminiStreamFetch(apiKey, next);
+          if (r.status !== 404) break;
+          try { await r.body?.cancel(); } catch { /* noop */ }
+        }
       }
       return r;
     }
+
+    // ── Transient upstream shielding ──────────────────────────────────────────
+    // Deep person-search turns carry the largest prompts in the app, so they are
+    // the ones most likely to land on a momentarily overloaded provider node
+    // (Google 503 "high demand", 500, 502, 504, or a burst 429). Previously ANY
+    // of those collapsed the whole turn into a BYOK_REQUIRED response, which told
+    // the user their key was broken when it was fine. Retry with exponential
+    // backoff + jitter and only surface a failure once the provider is
+    // persistently unavailable.
+    const TRANSIENT_STATUS = new Set([429, 500, 502, 503, 504]);
+    const TRANSIENT_ATTEMPTS = 3;
+
+    async function callWithTransientRetry(
+      fn: () => Promise<Response>,
+      label: string,
+    ): Promise<Response> {
+      let last: Response | null = null;
+      for (let attempt = 0; attempt < TRANSIENT_ATTEMPTS; attempt++) {
+        const res = await fn();
+        if (res.ok || !TRANSIENT_STATUS.has(res.status)) return res;
+
+        // Quota exhaustion is terminal — retrying only burns the deadline.
+        const peek = await res.clone().text().catch(() => "");
+        if (res.status === 429 && /insufficient_quota|exceeded.*quota|billing/i.test(peek)) {
+          return res;
+        }
+        last = res;
+        try { await res.body?.cancel(); } catch { /* noop */ }
+        if (attempt === TRANSIENT_ATTEMPTS - 1) break;
+        const delay = Math.round((700 * 2 ** attempt) * (0.6 + Math.random() * 0.8));
+        console.warn(`[chat:byok:${label}] ${res.status} transient — retry ${attempt + 1}/${TRANSIENT_ATTEMPTS - 1} in ${delay}ms`);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+      return last ?? await fn();
+    }
+
 
 
 
