@@ -141,6 +141,8 @@ export async function runZophielIntel(
     success?: boolean;
     results?: ZophielHit[];
     instantAnswer?: string | null;
+    queryPlan?: ZophielQueryPlan;
+    rescueUsed?: boolean;
   }>(
     "zophiel-search",
     { query: trimmed, mode: opts.mode || "web", fast: opts.fast !== false },
@@ -150,8 +152,27 @@ export async function runZophielIntel(
   const results = Array.isArray(search?.results) ? search!.results : [];
   if (results.length === 0) return null;
 
+  const plan = search?.queryPlan ?? null;
+  const topSlice = results.slice(0, 5);
+  const topRelevance =
+    topSlice.reduce((s, r) => s + (typeof r.relevance === "number" ? r.relevance : 0), 0) /
+    Math.max(1, topSlice.length);
+
+  // ── Entity-gated escalation ────────────────────────────────────────────
+  // Phrasing is a poor proxy for intent: "Asher Newton Cape Coral" carries no
+  // trigger word yet is unambiguously a person lookup. The engine already
+  // classified the entity during Stage 1, so that classification — not the
+  // user's grammar — decides whether the graph layer is worth its wall clock.
+  const entityGated = !!plan && GRAPH_ENTITY_KINDS.has(String(plan.entity || "").toLowerCase());
+  const searchElapsed = Date.now() - started;
+  const wantsGraph = opts.deep === true || entityGated;
+  const affordable = searchElapsed <= GRAPH_ESCALATION_BUDGET_MS;
+  if (wantsGraph && !affordable) {
+    console.log(`[zophielBridge] graph skipped — search took ${searchElapsed}ms (budget ${GRAPH_ESCALATION_BUDGET_MS}ms)`);
+  }
+
   let intel: SerpIntel | null = null;
-  if (opts.deep) {
+  if (wantsGraph && affordable) {
     // Onion hits are excluded from the harvest: the edge runtime cannot reach
     // .onion hosts, so every fetch would burn a worker slot on a guaranteed
     // timeout and starve the clearnet pages that actually resolve.
@@ -175,8 +196,42 @@ export async function runZophielIntel(
     instantAnswer: search?.instantAnswer ?? null,
     intel,
     elapsedMs: Date.now() - started,
+    plan,
+    rescueUsed: search?.rescueUsed === true,
+    topRelevance,
   };
 }
+
+/** Diacritic-free, punctuation-collapsed form used for missed-term matching. */
+function norm(s: string): string {
+  return (s || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * Which required terms this hit fails to carry. A term counts as present if it
+ * appears verbatim, as a possessive/plural stem, or — for single tokens of 3+
+ * characters — as a prefix of a longer word (Rob → Robert), so a legitimate
+ * name variant is not mislabelled as a miss.
+ */
+function missedTerms(plan: ZophielQueryPlan | null, hit: ZophielHit): string[] {
+  if (!plan || !plan.required.length) return [];
+  const hay = ` ${norm(`${hit.title} ${hit.url} ${hit.snippet}`)} `;
+  const missed: string[] = [];
+  for (const raw of plan.required) {
+    const t = norm(raw);
+    if (!t) continue;
+    if (hay.includes(` ${t} `) || hay.includes(`${t} `) || hay.includes(` ${t}`)) continue;
+    if (!t.includes(" ") && t.length >= 3 && new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(hay)) continue;
+    missed.push(raw);
+  }
+  return missed;
+}
+
 
 function ringLabel(ring: number): string {
   if (ring === 0) return "SEED";
