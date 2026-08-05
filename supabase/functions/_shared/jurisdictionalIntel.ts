@@ -23,9 +23,14 @@
 
 import { sourcesFor, siteFilter, parseJurisdiction, isBlockedSource } from "./jurisdictions.ts";
 import {
-  buildFieldLedger, formatFieldLedger, selectSeeds,
+  buildFieldLedger, formatFieldLedger,
   type FieldLedger, type Seed,
 } from "./intelExtract.ts";
+import {
+  createGraph, ingestRing1, ingestRing2, ring2Seeds, intersectBranches, formatGraph,
+  type IntelGraph, type GraphNode,
+} from "./intelGraph.ts";
+
 
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("VITE_SUPABASE_URL") ?? "";
@@ -82,10 +87,16 @@ export interface IntelBundle {
   /** how many full documents were actually opened and parsed */
   documentsFetched?: number;
   /** seeds actually queried during the recursive HOP-1 collection */
+
   hopSeeds?: Seed[];
+  /** bounded three-hop relationship graph (person sweeps only) */
+  graph?: IntelGraph;
+  /** how many ring-1 nodes were actually expanded into ring 2 */
+  ring2Executed?: number;
   elapsedMs?: number;
   queriesRun?: number;
 }
+
 
 
 // ── Lookup tables (kept from v1 — proven to work) ─────────────────────────
@@ -822,7 +833,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   for (const h of allHits()) scorePersonIdentity(h, intent);
 
   // ── RESOLUTION — deterministic extraction, normalization, scoring ──────
-  const toDocs = () => allHits()
+  const docsOf = (hits: IntelChannelHit[]) => hits
     .filter((h) => h.body && h.body.length > 40)
     .map((h) => ({
       domain: h.domain,
@@ -832,50 +843,79 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
       authoritative: h.bucket === "authoritative" || h.bucket === "court",
       band: h.identityBand,
     }));
+  const toDocs = () => docsOf(allHits());
 
   let fieldLedger = buildFieldLedger(toDocs(), intent.subject);
 
-  // ── HOP 1 — RECURSIVE GRAPH COLLECTION ─────────────────────────────────
-  // The old sweep discovered a relative and stopped. Every extracted entity is
-  // now a seed: querying a relative reciprocally confirms the edge that
-  // produced it, an address unlocks co-residents and deed history, an LLC
-  // unlocks co-officers. Seeds are selected by information gain and the hop is
-  // hard-bounded by the remaining wall clock.
-  const hopSeeds: Seed[] = intent.kind === "person" ? selectSeeds(fieldLedger, 6) : [];
+  // ── BOUNDED THREE-HOP GRAPH ────────────────────────────────────────────
+  // RING 1 is a full fanout over everything the subject's own documents
+  // assert. RING 2 queries only the highest information-gain ring-1 nodes and
+  // admits only what THOSE documents assert, so provenance stays per-branch.
+  // RING 3 is never enumerated: the engine intersects ring-2 reach sets and
+  // emits closed triangles as inferred cross-links.
+  const graph = createGraph(intent.subject);
   const hopExecuted: Seed[] = [];
-  if (hopSeeds.length && deadlineMs - (Date.now() - startedAt) > 14000) {
-    const hopQueries = hopSeeds.map((s) => ({
-      seed: s,
-      query: s.kind === "relative"
-        ? `"${s.value}" ${locus} relatives address`
-        : s.kind === "address"
-          ? `"${s.value}" ${locus} owner residents`
-          : `"${s.value}" ${locus} officer registered agent`,
-    }));
-    for (let i = 0; i < hopQueries.length; i += 3) {
-      const remaining = deadlineMs - (Date.now() - startedAt) - 6000;
-      if (remaining < 5000) break;
-      const wave = hopQueries.slice(i, i + 3);
-      const results = await Promise.all(
-        wave.map((q) => zophielQuery(q.query, { timeoutMs: Math.min(6500, remaining), limit: 8 })
-          .catch(() => [] as IntelChannelHit[])),
-      );
-      wave.forEach((q) => hopExecuted.push(q.seed));
-      const fresh: IntelChannelHit[] = [];
-      for (const hit of results.flat()) {
-        if (!hit.url || seen.has(hit.url)) continue;
-        if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
-        seen.add(hit.url);
-        scorePersonIdentity(hit, intent);
-        hit.bucket = classifyDomain(hit.domain);
-        buckets[hit.bucket].push(hit);
-        fresh.push(hit);
+  let ring2Executed = 0;
+  if (intent.kind === "person") {
+    ingestRing1(graph, fieldLedger);
+
+    const seeds = ring2Seeds(graph, 6);
+    const branches = new Map<string, string[]>();
+    if (seeds.length && deadlineMs - (Date.now() - startedAt) > 14000) {
+      const queryFor = (n: GraphNode) =>
+        n.kind === "person" ? `"${n.label}" ${locus} relatives address`
+          : n.kind === "address" ? `"${n.label}" ${locus} owner residents`
+            : `"${n.label}" ${locus} officer registered agent`;
+
+      for (let i = 0; i < seeds.length; i += 3) {
+        const remaining = deadlineMs - (Date.now() - startedAt) - 6000;
+        if (remaining < 5000) break;
+        const wave = seeds.slice(i, i + 3);
+        const results = await Promise.all(
+          wave.map((n) => zophielQuery(queryFor(n), { timeoutMs: Math.min(6500, remaining), limit: 8 })
+            .catch(() => [] as IntelChannelHit[])),
+        );
+
+        // Per-seed fresh-hit sets keep ring-2 attribution honest: a node found
+        // by seed A must not be credited to seed B.
+        const freshPerSeed: IntelChannelHit[][] = wave.map(() => []);
+        results.forEach((hits, k) => {
+          for (const hit of hits) {
+            if (!hit.url || seen.has(hit.url)) continue;
+            if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
+            seen.add(hit.url);
+            scorePersonIdentity(hit, intent);
+            hit.bucket = classifyDomain(hit.domain);
+            buckets[hit.bucket].push(hit);
+            freshPerSeed[k].push(hit);
+          }
+        });
+
+        const hopBodyBudget = deadlineMs - (Date.now() - startedAt) > 9000 ? 8 : 3;
+        await harvest(pickTargets(hopBodyBudget, freshPerSeed.flat()), 6);
+
+        wave.forEach((node, k) => {
+          hopExecuted.push({ kind: node.kind === "person" ? "relative" : node.kind === "address" ? "address" : "entity", value: node.label, rationale: `information gain ${node.gain}` });
+          ring2Executed += 1;
+          const branchDocs = docsOf(freshPerSeed[k]);
+          if (!branchDocs.length) { branches.set(node.id, []); return; }
+          // Ring-2 extraction is scoped to the SEED as subject, not the
+          // original target — otherwise the seed's relatives would be parsed
+          // as the subject's relatives.
+          const branchLedger = buildFieldLedger(branchDocs, node.label);
+          branches.set(node.id, ingestRing2(graph, node, branchLedger));
+        });
       }
-      const hopBodyBudget = deadlineMs - (Date.now() - startedAt) > 9000 ? 8 : 3;
-      await harvest(pickTargets(hopBodyBudget, fresh), 6);
+
+      // RING 3 — intersection only.
+      intersectBranches(graph, branches);
     }
     fieldLedger = buildFieldLedger(toDocs(), intent.subject);
+    // Ring-1 is re-ingested against the enriched ledger so late-arriving
+    // corroboration upgrades node confidence without duplicating nodes.
+    ingestRing1(graph, fieldLedger);
   }
+
 
   const emptyBuckets = (Object.keys(buckets) as DomainBucket[]).filter((k) => buckets[k].length === 0);
   const totalHits = Object.values(buckets).reduce((a, b) => a + b.length, 0);
@@ -885,9 +925,12 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits,
     rejectedIdentityHits, fieldLedger, documentsFetched,
     hopSeeds: hopExecuted,
+    graph: intent.kind === "person" ? graph : undefined,
+    ring2Executed,
     elapsedMs: Date.now() - startedAt,
     queriesRun: 2 + selectedEnrich.length + hopExecuted.length,
   };
+
 }
 
 
@@ -906,7 +949,9 @@ export function formatIntelContext(bundle: IntelBundle): string {
   const {
     intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries,
     rejectedIdentityHits, fieldLedger, documentsFetched, hopSeeds, elapsedMs, queriesRun,
+    graph, ring2Executed,
   } = bundle;
+
 
   const header = [
     `## JURISDICTIONAL INTEL SWEEP — ${intent.kind.toUpperCase()}`,
@@ -946,6 +991,9 @@ export function formatIntelContext(bundle: IntelBundle): string {
     ? `\n\n${formatFieldLedger(fieldLedger)}`
     : "";
 
+  const graphBlock = graph && graph.nodes.length > 1 ? `\n\n${formatGraph(graph)}` : "";
+
+
   const sections: string[] = [];
   const order: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
   for (const b of order) {
@@ -973,7 +1021,11 @@ export function formatIntelContext(bundle: IntelBundle): string {
     }),
     `| Documents opened & parsed | ${documentsFetched ?? 0} | ${(documentsFetched ?? 0) > 0 ? "PARSED" : "NONE"} |`,
     `| Recursive HOP-1 seeds | ${hopSeeds?.length ?? 0} | ${(hopSeeds?.length ?? 0) > 0 ? "PURSUED" : "NOT REACHED"} |`,
+    `| Graph ring 1 (direct contacts) | ${graph ? graph.nodes.filter((n) => n.ring === 1).length : 0} | ${graph && graph.nodes.some((n) => n.ring === 1) ? "MAPPED" : "NONE"} |`,
+    `| Graph ring 2 (contacts of contacts) | ${graph ? graph.nodes.filter((n) => n.ring === 2).length : 0} | ${(ring2Executed ?? 0) > 0 ? `EXPANDED FROM ${ring2Executed} SEED(S)` : "NOT REACHED"} |`,
+    `| Graph ring 3 (intersection only) | ${graph?.crossLinks.length ?? 0} | ${(graph?.crossLinks.length ?? 0) > 0 ? "CLOSED TRIANGLES FOUND" : "NO CONVERGENCE"} |`,
   ].join("\n");
+
 
   const emptyNote = emptyBuckets.length
     ? `\n\n### EMPTY BUCKETS: ${emptyBuckets.map((b) => BUCKET_LABELS[b].split(" ")[0]).join(", ")} — name the missing lever that would unlock each.`
@@ -982,8 +1034,10 @@ export function formatIntelContext(bundle: IntelBundle): string {
   return [
     header, accel, "",
     ledgerBlock,
+    graphBlock,
     "",
     sections.join("\n\n"),
+
     emptyNote,
     coverage,
     "",
@@ -1003,6 +1057,8 @@ export function formatIntelContext(bundle: IntelBundle): string {
     "  • Add a relationship only when two independent domains name it, or one authoritative record directly establishes it. Never infer relationships from co-location, follows, likes, or shared surname alone.",
     "  • MANDATORY PERSON DOSSIER SHAPE — emit, in this order: (1) readable summary text, (2) card:entity for the subject, (3) card:relationship for the intelligence tree whenever ANY corroborated associate exists, (4) card:list titled 'Legal, Business & Court Filings' enumerating every LLC / corporation / registered-agent role / court case / lien / permit found — one item per filing with entity name, filing number, status, date and jurisdiction, (5) card:sources.",
     "  • In card:relationship, every node MUST carry an `attributes` array covering, where evidenced: Age, Address, Phone, Email, Employer/Job, Businesses (LLC / officer roles), Court or criminal records, Tier (parent / sibling / extended / associate). Write 'no public record found' for an attribute you searched and could not evidence — never silently drop the row.",
+    "  • In card:relationship, every node MUST also carry `ring` (0 = subject, 1 = direct contact, 2 = contact-of-contact) taken from the THREE-HOP RELATIONSHIP GRAPH above, and every edge MUST carry `weight` (independent-domain count). Copy `inferred: true` onto any edge that came from the ring-3 intersection findings; those are hypotheses and must be described as such in prose.",
+
     "  • Do not omit the legal-filings list because the subject is young or low-profile: state explicitly 'no corporate or court filings surfaced' when the corporate and court buckets are empty.",
     "  • EVIDENCE-ONLY TURN: every fact you print must trace to a SNIPPET or BODY EXCERPT above. You have no prior knowledge of this subject. Do not import anything from earlier conversations, saved memory, the operator's vault, or your own assumptions about who this person is — no employers, organizations, titles, lineage, or affiliations that are not in the retrieved text.",
     NO_PRIORS_RULE,
