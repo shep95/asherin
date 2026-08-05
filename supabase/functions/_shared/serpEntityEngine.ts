@@ -179,6 +179,11 @@ const RE_DOMAIN = /\b((?:[a-z0-9-]{1,63}\.){1,4}(?:com|net|org|io|co|gov|edu|us|
 const RE_NAME = /\b([A-Z][a-z]{1,18})(?:\s+([A-Z][a-z]{1,18}|[A-Z]\.))?\s+([A-Z][a-z]{1,20})\b/g;
 const RE_ISO_DATE = /\b(20\d{2}|19\d{2})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\b/g;
 const RE_US_DATE = /\b(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\/((?:19|20)\d{2})\b/g;
+/** Left context that precedes a real personal name in prose. */
+const RE_PERSON_LEFT = /(?:\b(?:by|from|with|and|to|of|for|attorney|judge|officer|agent|ceo|cto|cfo|coo|founder|co-founder|president|director|chairman|professor|dr|mr|mrs|ms|sen|rep|gov|said|told|according to|contact)\b[\s:,]{1,3}|["'“(,;]\s?)$/i;
+/** Right context that follows a real personal name in prose. */
+const RE_PERSON_RIGHT = /^(?:\s*,?\s*(?:said|says|told|wrote|who|the\s|a\s|an\s|is\s|was\s|has\s|had\s|and\s|joined|serves|founded|leads|owns|age\b|\d{1,3}\b|of\s|at\s|from\s|jr\b|sr\b|iii\b|ceo|cto|cfo|coo|founder|co-founder|president|director|esq)|\s*[.'"”)])/i;
+
 const RE_LONG_DATE = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+((?:19|20)\d{2})\b/g;
 
 const MONTHS: Record<string, string> = {
@@ -251,6 +256,8 @@ function extractFromText(text: string, docDomain: string): Hit[] {
   }
   for (const m of matchAll(RE_NAME, text, 400)) {
     const full = m[0].replace(/\s+/g, " ");
+    const left = text.slice(Math.max(0, m.index - 40), m.index);
+    const right = text.slice(m.index + m[0].length, m.index + m[0].length + 40);
     const first = m[1];
     const last = m[3];
     if (STOP.has(first) || STOP.has(last)) continue;
@@ -260,6 +267,12 @@ function extractFromText(text: string, docDomain: string): Hit[] {
     if (new Set(tokens).size !== tokens.length) continue;
     if (ORG_SUFFIX.test(last)) { push("org", full); continue; }
     if (KNOWN_PLACES.has(norm(full)) || LOCATION_HINT.test(full)) { push("location", full); continue; }
+    // A capitalised word pair is only a person when prose says so. Without this
+    // gate, navigation chrome ("Wikipedia Jump", "Bahasa Indonesia Ido") floods
+    // hop ring 1 and buries the actual actors. A middle initial is self-evident
+    // name structure and passes on its own.
+    const hasMiddleInitial = /\b[A-Z]\.\s/.test(full);
+    if (!hasMiddleInitial && !RE_PERSON_LEFT.test(left) && !RE_PERSON_RIGHT.test(right)) continue;
     push("person", full);
   }
   return hits;
