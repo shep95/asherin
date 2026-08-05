@@ -914,9 +914,12 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits,
     rejectedIdentityHits, fieldLedger, documentsFetched,
     hopSeeds: hopExecuted,
+    graph: intent.kind === "person" ? graph : undefined,
+    ring2Executed,
     elapsedMs: Date.now() - startedAt,
     queriesRun: 2 + selectedEnrich.length + hopExecuted.length,
   };
+
 }
 
 
