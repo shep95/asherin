@@ -1535,14 +1535,71 @@ Deno.serve(async (req) => {
       r.veracity = Math.min(100, Math.round(r.veracity * (0.8 + r.truthGraph.consensusWeight * 0.2)));
     }
 
-    // ── Ranking removed — replaced by user's new algorithm ───────────────────
-    // Previous topical-relevance scorer + rank assignment was deleted here.
-    // Sort now: hostile sinks, then veracity, then tier.
-    filtered.sort((a, b) => {
-      if (a.truthGraph.hostileFlag !== b.truthGraph.hostileFlag) return a.truthGraph.hostileFlag ? 1 : -1;
-      if (b.veracity !== a.veracity) return b.veracity - a.veracity;
-      return a.tier - b.tier;
-    });
+    // ═══════════════════════════════════════════════════════════════════════
+    // STAGE 3 — TWO-FACTOR RANKING (relevance × credibility, weighted sum)
+    // Credibility alone reads as randomness: a tier-1 domain that never mentions
+    // the subject used to outrank the one page that does. Relevance now leads,
+    // credibility floors at 0.5 so no source is annihilated.
+    // ═══════════════════════════════════════════════════════════════════════
+    const applyRanking = (rows: SearchResult[]) => {
+      for (const r of rows) {
+        r.relevance = scoreRelevance(plan, { title: r.title, url: r.url, snippet: r.snippet });
+        r.score = finalScore({
+          relevance: r.relevance,
+          veracity: r.veracity,
+          engines: r.engines,
+          hostile: r.truthGraph.hostileFlag,
+        });
+      }
+      rows.sort((a, b) => {
+        if ((b.score ?? 0) !== (a.score ?? 0)) return (b.score ?? 0) - (a.score ?? 0);
+        if (b.veracity !== a.veracity) return b.veracity - a.veracity;
+        return a.tier - b.tier;
+      });
+      rows.forEach((r, i) => { r.rank = i + 1; });
+    };
+
+    applyRanking(filtered);
+
+    // ── Rescue pass ────────────────────────────────────────────────────────
+    // If the top of the list is topically weak, the constraint set was too
+    // tight (or the SERP missed). Re-issue a RELAXED query against the three
+    // fastest surface engines only, under a hard 4s cap. Skipped in fast mode
+    // so chat's sweep budget is untouched.
+    let rescueUsed = false;
+    const topRelevance = filtered.slice(0, 5).reduce((s, r) => s + (r.relevance ?? 0), 0) / Math.max(1, Math.min(5, filtered.length));
+    if (!fast && plan.required.length > 0 && (filtered.length < 5 || topRelevance < 0.45)) {
+      try {
+        const relaxed = relaxedQuery(plan);
+        const rescue = await Promise.race([
+          Promise.allSettled([
+            searchDDG(relaxed, 1, filters?.dateRange),
+            searchMojeek(relaxed),
+            searchFirecrawl(relaxed, 10),
+          ]),
+          new Promise<PromiseSettledResult<SearchResult[]>[]>((res) => setTimeout(() => res([]), 4000)),
+        ]);
+        const known = new Set(filtered.map(r => r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://')));
+        const engines = ['ddg', 'mojeek', 'firecrawl'];
+        rescue.forEach((st, i) => {
+          if (st.status !== 'fulfilled') return;
+          for (const r of st.value) {
+            const k = r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://');
+            if (known.has(k)) continue;
+            known.add(k);
+            r.engine = r.engine || engines[i];
+            r.engines = [engines[i]];
+            r.independence = 1;
+            r.layer = r.layer || 'surface';
+            filtered.push(r);
+            rescueUsed = true;
+          }
+        });
+        if (rescueUsed) applyRanking(filtered);
+      } catch { /* rescue is best-effort — never fails the search */ }
+    }
+    console.log(`[zophiel] plan required=${JSON.stringify(plan.required)} entity=${plan.entity} results=${filtered.length} topRel=${topRelevance.toFixed(2)} rescue=${rescueUsed}`);
+
 
     // ═══════════════════════════════════════════════════════════════════════
     // OMNISPIDER ENRICHMENT — shep95/web-crawlers integration
