@@ -85,37 +85,58 @@ export function buildQueryPlan(raw: string): QueryPlan {
 
   const required = new Set<string>();
   const optional = new Set<string>();
+  /** normalized term → the operator's original spelling (for the wire query). */
+  const surfaceForm = new Map<string, string>();
+  const addRequired = (norm: string, original: string) => {
+    if (!norm) return;
+    required.add(norm);
+    if (!surfaceForm.has(norm)) surfaceForm.set(norm, original.trim());
+  };
 
-  for (const p of phrases) {
-    const n = normalizeTerm(p);
-    if (n) required.add(n);
-  }
+  for (const p of phrases) addRequired(normalizeTerm(p), p);
 
   // 3. Structured identifiers are always required.
   const cve = input.match(CVE_RE);
-  if (cve) required.add(normalizeTerm(cve[0]));
+  if (cve) addRequired(normalizeTerm(cve[0]), cve[0]);
   const wallet = input.match(WALLET_RE);
-  if (wallet) required.add(wallet[0].toLowerCase());
+  if (wallet) addRequired(wallet[0].toLowerCase(), wallet[0]);
   const domainHit = residue.match(DOMAIN_RE);
-  if (domainHit) required.add(normalizeTerm(domainHit[0]));
+  if (domainHit) addRequired(normalizeTerm(domainHit[0]), domainHit[0]);
 
   // 4. Capitalized runs = proper nouns → required as one atomic term.
   //    "Asher Shepherd Newton" becomes a single required term, not three.
+  //    An ALL-CAPS acronym inside a run ("Tesla TSLA") is split off: gluing a
+  //    ticker onto a company name produces a phrase no page ever contains.
+  const ACRONYM = /^[A-Z0-9]{2,6}$/;
   const properRuns = residue.match(/\b([A-Z][\w'’-]+)(?:\s+(?:of|de|van|von|del|la|le)\s+[A-Z][\w'’-]+|\s+[A-Z][\w'’-]+)*/g) || [];
   for (const run of properRuns) {
     const words = run.trim().split(/\s+/);
-    // A single leading capitalized stopword ("Who", "What") is sentence case, not a name.
-    if (words.length === 1 && STOPWORDS.has(words[0].toLowerCase())) continue;
-    const n = normalizeTerm(run);
-    if (!n || n.length < 2) continue;
-    if (words.length >= 2 || /^[A-Z]{2,5}$/.test(run.trim())) required.add(n);
-    else optional.add(n);
+    // Split the run into acronym singletons and title-case segments.
+    const segments: string[][] = [];
+    let buf: string[] = [];
+    for (const w of words) {
+      if (ACRONYM.test(w)) {
+        if (buf.length) { segments.push(buf); buf = []; }
+        segments.push([w]);
+      } else buf.push(w);
+    }
+    if (buf.length) segments.push(buf);
+
+    for (const seg of segments) {
+      // A single capitalized stopword ("Who", "What") is sentence case, not a name.
+      if (seg.length === 1 && STOPWORDS.has(seg[0].toLowerCase())) continue;
+      const original = seg.join(" ");
+      const n = normalizeTerm(original);
+      if (!n || n.length < 2) continue;
+      if (seg.length >= 2 || ACRONYM.test(seg[0])) addRequired(n, original);
+      else optional.add(n);
+    }
   }
 
   // 5. Bare uppercase tickers.
   for (const tok of residue.split(/\s+/)) {
     const t = tok.replace(/[^A-Za-z$]/g, "");
-    if (t.length >= 2 && TICKER_RE.test(t) && t === t.toUpperCase()) required.add(normalizeTerm(t));
+    if (t.length >= 2 && TICKER_RE.test(t) && t === t.toUpperCase()) addRequired(normalizeTerm(t), t);
   }
 
   // 6. Everything else that survives stopword removal is optional context.
@@ -125,33 +146,39 @@ export function buildQueryPlan(raw: string): QueryPlan {
     optional.add(tok);
   }
 
-  // 7. Entity classification — drives per-engine eligibility upstream.
-  let entity: EntityKind = "general";
-  if (cve) entity = "cve";
-  else if (wallet) entity = "wallet";
-  else if (ORG_SUFFIX.test(input)) entity = "organization";
-  else if (domainHit) entity = "domain";
-  else if (PLACE_HINT.test(input)) entity = "place";
-  else if ([...required].some((r) => r.split(" ").length >= 2)) entity = "person";
-  else if ([...required].some((r) => /^[a-z]{1,5}$/.test(r) && r.length <= 5)) entity = "ticker";
-
   // 7b. Collapse redundant required terms — "cve" is already inside
   //     "cve 2024 3094"; keeping both double-counts the gate denominator.
   const reqList = [...required].sort((a, b) => b.length - a.length);
   const requiredFinal: string[] = [];
   for (const t of reqList) {
-    if (requiredFinal.some((k) => k === t || k.split(" ").join(" ").includes(t))) continue;
+    if (requiredFinal.some((k) => k === t || k.includes(t))) continue;
     requiredFinal.push(t);
   }
   for (const t of [...optional]) {
     if (requiredFinal.some((k) => k.includes(t))) optional.delete(t);
   }
 
-  // 8. Wire query: operator's words. Multi-word required terms get quoted so
-  //    SERPs treat them atomically instead of bag-of-words. The literal spans
-  //    they cover are stripped from the remainder so the query isn't doubled.
+  // 7. Entity classification — drives per-engine eligibility upstream.
+  //    A person is a multi-word, purely alphabetic name with no acronym token.
+  const looksPersonal = requiredFinal.some((r) => {
+    const w = r.split(" ");
+    return w.length >= 2 && w.length <= 4 && w.every((x) => /^[a-z]{2,}$/.test(x));
+  });
+  let entity: EntityKind = "general";
+  if (cve) entity = "cve";
+  else if (wallet) entity = "wallet";
+  else if (ORG_SUFFIX.test(input)) entity = "organization";
+  else if (domainHit) entity = "domain";
+  else if (requiredFinal.some((r) => /^[a-z]{1,5}$/.test(r)) && /\b(stock|ticker|share|earnings|price)\b/i.test(input)) entity = "ticker";
+  else if (PLACE_HINT.test(input)) entity = "place";
+  else if (looksPersonal) entity = "person";
+
+  // 8. Wire query: operator's ORIGINAL spelling. Multi-word required terms get
+  //    quoted so SERPs treat them atomically instead of bag-of-words. The
+  //    literal spans they cover are stripped from the remainder so the query
+  //    is never doubled (a doubled query silently drifts recall).
   const multi = requiredFinal.filter((r) => r.includes(" "));
-  const quoted = multi.map((r) => `"${r}"`);
+  const quoted = multi.map((r) => `"${surfaceForm.get(r) || r}"`);
   let rest = input
     .replace(/"([^"]{2,120})"/g, " ")
     .replace(/(^|\s)-([A-Za-z0-9][\w.-]{1,40})/g, " ");
@@ -165,6 +192,7 @@ export function buildQueryPlan(raw: string): QueryPlan {
     .join(" ")
     .trim();
   const wireQuery = [...quoted, rest].filter(Boolean).join(" ").trim() || input;
+
 
   return {
     raw: input,
