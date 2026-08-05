@@ -87,10 +87,16 @@ export interface IntelBundle {
   /** how many full documents were actually opened and parsed */
   documentsFetched?: number;
   /** seeds actually queried during the recursive HOP-1 collection */
+  /** seeds actually queried during the recursive HOP-1 collection */
   hopSeeds?: Seed[];
+  /** bounded three-hop relationship graph (person sweeps only) */
+  graph?: IntelGraph;
+  /** how many ring-1 nodes were actually expanded into ring 2 */
+  ring2Executed?: number;
   elapsedMs?: number;
   queriesRun?: number;
 }
+
 
 
 // ── Lookup tables (kept from v1 — proven to work) ─────────────────────────
