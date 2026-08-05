@@ -1130,7 +1130,21 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       onClose={() => setShowDiffId(null)}
                     />
                   )}
+                  {/* Branded intelligence report artifact — only when the operator
+                      asked for the product as a file, and only once the answer
+                      has finished streaming so the .txt is never half-written. */}
+                  {msg.role === "assistant" && !!msg.content && !(isStreaming && msg === lastMsg) &&
+                    wantsIntelReportFile(branchMessages[idx - 1]?.role === "user" ? branchMessages[idx - 1].content : "") && (
+                      <IntelReportCard
+                        content={msg.content}
+                        request={branchMessages[idx - 1]?.content}
+                        conversationTitle={conversation.title}
+                        timestamp={msg.timestamp}
+                        sources={msg.sources}
+                      />
+                    )}
                   {/* Citation footnotes */}
+
                   {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
                     <CitationFootnote
                       sources={msg.sources.map((s, i) => ({
