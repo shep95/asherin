@@ -1327,9 +1327,10 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           webSearchContext = formatZophielContext(bundle);
           if (bundle) {
             console.log(
-              `[chat] Zophiel corpus: ${bundle.results.length} hits, graph=${bundle.intel ? "yes" : "no"}, ${bundle.elapsedMs}ms`,
+              `[chat] Zophiel corpus: ${bundle.results.length} hits, entity=${bundle.plan?.entity ?? "?"}, topRel=${bundle.topRelevance.toFixed(2)}, rescue=${bundle.rescueUsed}, graph=${bundle.intel ? "yes" : "no"}, ${bundle.elapsedMs}ms`,
             );
           }
+
         } catch (e) {
           console.error("[chat] Zophiel bridge failed:", (e as Error).message);
         }
