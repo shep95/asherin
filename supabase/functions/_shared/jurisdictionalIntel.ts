@@ -792,7 +792,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     if (remaining < 4500) break;
     const wave = selectedEnrich.slice(i, i + WAVE);
     const results = await Promise.all(
-      wave.map((q) => zophielQuery(q.query, { timeoutMs: Math.min(7000, remaining), limit: 10 })
+      wave.map((q) => zophielQuery(q.query, { timeoutMs: Math.min(7000, remaining), limit: 10, retryEmpty: false })
         .catch(() => [] as IntelChannelHit[])),
     );
     pass2.push(...results);
