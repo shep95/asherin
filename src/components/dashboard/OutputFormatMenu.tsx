@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { FileText, Mail, ClipboardList, Code2, Table2, FileJson, CheckSquare, Presentation, ScrollText, X } from "lucide-react";
+import { FileText, Mail, ClipboardList, Code2, Table2, FileJson, CheckSquare, Presentation, ScrollText, Shield, X } from "lucide-react";
+import { buildIntelReport } from "@/lib/intelligenceReport";
 
 interface OutputFormatMenuProps {
   content: string;
   onClose?: () => void;
 }
 
-type FormatId = "doc" | "email" | "prd" | "spec" | "slides" | "patch" | "json" | "csv" | "checklist";
+type FormatId = "intel" | "doc" | "email" | "prd" | "spec" | "slides" | "patch" | "json" | "csv" | "checklist";
 
 const formats: { id: FormatId; label: string; icon: React.ElementType; ext: string; mime: string }[] = [
+  { id: "intel", label: "Intelligence Report", icon: Shield, ext: "txt", mime: "text/plain;charset=utf-8" },
   { id: "doc", label: "Document", icon: FileText, ext: "md", mime: "text/markdown" },
   { id: "email", label: "Email Draft", icon: Mail, ext: "txt", mime: "text/plain" },
   { id: "prd", label: "PRD", icon: ScrollText, ext: "md", mime: "text/markdown" },
@@ -19,6 +21,7 @@ const formats: { id: FormatId; label: string; icon: React.ElementType; ext: stri
   { id: "csv", label: "CSV", icon: Table2, ext: "csv", mime: "text/csv" },
   { id: "checklist", label: "Checklist", icon: CheckSquare, ext: "md", mime: "text/markdown" },
 ];
+
 
 function convertContent(content: string, format: FormatId): string {
   const lines = content.split("\n").filter(l => l.trim());
