@@ -224,30 +224,74 @@ export function EntityCard({ payload, source }: { payload: Record<string, unknow
   );
 }
 
+// Ring-aware intelligence tree.
+//   ring 0 = subject, ring 1 = direct contacts, ring 2 = contacts of contacts.
+//   Edges may carry `weight` (independent domains) and `inferred: true`
+//   (produced by set intersection, NOT asserted by any single source) — inferred
+//   links render dashed and explicitly labelled so a hypothesis is never read
+//   as a fact.
 export function RelationshipCard({ payload, source }: { payload: Record<string, unknown>; source?: Source }) {
   const subject = s(payload.subject, 200);
   const rawNodes = Array.isArray(payload.nodes) ? payload.nodes : [];
   const nodes = rawNodes.filter((node): node is Record<string, unknown> => !!node && typeof node === "object")
-    .map((node) => ({
-      id: s(node.id, 100),
-      label: s(node.label, 200),
-      detail: s(node.detail, 300),
-      attributes: (Array.isArray(node.attributes) ? node.attributes : [])
-        .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
-        .map((a) => ({ label: s(a.label, 60), value: s(a.value, 400) }))
-        .filter((a) => a.label && a.value)
-        .slice(0, 12),
-    }))
-    .filter((node) => node.id && node.label).slice(0, 24);
+    .map((node) => {
+      const ringRaw = Number((node as any).ring);
+      return {
+        id: s(node.id, 100),
+        label: s(node.label, 200),
+        detail: s(node.detail, 300),
+        ring: Number.isFinite(ringRaw) && ringRaw >= 0 && ringRaw <= 2 ? (ringRaw as 0 | 1 | 2) : null,
+        kind: s((node as any).kind, 40),
+        attributes: (Array.isArray(node.attributes) ? node.attributes : [])
+          .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
+          .map((a) => ({ label: s(a.label, 60), value: s(a.value, 400) }))
+          .filter((a) => a.label && a.value)
+          .slice(0, 14),
+      };
+    })
+    .filter((node) => node.id && node.label).slice(0, 120);
   const nodeIds = new Set(nodes.map((node) => node.id));
   const rawEdges = Array.isArray(payload.edges) ? payload.edges : [];
   const edges = rawEdges.filter((edge): edge is Record<string, unknown> => !!edge && typeof edge === "object")
-    .map((edge) => ({ from: s(edge.from, 100), to: s(edge.to, 100), label: s(edge.label, 120), confidence: s(edge.confidence, 40), sources: normSources(edge.sources) }))
-    .filter((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to) && edge.label).slice(0, 32);
+    .map((edge) => {
+      const w = Number((edge as any).weight);
+      return {
+        from: s(edge.from, 100),
+        to: s(edge.to, 100),
+        label: s(edge.label, 120),
+        confidence: s(edge.confidence, 40),
+        weight: Number.isFinite(w) && w > 0 ? Math.min(w, 99) : 0,
+        inferred: (edge as any).inferred === true,
+        sources: normSources(edge.sources),
+      };
+    })
+    .filter((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to) && edge.label).slice(0, 200);
   const sources = normSources(payload.sources);
   if (!subject || nodes.length === 0) return null;
-  const subjectNode = nodes.find((node) => node.id === "subject") || nodes[0];
-  const related = edges.map((edge) => ({ edge, node: nodes.find((node) => node.id === (edge.from === subjectNode.id ? edge.to : edge.from)) })).filter((item) => item.node);
+
+  const subjectNode = nodes.find((node) => node.id === "subject") || nodes.find((n) => n.ring === 0) || nodes[0];
+  const asserted = edges.filter((e) => !e.inferred);
+  const inferred = edges.filter((e) => e.inferred);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+
+  // Ring assignment falls back to graph distance when the model omitted `ring`.
+  const ringOf = (id: string): number => {
+    const declared = byId.get(id)?.ring;
+    if (declared !== null && declared !== undefined) return declared;
+    if (id === subjectNode.id) return 0;
+    return asserted.some((e) => (e.from === subjectNode.id && e.to === id) || (e.to === subjectNode.id && e.from === id)) ? 1 : 2;
+  };
+
+  const parentsOf = (id: string) =>
+    asserted.filter((e) => e.to === id || e.from === id)
+      .map((e) => byId.get(e.from === id ? e.to : e.from))
+      .filter((n): n is NonNullable<typeof n> => !!n && n.id !== id && ringOf(n.id) < ringOf(id));
+
+  const edgeTo = (id: string) => asserted.find((e) => e.to === id) || asserted.find((e) => e.from === id);
+
+  const ring1 = nodes.filter((n) => n.id !== subjectNode.id && ringOf(n.id) === 1);
+  const ring2 = nodes.filter((n) => n.id !== subjectNode.id && ringOf(n.id) === 2);
+
   const Attributes = ({ rows }: { rows: { label: string; value: string }[] }) => rows.length === 0 ? null : (
     <dl className="mt-1.5 grid grid-cols-[minmax(72px,auto)_1fr] gap-x-2 gap-y-0.5">
       {rows.map((row, i) => (
@@ -258,6 +302,51 @@ export function RelationshipCard({ payload, source }: { payload: Record<string, 
       ))}
     </dl>
   );
+
+  const NodeBlock = ({ node, ring }: { node: typeof nodes[number]; ring: 1 | 2 }) => {
+    const edge = edgeTo(node.id);
+    const via = ring === 2 ? parentsOf(node.id).map((p) => p.label).slice(0, 3) : [];
+    return (
+      <div className={`relative rounded border px-3 py-2 ${ring === 1 ? "border-border/25" : "border-border/15 bg-foreground/[0.015]"}`}>
+        <span className="absolute -left-3 top-1/2 w-3 border-t border-border/30" />
+        <div className="flex items-center justify-between gap-2">
+          <span className={ring === 1 ? "text-xs text-foreground" : "text-[11px] text-foreground/80"}>{node.label}</span>
+          <span className="flex items-center gap-1.5">
+            {edge && edge.weight > 0 && (
+              <span className="rounded-sm border border-border/30 px-1 text-[9px] font-mono text-muted-foreground" title="independent domains asserting this edge">
+                ×{edge.weight}
+              </span>
+            )}
+            <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">{edge?.confidence || "reported"}</span>
+          </span>
+        </div>
+        <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">
+          {edge?.label || node.kind || "association"}
+          {via.length > 0 && <span className="normal-case tracking-normal text-muted-foreground/70"> · via {via.join(" / ")}</span>}
+        </div>
+        {node.detail && <div className="text-[11px] text-muted-foreground mt-1">{node.detail}</div>}
+        <Attributes rows={node.attributes} />
+        {edge && edge.sources.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {edge.sources.map((citation, ci) => (
+              <a key={ci} href={citation.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">
+                {citation.title || safeHost(citation.url)}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const RingHeader = ({ n, title, note }: { n: number; title: string; note: string }) => (
+    <div className="flex items-baseline gap-2 pt-1">
+      <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{title}</span>
+      <span className="font-mono text-[10px] text-muted-foreground/60">{n}</span>
+      <span className="text-[10px] text-muted-foreground/50">{note}</span>
+    </div>
+  );
+
   return (
     <CardShell icon={Network} label="Intelligence tree" title={subject} sources={sources} origin={source}>
       <div className="space-y-2">
@@ -266,20 +355,58 @@ export function RelationshipCard({ payload, source }: { payload: Record<string, 
           {subjectNode.detail && <div className="text-[11px] text-muted-foreground mt-0.5">{subjectNode.detail}</div>}
           <Attributes rows={subjectNode.attributes} />
         </div>
-        {related.length > 0 ? <div className="ml-3 border-l border-border/30 pl-3 space-y-2">
-          {related.map(({ edge, node }, index) => <div key={`${edge.from}-${edge.to}-${index}`} className="relative rounded border border-border/20 px-3 py-2">
-            <span className="absolute -left-3 top-1/2 w-3 border-t border-border/30" />
-            <div className="flex items-center justify-between gap-2"><span className="text-xs text-foreground">{node?.label}</span><span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">{edge.confidence || "verified"}</span></div>
-            <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-0.5">{edge.label}</div>
-            {node?.detail && <div className="text-[11px] text-muted-foreground mt-1">{node.detail}</div>}
-            {node && <Attributes rows={node.attributes} />}
-            {edge.sources.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5">{edge.sources.map((citation, citationIndex) => <a key={citationIndex} href={citation.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-accent hover:underline">{citation.title || new URL(citation.url).hostname.replace(/^www\./, "")}</a>)}</div>}
-          </div>)}
-        </div> : <div className="text-xs text-muted-foreground">No relationships met the corroboration threshold.</div>}
+
+        {ring1.length === 0 && ring2.length === 0 && (
+          <div className="text-xs text-muted-foreground">No relationships met the corroboration threshold.</div>
+        )}
+
+        {ring1.length > 0 && (
+          <>
+            <RingHeader n={ring1.length} title="Ring 1 · direct" note="asserted by retrieved records" />
+            <div className="ml-3 border-l border-border/30 pl-3 space-y-2">
+              {ring1.map((node) => <NodeBlock key={node.id} node={node} ring={1} />)}
+            </div>
+          </>
+        )}
+
+        {ring2.length > 0 && (
+          <>
+            <RingHeader n={ring2.length} title="Ring 2 · contacts of contacts" note="pruned expansion" />
+            <div className="ml-6 border-l border-dotted border-border/25 pl-3 space-y-2">
+              {ring2.map((node) => <NodeBlock key={node.id} node={node} ring={2} />)}
+            </div>
+          </>
+        )}
+
+        {inferred.length > 0 && (
+          <div className="mt-1 rounded border border-dashed border-amber-400/30 bg-amber-400/[0.03] px-3 py-2">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-amber-300/80">Ring 3 · inferred cross-links</div>
+            <div className="mt-0.5 text-[10px] text-muted-foreground/70">
+              Derived by intersecting branches — hypotheses, not asserted relationships.
+            </div>
+            <ul className="mt-1.5 space-y-1">
+              {inferred.slice(0, 24).map((e, i) => (
+                <li key={i} className="text-[11px] text-foreground/75">
+                  <span className="text-foreground/90">{byId.get(e.from)?.label}</span>
+                  <span className="mx-1.5 text-amber-300/60">⟷</span>
+                  <span className="text-foreground/90">{byId.get(e.to)?.label}</span>
+                  <span className="ml-2 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                    {e.label}{e.weight > 0 ? ` · ${e.weight} shared` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </CardShell>
   );
 }
+
+function safeHost(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url.slice(0, 40); }
+}
+
 
 
 // ────────────────────────────── timeline ──────────────────────────────
