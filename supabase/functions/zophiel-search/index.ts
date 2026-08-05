@@ -1272,6 +1272,10 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   const all: SearchResult[] = [];
   const seenUrls = new Set<string>();
 
+  // O(1) URL index — the previous `all.find(...)` inside the dedupe branch made
+  // merging O(n²) across 22 engines.
+  const byUrl = new Map<string, SearchResult>();
+
   const addResults = (settled: PromiseSettledResult<SearchResult[]>, engine: string, layer: PantheonLayer = 'surface') => {
     if (settled.status !== 'fulfilled') return;
     for (const r of settled.value) {
@@ -1279,18 +1283,26 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
       if (!r.layer) r.layer = layer;
       if (!r.engine) r.engine = engine;
       const normalUrl = r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://');
-      if (seenUrls.has(normalUrl)) {
-        const existing = all.find(e => e.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://') === normalUrl);
-        if (existing) {
-          existing.veracity = Math.min(100, existing.veracity + 5);
-          existing.truthGraph.consensusWeight = Math.min(1, existing.truthGraph.consensusWeight + 0.15);
-        }
+      const existing = byUrl.get(normalUrl);
+      if (existing) {
+        // Corroboration is recorded per-engine; the credibility bonus is later
+        // computed on DISTINCT independence classes, not raw engine count.
+        if (!existing.engines) existing.engines = [existing.engine || 'unknown'];
+        if (!existing.engines.includes(engine)) existing.engines.push(engine);
+        const classes = new Set(existing.engines.map(engineClass));
+        existing.independence = classes.size;
+        existing.veracity = Math.min(100, existing.veracity + 5);
+        existing.truthGraph.consensusWeight = Math.min(1, existing.truthGraph.consensusWeight + 0.15);
         continue;
       }
+      r.engines = [engine];
+      r.independence = 1;
       seenUrls.add(normalUrl);
+      byUrl.set(normalUrl, r);
       all.push(r);
     }
   };
+
 
   // Surface
   addResults(firecrawlResults, 'firecrawl', 'surface');
