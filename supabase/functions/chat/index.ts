@@ -1292,18 +1292,57 @@ You are speaking to an authorized administrator (ashernewtonx@gmail.com or 28num
 The user is asking about internal code, backend, or architecture. You are FORBIDDEN from discussing any internal implementation details. Respond with: "Aureon's architecture is proprietary. I can help you use the platform's features — what would you like to accomplish?"`;
     }
 
-    // ── Web search integration ─────────────────────────────────────────────
+    // ── Web search integration — Zophiel engine first, DuckDuckGo fallback ──
+    // Chat now shares the dashboard's retrieval substrate: multi-engine, tiered
+    // and veracity-scored, with the deterministic XKeyscore graph layer on
+    // relationship-shaped turns. DuckDuckGo remains only as a degradation path
+    // so a Zophiel outage never leaves the turn ungrounded.
     let webSearchContext = "";
+    // Classified once here and reused by the jurisdictional sweep below, so the
+    // two retrieval layers cannot double-charge the turn's wall-clock budget.
+    let intelIntent: any = null;
+    try {
+      const lastUserForIntent = [...messages].reverse().find((m: any) => m.role === "user");
+      const { classifyIntent } = await import("../_shared/jurisdictionalIntel.ts");
+      intelIntent = classifyIntent(lastUserForIntent?.content || "");
+    } catch (_e) {
+      intelIntent = null;
+    }
+
     if (shouldSearch(messages, mode)) {
       const searchUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
       if (searchUserMsg) {
-        console.log("Performing web search for:", searchUserMsg.content.slice(0, 100));
-        const results = await searchDuckDuckGo(searchUserMsg.content);
-        if (results.length > 0) {
-          webSearchContext = `\n\n## LIVE WEB SEARCH RESULTS (DuckDuckGo)\nThe following are real-time search results for the user's query. Use these to ground your response in current facts:\n\n${results.map((r, i) => `${i + 1}. **${r.title}**\n   URL: ${r.url}\n   ${r.snippet}`).join("\n\n")}\n\nIMPORTANT: Cite these sources in your response using [Source Title](URL) format. Prioritize this live data over your training data for current events.`;
+        const q = String(searchUserMsg.content || "").slice(0, 400);
+        console.log("Performing web search for:", q.slice(0, 100));
+        try {
+          const { runZophielIntel, formatZophielContext, needsGraphLayer } =
+            await import("../_shared/zophielChatBridge.ts");
+          // The graph layer is skipped when the jurisdictional dossier engine is
+          // already going to run: that path performs its own deeper harvest and
+          // both together would exceed the 150s edge ceiling.
+          const deep =
+            (needsGraphLayer(q) || mode === "research") &&
+            (!intelIntent || intelIntent.kind === "none");
+          const bundle = await runZophielIntel(q, { deep, mode: "web", fast: true });
+          webSearchContext = formatZophielContext(bundle);
+          if (bundle) {
+            console.log(
+              `[chat] Zophiel corpus: ${bundle.results.length} hits, graph=${bundle.intel ? "yes" : "no"}, ${bundle.elapsedMs}ms`,
+            );
+          }
+        } catch (e) {
+          console.error("[chat] Zophiel bridge failed:", (e as Error).message);
+        }
+
+        if (!webSearchContext) {
+          const results = await searchDuckDuckGo(searchUserMsg.content);
+          if (results.length > 0) {
+            webSearchContext = `\n\n## LIVE WEB SEARCH RESULTS (fallback index)\nThe following are real-time search results for the user's query. Use these to ground your response in current facts:\n\n${results.map((r, i) => `${i + 1}. **${r.title}**\n   URL: ${r.url}\n   ${r.snippet}`).join("\n\n")}\n\nIMPORTANT: Cite these sources in your response using [Source Title](URL) format. Prioritize this live data over your training data for current events.`;
+          }
         }
       }
     }
+
 
     // Library of Leaks / breach aggregators are PERMANENTLY DISABLED.
     // Sovereign Source Atlas policy: authoritative registries only.
