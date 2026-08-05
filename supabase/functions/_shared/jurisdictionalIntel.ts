@@ -796,7 +796,11 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
         .catch(() => [] as IntelChannelHit[])),
     );
     pass2.push(...results);
+    // Upstream degrades under back-to-back bursts; a short gap between waves
+    // measurably preserves recall on the later channels.
+    if (i + WAVE < selectedEnrich.length) await sleep(300);
   }
+
 
 
   // ── FUSE — dedupe by URL, block-check every hit, classify into buckets ──
