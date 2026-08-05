@@ -200,7 +200,7 @@ export function ingestRing1(g: IntelGraph, ledger: FieldLedger, limitPerKind = 1
     for (const f of fields) {
       if (!f.display || f.display.length < 3) continue;
       const id = keyFor(kind, f.display);
-      if (id === keyFor("person", g.nodes[0].label)) continue; // subject re-assertion
+      if (isSubjectAlias(g, kind, f.display)) continue; // subject re-assertion
       const node = upsertNode(g, {
         id, kind, label: f.display, ring: 1,
         canonical: f.canonical,
