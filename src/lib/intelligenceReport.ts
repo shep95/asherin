@@ -255,7 +255,7 @@ export function buildIntelReport(input: IntelReportInput): IntelReportArtifact {
     ? [
         "",
         THIN,
-        `${String(99).slice(0, 0)}SOURCES CITED`,
+        "SOURCES CITED",
         THIN,
         "",
         ...sources.slice(0, 60).flatMap((s, i) => {
