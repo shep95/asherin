@@ -23,9 +23,24 @@ export interface ZophielHit {
   tier?: number;
   veracity?: number;
   engine?: string;
+  engines?: string[];
+  /** Count of INDEPENDENT engine classes that surfaced this URL (not raw engine count). */
+  independence?: number;
+  /** Stage-3 topical relevance, 0..1 — why the ranker placed this hit where it did. */
+  relevance?: number;
   layer?: string;
   onion?: boolean;
   publishDate?: string;
+}
+
+/** Mirror of the Stage-1 plan the engine actually gated retrieval + ranking on. */
+export interface ZophielQueryPlan {
+  required: string[];
+  optional: string[];
+  negative: string[];
+  phrases: string[];
+  entity: string;
+  wireQuery: string;
 }
 
 export interface ZophielBundle {
@@ -34,11 +49,26 @@ export interface ZophielBundle {
   instantAnswer?: string | null;
   intel: SerpIntel | null;
   elapsedMs: number;
+  plan: ZophielQueryPlan | null;
+  /** True when the engine had to relax constraints to find anything at all. */
+  rescueUsed: boolean;
+  /** Mean relevance of the top 5 hits — the turn's retrieval confidence. */
+  topRelevance: number;
 }
 
 const SEARCH_TIMEOUT_MS = 42_000;
 const INTEL_TIMEOUT_MS = 40_000;
 const MAX_CONTEXT_HITS = 24;
+/** Below this mean top-5 relevance the corpus is treated as off-target and truncated. */
+const OFF_TARGET_RELEVANCE = 0.2;
+const OFF_TARGET_HITS = 8;
+/**
+ * Escalation to the graph layer is only affordable while the search itself left
+ * budget on the table. Past this the turn spends its remaining time answering.
+ */
+const GRAPH_ESCALATION_BUDGET_MS = 18_000;
+const GRAPH_ENTITY_KINDS = new Set(["person", "organization", "wallet", "domain"]);
+
 
 function fnUrl(name: string): string | null {
   const base = Deno.env.get("SUPABASE_URL");
