@@ -1034,8 +1034,10 @@ export function formatIntelContext(bundle: IntelBundle): string {
   return [
     header, accel, "",
     ledgerBlock,
+    graphBlock,
     "",
     sections.join("\n\n"),
+
     emptyNote,
     coverage,
     "",
