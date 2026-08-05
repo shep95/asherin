@@ -129,6 +129,27 @@ const ORG_SUFFIX = /(Inc|Corp|Corporation|Company|Co|LLC|L\.L\.C|Ltd|Limited|PLC
 
 const LOCATION_HINT = /(County|Parish|Province|District|Township|City of|State of|Republic of)/;
 
+/** Multi-word place names that the capitalised-name matcher would otherwise
+ *  file as people. Extraction that calls a city a person poisons every hop
+ *  ring downstream, so this gate runs before the person branch. */
+const KNOWN_PLACES = new Set([
+  "san francisco","new york","los angeles","san diego","san jose","santa clara","santa monica",
+  "palo alto","mountain view","menlo park","cape coral","fort myers","new orleans","las vegas",
+  "salt lake","kansas city","san antonio","fort worth","st louis","new jersey","new hampshire",
+  "new mexico","north carolina","south carolina","north dakota","south dakota","west virginia",
+  "rhode island","united states","united kingdom","great britain","new zealand","south africa",
+  "south korea","north korea","saudi arabia","hong kong","tel aviv","abu dhabi","buenos aires",
+  "rio de janeiro","sao paulo","mexico city","washington dc","district of columbia",
+]);
+
+/** Capitalised words that are product/section chrome, never a surname. */
+const NON_NAME_TOKENS = new Set([
+  "Products","Product","Solutions","Pricing","Careers","Company","Research","Blog","News","Support",
+  "Docs","Documentation","Api","Enterprise","Platform","Overview","Features","Resources","Legal",
+  "Policy","Security","Login","Signup","Download","Console","Dashboard","Team","Press","Events",
+  "Claude","Gpt","Copilot","Assistant","Cookies","Settings","Account","Help","Terms","Privacy",
+]);
+
 const EXPOSURE_DOMAINS: { re: RegExp; kind: ExposureKind }[] = [
   { re: /(haveibeenpwned|dehashed|leakcheck|snusbase|breachdirectory|intelx|leak-lookup|weleakinfo)/i, kind: "breach" },
   { re: /(pastebin|ghostbin|paste\.|justpaste|controlc|rentry|hastebin|dpaste)/i, kind: "paste" },
@@ -233,8 +254,12 @@ function extractFromText(text: string, docDomain: string): Hit[] {
     const first = m[1];
     const last = m[3];
     if (STOP.has(first) || STOP.has(last)) continue;
+    if (NON_NAME_TOKENS.has(first) || NON_NAME_TOKENS.has(last)) continue;
+    // "Products Claude Claude" — repeated tokens mean nav chrome, not a name.
+    const tokens = full.split(" ").map((t) => t.toLowerCase());
+    if (new Set(tokens).size !== tokens.length) continue;
     if (ORG_SUFFIX.test(last)) { push("org", full); continue; }
-    if (LOCATION_HINT.test(full)) { push("location", full); continue; }
+    if (KNOWN_PLACES.has(norm(full)) || LOCATION_HINT.test(full)) { push("location", full); continue; }
     push("person", full);
   }
   return hits;
@@ -476,10 +501,21 @@ export function buildSerpIntel(seedQuery: string, docs: SerpDoc[]): SerpIntel {
   const pairWeight = new Map<string, { w: number; domains: Set<string>; sources: Set<string> }>();
   docs.forEach((doc, i) => {
     const ids = docEntities[i] ?? [];
-    // O(k²) per document with k capped by MAX_ENTITIES-per-doc in practice;
-    // documents with pathological entity counts are truncated to keep this
-    // bounded rather than letting one page dominate the whole graph.
-    const capped = ids.slice(0, 60);
+    // O(k²) per document, k capped at 60. The cap is applied by evidentiary
+    // value — the seed first, then strong selectors — because a naive slice
+    // dropped the seed behind a page's footer domains and left every node
+    // unringed (the graph anchor must survive truncation by construction).
+    const priority = (id: string): number => {
+      if (id === seedId) return 0;
+      const kind = id.slice(0, id.indexOf(":")) as EntityKind;
+      switch (kind) {
+        case "email": case "crypto": case "phone": case "handle": return 1;
+        case "person": case "org": return 2;
+        case "ip": case "location": return 3;
+        default: return 4;
+      }
+    };
+    const capped = [...ids].sort((a, b) => priority(a) - priority(b)).slice(0, 60);
     for (let a = 0; a < capped.length; a++) {
       for (let b = a + 1; b < capped.length; b++) {
         const key = capped[a] < capped[b] ? `${capped[a]}|${capped[b]}` : `${capped[b]}|${capped[a]}`;
