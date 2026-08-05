@@ -1,5 +1,9 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { omnispiderCrawl, type OmniCrawledPage } from "../_shared/omnispider.ts";
+import {
+  buildQueryPlan, relaxedQuery, scoreRelevance, finalScore, engineClass,
+  type QueryPlan,
+} from "../_shared/queryPlan.ts";
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Credibility & Provenance System
 // ══════════════════════════════════════════════════════════════════════════════
@@ -255,7 +259,16 @@ interface SearchResult {
   layer?: PantheonLayer;
   /** Engine that produced this result (e.g. 'ddg', 'github', 'arxiv'). */
   engine?: string;
-  // (relevance/rank fields removed — replaced by new algorithm)
+  /** Stage-3 topical relevance against the operator's QueryPlan (0..1). */
+  relevance?: number;
+  /** Weighted final ordering score: 0.65·relevance + 0.35·credibility. */
+  score?: number;
+  /** Every engine that independently returned this URL (drives corroboration). */
+  engines?: string[];
+  /** Distinct independence classes among `engines`. */
+  independence?: number;
+  /** 1-based position after final ranking. */
+  rank?: number;
 
 }
 
@@ -315,20 +328,17 @@ function detectInstantAnswerType(query: string): string | null {
 }
 
 // ── Query Builder ────────────────────────────────────────────────────────────
-function buildSearchQuery(query: string, mode: SearchMode, intent: SemanticIntent, filters?: SearchFilters, operatorOverrides?: string): string {
-  let q = query.trim();
+// The operator's words go on the wire. Intent signals (causal / temporal /
+// forensic) are RANKING hints carried on the QueryPlan — appending them to the
+// wire query was the source of pre-ranking recall drift.
+function buildSearchQuery(plan: QueryPlan, mode: SearchMode, _intent: SemanticIntent, filters?: SearchFilters, operatorOverrides?: string): string {
+  let q = plan.wireQuery.trim();
 
   const prefix = MODE_QUERY_PREFIX[mode];
   if (prefix) q = prefix + q;
 
-  // Semantic Intent augmentation
-  if (intent.causalInterest && !q.includes('cause') && !q.includes('impact')) {
-    q += ' cause effect analysis';
-  }
-  if (intent.temporalBias === 'realtime') q += ' 2026';
-  if (intent.depthRequired === 'forensic') q += ' in-depth analysis';
-
   if (operatorOverrides) q += ' ' + operatorOverrides;
+
 
   if (filters) {
     if (filters.exactPhrase) q = `"${filters.exactPhrase.replace(/"/g, '')}" ${q}`;
@@ -1262,6 +1272,10 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   const all: SearchResult[] = [];
   const seenUrls = new Set<string>();
 
+  // O(1) URL index — the previous `all.find(...)` inside the dedupe branch made
+  // merging O(n²) across 22 engines.
+  const byUrl = new Map<string, SearchResult>();
+
   const addResults = (settled: PromiseSettledResult<SearchResult[]>, engine: string, layer: PantheonLayer = 'surface') => {
     if (settled.status !== 'fulfilled') return;
     for (const r of settled.value) {
@@ -1269,18 +1283,26 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
       if (!r.layer) r.layer = layer;
       if (!r.engine) r.engine = engine;
       const normalUrl = r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://');
-      if (seenUrls.has(normalUrl)) {
-        const existing = all.find(e => e.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://') === normalUrl);
-        if (existing) {
-          existing.veracity = Math.min(100, existing.veracity + 5);
-          existing.truthGraph.consensusWeight = Math.min(1, existing.truthGraph.consensusWeight + 0.15);
-        }
+      const existing = byUrl.get(normalUrl);
+      if (existing) {
+        // Corroboration is recorded per-engine; the credibility bonus is later
+        // computed on DISTINCT independence classes, not raw engine count.
+        if (!existing.engines) existing.engines = [existing.engine || 'unknown'];
+        if (!existing.engines.includes(engine)) existing.engines.push(engine);
+        const classes = new Set(existing.engines.map(engineClass));
+        existing.independence = classes.size;
+        existing.veracity = Math.min(100, existing.veracity + 5);
+        existing.truthGraph.consensusWeight = Math.min(1, existing.truthGraph.consensusWeight + 0.15);
         continue;
       }
+      r.engines = [engine];
+      r.independence = 1;
       seenUrls.add(normalUrl);
+      byUrl.set(normalUrl, r);
       all.push(r);
     }
   };
+
 
   // Surface
   addResults(firecrawlResults, 'firecrawl', 'surface');
@@ -1461,8 +1483,11 @@ Deno.serve(async (req) => {
     
     // ── Semantic Intent Analysis ──
     const semanticIntent = analyzeSemanticIntent(trimmed);
-    
-    const builtQuery = buildSearchQuery(trimmed, mode, semanticIntent, filters, operatorOverrides);
+
+    // ── Stage 1: Query Understanding (pure lexical, sub-ms, no model call) ──
+    const plan = buildQueryPlan(trimmed);
+
+    const builtQuery = buildSearchQuery(plan, mode, semanticIntent, filters, operatorOverrides);
     const instantAnswerType = detectInstantAnswerType(trimmed);
 
     // Run multi-engine search + instant answer + always-on onion search in parallel.
@@ -1510,14 +1535,71 @@ Deno.serve(async (req) => {
       r.veracity = Math.min(100, Math.round(r.veracity * (0.8 + r.truthGraph.consensusWeight * 0.2)));
     }
 
-    // ── Ranking removed — replaced by user's new algorithm ───────────────────
-    // Previous topical-relevance scorer + rank assignment was deleted here.
-    // Sort now: hostile sinks, then veracity, then tier.
-    filtered.sort((a, b) => {
-      if (a.truthGraph.hostileFlag !== b.truthGraph.hostileFlag) return a.truthGraph.hostileFlag ? 1 : -1;
-      if (b.veracity !== a.veracity) return b.veracity - a.veracity;
-      return a.tier - b.tier;
-    });
+    // ═══════════════════════════════════════════════════════════════════════
+    // STAGE 3 — TWO-FACTOR RANKING (relevance × credibility, weighted sum)
+    // Credibility alone reads as randomness: a tier-1 domain that never mentions
+    // the subject used to outrank the one page that does. Relevance now leads,
+    // credibility floors at 0.5 so no source is annihilated.
+    // ═══════════════════════════════════════════════════════════════════════
+    const applyRanking = (rows: SearchResult[]) => {
+      for (const r of rows) {
+        r.relevance = scoreRelevance(plan, { title: r.title, url: r.url, snippet: r.snippet });
+        r.score = finalScore({
+          relevance: r.relevance,
+          veracity: r.veracity,
+          engines: r.engines,
+          hostile: r.truthGraph.hostileFlag,
+        });
+      }
+      rows.sort((a, b) => {
+        if ((b.score ?? 0) !== (a.score ?? 0)) return (b.score ?? 0) - (a.score ?? 0);
+        if (b.veracity !== a.veracity) return b.veracity - a.veracity;
+        return a.tier - b.tier;
+      });
+      rows.forEach((r, i) => { r.rank = i + 1; });
+    };
+
+    applyRanking(filtered);
+
+    // ── Rescue pass ────────────────────────────────────────────────────────
+    // If the top of the list is topically weak, the constraint set was too
+    // tight (or the SERP missed). Re-issue a RELAXED query against the three
+    // fastest surface engines only, under a hard 4s cap. Skipped in fast mode
+    // so chat's sweep budget is untouched.
+    let rescueUsed = false;
+    const topRelevance = filtered.slice(0, 5).reduce((s, r) => s + (r.relevance ?? 0), 0) / Math.max(1, Math.min(5, filtered.length));
+    if (!fast && plan.required.length > 0 && (filtered.length < 5 || topRelevance < 0.45)) {
+      try {
+        const relaxed = relaxedQuery(plan);
+        const rescue = await Promise.race([
+          Promise.allSettled([
+            searchDDG(relaxed, 1, filters?.dateRange),
+            searchMojeek(relaxed),
+            searchFirecrawl(relaxed, 10),
+          ]),
+          new Promise<PromiseSettledResult<SearchResult[]>[]>((res) => setTimeout(() => res([]), 4000)),
+        ]);
+        const known = new Set(filtered.map(r => r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://')));
+        const engines = ['ddg', 'mojeek', 'firecrawl'];
+        rescue.forEach((st, i) => {
+          if (st.status !== 'fulfilled') return;
+          for (const r of st.value) {
+            const k = r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://');
+            if (known.has(k)) continue;
+            known.add(k);
+            r.engine = r.engine || engines[i];
+            r.engines = [engines[i]];
+            r.independence = 1;
+            r.layer = r.layer || 'surface';
+            filtered.push(r);
+            rescueUsed = true;
+          }
+        });
+        if (rescueUsed) applyRanking(filtered);
+      } catch { /* rescue is best-effort — never fails the search */ }
+    }
+    console.log(`[zophiel] plan required=${JSON.stringify(plan.required)} entity=${plan.entity} results=${filtered.length} topRel=${topRelevance.toFixed(2)} rescue=${rescueUsed}`);
+
 
     // ═══════════════════════════════════════════════════════════════════════
     // OMNISPIDER ENRICHMENT — shep95/web-crawlers integration
@@ -1577,13 +1659,22 @@ Deno.serve(async (req) => {
     }
 
 
-    // Boost mode-relevant domains (secondary sort)
+    // Re-rank after OmniSpider enrichment: enriched snippets carry new evidence,
+    // so relevance must be recomputed against the fuller text.
+    applyRanking(filtered);
+
+    // Mode-relevant domains get a bounded score BONUS. The previous version
+    // hoisted every boosted domain above the entire list, which discarded the
+    // ranking that had just been computed.
     const boostDomains = new Set(MODE_DOMAIN_BOOSTS[mode] || []);
     if (boostDomains.size > 0) {
-      const boosted = filtered.filter(r => boostDomains.has(extractDomain(r.url)));
-      const rest = filtered.filter(r => !boostDomains.has(extractDomain(r.url)));
-      filtered = [...boosted, ...rest];
+      for (const r of filtered) {
+        if (boostDomains.has(extractDomain(r.url))) r.score = (r.score ?? 0) + 0.08;
+      }
+      filtered.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+      filtered.forEach((r, i) => { r.rank = i + 1; });
     }
+
 
     // Group results by category
     const grouped: Record<string, SearchResult[]> = {};
@@ -1704,6 +1795,16 @@ Deno.serve(async (req) => {
         // Truth Graph metadata
         semanticIntent,
         consensus,
+        // Stage-1 Query Understanding (what the ranker actually gated on)
+        queryPlan: {
+          required: plan.required,
+          optional: plan.optional,
+          negative: plan.negative,
+          phrases: plan.phrases,
+          entity: plan.entity,
+          wireQuery: plan.wireQuery,
+        },
+        rescueUsed,
         // PANTHEON v3 metadata
         layerCounts,
         engineCounts,
