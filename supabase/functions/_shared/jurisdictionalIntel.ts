@@ -493,6 +493,19 @@ async function zophielQueryOnce(query: string, options: { timeoutMs?: number; li
   }
 }
 
+async function zophielQuery(
+  query: string,
+  options: { timeoutMs?: number; limit?: number; retryEmpty?: boolean } = {},
+): Promise<IntelChannelHit[]> {
+  const first = await zophielQueryOnce(query, options);
+  if (first.length || options.retryEmpty === false) return first;
+  await sleep(700);
+  const second = await zophielQueryOnce(query, options);
+  if (second.length) console.log(`[intel:query] retry recovered ${second.length} q="${query.slice(0, 60)}"`);
+  return second;
+}
+
+
 // ── Domain classifier ──────────────────────────────────────────────────────
 function classifyDomain(domain: string): DomainBucket {
   const d = domain.toLowerCase();
