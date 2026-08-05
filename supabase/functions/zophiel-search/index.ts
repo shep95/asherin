@@ -1,5 +1,9 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { omnispiderCrawl, type OmniCrawledPage } from "../_shared/omnispider.ts";
+import {
+  buildQueryPlan, relaxedQuery, scoreRelevance, finalScore, engineClass,
+  type QueryPlan,
+} from "../_shared/queryPlan.ts";
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Credibility & Provenance System
 // ══════════════════════════════════════════════════════════════════════════════
