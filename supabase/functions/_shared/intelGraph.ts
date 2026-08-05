@@ -300,7 +300,12 @@ export function intersectBranches(g: IntelGraph, branches: Map<string, string[]>
     for (let j = i + 1; j < parents.length; j++) {
       const a = parents[i], b = parents[j];
       const setB = new Set(branches.get(b) || []);
-      const shared = (branches.get(a) || []).filter((id) => setB.has(id));
+      // Only genuinely NEW (ring-2) nodes count. Two branches both re-reaching
+      // a node the subject already asserts is redundancy, not a hidden link.
+      const shared = (branches.get(a) || [])
+        .filter((id) => setB.has(id))
+        .filter((id) => g.nodes.find((x) => x.id === id)?.ring === 2);
+
       if (!shared.length) continue;
       for (const nodeId of shared) {
         const n = g.nodes.find((x) => x.id === nodeId);
