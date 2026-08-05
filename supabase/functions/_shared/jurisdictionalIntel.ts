@@ -493,17 +493,42 @@ async function zophielQueryOnce(query: string, options: { timeoutMs?: number; li
   }
 }
 
+// Identical queries were being issued several times inside one sweep (strict
+// and loose ring-2 forms collapse to the same string, pass-1 emits the quoted
+// form twice for two-token names). Every duplicate burns one unit of a rate
+// limited upstream budget, which is exactly what starves the later channels,
+// so identical queries share one in-flight promise for the life of a sweep.
+const queryCache = new Map<string, Promise<IntelChannelHit[]>>();
+let queryCacheRunId = "";
+
+function beginQueryRun(runId: string) {
+  if (queryCacheRunId !== runId) {
+    queryCache.clear();
+    queryCacheRunId = runId;
+  }
+}
+
 async function zophielQuery(
   query: string,
   options: { timeoutMs?: number; limit?: number; retryEmpty?: boolean } = {},
 ): Promise<IntelChannelHit[]> {
-  const first = await zophielQueryOnce(query, options);
-  if (first.length || options.retryEmpty === false) return first;
-  await sleep(700);
-  const second = await zophielQueryOnce(query, options);
-  if (second.length) console.log(`[intel:query] retry recovered ${second.length} q="${query.slice(0, 60)}"`);
-  return second;
+  const key = query.trim().replace(/\s+/g, " ").toLowerCase();
+  const cached = queryCache.get(key);
+  if (cached) return await cached;
+
+  const run = (async () => {
+    const first = await zophielQueryOnce(query, options);
+    if (first.length || options.retryEmpty === false) return first;
+    await sleep(700);
+    const second = await zophielQueryOnce(query, options);
+    if (second.length) console.log(`[intel:query] retry recovered ${second.length} q="${query.slice(0, 60)}"`);
+    return second;
+  })();
+
+  queryCache.set(key, run);
+  return await run;
 }
+
 
 
 // ── Domain classifier ──────────────────────────────────────────────────────
