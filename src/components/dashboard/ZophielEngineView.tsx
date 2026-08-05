@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
-import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain, Download, FileText, FileJson, FileSpreadsheet, Image as ImageIcon } from "lucide-react";
+import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain, Download, FileText, FileJson, FileSpreadsheet, Image as ImageIcon, Fingerprint } from "lucide-react";
 import { exportPDF, exportCSV, exportJSON, exportMarkdown } from "@/lib/exportEngine";
 import { logAudit } from "@/lib/auditLogger";
 import { isIntelMapByokEnabled } from "@/lib/intelMapByok";
