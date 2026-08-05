@@ -822,7 +822,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   for (const h of allHits()) scorePersonIdentity(h, intent);
 
   // ── RESOLUTION — deterministic extraction, normalization, scoring ──────
-  const toDocs = () => allHits()
+  const docsOf = (hits: IntelChannelHit[]) => hits
     .filter((h) => h.body && h.body.length > 40)
     .map((h) => ({
       domain: h.domain,
@@ -832,50 +832,79 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
       authoritative: h.bucket === "authoritative" || h.bucket === "court",
       band: h.identityBand,
     }));
+  const toDocs = () => docsOf(allHits());
 
   let fieldLedger = buildFieldLedger(toDocs(), intent.subject);
 
-  // ── HOP 1 — RECURSIVE GRAPH COLLECTION ─────────────────────────────────
-  // The old sweep discovered a relative and stopped. Every extracted entity is
-  // now a seed: querying a relative reciprocally confirms the edge that
-  // produced it, an address unlocks co-residents and deed history, an LLC
-  // unlocks co-officers. Seeds are selected by information gain and the hop is
-  // hard-bounded by the remaining wall clock.
-  const hopSeeds: Seed[] = intent.kind === "person" ? selectSeeds(fieldLedger, 6) : [];
+  // ── BOUNDED THREE-HOP GRAPH ────────────────────────────────────────────
+  // RING 1 is a full fanout over everything the subject's own documents
+  // assert. RING 2 queries only the highest information-gain ring-1 nodes and
+  // admits only what THOSE documents assert, so provenance stays per-branch.
+  // RING 3 is never enumerated: the engine intersects ring-2 reach sets and
+  // emits closed triangles as inferred cross-links.
+  const graph = createGraph(intent.subject);
   const hopExecuted: Seed[] = [];
-  if (hopSeeds.length && deadlineMs - (Date.now() - startedAt) > 14000) {
-    const hopQueries = hopSeeds.map((s) => ({
-      seed: s,
-      query: s.kind === "relative"
-        ? `"${s.value}" ${locus} relatives address`
-        : s.kind === "address"
-          ? `"${s.value}" ${locus} owner residents`
-          : `"${s.value}" ${locus} officer registered agent`,
-    }));
-    for (let i = 0; i < hopQueries.length; i += 3) {
-      const remaining = deadlineMs - (Date.now() - startedAt) - 6000;
-      if (remaining < 5000) break;
-      const wave = hopQueries.slice(i, i + 3);
-      const results = await Promise.all(
-        wave.map((q) => zophielQuery(q.query, { timeoutMs: Math.min(6500, remaining), limit: 8 })
-          .catch(() => [] as IntelChannelHit[])),
-      );
-      wave.forEach((q) => hopExecuted.push(q.seed));
-      const fresh: IntelChannelHit[] = [];
-      for (const hit of results.flat()) {
-        if (!hit.url || seen.has(hit.url)) continue;
-        if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
-        seen.add(hit.url);
-        scorePersonIdentity(hit, intent);
-        hit.bucket = classifyDomain(hit.domain);
-        buckets[hit.bucket].push(hit);
-        fresh.push(hit);
+  let ring2Executed = 0;
+  if (intent.kind === "person") {
+    ingestRing1(graph, fieldLedger);
+
+    const seeds = ring2Seeds(graph, 6);
+    const branches = new Map<string, string[]>();
+    if (seeds.length && deadlineMs - (Date.now() - startedAt) > 14000) {
+      const queryFor = (n: GraphNode) =>
+        n.kind === "person" ? `"${n.label}" ${locus} relatives address`
+          : n.kind === "address" ? `"${n.label}" ${locus} owner residents`
+            : `"${n.label}" ${locus} officer registered agent`;
+
+      for (let i = 0; i < seeds.length; i += 3) {
+        const remaining = deadlineMs - (Date.now() - startedAt) - 6000;
+        if (remaining < 5000) break;
+        const wave = seeds.slice(i, i + 3);
+        const results = await Promise.all(
+          wave.map((n) => zophielQuery(queryFor(n), { timeoutMs: Math.min(6500, remaining), limit: 8 })
+            .catch(() => [] as IntelChannelHit[])),
+        );
+
+        // Per-seed fresh-hit sets keep ring-2 attribution honest: a node found
+        // by seed A must not be credited to seed B.
+        const freshPerSeed: IntelChannelHit[][] = wave.map(() => []);
+        results.forEach((hits, k) => {
+          for (const hit of hits) {
+            if (!hit.url || seen.has(hit.url)) continue;
+            if (isBlockedSource(hit.domain) || isBlockedSource(hit.url)) continue;
+            seen.add(hit.url);
+            scorePersonIdentity(hit, intent);
+            hit.bucket = classifyDomain(hit.domain);
+            buckets[hit.bucket].push(hit);
+            freshPerSeed[k].push(hit);
+          }
+        });
+
+        const hopBodyBudget = deadlineMs - (Date.now() - startedAt) > 9000 ? 8 : 3;
+        await harvest(pickTargets(hopBodyBudget, freshPerSeed.flat()), 6);
+
+        wave.forEach((node, k) => {
+          hopExecuted.push({ kind: node.kind === "person" ? "relative" : node.kind === "address" ? "address" : "entity", value: node.label, rationale: `information gain ${node.gain}` });
+          ring2Executed += 1;
+          const branchDocs = docsOf(freshPerSeed[k]);
+          if (!branchDocs.length) { branches.set(node.id, []); return; }
+          // Ring-2 extraction is scoped to the SEED as subject, not the
+          // original target — otherwise the seed's relatives would be parsed
+          // as the subject's relatives.
+          const branchLedger = buildFieldLedger(branchDocs, node.label);
+          branches.set(node.id, ingestRing2(graph, node, branchLedger));
+        });
       }
-      const hopBodyBudget = deadlineMs - (Date.now() - startedAt) > 9000 ? 8 : 3;
-      await harvest(pickTargets(hopBodyBudget, fresh), 6);
+
+      // RING 3 — intersection only.
+      intersectBranches(graph, branches);
     }
     fieldLedger = buildFieldLedger(toDocs(), intent.subject);
+    // Ring-1 is re-ingested against the enriched ledger so late-arriving
+    // corroboration upgrades node confidence without duplicating nodes.
+    ingestRing1(graph, fieldLedger);
   }
+
 
   const emptyBuckets = (Object.keys(buckets) as DomainBucket[]).filter((k) => buckets[k].length === 0);
   const totalHits = Object.values(buckets).reduce((a, b) => a + b.length, 0);
