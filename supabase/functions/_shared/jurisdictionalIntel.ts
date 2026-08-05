@@ -1021,7 +1021,11 @@ export function formatIntelContext(bundle: IntelBundle): string {
     }),
     `| Documents opened & parsed | ${documentsFetched ?? 0} | ${(documentsFetched ?? 0) > 0 ? "PARSED" : "NONE"} |`,
     `| Recursive HOP-1 seeds | ${hopSeeds?.length ?? 0} | ${(hopSeeds?.length ?? 0) > 0 ? "PURSUED" : "NOT REACHED"} |`,
+    `| Graph ring 1 (direct contacts) | ${graph ? graph.nodes.filter((n) => n.ring === 1).length : 0} | ${graph && graph.nodes.some((n) => n.ring === 1) ? "MAPPED" : "NONE"} |`,
+    `| Graph ring 2 (contacts of contacts) | ${graph ? graph.nodes.filter((n) => n.ring === 2).length : 0} | ${(ring2Executed ?? 0) > 0 ? `EXPANDED FROM ${ring2Executed} SEED(S)` : "NOT REACHED"} |`,
+    `| Graph ring 3 (intersection only) | ${graph?.crossLinks.length ?? 0} | ${(graph?.crossLinks.length ?? 0) > 0 ? "CLOSED TRIANGLES FOUND" : "NO CONVERGENCE"} |`,
   ].join("\n");
+
 
   const emptyNote = emptyBuckets.length
     ? `\n\n### EMPTY BUCKETS: ${emptyBuckets.map((b) => BUCKET_LABELS[b].split(" ")[0]).join(", ")} — name the missing lever that would unlock each.`
