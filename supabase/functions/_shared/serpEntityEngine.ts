@@ -196,6 +196,10 @@ const RE_PERSON_LEFT = /(?:\b(?:by|from|with|and|to|of|for|attorney|judge|office
 /** Right context that follows a real personal name in prose. */
 const RE_PERSON_RIGHT = /^(?:\s*,?\s*(?:said|says|told|wrote|who|the\s|a\s|an\s|is\s|was\s|has\s|had\s|and\s|joined|serves|founded|leads|owns|age\b|\d{1,3}\b|of\s|at\s|from\s|jr\b|sr\b|iii\b|ceo|cto|cfo|coo|founder|co-founder|president|director|esq)|\s*[.'"”)])/i;
 
+/** Attribution verbs and role titles — unambiguous personal-name context. */
+const RE_PERSON_STRONG_LEFT = /\b(?:by|founder|co-founder|ceo|cto|cfo|coo|president|director|chairman|professor|dr|mr|mrs|ms|sen|rep|gov|attorney|judge|officer|agent|according to|contact|interview with|spokesperson)\b[\s:,]{1,3}$/i;
+const RE_PERSON_STRONG_RIGHT = /^\s*,?\s*(?:said|says|told|wrote|who\s|is\s+(?:a|the|an)\s|was\s+(?:a|the|an)\s|co-founder|founder|ceo|cto|cfo|coo|president|director|age\s+\d{1,3}|,\s*\d{1,3}\b|jr\b|sr\b|iii\b|esq\b)/i;
+
 const RE_LONG_DATE = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+((?:19|20)\d{2})\b/g;
 
 const MONTHS: Record<string, string> = {
@@ -285,7 +289,14 @@ function extractFromText(text: string, docDomain: string): Hit[] {
     // hop ring 1 and buries the actual actors. A middle initial is self-evident
     // name structure and passes on its own.
     const hasMiddleInitial = /\b[A-Z]\.\s/.test(full);
-    if (!hasMiddleInitial && !RE_PERSON_LEFT.test(left) && !RE_PERSON_RIGHT.test(right)) continue;
+    // Marketing headings are runs of Title Case words ("Secure Web Gateway"),
+    // and they satisfy the weak cues. When the candidate sits inside such a run
+    // we demand an explicit prose cue — a verb of attribution or a role title —
+    // before admitting it as a person.
+    const inTitleRun = /[A-Z][a-z]{1,18}\s*$/.test(left) || /^\s+[A-Z][a-z]{1,18}/.test(right);
+    const strongCue = RE_PERSON_STRONG_LEFT.test(left) || RE_PERSON_STRONG_RIGHT.test(right);
+    const weakCue = RE_PERSON_LEFT.test(left) || RE_PERSON_RIGHT.test(right);
+    if (!hasMiddleInitial && !strongCue && !(weakCue && !inTitleRun)) continue;
     push("person", full);
   }
   return hits;
