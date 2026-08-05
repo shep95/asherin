@@ -142,6 +142,18 @@ const KNOWN_PLACES = new Set([
   "rio de janeiro","sao paulo","mexico city","washington dc","district of columbia",
 ]);
 
+/** Generic institutional nouns — a name ending here is an organisation. */
+const ORG_NOUN = /(Department|Commission|Management|Authority|Securities|Institute|Ministry|Administration|Council|Committee|Bureau|Board|Exchange|Office|Fund|Agency|Union|Alliance|Coalition|Registry|Division|Command)$/;
+
+/** Sentence machinery that a capitalised-pair matcher mistakes for names. */
+const FUNCTION_WORDS = new Set([
+  "While","Although","Because","During","After","Before","Since","However","Meanwhile","Following",
+  "Are","Is","Was","Were","Been","Being","Has","Have","Had","Will","Would","Should","Could","May",
+  "Selling","Buying","Making","Taking","Getting","Number","Code","First","Second","Third","Next",
+  "Both","Each","Every","Whether","Also","Even","Only","Just","Still","Then","Than","Such","Many",
+  "Action","Report","Update","Release","Statement","Notice","Series","Round","Model","Version",
+]);
+
 /** Capitalised words that are product/section chrome, never a surname. */
 const NON_NAME_TOKENS = new Set([
   "Products","Product","Solutions","Pricing","Careers","Company","Research","Blog","News","Support",
@@ -262,10 +274,11 @@ function extractFromText(text: string, docDomain: string): Hit[] {
     const last = m[3];
     if (STOP.has(first) || STOP.has(last)) continue;
     if (NON_NAME_TOKENS.has(first) || NON_NAME_TOKENS.has(last)) continue;
+    if (full.split(" ").some((t) => FUNCTION_WORDS.has(t))) continue;
     // "Products Claude Claude" — repeated tokens mean nav chrome, not a name.
     const tokens = full.split(" ").map((t) => t.toLowerCase());
     if (new Set(tokens).size !== tokens.length) continue;
-    if (ORG_SUFFIX.test(last)) { push("org", full); continue; }
+    if (ORG_SUFFIX.test(last) || ORG_NOUN.test(last)) { push("org", full); continue; }
     if (KNOWN_PLACES.has(norm(full)) || LOCATION_HINT.test(full)) { push("location", full); continue; }
     // A capitalised word pair is only a person when prose says so. Without this
     // gate, navigation chrome ("Wikipedia Jump", "Bahasa Indonesia Ido") floods
