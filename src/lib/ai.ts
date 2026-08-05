@@ -152,28 +152,47 @@ export async function streamChat({
   };
 
   const fetchAndRead = async (requestMessages: typeof apiMessages, onText?: (text: string) => void) => {
-    const resp = await fetch(CHAT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${authToken}`,
-      },
-      body: JSON.stringify({ messages: requestMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat }),
-      signal,
-    });
+    // Transient upstream congestion (the provider is busy, not the key) is
+    // retried silently here. Only a genuine key problem — missing, invalid,
+    // revoked, out of quota — is allowed to raise the BYOK dialog, so a heavy
+    // person-search turn no longer looks like "your API key is broken".
+    const TRANSIENT_ATTEMPTS = 3;
+    let resp!: Response;
 
-    if (!resp.ok) {
+    for (let attempt = 0; attempt < TRANSIENT_ATTEMPTS; attempt++) {
+      resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ messages: requestMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat }),
+        signal,
+      });
+
+      if (resp.ok) break;
+
       const err = await resp.json().catch(() => ({ error: "Unknown error" }));
-      if (resp.status === 503 || resp.status === 502 || /overload/i.test(err?.error || "")) {
+      const transient = err?.code === "UPSTREAM_BUSY" || resp.status === 502 || resp.status === 503 || resp.status === 504;
+
+      if (transient && attempt < TRANSIENT_ATTEMPTS - 1 && !signal?.aborted) {
+        const waitMs = Math.max(1200, Number(err?.retryAfterMs) || 0) * (attempt + 1);
+        await new Promise((r) => setTimeout(r, waitMs + Math.random() * 400));
+        continue;
+      }
+
+      if (!transient && (err?.code === "BYOK_REQUIRED" || resp.status === 403)) {
         try {
           const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
-          triggerByokRequired({ source: "aureon-chat", reason: "AUREON LLM API is overloaded right now." });
+          triggerByokRequired({ source: "aureon-chat", reason: err?.error || "An API key is required." });
         } catch { /* noop */ }
       }
-      throw new Error(err.error || `HTTP ${resp.status}`);
+
+      throw new Error(err?.error || `HTTP ${resp.status}`);
     }
 
     if (!resp.body) throw new Error("No response body");
+
 
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
