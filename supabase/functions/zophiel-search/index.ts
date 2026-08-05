@@ -1786,6 +1786,16 @@ Deno.serve(async (req) => {
         // Truth Graph metadata
         semanticIntent,
         consensus,
+        // Stage-1 Query Understanding (what the ranker actually gated on)
+        queryPlan: {
+          required: plan.required,
+          optional: plan.optional,
+          negative: plan.negative,
+          phrases: plan.phrases,
+          entity: plan.entity,
+          wireQuery: plan.wireQuery,
+        },
+        rescueUsed,
         // PANTHEON v3 metadata
         layerCounts,
         engineCounts,
