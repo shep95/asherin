@@ -2201,16 +2201,19 @@ The operator is requesting a defensive security audit / flaw check of their own 
       console.log(`BYOK: Using ${byokProvider}/${byokModel}`);
       try {
         if (byokProvider === "google") {
-          response = await callGeminiWithKey(userApiKey, byokModel);
+          response = await callWithTransientRetry(() => callGeminiWithKey(userApiKey, byokModel), "google");
           isGeminiResponse = true;
         } else if (byokProvider === "anthropic") {
-          response = await callAnthropic(userApiKey, byokModel);
+          response = await callWithTransientRetry(() => callAnthropic(userApiKey, byokModel), "anthropic");
           isGeminiResponse = false;
           isAnthropicResponse = true;
         } else {
           const endpoint = PROVIDER_ENDPOINTS[byokProvider];
           if (endpoint) {
-            response = await callOpenAICompatible(userApiKey, endpoint.url, byokModel);
+            response = await callWithTransientRetry(
+              () => callOpenAICompatible(userApiKey, endpoint.url, byokModel),
+              byokProvider,
+            );
             isGeminiResponse = false;
           } else {
             byokFailed = true;
@@ -2229,9 +2232,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
           } else if (response.status === 401 || response.status === 403) {
             byokFailReason = `Your ${byokProvider} API key is invalid or revoked.`;
           } else if (response.status === 429) {
-            byokFailReason = `Your ${byokProvider} API key is rate-limited.`;
-          } else if (response.status === 503) {
-            byokFailReason = `${byokProvider}'s servers are temporarily overloaded.`;
+            byokFailReason = `Your ${byokProvider} API key is rate-limited — wait a moment and send again.`;
+          } else if (response.status >= 500) {
+            byokFailReason = `${byokProvider}'s servers are temporarily overloaded. Nothing is wrong with your key — send the request again.`;
           } else {
             byokFailReason = `${byokProvider} returned ${response.status}.`;
           }
@@ -2240,22 +2243,38 @@ The operator is requesting a defensive security audit / flaw check of their own 
       } catch (e) {
         console.error("BYOK call failed:", e);
         byokFailed = true;
+        byokFailStatus = 503;
         byokFailReason = `Could not reach ${byokProvider}.`;
       }
     }
 
-    // BYOK-ONLY: no in-house fallback. If the user has not supplied a working
-    // BYOK provider, return 403 BYOK_REQUIRED so the client surfaces the
-    // ByokRequiredDialog. We never proxy to any platform/in-house model.
+    // BYOK-ONLY: no in-house fallback. A MISSING or REJECTED key is the user's
+    // to fix → 403 BYOK_REQUIRED (surfaces the ByokRequiredDialog). A provider
+    // that is merely busy or unreachable after the retry ladder is NOT a key
+    // problem, so it returns 503 UPSTREAM_BUSY and the client asks for a resend
+    // instead of accusing a perfectly valid key.
     if (!response) {
+      const transient = byokFailed && (byokFailStatus === 429 || byokFailStatus >= 500);
       const reason = byokFailed
         ? (byokFailReason || `Your ${byokProvider} API key returned an error.`)
         : "Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.";
       return new Response(
-        JSON.stringify({ error: reason, code: "BYOK_REQUIRED" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          error: reason,
+          code: transient ? "UPSTREAM_BUSY" : "BYOK_REQUIRED",
+          ...(transient ? { retryAfterMs: 4000 } : {}),
+        }),
+        {
+          status: transient ? 503 : 403,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            ...(transient ? { "Retry-After": "4" } : {}),
+          },
+        },
       );
     }
+
 
     if (!response || !response.ok) {
       return new Response(JSON.stringify({ error: "AI is temporarily unavailable. Please try again in a moment.", fallback: true, degraded: true }), {
