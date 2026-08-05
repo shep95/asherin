@@ -26,6 +26,9 @@ const formats: { id: FormatId; label: string; icon: React.ElementType; ext: stri
 function convertContent(content: string, format: FormatId): string {
   const lines = content.split("\n").filter(l => l.trim());
   switch (format) {
+    // Branded House of Asher intelligence product — deterministic, plain text.
+    case "intel":
+      return buildIntelReport({ content }).text;
     case "email": {
       const subject = lines[0]?.replace(/^#+\s*/, "") || "Subject";
       const body = lines.slice(1).join("\n");
@@ -65,11 +68,14 @@ const OutputFormatMenu = ({ content, onClose }: OutputFormatMenuProps) => {
 
   const handleExport = (format: typeof formats[number]) => {
     const converted = convertContent(content, format.id);
-    const blob = new Blob([converted], { type: format.mime });
+    // The intelligence report carries its own reference-coded filename and a BOM
+    // so Windows viewers keep the report's typographic rules intact.
+    const isIntel = format.id === "intel";
+    const blob = new Blob(isIntel ? ["\uFEFF", converted] : [converted], { type: format.mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aureon-export.${format.ext}`;
+    a.download = isIntel ? buildIntelReport({ content }).filename : `aureon-export.${format.ext}`;
     a.click();
     URL.revokeObjectURL(url);
     onClose?.();
