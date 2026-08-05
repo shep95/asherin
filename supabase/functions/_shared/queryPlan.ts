@@ -135,19 +135,40 @@ export function buildQueryPlan(raw: string): QueryPlan {
   else if ([...required].some((r) => r.split(" ").length >= 2)) entity = "person";
   else if ([...required].some((r) => /^[a-z]{1,5}$/.test(r) && r.length <= 5)) entity = "ticker";
 
+  // 7b. Collapse redundant required terms — "cve" is already inside
+  //     "cve 2024 3094"; keeping both double-counts the gate denominator.
+  const reqList = [...required].sort((a, b) => b.length - a.length);
+  const requiredFinal: string[] = [];
+  for (const t of reqList) {
+    if (requiredFinal.some((k) => k === t || k.split(" ").join(" ").includes(t))) continue;
+    requiredFinal.push(t);
+  }
+  for (const t of [...optional]) {
+    if (requiredFinal.some((k) => k.includes(t))) optional.delete(t);
+  }
+
   // 8. Wire query: operator's words. Multi-word required terms get quoted so
-  //    SERPs treat them atomically instead of bag-of-words.
-  const quoted = [...required].filter((r) => r.includes(" ")).map((r) => `"${r}"`);
-  const rest = input
+  //    SERPs treat them atomically instead of bag-of-words. The literal spans
+  //    they cover are stripped from the remainder so the query isn't doubled.
+  const multi = requiredFinal.filter((r) => r.includes(" "));
+  const quoted = multi.map((r) => `"${r}"`);
+  let rest = input
     .replace(/"([^"]{2,120})"/g, " ")
-    .replace(/(^|\s)-([A-Za-z0-9][\w.-]{1,40})/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/(^|\s)-([A-Za-z0-9][\w.-]{1,40})/g, " ");
+  for (const term of multi) {
+    const pattern = term.split(" ").map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("[\\s\\-_.]+");
+    rest = rest.replace(new RegExp(pattern, "gi"), " ");
+  }
+  rest = rest
+    .split(/\s+/)
+    .filter((w) => w && !STOPWORDS.has(w.toLowerCase().replace(/[^a-z0-9]/g, "")))
+    .join(" ")
     .trim();
   const wireQuery = [...quoted, rest].filter(Boolean).join(" ").trim() || input;
 
   return {
     raw: input,
-    required: [...required],
+    required: requiredFinal,
     optional: [...optional],
     negative,
     phrases,
