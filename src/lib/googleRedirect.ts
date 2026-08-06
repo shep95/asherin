@@ -16,8 +16,18 @@
  * requirement.
  */
 
-/** The single URI registered in the Google Cloud OAuth client. */
-export const GOOGLE_REDIRECT_URI = "https://asherin.com/dashboard";
+/**
+ * The single URI registered in the Google Cloud OAuth client.
+ *
+ * This MUST be a byte-for-byte match of an entry under "Authorized redirect
+ * URIs" on the OAuth client behind GOOGLE_CLIENT_ID. The rebrand to
+ * asherin.com changed this value to a URI that was never registered, which is
+ * exactly what Google reports as `Error 400: redirect_uri_mismatch` — the app
+ * origin is irrelevant to Google, only this string is compared. It is pinned
+ * back to the registered published host; the popup relays the code home, so
+ * the flow still works from asherin.com, www.asherin.com and the preview.
+ */
+export const GOOGLE_REDIRECT_URI = "https://ziali-magic-pixels.lovable.app/dashboard";
 
 export const GOOGLE_CANONICAL_ORIGIN = new URL(GOOGLE_REDIRECT_URI).origin;
 
