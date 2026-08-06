@@ -1422,32 +1422,10 @@ The user is asking about internal code, backend, or architecture. You are FORBID
             );
           }
 
-          // Social layer. Runs only when the turn names a platform or pastes
-          // a profile link — a sweep spends a scarce Instagram read, so it is
-          // never fired speculatively on a bare "@" mention.
-
-          try {
-            const { needsSocialLayer, extractSocialTargets, runSocialIntel, formatSocialContext } =
-              await import("../_shared/socialChatBridge.ts");
-            if (needsSocialLayer(q)) {
-              const socialTargets = extractSocialTargets(q);
-              if (socialTargets.length) {
-                const socialBundle = await runSocialIntel(socialTargets);
-                const socialContext = formatSocialContext(socialBundle);
-                if (socialContext) {
-                  webSearchContext += socialContext;
-                  console.log(
-                    `[chat] Social sweep: ${socialBundle?.results.length ?? 0} target(s), ${socialBundle?.edges.length ?? 0} edge(s), ${socialBundle?.elapsedMs ?? 0}ms`,
-                  );
-                }
-              }
-            }
-          } catch (e) {
-            console.error("[chat] Social bridge failed:", (e as Error).message);
-          }
         } catch (e) {
           console.error("[chat] Zophiel bridge failed:", (e as Error).message);
         }
+
 
 
 
