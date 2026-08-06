@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { runDeviceProbe, type DeviceReport, type ProbeVerdict } from "@/lib/bulwark/deviceProbe";
-import { Shield, RefreshCw, AlertTriangle, Radar, Cpu, FileText, Loader2 } from "lucide-react";
+import { publishPosture, fetchFleet, forgetEndpoint, type FleetPosture } from "@/lib/bulwark/deviceMesh";
+import { useAuth } from "@/contexts/AuthContext";
+import { Shield, RefreshCw, AlertTriangle, Radar, Cpu, FileText, Loader2, Laptop, X } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BULWARK — Counter-Surveillance Station
@@ -86,18 +88,36 @@ function Skeleton({ rows = 3 }: { rows?: number }) {
 }
 
 export default function BulwarkView() {
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
   const [device, setDevice] = useState<DeviceReport | null>(null);
+  const [fleet, setFleet] = useState<FleetPosture | null>(null);
   const [deviceBusy, setDeviceBusy] = useState(false);
   const [comms, setComms] = useState<CommsReport | null>(null);
   const [commsBusy, setCommsBusy] = useState(false);
   const [commsError, setCommsError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
 
+  // One motion, always: probe locally, publish this endpoint to the mesh, then
+  // re-read the whole fleet. The operator sees every endpoint they own from
+  // whichever one they happen to be holding.
   const scanDevice = useCallback(async () => {
     setDeviceBusy(true);
-    try { setDevice(await runDeviceProbe()); }
-    finally { setDeviceBusy(false); }
-  }, []);
+    try {
+      const r = await runDeviceProbe();
+      setDevice(r);
+      if (userId) {
+        await publishPosture(userId, r);
+        setFleet(await fetchFleet(userId));
+      }
+    } finally { setDeviceBusy(false); }
+  }, [userId]);
+
+  const dropEndpoint = useCallback(async (id: string) => {
+    if (!userId) return;
+    await forgetEndpoint(userId, id);
+    setFleet(await fetchFleet(userId));
+  }, [userId]);
 
   // The device probe is local and cheap — run it on mount so the station is
   // never empty, and guard the state write against an unmount mid-probe.
@@ -107,13 +127,18 @@ export default function BulwarkView() {
       setDeviceBusy(true);
       try {
         const r = await runDeviceProbe();
-        if (alive) setDevice(r);
+        if (!alive) return;
+        setDevice(r);
+        if (!userId) return;
+        await publishPosture(userId, r);
+        const f = await fetchFleet(userId);
+        if (alive) setFleet(f);
       } finally {
         if (alive) setDeviceBusy(false);
       }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [userId]);
 
   const scanComms = useCallback(async () => {
     setCommsBusy(true);
