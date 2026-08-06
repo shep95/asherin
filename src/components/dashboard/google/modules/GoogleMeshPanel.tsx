@@ -57,7 +57,11 @@ async function authorizeTier(tier: number) {
   });
   if (error) throw new Error(error.message);
   if (!data?.url) throw new Error("Google did not return an authorization URL.");
-  window.location.href = data.url;
+  // Consent must run top-level — Google 403s any framed navigation.
+  const { openGoogleConsent } = await import("@/lib/googleConsent");
+  const result = await openGoogleConsent(data.url);
+  if (result.status === "failed") throw new Error(result.message);
+  return result;
 }
 
 
