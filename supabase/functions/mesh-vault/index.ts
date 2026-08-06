@@ -250,6 +250,129 @@ Deno.serve(async (req) => {
       }, 200, cors);
     }
 
+    // ── SENTINEL ─────────────────────────────────────────────────────────
+    // Watermark-driven watch across every inbound channel. Anyone who reaches
+    // the user — a cold sender, a meeting organizer, an unknown number on a
+    // card — becomes a queued subject the moment they appear. Idempotent:
+    // the watermark only advances after a successful harvest, and existing
+    // subjects are never re-queued or overwritten.
+    if (action === "vault_sentinel") {
+      const accounts = await liveAccounts(sb, userId, body.account_id ?? null);
+      if (!accounts.length) {
+        return json({
+          error: "tier_required",
+          message: "Connect a Google account with Read access to arm the sentinel.",
+        }, 403, cors);
+      }
+      const readable = accounts.filter((a) => hasScope(a, "gmail.readonly"));
+      const bookable = accounts.filter((a) => hasScope(a, "contacts.readonly"));
+      const datable = accounts.filter((a) => hasScope(a, "calendar.readonly"));
+      const selfEmails = accounts.map((a) => a.google_email);
+
+      const { data: settings } = await sb.from("mesh_vault_settings")
+        .select("*").eq("user_id", userId).maybeSingle();
+
+      // Cold start looks back 30 days; every later run looks back only to the
+      // last successful harvest, with a 6h overlap so a message that landed
+      // mid-run is never skipped.
+      const OVERLAP_MS = 6 * 3600_000;
+      const watermark = settings?.last_watermark ? Date.parse(settings.last_watermark) : 0;
+      const sinceMs = watermark ? Math.max(0, watermark - OVERLAP_MS) : Date.now() - 30 * 86400000;
+      const gmailAfter = new Date(sinceMs).toISOString().slice(0, 10).replace(/-/g, "/");
+      const perQuery = Math.min(Number(body.limit) || 120, 200);
+
+      const [inbound, contacts, calendar] = await Promise.all([
+        Promise.all(readable.map((a) =>
+          harvestHeaders(a.token, `in:inbox -in:chats after:${gmailAfter}`, perQuery, false).catch(() => []),
+        )).then((r) => r.flat()),
+        Promise.all(bookable.map((a) => harvestContacts(a.token, 400).catch(() => []))).then((r) => r.flat()),
+        Promise.all(datable.map((a) =>
+          harvestCalendarPeople(a.token, 180, selfEmails).catch(() => []),
+        )).then((r) => r.flat()),
+      ]);
+
+      const { data: existing } = await sb.from("mesh_dossiers")
+        .select("subject_key, subject_name").eq("user_id", userId);
+      const claimed = new Set((existing ?? []).map((r: any) => r.subject_key));
+      const claimedNames = new Set((existing ?? []).map((r: any) => normKey(r.subject_name)));
+
+      const cold = selectColdInbound(inbound, selfEmails, claimed, { max: 25, sinceMs });
+      const cal = selectCalendarTargets(calendar, claimed, { max: 20 });
+      const phone = selectPhoneTargets(contacts, claimed, { max: 25 });
+
+      // One human, one subject: highest-priority channel wins, and anyone
+      // already in the vault under any spelling is dropped.
+      const fresh = dedupeByIdentity([...cold.targets, ...cal.targets, ...phone.targets])
+        .filter((t: ChannelTarget) => !claimedNames.has(normKey(t.name)))
+        .slice(0, Math.min(Number(body.max) || 40, 80));
+
+      const nowIso = new Date().toISOString();
+      const rows = fresh.map((t) => ({
+        user_id: userId,
+        subject_key: t.key,
+        subject_email: t.email,
+        subject_name: t.name,
+        hop: 1,
+        channel: t.channel,
+        status: "queued",
+        relationship: {
+          ...t.profile,
+          channel: t.channel,
+          identifiers: t.identifiers,
+          locationHint: t.locationHint,
+          reason: t.reason,
+        } as unknown as Record<string, unknown>,
+        priority: t.priority,
+        source_account: selfEmails[0] ?? null,
+        updated_at: nowIso,
+      }));
+
+      if (rows.length) {
+        // ignoreDuplicates: a live dossier must never be reset by the watch.
+        const { error } = await sb.from("mesh_dossiers")
+          .upsert(rows, { onConflict: "user_id,subject_key", ignoreDuplicates: true });
+        if (error) return json({ error: "sentinel_enqueue_failed", message: error.message }, 500, cors);
+      }
+
+      await sb.from("mesh_vault_settings").upsert({
+        user_id: userId,
+        sentinel_enabled: body.enabled === undefined ? (settings?.sentinel_enabled ?? true) : !!body.enabled,
+        last_watermark: nowIso,
+        last_sweep_at: nowIso,
+        channels: {
+          mail: readable.length, contacts: bookable.length, calendar: datable.length,
+        },
+        updated_at: nowIso,
+      }, { onConflict: "user_id" });
+
+      await sb.from("mesh_dossier_runs").insert({
+        user_id: userId, phase: "sentinel", queued: rows.length,
+        skipped: cold.skipped.length + cal.skipped.length + phone.skipped.length,
+        stats: {
+          inboundMessages: inbound.length, calendarPeople: calendar.length,
+          contactsRead: contacts.length, sinceMs, channels: {
+            inbound_mail: cold.targets.length, calendar: cal.targets.length, phone_book: phone.targets.length,
+          },
+        },
+        finished_at: nowIso,
+      });
+
+      return json({
+        newSubjects: rows.map((r) => ({
+          name: r.subject_name, email: r.subject_email, channel: r.channel, priority: r.priority,
+        })),
+        queued: rows.length,
+        scanned: {
+          inboundMessages: inbound.length, calendarPeople: calendar.length, contacts: contacts.length,
+        },
+        since: new Date(sinceMs).toISOString(),
+        watermark: nowIso,
+        skipped: [...cold.skipped, ...cal.skipped, ...phone.skipped].slice(0, 30),
+      }, 200, cors);
+    }
+
+
+
     // ── PROCESS ──────────────────────────────────────────────────────────
     if (action === "vault_process") {
       const batch = Math.min(Math.max(Number(body.batch) || 1, 1), 3);
