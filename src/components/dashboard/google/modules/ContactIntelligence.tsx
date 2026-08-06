@@ -449,6 +449,52 @@ const ContactIntelligence = () => {
         </button>
       </div>
 
+      {/* ── Device mesh — the cross-endpoint mirror ─────────────────── */}
+      <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Cloud className="h-4 w-4 text-foreground/60 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-light text-foreground">Device Mesh</p>
+            <p className="text-[10px] font-light text-muted-foreground/60" aria-live="polite">
+              {mesh.syncing
+                ? "Reconciling with the mesh…"
+                : mesh.remoteSavedAt
+                  ? `Authoritative ledger written ${fmtWhen(mesh.remoteSavedAt)} by ${mesh.remoteDevice ?? "an unnamed device"} · ${mesh.devices.length} endpoint${mesh.devices.length === 1 ? "" : "s"} linked`
+                  : "No mirrored ledger yet — the next sweep publishes this device's copy."}
+            </p>
+          </div>
+          <button
+            onClick={() => userId && refreshMesh(userId)}
+            disabled={!userId || mesh.syncing}
+            className="flex items-center gap-1.5 rounded-lg bg-foreground/5 px-3 py-1.5 text-[10px] font-light text-muted-foreground hover:bg-foreground/10 transition-colors disabled:opacity-40"
+          >
+            <RefreshCw className={`h-3 w-3 ${mesh.syncing ? "animate-spin motion-reduce:animate-none" : ""}`} /> Recheck
+          </button>
+        </div>
+        {mesh.devices.length > 0 && (
+          <ul className="grid sm:grid-cols-2 gap-2">
+            {mesh.devices.map((d) => (
+              <li
+                key={d.device_id}
+                className="flex items-center gap-2 rounded-xl border border-border/20 bg-foreground/5 px-3 py-2 min-w-0"
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full shrink-0 ${d.device_id === deviceId() ? "bg-emerald-400/80" : "bg-foreground/30"}`}
+                />
+                <span className="text-[10px] font-light text-foreground truncate">
+                  {d.label || "Unknown device"}
+                  {d.device_id === deviceId() ? " · this device" : ""}
+                </span>
+                <span className="ml-auto text-[10px] font-light text-muted-foreground/50 shrink-0">
+                  {d.last_push_at ? `pushed ${fmtWhen(Date.parse(d.last_push_at))}` : `seen ${fmtWhen(Date.parse(d.last_seen_at))}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+
       {/* ── Operator language baseline ─────────────────────────────── */}
       {summary && summary.psych.evidence !== "none" && (
         <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-4">
