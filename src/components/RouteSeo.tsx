@@ -7,6 +7,8 @@ import {
   SKIP_PREFIXES,
   type SeoEntry,
 } from "@/lib/routeSeoData";
+import { buildRouteGraph } from "@/lib/geo/schema";
+
 
 /**
  * Centralized per-route SEO (runtime layer).
