@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/glossary/byok-ai";
+const URL = "https://asherin.com/glossary/byok-ai";
 const TITLE = "BYOK AI — Bring Your Own Key, Defined";
 const PUBLISHED = "2026-06-19";
 

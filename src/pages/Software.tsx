@@ -565,7 +565,7 @@ const Software = () => {
       name: "Asherin Software Catalog",
       description:
         "Every Asherin tool grouped by subscription tier. Core software on Asherin ($18/month); full intelligence + R&D suite on Asherin Pro ($399/month).",
-      url: "https://aureonai.app/software",
+      url: "https://asherin.com/software",
       mainEntity: {
         "@type": "ItemList",
         numberOfItems: PRODUCTS.length,

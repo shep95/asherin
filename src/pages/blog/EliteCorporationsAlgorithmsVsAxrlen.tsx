@@ -8,7 +8,7 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 import houseOfAsherBanner from "@/assets/house-of-asher-banner.png.asset.json";
 
-const URL = "https://aureonai.app/blog/elite-corporations-algorithms-vs-axrlen";
+const URL = "https://asherin.com/blog/elite-corporations-algorithms-vs-axrlen";
 const TITLE = "Elite Corporations' Algorithms vs #HouseOfAsher Algorithm — AXRLEN";
 const PUBLISHED = "2026-06-24T14:00:00.000Z";
 

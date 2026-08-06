@@ -34,7 +34,7 @@ const BlogUncensoredAi = () => {
       datePublished: "2026-06-17",
       author: { "@type": "Person", name: "Asher Newton" },
       mainEntityOfPage:
-        "https://aureonai.app/blog/uncensored-ai-text-generator-guide",
+        "https://asherin.com/blog/uncensored-ai-text-generator-guide",
       keywords: [
         "uncensored ai text generator",
         "unrestricted ai",

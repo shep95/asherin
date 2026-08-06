@@ -6,7 +6,7 @@ import {
   FaqJsonLd,
 } from "@/components/seo/SeoJsonLd";
 
-const URL = "https://aureonai.app/blog/code-narrative-quantum-collapse";
+const URL = "https://asherin.com/blog/code-narrative-quantum-collapse";
 const TITLE =
   "Code-as-Narrative × Quantum Candidate Collapse — the #HouseOfAsher Method That Patches Bugs in Under 60 Seconds on the Cheapest Gemini Model";
 const PUBLISHED = "2026-07-01T00:00:00.000Z";

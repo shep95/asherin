@@ -137,7 +137,7 @@ const Index = () => {
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: "Asherin",
-          url: "https://aureonai.app",
+          url: "https://asherin.com",
           description: "Uncensored AI intelligence platform with elite coding engine, live web search, and end-to-end encryption.",
         },
       },

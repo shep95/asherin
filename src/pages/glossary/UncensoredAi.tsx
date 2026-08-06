@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/glossary/uncensored-ai";
+const URL = "https://asherin.com/glossary/uncensored-ai";
 const TITLE = "Uncensored AI — Definition, How to Identify It, and Why It Matters";
 const PUBLISHED = "2026-06-19";
 

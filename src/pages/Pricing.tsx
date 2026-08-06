@@ -20,7 +20,7 @@ import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import { BreadcrumbJsonLd, FaqJsonLd } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/pricing";
+const URL = "https://asherin.com/pricing";
 
 const FAQ = [
   {

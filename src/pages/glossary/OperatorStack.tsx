@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/glossary/operator-stack";
+const URL = "https://asherin.com/glossary/operator-stack";
 const TITLE = "Operator Stack — Definition and Component List";
 const PUBLISHED = "2026-06-19";
 

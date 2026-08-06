@@ -14,7 +14,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
  * Closes Batch 1, item 1 of the Zophiel content roadmap.
  */
 
-const URL = "https://aureonai.app/feature/zerlal";
+const URL = "https://asherin.com/feature/zerlal";
 const TITLE = "ZERLAL — AI Vulnerability Scanner with Exploit Chaining | Asherin";
 const PUBLISHED = "2026-06-19";
 

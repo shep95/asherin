@@ -135,11 +135,11 @@ export default function Hosrad() {
       "@type": "Organization",
       name: "HOSRAD — House Of Asher Research & Development",
       alternateName: "HOSRAD",
-      url: "https://aureonai.app/hosrad",
+      url: "https://asherin.com/hosrad",
       parentOrganization: {
         "@type": "Organization",
         name: "House Of Asher",
-        url: "https://aureonai.app",
+        url: "https://asherin.com",
       },
       description:
         "HOSRAD is the research & development division of the House Of Asher. Advanced research across AI, quantum computing, military systems, and civilian safety technology.",

@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/blog/how-we-make-aureon-sound-human";
+const URL = "https://asherin.com/blog/how-we-make-aureon-sound-human";
 const TITLE = "How We Make Asherin Sound So Human — The Voice Stack";
 const PUBLISHED = "2026-07-01";
 

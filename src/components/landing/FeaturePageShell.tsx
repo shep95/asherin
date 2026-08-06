@@ -43,7 +43,7 @@ const FeaturePageShell = ({
     document.title = documentTitle;
 
     const path = typeof window !== "undefined" ? window.location.pathname : "/";
-    const url = `https://aureonai.app${path}`;
+    const url = `https://asherin.com${path}`;
     const desc = subheadline.length > 160 ? subheadline.slice(0, 157).trimEnd() + "..." : subheadline;
 
     const upsertMeta = (selector: string, attr: "name" | "property", key: string, content: string) => {

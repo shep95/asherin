@@ -27,7 +27,7 @@ const BlogVeniceIntegration = () => {
         "How Asherin routes free-tier and BYOK traffic through Venice AI so operators get uncensored, vision-capable answers without configuring a Venice key.",
       datePublished: "2026-06-14",
       author: { "@type": "Person", name: "Asher Newton" },
-      mainEntityOfPage: "https://aureonai.app/blog/venice-integration",
+      mainEntityOfPage: "https://asherin.com/blog/venice-integration",
       keywords: [
         "venice ai",
         "venice ai integration",

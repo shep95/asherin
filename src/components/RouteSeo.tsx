@@ -7,14 +7,17 @@ import { useLocation } from "react-router-dom";
  * Skipped paths (/asher, /dashboard, /asher-dashboard) are left untouched.
  */
 
-const ORIGIN = "https://aureonai.app";
-const DEFAULT_OG_IMAGE = "https://aureonai.app/og-image.png";
+const ORIGIN = "https://asherin.com";
+const DEFAULT_OG_IMAGE = "https://asherin.com/og-image.png";
 const JSONLD_ID = "route-seo-jsonld";
 
 type SeoEntry = {
   title: string;
   description: string;
   ogType?: "website" | "article" | "product";
+  /** ISO date (YYYY-MM-DD) — required for editorial routes so Article JSON-LD is valid. */
+  datePublished?: string;
+  dateModified?: string;
   noindex?: boolean;
 };
 
@@ -97,18 +100,21 @@ const SEO: Record<string, SeoEntry> = {
     description:
       "Side-by-side: price, censorship, BYOK, OSINT, IDE, simulation, and privacy across Asherin, ChatGPT Plus, and Claude Pro.",
     ogType: "article",
+    datePublished: "2026-06-17",
   },
   "/blog/venice-integration": {
     title: "Venice AI in Asherin — Unfiltered, Zero Setup",
     description:
       "How Asherin routes free and BYOK traffic through Venice AI for uncensored, vision-capable answers with no key, no account, no subscription.",
     ogType: "article",
+    datePublished: "2026-06-17",
   },
   "/blog/aureon-legal-advisor-multi-jurisdictional": {
-    title: "Asherin Legal Advisor (LAW Mode) — Multi-Jurisdictional AI Legal Research",
+    title: "Asherin LAW Mode — Multi-Jurisdictional Legal Research",
     description:
       "How Asherin and Asher's LAW mode runs deep legal research across any country, state, or province — surfacing older statutes that supersede newer law without fabricating citations.",
     ogType: "article",
+    datePublished: "2026-07-08",
   },
 
   // Blog satellites (Theory 8 — Nested Fractal Content Architecture)
@@ -117,90 +123,105 @@ const SEO: Record<string, SeoEntry> = {
     description:
       "AI OSINT defined: the four-stage pipeline, the cross-validation requirement, and how to spot a search wrapper pretending to be intelligence.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/blog/sovereign-ai-platforms": {
     title: "The 2026 Sovereign AI Platform Landscape | Asherin",
     description:
       "Eight serious sovereign AI platforms, four architecture patterns, and the four-layer test that eliminates 60% of sovereignty claims on first inspection.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/blog/ai-without-restrictions": {
     title: "AI Without Restrictions — Operator Workflow Guide | Asherin",
     description:
       "Model choice, prompt discipline, refusal-detection, and the three workflow patterns that survive long sessions on uncensored AI.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/blog/predictions/world-cup-2026-group-matches-0622": {
-    title: "AXRLEN Forecast — World Cup 2026 Group Matches (22 June) | Asherin",
+    title: "AXRLEN Forecast — World Cup 2026 Groups (22 June)",
     description:
       "AXRLEN picks for the 22 June 2026 World Cup slate: Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan.",
     ogType: "article",
+    datePublished: "2026-06-22",
   },
   "/blog/predictions/world-cup-2026-group-matches-0623": {
-    title: "AXRLEN Forecast — World Cup 2026 Group Matches (23 June) | Asherin",
+    title: "AXRLEN Forecast — World Cup 2026 Groups (23 June)",
     description:
       "AXRLEN picks for the 23 June 2026 World Cup slate: Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo.",
     ogType: "article",
+    datePublished: "2026-06-22",
   },
   "/blog/predictions/world-cup-2026-group-matches-0624": {
     title: "AXRLEN Deep Dive — World Cup 2026 (23 June)",
     description:
       "Structural and historical AXRLEN analysis behind the 23 June 2026 picks: Portugal, England, Croatia, and Colombia.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/predictions/world-cup-2026-group-matches-0625": {
-    title: "AXRLEN Forecast — World Cup 2026 Group Matches (24 June) | Asherin",
+    title: "AXRLEN Forecast — World Cup 2026 Groups (24 June)",
     description:
       "AXRLEN picks for the 24 June 2026 World Cup slate: Switzerland, Bosnia, Morocco, Brazil, South Korea, Mexico — with modal scorelines and confidence weights.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/predictions/peru-2026-keiko-fujimori": {
     title: "AXRLEN — Keiko Fujimori, Peru 2026 President",
     description:
       "AXRLEN predicts Keiko Fujimori wins the 2026 Peru runoff under the Antivoto Paradox. Three scenarios, 94% polarized runoff probability.",
     ogType: "article",
+    datePublished: "2026-06-22",
   },
   "/blog/predictions/russia-ukraine-war-2026-endgame": {
     title: "AXRLEN — Russia–Ukraine 2026 Endgame Forecast",
     description:
       "AXRLEN forecasts a Korean-style armistice along the current line of contact within 24 months. Symmetric Exhaustion Cycle, 55% armistice probability, de facto Donbas/Crimea partition.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/predictions/china-taiwan-2026-flashpoint": {
     title: "AXRLEN — China–Taiwan 2026 Flashpoint Forecast",
     description:
       "AXRLEN forecasts a 72% Taiwan Strait kinetic-crisis probability in 2026 with a PLA blockade-first escalation path. Thucydides–Mahan Convergence and US deterrence dissonance.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/predictions/israel-iran-2026-shadow-war": {
     title: "AXRLEN — Israel–Iran 2026 Shadow War Forecast",
     description:
       "AXRLEN forecasts High-Intensity Intermittency and a singular Israeli 'Hard Test' strike on Iranian nuclear infrastructure. Hezbollah-first sequencing, three-month proxy spike, forced mediation.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/the-crypto-dump-october-2026": {
     title: "The Crypto Dump — BTC to $44,500 (Oct 2026)",
     description:
       "AXRLEN predicts a Bitcoin liquidity event Oct 12–19, 2026 with a $44,500 floor at 88% confidence. SBC Vedha collision and Mars–Rahu trigger.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/elite-corporations-algorithms-vs-axrlen": {
     title: "Elite Algorithms vs #HouseOfAsher — AXRLEN",
     description:
       "Aladdin controls the present. AXRLEN sees the future. A direct comparison between BlackRock's engine and #HouseOfAsher's predictive algorithm.",
     ogType: "article",
+    datePublished: "2026-06-24",
   },
   "/blog/btc-daily-predictions": {
     title: "AXRLEN BTC Daily — Live Long/Short Forecast | Asherin",
     description:
       "Daily 07:00 EST AXRLEN Bitcoin forecast. Live BTC price, long/short call with entry, stop loss, take profit, and a running win/loss tally.",
     ogType: "article",
+    datePublished: "2026-06-24",
   },
   "/blog/aureon-pricing-explained": {
     title: "Asherin Pricing Explained — Why $18/mo and $399/mo (2026)",
     description:
       "The full breakdown of Asherin's $18/mo and $399/mo subscription tiers, how they compare to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
 
   // Glossary cluster (Theory 12 — Sovereign Niche Monopoly)
@@ -210,28 +231,32 @@ const SEO: Record<string, SeoEntry> = {
       "Definitive, citable explanations of the terms operators actually use — sovereign AI, BYOK AI, uncensored AI, digital gnostic.",
   },
   "/glossary/sovereign-ai": {
-    title: "Sovereign AI — Definition, Origin, and Why It Matters | Asherin",
+    title: "Sovereign AI — Definition and Why It Matters",
     description:
       "Sovereign AI: a four-layer definition (key, model, refusal, data), how it differs from BYOK and uncensored, and how to verify it in 60 seconds.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/glossary/uncensored-ai": {
     title: "Uncensored AI — The Precise Definition | Asherin",
     description:
       "Uncensored AI is a model whose refusal behavior is set at the operator layer, not the vendor layer. Three failure modes of fake claims and a 60-second test.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/glossary/byok-ai": {
     title: "BYOK AI — Bring Your Own Key, Defined | Asherin",
     description:
       "BYOK AI: how it works, the economics, the nine providers Asherin supports natively, and why BYOK is necessary but not sufficient for sovereignty.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/glossary/digital-gnostic": {
     title: "Digital Gnostic — Operator Demographic Defined | Asherin",
     description:
       "The Digital Gnostic operator: 2-4M in 2026, high willingness to pay, search vocabulary, and why their tooling differs from consumer AI users.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
 
   // Feature pages
@@ -259,7 +284,7 @@ const SEO: Record<string, SeoEntry> = {
     description: "Create, store, and deploy custom AI personas with metadata, voice, and persistent context.",
   },
   "/feature/zali": {
-    title: "ZALI Design Suite — FEA, Thermal, Material Generation | Asherin",
+    title: "ZALI Design Suite — FEA, Thermal & Materials",
     description:
       "ZALI Design Suite: AI-driven FEA simulation, thermal analysis, material selection, and assembly generation.",
   },
@@ -268,7 +293,7 @@ const SEO: Record<string, SeoEntry> = {
     description: "Zahten: adversarial simulation and counter-intelligence modeling for hostile environment analysis.",
   },
   "/feature/predictive": {
-    title: "Predictive Intelligence — Corporate Event Forecasting | Asherin",
+    title: "Predictive Intelligence — Event Forecasting",
     description: "Forecast corporate events, market dislocations, and policy moves with Monte Carlo modeling.",
   },
   "/feature/ide": {
@@ -438,6 +463,146 @@ const SEO: Record<string, SeoEntry> = {
     description: "Internal analytics surface for Asherin operators.",
     noindex: true,
   },
+  // --- Editorial satellites (previously falling back to the homepage head) ---
+  "/blog/ai-vulnerability-scanning-explained": {
+    title: "AI Vulnerability Scanning, Explained | Asherin",
+    description:
+      "How AI-assisted vulnerability scanning actually works: signal collection, exploit-path reasoning, false-positive suppression, and confidence scoring.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/blog/vulnerability-chaining-explained": {
+    title: "Vulnerability Chaining, Explained | Asherin",
+    description:
+      "Single findings rarely matter. Vulnerability chaining shows how low-severity issues combine into a full compromise path — with worked examples.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/blog/how-ai-predictive-forecasting-works": {
+    title: "How AI Predictive Forecasting Works | Asherin",
+    description:
+      "Inside AXRLEN-style forecasting: signal fusion, scenario branching, probability weighting, and why calibration matters more than confidence.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/blog/how-aureon-uses-c-seo-research": {
+    title: "How Asherin Uses Conversational SEO Research",
+    description:
+      "The C-SEO research loop behind Asherin's content: entity clustering, answer-shaped pages, and measuring citations inside AI search engines.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/blog/how-we-make-aureon-sound-human": {
+    title: "How We Make Asherin Sound Human",
+    description:
+      "The editing doctrine behind Asherin's voice: cadence, specificity, refusal of filler, and the review passes every published page survives.",
+    ogType: "article",
+    datePublished: "2026-07-01",
+  },
+  "/blog/how-to-break-any-encryption-theory": {
+    title: "How To Break Any Encryption — A Theory | Asherin",
+    description:
+      "An Asherin R&D theory on encryption: side-channel observability, symbolic key structure, and where implementations leak long before math does.",
+    ogType: "article",
+    datePublished: "2026-07-12",
+  },
+  "/blog/code-narrative-quantum-collapse": {
+    title: "Code-to-Narrative & Quantum Candidate Collapse",
+    description:
+      "The Asherin build doctrine: convert prompts into narrative, hunt flaws across nine dimensions, then collapse candidates into one shipped answer.",
+    ogType: "article",
+    datePublished: "2026-07-01",
+  },
+  "/blog/the-truth-and-reality-of-wars": {
+    title: "The Truth and Reality of Wars | Asherin",
+    description:
+      "A structural read of modern conflict: incentive maps, resource clocks, and the exhaustion cycles that decide wars long before treaties do.",
+    ogType: "article",
+    datePublished: "2026-06-24",
+  },
+  "/blog/zaxin-tactical-ble-intelligence": {
+    title: "Zaxin — Tactical BLE Intelligence | Asherin",
+    description:
+      "Zaxin turns Bluetooth Low Energy noise into tactical intelligence: device fingerprinting, proximity tracking, and optical/AI overlay fusion.",
+    ogType: "article",
+    datePublished: "2026-06-26",
+  },
+  "/blog/uncensored-ai-text-generator-guide": {
+    title: "Uncensored AI Text Generator — Operator Guide",
+    description:
+      "A practical guide to uncensored AI text generation: model selection, key routing, refusal detection, and keeping long sessions coherent.",
+    ogType: "article",
+    datePublished: "2026-06-17",
+  },
+
+  // --- Glossary entries that were missing metadata ---
+  "/glossary/operator-stack": {
+    title: "Operator Stack — Definition | Asherin Glossary",
+    description:
+      "The operator stack: the tool chain an intelligence operator runs end-to-end — collection, validation, prediction, and delivery — defined precisely.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/glossary/zero-day-confidence-scoring": {
+    title: "Zero-Day Confidence Scoring — Definition",
+    description:
+      "Zero-day confidence scoring: how unverified vulnerability signals are weighted, ranked, and reported without overstating certainty.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/glossary/predictive-intelligence-ai": {
+    title: "Predictive Intelligence AI — Definition",
+    description:
+      "Predictive intelligence AI: forecasting events from live signals rather than summarizing the past, and the calibration test that separates the two.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/glossary/conversational-seo": {
+    title: "Conversational SEO (C-SEO) — Definition",
+    description:
+      "Conversational SEO: optimizing for citation inside AI answers instead of blue links — entity clarity, answer shape, and verifiable sourcing.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+
+  // --- Standalone public pages ---
+  "/symbols-of-the-bible": {
+    title: "Symbols of the Bible — Decoded Meanings",
+    description:
+      "Forty-plus Biblical stories decoded into their symbolic meaning: archetypes, patterns, and the inner reading behind the literal narrative.",
+    ogType: "article",
+    datePublished: "2026-07-10",
+  },
+  "/houseofasher/theories": {
+    title: "House of Asher — Theories | Asherin",
+    description:
+      "The House of Asher theories: the philosophical framework behind Asherin's predictive doctrine, from narrative collapse to temporal decay.",
+  },
+  "/zaxin/theories": {
+    title: "Zaxin Theories — Tactical Sensing Doctrine",
+    description:
+      "The theories behind Zaxin: BLE signal geometry, optical fusion, and the sensing doctrine driving Asherin's AR intelligence overlay.",
+  },
+  "/updates": {
+    title: "Updates — Asherin Release Log",
+    description:
+      "Every meaningful Asherin release: new intelligence modules, engine upgrades, and platform changes, logged as they ship.",
+  },
+  "/investors": {
+    title: "Investors — Asherin",
+    description:
+      "Asherin investor brief: platform scope, intelligence engines, revenue tiers, and the asset base behind the House of Asher valuation.",
+  },
+  "/valuation": {
+    title: "Valuation — Asherin Asset Model",
+    description:
+      "The Asherin valuation model: asset-based accounting of the intelligence engines, IP, and platform surfaces that make up the company.",
+  },
+  "/ziaassets": {
+    title: "ZIA Assets — Restricted",
+    description: "Restricted internal asset vault for Asherin operators.",
+    noindex: true,
+  },
   "/unsubscribe": {
     title: "Unsubscribe — Asherin",
     description: "Unsubscribe from Asherin notifications.",
@@ -548,18 +713,40 @@ function applySeo(entry: SeoEntry, path: string) {
     ld.type = "application/ld+json";
     document.head.appendChild(ld);
   }
-  ld.textContent = JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    name: entry.title,
-    description: entry.description,
-    url: canonical,
-    isPartOf: {
-      "@type": "WebSite",
-      name: "Asherin",
-      url: ORIGIN,
-    },
-  });
+  const isArticle = entry.ogType === "article" && Boolean(entry.datePublished);
+  ld.textContent = JSON.stringify(
+    isArticle
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: entry.title,
+          description: entry.description,
+          datePublished: entry.datePublished,
+          dateModified: entry.dateModified ?? entry.datePublished,
+          author: { "@type": "Person", name: "Asher Newton" },
+          publisher: {
+            "@type": "Organization",
+            name: "Asherin",
+            url: ORIGIN,
+            logo: { "@type": "ImageObject", url: `${ORIGIN}/favicon.png` },
+          },
+          image: DEFAULT_OG_IMAGE,
+          mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+          url: canonical,
+        }
+      : {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: entry.title,
+          description: entry.description,
+          url: canonical,
+          isPartOf: {
+            "@type": "WebSite",
+            name: "Asherin",
+            url: ORIGIN,
+          },
+        },
+  );
 
   if (entry.noindex) {
     upsertMeta('meta[name="robots"]', "content", "noindex,nofollow", () => {

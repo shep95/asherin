@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/blog/how-ai-predictive-forecasting-works";
+const URL = "https://asherin.com/blog/how-ai-predictive-forecasting-works";
 const TITLE = "How AI Predictive Forecasting Actually Works";
 const PUBLISHED = "2026-06-19";
 

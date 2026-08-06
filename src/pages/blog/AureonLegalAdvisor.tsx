@@ -16,7 +16,7 @@ import { applySeoHead } from "@/lib/seoHead";
  * older statutes, colonial-era carryovers, and precedent that quietly
  * supersedes modern law across any country, state, or province.
  */
-const URL = "https://aureonai.app/blog/aureon-legal-advisor-multi-jurisdictional";
+const URL = "https://asherin.com/blog/aureon-legal-advisor-multi-jurisdictional";
 const PUBLISHED = "2026-07-08";
 
 const FAQ = [

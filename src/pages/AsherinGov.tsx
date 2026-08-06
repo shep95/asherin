@@ -98,7 +98,7 @@ const AsherinGov = () => {
     upsert('meta[name="robots"]', { name: "robots", content: "index, follow, max-snippet:-1, max-image-preview:large" });
     let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!canonical) { canonical = document.createElement("link"); canonical.rel = "canonical"; document.head.appendChild(canonical); }
-    canonical.href = "https://aureonai.app/asherin.gov";
+    canonical.href = "https://asherin.com/asherin.gov";
   }, []);
 
   const wallpaper = getWallpaperSrc("aureon");

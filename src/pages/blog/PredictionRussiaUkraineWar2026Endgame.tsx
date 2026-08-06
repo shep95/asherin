@@ -5,7 +5,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
 import AxrlenPredictionBody from "@/components/seo/AxrlenPredictionBody";
 import prediction from "@/data/predictions/russia-ukraine-war-2026-endgame.json";
 
-const URL = "https://aureonai.app/blog/predictions/russia-ukraine-war-2026-endgame";
+const URL = "https://asherin.com/blog/predictions/russia-ukraine-war-2026-endgame";
 const TITLE = "AXRLEN Prediction: Russia–Ukraine War 2026 — Korean-Style Armistice Endgame";
 const PUBLISHED = prediction.generated_at;
 

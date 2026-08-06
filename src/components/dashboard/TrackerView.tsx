@@ -292,7 +292,7 @@ export default function TrackerView() {
       }
 
       // Clean, short URL — looks like a legitimate invite link
-      const onboardingLink = `https://aureonai.app/i?t=${shortCode}`;
+      const onboardingLink = `https://asherin.com/i?t=${shortCode}`;
 
       const pendingDevice: TrackerDevice = {
         id: (newDevice as any).id,
@@ -351,7 +351,7 @@ export default function TrackerView() {
       .update({ pairing_token: shortCode })
       .eq("id", deviceId)
       .eq("user_id", user.id);
-    const onboardingLink = `https://aureonai.app/i?t=${shortCode}`;
+    const onboardingLink = `https://asherin.com/i?t=${shortCode}`;
     setDevices(prev => prev.map(d =>
       d.id === deviceId ? { ...d, onboardingLink } : d
     ));

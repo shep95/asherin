@@ -5,7 +5,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
 import AxrlenPredictionBody from "@/components/seo/AxrlenPredictionBody";
 import prediction from "@/data/predictions/israel-iran-2026-shadow-war.json";
 
-const URL = "https://aureonai.app/blog/predictions/israel-iran-2026-shadow-war";
+const URL = "https://asherin.com/blog/predictions/israel-iran-2026-shadow-war";
 const TITLE = "AXRLEN Prediction: Israel–Iran 2026 — Direct-Attrition Equilibrium and the Nuclear Hard Test";
 const PUBLISHED = prediction.generated_at;
 

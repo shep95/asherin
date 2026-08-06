@@ -105,9 +105,15 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
       >
         <div className="pointer-events-none absolute inset-0 bg-black/88" aria-hidden="true" />
         <div className="relative">
-        <button onClick={onClose} className="absolute top-0 right-0 text-muted-foreground hover:text-foreground transition-colors">
-
-          <X className="h-5 w-5" />
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          title="Close"
+          className="absolute top-0 right-0 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="h-5 w-5" aria-hidden="true" />
+          <span className="sr-only">Close</span>
         </button>
 
         {forgotMode ? (

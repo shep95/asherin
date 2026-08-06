@@ -309,12 +309,12 @@ const Blog = () => {
       "@context": "https://schema.org",
       "@type": "Blog",
       name: "Asherin Blog",
-      url: "https://aureonai.app/blog",
+      url: "https://asherin.com/blog",
       blogPost: BLOG_POSTS.map((p) => ({
         "@type": "BlogPosting",
         headline: p.title,
         description: p.dek,
-        url: `https://aureonai.app${p.slug}`,
+        url: `https://asherin.com${p.slug}`,
         datePublished: toIso(p.published),
       })),
     });

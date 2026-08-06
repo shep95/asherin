@@ -41,7 +41,7 @@ const SERIES = [
  */
 
 const PUBLISHED = "2026-06-14";
-const URL_SELF = "https://aureonai.app/blog/comparison";
+const URL_SELF = "https://asherin.com/blog/comparison";
 
 type Cell = "yes" | "no" | "partial" | string;
 type Row = { feature: string; aureon: Cell; chatgpt: Cell; claude: Cell; note?: string };
@@ -144,10 +144,10 @@ const BlogComparison = () => {
         publisher: {
           "@type": "Organization",
           name: "Asherin",
-          logo: { "@type": "ImageObject", url: "https://aureonai.app/favicon.png" },
+          logo: { "@type": "ImageObject", url: "https://asherin.com/favicon.png" },
         },
         mainEntityOfPage: { "@type": "WebPage", "@id": URL_SELF },
-        image: "https://aureonai.app/og-image.png",
+        image: "https://asherin.com/og-image.png",
       },
       {
         "@context": "https://schema.org",
@@ -162,8 +162,8 @@ const BlogComparison = () => {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Home", item: "https://aureonai.app/" },
-          { "@type": "ListItem", position: 2, name: "Blog", item: "https://aureonai.app/blog" },
+          { "@type": "ListItem", position: 1, name: "Home", item: "https://asherin.com/" },
+          { "@type": "ListItem", position: 2, name: "Blog", item: "https://asherin.com/blog" },
           { "@type": "ListItem", position: 3, name: "Asherin vs ChatGPT vs Claude", item: URL_SELF },
         ],
       },

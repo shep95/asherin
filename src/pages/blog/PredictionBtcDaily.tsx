@@ -358,7 +358,7 @@ const PredictionBtcDaily = () => {
 
       <ArticleJsonLd
         id="btc-daily-predictions"
-        url="https://aureonai.app/blog/btc-daily-predictions"
+        url="https://asherin.com/blog/btc-daily-predictions"
         headline="AXRLEN BTC Daily — Live Long/Short Forecast"
         description="Automated 24-hour Bitcoin long/short prediction generated every day at 07:00 EST by the AXRLEN engine. Live BTC price, entry/SL/TP, and a running win/loss tally."
         datePublished="2026-06-23"
@@ -366,9 +366,9 @@ const PredictionBtcDaily = () => {
       <BreadcrumbJsonLd
         id="btc-daily-predictions"
         items={[
-          { name: "Asherin", url: "https://aureonai.app" },
-          { name: "Blog", url: "https://aureonai.app/blog" },
-          { name: "AXRLEN BTC Daily", url: "https://aureonai.app/blog/btc-daily-predictions" },
+          { name: "Asherin", url: "https://asherin.com" },
+          { name: "Blog", url: "https://asherin.com/blog" },
+          { name: "AXRLEN BTC Daily", url: "https://asherin.com/blog/btc-daily-predictions" },
         ]}
       />
       <FaqJsonLd

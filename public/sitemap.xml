@@ -11,78 +11,78 @@
   intelligence reports are listed with explicit priorities to fast-track crawl.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://aureonai.app/</loc><lastmod>2026-06-19</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://aureonai.app/founder</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://aureonai.app/software</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/benchmark</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/forums</loc><lastmod>2026-06-19</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/whiteboard</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://aureonai.app/asher</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://aureonai.app/updates</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-   <url><loc>https://aureonai.app/houseofasher/theories</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-   <url><loc>https://aureonai.app/hosrad</loc><lastmod>2026-07-08</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-   <url><loc>https://aureonai.app/symbols-of-the-bible</loc><lastmod>2026-07-10</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-   <url><loc>https://aureonai.app/zaxin/theories</loc><lastmod>2026-06-26</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://asherin.com/</loc><lastmod>2026-06-19</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://asherin.com/founder</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://asherin.com/software</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://asherin.com/benchmark</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://asherin.com/forums</loc><lastmod>2026-06-19</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://asherin.com/whiteboard</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://asherin.com/asher</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://asherin.com/updates</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+   <url><loc>https://asherin.com/houseofasher/theories</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+   <url><loc>https://asherin.com/hosrad</loc><lastmod>2026-07-08</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+   <url><loc>https://asherin.com/symbols-of-the-bible</loc><lastmod>2026-07-10</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+   <url><loc>https://asherin.com/zaxin/theories</loc><lastmod>2026-06-26</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
 
   <!-- Blog cluster (Theory 8 — Nested Fractal) -->
-  <url><loc>https://aureonai.app/blog</loc><lastmod>2026-07-12</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-   <url><loc>https://aureonai.app/blog/how-to-break-any-encryption-theory</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
-   <url><loc>https://aureonai.app/blog/the-truth-and-reality-of-wars</loc><lastmod>2026-06-24</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
-   <url><loc>https://aureonai.app/blog/zaxin-tactical-ble-intelligence</loc><lastmod>2026-06-26</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-   <url><loc>https://aureonai.app/blog/code-narrative-quantum-collapse</loc><lastmod>2026-07-01</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
-   <url><loc>https://aureonai.app/blog/aureon-legal-advisor-multi-jurisdictional</loc><lastmod>2026-07-08</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://aureonai.app/blog/comparison</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://aureonai.app/blog/venice-integration</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://aureonai.app/blog/uncensored-ai-text-generator-guide</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://aureonai.app/blog/what-is-ai-osint</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/blog/sovereign-ai-platforms</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/blog/ai-without-restrictions</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/blog/predictions/world-cup-2026-group-matches-0622</loc><lastmod>2026-06-22</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/blog/predictions/world-cup-2026-group-matches-0623</loc><lastmod>2026-06-22</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/blog/predictions/world-cup-2026-group-matches-0624</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/blog/predictions/world-cup-2026-group-matches-0625</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
- <url><loc>https://aureonai.app/blog/predictions/peru-2026-keiko-fujimori</loc><lastmod>2026-06-22</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
- <url><loc>https://aureonai.app/blog/predictions/russia-ukraine-war-2026-endgame</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
- <url><loc>https://aureonai.app/blog/predictions/china-taiwan-2026-flashpoint</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
- <url><loc>https://aureonai.app/blog/predictions/israel-iran-2026-shadow-war</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://aureonai.app/blog/the-crypto-dump-october-2026</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://aureonai.app/blog/elite-corporations-algorithms-vs-axrlen</loc><lastmod>2026-06-24</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/blog/btc-daily-predictions</loc><lastmod>2026-06-24</lastmod><changefreq>daily</changefreq><priority>0.95</priority></url>
-  <url><loc>https://aureonai.app/blog/aureon-pricing-explained</loc><lastmod>2026-06-19</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/blog</loc><lastmod>2026-07-12</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+   <url><loc>https://asherin.com/blog/how-to-break-any-encryption-theory</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+   <url><loc>https://asherin.com/blog/the-truth-and-reality-of-wars</loc><lastmod>2026-06-24</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+   <url><loc>https://asherin.com/blog/zaxin-tactical-ble-intelligence</loc><lastmod>2026-06-26</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+   <url><loc>https://asherin.com/blog/code-narrative-quantum-collapse</loc><lastmod>2026-07-01</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+   <url><loc>https://asherin.com/blog/aureon-legal-advisor-multi-jurisdictional</loc><lastmod>2026-07-08</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/blog/comparison</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://asherin.com/blog/venice-integration</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://asherin.com/blog/uncensored-ai-text-generator-guide</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://asherin.com/blog/what-is-ai-osint</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/blog/sovereign-ai-platforms</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/blog/ai-without-restrictions</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/blog/predictions/world-cup-2026-group-matches-0622</loc><lastmod>2026-06-22</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/blog/predictions/world-cup-2026-group-matches-0623</loc><lastmod>2026-06-22</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/blog/predictions/world-cup-2026-group-matches-0624</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/blog/predictions/world-cup-2026-group-matches-0625</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+ <url><loc>https://asherin.com/blog/predictions/peru-2026-keiko-fujimori</loc><lastmod>2026-06-22</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+ <url><loc>https://asherin.com/blog/predictions/russia-ukraine-war-2026-endgame</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+ <url><loc>https://asherin.com/blog/predictions/china-taiwan-2026-flashpoint</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+ <url><loc>https://asherin.com/blog/predictions/israel-iran-2026-shadow-war</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/blog/the-crypto-dump-october-2026</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/blog/elite-corporations-algorithms-vs-axrlen</loc><lastmod>2026-06-24</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/blog/btc-daily-predictions</loc><lastmod>2026-06-24</lastmod><changefreq>daily</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/blog/aureon-pricing-explained</loc><lastmod>2026-06-19</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
 
   <!-- Cluster satellites — Security (ZERLAL spine) -->
-  <url><loc>https://aureonai.app/blog/ai-vulnerability-scanning-explained</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/blog/vulnerability-chaining-explained</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/blog/ai-vulnerability-scanning-explained</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/blog/vulnerability-chaining-explained</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
 
   <!-- Cluster satellites — Predictive (AXRLEN spine) -->
-  <url><loc>https://aureonai.app/blog/how-ai-predictive-forecasting-works</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/blog/how-ai-predictive-forecasting-works</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
 
   <!-- Cluster satellites — C-SEO meta -->
-  <url><loc>https://aureonai.app/blog/how-aureon-uses-c-seo-research</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
-  <url><loc>https://aureonai.app/blog/how-we-make-aureon-sound-human</loc><lastmod>2026-07-01</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://asherin.com/blog/how-aureon-uses-c-seo-research</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://asherin.com/blog/how-we-make-aureon-sound-human</loc><lastmod>2026-07-01</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
 
   <!-- Pricing spine (Theory 12 — Sovereign Niche Monopoly on "Aureon pricing") -->
-  <url><loc>https://aureonai.app/pricing</loc><lastmod>2026-06-19</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://aureonai.app/investors</loc><lastmod>2026-07-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://aureonai.app/valuation</loc><lastmod>2026-07-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://asherin.com/pricing</loc><lastmod>2026-06-19</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/investors</loc><lastmod>2026-07-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://asherin.com/valuation</loc><lastmod>2026-07-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
 
   <!-- Glossary cluster (Theory 12 — Sovereign Niche Monopoly) -->
-  <url><loc>https://aureonai.app/glossary</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/glossary/sovereign-ai</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://aureonai.app/glossary/uncensored-ai</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://aureonai.app/glossary/byok-ai</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://aureonai.app/glossary/digital-gnostic</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
-  <url><loc>https://aureonai.app/glossary/operator-stack</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
-  <url><loc>https://aureonai.app/glossary/zero-day-confidence-scoring</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
-  <url><loc>https://aureonai.app/glossary/predictive-intelligence-ai</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
-  <url><loc>https://aureonai.app/glossary/conversational-seo</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://asherin.com/glossary</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/glossary/sovereign-ai</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/glossary/uncensored-ai</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/glossary/byok-ai</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://asherin.com/glossary/digital-gnostic</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://asherin.com/glossary/operator-stack</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://asherin.com/glossary/zero-day-confidence-scoring</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://asherin.com/glossary/predictive-intelligence-ai</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://asherin.com/glossary/conversational-seo</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
 
   <!-- Feature spines (Theory 8 — Cluster spine) -->
-  <url><loc>https://aureonai.app/feature/zophiel</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://aureonai.app/feature/zerlal</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://aureonai.app/feature/axrlen</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://aureonai.app/feature/byok</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/feature/zophiel</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/feature/zerlal</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/feature/axrlen</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://asherin.com/feature/byok</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
 
-  <url><loc>https://aureonai.app/terms</loc><lastmod>2026-06-17</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://aureonai.app/privacy</loc><lastmod>2026-06-17</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://asherin.com/terms</loc><lastmod>2026-06-17</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://asherin.com/privacy</loc><lastmod>2026-06-17</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

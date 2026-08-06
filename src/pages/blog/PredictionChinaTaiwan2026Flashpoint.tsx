@@ -5,7 +5,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
 import AxrlenPredictionBody from "@/components/seo/AxrlenPredictionBody";
 import prediction from "@/data/predictions/china-taiwan-2026-flashpoint.json";
 
-const URL = "https://aureonai.app/blog/predictions/china-taiwan-2026-flashpoint";
+const URL = "https://asherin.com/blog/predictions/china-taiwan-2026-flashpoint";
 const TITLE = "AXRLEN Prediction: China–Taiwan 2026 Flashpoint — Blockade-First Escalation Path";
 const PUBLISHED = prediction.generated_at;
 
