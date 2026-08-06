@@ -123,8 +123,8 @@ const Index = () => {
 
 
     const faqs = [
-      { q: "What makes Asherin different?", a: "Asherin is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, intelligence tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },
-      { q: "How good is the coding engine?", a: "Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." },
+      { q: "What makes Asherin different?", a: "Asherin is more than a chatbot. It combines uncensored AI, real-time search, intelligence tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },
+      { q: "How good is the coding engine?", a: "Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture, not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." },
       { q: 'What does "never trains our models" mean?', a: "Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." },
       { q: "Can I cancel anytime?", a: "Yes. One click from the dashboard. No retention flow. No \"are you sure?\" loop. Asherin is $18/month, Asherin Pro is $399/month, and you can cancel either at any time. Your data is exported or deleted on request." },
       { q: "What is the live web search powered by?", a: "Privacy-first search infrastructure. Asherin pulls live data without tracking your search behavior or feeding it to ad networks." },
@@ -318,7 +318,7 @@ const Index = () => {
             </div>
 
             <h1 className="font-display mt-6 text-6xl sm:text-7xl md:text-8xl lg:text-[7rem] xl:text-[8rem] font-light tracking-[-0.025em] leading-[0.92] text-foreground">
-              <span className="sr-only">Asherin — Uncensored AI Intelligence Platform: </span>
+              <span className="sr-only">Asherin, uncensored AI intelligence platform: </span>
               <span aria-hidden="true">See what</span>
               <br />
               <span className="zophiel-shimmer-text italic font-light" aria-hidden="true">others miss.</span>
@@ -326,7 +326,7 @@ const Index = () => {
 
             <p className="mt-7 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
               While other AI tells you what it thinks you should know,
-              Asherin gives you the complete picture — unfiltered, sourced, and ready to act on.
+              Asherin gives you the complete picture: unfiltered, sourced, and ready to act on.
             </p>
 
             {/* CTA cluster — Fitts (large primary), Hick (one dominant choice), Von Restorff (primary pops),
@@ -347,10 +347,10 @@ const Index = () => {
                   onClick={() => { setAuthIsLogin(false); setShowAuth(true); }}
                   variant="primary"
                   size="xl"
-                  ariaLabel="Start a free intelligence search — primary action"
+                  ariaLabel="Start a free intelligence search, primary action"
                   className="!bg-amber-400 !text-black !border-amber-300 hover:!bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)] hover:shadow-[0_14px_50px_-8px_rgba(251,191,36,0.7)]"
                 >
-                  Start Free — No Card <ArrowRight className="h-4 w-4" />
+                  Start Free, No Card <ArrowRight className="h-4 w-4" />
                 </MagneticSpotlightButton>
               )}
               {user ? (
@@ -432,8 +432,8 @@ const Index = () => {
           <div className="mt-20 grid grid-cols-1 md:grid-cols-12 gap-4">
             {[
               { n: "01", Icon: AlertCircle, title: "No Artificial Limits", desc: "Ask any question on any topic. No disclaimers, no refusals, no corporate filters blocking your work.", span: "md:col-span-5 md:row-span-2", tall: true },
-              { n: "02", Icon: Smile, title: "Truth Over Comfort", desc: "Direct, unvarnished answers — structured for professionals who value accuracy over politeness.", span: "md:col-span-7" },
-              { n: "03", Icon: AlertTriangle, title: "Production-Grade Code", desc: "Full-stack architecture, multi-file debugging, and working builds — not pseudocode dressed up as solutions.", span: "md:col-span-7" },
+              { n: "02", Icon: Smile, title: "Truth Over Comfort", desc: "Direct, unvarnished answers — written for professionals who value accuracy over politeness.", span: "md:col-span-7" },
+              { n: "03", Icon: AlertTriangle, title: "Production-Grade Code", desc: "Full-stack architecture, multi-file debugging, and working builds, not pseudocode dressed up as solutions.", span: "md:col-span-7" },
             ].map(({ n, Icon, title, desc, span, tall }) => (
               <div key={n} className={`group relative ${span} rounded-3xl overflow-hidden`}>
                 {/* gradient border */}
@@ -583,7 +583,7 @@ const Index = () => {
           <div className="mt-12 flex flex-col items-center gap-4">
             <p className="text-xl font-extralight tracking-wide text-foreground">Liked what you saw?</p>
             <button onClick={() => { setAuthIsLogin(false); setShowAuth(true); }} className="group flex items-center gap-2 rounded-xl bg-amber-400 px-8 py-4 text-sm font-medium tracking-wide text-black transition-all hover:bg-amber-300 shadow-[0_10px_40px_-8px_rgba(251,191,36,0.55)]">
-              Get Full Access — No limits. No restrictions. No apologies.
+              Get Full Access. No limits. No restrictions. No apologies.
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
           </div>
@@ -618,18 +618,18 @@ const Index = () => {
           </h2>
 
           <p className="mx-auto mt-6 max-w-xl text-center text-sm font-extralight tracking-wide text-muted-foreground/70">
-            Six disciplines. One intelligence stack. Each pane below is a different angle of the same engine — pick the one closest to your craft.
+            Six disciplines. One intelligence stack. Each pane below is a different angle of the same engine. Pick the one closest to your craft.
           </p>
 
           {/* Bento — 12 col asymmetric */}
           <div className="mt-16 grid grid-cols-12 gap-3 sm:gap-4">
             {[
               { idx: "01", icon: Hammer, title: "For Builders", desc: "Build full-stack products with an AI that holds context across large codebases and doesn't stop when the problem gets hard.", span: "col-span-12 md:col-span-5", tag: "Full-Stack" },
-              { idx: "02", icon: FlaskConical, title: "For Researchers", desc: "Get the full analysis on any topic — unfiltered, structured, and backed by real-time intelligence. No sanitized summaries.", span: "col-span-12 md:col-span-4", tag: "OSINT" },
-              { idx: "03", icon: Code, title: "For Coders", desc: "Elite-tier coding engine. Debug, architect, and ship production code — with persistent context across every session.", span: "col-span-12 md:col-span-3", tag: "Production" },
+              { idx: "02", icon: FlaskConical, title: "For Researchers", desc: "Get the full analysis on any topic: unfiltered, structured, and backed by real-time intelligence. No sanitized summaries.", span: "col-span-12 md:col-span-4", tag: "OSINT" },
+              { idx: "03", icon: Code, title: "For Coders", desc: "Elite-tier coding engine. Debug, architect, and ship production code, with persistent context across every session.", span: "col-span-12 md:col-span-3", tag: "Production" },
               { idx: "04", icon: Target, title: "For Strategists", desc: "Predictive intelligence, scenario simulation, and signal detection for markets, conflicts, and complex systems.", span: "col-span-12 md:col-span-3", tag: "Forecast" },
-              { idx: "05", icon: Feather, title: "For Writers", desc: "Write with your voice intact. Asherin adapts to your tone and delivers raw creative output — no corporate rewrites.", span: "col-span-12 md:col-span-4", tag: "Voice-True" },
-              { idx: "06", icon: BarChart3, title: "For Analysts", desc: "Deep intelligence on economic events, structural trends, and data patterns — with full OSINT and entity resolution tooling.", span: "col-span-12 md:col-span-5", tag: "Entity-Res" },
+              { idx: "05", icon: Feather, title: "For Writers", desc: "Write with your voice intact. Asherin adapts to your tone and delivers raw creative output, no corporate rewrites.", span: "col-span-12 md:col-span-4", tag: "Voice-True" },
+              { idx: "06", icon: BarChart3, title: "For Analysts", desc: "Deep intelligence on economic events, structural trends, and data patterns, with full OSINT and entity resolution tooling.", span: "col-span-12 md:col-span-5", tag: "Entity-Res" },
             ].map(({ idx, icon: Icon, title, desc, span, tag }) => (
               <div
                 key={idx}
@@ -717,7 +717,7 @@ const Index = () => {
               blurb: "Generate images, documents, and designs",
               items: [
                 { icon: Zap, name: "Vibe Imager", codename: "AI Image Generation", desc: "Conversational AI image creation. Describe what you want and watch it render." },
-                { icon: Cpu, name: "ZANOEM Design Lab", codename: "Universal Design", desc: "First-principles design from atoms to universes — FEA, thermal, material simulation." },
+                { icon: Cpu, name: "ZANOEM Design Lab", codename: "Universal Design", desc: "First-principles design from atoms to universes: FEA, thermal, and material simulation." },
                 { icon: FileText, name: "Document Generator", codename: "PDF / eBook / Slides", desc: "Turn any content into a polished PDF, eBook, or slideshow instantly." },
               ]
             },
@@ -741,7 +741,7 @@ const Index = () => {
                 { icon: Globe, name: "NOMAD", codename: "OSINT Investigation", desc: "30+ source open-source intelligence with AI correlation and dossier output." },
                 { icon: Brain, name: "AXRLEN", codename: "Predictive Intelligence", desc: "Live global event prediction, scenario simulation, and Monte Carlo modeling." },
                 { icon: Download, name: "File Scrapper", codename: "Document Extraction", desc: "Pull all text from any document format via AI-powered extraction." },
-                { icon: Lock, name: "Cipher Toolkit", codename: "Crypto Tools", desc: "Encoding, hashing, and encryption — all client-side, zero server exposure." },
+                { icon: Lock, name: "Cipher Toolkit", codename: "Crypto Tools", desc: "Encoding, hashing, and encryption, all client-side, zero server exposure." },
                 { icon: Flag, name: "Daily Briefings", codename: "Intel Briefings", desc: "Competitor, regulatory, and market signals delivered every morning." },
               ]
             },
@@ -751,7 +751,7 @@ const Index = () => {
               items: [
                 { icon: Code, name: "Asherin IDE", codename: "Cloud IDE", desc: "Browser IDE with project files, terminals, sessions, and BYOK AI assistance." },
                 { icon: Feather, name: "Intelligence Notebooks", codename: "Notebooks", desc: "Shared analysis sessions with live SQL execution and team collaboration." },
-                { icon: GitBranch, name: "Zahten", codename: "Agent Forge", desc: "Design, scaffold, and harden autonomous agents — publish them as custom tabs." },
+                { icon: GitBranch, name: "Zahten", codename: "Agent Forge", desc: "Design, scaffold, and harden autonomous agents, then publish them as custom tabs." },
                 { icon: Cpu, name: "Plugin Marketplace", codename: "Plugins", desc: "Connectors and modules to extend Asherin with third-party integrations." },
                 { icon: Code, name: "Code Snippets", codename: "Snippet Vault", desc: "Save, tag, and reuse code blocks across all your conversations." },
               ]
@@ -834,7 +834,7 @@ const Index = () => {
             {[
               { Icon: Unlock, title: "Uncensored Responses", desc: "No topic is off limits. No hidden bias. Ask anything and get the complete, unfiltered answer.", span: "md:col-span-7 md:row-span-2", featured: true, tag: "Core" },
               { Icon: Monitor, title: "Elite Coding Engine", desc: "Production-grade output on complex builds, debugging, and multi-file architecture.", span: "md:col-span-5", tag: "Engine" },
-              { Icon: Search, title: "Live Web Intelligence", desc: "Privacy-first real-time search. Current data — not 2-year-old training sets.", span: "md:col-span-5", tag: "Realtime" },
+              { Icon: Search, title: "Live Web Intelligence", desc: "Privacy-first real-time search. Current data, not 2-year-old training sets.", span: "md:col-span-5", tag: "Realtime" },
               { Icon: Brain, title: "Persistent Memory", desc: "Asherin remembers your context, preferences, and projects across every session.", span: "md:col-span-4", tag: "Stateful" },
               { Icon: Users, title: "Team Workspace", desc: "Collaborate in real time. Share threads, outputs, and builds with your team.", span: "md:col-span-4", tag: "Collab" },
               { Icon: Globe, title: "Multi-Language Output", desc: "Thinks and delivers in any language. Same raw output. No filtered translations.", span: "md:col-span-4", tag: "Global" },
@@ -896,7 +896,7 @@ const Index = () => {
               </p>
               <div className="mt-8 flex items-center gap-3 font-mono text-[10px] tracking-[0.3em] text-muted-foreground/60 uppercase">
                 <span className="h-px w-12 bg-foreground/30" />
-                v1.0 — Live
+                v1.0 Live
               </div>
             </div>
 
@@ -906,7 +906,7 @@ const Index = () => {
                 { n: "S—01", label: "Uncensored AI", desc: "No topic limits. No filters. Full answers on every subject." },
                 { n: "S—02", label: "Real-Time Search", desc: "Privacy-first web intelligence with live data and source credibility tiers." },
                 { n: "S—03", label: "Persistent Memory", desc: "Context that carries across every conversation and session." },
-                { n: "S—04", label: "Public Intelligence & Forensics", desc: "Full-spectrum public intelligence — NOMAD, entity resolution, and dossier output." },
+                { n: "S—04", label: "Public Intelligence & Forensics", desc: "Full-spectrum public intelligence: NOMAD, entity resolution, and dossier output." },
                 { n: "S—05", label: "Predictive Intelligence", desc: "AI event forecasting with signal detection and confidence scoring." },
                 { n: "S—06", label: "Data Privacy", desc: "End-to-end encryption. Your data is never sold or used for training." },
               ].map(({ n, label, desc }) => (
@@ -950,7 +950,7 @@ const Index = () => {
               <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">Uncensored Through Every Provider.</span>
             </h2>
             <p className="mt-8 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
-              Plug in your own API keys from any major AI provider. Every model runs through Asherin's uncensored intelligence layer — same raw output, same zero-filter policy, regardless of which LLM powers it.
+              Plug in your own API keys from any major AI provider. Every model runs through Asherin's uncensored intelligence layer. Same raw output, same zero-filter policy, regardless of which LLM powers it.
             </p>
           </div>
 
@@ -1099,12 +1099,12 @@ const Index = () => {
               <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-foreground/20 rounded-br-3xl" />
               <p className="font-mono text-[10px] tracking-[0.3em] text-foreground/40 uppercase mb-4">◈ Mission Brief</p>
               <p className="text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
-                If we don't ship the tool you want, build it yourself with <span className="text-foreground">Zahten</span> — our autonomous agent forge.
+                If we don't ship the tool you want, build it yourself with <span className="text-foreground">Zahten</span>, our autonomous agent forge.
                 Spin up your own tab, your own module, your own intelligence engine inside Asherin and wire it directly to your own LLM API key.
-                We strip the safety filters off the model for you, so the software you build runs uncensored — no guardrails, no apologies, no refusals.
+                We strip the safety filters off the model for you, so the software you build runs uncensored. No guardrails, no apologies, no refusals.
               </p>
               <p className="mt-5 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
-                Build any kind of software you want — research engines, trading bots, OSINT pipelines, creative tools, simulators, forensic systems —
+                Build any kind of software you want: research engines, trading bots, OSINT pipelines, creative tools, simulators, forensic systems,
                 no matter the depth, no matter the use case. If you can describe it, Zahten can scaffold it, harden it, and dock it into your dashboard
                 as a permanent custom tab.
               </p>
@@ -1114,7 +1114,7 @@ const Index = () => {
               {[
                 { n: "01", t: "Forge", d: "Describe the software. Zahten plans the architecture, scaffolds the code, and hardens it for production." },
                 { n: "02", t: "Wire",  d: "Plug in your own API key from any major provider. We uncensor the model so your tool answers anything." },
-                { n: "03", t: "Dock",  d: "Publish it as a custom tab inside your dashboard. Yours forever — runs sandboxed, side-by-side with everything." },
+                { n: "03", t: "Dock",  d: "Publish it as a custom tab inside your dashboard. Yours forever. It runs sandboxed, side-by-side with everything." },
               ].map(({ n, t, d }) => (
                 <div key={n} className="group relative rounded-2xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-5 overflow-hidden transition-all duration-500 hover:border-foreground/25 hover:-translate-y-0.5">
                   <span aria-hidden className="absolute right-0 top-0 h-5 w-5 border-r border-t border-foreground/25 rounded-tr-2xl" />
@@ -1240,16 +1240,16 @@ const Index = () => {
                 <span className="text-muted-foreground">Of Your Prompts.</span>
               </h2>
               <p className="mt-6 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
-                Most people open an AI and immediately ask their question. That's the wrong approach. The difference between average output and elite intelligence is one step most people skip —
+                Most people open an AI and immediately ask their question. That's the wrong approach. The difference between average output and elite intelligence is one step most people skip:
               </p>
               <p className="mt-5 text-base font-light tracking-wide text-foreground italic border-l border-foreground/30 pl-4">
                 "Ask Asherin what it needs first."
               </p>
               <p className="mt-6 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
-                Instead of dumping every war in human history into a prompt and asking "predict the next conflict" — ask Asherin what data points, context, and variables it needs to give you the most accurate prediction. The output transforms from a guess into an intelligence assessment.
+                Instead of dumping every war in human history into a prompt and asking "predict the next conflict", ask Asherin what data points, context, and variables it needs to give you the most accurate prediction. The output transforms from a guess into an intelligence assessment.
               </p>
               <p className="mt-4 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
-                This is the same principle behind every serious intelligence operation in history. Your best asset isn't the technology — it's the intelligence feeding it. That's why we built <span className="text-foreground font-light">Asherin</span> — and <span className="text-foreground font-light">Zophiel</span> as our intelligence officer.
+                This is the same principle behind every serious intelligence operation in history. Your best asset isn't the technology, it's the intelligence feeding it. That's why we built <span className="text-foreground font-light">Asherin</span>, and <span className="text-foreground font-light">Zophiel</span> as our intelligence officer.
               </p>
 
               <Link to="/dashboard" className="mt-8 inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.18em] uppercase text-foreground transition-all hover:bg-foreground hover:text-background">
@@ -1333,12 +1333,12 @@ const Index = () => {
           </div>
 
           <div className="space-y-3">
-            <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform — chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $399/month and adds the full intelligence suite: Azplen, NOMAD, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
+            <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform: chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $399/month and adds the full intelligence suite: Azplen, NOMAD, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
             <FaqItem q="Is there a catch?" a="No. No usage trap. No data harvesting. No upsell wall after the first week. Bring your own API key on either tier, own your data, and cancel from the dashboard with one click. Asherin was built as a mission, not a funnel." />
-            <FaqItem q="What makes Asherin different?" a="Asherin is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." />
-            <FaqItem q="How good is the coding engine?" a="Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />
+            <FaqItem q="What makes Asherin different?" a="Asherin is more than a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." />
+            <FaqItem q="How good is the coding engine?" a="Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture, not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />
             <FaqItem q='What does "never trains our models" mean?' a="Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." />
-            <FaqItem q="Can I cancel anytime?" a='Yes. One click from the dashboard. No retention flow, no "are you sure?" loop. Cancel either tier whenever you want — your data is exported or deleted on request.' />
+            <FaqItem q="Can I cancel anytime?" a='Yes. One click from the dashboard. No retention flow, no "are you sure?" loop. Cancel either tier whenever you want. Your data is exported or deleted on request.' />
 
             <FaqItem q="What is the live web search powered by?" a="Privacy-first search infrastructure. Asherin pulls live data without tracking your search behavior or feeding it to ad networks." />
             <FaqItem q="Is Asherin available in multiple languages?" a="Yes. Asherin processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language." />
@@ -1389,7 +1389,7 @@ const Index = () => {
                     <span className="text-foreground"> You are not a liability. You are exactly who this was built for.</span>
                   </p>
                   <p className="mt-5 text-sm font-extralight leading-relaxed text-muted-foreground">
-                    Read the full archive — videos, philosophy, and the complete text of <em>The Book of Asher Asherin Elion</em>.
+                    Read the full archive: videos, philosophy, and the complete text of <em>The Book of Asher Asherin Elion</em>.
                   </p>
 
                   <Link
@@ -1424,7 +1424,7 @@ const Index = () => {
                     Coding supremacy. Generational leaps. Chinese model integrations.
                   </h3>
                   <p className="text-sm font-extralight text-muted-foreground max-w-xl leading-relaxed">
-                    See every theory, breakthrough, and integration that has entered Asherin — logged without the marketing varnish.
+                    See every theory, breakthrough, and integration that has entered Asherin, logged without the marketing varnish.
                   </p>
                 </div>
                 <Link
