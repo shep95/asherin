@@ -111,9 +111,14 @@ describe("buildContactIntel — live-shaped corpus", () => {
   it("keeps a zero-traffic address-book contact rather than dropping them", () => {
     expect(priya).toBeDefined();
     expect(priya.tier).toBe("archive");
-    expect(priya.importance).toBe(0);
+    expect(priya.total).toBe(0);
+    // Identity alone carries weight — being in the book is evidence — but it
+    // must stay far below any real correspondent.
+    expect(priya.importance).toBeGreaterThan(0);
+    expect(priya.importance).toBeLessThan(dana.importance / 3);
     expect(priya.cadenceDays).toBeNull(); // absent, not a fabricated zero
   });
+
 
   it("produces psycholinguistic readings with an evidence weight", () => {
     expect(["thin", "moderate", "strong"]).toContain(dana.psych.evidence);
