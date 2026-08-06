@@ -5573,6 +5573,111 @@ export type Database = {
         }
         Relationships: []
       }
+      mesh_dossier_runs: {
+        Row: {
+          built: number
+          error_message: string | null
+          failed: number
+          finished_at: string | null
+          id: string
+          phase: string
+          queued: number
+          skipped: number
+          started_at: string
+          stats: Json
+          user_id: string
+        }
+        Insert: {
+          built?: number
+          error_message?: string | null
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          phase: string
+          queued?: number
+          skipped?: number
+          started_at?: string
+          stats?: Json
+          user_id: string
+        }
+        Update: {
+          built?: number
+          error_message?: string | null
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          phase?: string
+          queued?: number
+          skipped?: number
+          started_at?: string
+          stats?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mesh_dossiers: {
+        Row: {
+          built_at: string | null
+          confidence: number
+          created_at: string
+          dossier: Json
+          error_message: string | null
+          hop: number
+          id: string
+          priority: number
+          relationship: Json
+          source_account: string | null
+          status: string
+          subject_email: string | null
+          subject_key: string
+          subject_name: string
+          summary: string | null
+          updated_at: string
+          user_id: string
+          via: string | null
+        }
+        Insert: {
+          built_at?: string | null
+          confidence?: number
+          created_at?: string
+          dossier?: Json
+          error_message?: string | null
+          hop?: number
+          id?: string
+          priority?: number
+          relationship?: Json
+          source_account?: string | null
+          status?: string
+          subject_email?: string | null
+          subject_key: string
+          subject_name: string
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+          via?: string | null
+        }
+        Update: {
+          built_at?: string | null
+          confidence?: number
+          created_at?: string
+          dossier?: Json
+          error_message?: string | null
+          hop?: number
+          id?: string
+          priority?: number
+          relationship?: Json
+          source_account?: string | null
+          status?: string
+          subject_email?: string | null
+          subject_key?: string
+          subject_name?: string
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+          via?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachments_enc: string | null
