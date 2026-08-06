@@ -267,6 +267,12 @@ const OracleLocusView = () => {
         setImageBase64(base64);
         setImageType(file.type);
         setResult(null);
+        setExifFacts(null);
+        // Fire-and-forget: EXIF never blocks the preview, and a parse failure
+        // degrades to content-only analysis instead of breaking the upload.
+        void extractExifFacts(file)
+          .then(setExifFacts)
+          .catch(() => setExifFacts(null));
       } else {
         setFacePreview(dataUrl);
         setFaceBase64(base64);
