@@ -54,6 +54,27 @@ const ConnectedAppsView = () => {
   const appList = Array.from(allApps.values());
   const categories = [...new Set(appList.map((a) => a.category))];
 
+  // Grant surface: one observation per (account, scope). Novelty answers "what
+  // permission appeared that I did not deliberately approve", and dormancy
+  // answers "which account holds live permissions but stopped reporting" — the
+  // quieter and more dangerous of the two, since a stale grant is still a grant.
+  const grantObs = useMemo(() => scopeObservations(accounts ?? []), [accounts]);
+  const grantSpec = useMemo(
+    () =>
+      surface("Authorised Access", (accounts?.length ?? 0) > 0, {
+        unit: "grant",
+        unitPlural: "grants",
+        entityNoun: "permission",
+        entityNounPlural: "permissions",
+        expectation:
+          "Every live permission traces to an account you actively use and a capability you asked for.",
+        reviewAction: "Revoke this permission from the Google account security page if it is not in use.",
+      }),
+    [accounts]
+  );
+
+
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6">
