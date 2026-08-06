@@ -13,7 +13,7 @@ import ReactMarkdown from "react-markdown";
 import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
 import NeuralThinkingModal from "@/components/dashboard/NeuralThinkingModal";
 import houseOfAsherLogo from "@/assets/HouseOfAsher_Flag.png";
-import asherPhoto from "@/assets/founder.jpg";
+import asherPhotoAsset from "@/assets/founder-portrait-1.png.asset.json";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
 import SiteFooter from "@/components/SiteFooter";
 import LiveDemoStrip from "@/components/landing/LiveDemoStrip";
@@ -1368,7 +1368,7 @@ const Index = () => {
                   <div className="relative">
                     <span aria-hidden className="absolute -inset-2 rounded-2xl bg-gradient-to-br from-amber-300/20 via-foreground/10 to-transparent blur-xl" />
                     <img
-                      src={asherPhoto}
+                      src={asherPhotoAsset.url}
                       alt="Asher Newton, founder of Asherin"
                       className="relative h-44 w-44 sm:h-56 sm:w-56 rounded-2xl object-cover border border-foreground/20 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]"
                     />

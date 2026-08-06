@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
-import founderImg from "@/assets/founder.jpg";
-import photo1 from "@/assets/founder-photo-1.png";
-import photo2 from "@/assets/founder-photo-2.png";
-import photo3 from "@/assets/founder-photo-3.png";
-import photo4 from "@/assets/founder-photo-4.png";
-import photo5 from "@/assets/founder-photo-5.png";
+import portrait1 from "@/assets/founder-portrait-1.png.asset.json";
+import portrait2 from "@/assets/founder-portrait-2.png.asset.json";
 
-const photos = [founderImg, photo1, photo2, photo3, photo4, photo5];
+const photos = [portrait1.url, portrait2.url];
 
 export default function FounderPhotoCarousel() {
   const [index, setIndex] = useState(0);
