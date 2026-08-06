@@ -128,12 +128,30 @@ export function weekAhead(events: CalEvent[], messages: InboxMessage[]): DayLoad
   return Array.from({ length: 7 }, (_, i) => {
     const ts = today + i * DAY;
     const dayEvents = events.filter((e) => startOfDay(new Date(e.start).getTime()) === ts);
-    const committed = dayEvents.reduce((sum, e) => {
-      if (e.isAllDay) return sum + 8;
-      const s = new Date(e.start).getTime();
-      const en = e.end ? new Date(e.end).getTime() : s + HOUR;
-      return sum + Math.max(0, (en - s) / HOUR);
-    }, 0);
+    // Two meetings booked over the same hour consume one hour of the day, not
+    // two. Summing raw durations inflates a double-booked morning into an
+    // impossible commitment and would poison every downstream projection, so
+    // the intervals are merged before they are measured.
+    const timed = dayEvents
+      .filter((e) => !e.isAllDay)
+      .map((e) => {
+        const s = new Date(e.start).getTime();
+        return [s, e.end ? new Date(e.end).getTime() : s + HOUR] as [number, number];
+      })
+      .filter(([s, en]) => en > s)
+      .sort((a, b) => a[0] - b[0]);
+    const merged: Array<[number, number]> = [];
+    for (const iv of timed) {
+      const last = merged[merged.length - 1];
+      if (last && iv[0] <= last[1]) last[1] = Math.max(last[1], iv[1]);
+      else merged.push([...iv] as [number, number]);
+    }
+    const allDayHours = dayEvents.filter((e) => e.isAllDay).length > 0 ? 8 : 0;
+    const timedHours = merged.reduce((sum, [s, en]) => sum + (en - s) / HOUR, 0);
+    // An all-day marker and timed meetings inside it are the same day, so the
+    // day is capped rather than summed past a plausible working span.
+    const committed = Math.min(24, Math.max(allDayHours, timedHours + (allDayHours ? 0 : 0)) || timedHours);
+
     const samples = byWeekday[new Date(ts).getDay()];
     const projected = samples.length ? median(samples) : flat > 0 ? flat : null;
     return {
