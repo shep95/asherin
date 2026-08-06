@@ -2,12 +2,19 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { initDorkGuard } from "./lib/dorkGuard";
+import { enforceCanonicalHost } from "./lib/canonicalHost";
 import { relayGoogleConsentIfPopup } from "./lib/googleConsentRelay";
 import { migrateLegacyStorageKeys } from "./lib/storageKeyMigration";
+
+// Duplicate hostnames serving identical HTML let Google choose its own
+// canonical. Send them to https://asherin.com before anything else runs, so a
+// crawler on a duplicate host never gets a 200 with indexable content.
+enforceCanonicalHost();
 
 // Carry pre-rename `asherin_*` localStorage values over to `aureon_*` before
 // anything reads them, so personas/preferences survive the rename.
 migrateLegacyStorageKeys();
+
 
 // Google-dork / recon hardening — noindex on sensitive routes, scrub
 // OAuth/token query params, tighten referrer policy. Runs before render.
