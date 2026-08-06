@@ -67,9 +67,9 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
     setInput("");
     setIsStreaming(true);
 
-    const moduleContext = moduleContextMap[activeModule] || "Google Intelligence Nexus";
+    const moduleContext = moduleContextMap[activeModule] || "Asherin Cloud Intelligence Mesh";
 
-    const systemContext = `You are Aureon, an AI intelligence assistant embedded within the Google Intelligence Nexus module. The user is currently viewing: "${moduleLabel}" tab. Context about this module: ${moduleContext}. Answer questions about their Google data intelligence, help them understand patterns, and provide actionable insights. Be concise, intelligent, and specific to the module context. If they ask about data from a different module, reference it naturally.`;
+    const systemContext = `You are Aureon, an AI intelligence assistant embedded in the Asherin Cloud Intelligence Mesh. The user is currently viewing: "${moduleLabel}" tab. Context about this module: ${moduleContext}. Answer questions about their Google data intelligence, help them understand patterns, and provide actionable insights. Be concise, intelligent, and specific to the module context. If they ask about data from a different module, reference it naturally.`;
 
     const apiMessages = [
       { role: "user" as const, content: systemContext },
