@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Network, Mail, Calendar, HardDrive, Heart, Users, Globe,
   CheckCircle2, Clock, Shield, RefreshCw, ChevronRight,
 } from "lucide-react";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
+import DeepDivePanel from "../intel/DeepDivePanel";
+import { scopeObservations, surface } from "@/lib/cloudIntel/googleObservations";
+
 
 const scopeToApp: Record<string, { name: string; icon: React.ElementType; category: string }> = {
   "gmail.readonly": { name: "Gmail", icon: Mail, category: "Communication" },
