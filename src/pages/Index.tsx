@@ -432,7 +432,7 @@ const Index = () => {
           <div className="mt-20 grid grid-cols-1 md:grid-cols-12 gap-4">
             {[
               { n: "01", Icon: AlertCircle, title: "No Artificial Limits", desc: "Ask any question on any topic. No disclaimers, no refusals, no corporate filters blocking your work.", span: "md:col-span-5 md:row-span-2", tall: true },
-              { n: "02", Icon: Smile, title: "Truth Over Comfort", desc: "Direct, unvarnished answers — written for professionals who value accuracy over politeness.", span: "md:col-span-7" },
+              { n: "02", Icon: Smile, title: "Truth Over Comfort", desc: "Direct, unvarnished answers written for professionals who value accuracy over politeness.", span: "md:col-span-7" },
               { n: "03", Icon: AlertTriangle, title: "Production-Grade Code", desc: "Full-stack architecture, multi-file debugging, and working builds, not pseudocode dressed up as solutions.", span: "md:col-span-7" },
             ].map(({ n, Icon, title, desc, span, tall }) => (
               <div key={n} className={`group relative ${span} rounded-3xl overflow-hidden`}>
@@ -692,7 +692,7 @@ const Index = () => {
         <div className="relative mx-auto max-w-7xl">
           <div className="flex flex-col items-center text-center mb-20">
             <div className="inline-flex items-center gap-2 rounded-full border border-foreground/15 bg-foreground/[0.03] px-3 py-1 mb-8">
-              <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase">/ 03 — Arsenal</span>
+              <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase">/ 03 / Arsenal</span>
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
               Every Tool.
@@ -819,7 +819,7 @@ const Index = () => {
         <div className="relative mx-auto max-w-7xl">
           <div className="flex flex-col items-center text-center mb-20">
             <div className="inline-flex items-center gap-2 rounded-full border border-foreground/15 bg-foreground/[0.03] px-3 py-1 mb-8">
-              <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase">/ 02 — Platform</span>
+              <span className="font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase">/ 02 / Platform</span>
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
               The Platform.
@@ -903,12 +903,12 @@ const Index = () => {
             {/* Right list — spec rows */}
             <div className="lg:col-span-7 space-y-3">
               {[
-                { n: "S—01", label: "Uncensored AI", desc: "No topic limits. No filters. Full answers on every subject." },
-                { n: "S—02", label: "Real-Time Search", desc: "Privacy-first web intelligence with live data and source credibility tiers." },
-                { n: "S—03", label: "Persistent Memory", desc: "Context that carries across every conversation and session." },
-                { n: "S—04", label: "Public Intelligence & Forensics", desc: "Full-spectrum public intelligence: NOMAD, entity resolution, and dossier output." },
-                { n: "S—05", label: "Predictive Intelligence", desc: "AI event forecasting with signal detection and confidence scoring." },
-                { n: "S—06", label: "Data Privacy", desc: "End-to-end encryption. Your data is never sold or used for training." },
+                { n: "S-01", label: "Uncensored AI", desc: "No topic limits. No filters. Full answers on every subject." },
+                { n: "S-02", label: "Real-Time Search", desc: "Privacy-first web intelligence with live data and source credibility tiers." },
+                { n: "S-03", label: "Persistent Memory", desc: "Context that carries across every conversation and session." },
+                { n: "S-04", label: "Public Intelligence & Forensics", desc: "Full-spectrum public intelligence: NOMAD, entity resolution, and dossier output." },
+                { n: "S-05", label: "Predictive Intelligence", desc: "AI event forecasting with signal detection and confidence scoring." },
+                { n: "S-06", label: "Data Privacy", desc: "End-to-end encryption. Your data is never sold or used for training." },
               ].map(({ n, label, desc }) => (
                 <div key={n} className="group relative rounded-2xl border border-border/15 bg-card/30 backdrop-blur-md p-6 hover:border-emerald-400/30 hover:bg-card/50 transition-all duration-500">
                   <div className="flex items-start gap-5">
