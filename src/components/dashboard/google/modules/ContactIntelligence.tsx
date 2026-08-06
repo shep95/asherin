@@ -16,6 +16,11 @@ import {
   saveVault, loadVault, clearVault, vaultBytes, exportVaultText, downloadText,
   type VaultSnapshot,
 } from "./contactIntel/localVault";
+import {
+  pullRemote, pushRemote, fetchRemoteMeta, listDevices, touchDevice, deviceId,
+  type DeviceRow,
+} from "./contactIntel/remoteVault";
+
 
 // Depth of the sweep. The Gmail metadata read is the expensive leg, so the
 // window is declared once here and honored end to end rather than being
@@ -113,6 +118,14 @@ const ContactIntelligence = () => {
   const [tierFilter, setTierFilter] = useState<"all" | ContactDossier["tier"]>("all");
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [limit, setLimit] = useState(40);
+  // Cross-device mirror posture: which endpoints feed the ledger and how fresh
+  // the authoritative server copy is.
+  const [mesh, setMesh] = useState<{
+    devices: DeviceRow[];
+    remoteSavedAt: number | null;
+    remoteDevice: string | null;
+    syncing: boolean;
+  }>({ devices: [], remoteSavedAt: null, remoteDevice: null, syncing: false });
 
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
@@ -123,16 +136,60 @@ const ContactIntelligence = () => {
     setVaultMeta({ savedAt: snap.savedAt, bytes: vaultBytes(snap) });
   }, []);
 
-  // Offline-first: the device vault paints immediately, so the operator is
-  // never staring at an empty roster while the network leg runs.
+  const refreshMesh = useCallback(async (uid: string) => {
+    const [devices, meta] = await Promise.all([listDevices(uid), fetchRemoteMeta(uid)]);
+    if (!alive.current) return;
+    setMesh((m) => ({
+      ...m,
+      devices,
+      remoteSavedAt: meta?.savedAt ?? null,
+      remoteDevice: meta?.deviceLabel ?? null,
+    }));
+  }, []);
+
+  // Offline-first, then mesh-consistent: the device vault paints immediately so
+  // the operator is never staring at an empty roster, and the server mirror is
+  // reconciled right behind it. Newest snapshot wins, in either direction — a
+  // sweep run on the laptop lands on the phone and vice versa.
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    loadVault(userId).then((snap) => {
-      if (!cancelled && snap && alive.current) applySnapshot(snap);
-    });
+    (async () => {
+      const local = await loadVault(userId);
+      if (cancelled || !alive.current) return;
+      if (local) applySnapshot(local);
+
+      setMesh((m) => ({ ...m, syncing: true }));
+      void touchDevice(userId);
+      try {
+        const meta = await fetchRemoteMeta(userId);
+        if (cancelled || !alive.current) return;
+
+        if (meta && (!local || meta.savedAt > local.savedAt)) {
+          const remote = await pullRemote(userId);
+          if (cancelled || !alive.current) return;
+          if (remote) {
+            applySnapshot(remote);
+            // Hydrate the device cache so the next cold open is instant and
+            // works offline with the freshest ledger.
+            await saveVault(userId, remote.summary, remote.dossiers);
+            if (meta.deviceId !== deviceId()) {
+              toast.success(`Linked ledger from ${meta.deviceLabel ?? "another device"}.`);
+            }
+          }
+        } else if (local && (!meta || local.savedAt > meta.savedAt)) {
+          await pushRemote(userId, local);
+        }
+      } finally {
+        if (!cancelled && alive.current) {
+          setMesh((m) => ({ ...m, syncing: false }));
+          void refreshMesh(userId);
+        }
+      }
+    })();
     return () => { cancelled = true; };
-  }, [userId, applySnapshot]);
+  }, [userId, applySnapshot, refreshMesh]);
+
 
   const sweep = useCallback(async () => {
     if (!isConnected) return;
@@ -190,12 +247,20 @@ const ContactIntelligence = () => {
       setSummary(sum);
 
       setPhase("Writing to device vault…");
+      // One timestamp for both writes so local and mirror agree exactly and the
+      // monotonic guard can never see this snapshot as two different versions.
+      const savedAt = Date.now();
+      const snapshot: VaultSnapshot = { id: userId, savedAt, summary: sum, dossiers: built };
       const ok = await saveVault(userId, sum, built);
       if (alive.current) {
-        setVaultMeta(
-          ok ? { savedAt: Date.now(), bytes: vaultBytes({ id: userId, savedAt: Date.now(), summary: sum, dossiers: built }) } : null,
-        );
+        setVaultMeta(ok ? { savedAt, bytes: vaultBytes(snapshot) } : null);
       }
+
+      // Mirror to the mesh so every other signed-in device inherits this run.
+      setPhase("Mirroring to device mesh…");
+      const pushed = await pushRemote(userId, snapshot);
+      if (alive.current && pushed !== "failed") void refreshMesh(userId);
+
 
       if (failed.length) {
         setError(`Partial sweep — ${failed.join(", ")} unavailable. Results below exclude those sources.`);
@@ -210,7 +275,7 @@ const ContactIntelligence = () => {
     } finally {
       if (alive.current) { setLoading(false); setPhase(""); }
     }
-  }, [isConnected, fetchGoogleData, accounts, userId]);
+  }, [isConnected, fetchGoogleData, accounts, userId, refreshMesh]);
 
   // Foreground continuity: sweeps on open, keeps a cadence while the tab is
   // visible, catches up on refocus and reconnect, and yields to sibling tabs.
@@ -383,6 +448,52 @@ const ContactIntelligence = () => {
           <Trash2 className="h-3 w-3" /> Purge
         </button>
       </div>
+
+      {/* ── Device mesh — the cross-endpoint mirror ─────────────────── */}
+      <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Cloud className="h-4 w-4 text-foreground/60 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-light text-foreground">Device Mesh</p>
+            <p className="text-[10px] font-light text-muted-foreground/60" aria-live="polite">
+              {mesh.syncing
+                ? "Reconciling with the mesh…"
+                : mesh.remoteSavedAt
+                  ? `Authoritative ledger written ${fmtWhen(mesh.remoteSavedAt)} by ${mesh.remoteDevice ?? "an unnamed device"} · ${mesh.devices.length} endpoint${mesh.devices.length === 1 ? "" : "s"} linked`
+                  : "No mirrored ledger yet — the next sweep publishes this device's copy."}
+            </p>
+          </div>
+          <button
+            onClick={() => userId && refreshMesh(userId)}
+            disabled={!userId || mesh.syncing}
+            className="flex items-center gap-1.5 rounded-lg bg-foreground/5 px-3 py-1.5 text-[10px] font-light text-muted-foreground hover:bg-foreground/10 transition-colors disabled:opacity-40"
+          >
+            <RefreshCw className={`h-3 w-3 ${mesh.syncing ? "animate-spin motion-reduce:animate-none" : ""}`} /> Recheck
+          </button>
+        </div>
+        {mesh.devices.length > 0 && (
+          <ul className="grid sm:grid-cols-2 gap-2">
+            {mesh.devices.map((d) => (
+              <li
+                key={d.device_id}
+                className="flex items-center gap-2 rounded-xl border border-border/20 bg-foreground/5 px-3 py-2 min-w-0"
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full shrink-0 ${d.device_id === deviceId() ? "bg-emerald-400/80" : "bg-foreground/30"}`}
+                />
+                <span className="text-[10px] font-light text-foreground truncate">
+                  {d.label || "Unknown device"}
+                  {d.device_id === deviceId() ? " · this device" : ""}
+                </span>
+                <span className="ml-auto text-[10px] font-light text-muted-foreground/50 shrink-0">
+                  {d.last_push_at ? `pushed ${fmtWhen(Date.parse(d.last_push_at))}` : `seen ${fmtWhen(Date.parse(d.last_seen_at))}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
 
       {/* ── Operator language baseline ─────────────────────────────── */}
       {summary && summary.psych.evidence !== "none" && (
