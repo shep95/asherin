@@ -275,6 +275,7 @@ const AzplenInner = () => {
         case "memory":         return <MemoryPanel />;
         case "playbooks":      return <PlaybooksPanel />;
         case "ingest":         return <IngestPanel />;
+        case "domain":         return <DomainIntelligencePanel />;
         case "streams":        return <StreamsPanel />;
         case "table":          return <DataTablePanel initialDatasetId={selectedDatasetId} />;
         case "entities":       return <EntityResolutionPanel />;
