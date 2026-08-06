@@ -156,13 +156,35 @@ export default function BulwarkView() {
     }
   }, []);
 
+  // The comms half reads a server-side ledger — it has nothing to do with the
+  // endpoint in the operator's hand. Running it on mount is what makes the
+  // station identical on laptop and phone instead of half-empty on whichever
+  // one they picked up.
+  useEffect(() => {
+    if (!userId) return;
+    void scanComms();
+  }, [userId, scanComms]);
+
   const exportReport = useCallback(() => {
     const L: string[] = [
       "BULWARK — COUNTER-SURVEILLANCE ASSESSMENT",
       "#houseofasher  #zia",
       `Generated ${new Date().toISOString()}`,
       "=".repeat(64), "",
-      "SECTION 1 — DEVICE LEGIBILITY",
+      "SECTION 1 — DEVICE LEGIBILITY (FLEET)",
+      fleet && fleet.nodes.length
+        ? `Fleet index: ${fleet.legibility}/100 (worst-of ${fleet.liveCount} live endpoint(s)` +
+          `${fleet.staleCount ? `, ${fleet.staleCount} stale` : ""}) — weakest: ${fleet.weakest?.label ?? "n/a"}`
+        : "Fleet: this endpoint only.",
+      ...(fleet?.nodes ?? []).map(
+        (n) => `  · ${n.label}${n.isCurrent ? " (this endpoint)" : ""}${n.stale ? " [stale]" : ""} — ${n.legibility}/100, probed ${n.scannedAt.slice(0, 10)}`,
+      ),
+      ...(fleet?.divergent?.length
+        ? ["", "Cross-endpoint divergences (fixable — one endpoint already clean):",
+           ...fleet.divergent.map((d) => `  · ${d.label}: exposed on ${d.exposedOn.join(", ")} / clean on ${d.cleanOn.join(", ")}`)]
+        : []),
+      "",
+      "THIS ENDPOINT",
       device ? `Legibility index: ${device.legibility}/100` : "Not scanned.",
       ...(device?.checks ?? []).flatMap((c) => [
         "", `[${VERDICT_LABEL[c.verdict]}] ${c.label}`,
@@ -189,14 +211,18 @@ export default function BulwarkView() {
     a.click();
     // Revoke on the next frame so Safari has committed the download.
     requestAnimationFrame(() => URL.revokeObjectURL(url));
-  }, [device, comms]);
+  }, [device, comms, fleet]);
 
-  const deviceCaption = useMemo(() => {
-    if (!device) return "AWAITING PROBE";
-    if (device.legibility >= 55) return "HIGHLY IDENTIFIABLE";
-    if (device.legibility >= 25) return "PARTIALLY IDENTIFIABLE";
-    return "LOW OBSERVABILITY";
-  }, [device]);
+  // The headline number is the worst live endpoint, never the average: an
+  // operator is exactly as exposed as their loudest device.
+  const fleetCaption = useMemo(() => {
+    const v = Math.max(fleet?.legibility ?? 0, device?.legibility ?? 0);
+    if (!device && !fleet?.nodes.length) return "AWAITING PROBE";
+    const scope = fleet && fleet.liveCount > 1 ? `${fleet.liveCount} ENDPOINTS` : "THIS ENDPOINT";
+    if (v >= 55) return `HIGHLY IDENTIFIABLE · ${scope}`;
+    if (v >= 25) return `PARTIALLY IDENTIFIABLE · ${scope}`;
+    return `LOW OBSERVABILITY · ${scope}`;
+  }, [device, fleet]);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
@@ -214,7 +240,11 @@ export default function BulwarkView() {
       </header>
 
       <div className="mb-10 grid gap-4 sm:grid-cols-2">
-        <Meter label="Device legibility" value={device?.legibility ?? 0} caption={deviceCaption} />
+        <Meter
+          label="Fleet legibility"
+          value={Math.max(fleet?.legibility ?? 0, device?.legibility ?? 0)}
+          caption={fleetCaption}
+        />
         <Meter label="Comms pressure" value={comms?.score ?? 0} caption={comms?.posture ?? "AWAITING SCAN"} />
       </div>
 
