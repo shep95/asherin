@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
+import { isConsentPopup, reportConsentResult } from "@/lib/googleConsent";
+
 
 /**
  * Google OAuth return handler.
