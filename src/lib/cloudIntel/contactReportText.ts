@@ -22,30 +22,40 @@ function banner(n: number, title: string): string[] {
 /** Renders a metric as a labelled row, or as its stated reason for absence. */
 function row(m: Metric, pad = 22): string[] {
   const label = `  ${m.label}`.padEnd(pad, " ");
+  const cont = pad + 2;
   if (m.value === null) {
-    return wrap(`${label}: NOT OBSERVABLE — ${m.unavailable ?? "no reason recorded."}`, pad + 2);
+    return wrap(`${label}: NOT OBSERVABLE — ${m.unavailable ?? "no reason recorded."}`, cont);
   }
-  const out = wrap(`${label}: ${m.value}`, pad + 2);
-  if (m.read) out.push(...wrap(`${" ".repeat(pad)}  ↳ ${m.read}`, pad + 4));
+  const out = wrap(`${label}: ${m.value}`, cont);
+  if (m.read) out.push(...wrap(`${" ".repeat(pad - 18)}    ↳ ${m.read}`, pad - 12));
   return out;
 }
 
-/** Hard-wraps at the box width, indenting continuation lines under the value. */
+/**
+ * Hard-wraps at the box width. Leading whitespace is part of the layout, not
+ * a separator: splitting on plain spaces silently discarded it and collapsed
+ * every indented row back to column zero, so the indent is captured first and
+ * only the remainder is tokenised.
+ */
 function wrap(text: string, indent: number): string[] {
-  const words = text.split(" ");
+  const lead = text.match(/^ */)?.[0] ?? "";
+  const words = text.slice(lead.length).split(/\s+/).filter(Boolean);
+  if (!words.length) return [text];
   const lines: string[] = [];
-  let cur = "";
+  let cur = lead;
   for (const w of words) {
-    if (cur && (cur + " " + w).length > W) {
+    const candidate = cur.trimEnd() === lead.trimEnd() && cur.length === lead.length ? cur + w : `${cur} ${w}`;
+    if (candidate.length > W && cur.length > lead.length) {
       lines.push(cur);
       cur = " ".repeat(indent) + w;
     } else {
-      cur = cur ? `${cur} ${w}` : w;
+      cur = candidate;
     }
   }
-  if (cur) lines.push(cur);
+  if (cur.trim()) lines.push(cur);
   return lines;
 }
+
 
 export function renderContactReport(r: ContactReport, contactName: string): string {
   const L: string[] = [];
