@@ -423,8 +423,11 @@ Deno.serve(async (req) => {
           inboundMessages: inbound.length, calendarPeople: calendar.length, contacts: contacts.length,
         },
         since: new Date(sinceMs).toISOString(),
-        watermark: nowIso,
-        skipped: [...cold.skipped, ...cal.skipped, ...phone.skipped].slice(0, 30),
+        watermark: degraded ? (settings?.last_watermark ?? null) : nowIso,
+        degraded,
+        failures,
+        skipped: [...cold.skipped, ...cal.skipped, ...phone.skipped, ...book.skipped].slice(0, 30),
+
       }, 200, cors);
     }
 
