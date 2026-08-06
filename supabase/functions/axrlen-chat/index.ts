@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { resolveAxrlenAccess } from "../_shared/proTierGate.ts";
-import { AXRLEN_MARKET_ADDENDUM, detectMarketIntent } from "../_shared/axrlenSystemPrompt.ts";
+import { AXRLEN_MARKET_ADDENDUM, AXRLEN_SPECIFICITY_ADDENDUM, detectMarketIntent } from "../_shared/axrlenSystemPrompt.ts";
 
 
 const BASE_IDENTITY = `Project: AXRLEN. You are my global prediction algorithm. You identify PATTERNS across history, data, and esoteric frameworks to forecast what comes next.
@@ -164,7 +164,7 @@ serve(async (req) => {
     // Vedic Global Prediction primary brain.
     const isMarket = detectMarketIntent(lastUserMsg);
     const marketBlock = isMarket ? "\n\n" + AXRLEN_MARKET_ADDENDUM : "";
-    const systemPrompt = _tCtx + "\n\n" + BASE_IDENTITY + marketBlock + "\n" + primaryBrains + secondaryBrains + sessionBlock;
+    const systemPrompt = _tCtx + "\n\n" + BASE_IDENTITY + marketBlock + AXRLEN_SPECIFICITY_ADDENDUM + "\n" + primaryBrains + secondaryBrains + sessionBlock;
 
 
     const gatewayMessages = [

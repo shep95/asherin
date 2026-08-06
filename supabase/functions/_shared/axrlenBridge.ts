@@ -20,7 +20,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { resolveAxrlenAccess, type AxrlenAccess } from "./proTierGate.ts";
 import { buildVedicContext, vedicContextAsPromptBlock } from "./vedicContext.ts";
-import { nexusPrimeCore, AXRLEN_INLINE_ADDENDUM, AXRLEN_MARKET_ADDENDUM, detectMarketIntent } from "./axrlenSystemPrompt.ts";
+import { nexusPrimeCore, AXRLEN_INLINE_ADDENDUM, AXRLEN_MARKET_ADDENDUM, AXRLEN_SPECIFICITY_ADDENDUM, detectMarketIntent } from "./axrlenSystemPrompt.ts";
 
 // ── Region detection — mirrors axrlen-analyze's REGION_MAP so the bridge
 // feeds regionally-scoped Vedic context when the user names a country. Keeps
@@ -396,6 +396,7 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
     nexusPrimeCore(today) +
     AXRLEN_INLINE_ADDENDUM +
     (isMarket ? AXRLEN_MARKET_ADDENDUM : "") +
+    AXRLEN_SPECIFICITY_ADDENDUM +
     tierNote +
     vedicBlock +
     "\n" + primary + secondary + evidenceBlock;

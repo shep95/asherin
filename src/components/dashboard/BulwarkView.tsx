@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { runDeviceProbe, type DeviceReport, type ProbeVerdict } from "@/lib/bulwark/deviceProbe";
-import { Shield, RefreshCw, AlertTriangle, Radar, Cpu, FileText, Loader2 } from "lucide-react";
+import { publishPosture, fetchFleet, forgetEndpoint, type FleetPosture } from "@/lib/bulwark/deviceMesh";
+import { useAuth } from "@/contexts/AuthContext";
+import { Shield, RefreshCw, AlertTriangle, Radar, Cpu, FileText, Loader2, Laptop, X } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BULWARK — Counter-Surveillance Station
@@ -86,18 +88,36 @@ function Skeleton({ rows = 3 }: { rows?: number }) {
 }
 
 export default function BulwarkView() {
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
   const [device, setDevice] = useState<DeviceReport | null>(null);
+  const [fleet, setFleet] = useState<FleetPosture | null>(null);
   const [deviceBusy, setDeviceBusy] = useState(false);
   const [comms, setComms] = useState<CommsReport | null>(null);
   const [commsBusy, setCommsBusy] = useState(false);
   const [commsError, setCommsError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
 
+  // One motion, always: probe locally, publish this endpoint to the mesh, then
+  // re-read the whole fleet. The operator sees every endpoint they own from
+  // whichever one they happen to be holding.
   const scanDevice = useCallback(async () => {
     setDeviceBusy(true);
-    try { setDevice(await runDeviceProbe()); }
-    finally { setDeviceBusy(false); }
-  }, []);
+    try {
+      const r = await runDeviceProbe();
+      setDevice(r);
+      if (userId) {
+        await publishPosture(userId, r);
+        setFleet(await fetchFleet(userId));
+      }
+    } finally { setDeviceBusy(false); }
+  }, [userId]);
+
+  const dropEndpoint = useCallback(async (id: string) => {
+    if (!userId) return;
+    await forgetEndpoint(userId, id);
+    setFleet(await fetchFleet(userId));
+  }, [userId]);
 
   // The device probe is local and cheap — run it on mount so the station is
   // never empty, and guard the state write against an unmount mid-probe.
@@ -107,13 +127,18 @@ export default function BulwarkView() {
       setDeviceBusy(true);
       try {
         const r = await runDeviceProbe();
-        if (alive) setDevice(r);
+        if (!alive) return;
+        setDevice(r);
+        if (!userId) return;
+        await publishPosture(userId, r);
+        const f = await fetchFleet(userId);
+        if (alive) setFleet(f);
       } finally {
         if (alive) setDeviceBusy(false);
       }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [userId]);
 
   const scanComms = useCallback(async () => {
     setCommsBusy(true);
@@ -131,13 +156,35 @@ export default function BulwarkView() {
     }
   }, []);
 
+  // The comms half reads a server-side ledger — it has nothing to do with the
+  // endpoint in the operator's hand. Running it on mount is what makes the
+  // station identical on laptop and phone instead of half-empty on whichever
+  // one they picked up.
+  useEffect(() => {
+    if (!userId) return;
+    void scanComms();
+  }, [userId, scanComms]);
+
   const exportReport = useCallback(() => {
     const L: string[] = [
       "BULWARK — COUNTER-SURVEILLANCE ASSESSMENT",
       "#houseofasher  #zia",
       `Generated ${new Date().toISOString()}`,
       "=".repeat(64), "",
-      "SECTION 1 — DEVICE LEGIBILITY",
+      "SECTION 1 — DEVICE LEGIBILITY (FLEET)",
+      fleet && fleet.nodes.length
+        ? `Fleet index: ${fleet.legibility}/100 (worst-of ${fleet.liveCount} live endpoint(s)` +
+          `${fleet.staleCount ? `, ${fleet.staleCount} stale` : ""}) — weakest: ${fleet.weakest?.label ?? "n/a"}`
+        : "Fleet: this endpoint only.",
+      ...(fleet?.nodes ?? []).map(
+        (n) => `  · ${n.label}${n.isCurrent ? " (this endpoint)" : ""}${n.stale ? " [stale]" : ""} — ${n.legibility}/100, probed ${n.scannedAt.slice(0, 10)}`,
+      ),
+      ...(fleet?.divergent?.length
+        ? ["", "Cross-endpoint divergences (fixable — one endpoint already clean):",
+           ...fleet.divergent.map((d) => `  · ${d.label}: exposed on ${d.exposedOn.join(", ")} / clean on ${d.cleanOn.join(", ")}`)]
+        : []),
+      "",
+      "THIS ENDPOINT",
       device ? `Legibility index: ${device.legibility}/100` : "Not scanned.",
       ...(device?.checks ?? []).flatMap((c) => [
         "", `[${VERDICT_LABEL[c.verdict]}] ${c.label}`,
@@ -164,14 +211,18 @@ export default function BulwarkView() {
     a.click();
     // Revoke on the next frame so Safari has committed the download.
     requestAnimationFrame(() => URL.revokeObjectURL(url));
-  }, [device, comms]);
+  }, [device, comms, fleet]);
 
-  const deviceCaption = useMemo(() => {
-    if (!device) return "AWAITING PROBE";
-    if (device.legibility >= 55) return "HIGHLY IDENTIFIABLE";
-    if (device.legibility >= 25) return "PARTIALLY IDENTIFIABLE";
-    return "LOW OBSERVABILITY";
-  }, [device]);
+  // The headline number is the worst live endpoint, never the average: an
+  // operator is exactly as exposed as their loudest device.
+  const fleetCaption = useMemo(() => {
+    const v = Math.max(fleet?.legibility ?? 0, device?.legibility ?? 0);
+    if (!device && !fleet?.nodes.length) return "AWAITING PROBE";
+    const scope = fleet && fleet.liveCount > 1 ? `${fleet.liveCount} ENDPOINTS` : "THIS ENDPOINT";
+    if (v >= 55) return `HIGHLY IDENTIFIABLE · ${scope}`;
+    if (v >= 25) return `PARTIALLY IDENTIFIABLE · ${scope}`;
+    return `LOW OBSERVABILITY · ${scope}`;
+  }, [device, fleet]);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
@@ -189,16 +240,92 @@ export default function BulwarkView() {
       </header>
 
       <div className="mb-10 grid gap-4 sm:grid-cols-2">
-        <Meter label="Device legibility" value={device?.legibility ?? 0} caption={deviceCaption} />
+        <Meter
+          label="Fleet legibility"
+          value={Math.max(fleet?.legibility ?? 0, device?.legibility ?? 0)}
+          caption={fleetCaption}
+        />
         <Meter label="Comms pressure" value={comms?.score ?? 0} caption={comms?.posture ?? "AWAITING SCAN"} />
       </div>
+
+      {/* ── FLEET ────────────────────────────────────────────────────────── */}
+      <section className="mb-12">
+        <Section
+          icon={Laptop}
+          title="Endpoint mesh"
+          subtitle="Every device you have signed in on publishes its own posture. This station shows all of them from whichever one you are holding — the index above is the worst live endpoint, not the average."
+        />
+        {!fleet?.nodes.length ? (
+          <div className="rounded-lg border border-foreground/10 bg-foreground/[0.02] p-5 text-xs leading-relaxed text-foreground/50">
+            Only this endpoint has reported so far. Open BULWARK on your phone or laptop while
+            signed in to the same account and it joins the mesh automatically — no pairing step.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {fleet.nodes.map((n) => {
+              const exposed = n.checks.filter((c) => c.verdict === "exposed").length;
+              const attention = n.checks.filter((c) => c.verdict === "attention").length;
+              return (
+                <div
+                  key={n.deviceId}
+                  className={`flex items-start gap-3 rounded-lg border p-4 ${
+                    n.stale ? "border-foreground/10 opacity-60" : "border-foreground/15"
+                  } bg-foreground/[0.02]`}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <span className="text-sm text-foreground/90">{n.label}</span>
+                      {n.isCurrent && (
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/45">this endpoint</span>
+                      )}
+                      {n.stale && (
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/40">stale · not counted</span>
+                      )}
+                    </span>
+                    <span className="mt-1.5 block font-mono text-[11px] text-foreground/50">
+                      {n.legibility}/100 · {exposed} exposed · {attention} attention · probed {n.scannedAt.slice(0, 10)}
+                    </span>
+                  </span>
+                  {!n.isCurrent && (
+                    <button
+                      onClick={() => dropEndpoint(n.deviceId)}
+                      aria-label={`Forget ${n.label}`}
+                      className="shrink-0 rounded-md border border-foreground/15 p-1.5 text-foreground/50 transition-colors hover:bg-foreground/5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground/40"
+                    >
+                      <X className="h-3 w-3" strokeWidth={1.5} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+
+            {fleet.divergent.length > 0 && (
+              <div className="rounded-lg border border-foreground/20 bg-foreground/[0.03] p-4">
+                <div className="text-[10px] uppercase tracking-[0.3em] text-foreground/35">Cross-endpoint divergence</div>
+                <p className="mt-2 text-xs leading-relaxed text-foreground/50">
+                  These surfaces are exposed on one device and already clean on another — proof the
+                  fix is available to you, and where to copy it from.
+                </p>
+                <ul className="mt-3 space-y-1.5">
+                  {fleet.divergent.map((d) => (
+                    <li key={d.id} className="text-xs leading-relaxed text-foreground/65">
+                      ◈ <span className="text-foreground/85">{d.label}</span> — exposed on{" "}
+                      {d.exposedOn.join(", ")} · clean on {d.cleanOn.join(", ")}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* ── DEVICE ───────────────────────────────────────────────────────── */}
       <section className="mb-12">
         <Section
           icon={Cpu}
           title="Device posture"
-          subtitle="Runs entirely in this tab. Nothing measured here is transmitted."
+          subtitle="Measured in this tab. Only the verdicts are mirrored to your own mesh so your other devices can see this endpoint — no fingerprint hashes leave the browser."
           right={
             <button
               onClick={scanDevice}
