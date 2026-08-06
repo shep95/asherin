@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Brain, MapPin, Gauge, PenLine, ShieldCheck, Loader2,
   RefreshCw, AlertTriangle, CheckCircle2, Lock, Users, ListChecks, Sunrise, Send,
+  Archive,
 } from "lucide-react";
+import ContactVaultPane from "./ContactVaultPane";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +23,7 @@ import { toast } from "sonner";
  * Every pane renders the full state quartet (idle / loading / empty / error).
  */
 
-type Pane = "voice" | "places" | "attention" | "write" | "people" | "commit" | "digest" | "audit";
+type Pane = "voice" | "places" | "attention" | "write" | "people" | "commit" | "digest" | "vault" | "audit";
 
 interface MeshStatus {
   accounts: Array<{ id: string; email: string; tier: number; canRead: boolean; canCompose: boolean; canSend?: boolean; isPrimary?: boolean }>;
@@ -134,6 +136,7 @@ const GoogleMeshPanel = () => {
     { id: "people", label: "Relationships", icon: Users },
     { id: "commit", label: "Commitments", icon: ListChecks },
     { id: "digest", label: "Daily Digest", icon: Sunrise },
+    { id: "vault", label: "Contact Vault", icon: Archive },
     { id: "audit", label: "Agency Trail", icon: ShieldCheck },
   ];
 
@@ -607,6 +610,8 @@ const GoogleMeshPanel = () => {
       )}
 
       {/* AUDIT */}
+      {pane === "vault" && <ContactVaultPane />}
+
       {pane === "audit" && (
         <Shell>
           <div className="flex items-center justify-between">
