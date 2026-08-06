@@ -15,6 +15,7 @@ import {
 } from "./contactIntel/messageIntel";
 import {
   saveVault, loadVault, clearVault, vaultBytes, exportVaultText, downloadText,
+  loadCorpus, saveCorpus, mergeCorpus,
   type VaultSnapshot,
 } from "./contactIntel/localVault";
 import {
@@ -38,6 +39,14 @@ import { renderContactReport } from "@/lib/cloudIntel/contactReportText";
 // silently clipped downstream.
 const MAIL_DEPTH = 100;
 const CONTACT_DEPTH = 1000;
+
+/**
+ * Delta overlap. The cursor is rewound by this much before it is handed to
+ * Gmail so mail that arrived while the previous sweep was mid-flight, or that
+ * carries a skewed clock, is still caught. Re-fetching a two-day tail is cheap;
+ * a permanently missed message is not, because nothing ever goes back for it.
+ */
+const DELTA_OVERLAP_MS = 2 * 86400000;
 
 const TIER_LABEL: Record<ContactDossier["tier"], string> = {
   inner: "Inner", active: "Active", periphery: "Periphery", dormant: "Dormant", archive: "Archive",
@@ -132,6 +141,9 @@ const ContactIntelligence = () => {
   // corpus is held for the session. A vault-restored page has dossiers but no
   // corpus; the report button says so rather than rendering a hollow report.
   const [corpus, setCorpus] = useState<{ messages: RawMessage[]; own: string[] } | null>(null);
+  // Retention posture, surfaced so the operator can see the ledger accumulating
+  // rather than having to trust that it does.
+  const [retention, setRetention] = useState<{ held: number; cursor: number | null; added: number } | null>(null);
   const [reportKey, setReportKey] = useState<string | null>(null);
   const [limit, setLimit] = useState(40);
   // Cross-device mirror posture: which endpoints feed the ledger and how fresh
@@ -171,9 +183,15 @@ const ContactIntelligence = () => {
     if (!userId) return;
     let cancelled = false;
     (async () => {
-      const local = await loadVault(userId);
+      const [local, storedCorpus] = await Promise.all([loadVault(userId), loadCorpus(userId)]);
       if (cancelled || !alive.current) return;
       if (local) applySnapshot(local);
+      // The corpus is what makes a cold open resumable: deep reports work
+      // immediately and the next sweep asks only for the delta.
+      if (storedCorpus?.messages.length) {
+        setCorpus({ messages: storedCorpus.messages, own: [] });
+        setRetention({ held: storedCorpus.messages.length, cursor: storedCorpus.cursor, added: 0 });
+      }
 
       setMesh((m) => ({ ...m, syncing: true }));
       void touchDevice(userId);
