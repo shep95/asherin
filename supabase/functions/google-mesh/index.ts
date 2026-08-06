@@ -280,7 +280,171 @@ Deno.serve(async (req) => {
       }, 200, cors);
     }
 
+    // ── RELATIONSHIP LEDGER ──────────────────────────────────────────────
+    // Metadata-only. Runs across every connected account and merges the
+    // ledgers, so one human who mails two of your addresses is one node.
+    if (action === "relationship_graph") {
+      const limit = Math.min(Number(body.limit) || 120, 200);
+      const window = Math.min(Math.max(Number(body.days) || 180, 7), 730);
+      const after = new Date(Date.now() - window * 86400000).toISOString().slice(0, 10).replace(/-/g, "/");
+      const selfEmails = accounts.map((a) => a.google_email);
+      const readable = accounts.filter((a) => hasScope(a, "gmail.readonly"));
+      if (!readable.length) {
+        return json({ error: "tier_required", message: "Grant Tier 2 (Read) to map your correspondence." }, 403, cors);
+      }
+      const harvested = (await Promise.all(readable.flatMap((a) => [
+        harvestHeaders(a.token, `in:inbox -in:chats after:${after}`, limit, false).catch(() => []),
+        harvestHeaders(a.token, `in:sent -in:chats after:${after}`, limit, true).catch(() => []),
+      ]))).flat();
+
+      const people = buildRelationships(harvested, selfEmails);
+      return json({
+        windowDays: window,
+        messagesAnalyzed: harvested.length,
+        accounts: selfEmails,
+        people: people.slice(0, 80),
+        inner: people.filter((p) => p.tier === "inner").length,
+        dormant: people.filter((p) => p.dormant).map((p) => ({
+          email: p.email, name: p.name, dormantDays: p.dormantDays,
+        })),
+      }, 200, cors);
+    }
+
+    // ── COMMITMENTS ──────────────────────────────────────────────────────
+    // Promises you made in your own sent mail, with the clock resolved
+    // against when the sentence was written — never against "now".
+    if (action === "commitments") {
+      const limit = Math.min(Number(body.limit) || 45, 80);
+      const window = Math.min(Math.max(Number(body.days) || 45, 3), 365);
+      const after = new Date(Date.now() - window * 86400000).toISOString().slice(0, 10).replace(/-/g, "/");
+      const readable = accounts.filter((a) => hasScope(a, "gmail.readonly"));
+      if (!readable.length) {
+        return json({ error: "tier_required", message: "Grant Tier 2 (Read) to track commitments." }, 403, cors);
+      }
+      const msgs = (await Promise.all(
+        readable.map((a) => harvestBodies(a.token, `in:sent -in:chats after:${after}`, limit).catch(() => [])),
+      )).flat();
+      const commitments = extractCommitments(msgs);
+      return json({
+        windowDays: window,
+        messagesScanned: msgs.length,
+        commitments: commitments.slice(0, 60),
+        overdue: commitments.filter((c) => c.overdue).length,
+        dueSoon: commitments.filter(
+          (c) => !c.overdue && c.dueAt && Date.parse(c.dueAt) - Date.now() < 3 * 86400000,
+        ).length,
+      }, 200, cors);
+    }
+
+    // ── DAILY DIGEST ─────────────────────────────────────────────────────
+    // The fusion surface: attention + place rhythm + obligations + decaying
+    // relationships, computed together so the briefing is one coherent read.
+    if (action === "daily_digest") {
+      const readable = accounts.filter((a) => hasScope(a, "gmail.readonly"));
+      const after30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10).replace(/-/g, "/");
+
+      const [attn, placeRows, headerSets, bodySets] = await Promise.all([
+        buildAttention(accounts[0].token, 14).catch(() => []),
+        sb.from("google_place_nodes").select("label, visit_count, last_seen, sources")
+          .eq("user_id", userId).order("visit_count", { ascending: false }).limit(12),
+        Promise.all(readable.flatMap((a) => [
+          harvestHeaders(a.token, `in:inbox -in:chats after:${after30}`, 80, false).catch(() => []),
+          harvestHeaders(a.token, `in:sent -in:chats after:${after30}`, 80, true).catch(() => []),
+        ])),
+        Promise.all(readable.map((a) => harvestBodies(a.token, `in:sent -in:chats after:${after30}`, 30).catch(() => []))),
+      ]);
+
+      const people = buildRelationships(headerSets.flat(), accounts.map((a) => a.google_email));
+      const commitments = extractCommitments(bodySets.flat());
+      const recent = attn.slice(-7);
+      const meetMin = recent.reduce((s, d) => s + d.meetingMinutes, 0);
+      const focusMin = recent.reduce((s, d) => s + d.focusMinutes, 0);
+
+      return json({
+        generatedAt: new Date().toISOString(),
+        accounts: accounts.map((a) => a.google_email),
+        attention: {
+          days: recent.length,
+          meetingHours: Math.round(meetMin / 6) / 10,
+          focusHours: Math.round(focusMin / 6) / 10,
+          focusShare: meetMin + focusMin ? Math.round((focusMin / (focusMin + meetMin)) * 100) : null,
+          heaviestDay: recent.slice().sort((a, b) => b.meetingMinutes - a.meetingMinutes)[0]?.day ?? null,
+        },
+        obligations: {
+          overdue: commitments.filter((c) => c.overdue).slice(0, 8),
+          upcoming: commitments.filter((c) => !c.overdue && c.dueAt).slice(0, 8),
+        },
+        relationships: {
+          inner: people.filter((p) => p.tier === "inner").slice(0, 8),
+          decaying: people.filter((p) => p.dormant).slice(0, 8),
+          awaitingYourReply: people
+            .filter((p) => p.lastDirection === "in" && p.tier !== "periphery" && p.dormantDays >= 2)
+            .slice(0, 8),
+        },
+        places: (placeRows.data ?? []).map((p) => ({
+          label: p.label, visits: p.visit_count, lastSeen: p.last_seen, sources: p.sources,
+        })),
+      }, 200, cors);
+    }
+
+    // ── SEND DRAFT (Tier 5 — two-phase, human-confirmed) ─────────────────
+    if (action === "send_draft") {
+      const draftId = String(body.draft_id ?? "").trim();
+      const confirm = String(body.confirm ?? "").trim().toUpperCase();
+      if (!draftId) return json({ error: "draft_id required" }, 400, cors);
+      if (confirm !== "SEND") {
+        return json({
+          error: "confirmation_required",
+          message: 'Sending requires explicit confirmation. Echo confirm:"SEND" with the draft id.',
+        }, 428, cors);
+      }
+      const acct = accounts.find((a) => hasScope(a, "gmail.send"));
+      if (!acct) {
+        return json({
+          error: "tier_required",
+          message: "Delegated send needs Tier 5. Reconnect the account and grant send access.",
+        }, 403, cors);
+      }
+
+      // The draft must exist and be readable before we touch the send API —
+      // this is what keeps the flow two-phase instead of fire-and-forget.
+      let meta: { to: string; subject: string; snippet: string };
+      try {
+        meta = await getDraft(acct.token, draftId);
+      } catch (e) {
+        return json({ error: "draft_not_found", details: (e as Error).message }, 404, cors);
+      }
+
+      await audit(sb, userId, {
+        google_email: acct.google_email,
+        action: "send_requested",
+        target: meta.to,
+        payload: { draftId, subject: meta.subject },
+      });
+
+      try {
+        const sent = await sendExistingDraft(acct.token, draftId);
+        await audit(sb, userId, {
+          google_email: acct.google_email,
+          action: "send_completed",
+          target: meta.to,
+          payload: { draftId, messageId: sent.messageId, subject: meta.subject },
+          confirmed: true,
+        });
+        return json({ sent: true, ...sent, to: meta.to, subject: meta.subject, account: acct.google_email }, 200, cors);
+      } catch (e) {
+        await audit(sb, userId, {
+          google_email: acct.google_email,
+          action: "send_failed",
+          target: meta.to,
+          payload: { draftId, error: (e as Error).message },
+        });
+        return json({ error: "send_failed", details: (e as Error).message }, 502, cors);
+      }
+    }
+
     // ── AUDIT LOG ────────────────────────────────────────────────────────
+
     if (action === "audit_log") {
       const { data } = await sb.from("google_agency_audit")
         .select("*").eq("user_id", userId)
