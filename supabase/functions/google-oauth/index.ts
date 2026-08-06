@@ -41,19 +41,15 @@ Deno.serve(async (req) => {
 
     // ── GET AUTH URL ──
     if (action === "get_auth_url") {
-      const scopes = [
-        "openid",
-        "email",
-        "profile",
-        "https://www.googleapis.com/auth/gmail.readonly",
-        "https://www.googleapis.com/auth/calendar.readonly",
-        "https://www.googleapis.com/auth/contacts.readonly",
-        "https://www.googleapis.com/auth/drive.metadata.readonly",
-        "https://www.googleapis.com/auth/fitness.activity.read",
-        "https://www.googleapis.com/auth/fitness.heart_rate.read",
-        "https://www.googleapis.com/auth/fitness.sleep.read",
-        "https://www.googleapis.com/auth/fitness.body.read",
-      ];
+      // ── Staged consent (Google Mesh) ──────────────────────────────────
+      // Tier 1 Identity → 2 Read → 3 Comprehension → 4 Agency (compose only).
+      // Requesting everything up front is what makes users abandon consent, and
+      // it hands the app write power it does not yet need. Tiers are cumulative
+      // and default to 3 so existing callers keep their previous capability set.
+      const { scopesForTier } = await import("../_shared/googleMesh.ts");
+      const requestedTier = Number(body.tier) || 3;
+      const scopes = scopesForTier(requestedTier);
+
 
       // [Finding #1/#5] Generate a cryptographic state nonce tied to the user
       const stateNonce = crypto.randomUUID();
