@@ -979,7 +979,7 @@ When web search results are provided, incorporate them naturally:
 
 // ── DuckDuckGo search helper ─────────────────────────────────────────────────
 
-async function searchDuckDuckGo(query: string): Promise<{ title: string; url: string; snippet: string }[]> {
+async function searchDuckDuckGo(query: string, callerAuth?: string | null): Promise<{ title: string; url: string; snippet: string }[]> {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL");
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -989,11 +989,20 @@ async function searchDuckDuckGo(query: string): Promise<{ title: string; url: st
       return [];
     }
 
+    // ddg-search enforces requireUser(); an anon-key bearer has no `sub` claim
+    // and is rejected with 401. Forward the caller's JWT when we have it and
+    // fall back to the service role, which passes the same gate.
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const bearer = callerAuth?.startsWith("Bearer ")
+      ? callerAuth
+      : `Bearer ${SERVICE_ROLE || SUPABASE_ANON_KEY}`;
+
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/ddg-search`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: bearer,
       },
       body: JSON.stringify({ query, numResults: 6 }),
     });
@@ -1388,7 +1397,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         }
 
         if (!webSearchContext) {
-          const results = await searchDuckDuckGo(searchUserMsg.content);
+          const results = await searchDuckDuckGo(searchUserMsg.content, req.headers.get("Authorization"));
           if (results.length > 0) {
             webSearchContext = `\n\n## LIVE WEB SEARCH RESULTS (fallback index)\nThe following are real-time search results for the user's query. Use these to ground your response in current facts:\n\n${results.map((r, i) => `${i + 1}. **${r.title}**\n   URL: ${r.url}\n   ${r.snippet}`).join("\n\n")}\n\nIMPORTANT: Cite these sources in your response using [Source Title](URL) format. Prioritize this live data over your training data for current events.`;
           }

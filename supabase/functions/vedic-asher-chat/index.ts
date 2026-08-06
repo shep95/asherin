@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
   try {
     const { messages, chartContext, chartLabel, byok, crossCheck } = (await req.json()) as ChatBody;
     if (!Array.isArray(messages) || messages.length === 0) {
-      return jsonError(400, "messages required");
+      return jsonError(400, "messages required", corsHeaders);
     }
 
     // Identify caller (for admin-only platform key access)
@@ -127,7 +127,7 @@ ${chartContext}`;
     // Build the primary provider chain
     const primaryChain = resolveProviderChain(byok, isAdmin);
     if (primaryChain.length === 0) {
-      return jsonError(400, "No AI provider configured. Add a Gemini, OpenAI, or Anthropic API key in Asher chat settings.");
+      return jsonError(400, "No AI provider configured. Add a Gemini, OpenAI, or Anthropic API key in Asher chat settings.", corsHeaders);
     }
 
     let primary: { text: string; provider: Provider; model: string } | null = null;
@@ -142,7 +142,7 @@ ${chartContext}`;
         console.error(`[asher] primary ${cfg.provider}/${cfg.model} failed:`, lastError);
       }
     }
-    if (!primary) return jsonError(503, `Provider failed: ${lastError}`);
+    if (!primary) return jsonError(503, `Provider failed: ${lastError}`, corsHeaders);
 
     // Optional cross-validation across other providers (BYOK list)
     const crossResults: { provider: Provider; model: string; text: string }[] = [];
@@ -176,7 +176,7 @@ ${chartContext}`;
     });
   } catch (e) {
     console.error("vedic-asher-chat error:", e);
-    return jsonError(500, e instanceof Error ? e.message : "unknown");
+    return jsonError(500, e instanceof Error ? e.message : "unknown", corsHeaders);
   }
 });
 
@@ -193,7 +193,10 @@ async function checkAdmin(authHeader: string): Promise<boolean> {
   }
 }
 
-function jsonError(status: number, error: string): Response {
+// corsHeaders is per-request (origin-scoped), so it must be passed in — a
+// module-scope reference throws ReferenceError and turns every handled error
+// into an opaque, CORS-less 500 the browser cannot read.
+function jsonError(status: number, error: string, corsHeaders: Record<string, string>): Response {
   return new Response(JSON.stringify({ error }), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

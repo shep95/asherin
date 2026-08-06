@@ -13,9 +13,16 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Require authenticated caller — prevent anonymous scraping abuse
-  const { requireUser, authErrorResponse } = await import("../_shared/authMiddleware.ts");
-  try { await requireUser(req); } catch (e) { return authErrorResponse(e, corsHeaders); }
+  // Require authenticated caller — prevent anonymous scraping abuse.
+  // Trusted server-to-server callers (other edge functions) present the
+  // service-role key, which is not a user JWT and would fail requireUser.
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  const isInternal = Boolean(SERVICE_ROLE) && bearer === SERVICE_ROLE;
+  if (!isInternal) {
+    const { requireUser, authErrorResponse } = await import("../_shared/authMiddleware.ts");
+    try { await requireUser(req); } catch (e) { return authErrorResponse(e, corsHeaders); }
+  }
 
 
   try {

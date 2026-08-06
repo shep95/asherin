@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import ByokRequiredDialog from "@/components/ByokRequiredDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { Suspense } from "react";
@@ -161,6 +161,12 @@ const App = () => (
             <Route path="/blog/zaxin-tactical-ble-intelligence" element={<BlogZaxinTacticalBleIntelligence />} />
             <Route path="/blog/code-narrative-quantum-collapse" element={<BlogCodeNarrativeQuantumCollapse />} />
             <Route path="/blog/aureon-legal-advisor-multi-jurisdictional" element={<BlogAureonLegalAdvisor />} />
+            {/* Legacy pre-rename slugs — keep bookmarks, shared links and indexed
+                results alive instead of falling through to the 404 catch-all. */}
+            <Route path="/blog/asherin-legal-advisor-multi-jurisdictional" element={<Navigate to="/blog/aureon-legal-advisor-multi-jurisdictional" replace />} />
+            <Route path="/blog/asherin-pricing-explained" element={<Navigate to="/blog/aureon-pricing-explained" replace />} />
+            <Route path="/blog/how-asherin-uses-c-seo-research" element={<Navigate to="/blog/how-aureon-uses-c-seo-research" replace />} />
+            <Route path="/blog/how-we-make-asherin-sound-human" element={<Navigate to="/blog/how-we-make-aureon-sound-human" replace />} />
             <Route path="/zaxin/theories" element={<ZaxinTheories />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/investors" element={<Investors />} />

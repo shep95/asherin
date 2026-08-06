@@ -3,6 +3,11 @@ import App from "./App.tsx";
 import "./index.css";
 import { initDorkGuard } from "./lib/dorkGuard";
 import { relayGoogleConsentIfPopup } from "./lib/googleConsentRelay";
+import { migrateLegacyStorageKeys } from "./lib/storageKeyMigration";
+
+// Carry pre-rename `asherin_*` localStorage values over to `aureon_*` before
+// anything reads them, so personas/preferences survive the rename.
+migrateLegacyStorageKeys();
 
 // Google-dork / recon hardening — noindex on sensitive routes, scrub
 // OAuth/token query params, tighten referrer policy. Runs before render.
