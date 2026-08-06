@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { buildDomainProfile } from "../_shared/domainPacks.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 /** Robust CSV line parser that handles quoted fields with commas, newlines, and escaped quotes */
