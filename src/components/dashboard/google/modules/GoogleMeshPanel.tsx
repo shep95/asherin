@@ -157,9 +157,40 @@ const GoogleMeshPanel = () => {
 
         {status && status.accounts.length === 0 && (
           <p className="text-xs font-extralight text-muted-foreground/60">
-            No connected Google account. Connect one above to activate the mesh.
+            No Google account connected yet. Pick the tier you're comfortable with below — you can raise it later.
           </p>
         )}
+
+        {/* Consent ladder — always available so a connected account can be upgraded */}
+        {status && (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {TIERS.map((t) => {
+              const granted = (status.accounts[0]?.tier ?? 0) >= t.tier;
+              return (
+                <div key={t.tier} className="rounded-xl border border-border/20 bg-background/30 px-3 py-2.5 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-xs font-light text-foreground">
+                      Tier {t.tier} · {t.label}
+                    </div>
+                    <p className="text-[10px] font-extralight text-muted-foreground/60 mt-0.5">{t.grants}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={granted ? "ghost" : "outline"}
+                    className="text-[11px] font-extralight shrink-0"
+                    disabled={busy === `tier${t.tier}`}
+                    onClick={() => run(`tier${t.tier}`, async () => { await authorizeTier(t.tier); })}
+                  >
+                    {busy === `tier${t.tier}`
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : granted ? "Re-grant" : "Authorize"}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
 
         {status && status.accounts.length > 0 && (
           <div className="grid gap-2 sm:grid-cols-2">
