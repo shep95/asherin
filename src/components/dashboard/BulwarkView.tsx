@@ -248,12 +248,84 @@ export default function BulwarkView() {
         <Meter label="Comms pressure" value={comms?.score ?? 0} caption={comms?.posture ?? "AWAITING SCAN"} />
       </div>
 
+      {/* ── FLEET ────────────────────────────────────────────────────────── */}
+      <section className="mb-12">
+        <Section
+          icon={Laptop}
+          title="Endpoint mesh"
+          subtitle="Every device you have signed in on publishes its own posture. This station shows all of them from whichever one you are holding — the index above is the worst live endpoint, not the average."
+        />
+        {!fleet?.nodes.length ? (
+          <div className="rounded-lg border border-foreground/10 bg-foreground/[0.02] p-5 text-xs leading-relaxed text-foreground/50">
+            Only this endpoint has reported so far. Open BULWARK on your phone or laptop while
+            signed in to the same account and it joins the mesh automatically — no pairing step.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {fleet.nodes.map((n) => {
+              const exposed = n.checks.filter((c) => c.verdict === "exposed").length;
+              const attention = n.checks.filter((c) => c.verdict === "attention").length;
+              return (
+                <div
+                  key={n.deviceId}
+                  className={`flex items-start gap-3 rounded-lg border p-4 ${
+                    n.stale ? "border-foreground/10 opacity-60" : "border-foreground/15"
+                  } bg-foreground/[0.02]`}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <span className="text-sm text-foreground/90">{n.label}</span>
+                      {n.isCurrent && (
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/45">this endpoint</span>
+                      )}
+                      {n.stale && (
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/40">stale · not counted</span>
+                      )}
+                    </span>
+                    <span className="mt-1.5 block font-mono text-[11px] text-foreground/50">
+                      {n.legibility}/100 · {exposed} exposed · {attention} attention · probed {n.scannedAt.slice(0, 10)}
+                    </span>
+                  </span>
+                  {!n.isCurrent && (
+                    <button
+                      onClick={() => dropEndpoint(n.deviceId)}
+                      aria-label={`Forget ${n.label}`}
+                      className="shrink-0 rounded-md border border-foreground/15 p-1.5 text-foreground/50 transition-colors hover:bg-foreground/5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground/40"
+                    >
+                      <X className="h-3 w-3" strokeWidth={1.5} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+
+            {fleet.divergent.length > 0 && (
+              <div className="rounded-lg border border-foreground/20 bg-foreground/[0.03] p-4">
+                <div className="text-[10px] uppercase tracking-[0.3em] text-foreground/35">Cross-endpoint divergence</div>
+                <p className="mt-2 text-xs leading-relaxed text-foreground/50">
+                  These surfaces are exposed on one device and already clean on another — proof the
+                  fix is available to you, and where to copy it from.
+                </p>
+                <ul className="mt-3 space-y-1.5">
+                  {fleet.divergent.map((d) => (
+                    <li key={d.id} className="text-xs leading-relaxed text-foreground/65">
+                      ◈ <span className="text-foreground/85">{d.label}</span> — exposed on{" "}
+                      {d.exposedOn.join(", ")} · clean on {d.cleanOn.join(", ")}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
       {/* ── DEVICE ───────────────────────────────────────────────────────── */}
       <section className="mb-12">
         <Section
           icon={Cpu}
           title="Device posture"
-          subtitle="Runs entirely in this tab. Nothing measured here is transmitted."
+          subtitle="Measured in this tab. Only the verdicts are mirrored to your own mesh so your other devices can see this endpoint — no fingerprint hashes leave the browser."
           right={
             <button
               onClick={scanDevice}
