@@ -20,6 +20,13 @@ import {
   pullRemote, pushRemote, fetchRemoteMeta, listDevices, touchDevice, deviceId,
   type DeviceRow,
 } from "./contactIntel/remoteVault";
+import { latticeFindings, correspondenceSeries } from "@/lib/cloudIntel/lattice";
+import { median } from "@/lib/cloudIntel/logic";
+import FindingCard from "../intel/FindingCard";
+import { TrendStat } from "../intel/TrendStat";
+import RelationGraph from "../intel/RelationGraph";
+
+
 
 
 // Depth of the sweep. The Gmail metadata read is the expensive leg, so the
@@ -327,19 +334,33 @@ const ContactIntelligence = () => {
     toast.success("Device vault purged.");
   };
 
-  const stats = summary
-    ? [
-        { label: "Identities", value: String(summary.contactCount) },
-        { label: "Correspondents", value: String(summary.correspondentCount) },
-        { label: "Messages Read", value: String(summary.messageCount) },
-        { label: "Inner Circle", value: String(summary.tiers.inner) },
-      ]
-    : [
-        { label: "Identities", value: "—" },
-        { label: "Correspondents", value: "—" },
-        { label: "Messages Read", value: "—" },
-        { label: "Inner Circle", value: "—" },
-      ];
+  // A stat card that shows only a level is a photograph of a moving thing.
+  // Each figure below carries its own recent series, its percentile inside the
+  // subject's own population, or the baseline it is being judged against.
+  const findings = useMemo(
+    () => latticeFindings({ dossiers, summary, connected: isConnected }),
+    [dossiers, summary, isConnected],
+  );
+  const volumeSeries = useMemo(() => correspondenceSeries(dossiers), [dossiers]);
+  // Organisation is the only grouping the corpus can prove, so it is the only
+  // one the lattice colours by.
+  const orgClusters = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const d of dossiers) {
+      if (d.total <= 0) continue;
+      const org = d.organization || "unaffiliated";
+      counts.set(org, (counts.get(org) || 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([o]) => o);
+  }, [dossiers]);
+
+  const importancePop = useMemo(() => dossiers.map((d) => d.importance), [dossiers]);
+  const cadencePop = useMemo(
+    () => dossiers.map((d) => d.cadenceDays).filter((c): c is number => c != null),
+    [dossiers],
+  );
+  const activeCount = useMemo(() => dossiers.filter((d) => d.total > 0).length, [dossiers]);
+
 
   return (
     <div className="space-y-6">
@@ -412,15 +433,45 @@ const ContactIntelligence = () => {
         </div>
       </div>
 
-      {/* ── Stat band ──────────────────────────────────────────────── */}
+      {/* ── Stat band — level, motion, and population context ──────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {stats.map((s) => (
-          <div key={s.label} className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-4 text-center">
-            <p className="text-xl font-extralight text-foreground tabular-nums">{loading && !summary ? "…" : s.value}</p>
-            <p className="text-[10px] font-light text-muted-foreground/60 mt-1">{s.label}</p>
-          </div>
-        ))}
+        <TrendStat
+          label="Identities"
+          value={summary ? summary.contactCount : "—"}
+          hint={summary ? `${summary.correspondentCount} carry live traffic · ${summary.bulkFiltered} bulk senders excluded` : "Awaiting first sweep"}
+          loading={loading && !summary}
+        />
+        <TrendStat
+          label="Active roster"
+          value={summary ? activeCount : "—"}
+          series={volumeSeries}
+          hint={summary ? `${Math.round((activeCount / Math.max(1, summary.contactCount)) * 100)}% of the address book is live` : undefined}
+          loading={loading && !summary}
+        />
+        <TrendStat
+          label="Messages read"
+          value={summary ? summary.messageCount : "—"}
+          population={importancePop}
+          hint={summary?.patterns.peakHour != null ? `Peak transmission ${summary.patterns.peakHour}:00 local` : "No timed traffic yet"}
+          loading={loading && !summary}
+        />
+        <TrendStat
+          label="Median cadence"
+          value={cadencePop.length ? `${Math.round(median(cadencePop))}d` : "—"}
+          population={cadencePop}
+          hint={cadencePop.length ? `Across ${cadencePop.length} relationships with a measurable rhythm` : "Not enough repeat contact to establish rhythm"}
+          loading={loading && !summary}
+        />
       </div>
+
+      {/* ── Synthesis ──────────────────────────────────────────────── */}
+      <section className="space-y-2">
+        <h3 className="text-[9px] tracking-[0.22em] text-muted-foreground/40 font-light">SYNTHESIS</h3>
+        {findings.map((f) => (
+          <FindingCard key={f.id} finding={f} defaultOpen={f.severity === "critical" || f.severity === "elevated"} />
+        ))}
+      </section>
+
 
       {/* ── Device vault ───────────────────────────────────────────── */}
       <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-4 flex flex-wrap items-center gap-3">
@@ -539,6 +590,105 @@ const ContactIntelligence = () => {
           )}
         </div>
       )}
+
+      {/* ── Correspondence rhythm ──────────────────────────────────────
+          Only the marginal distributions are rendered. The corpus carries an
+          hour histogram and a day histogram, not their joint distribution —
+          drawing a 7×24 grid from two marginals would invent structure that
+          was never observed. */}
+      {summary && summary.patterns.sampleSize > 0 && (
+        <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-4">
+          <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
+            <Activity className="h-3.5 w-3.5" /> Correspondence Rhythm
+          </h3>
+          <div className="space-y-3">
+            <div>
+              <p className="text-[9px] tracking-[0.18em] text-muted-foreground/40 font-light mb-1.5">BY HOUR (LOCAL)</p>
+              <div className="flex items-end gap-[2px] h-12">
+                {summary.patterns.hourHistogram.map((v, h) => {
+                  const peak = Math.max(1, ...summary.patterns.hourHistogram);
+                  const off = h < 8 || h >= 18;
+                  return (
+                    <div
+                      key={h}
+                      title={`${String(h).padStart(2, "0")}:00 — ${v} message${v === 1 ? "" : "s"}${off ? " (outside working hours)" : ""}`}
+                      className={`flex-1 rounded-t-[2px] ${off ? "bg-foreground/25" : "bg-foreground/55"}`}
+                      style={{ height: `${Math.max(2, (v / peak) * 100)}%` }}
+                    />
+                  );
+                })}
+              </div>
+              <div className="flex justify-between mt-1">
+                {[0, 6, 12, 18, 23].map((h) => (
+                  <span key={h} className="text-[8px] text-muted-foreground/30 font-light">{String(h).padStart(2, "0")}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[9px] tracking-[0.18em] text-muted-foreground/40 font-light mb-1.5">BY WEEKDAY</p>
+              <div className="flex items-end gap-1 h-9">
+                {summary.patterns.dayHistogram.map((v, d) => {
+                  const peak = Math.max(1, ...summary.patterns.dayHistogram);
+                  return (
+                    <div key={d} className="flex-1 flex flex-col items-center gap-1">
+                      <div
+                        title={`${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]} — ${v} messages`}
+                        className="w-full rounded-t-[2px] bg-foreground/45"
+                        style={{ height: `${Math.max(2, (v / peak) * 100)}%` }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-1 mt-1">
+                {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+                  <span key={i} className="flex-1 text-center text-[8px] text-muted-foreground/30 font-light">{d}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <p className="text-[10px] font-extralight text-muted-foreground/55 leading-relaxed">
+            {summary.patterns.sampleSize} timed messages. Peak hour {summary.patterns.peakHour ?? "—"}:00.
+            {" "}{Math.round(summary.patterns.afterHoursShare * 100)}% of traffic lands outside 08:00–18:00 — darker bars mark
+            those hours. Hours with no bar are structurally silent: a message arriving there would be off-pattern.
+          </p>
+        </div>
+      )}
+
+      {/* ── Relationship lattice ───────────────────────────────────── */}
+      {dossiers.filter((d) => d.total > 0).length >= 3 && (
+        <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
+          <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
+            <Network className="h-3.5 w-3.5" /> Relationship Lattice
+          </h3>
+          <RelationGraph
+            nodes={[
+              { id: "__ego__", label: "You", ring: 0, cluster: 0, weight: 40 },
+              ...dossiers
+                .filter((d) => d.total > 0)
+                .slice(0, 42)
+                .map((d) => ({
+                  id: d.key,
+                  label: d.name,
+                  ring: d.tier === "inner" ? 1 : d.tier === "active" ? 2 : 3,
+                  cluster: Math.max(0, orgClusters.indexOf(d.organization || "unaffiliated")),
+                  weight: d.total,
+                })),
+            ]}
+            edges={dossiers
+              .filter((d) => d.total > 0)
+              .slice(0, 42)
+              .map((d) => ({ from: "__ego__", to: d.key, weight: d.total }))}
+            clusterNames={orgClusters}
+          />
+          <p className="text-[10px] font-extralight text-muted-foreground/55 leading-relaxed">
+            Rings are relationship tiers — inner, active, periphery — placed by measured volume, latency and recency.
+            Edge thickness is exchanged message count. Adjacency on a ring means shared organisation, the only grouping
+            the corpus can prove; no co-occurrence is inferred where none was observed.
+          </p>
+        </div>
+      )}
+
 
       {/* ── Alerts ─────────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">

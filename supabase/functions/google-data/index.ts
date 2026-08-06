@@ -130,18 +130,62 @@ async function fetchServiceData(service: string, params: any, headers: Record<st
   }
 
   if (service === "gmail_stats") {
-    const [unreadRes, importantRes, starredRes] = await Promise.all([
-      fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=1&q=is:unread", { headers }),
-      fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=1&q=is:important+is:unread", { headers }),
-      fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=1&q=is:starred", { headers }),
-    ]);
-    const [unread, important, starred] = await Promise.all([unreadRes.json(), importantRes.json(), starredRes.json()]);
+    // `messages?q=…&maxResults=1` returns `resultSizeEstimate`, which Gmail
+    // computes from a *page* heuristic — for large mailboxes it collapses to
+    // the same rounded number for every query, which is why unread/important/
+    // starred previously all read identical. The labels endpoint returns exact
+    // server-side counters instead, so each figure is independently true.
+    const labelIds = ["INBOX", "UNREAD", "IMPORTANT", "STARRED", "SENT", "DRAFT", "SPAM", "TRASH", "CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL"];
+    const counters: Record<string, { messages: number; threads: number; unread: number }> = {};
+    await Promise.all(
+      labelIds.map(async (id) => {
+        try {
+          const r = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/labels/${id}`, { headers });
+          if (!r.ok) return;
+          const d = await r.json();
+          counters[id] = {
+            messages: Number(d.messagesTotal) || 0,
+            threads: Number(d.threadsTotal) || 0,
+            unread: Number(d.messagesUnread) || 0,
+          };
+        } catch {
+          // A single missing system label must not void the whole read.
+        }
+      })
+    );
+    let mailboxTotal = 0;
+    try {
+      const pr = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", { headers });
+      if (pr.ok) mailboxTotal = Number((await pr.json()).messagesTotal) || 0;
+    } catch { /* profile is a bonus, not a requirement */ }
+
+    const inbox = counters.INBOX || { messages: 0, threads: 0, unread: 0 };
     return {
-      unread: unread.resultSizeEstimate || 0,
-      important: important.resultSizeEstimate || 0,
-      starred: starred.resultSizeEstimate || 0,
+      // Backwards-compatible keys.
+      unread: counters.UNREAD?.messages ?? inbox.unread,
+      important: counters.IMPORTANT?.unread ?? 0,
+      starred: counters.STARRED?.messages ?? 0,
+      // Richer, exact counters for the synthesis layer.
+      inboxTotal: inbox.messages,
+      inboxThreads: inbox.threads,
+      inboxUnread: inbox.unread,
+      importantTotal: counters.IMPORTANT?.messages ?? 0,
+      sentTotal: counters.SENT?.messages ?? 0,
+      draftTotal: counters.DRAFT?.messages ?? 0,
+      spamTotal: counters.SPAM?.messages ?? 0,
+      trashTotal: counters.TRASH?.messages ?? 0,
+      promotionsTotal: counters.CATEGORY_PROMOTIONS?.messages ?? 0,
+      socialTotal: counters.CATEGORY_SOCIAL?.messages ?? 0,
+      mailboxTotal,
+      // Reciprocity across the whole mailbox, not just the sampled window.
+      lifetimeReciprocity:
+        inbox.messages + (counters.SENT?.messages ?? 0) > 0
+          ? (counters.SENT?.messages ?? 0) / (inbox.messages + (counters.SENT?.messages ?? 0))
+          : null,
+      source: "gmail.labels",
     };
   }
+
 
   if (service === "calendar_events") {
     const now = new Date();
@@ -229,20 +273,64 @@ async function fetchServiceData(service: string, params: any, headers: Record<st
 
 
   if (service === "drive_files") {
-    const pageSize = params?.pageSize || 20;
+    // A raw file list is inventory, not intelligence. Pull the fields the
+    // synthesis layer needs to score risk (who owns it, who it is shared with,
+    // when it was created vs. last touched, and a content hash for duplicate
+    // detection) and page until the ceiling so the corpus is representative.
+    const ceiling = Math.max(1, Math.min(1000, Number(params?.pageSize) || 100));
     const q = params?.q || "";
-    let url = `https://www.googleapis.com/drive/v3/files?pageSize=${pageSize}&fields=files(id,name,mimeType,modifiedTime,size,owners,shared)&orderBy=modifiedTime desc`;
-    if (q) url += `&q=${encodeURIComponent(q)}`;
-    const res = await fetch(url, { headers });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
+    const fields =
+      "nextPageToken,files(id,name,mimeType,createdTime,modifiedTime,size,shared,starred,trashed,webViewLink,iconLink,md5Checksum,quotaBytesUsed,parents,owners(displayName,emailAddress),lastModifyingUser(displayName,emailAddress),sharingUser(displayName,emailAddress),permissions(id,type,role,emailAddress,domain),viewedByMeTime)";
+    const files: any[] = [];
+    let pageToken: string | undefined;
+    for (let page = 0; page < 10 && files.length < ceiling; page++) {
+      const pageSize = Math.min(200, ceiling - files.length);
+      let url =
+        `https://www.googleapis.com/drive/v3/files?pageSize=${pageSize}` +
+        `&fields=${encodeURIComponent(fields)}&orderBy=modifiedTime desc` +
+        `&supportsAllDrives=true&includeItemsFromAllDrives=true`;
+      if (q) url += `&q=${encodeURIComponent(q)}`;
+      if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`;
+      const res = await fetch(url, { headers });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      files.push(...(data.files || []));
+      pageToken = data.nextPageToken;
+      if (!pageToken) break;
+    }
     return {
-      files: (data.files || []).map((f: any) => ({
-        id: f.id, name: f.name, mimeType: f.mimeType,
-        modifiedTime: f.modifiedTime, size: f.size, shared: f.shared,
-      })),
+      files: files.map((f: any) => {
+        const perms = f.permissions || [];
+        return {
+          id: f.id,
+          name: f.name,
+          mimeType: f.mimeType,
+          createdTime: f.createdTime || null,
+          modifiedTime: f.modifiedTime || null,
+          viewedByMeTime: f.viewedByMeTime || null,
+          size: f.size ?? f.quotaBytesUsed ?? null,
+          shared: !!f.shared,
+          starred: !!f.starred,
+          trashed: !!f.trashed,
+          webViewLink: f.webViewLink || null,
+          md5Checksum: f.md5Checksum || null,
+          owner: f.owners?.[0]?.emailAddress || null,
+          ownerName: f.owners?.[0]?.displayName || null,
+          lastModifiedBy: f.lastModifyingUser?.emailAddress || null,
+          sharedBy: f.sharingUser?.emailAddress || null,
+          // Exposure surface: `anyone` = public link, `domain` = org-wide.
+          isPublic: perms.some((p: any) => p.type === "anyone"),
+          isDomainWide: perms.some((p: any) => p.type === "domain"),
+          sharedWith: perms
+            .filter((p: any) => p.type === "user" && p.emailAddress)
+            .map((p: any) => ({ email: p.emailAddress, role: p.role })),
+          externalEditors: perms.filter((p: any) => p.role === "writer" || p.role === "owner").length,
+        };
+      }),
+      fetched: files.length,
     };
   }
+
 
   if (service === "fitness") {
     const now = Date.now();
