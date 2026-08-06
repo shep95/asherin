@@ -251,6 +251,7 @@ export type Database = {
           created_at: string
           date_range: string | null
           description: string | null
+          domain_profile: Json | null
           file_name: string
           file_size: number
           file_type: string
@@ -273,6 +274,7 @@ export type Database = {
           created_at?: string
           date_range?: string | null
           description?: string | null
+          domain_profile?: Json | null
           file_name: string
           file_size?: number
           file_type?: string
@@ -295,6 +297,7 @@ export type Database = {
           created_at?: string
           date_range?: string | null
           description?: string | null
+          domain_profile?: Json | null
           file_name?: string
           file_size?: number
           file_type?: string

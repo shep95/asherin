@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { buildDomainProfile } from "../_shared/domainPacks.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 /** Robust CSV line parser that handles quoted fields with commas, newlines, and escaped quotes */
@@ -313,6 +314,47 @@ Deno.serve(async (req) => {
       qualityScore = 70;
     }
 
+    // === DOMAIN PACK PROFILING =========================================
+    // Ingest is not a financial sweep: classify the vertical, bind columns to
+    // real-world objects, register sensitivity/regulation, and emit the
+    // contract findings + collection gaps. Deterministic, evidence-cited.
+    let domainProfile: ReturnType<typeof buildDomainProfile> | null = null;
+    try {
+      domainProfile = buildDomainProfile({
+        fileName: dataset.file_name,
+        headers: csvHeaders.length ? csvHeaders : schema.map((c: any) => c.name),
+        sampleRows: csvRows.slice(0, 200),
+        rowCount,
+      });
+
+      // Contract findings surface in the same issue ledger the DQ tab reads,
+      // so governance problems are never a separate silo the operator misses.
+      for (const f of domainProfile.findings) {
+        issues.push({
+          type: f.severity === "critical" || f.severity === "high" ? "conflict" : "format",
+          description: `[${f.code}] ${f.message} — ${f.remediation}`,
+          rowCount: 0,
+          severity: f.severity === "critical" ? "high" : f.severity === "low" ? "low" : f.severity === "high" ? "high" : "medium",
+          autoFixAvailable: false,
+        });
+      }
+
+      // Sensitivity discovered by the pack engine overrides naive PII guessing.
+      const sensitiveByColumn = new Map(domainProfile.sensitiveFields.map((s) => [s.column, s]));
+      schema = schema.map((c: any) => {
+        const hit = sensitiveByColumn.get(c.name);
+        const bind = domainProfile!.bindings.find((b) => b.column === c.name);
+        return {
+          ...c,
+          isPII: c.isPII || !!hit,
+          sensitivity: hit?.cls ?? null,
+          ontology: bind ? `${bind.object}.${bind.property}` : null,
+        };
+      });
+    } catch (profileErr) {
+      console.error("Domain profiling failed (non-fatal):", profileErr);
+    }
+
     // Update the dataset with analysis results
     const { error: updateError } = await supabaseUser
       .from("asha_datasets")
@@ -323,10 +365,12 @@ Deno.serve(async (req) => {
         quality_score: qualityScore,
         schema,
         issues,
+        domain_profile: domainProfile as unknown as Record<string, unknown> | null,
       })
       .eq("id", datasetId);
 
     if (updateError) throw new Error("Failed to update dataset: " + updateError.message);
+
 
     // === AUTO-EXTRACT ENTITIES from CSV/JSON columns ===
     if (csvHeaders.length > 0 && csvRows.length > 0) {
@@ -403,18 +447,29 @@ Deno.serve(async (req) => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: `You are Azplen, a data intelligence AI. Analyze this dataset and return exactly 3 insights as JSON array. Each insight has: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences).
+              contents: [{ parts: [{ text: `You are Azplen, a data intelligence ingest engine (not a financial-only tool). A deterministic domain pack has already classified this dataset — do not contradict it, build on it.
 
 Dataset: ${dataset.file_name}
 Schema: ${schemaDesc}
 Rows: ${rowCount}
+${domainProfile ? `Domain pack: ${domainProfile.packLabel} (${Math.round(domainProfile.confidence * 100)}% confidence)
+Mission: ${domainProfile.mission}
+Object bindings: ${domainProfile.bindings.map((b) => `${b.column}→${b.object}.${b.property}`).join(", ") || "none"}
+Sensitivity: ${domainProfile.sensitivityClasses.join(", ") || "none"} | Risk ${domainProfile.riskScore}/100 (${domainProfile.riskGrade})
+Contract findings: ${domainProfile.findings.map((f) => f.code).join(", ") || "clean"}
+Computable KPIs: ${domainProfile.kpisReady.map((k) => k.name).join(", ") || "none"}
+Blocked KPIs: ${domainProfile.kpisBlocked.map((k) => `${k.name} (missing ${k.missing.join("+")})`).join("; ") || "none"}
+Operator decisions this pack serves: ${domainProfile.decisions.join(" | ")}` : ""}
 Sample data:
 ${sampleData}
 
+Return exactly 3 insights as a JSON array. Each: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences). Each description MUST name the specific column(s) it is grounded in and be actionable for a ${domainProfile?.packLabel ?? "general operations"} operator. No generic statements about "data quality" without naming the column.
+
 Return ONLY a valid JSON array, no markdown.` }] }],
-              generationConfig: { temperature: 0.7, maxOutputTokens: 1000 },
+              generationConfig: { temperature: 0.4, maxOutputTokens: 1000 },
             }),
           });
+
 
           if (aiResp.ok) {
             const aiData = await aiResp.json();
@@ -446,7 +501,7 @@ Return ONLY a valid JSON array, no markdown.` }] }],
       }
     }
 
-    return new Response(JSON.stringify({ success: true, rowCount, colCount, qualityScore, schema, issues }), {
+    return new Response(JSON.stringify({ success: true, rowCount, colCount, qualityScore, schema, issues, domainProfile }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

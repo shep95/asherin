@@ -5,10 +5,11 @@ import {
   Plus, Building2, ChevronDown, Trash2, Pencil, Check, X,
   Keyboard, ShieldCheck,
   BookMarked, BookOpen, Folder, Users, Radio, FileLock, AlertTriangle, Swords, Library, Gavel, Sparkles,
-  ShieldAlert, Wrench, FileStack, GitBranch, Target, Plug, Smartphone, GraduationCap,
+  ShieldAlert, Wrench, FileStack, GitBranch, Target, Plug, Smartphone, GraduationCap, Layers,
 } from "lucide-react";
 import type { AzplenTab } from "./types";
 import IngestPanel from "./IngestPanel";
+import DomainIntelligencePanel from "./DomainIntelligencePanel";
 import DataTablePanel from "./DataTablePanel";
 import EntityResolutionPanel from "./EntityResolutionPanel";
 import PredictionsPanel from "./PredictionsPanel";
@@ -61,7 +62,8 @@ const tabs: { id: AzplenTab; icon: React.ElementType; label: string; sub: string
   { id: "memory",      icon: BookMarked,      label: "Memory",         sub: "Operator knowledge base",  phase: "Command" },
   { id: "playbooks",   icon: BookOpen,        label: "Playbooks",      sub: "Reusable procedures",      phase: "Command" },
   { id: "training",    icon: GraduationCap,   label: "Training",       sub: "Analyst scenarios",        phase: "Command" },
-  { id: "ingest",      icon: Upload,          label: "Ingest",         sub: "Upload financial data",    phase: "Collection" },
+  { id: "ingest",      icon: Upload,          label: "Ingest",         sub: "Land any data source",     phase: "Collection" },
+  { id: "domain",      icon: Layers,          label: "Domain Intel",   sub: "Ontology & governance",    phase: "Collection" },
   { id: "streams",     icon: Radio,           label: "Streams",        sub: "Live data feeds",          phase: "Collection" },
   { id: "field",       icon: Smartphone,      label: "Field",          sub: "Mobile capture",           phase: "Collection" },
   { id: "docintel",    icon: FileText,        label: "Documents",      sub: "Document intelligence",    phase: "Collection" },
@@ -275,6 +277,7 @@ const AzplenInner = () => {
         case "memory":         return <MemoryPanel />;
         case "playbooks":      return <PlaybooksPanel />;
         case "ingest":         return <IngestPanel />;
+        case "domain":         return <DomainIntelligencePanel />;
         case "streams":        return <StreamsPanel />;
         case "table":          return <DataTablePanel initialDatasetId={selectedDatasetId} />;
         case "entities":       return <EntityResolutionPanel />;
