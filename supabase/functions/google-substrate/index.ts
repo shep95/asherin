@@ -10,6 +10,10 @@ import { adminClient, liveAccounts, hasScope } from "../_shared/googleMesh.ts";
 import {
   runSweep, analyze, persistInsights, type SignalSource,
 } from "../_shared/googleSubstrate.ts";
+// Tier 2 runs over the same rows the tier-1 battery just read: no extra query,
+// no network, and its findings share the insight shape so persistence,
+// dismissal and the chat bridge need no special case.
+import { correlate } from "../_shared/googleCorrelator.ts";
 
 const json = (body: unknown, status: number, cors: Record<string, string>) =>
   new Response(JSON.stringify(body), {
@@ -93,7 +97,8 @@ Deno.serve(async (req) => {
           .eq("user_id", userId)
           .order("occurred_at", { ascending: false })
           .limit(4000);
-        derived = await persistInsights(sb, userId, analyze(userId, (rows ?? []) as any));
+        const r = (rows ?? []) as any;
+        derived = await persistInsights(sb, userId, [...analyze(userId, r), ...correlate(userId, r)]);
       } catch (e) {
         console.error("[google-substrate] analyze failed:", (e as Error).message);
       }
@@ -108,8 +113,11 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .order("occurred_at", { ascending: false })
         .limit(4000);
-      const derived = await persistInsights(sb, userId, analyze(userId, (rows ?? []) as any));
-      return json({ derived, scanned: (rows ?? []).length }, 200, cors);
+      const r = (rows ?? []) as any;
+      const tier1 = analyze(userId, r);
+      const tier2 = correlate(userId, r);
+      const derived = await persistInsights(sb, userId, [...tier1, ...tier2]);
+      return json({ derived, tier1: tier1.length, tier2: tier2.length, scanned: r.length }, 200, cors);
     }
 
     // ── SEARCH — full-text over the ledger, with facets ───────────────────
