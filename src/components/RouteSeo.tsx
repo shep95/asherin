@@ -106,7 +106,9 @@ function applySeo(entry: SeoEntry, path: string) {
     return m;
   });
 
-  // Per-route JSON-LD WebPage structured data (in addition to sitewide Organization)
+  // Per-route entity graph: WebPage/Article + BreadcrumbList + FAQPage +
+  // SoftwareApplication, all connected to the sitewide Organization/WebSite
+  // nodes declared in index.html. Identical to the build-time output.
   let ld = document.getElementById(JSONLD_ID) as HTMLScriptElement | null;
   if (!ld) {
     ld = document.createElement("script");
@@ -114,40 +116,8 @@ function applySeo(entry: SeoEntry, path: string) {
     ld.type = "application/ld+json";
     document.head.appendChild(ld);
   }
-  const isArticle = entry.ogType === "article" && Boolean(entry.datePublished);
-  ld.textContent = JSON.stringify(
-    isArticle
-      ? {
-          "@context": "https://schema.org",
-          "@type": "Article",
-          headline: entry.title,
-          description: entry.description,
-          datePublished: entry.datePublished,
-          dateModified: entry.dateModified ?? entry.datePublished,
-          author: { "@type": "Person", name: "Asher Newton" },
-          publisher: {
-            "@type": "Organization",
-            name: "Asherin",
-            url: ORIGIN,
-            logo: { "@type": "ImageObject", url: `${ORIGIN}/favicon.png` },
-          },
-          image: DEFAULT_OG_IMAGE,
-          mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
-          url: canonical,
-        }
-      : {
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          name: entry.title,
-          description: entry.description,
-          url: canonical,
-          isPartOf: {
-            "@type": "WebSite",
-            name: "Asherin",
-            url: ORIGIN,
-          },
-        },
-  );
+  ld.textContent = JSON.stringify(buildRouteGraph(path, entry));
+
 
   if (entry.noindex) {
     upsertMeta('meta[name="robots"]', "content", "noindex,nofollow", () => {
