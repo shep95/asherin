@@ -18,6 +18,8 @@
  *      framed at all, and a last resort otherwise.
  */
 
+import { GOOGLE_REDIRECT_URI, isTrustedAppOrigin } from "@/lib/googleRedirect";
+
 export const GOOGLE_POPUP_NAME = "asherin-google-consent";
 
 export type GoogleConsentResult =
