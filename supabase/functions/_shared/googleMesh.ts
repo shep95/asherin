@@ -34,13 +34,15 @@ export const TIER_SCOPES: Record<number, string[]> = {
     "https://www.googleapis.com/auth/fitness.sleep.read",
     "https://www.googleapis.com/auth/fitness.body.read",
   ],
-  // T4 — Agency. Compose only. `gmail.send` is deliberately NOT requested:
-  // Asherin writes drafts; the human presses send inside Gmail.
+  // T4 — Agency. Compose only. Asherin writes drafts; the human presses send.
   4: ["https://www.googleapis.com/auth/gmail.compose"],
+  // T5 — Delegated send. Opt-in, and still two-phase: a draft must exist and
+  // be confirmed by the human before anything leaves the outbox.
+  5: ["https://www.googleapis.com/auth/gmail.send"],
 };
 
 export function scopesForTier(tier: number): string[] {
-  const t = Math.max(1, Math.min(4, Math.floor(Number(tier) || 1)));
+  const t = Math.max(1, Math.min(5, Math.floor(Number(tier) || 1)));
   const out: string[] = [];
   for (let i = 1; i <= t; i++) out.push(...(TIER_SCOPES[i] || []));
   return [...new Set(out)];
@@ -407,6 +409,10 @@ export interface PlaceNode {
   sources: string[];
   cadenceDays: number | null;
   anomaly: boolean;
+  /** Projected next visit from the node's own median cadence. Null when the
+   *  place has too few observations to have a rhythm at all. */
+  nextExpected: string | null;
+  overdueDays: number | null;
 }
 
 /** Fold observations into nodes and flag the ones that broke their own rhythm. */
@@ -442,6 +448,12 @@ export function foldPlaces(obs: PlaceObservation[]): PlaceNode[] {
       sources: [...new Set(list.map((l) => l.source))],
       cadenceDays: cadence,
       anomaly,
+      nextExpected: cadence !== null && cadence > 0
+        ? new Date(times[times.length - 1] + cadence * 86400000).toISOString()
+        : null,
+      overdueDays: cadence !== null && cadence > 0 && lastGapDays > cadence
+        ? round(lastGapDays - cadence, 1)
+        : null,
     });
   }
   return nodes.sort((a, b) => b.visits - a.visits || Date.parse(b.lastSeen) - Date.parse(a.lastSeen));
