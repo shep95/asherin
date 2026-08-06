@@ -709,11 +709,8 @@ export function formatSocialBrief(results: SocialProbeResult[]): string {
           lines.push(`    · ${when} — ${body}${eng.length ? `  [${eng.join(" · ")}]` : ""}`);
         }
       }
-
-          lines.push(`    · ${when} — ${body}`);
-        }
-      }
       if (r.note) lines.push(`  Note: ${r.note}`);
+
     } else {
       // A refusal is reported as a refusal, with its cause. It is never
       // allowed to read as an absence of the subject from that platform.
