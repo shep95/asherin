@@ -606,3 +606,370 @@ export function fenceUntrusted(label: string, text: string): string {
 }
 
 export { gfetch };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RELATIONSHIP LEDGER — who actually matters, measured not guessed
+// ---------------------------------------------------------------------------
+// Built from Gmail *metadata only* (headers + internalDate). No body is read
+// here, so this runs on gmail.readonly without touching message content.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface MailHeader {
+  id: string;
+  threadId: string;
+  at: number;            // epoch ms, source clock (Gmail internalDate)
+  from: string;
+  to: string;
+  subject: string;
+  outbound: boolean;
+}
+
+const ADDR = /<([^>]+)>/;
+export function parseAddr(raw: string): { email: string; name: string } {
+  const s = String(raw ?? "").trim();
+  const m = s.match(ADDR);
+  const email = (m ? m[1] : s).toLowerCase().trim();
+  const name = (m ? s.slice(0, m.index).replace(/["']/g, "").trim() : "") || email.split("@")[0];
+  return { email, name };
+}
+
+/** Bounded metadata harvest. `q` is a Gmail search expression. */
+export async function harvestHeaders(
+  token: string,
+  q: string,
+  limit = 120,
+  outbound = false,
+): Promise<MailHeader[]> {
+  const list = await gfetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${Math.min(limit, 200)}&q=${encodeURIComponent(q)}`,
+    token,
+  ).catch(() => ({ messages: [] }));
+
+  const ids: string[] = (list.messages ?? []).slice(0, limit).map((m: any) => m.id);
+  const out: MailHeader[] = [];
+  const queue = [...ids];
+  const workers = Array.from({ length: Math.min(8, queue.length) }, async () => {
+    while (queue.length) {
+      const id = queue.shift();
+      if (!id) break;
+      try {
+        const d = await gfetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject`,
+          token,
+        );
+        const h = (n: string) => d.payload?.headers?.find((x: any) => x.name?.toLowerCase() === n)?.value ?? "";
+        const at = Number(d.internalDate);
+        out.push({
+          id: d.id,
+          threadId: d.threadId,
+          at: Number.isFinite(at) && at > 0 ? at : Date.now(),
+          from: h("from"),
+          to: h("to"),
+          subject: h("subject"),
+          outbound,
+        });
+      } catch { /* one bad message must not kill the harvest */ }
+    }
+  });
+  await Promise.allSettled(workers);
+  return out;
+}
+
+export interface Correspondent {
+  email: string;
+  name: string;
+  received: number;
+  sent: number;
+  reciprocity: number;        // 0..1 — 1 means you write as much as they do
+  firstSeen: string;
+  lastSeen: string;
+  lastDirection: "in" | "out";
+  medianReplyMinutes: number | null;
+  dormantDays: number;
+  dormant: boolean;           // was a real correspondence, has gone quiet
+  tier: "inner" | "active" | "periphery";
+}
+
+/**
+ * Fold inbound + outbound headers into a correspondent ledger.
+ * Reply latency is measured by pairing each inbound message with the next
+ * outbound message *in the same thread* — never across threads, which is the
+ * mistake that makes naive latency numbers meaningless.
+ */
+export function buildRelationships(headers: MailHeader[], selfEmails: string[]): Correspondent[] {
+  const self = new Set(selfEmails.map((e) => e.toLowerCase()));
+  const byPerson = new Map<string, {
+    name: string; received: MailHeader[]; sent: MailHeader[];
+  }>();
+
+  for (const h of headers) {
+    const counterRaw = h.outbound ? h.to.split(",")[0] : h.from;
+    const { email, name } = parseAddr(counterRaw);
+    if (!email || !email.includes("@") || self.has(email)) continue;
+    if (/^(no-?reply|do-?not-?reply|notifications?|mailer-daemon|postmaster|bounce)/i.test(email)) continue;
+    const rec = byPerson.get(email) ?? { name, received: [], sent: [] };
+    if (!rec.name || rec.name === email.split("@")[0]) rec.name = name;
+    (h.outbound ? rec.sent : rec.received).push(h);
+    byPerson.set(email, rec);
+  }
+
+  // Thread timeline for latency pairing.
+  const byThread = new Map<string, MailHeader[]>();
+  for (const h of headers) {
+    const arr = byThread.get(h.threadId) ?? [];
+    arr.push(h);
+    byThread.set(h.threadId, arr);
+  }
+  for (const arr of byThread.values()) arr.sort((a, b) => a.at - b.at);
+
+  const latency = new Map<string, number[]>();
+  for (const arr of byThread.values()) {
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i].outbound) continue;
+      const next = arr.slice(i + 1).find((m) => m.outbound);
+      if (!next) continue;
+      const mins = (next.at - arr[i].at) / 60000;
+      if (mins <= 0 || mins > 60 * 24 * 30) continue; // a month-late reply is not a latency signal
+      const { email } = parseAddr(arr[i].from);
+      const list = latency.get(email) ?? [];
+      list.push(mins);
+      latency.set(email, list);
+    }
+  }
+
+  const now = Date.now();
+  const out: Correspondent[] = [];
+  for (const [email, rec] of byPerson) {
+    const all = [...rec.received, ...rec.sent].sort((a, b) => a.at - b.at);
+    const total = all.length;
+    const lat = (latency.get(email) ?? []).sort((a, b) => a - b);
+    const lastMsg = all[all.length - 1];
+    const dormantDays = Math.floor((now - lastMsg.at) / 86400000);
+    const reciprocity = total ? rec.sent.length / total : 0;
+    // Inner circle = two-way traffic with real volume. Volume alone is a
+    // newsletter; reciprocity alone is a one-off. Both, or it is periphery.
+    const tier: Correspondent["tier"] =
+      total >= 8 && reciprocity >= 0.3 ? "inner"
+        : total >= 3 ? "active"
+          : "periphery";
+    out.push({
+      email,
+      name: rec.name,
+      received: rec.received.length,
+      sent: rec.sent.length,
+      reciprocity: round(reciprocity, 2),
+      firstSeen: new Date(all[0].at).toISOString(),
+      lastSeen: new Date(lastMsg.at).toISOString(),
+      lastDirection: lastMsg.outbound ? "out" : "in",
+      medianReplyMinutes: lat.length ? Math.round(lat[Math.floor(lat.length / 2)]) : null,
+      dormantDays,
+      dormant: tier !== "periphery" && dormantDays >= 45,
+      tier,
+    });
+  }
+  return out.sort((a, b) => (b.received + b.sent) - (a.received + a.sent));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COMMITMENT EXTRACTOR — promises you made, with the clock attached
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface Commitment {
+  text: string;
+  toEmail: string;
+  toName: string;
+  madeAt: string;
+  dueAt: string | null;
+  dueLabel: string | null;
+  overdue: boolean;
+  subject: string;
+  messageId: string;
+  confidence: number;   // 0..1 — how strongly the sentence reads as a promise
+}
+
+const PROMISE = /\b(i(?:'| a|’)?m going to|i will|i'?ll|i’ll|we will|we'?ll|we’ll|let me|i can have|i'?ve got you|i shall|will send|will get|will follow up|will circle back)\b/i;
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const TEMPORAL = new RegExp(
+  `\\b(today|tonight|tomorrow|this (?:morning|afternoon|evening|week|weekend|month)|next (?:week|month|${WEEKDAYS.join("|")})|by (?:eod|eow|cob|end of (?:day|week|month)|${WEEKDAYS.join("|")})|on (?:${WEEKDAYS.join("|")})|in (?:a|\\d+) (?:hour|hours|day|days|week|weeks)|within (?:a|\\d+) (?:hour|hours|day|days|week|weeks)|\\d{1,2}\\/\\d{1,2}(?:\\/\\d{2,4})?|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]* \\d{1,2})\\b`,
+  "i",
+);
+
+/** Resolve a temporal phrase to a concrete instant, anchored on when it was written. */
+export function resolveDue(label: string, anchorMs: number): number | null {
+  const l = label.toLowerCase().trim();
+  const day = 86400000;
+  const anchor = new Date(anchorMs);
+  const endOf = (d: Date) => { d.setUTCHours(23, 59, 0, 0); return d.getTime(); };
+
+  if (/^(today|tonight|by (eod|cob|end of day)|this (morning|afternoon|evening))$/.test(l)) return endOf(new Date(anchorMs));
+  if (l === "tomorrow") return endOf(new Date(anchorMs + day));
+  if (/^(this week|by (eow|end of week))$/.test(l)) {
+    const d = new Date(anchorMs);
+    return endOf(new Date(anchorMs + ((7 - d.getUTCDay()) % 7 || 7) * day));
+  }
+  if (l === "this weekend") {
+    const d = new Date(anchorMs);
+    return endOf(new Date(anchorMs + ((6 - d.getUTCDay() + 7) % 7) * day));
+  }
+  if (l === "next week") return endOf(new Date(anchorMs + 7 * day));
+  if (l === "next month" || l === "by end of month") return endOf(new Date(anchorMs + 30 * day));
+  if (/^this month$/.test(l)) return endOf(new Date(anchorMs + 14 * day));
+
+  const wd = l.match(new RegExp(`(?:next|on|by)\\s+(${WEEKDAYS.join("|")})`));
+  if (wd) {
+    const target = WEEKDAYS.indexOf(wd[1]);
+    const cur = anchor.getUTCDay();
+    let delta = (target - cur + 7) % 7;
+    if (delta === 0 || /^next/.test(l)) delta = delta === 0 ? 7 : delta + (/^next/.test(l) ? 7 : 0);
+    return endOf(new Date(anchorMs + delta * day));
+  }
+
+  const rel = l.match(/(?:in|within)\s+(a|\d+)\s+(hour|hours|day|days|week|weeks)/);
+  if (rel) {
+    const n = rel[1] === "a" ? 1 : parseInt(rel[1], 10);
+    if (!Number.isFinite(n) || n <= 0 || n > 365) return null;
+    const unit = rel[2].startsWith("hour") ? 3600000 : rel[2].startsWith("week") ? 7 * day : day;
+    return anchorMs + n * unit;
+  }
+
+  const numeric = l.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (numeric) {
+    const mo = parseInt(numeric[1], 10), dd = parseInt(numeric[2], 10);
+    if (mo < 1 || mo > 12 || dd < 1 || dd > 31) return null;
+    let yr = numeric[3] ? parseInt(numeric[3], 10) : anchor.getUTCFullYear();
+    if (yr < 100) yr += 2000;
+    const t = Date.UTC(yr, mo - 1, dd, 23, 59);
+    // A bare M/D that already passed refers to next year.
+    return !numeric[3] && t < anchorMs - 7 * day ? Date.UTC(yr + 1, mo - 1, dd, 23, 59) : t;
+  }
+
+  const named = l.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})$/);
+  if (named) {
+    const mo = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].indexOf(named[1]);
+    const dd = parseInt(named[2], 10);
+    if (mo < 0 || dd < 1 || dd > 31) return null;
+    const yr = anchor.getUTCFullYear();
+    const t = Date.UTC(yr, mo, dd, 23, 59);
+    return t < anchorMs - 7 * day ? Date.UTC(yr + 1, mo, dd, 23, 59) : t;
+  }
+  return null;
+}
+
+export function extractCommitments(
+  msgs: Array<{ id: string; subject: string; to: string; at: number; body: string }>,
+): Commitment[] {
+  const out: Commitment[] = [];
+  const now = Date.now();
+  for (const m of msgs) {
+    const clean = ownWordsOnly(m.body);
+    const sentences = clean.split(/(?<=[.!?\n])\s+/).map((s) => s.trim()).filter((s) => s.length > 12 && s.length < 320);
+    for (const s of sentences) {
+      if (!PROMISE.test(s)) continue;
+      const t = s.match(TEMPORAL);
+      const dueMs = t ? resolveDue(t[0], m.at) : null;
+      // Confidence: a promise verb alone is weak; a promise with a resolvable
+      // clock is strong. Never present a weak match as a deadline.
+      const confidence = t ? (dueMs ? 0.9 : 0.6) : 0.35;
+      if (confidence < 0.6) continue;
+      const { email, name } = parseAddr(m.to.split(",")[0] ?? "");
+      out.push({
+        text: s.replace(/\s+/g, " ").trim(),
+        toEmail: email,
+        toName: name,
+        madeAt: new Date(m.at).toISOString(),
+        dueAt: dueMs ? new Date(dueMs).toISOString() : null,
+        dueLabel: t ? t[0] : null,
+        overdue: !!dueMs && dueMs < now,
+        subject: m.subject,
+        messageId: m.id,
+        confidence,
+      });
+    }
+  }
+  // Deduplicate near-identical promises (same recipient, same first 60 chars).
+  const seen = new Set<string>();
+  return out
+    .filter((c) => {
+      const k = `${c.toEmail}|${c.text.slice(0, 60).toLowerCase()}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .sort((a, b) => {
+      const av = a.dueAt ? Date.parse(a.dueAt) : Infinity;
+      const bv = b.dueAt ? Date.parse(b.dueAt) : Infinity;
+      return av - bv;
+    });
+}
+
+/** Full-body harvest with envelope metadata, used by the commitment engine. */
+export async function harvestBodies(
+  token: string,
+  q: string,
+  limit = 40,
+): Promise<Array<{ id: string; subject: string; to: string; at: number; body: string }>> {
+  const list = await gfetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${Math.min(limit, 100)}&q=${encodeURIComponent(q)}`,
+    token,
+  ).catch(() => ({ messages: [] }));
+  const ids: string[] = (list.messages ?? []).slice(0, limit).map((m: any) => m.id);
+  const out: Array<{ id: string; subject: string; to: string; at: number; body: string }> = [];
+  const queue = [...ids];
+  const workers = Array.from({ length: Math.min(8, queue.length) }, async () => {
+    while (queue.length) {
+      const id = queue.shift();
+      if (!id) break;
+      try {
+        const d = await gfetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`, token);
+        const h = (n: string) => d.payload?.headers?.find((x: any) => x.name?.toLowerCase() === n)?.value ?? "";
+        const at = Number(d.internalDate);
+        out.push({
+          id: d.id,
+          subject: h("subject"),
+          to: h("to"),
+          at: Number.isFinite(at) && at > 0 ? at : Date.now(),
+          body: extractPlainPublic(d.payload),
+        });
+      } catch { /* degrade per message */ }
+    }
+  });
+  await Promise.allSettled(workers);
+  return out;
+}
+
+export function extractPlainPublic(payload: any): string {
+  return extractPlain(payload);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SEND WITH APPROVAL — Tier 5, two-phase, never one-click
+// ---------------------------------------------------------------------------
+// Phase 1 creates a Gmail draft the human can read. Phase 2 sends THAT draft,
+// and only when the caller echoes back the draft id plus an explicit typed
+// confirmation. There is no path that composes and sends in a single call.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export async function getDraft(token: string, draftId: string): Promise<{
+  to: string; subject: string; snippet: string;
+}> {
+  const d = await gfetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/drafts/${encodeURIComponent(draftId)}?format=metadata`,
+    token,
+  );
+  const h = (n: string) => d.message?.payload?.headers?.find((x: any) => x.name?.toLowerCase() === n)?.value ?? "";
+  return { to: h("to"), subject: h("subject"), snippet: d.message?.snippet ?? "" };
+}
+
+export async function sendExistingDraft(token: string, draftId: string): Promise<{ messageId: string; threadId: string }> {
+  const res = await gfetch(
+    "https://gmail.googleapis.com/gmail/v1/users/me/drafts/send",
+    token,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: draftId }),
+    },
+    25_000,
+  );
+  return { messageId: res.id, threadId: res.threadId };
+}
