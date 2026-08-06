@@ -2,6 +2,14 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
+import {
+  IMAGINE_EVIDENCE_PROTOCOL,
+  IMAGINE_EVIDENCE_SCHEMA,
+  renderExifBlock,
+  reconcileHypotheses,
+  type ExifHint,
+} from "../_shared/imagineEvidence.ts";
+import { verifySolarClaim } from "../_shared/solarGeometry.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 serve(async (req) => {
