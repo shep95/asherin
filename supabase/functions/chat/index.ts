@@ -1309,6 +1309,31 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       intelIntent = null;
     }
 
+    // ── Google Mesh: the inward-facing sensor array ──────────────────────
+    // Zophiel answers "who is X in the world". The Mesh answers "what is true
+    // about ME" — and only when the turn is first-person AND the caller is a
+    // verified signed-in user with connected accounts. Anything less returns
+    // null and the turn proceeds exactly as before.
+    let googleMeshContext = "";
+    try {
+      const lastUserForMesh = [...messages].reverse().find((m: any) => m.role === "user");
+      const meshQ = String(lastUserForMesh?.content || "");
+      const { classifyMeshIntent, runGoogleMesh, formatMeshContext } =
+        await import("../_shared/googleMeshBridge.ts");
+      const meshIntent = classifyMeshIntent(meshQ);
+      if (meshIntent.active && authHeader) {
+        const meshBundle = await runGoogleMesh(authHeader, meshQ, meshIntent);
+        googleMeshContext = formatMeshContext(meshBundle);
+        if (meshBundle) {
+          console.log(
+            `[chat] Google Mesh: accounts=${meshBundle.accounts.length}, mail=${meshBundle.mail.length}, events=${meshBundle.events.length}, places=${meshBundle.places.length}, ${meshBundle.elapsedMs}ms`,
+          );
+        }
+      }
+    } catch (e) {
+      console.error("[chat] Google Mesh bridge failed:", (e as Error).message);
+    }
+
     if (shouldSearch(messages, mode)) {
       const searchUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
       if (searchUserMsg) {
@@ -1916,7 +1941,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       skillInjection ? `\n${skillInjection}` : "",
       swarmInjection ? `\n[SWARM ORCHESTRATOR — Active Agent: ${activeAgentId || "general"}]\n${swarmInjection}` : "",
       DEFENSIVE_SECURITY_REALISM_STATE,
-      webSearchContext,
+      webSearchContext: webSearchContext + googleMeshContext,
       leaksContext,
       archiveContext,
       jurisdictionalContext,
