@@ -188,9 +188,11 @@ You MUST respond with ONLY valid JSON in this exact format:
     "estimated_local_time": "string (e.g. '14:30' or '2:30 PM')",
     "time_confidence": number,
     "shadow_analysis": "string describing shadow patterns observed",
+    "shadow_direction": "compass bearing the shadows FALL TOWARD, e.g. 'NE' or '235 deg', or null if no shadows are readable",
     "estimated_season": "string (e.g. 'Summer', 'Winter', 'Spring', 'Autumn')",
-    "sun_position": "string (e.g. 'High overhead', 'Low on western horizon')"
-  },
+    "sun_position": "string (e.g. 'High overhead', 'Low on western horizon')",
+    "capture_date_estimate": "string 'YYYY-MM-DD' or null — your best estimate of the calendar date"
+  }${IMAGINE_EVIDENCE_SCHEMA.replace(/^,/, ",")},
   "person_analysis": [
     {
       "person_id": number,
