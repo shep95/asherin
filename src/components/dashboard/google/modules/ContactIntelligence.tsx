@@ -275,7 +275,7 @@ const ContactIntelligence = () => {
     } finally {
       if (alive.current) { setLoading(false); setPhase(""); }
     }
-  }, [isConnected, fetchGoogleData, accounts, userId]);
+  }, [isConnected, fetchGoogleData, accounts, userId, refreshMesh]);
 
   // Foreground continuity: sweeps on open, keeps a cadence while the tab is
   // visible, catches up on refocus and reconnect, and yields to sibling tabs.
