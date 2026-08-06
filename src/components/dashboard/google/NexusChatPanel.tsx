@@ -16,7 +16,7 @@ interface NexusChatPanelProps {
 }
 
 const moduleContextMap: Record<string, string> = {
-  overview: "Google Intelligence Nexus overview — all modules, multi-account management, and cross-platform correlation.",
+  overview: "Cloud Intelligence Mesh station overview — all modules, multi-account management, and cross-platform correlation.",
   twin: "AI Digital Twin — the user's complete digital replica that predicts decisions, automates life, and knows communication style, preferences, and routines.",
   location: "Location Prophet — analyzes 5+ years of Google location history, predicts where the user will be next week with 95% accuracy, discovers movement patterns.",
   email: "AI Email Assistant — learns the user's writing style from sent emails, auto-replies in their voice, prioritizes inbox, and drafts messages.",
@@ -73,7 +73,7 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
 
     const apiMessages = [
       { role: "user" as const, content: systemContext },
-      { role: "assistant" as const, content: "Understood. I'm Aureon, ready to assist with your Google Intelligence data. What would you like to know?" },
+      { role: "assistant" as const, content: "Understood. Station analyst online, reading your connected collection. What would you like to know?" },
       ...messages.map((m) => ({ role: m.role, content: m.content })),
       { role: "user" as const, content: trimmed },
     ];
@@ -147,7 +147,7 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-foreground/50" />
           <span className="text-xs font-light text-foreground">
-            Aureon · {moduleLabel}
+            Asherin · {moduleLabel}
           </span>
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/60" />
         </div>
@@ -176,11 +176,11 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
             <div className="flex flex-col items-center justify-center py-10 space-y-3">
               <Brain className="h-8 w-8 text-muted-foreground/15" />
               <p className="text-xs font-extralight text-muted-foreground/40 text-center max-w-[200px]">
-                Ask Aureon about your {moduleLabel} intelligence data
+                Ask Asherin about your {moduleLabel} intelligence
               </p>
               <div className="flex flex-wrap gap-1.5 justify-center max-w-[280px]">
                 {[
-                  activeModule === "overview" ? "Summarize my Google data" : `Analyze my ${moduleLabel} data`,
+                  activeModule === "overview" ? "Summarize my collection" : `Analyze my ${moduleLabel} data`,
                   activeModule === "health" ? "Am I getting sick?" : "What patterns do you see?",
                   "What should I do next?",
                 ].map((q) => (
