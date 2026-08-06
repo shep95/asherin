@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       // hand the authorization code back to. Only same-scheme https app
       // origins are carried; anything else is dropped rather than echoed.
       const rawOrigin = typeof body.origin === "string" ? body.origin : "";
-      const launchOrigin = /^https:\/\/[a-z0-9.-]+(\.lovable\.app|\.lovableproject\.com|asherin\.com)$/i.test(rawOrigin)
+      const launchOrigin = /^https:\/\/(asherin\.com|www\.asherin\.com|[a-z0-9-]+(\.[a-z0-9-]+)*\.(lovable\.app|lovableproject\.com))$/i.test(rawOrigin)
         ? rawOrigin
         : null;
       const statePayload = JSON.stringify({ nonce: stateNonce, userId, ts: Date.now(), origin: launchOrigin });
