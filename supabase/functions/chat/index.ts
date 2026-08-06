@@ -1423,8 +1423,9 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           }
 
           // Social layer. Runs only when the turn names a platform or pastes
-          // a profile link — a sweep spends a scarce Instagram read, so itは
+          // a profile link — a sweep spends a scarce Instagram read, so it is
           // never fired speculatively on a bare "@" mention.
+
           try {
             const { needsSocialLayer, extractSocialTargets, runSocialIntel, formatSocialContext } =
               await import("../_shared/socialChatBridge.ts");
