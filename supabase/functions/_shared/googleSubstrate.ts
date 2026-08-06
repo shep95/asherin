@@ -173,8 +173,8 @@ export async function harvestCalendar(
   return (d.items ?? []).slice(0, cap).map((e: any) => {
     const start = e.start?.dateTime ?? (e.start?.date ? `${e.start.date}T00:00:00Z` : null);
     const end = e.end?.dateTime ?? (e.end?.date ? `${e.end.date}T00:00:00Z` : null);
-    const attendees = (e.attendees ?? [])
-      .map((x: any) => String(x.email ?? "").toLowerCase()).filter(Boolean);
+    const attendees: string[] = (e.attendees ?? [])
+      .map((x: any) => String(x.email ?? "").toLowerCase()).filter((s: string) => Boolean(s));
     const mins = start && end
       ? Math.max(0, Math.round((Date.parse(end) - Date.parse(start)) / 60000))
       : null;
@@ -191,7 +191,7 @@ export async function harvestCalendar(
       direction: null,
       subject: clip(e.summary || "(untitled event)", 400),
       snippet: clip(e.description, 600),
-      counterparties: [...new Set(attendees)].slice(0, 32),
+      counterparties: Array.from(new Set(attendees)).slice(0, 32),
       amount: null,
       currency: null,
       metadata: {
