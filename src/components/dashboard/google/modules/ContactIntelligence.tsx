@@ -577,6 +577,105 @@ const ContactIntelligence = () => {
         </div>
       )}
 
+      {/* ── Correspondence rhythm ──────────────────────────────────────
+          Only the marginal distributions are rendered. The corpus carries an
+          hour histogram and a day histogram, not their joint distribution —
+          drawing a 7×24 grid from two marginals would invent structure that
+          was never observed. */}
+      {summary && summary.patterns.sampleSize > 0 && (
+        <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-4">
+          <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
+            <Activity className="h-3.5 w-3.5" /> Correspondence Rhythm
+          </h3>
+          <div className="space-y-3">
+            <div>
+              <p className="text-[9px] tracking-[0.18em] text-muted-foreground/40 font-light mb-1.5">BY HOUR (LOCAL)</p>
+              <div className="flex items-end gap-[2px] h-12">
+                {summary.patterns.hourHistogram.map((v, h) => {
+                  const peak = Math.max(1, ...summary.patterns.hourHistogram);
+                  const off = h < 8 || h >= 18;
+                  return (
+                    <div
+                      key={h}
+                      title={`${String(h).padStart(2, "0")}:00 — ${v} message${v === 1 ? "" : "s"}${off ? " (outside working hours)" : ""}`}
+                      className={`flex-1 rounded-t-[2px] ${off ? "bg-foreground/25" : "bg-foreground/55"}`}
+                      style={{ height: `${Math.max(2, (v / peak) * 100)}%` }}
+                    />
+                  );
+                })}
+              </div>
+              <div className="flex justify-between mt-1">
+                {[0, 6, 12, 18, 23].map((h) => (
+                  <span key={h} className="text-[8px] text-muted-foreground/30 font-light">{String(h).padStart(2, "0")}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[9px] tracking-[0.18em] text-muted-foreground/40 font-light mb-1.5">BY WEEKDAY</p>
+              <div className="flex items-end gap-1 h-9">
+                {summary.patterns.dayHistogram.map((v, d) => {
+                  const peak = Math.max(1, ...summary.patterns.dayHistogram);
+                  return (
+                    <div key={d} className="flex-1 flex flex-col items-center gap-1">
+                      <div
+                        title={`${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]} — ${v} messages`}
+                        className="w-full rounded-t-[2px] bg-foreground/45"
+                        style={{ height: `${Math.max(2, (v / peak) * 100)}%` }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-1 mt-1">
+                {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+                  <span key={i} className="flex-1 text-center text-[8px] text-muted-foreground/30 font-light">{d}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <p className="text-[10px] font-extralight text-muted-foreground/55 leading-relaxed">
+            {summary.patterns.sampleSize} timed messages. Peak hour {summary.patterns.peakHour ?? "—"}:00.
+            {" "}{Math.round(summary.patterns.afterHoursShare * 100)}% of traffic lands outside 08:00–18:00 — darker bars mark
+            those hours. Hours with no bar are structurally silent: a message arriving there would be off-pattern.
+          </p>
+        </div>
+      )}
+
+      {/* ── Relationship lattice ───────────────────────────────────── */}
+      {dossiers.filter((d) => d.total > 0).length >= 3 && (
+        <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
+          <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
+            <Network className="h-3.5 w-3.5" /> Relationship Lattice
+          </h3>
+          <RelationGraph
+            nodes={[
+              { id: "__ego__", label: "You", ring: 0, cluster: 0, weight: 40 },
+              ...dossiers
+                .filter((d) => d.total > 0)
+                .slice(0, 42)
+                .map((d) => ({
+                  id: d.key,
+                  label: d.name,
+                  ring: d.tier === "inner" ? 1 : d.tier === "active" ? 2 : 3,
+                  cluster: Math.max(0, orgClusters.indexOf(d.organization || "unaffiliated")),
+                  weight: d.total,
+                })),
+            ]}
+            edges={dossiers
+              .filter((d) => d.total > 0)
+              .slice(0, 42)
+              .map((d) => ({ from: "__ego__", to: d.key, weight: d.total }))}
+            clusterNames={orgClusters}
+          />
+          <p className="text-[10px] font-extralight text-muted-foreground/55 leading-relaxed">
+            Rings are relationship tiers — inner, active, periphery — placed by measured volume, latency and recency.
+            Edge thickness is exchanged message count. Adjacency on a ring means shared organisation, the only grouping
+            the corpus can prove; no co-occurrence is inferred where none was observed.
+          </p>
+        </div>
+      )}
+
+
       {/* ── Alerts ─────────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
         <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
