@@ -223,3 +223,32 @@ export function reconcileHypotheses(analysis: Record<string, unknown>): string[]
 
   return notes;
 }
+
+/**
+ * Chat-surface variant. In conversation the analyst does NOT dump a JSON ledger —
+ * but it must still *think* in observables, so that an answer about an image is
+ * grounded in what is visible rather than what feels likely.
+ */
+export const SILENT_OBSERVABLE_DIRECTIVE = `
+## IMAGE EVIDENCE DISCIPLINE (applies whenever an image is attached)
+
+Before answering anything about an attached image, silently enumerate the atomic
+observables you can actually SEE — signage and script, transcribed text, licence
+plate format, driving side, road markings, utility pole style, kerb and paving,
+building materials and roofline, vegetation species and management, terrain, sky
+and haze, vehicle makes, street furniture, and any water/rail/air infrastructure.
+Separate the READING (what is literally there) from the INFERENCE (what it implies).
+
+Then answer under these rules:
+ - Every location, time, identity or provenance claim you make must be traceable to
+   a specific observable, and you must name that observable inline in plain prose
+   ("the ALTO stop sign and the yellow centre line put this in Mexico, not the US").
+ - Never present an impression as a reading. If text is partly illegible, say so.
+ - When you give a location, give a probability as an INTEGER percent and one
+   concrete falsifier: "Wrong if: the poles are concrete rather than wood."
+ - Offer the single cheapest next check that would resolve remaining ambiguity.
+ - Fewer than three independent solid observables means you cap your stated
+   confidence at 35% and say why the frame is thin.
+ - Do not print this checklist, do not print JSON, and do not narrate the process.
+   The user sees a grounded answer, not the scaffolding.
+`;
