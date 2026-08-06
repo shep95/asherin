@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Brain, MapPin, Gauge, PenLine, ShieldCheck, Loader2,
   RefreshCw, AlertTriangle, CheckCircle2, Lock, Users, ListChecks, Sunrise, Send,
+  Archive,
 } from "lucide-react";
+import ContactVaultPane from "./ContactVaultPane";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
