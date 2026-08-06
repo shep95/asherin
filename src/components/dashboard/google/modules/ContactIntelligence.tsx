@@ -268,18 +268,18 @@ const ContactIntelligence = () => {
               <h2 className="text-lg font-extralight tracking-wide text-foreground">Contact Intelligence</h2>
               {isConnected && (
                 <button
-                  onClick={sweep}
+                  onClick={() => void auto.syncNow()}
                   disabled={loading}
                   className="flex items-center gap-1.5 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground/40"
                 >
                   <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin motion-reduce:animate-none" : ""}`} />
-                  {loading ? "Sweeping" : "Deep Sweep"}
+                  {loading ? "Sweeping" : "Sync Now"}
                 </button>
               )}
             </div>
             <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
               {isConnected
-                ? "Every identity in reach — address book, inbox, sent mail and calendar — fused into one ledger with message-pattern and language profiling, held on this device."
+                ? "Every identity in reach — address book, inbox, sent mail and calendar — fused into one ledger with message-pattern and language profiling, held on this device. Syncs on open, on a cadence while this tab is visible, and on the server while the app is closed."
                 : "Connect Google to fuse your address book with mail and calendar traffic into ranked dossiers."}
             </p>
             {loading && phase && (
@@ -290,7 +290,39 @@ const ContactIntelligence = () => {
                 <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" /> {error}
               </p>
             )}
+
+            {/* Sync posture — foreground cadence and the closed-app sweep,
+                stated separately so neither one implies the other. */}
+            {isConnected && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1" aria-live="polite">
+                <span className="flex items-center gap-1.5 text-[10px] font-light text-muted-foreground/60">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      loading || auto.syncing
+                        ? "bg-foreground/70 animate-pulse motion-reduce:animate-none"
+                        : auto.lastError
+                          ? "bg-amber-400/80"
+                          : "bg-emerald-400/70"
+                    }`}
+                  />
+                  {loading || auto.syncing
+                    ? "Live sync running"
+                    : `This tab: ${fmtWhen(auto.lastRunAt)}${auto.nextRunAt ? ` · next ${fmtIn(auto.nextRunAt)}` : ""}`}
+                </span>
+                <span className="flex items-center gap-1.5 text-[10px] font-light text-muted-foreground/60">
+                  <Cloud className="h-3 w-3 shrink-0" />
+                  {serverSync
+                    ? serverSync.enabled
+                      ? `Background: ${fmtWhen(serverSync.lastSyncedAt ? Date.parse(serverSync.lastSyncedAt) : null)}` +
+                        `${serverSync.nextDueAt ? ` · next ${fmtIn(Date.parse(serverSync.nextDueAt))}` : ""}` +
+                        `${serverSync.lastStatus === "error" ? " · last run failed" : ""}`
+                      : "Background sync off"
+                    : "Background sync arming…"}
+                </span>
+              </div>
+            )}
           </div>
+
         </div>
       </div>
 
