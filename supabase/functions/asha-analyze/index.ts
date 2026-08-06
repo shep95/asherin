@@ -501,7 +501,7 @@ Return ONLY a valid JSON array, no markdown.` }] }],
       }
     }
 
-    return new Response(JSON.stringify({ success: true, rowCount, colCount, qualityScore, schema, issues }), {
+    return new Response(JSON.stringify({ success: true, rowCount, colCount, qualityScore, schema, issues, domainProfile }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
