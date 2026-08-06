@@ -1,0 +1,190 @@
+/**
+ * Build-time head prerender.
+ *
+ * This app is a client-rendered SPA: every URL is served the same index.html,
+ * so crawlers that do not execute JS (social previews, plain HTTP fetchers,
+ * most SEO scanners) see one title, one description, and one canonical for
+ * every route. RouteSeo.tsx fixes that only after hydration.
+ *
+ * After the bundle is written, this plugin emits one static HTML file per known
+ * route with the correct <title>, description, canonical, og:*, twitter:*, and
+ * JSON-LD baked into the markup. The runtime layer still runs and produces the
+ * identical values, so client navigation and first load agree.
+ */
+
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import type { Plugin } from "vite";
+import {
+  DEFAULT_OG_IMAGE,
+  ORIGIN,
+  ROUTE_SEO,
+  type SeoEntry,
+} from "../src/lib/routeSeoData";
+
+/** Hard ceiling so route growth can never push the build past publish limits. */
+const MAX_PRERENDER_PAGES = 2000;
+
+function escapeAttr(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/** Replace an existing tag matched by `pattern`, or append `tag` to <head>. */
+function upsertTag(html: string, pattern: RegExp, tag: string) {
+  // Patterns are built per-call and used once, so no lastIndex state to carry.
+  return pattern.test(html)
+    ? html.replace(pattern, tag)
+    : html.replace("</head>", `  ${tag}\n</head>`);
+}
+
+function metaPattern(attr: "name" | "property", key: string) {
+  return new RegExp(`<meta[^>]*${attr}=["']${key}["'][^>]*>`, "i");
+}
+
+function buildJsonLd(entry: SeoEntry, canonical: string) {
+  const isArticle = entry.ogType === "article" && Boolean(entry.datePublished);
+  const payload = isArticle
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: entry.title,
+        description: entry.description,
+        datePublished: entry.datePublished,
+        dateModified: entry.dateModified ?? entry.datePublished,
+        author: { "@type": "Person", name: "Asher Newton" },
+        publisher: {
+          "@type": "Organization",
+          name: "Asherin",
+          url: ORIGIN,
+          logo: { "@type": "ImageObject", url: `${ORIGIN}/favicon.png` },
+        },
+        image: DEFAULT_OG_IMAGE,
+        mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+        url: canonical,
+      }
+    : {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: entry.title,
+        description: entry.description,
+        url: canonical,
+        isPartOf: { "@type": "WebSite", name: "Asherin", url: ORIGIN },
+      };
+  // </script> inside JSON would close the tag early; JSON-LD escapes it as <\/script>.
+  return `<script type="application/ld+json" id="route-seo-jsonld">${JSON.stringify(
+    payload,
+  ).replace(/</g, "\\u003c")}</script>`;
+}
+
+function renderRouteHtml(template: string, path: string, entry: SeoEntry) {
+  const canonical = `${ORIGIN}${path}`;
+  const title = escapeAttr(entry.title);
+  const description = escapeAttr(entry.description);
+
+  let html = template;
+
+  html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
+  html = upsertTag(
+    html,
+    metaPattern("name", "description"),
+    `<meta name="description" content="${description}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<link[^>]*rel=["']canonical["'][^>]*>/i,
+    `<link rel="canonical" href="${canonical}" />`,
+  );
+  html = upsertTag(
+    html,
+    metaPattern("property", "og:title"),
+    `<meta property="og:title" content="${title}" />`,
+  );
+  html = upsertTag(
+    html,
+    metaPattern("property", "og:description"),
+    `<meta property="og:description" content="${description}" />`,
+  );
+  html = upsertTag(
+    html,
+    metaPattern("property", "og:url"),
+    `<meta property="og:url" content="${canonical}" />`,
+  );
+  html = upsertTag(
+    html,
+    metaPattern("property", "og:type"),
+    `<meta property="og:type" content="${entry.ogType ?? "website"}" />`,
+  );
+  html = upsertTag(
+    html,
+    metaPattern("name", "twitter:title"),
+    `<meta name="twitter:title" content="${title}" />`,
+  );
+  html = upsertTag(
+    html,
+    metaPattern("name", "twitter:description"),
+    `<meta name="twitter:description" content="${description}" />`,
+  );
+
+  // Private routes must not be indexed even when fetched without JS.
+  const robots = entry.noindex
+    ? "noindex,nofollow"
+    : "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1";
+  html = upsertTag(
+    html,
+    metaPattern("name", "robots"),
+    `<meta name="robots" content="${robots}" />`,
+  );
+  if (entry.noindex) {
+    html = upsertTag(
+      html,
+      metaPattern("name", "googlebot"),
+      `<meta name="googlebot" content="noindex,nofollow" />`,
+    );
+  }
+
+  html = html.replace("</head>", `  ${buildJsonLd(entry, canonical)}\n</head>`);
+  return html;
+}
+
+export function seoPrerenderPlugin(): Plugin {
+  return {
+    name: "asherin-seo-prerender",
+    apply: "build",
+    enforce: "post",
+    writeBundle(options) {
+      const outDir = options.dir ?? resolve(process.cwd(), "dist");
+      const indexPath = join(outDir, "index.html");
+
+      let template: string;
+      try {
+        template = readFileSync(indexPath, "utf8");
+      } catch {
+        // Non-HTML builds (SSR/library passes) have no index.html to extend.
+        return;
+      }
+
+      const routes = Object.entries(ROUTE_SEO).slice(0, MAX_PRERENDER_PAGES);
+      let written = 0;
+
+      for (const [path, entry] of routes) {
+        if (!path.startsWith("/")) continue;
+        const html = renderRouteHtml(template, path, entry);
+        const target =
+          path === "/" ? indexPath : join(outDir, path.replace(/^\//, ""), "index.html");
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, html);
+        written += 1;
+      }
+
+      const skipped = Object.keys(ROUTE_SEO).length - routes.length;
+      console.log(
+        `seo-prerender: wrote ${written} route head(s)` +
+          (skipped > 0 ? ` (${skipped} skipped by MAX_PRERENDER_PAGES)` : ""),
+      );
+    },
+  };
+}
