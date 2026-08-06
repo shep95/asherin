@@ -12,6 +12,38 @@ import {
 import { verifySolarClaim } from "../_shared/solarGeometry.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
+/**
+ * Last-resort credential path: a caller who is neither on the platform key nor
+ * sending an inline Gemini BYOK may still have a saved Google key. Vision work
+ * cannot fall back to Venice, so we look the stored key up rather than failing.
+ */
+async function storedGoogleKey(req: Request): Promise<string> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return "";
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    if (!SUPABASE_URL || !SERVICE_ROLE || !ANON_KEY) return "";
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const token = authHeader.replace("Bearer ", "").trim();
+    const anonSb = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
+    const { data: { user } } = await anonSb.auth.getUser(token);
+    if (!user) return "";
+    const adminSb = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+    const { data } = await adminSb
+      .from("user_api_keys")
+      .select("api_key")
+      .eq("user_id", user.id)
+      .eq("provider", "google")
+      .eq("is_active", true)
+      .maybeSingle();
+    return data?.api_key ? String(data.api_key) : "";
+  } catch (_e) {
+    return "";
+  }
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   let resolvedGeminiKey = '';
@@ -38,6 +70,7 @@ serve(async (req) => {
 
   try {
     const GEMINI_API_KEY = resolvedGeminiKey
+      || (await storedGoogleKey(req))
       || Deno.env.get("GEMINI_API_KEY")
       || Deno.env.get("GEMINI_API_KEY_APP");
     if (!GEMINI_API_KEY) throw new Error("No Gemini credential available for this caller");
