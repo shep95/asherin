@@ -73,8 +73,10 @@ const DeepDivePanel = ({ spec, observations, extraFindings, recentDays = 14, tit
               {title ?? `${spec.module} — Deep Dive`}
             </h3>
             <p className="text-[11px] font-extralight text-muted-foreground leading-relaxed mt-0.5">
-              Nine structural detectors run over this surface. Findings appear only where the effect
-              beats coincidence on the sample available.
+              {temporal
+                ? "Ten structural detectors run over this surface."
+                : "Three distribution detectors run over this surface."}{" "}
+              Findings appear only where the effect beats coincidence on the sample available.
             </p>
           </div>
         </div>
