@@ -5,7 +5,7 @@ import {
   Plus, Building2, ChevronDown, Trash2, Pencil, Check, X,
   Keyboard, ShieldCheck,
   BookMarked, BookOpen, Folder, Users, Radio, FileLock, AlertTriangle, Swords, Library, Gavel, Sparkles,
-  ShieldAlert, Wrench, FileStack, GitBranch, Target, Plug, Smartphone, GraduationCap,
+  ShieldAlert, Wrench, FileStack, GitBranch, Target, Plug, Smartphone, GraduationCap, Layers,
 } from "lucide-react";
 import type { AzplenTab } from "./types";
 import IngestPanel from "./IngestPanel";
