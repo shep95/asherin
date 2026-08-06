@@ -8,7 +8,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/feature/axrlen";
+const URL = "https://asherin.com/feature/axrlen";
 const TITLE = "AXRLEN — Asherin's Predictive Nexus Prime Engine";
 const PUBLISHED = "2026-06-19";
 

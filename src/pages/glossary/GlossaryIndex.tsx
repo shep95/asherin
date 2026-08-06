@@ -79,12 +79,12 @@ const GlossaryIndex = () => {
       "@context": "https://schema.org",
       "@type": "DefinedTermSet",
       name: "Asherin Glossary",
-      url: "https://aureonai.app/glossary",
+      url: "https://asherin.com/glossary",
       hasDefinedTerm: GLOSSARY.map((e) => ({
         "@type": "DefinedTerm",
         name: e.term,
         description: e.oneLine,
-        url: `https://aureonai.app${e.slug}`,
+        url: `https://asherin.com${e.slug}`,
       })),
     });
     document.head.appendChild(el);

@@ -115,7 +115,7 @@ const Valuation = () => {
     upsertMeta('meta[name="description"]', { name: "description", content: description });
     upsertMeta('meta[property="og:title"]', { property: "og:title", content: "Asherin Valuation · $48.0B" });
     upsertMeta('meta[property="og:description"]', { property: "og:description", content: description });
-    upsertMeta('meta[property="og:url"]', { property: "og:url", content: "https://aureonai.app/valuation" });
+    upsertMeta('meta[property="og:url"]', { property: "og:url", content: "https://asherin.com/valuation" });
     upsertMeta('meta[property="og:type"]', { property: "og:type", content: "article" });
     upsertMeta('meta[name="twitter:card"]', { name: "twitter:card", content: "summary_large_image" });
     upsertMeta('meta[name="robots"]', { name: "robots", content: "index, follow" });
@@ -126,7 +126,7 @@ const Valuation = () => {
       canonical.rel = "canonical";
       document.head.appendChild(canonical);
     }
-    canonical.href = "https://aureonai.app/valuation";
+    canonical.href = "https://asherin.com/valuation";
 
     const ldId = "valuation-jsonld";
     document.getElementById(ldId)?.remove();
@@ -142,7 +142,7 @@ const Valuation = () => {
       author: { "@type": "Organization", name: "Asherin" },
       publisher: { "@type": "Organization", name: "Asherin" },
       about: "Private-company asset + portfolio valuation. Not a public company.",
-      mainEntityOfPage: "https://aureonai.app/valuation",
+      mainEntityOfPage: "https://asherin.com/valuation",
     });
     document.head.appendChild(ld);
 

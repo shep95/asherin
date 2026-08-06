@@ -7,7 +7,7 @@
  */
 import { useEffect } from "react";
 
-const ORIGIN = "https://aureonai.app";
+const ORIGIN = "https://asherin.com";
 
 export interface ArticleSchemaProps {
   id: string;

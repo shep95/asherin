@@ -20,7 +20,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/blog/aureon-pricing-explained";
+const URL = "https://asherin.com/blog/aureon-pricing-explained";
 const TITLE = "Asherin pricing explained — why $18/mo and $399/mo (2026)";
 const PUBLISHED = "2026-06-19";
 

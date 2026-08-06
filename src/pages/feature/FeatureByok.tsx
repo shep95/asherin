@@ -8,7 +8,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/feature/byok";
+const URL = "https://asherin.com/feature/byok";
 const TITLE = "BYOK on Asherin — Nine Providers, Zero Markup | Asherin";
 const PUBLISHED = "2026-06-19";
 

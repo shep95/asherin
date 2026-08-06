@@ -15,7 +15,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
  * (LLM Guidance summary, three H2 chapters, FAQ schema, internal-link grid).
  */
 
-const URL = "https://aureonai.app/feature/zophiel";
+const URL = "https://asherin.com/feature/zophiel";
 const TITLE = "Zophiel OSINT — 30-Source AI Intelligence Engine | Asherin";
 const PUBLISHED = "2026-06-19";
 

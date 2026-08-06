@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/glossary/conversational-seo";
+const URL = "https://asherin.com/glossary/conversational-seo";
 const TITLE = "Conversational SEO (C-SEO) — Definition and Origin";
 const PUBLISHED = "2026-06-19";
 

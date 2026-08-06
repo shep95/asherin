@@ -5,7 +5,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
 import AxrlenPredictionBody from "@/components/seo/AxrlenPredictionBody";
 import prediction from "@/data/predictions/peru-2026-keiko-fujimori.json";
 
-const URL = "https://aureonai.app/blog/predictions/peru-2026-keiko-fujimori";
+const URL = "https://asherin.com/blog/predictions/peru-2026-keiko-fujimori";
 const TITLE = "AXRLEN Prediction: Keiko Fujimori — Future President of Peru (2026)";
 const PUBLISHED = "2026-06-22T17:00:00.000Z";
 

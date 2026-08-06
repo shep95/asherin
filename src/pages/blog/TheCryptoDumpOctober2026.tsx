@@ -5,7 +5,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
 import AxrlenPredictionBody from "@/components/seo/AxrlenPredictionBody";
 import prediction from "@/data/predictions/the-crypto-dump-october-2026.json";
 
-const URL = "https://aureonai.app/blog/the-crypto-dump-october-2026";
+const URL = "https://asherin.com/blog/the-crypto-dump-october-2026";
 const TITLE = "The Crypto Dump — AXRLEN predicts Bitcoin to $44,500 (Oct 12–19, 2026)";
 const PUBLISHED = "2026-06-23T16:38:26.000Z";
 

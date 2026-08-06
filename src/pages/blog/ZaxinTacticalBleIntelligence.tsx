@@ -6,7 +6,7 @@ import {
   FaqJsonLd,
 } from "@/components/seo/SeoJsonLd";
 
-const URL = "https://aureonai.app/blog/zaxin-tactical-ble-intelligence";
+const URL = "https://asherin.com/blog/zaxin-tactical-ble-intelligence";
 const TITLE = "Zaxin — Tactical BLE Intelligence, AR HUD & Satellite Recon Inside Asherin";
 const PUBLISHED = "2026-06-26T00:00:00.000Z";
 

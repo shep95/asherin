@@ -8,7 +8,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import { useEffect } from "react";
 
-const URL = "https://aureonai.app/zaxin/theories";
+const URL = "https://asherin.com/zaxin/theories";
 const TITLE = "Zaxin Vision Theories — Seven AI Fusion Blueprints for Tactical BLE";
 const DESC = "The seven AI integration theories that power Zaxin: RSSI-to-reticle projection, inverse-RSSI SLAM, visual-BLE fusion, AXRLEN threat narration, behavior fingerprinting, photogrammetric anchoring, and ultrasonic cross-check.";
 

@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/glossary/zero-day-confidence-scoring";
+const URL = "https://asherin.com/glossary/zero-day-confidence-scoring";
 const TITLE = "Zero-Day Confidence Scoring — Definition and Calibration Scale";
 const PUBLISHED = "2026-06-19";
 

@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/glossary/sovereign-ai";
+const URL = "https://asherin.com/glossary/sovereign-ai";
 const TITLE = "Sovereign AI — Definition, Origin, and Why It Matters in 2026";
 const PUBLISHED = "2026-06-19";
 

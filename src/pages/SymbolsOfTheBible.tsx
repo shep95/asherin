@@ -19,7 +19,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/symbols-of-the-bible";
+const URL = "https://asherin.com/symbols-of-the-bible";
 const TITLE = "Symbols of the Bible — Asherin's Symbolic Decoder for Every Story";
 const PUBLISHED = "2026-07-10";
 

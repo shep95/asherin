@@ -376,12 +376,12 @@ const Benchmark = () => {
       headline: "Asherin vs Opus 4.8 vs GPT-5.5 — Thread-Safe LRU Cache Benchmark",
       description:
         "Same prompt, three models, scored head-to-head on a thread-safe LRU cache with O(1) get and put.",
-      url: "https://aureonai.app/benchmark",
+      url: "https://asherin.com/benchmark",
       author: { "@type": "Organization", name: "Asherin" },
       publisher: {
         "@type": "Organization",
         name: "Asherin",
-        logo: { "@type": "ImageObject", url: "https://aureonai.app/favicon.png" },
+        logo: { "@type": "ImageObject", url: "https://asherin.com/favicon.png" },
       },
       proficiencyLevel: "Expert",
       about: "Concurrent data structure implementation benchmark across frontier LLMs",

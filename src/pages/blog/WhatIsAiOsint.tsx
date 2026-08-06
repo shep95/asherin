@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/blog/what-is-ai-osint";
+const URL = "https://asherin.com/blog/what-is-ai-osint";
 const TITLE = "What Is AI OSINT? The Analyst's Complete Guide (2026)";
 const PUBLISHED = "2026-06-19";
 

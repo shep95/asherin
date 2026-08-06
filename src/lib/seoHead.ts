@@ -1,7 +1,7 @@
 // Per-route SEO head helper: sets canonical + OG/Twitter tags + description.
 // Returns a cleanup function suitable for useEffect.
 
-const SITE_ORIGIN = "https://aureonai.app";
+const SITE_ORIGIN = "https://asherin.com";
 
 type SeoOpts = {
   title: string;

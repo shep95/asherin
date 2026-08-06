@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/blog/sovereign-ai-platforms";
+const URL = "https://asherin.com/blog/sovereign-ai-platforms";
 const TITLE = "Sovereign AI Platforms — The 2026 Landscape Map";
 const PUBLISHED = "2026-06-19";
 

@@ -636,7 +636,7 @@ const HouseOfAsherTheories = () => {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
       name: "House of Asher — Theories",
-      url: "https://aureonai.app/houseofasher/theories",
+      url: "https://asherin.com/houseofasher/theories",
       description:
         "Foundational theories from the House of Asher: where human biology and technology converge into next-generation intelligence.",
     });

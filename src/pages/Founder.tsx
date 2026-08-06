@@ -56,7 +56,7 @@ const Founder = () => {
       "@type": "Person",
       name: "Asher Newton",
       jobTitle: "Founder of Asherin",
-      url: "https://aureonai.app/founder",
+      url: "https://asherin.com/founder",
       description: "Founder of Asherin — uncensored AI intelligence platform.",
     });
     document.head.appendChild(ld);

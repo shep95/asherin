@@ -22,7 +22,7 @@ import { Link } from "react-router-dom";
  * Pure long-form editorial. No live crypto tooling, no exploits.
  */
 const HowToBreakAnyEncryptionTheory = () => {
-  const URL = "https://aureonai.app/blog/how-to-break-any-encryption-theory";
+  const URL = "https://asherin.com/blog/how-to-break-any-encryption-theory";
   const TITLE =
     "How To Break Any Encryption Theory — Asherin R&D × Asherin";
   const DEK =

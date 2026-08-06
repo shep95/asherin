@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/blog/ai-without-restrictions";
+const URL = "https://asherin.com/blog/ai-without-restrictions";
 const TITLE = "AI Without Restrictions — The Operator Workflow Guide";
 const PUBLISHED = "2026-06-19";
 

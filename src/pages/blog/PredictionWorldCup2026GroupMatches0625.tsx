@@ -5,7 +5,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
 import AxrlenPredictionBody from "@/components/seo/AxrlenPredictionBody";
 import prediction from "@/data/predictions/world-cup-2026-group-matches-0625.json";
 
-const URL = "https://aureonai.app/blog/predictions/world-cup-2026-group-matches-0625";
+const URL = "https://asherin.com/blog/predictions/world-cup-2026-group-matches-0625";
 const TITLE = "AXRLEN Forecast: World Cup 2026 Group Matches — 24 June Slate";
 const PUBLISHED = "2026-06-23T23:00:00.000Z";
 

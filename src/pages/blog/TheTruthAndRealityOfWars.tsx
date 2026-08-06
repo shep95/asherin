@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/blog/the-truth-and-reality-of-wars";
+const URL = "https://asherin.com/blog/the-truth-and-reality-of-wars";
 const TITLE = "The Truth and Reality of Wars — Occult Scripture, Fiat Slavery, and the Elite Civil War";
 const PUBLISHED = "2026-06-24T00:00:00.000Z";
 

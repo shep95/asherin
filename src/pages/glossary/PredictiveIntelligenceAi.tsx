@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/glossary/predictive-intelligence-ai";
+const URL = "https://asherin.com/glossary/predictive-intelligence-ai";
 const TITLE = "Predictive Intelligence AI — Definition and Scope";
 const PUBLISHED = "2026-06-19";
 

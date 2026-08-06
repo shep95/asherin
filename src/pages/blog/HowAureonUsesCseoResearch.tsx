@@ -7,7 +7,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
-const URL = "https://aureonai.app/blog/how-aureon-uses-c-seo-research";
+const URL = "https://asherin.com/blog/how-aureon-uses-c-seo-research";
 const TITLE = "How Asherin Uses C-SEO Research — Practicing What the Paper Recommends";
 const PUBLISHED = "2026-06-19";
 

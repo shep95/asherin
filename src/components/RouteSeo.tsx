@@ -7,8 +7,8 @@ import { useLocation } from "react-router-dom";
  * Skipped paths (/asher, /dashboard, /asher-dashboard) are left untouched.
  */
 
-const ORIGIN = "https://aureonai.app";
-const DEFAULT_OG_IMAGE = "https://aureonai.app/og-image.png";
+const ORIGIN = "https://asherin.com";
+const DEFAULT_OG_IMAGE = "https://asherin.com/og-image.png";
 const JSONLD_ID = "route-seo-jsonld";
 
 type SeoEntry = {
