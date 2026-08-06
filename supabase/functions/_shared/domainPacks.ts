@@ -503,6 +503,24 @@ export interface DomainProfile {
   briefing: string;
   generatedAt: string;
 }
+// ---------------------------------------------------------------------------
+// Header matching — snake_case, camelCase, dotted and spaced headers must all
+// resolve identically. A regex is tested against the raw header and against a
+// tokenised form ("patient_mrn" -> "patient mrn") so `\b` anchors work.
+// ---------------------------------------------------------------------------
+export function tokeniseHeader(h: string): string {
+  return String(h ?? "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[^A-Za-z0-9]+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+export function matchesHeader(rx: RegExp, header: string): boolean {
+  const raw = String(header ?? "");
+  return rx.test(raw) || rx.test(tokeniseHeader(raw));
+}
+
 
 // ---------------------------------------------------------------------------
 // Classification
