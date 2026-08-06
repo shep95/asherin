@@ -23,7 +23,7 @@ import { toast } from "sonner";
  * Every pane renders the full state quartet (idle / loading / empty / error).
  */
 
-type Pane = "voice" | "places" | "attention" | "write" | "people" | "commit" | "digest" | "audit";
+type Pane = "voice" | "places" | "attention" | "write" | "people" | "commit" | "digest" | "vault" | "audit";
 
 interface MeshStatus {
   accounts: Array<{ id: string; email: string; tier: number; canRead: boolean; canCompose: boolean; canSend?: boolean; isPrimary?: boolean }>;
