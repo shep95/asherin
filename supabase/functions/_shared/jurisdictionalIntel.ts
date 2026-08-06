@@ -27,6 +27,10 @@ import {
   type FieldLedger, type Seed,
 } from "./intelExtract.ts";
 import {
+  resolveCandidates, formatCandidateContext,
+  type Candidate, type CandidateSet,
+} from "./candidateResolve.ts";
+import {
   createGraph, ingestRing1, ingestRing2, ring2Seeds, intersectBranches, formatGraph,
   type IntelGraph, type GraphNode,
 } from "./intelGraph.ts";
@@ -95,6 +99,8 @@ export interface IntelBundle {
   ring2Executed?: number;
   elapsedMs?: number;
   queriesRun?: number;
+  /** Act-1 identity clustering: distinct humans sharing this name */
+  candidateSet?: CandidateSet;
 }
 
 
@@ -605,6 +611,35 @@ function htmlToText(html: string): string {
  * extraction layer starved. Firecrawl renders through a residential path and
  * returns the article text those pages actually contain.
  */
+// ── Profile-image capture ──────────────────────────────────────────────────
+// htmlToText destroys <meta og:image>, so the raw document is scanned for a
+// profile image BEFORE it is flattened. Values are only recorded here; they are
+// fetched later through the SSRF-guarded intel-avatar proxy, never inline.
+const IMAGE_BY_URL = new Map<string, string>();
+const IMAGE_CACHE_CAP = 300;
+
+function captureProfileImage(pageUrl: string, html: string): void {
+  if (IMAGE_BY_URL.has(pageUrl)) return;
+  const head = html.slice(0, 60000);
+  const patterns = [
+    /<meta[^>]+property=["'](?:og:image(?::secure_url)?)["'][^>]+content=["']([^"']{8,600})["']/i,
+    /<meta[^>]+content=["']([^"']{8,600})["'][^>]+property=["']og:image["']/i,
+    /<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']{8,600})["']/i,
+    /"image"\s*:\s*"(https:\/\/[^"\\]{8,600})"/i,
+  ];
+  for (const re of patterns) {
+    const m = re.exec(head);
+    if (!m) continue;
+    let raw = m[1].replace(/&amp;/g, "&").trim();
+    if (raw.startsWith("//")) raw = `https:${raw}`;
+    if (!/^https:\/\//i.test(raw)) continue;
+    if (/\.svg(\?|$)/i.test(raw)) continue; // vector can carry script
+    if (IMAGE_BY_URL.size >= IMAGE_CACHE_CAP) IMAGE_BY_URL.clear();
+    IMAGE_BY_URL.set(pageUrl, raw);
+    return;
+  }
+}
+
 async function fetchBodyViaFirecrawl(url: string, timeoutMs: number): Promise<string> {
   const key = Deno.env.get("FIRECRAWL_API_KEY");
   if (!key || timeoutMs < 3000) return "";
@@ -641,7 +676,11 @@ async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
     });
     if (resp.ok) {
       const ct = resp.headers.get("content-type") || "";
-      if (/text\/html|application\/xhtml|text\/plain/.test(ct)) direct = htmlToText(await resp.text());
+      if (/text\/html|application\/xhtml|text\/plain/.test(ct)) {
+        const raw = await resp.text();
+        captureProfileImage(url, raw);
+        direct = htmlToText(raw);
+      }
     }
   } catch { /* fall through to Firecrawl */ }
 
