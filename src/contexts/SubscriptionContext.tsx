@@ -112,13 +112,20 @@ function productToTier(productId: string | null): TierKey | null {
 //   chat < aureon/monthly_aureon < pro/monthly_pro/lifetime/algorithm
 const AUREON_TIERS: TierKey[] = ["monthly_aureon", "aureon", "monthly_pro", "pro", "lifetime", "algorithm"];
 const PRO_TIERS: TierKey[] = ["monthly_pro", "pro", "lifetime", "algorithm"];
+// Maximum Intelligence — the $399/mo Asherin Pro subscription (and its one-time
+// equivalent) only. Deliberately excludes `lifetime` and `algorithm`: those are
+// lower-priced grandfathered entitlements whose published feature list stops at
+// the Aureon tier, so they must not inherit maximum-tier surfaces.
+const MAXIMUM_TIERS: TierKey[] = ["monthly_pro", "pro"];
 export function hasChatAccess(t: TierKey | null): boolean { return !!t; }
 export function hasSearchAccess(t: TierKey | null): boolean { return !!t; }
 export function hasAureonAccess(t: TierKey | null): boolean { return !!t && AUREON_TIERS.includes(t); }
 export function hasProAccess(t: TierKey | null): boolean { return !!t && PRO_TIERS.includes(t); }
+export function hasMaximumAccess(t: TierKey | null): boolean { return !!t && MAXIMUM_TIERS.includes(t); }
 export function hasEnterpriseOnlyAccess(t: TierKey | null): boolean { return !!t && PRO_TIERS.includes(t); }
 /** @deprecated alias retained for legacy callers. */
 export function hasEnterpriseAccess(t: TierKey | null): boolean { return hasProAccess(t); }
+
 
 
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {

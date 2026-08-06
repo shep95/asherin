@@ -1,7 +1,8 @@
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasSearchAccess, hasProAccess, hasMaximumAccess } from "@/contexts/SubscriptionContext";
+import { MAXIMUM_VIEWS } from "@/hooks/useAccess";
 import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -210,16 +211,21 @@ const DashboardSidebar = ({
     if (item.id === "self-access") return user?.email === ADMIN_EMAIL;
     if (item.id === "ebook") return user?.email === ADMIN_EMAIL;
     if (item.adminOnly) return user?.email === ADMIN_EMAIL;
+    if (user?.email === ADMIN_EMAIL) return true;
+    // Maximum Intelligence ($399/mo Asherin Pro). Checked ahead of the feature
+    // map because `tierHasFeature` is currently open to every tier — routing
+    // this surface through it would publish the entry to unentitled operators.
+    if (MAXIMUM_VIEWS.includes(item.id as DashboardView)) return hasMaximumAccess(tierKey);
     const featureId = VIEW_FEATURE_MAP[item.id as string];
     if (featureId) {
-      return tierHasFeature(tierKey, featureId) || user?.email === ADMIN_EMAIL;
+      return tierHasFeature(tierKey, featureId);
     }
-    if (user?.email === ADMIN_EMAIL) return true;
     if (!item.access) return true;
     if (item.access === "search") return hasSearchAccess(tierKey);
     if (item.access === "pro") return hasProAccess(tierKey);
     return true;
   };
+
 
   const filteredGroups = navGroupsFlat
     .map((group) => ({ ...group, items: group.items.filter(itemAllowed) }))

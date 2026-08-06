@@ -5,16 +5,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { trialStateFor } from "@/lib/trial";
 import type { DashboardView } from "@/components/dashboard/types";
 
+// Maximum Intelligence ($399/mo Asherin Pro) — strictly above PRO_VIEWS. These
+// surfaces read the operator's own connected accounts, so they are withheld
+// from the free trial as well: only a live maximum-tier subscription (or an
+// admin) opens them.
+export const MAXIMUM_VIEWS: DashboardView[] = ["google"];
 // Enterprise / Pro-only views
 const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion", "axrlen"];
 const PRO_VIEWS: DashboardView[] = [
   "community", "azplen",
   "teams", "geospatial", "plugins", "timeseries",
   "audit", "predictive", "security", "tracker",
-  "google", "pattern-analysis", "video-intelligence", "lavba", "cross",
+  "pattern-analysis", "video-intelligence", "lavba", "cross",
   "zaplen", "zaxin", "zerlal", "knowledge-vault", "zacoon",
 ];
 const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks"];
+
 const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "file-scrapper", "cipher"];
 const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow", "zahten", "ebook", "ide", "whiteboard", "media2code"];
 const PUBLIC_VIEWS: DashboardView[] = [
@@ -44,11 +50,15 @@ export function useAccess() {
   const hasSearch = !!tier;
   const hasAureon = tier === "monthly_aureon" || tier === "aureon" || tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
   const hasPro = tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
+  const hasMaximum = tier === "monthly_pro" || tier === "pro";
   const hasEnterprise = hasPro;
 
   const canAccess = useCallback((view: DashboardView): boolean => {
     if (!GATING_ENABLED) return true;
     if (isAdmin) return true;
+    // Maximum tier is evaluated before the trial and the loading grace window:
+    // neither a 24h trial nor a slow subscription fetch may open it.
+    if (MAXIMUM_VIEWS.includes(view)) return hasMaximum;
     if (trialActive) return true;
     if (PUBLIC_VIEWS.includes(view)) return true;
     // Subscription still resolving — only forgive the flash for users who
@@ -62,11 +72,12 @@ export function useAccess() {
     if (ENTERPRISE_VIEWS.includes(view)) return hasEnterprise;
     // Unknown views default to the lowest paid tier — fail closed.
     return hasChat;
-  }, [isAdmin, trialActive, subLoading, tier, hasChat, hasSearch, hasAureon, hasPro, hasEnterprise]);
+  }, [isAdmin, trialActive, subLoading, tier, hasChat, hasSearch, hasAureon, hasPro, hasMaximum, hasEnterprise]);
 
   return useMemo(() => ({
     canAccess, isAdmin, tierKey, isPastDue,
-    hasChat, hasSearch, hasAureon, hasPro, hasEnterprise,
+    hasChat, hasSearch, hasAureon, hasPro, hasMaximum, hasEnterprise,
     trialActive, trialEnded, trialEndsAt,
-  }), [canAccess, isAdmin, tierKey, isPastDue, hasChat, hasSearch, hasAureon, hasPro, hasEnterprise, trialActive, trialEnded, trialEndsAt]);
+  }), [canAccess, isAdmin, tierKey, isPastDue, hasChat, hasSearch, hasAureon, hasPro, hasMaximum, hasEnterprise, trialActive, trialEnded, trialEndsAt]);
+
 }
