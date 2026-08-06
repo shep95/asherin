@@ -291,7 +291,7 @@ function firstContactBurst(rows: LedgerRow[]): BulwarkFinding | null {
     .filter((r) => recentNew.includes((r.actor_email ?? "").toLowerCase()))
     .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
 
-  return pack(
+  const finding = pack(
     "FIRST_CONTACT_BURST",
     "Abnormal burst of first-contact senders",
     "elevated",
@@ -299,6 +299,10 @@ function firstContactBurst(rows: LedgerRow[]): BulwarkFinding | null {
     "Sample the new senders for shared infrastructure — matching domains, near-identical phrasing, or sequential send times mean one operator behind many addresses.",
     cited,
   );
+  // Count the novel senders, not the messages they sent — the burst is about
+  // how many new parties appeared, and a chatty sender must not inflate it.
+  if (finding) finding.count = recentNew.length;
+  return finding;
 }
 
 /** 0–100 pressure index. Deterministic, monotonic, and explainable. */
