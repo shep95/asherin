@@ -1369,6 +1369,35 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       console.error("[chat] Google Substrate bridge failed:", (e as Error).message);
     }
 
+    // ── Azplen: the ingest platform's own voice ──────────────────────────
+    // The operator should be able to run the data platform by talking to it.
+    // Fires only on an Azplen-shaped turn, reads only the caller's own rows
+    // through their token (RLS enforced), and injects real counts — never a
+    // model-invented inventory.
+    let azplenContext = "";
+    try {
+      const lastUserForAz = [...messages].reverse().find((m: any) => m.role === "user");
+      const azQ = String(lastUserForAz?.content || "");
+      const { classifyAzplenIntent, runAzplenPull, formatAzplenContext, formatAzplenCapabilities } =
+        await import("../_shared/azplenBridge.ts");
+      const azIntent = classifyAzplenIntent(azQ);
+      if (azIntent.active) {
+        const parts: string[] = [];
+        if (azIntent.capability || azIntent.explicit) parts.push(formatAzplenCapabilities());
+        if (authHeader) {
+          const azBundle = await runAzplenPull(authHeader);
+          const state = formatAzplenContext(azBundle);
+          if (state) parts.push(state);
+          console.log(`[chat] Azplen: datasets=${azBundle?.datasets.length ?? 0}, entities=${azBundle?.entityCount ?? 0}, ${azBundle?.elapsedMs ?? 0}ms`);
+        }
+        azplenContext = parts.join("\n\n");
+      }
+    } catch (e) {
+      console.error("[chat] Azplen bridge failed:", (e as Error).message);
+    }
+
+
+
 
 
     if (shouldSearch(messages, mode)) {
