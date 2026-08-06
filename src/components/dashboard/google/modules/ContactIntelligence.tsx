@@ -327,19 +327,21 @@ const ContactIntelligence = () => {
     toast.success("Device vault purged.");
   };
 
-  const stats = summary
-    ? [
-        { label: "Identities", value: String(summary.contactCount) },
-        { label: "Correspondents", value: String(summary.correspondentCount) },
-        { label: "Messages Read", value: String(summary.messageCount) },
-        { label: "Inner Circle", value: String(summary.tiers.inner) },
-      ]
-    : [
-        { label: "Identities", value: "—" },
-        { label: "Correspondents", value: "—" },
-        { label: "Messages Read", value: "—" },
-        { label: "Inner Circle", value: "—" },
-      ];
+  // A stat card that shows only a level is a photograph of a moving thing.
+  // Each figure below carries its own recent series, its percentile inside the
+  // subject's own population, or the baseline it is being judged against.
+  const findings = useMemo(
+    () => latticeFindings({ dossiers, summary, connected: isConnected }),
+    [dossiers, summary, isConnected],
+  );
+  const volumeSeries = useMemo(() => correspondenceSeries(dossiers), [dossiers]);
+  const importancePop = useMemo(() => dossiers.map((d) => d.importance), [dossiers]);
+  const cadencePop = useMemo(
+    () => dossiers.map((d) => d.cadenceDays).filter((c): c is number => c != null),
+    [dossiers],
+  );
+  const activeCount = useMemo(() => dossiers.filter((d) => d.total > 0).length, [dossiers]);
+
 
   return (
     <div className="space-y-6">
