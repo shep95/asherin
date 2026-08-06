@@ -4409,6 +4409,66 @@ export type Database = {
         }
         Relationships: []
       }
+      google_intel_devices: {
+        Row: {
+          device_id: string
+          label: string | null
+          last_push_at: string | null
+          last_seen_at: string
+          platform: string | null
+          user_id: string
+        }
+        Insert: {
+          device_id: string
+          label?: string | null
+          last_push_at?: string | null
+          last_seen_at?: string
+          platform?: string | null
+          user_id: string
+        }
+        Update: {
+          device_id?: string
+          label?: string | null
+          last_push_at?: string | null
+          last_seen_at?: string
+          platform?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_intel_snapshots: {
+        Row: {
+          bytes: number
+          device_id: string
+          device_label: string | null
+          kind: string
+          payload: Json
+          saved_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bytes?: number
+          device_id?: string
+          device_label?: string | null
+          kind?: string
+          payload: Json
+          saved_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bytes?: number
+          device_id?: string
+          device_label?: string | null
+          kind?: string
+          payload?: Json
+          saved_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       google_place_nodes: {
         Row: {
           created_at: string
