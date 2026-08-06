@@ -69,6 +69,7 @@ const nexusModules: ModuleDef[] = [
   { id: "content", codename: "ARCHIVE", label: "Document & Media Intel", icon: FileText, mandate: "Document intelligence, image content read and file custody mapping", directorate: "COLLECTION" },
 
   { id: "contacts", codename: "LATTICE", label: "Contact Intelligence", icon: Users, mandate: "Correspondent fusion, reciprocity scoring, psycholinguistic profile and fade detection", directorate: "ANALYSIS" },
+  { id: "dossiers", codename: "SENTINEL", label: "Correspondent Dossiers", icon: ScrollText, mandate: "Standing deep-intelligence report on every person who has ever mailed, called or shared a card with you — historical backfill plus automatic build on each new inbound contact", directorate: "ANALYSIS" },
   { id: "twin", codename: "EFFIGY", label: "Behavioural Twin", icon: Brain, mandate: "A model of the operator's decision pattern, built from observed choices only", directorate: "ANALYSIS" },
   { id: "productivity", codename: "CADENCE", label: "Attention Ledger", icon: BarChart3, mandate: "Focus blocks, context-switch cost and collaboration load across the working week", directorate: "ANALYSIS" },
   { id: "health", codename: "VITALS", label: "Physiological Signals", icon: Heart, mandate: "Biometric drift and anomaly flags against the operator's own rolling baseline", directorate: "ANALYSIS" },
