@@ -964,6 +964,20 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
 
   let fieldLedger = buildFieldLedger(toDocs(), intent.subject);
 
+  // ── ACT 1 — IDENTITY RESOLUTION ────────────────────────────────────────
+  // Cluster the surviving documents into DISTINCT humans before any of them is
+  // allowed into one dossier. A shared name is not a merge condition; only a
+  // shared address / phone / relative / employer / entity / birth-year+city is.
+  // When two clusters survive with comparable weight the sweep STOPS here: the
+  // ring-2 expansion below is the expensive act and must never be spent on a
+  // namesake.
+  const candidateSet = intent.kind === "person"
+    ? resolveCandidates(toDocs(), intent, (u) => IMAGE_BY_URL.get(u))
+    : undefined;
+  if (candidateSet) {
+    console.log(`[intel:candidates] clusters=${candidateSet.candidates.length} margin=${candidateSet.margin} ambiguous=${candidateSet.ambiguous} unattributed=${candidateSet.unattributed}`);
+  }
+
   // ── BOUNDED THREE-HOP GRAPH ────────────────────────────────────────────
   // RING 1 is a full fanout over everything the subject's own documents
   // assert. RING 2 queries only the highest information-gain ring-1 nodes and
@@ -973,7 +987,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   const graph = createGraph(intent.subject);
   const hopExecuted: Seed[] = [];
   let ring2Executed = 0;
-  if (intent.kind === "person") {
+  if (intent.kind === "person" && !candidateSet?.ambiguous) {
     ingestRing1(graph, fieldLedger);
 
     const seeds = ring2Seeds(graph, 6);
@@ -1069,7 +1083,8 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits,
     rejectedIdentityHits, fieldLedger, documentsFetched,
     hopSeeds: hopExecuted,
-    graph: intent.kind === "person" ? graph : undefined,
+    graph: intent.kind === "person" && !candidateSet?.ambiguous ? graph : undefined,
+    candidateSet,
     ring2Executed,
     elapsedMs: Date.now() - startedAt,
     queriesRun: 2 + selectedEnrich.length + hopExecuted.length,
@@ -1090,6 +1105,20 @@ const BUCKET_LABELS: Record<DomainBucket, string> = {
 };
 
 export function formatIntelContext(bundle: IntelBundle): string {
+  // Act 1 outcome: the name resolved to several distinct humans. Return the
+  // chooser instead of a dossier — merging them is exactly the failure mode
+  // this pipeline exists to prevent.
+  if (bundle.candidateSet?.ambiguous) {
+    return [
+      `## JURISDICTIONAL INTEL SWEEP — PERSON (IDENTIFY PHASE)`,
+      `Subject as asked: ${bundle.intent.subject}`,
+      `Jurisdiction: ${bundle.jurisdictionLabel}`,
+      `Documents parsed: ${bundle.documentsFetched ?? 0} · Unique hits: ${bundle.totalHits}`,
+      ``,
+      formatCandidateContext(bundle.candidateSet, bundle.intent.subject),
+    ].join("\n");
+  }
+
   const {
     intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries,
     rejectedIdentityHits, fieldLedger, documentsFetched, hopSeeds, elapsedMs, queriesRun,
