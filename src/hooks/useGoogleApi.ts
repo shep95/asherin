@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 interface GoogleAccount {
   id: string;
@@ -66,7 +67,8 @@ export function useGoogleApi() {
     setLoading(true);
     try {
       const data = await callOAuth("get_auth_url", {
-        redirect_uri: `${window.location.origin}/dashboard`,
+        redirect_uri: GOOGLE_REDIRECT_URI,
+        origin: window.location.origin,
         tier,
       });
       if (data.url) {
@@ -98,7 +100,7 @@ export function useGoogleApi() {
     try {
       const data = await callOAuth("exchange_code", {
         code,
-        redirect_uri: `${window.location.origin}/dashboard`,
+        redirect_uri: GOOGLE_REDIRECT_URI,
         state,
       });
       await fetchAccounts();

@@ -29,6 +29,7 @@ import YouTubeDataView from "./modules/YouTubeDataView";
 import SearchHistoryView from "./modules/SearchHistoryView";
 import ChromeDataView from "./modules/ChromeDataView";
 import GoogleMeshPanel from "./modules/GoogleMeshPanel";
+import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 type GoogleModule = "overview" | "mesh" | "location" | "email" | "subscriptions" | "health" | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions" | "automation" | "security" | "scenarios" | "gmail" | "drive" | "photos" | "youtube" | "search" | "fit" | "chrome" | "connected";
 
@@ -84,9 +85,13 @@ const GoogleIntelligenceView = () => {
       const { data: { session } } = await (await import("@/integrations/supabase/client")).supabase.auth.getSession();
       if (!session) return;
       const res = await (await import("@/integrations/supabase/client")).supabase.functions.invoke("google-oauth", {
-        // Without an explicit redirect_uri the server falls back to the request
-        // origin, which is not the browser's origin — the exchange then fails.
-        body: { action: "get_auth_url", redirect_uri: `${window.location.origin}/dashboard` },
+        // One canonical, Google-registered redirect for every origin; the
+        // launching origin travels in `state` so the popup can relay the code.
+        body: {
+          action: "get_auth_url",
+          redirect_uri: GOOGLE_REDIRECT_URI,
+          origin: window.location.origin,
+        },
       });
       if (res.data?.url) {
         const { openGoogleConsent } = await import("@/lib/googleConsent");
