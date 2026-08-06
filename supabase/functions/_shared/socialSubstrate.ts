@@ -690,12 +690,26 @@ export function formatSocialBrief(results: SocialProbeResult[]): string {
       if (p.publicEmail) lines.push(`  Published email: ${p.publicEmail}`);
       if (p.publicPhone) lines.push(`  Published phone: ${p.publicPhone}`);
       const c = cadence(p);
-      if (c) lines.push(`  Cadence: ${c.perWeek}/week over ${c.spanDays}d · peak hour ${String(c.peakHourUtc).padStart(2, "0")}:00 UTC`);
+      if (c) {
+        const peak = c.peakHourUtc != null ? ` · peak hour ${String(c.peakHourUtc).padStart(2, "0")}:00 UTC` : "";
+        lines.push(`  Cadence: ${c.perWeek}/week over ${c.spanDays}d${peak} (${c.confidence} confidence)`);
+      }
       if (p.posts.length) {
         lines.push(`  Recent posts (${p.posts.length}):`);
         for (const post of p.posts.slice(0, 6)) {
           const when = post.postedAt ? post.postedAt.slice(0, 10) : "undated";
           const body = (post.text || post.imageDescription || "(no text)").replace(/\s+/g, " ").slice(0, 180);
+          // Engagement is only rendered when the platform actually gave it,
+          // so a null never renders as a zero the operator might act on.
+          const eng = [
+            post.likes != null ? `${post.likes.toLocaleString()} likes` : null,
+            post.shares != null ? `${post.shares.toLocaleString()} reposts` : null,
+            post.comments != null ? `${post.comments.toLocaleString()} replies` : null,
+          ].filter(Boolean);
+          lines.push(`    · ${when} — ${body}${eng.length ? `  [${eng.join(" · ")}]` : ""}`);
+        }
+      }
+
           lines.push(`    · ${when} — ${body}`);
         }
       }
