@@ -88,6 +88,19 @@ export interface SurfaceSpec {
   magnitudeNoun?: string;
   /** Action text appended to novelty findings, surface-specific. */
   reviewAction?: string;
+  /**
+   * Whether each observation's timestamp is the moment the thing actually
+   * happened. Default true.
+   *
+   * Set false for surfaces where the timestamp is metadata rather than an
+   * event: OAuth scope grants, for instance, all carry the account's last sync
+   * time, so every record shares one instant. On such a surface the temporal
+   * detectors describe the clock that wrote the record, not the subject —
+   * "0% of grants at weekends, -5.3 sigma" is a statement about when a sync ran.
+   * Reporting that as behaviour would be a confident falsehood, so the temporal
+   * battery is suppressed and only structural detectors run.
+   */
+  timestampsAreEvents?: boolean;
 }
 
 export interface DeepDiveResult {
@@ -890,18 +903,28 @@ export function deepDive(
 
   // Every detector is wrapped: one malformed surface must never take down the
   // whole panel, and a detector that throws is a bug to log, not a blank tab.
-  const detectors: Array<[string, () => Finding | null]> = [
+  // Detectors split by what they require of the timestamp. The structural set
+  // reasons only about distribution across entities and magnitudes, so it is
+  // valid even when every record shares one clock value. The temporal set reads
+  // the timestamp as an event time and is meaningless when it is not one.
+  const structural: Array<[string, () => Finding | null]> = [
+    ["magnitude", () => detectMagnitude(spec, obs)],
+    ["concentration", () => detectConcentration(spec, obs)],
+    ["longtail", () => detectLongTail(spec, obs)],
+  ];
+
+  const temporal: Array<[string, () => Finding | null]> = [
     ["volume", () => detectVolumeShift(spec, obs, recentDays)],
     ["burst", () => detectBurst(spec, obs)],
     ["novelty", () => detectNovelty(spec, obs, recentDays)],
     ["dormancy", () => detectDormancy(spec, obs, recentDays)],
     ["rhythm", () => detectRhythm(spec, obs)],
     ["clocked", () => detectClockedEntities(spec, obs)],
-    ["magnitude", () => detectMagnitude(spec, obs)],
-    ["concentration", () => detectConcentration(spec, obs)],
-    ["longtail", () => detectLongTail(spec, obs)],
     ["weekpattern", () => detectWeekPattern(spec, obs)],
   ];
+
+  const detectors: Array<[string, () => Finding | null]> =
+    spec.timestampsAreEvents === false ? structural : [...temporal, ...structural];
 
   const findings: Finding[] = [];
   for (const [name, run] of detectors) {
