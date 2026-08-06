@@ -772,13 +772,17 @@ export function deepDive(
     const f = Math.min(...times);
     const l = Math.max(...times);
     if (f >= cut && obs[0].ts < cut) novelEntities.push(entity);
+    // Identical rule to detectDormancy — if the chips and the finding disagree
+    // the panel contradicts itself, so the qualification lives in one shape.
     if (rows.length >= 4 && l < cut) {
       const sorted = [...times].sort((a, b) => a - b);
+      if ((l - sorted[0]) / DAY < 7) continue;
       const gaps: number[] = [];
       for (let i = 1; i < sorted.length; i++) gaps.push((sorted[i] - sorted[i - 1]) / DAY);
       const cadence = median(gaps);
-      if (cadence > 0 && (now - l) / DAY > cadence * 3) dormantEntities.push(entity);
+      if (cadence >= 0.5 && (now - l) / DAY > Math.max(cadence * 3, 7)) dormantEntities.push(entity);
     }
+
   }
 
   // Every detector is wrapped: one malformed surface must never take down the
