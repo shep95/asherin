@@ -4218,6 +4218,7 @@ export type Database = {
         Row: {
           access_token: string
           avatar_url: string | null
+          consent_tier: number
           created_at: string
           data_points_count: number
           display_name: string | null
@@ -4235,6 +4236,7 @@ export type Database = {
         Insert: {
           access_token: string
           avatar_url?: string | null
+          consent_tier?: number
           created_at?: string
           data_points_count?: number
           display_name?: string | null
@@ -4252,6 +4254,7 @@ export type Database = {
         Update: {
           access_token?: string
           avatar_url?: string | null
+          consent_tier?: number
           created_at?: string
           data_points_count?: number
           display_name?: string | null
@@ -4267,6 +4270,164 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      google_agency_audit: {
+        Row: {
+          action: string
+          confirmed: boolean
+          created_at: string
+          google_email: string | null
+          id: string
+          payload: Json
+          target: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          confirmed?: boolean
+          created_at?: string
+          google_email?: string | null
+          id?: string
+          payload?: Json
+          target?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          confirmed?: boolean
+          created_at?: string
+          google_email?: string | null
+          id?: string
+          payload?: Json
+          target?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_attention_windows: {
+        Row: {
+          created_at: string
+          day: string
+          detail: Json
+          first_activity_hour: number | null
+          focus_minutes: number
+          fragmentation: number
+          id: string
+          last_activity_hour: number | null
+          meeting_minutes: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          detail?: Json
+          first_activity_hour?: number | null
+          focus_minutes?: number
+          fragmentation?: number
+          id?: string
+          last_activity_hour?: number | null
+          meeting_minutes?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          detail?: Json
+          first_activity_hour?: number | null
+          focus_minutes?: number
+          fragmentation?: number
+          id?: string
+          last_activity_hour?: number | null
+          meeting_minutes?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_place_nodes: {
+        Row: {
+          created_at: string
+          first_seen: string | null
+          id: string
+          label: string
+          last_seen: string | null
+          latitude: number | null
+          longitude: number | null
+          normalized_key: string
+          sources: Json
+          updated_at: string
+          user_id: string
+          visit_count: number
+        }
+        Insert: {
+          created_at?: string
+          first_seen?: string | null
+          id?: string
+          label: string
+          last_seen?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          normalized_key: string
+          sources?: Json
+          updated_at?: string
+          user_id: string
+          visit_count?: number
+        }
+        Update: {
+          created_at?: string
+          first_seen?: string | null
+          id?: string
+          label?: string
+          last_seen?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          normalized_key?: string
+          sources?: Json
+          updated_at?: string
+          user_id?: string
+          visit_count?: number
+        }
+        Relationships: []
+      }
+      google_voiceprints: {
+        Row: {
+          account_id: string | null
+          built_at: string
+          created_at: string
+          google_email: string
+          id: string
+          sample_count: number
+          stylometry: Json
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          built_at?: string
+          created_at?: string
+          google_email: string
+          id?: string
+          sample_count?: number
+          stylometry?: Json
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          built_at?: string
+          created_at?: string
+          google_email?: string
+          id?: string
+          sample_count?: number
+          stylometry?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_voiceprints_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "google_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       granted_subscriptions: {
         Row: {
