@@ -112,6 +112,13 @@ const SecurityIntelligence = () => {
         </div>
       </div>
 
+      {/* Inference precedes inventory: the lists below are the evidence, these
+          panels are the reading of it. Both render unconditionally so a surface
+          that returned nothing still states what its silence means. */}
+      <DeepDivePanel spec={alertSpec} observations={alertObs} />
+      <DeepDivePanel spec={shareSpec} observations={shareObs} />
+
+
       {/* Security Alerts from Email */}
       {securityEmails.length > 0 && (
         <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
