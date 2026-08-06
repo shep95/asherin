@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Brain, Image as ImageIcon, Crosshair, ShieldAlert, Scan, Skull, FileArchive, ChevronDown, ShieldCheck, Database, Package, BookOpen, Target, Ghost, Radar } from "lucide-react";
+import { Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Image as ImageIcon, Crosshair, ShieldAlert, Scan, FileArchive, ChevronDown, ShieldCheck, Database, Package, BookOpen, Ghost } from "lucide-react";
 import type { SearchMode } from "./types";
 
 type ModeDef = { id: SearchMode; label: string; icon: React.ReactNode; accent?: boolean };
