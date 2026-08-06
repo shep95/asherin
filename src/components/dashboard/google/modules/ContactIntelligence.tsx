@@ -118,6 +118,14 @@ const ContactIntelligence = () => {
   const [tierFilter, setTierFilter] = useState<"all" | ContactDossier["tier"]>("all");
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [limit, setLimit] = useState(40);
+  // Cross-device mirror posture: which endpoints feed the ledger and how fresh
+  // the authoritative server copy is.
+  const [mesh, setMesh] = useState<{
+    devices: DeviceRow[];
+    remoteSavedAt: number | null;
+    remoteDevice: string | null;
+    syncing: boolean;
+  }>({ devices: [], remoteSavedAt: null, remoteDevice: null, syncing: false });
 
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
@@ -128,16 +136,60 @@ const ContactIntelligence = () => {
     setVaultMeta({ savedAt: snap.savedAt, bytes: vaultBytes(snap) });
   }, []);
 
-  // Offline-first: the device vault paints immediately, so the operator is
-  // never staring at an empty roster while the network leg runs.
+  const refreshMesh = useCallback(async (uid: string) => {
+    const [devices, meta] = await Promise.all([listDevices(uid), fetchRemoteMeta(uid)]);
+    if (!alive.current) return;
+    setMesh((m) => ({
+      ...m,
+      devices,
+      remoteSavedAt: meta?.savedAt ?? null,
+      remoteDevice: meta?.deviceLabel ?? null,
+    }));
+  }, []);
+
+  // Offline-first, then mesh-consistent: the device vault paints immediately so
+  // the operator is never staring at an empty roster, and the server mirror is
+  // reconciled right behind it. Newest snapshot wins, in either direction — a
+  // sweep run on the laptop lands on the phone and vice versa.
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    loadVault(userId).then((snap) => {
-      if (!cancelled && snap && alive.current) applySnapshot(snap);
-    });
+    (async () => {
+      const local = await loadVault(userId);
+      if (cancelled || !alive.current) return;
+      if (local) applySnapshot(local);
+
+      setMesh((m) => ({ ...m, syncing: true }));
+      void touchDevice(userId);
+      try {
+        const meta = await fetchRemoteMeta(userId);
+        if (cancelled || !alive.current) return;
+
+        if (meta && (!local || meta.savedAt > local.savedAt)) {
+          const remote = await pullRemote(userId);
+          if (cancelled || !alive.current) return;
+          if (remote) {
+            applySnapshot(remote);
+            // Hydrate the device cache so the next cold open is instant and
+            // works offline with the freshest ledger.
+            await saveVault(userId, remote.summary, remote.dossiers);
+            if (meta.deviceId !== deviceId()) {
+              toast.success(`Linked ledger from ${meta.deviceLabel ?? "another device"}.`);
+            }
+          }
+        } else if (local && (!meta || local.savedAt > meta.savedAt)) {
+          await pushRemote(userId, local);
+        }
+      } finally {
+        if (!cancelled && alive.current) {
+          setMesh((m) => ({ ...m, syncing: false }));
+          void refreshMesh(userId);
+        }
+      }
+    })();
     return () => { cancelled = true; };
-  }, [userId, applySnapshot]);
+  }, [userId, applySnapshot, refreshMesh]);
+
 
   const sweep = useCallback(async () => {
     if (!isConnected) return;
