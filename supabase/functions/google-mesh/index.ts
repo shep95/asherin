@@ -53,6 +53,8 @@ Deno.serve(async (req) => {
           id: a.id, email: a.google_email, tier: a.consent_tier,
           canRead: hasScope(a, "gmail.readonly"),
           canCompose: hasScope(a, "gmail.compose"),
+          canSend: hasScope(a, "gmail.send"),
+          isPrimary: (a as any).is_primary ?? false,
         })),
         voiceprints: vp ?? [],
         placesIndexed: places?.length ?? 0,
