@@ -896,6 +896,7 @@ export function deepDive(
     ["novelty", () => detectNovelty(spec, obs, recentDays)],
     ["dormancy", () => detectDormancy(spec, obs, recentDays)],
     ["rhythm", () => detectRhythm(spec, obs)],
+    ["clocked", () => detectClockedEntities(spec, obs)],
     ["magnitude", () => detectMagnitude(spec, obs)],
     ["concentration", () => detectConcentration(spec, obs)],
     ["longtail", () => detectLongTail(spec, obs)],
