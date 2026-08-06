@@ -2,10 +2,51 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
+import {
+  IMAGINE_EVIDENCE_PROTOCOL,
+  IMAGINE_EVIDENCE_SCHEMA,
+  renderExifBlock,
+  reconcileHypotheses,
+  type ExifHint,
+} from "../_shared/imagineEvidence.ts";
+import { verifySolarClaim } from "../_shared/solarGeometry.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+
+/**
+ * Last-resort credential path: a caller who is neither on the platform key nor
+ * sending an inline Gemini BYOK may still have a saved Google key. Vision work
+ * cannot fall back to Venice, so we look the stored key up rather than failing.
+ */
+async function storedGoogleKey(req: Request): Promise<string> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return "";
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    if (!SUPABASE_URL || !SERVICE_ROLE || !ANON_KEY) return "";
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const token = authHeader.replace("Bearer ", "").trim();
+    const anonSb = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
+    const { data: { user } } = await anonSb.auth.getUser(token);
+    if (!user) return "";
+    const adminSb = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+    const { data } = await adminSb
+      .from("user_api_keys")
+      .select("api_key")
+      .eq("user_id", user.id)
+      .eq("provider", "google")
+      .eq("is_active", true)
+      .maybeSingle();
+    return data?.api_key ? String(data.api_key) : "";
+  } catch (_e) {
+    return "";
+  }
+}
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
+  let resolvedGeminiKey = '';
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   if (req.method !== 'OPTIONS') {
@@ -13,7 +54,12 @@ serve(async (req) => {
       const _b = await req.clone().json().catch(() => ({} as any));
       const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
       const _gate = await import('../_shared/adminGate.ts');
-      await _gate.resolveKey(req, _byok);
+      const _res = await _gate.resolveKey(req, _byok);
+      // Use the key the gate actually resolved (platform Gemini for team, the
+      // caller's own Gemini key for BYOK) rather than a stale app-scoped key.
+      resolvedGeminiKey = _res.mode === 'admin'
+        ? (_res.geminiKey || '')
+        : (_res.byok?.provider === 'gemini' ? (_res.byok.apiKey || '') : '');
     } catch (_e) {
       const _gate = await import('../_shared/adminGate.ts');
       return _gate.byokErrorResponse(_e, corsHeaders);
@@ -23,17 +69,24 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
+    const GEMINI_API_KEY = resolvedGeminiKey
+      || (await storedGoogleKey(req))
+      || Deno.env.get("GEMINI_API_KEY")
+      || Deno.env.get("GEMINI_API_KEY_APP");
+    if (!GEMINI_API_KEY) throw new Error("No Gemini credential available for this caller");
 
-    const { image_base64, image_type } = await req.json();
+    const body = await req.json();
+    const { image_base64, image_type } = body as { image_base64?: string; image_type?: string };
     if (!image_base64) throw new Error("No image provided");
+
+    // STAGE 1 — STRIP: hard metadata extracted client-side, never fabricated here.
+    const exif: ExifHint | null = body && typeof body.exif === "object" ? (body.exif as ExifHint) : null;
 
     const mimeType = image_type || "image/jpeg";
 
-    const systemPrompt = `${GEOLOCATION_BRAIN}\n\nYou are ORACLE-LOCUS, a highly advanced Geo-Intelligence Analyst AI operating at forensic-grade precision. Your primary function is to transform visual data (images) into precise, actionable geospatial intelligence using multi-layered feature extraction.
+    const systemPrompt = `${GEOLOCATION_BRAIN}\n\n${renderExifBlock(exif)}\n${IMAGINE_EVIDENCE_PROTOCOL}\n\nYou are ORACLE-LOCUS, a highly advanced Geo-Intelligence Analyst AI operating at forensic-grade precision. Your primary function is to transform visual data (images) into precise, actionable geospatial intelligence using multi-layered feature extraction.
 
-Given a single image with no embedded metadata, determine its precise geographic coordinates (latitude, longitude) and provide a confidence score, an estimated error radius, and a detailed rationale.
+Determine the image's precise geographic coordinates (latitude, longitude) and provide a confidence score, an estimated error radius, and a detailed rationale — grounded in the cited observables demanded above.
 
 ═══════════════════════════════════════════════════════
 PHASE 1: ADVANCED FEATURE EXTRACTION & REPRESENTATION
@@ -176,9 +229,11 @@ You MUST respond with ONLY valid JSON in this exact format:
     "estimated_local_time": "string (e.g. '14:30' or '2:30 PM')",
     "time_confidence": number,
     "shadow_analysis": "string describing shadow patterns observed",
+    "shadow_direction": "compass bearing the shadows FALL TOWARD, e.g. 'NE' or '235 deg', or null if no shadows are readable",
     "estimated_season": "string (e.g. 'Summer', 'Winter', 'Spring', 'Autumn')",
-    "sun_position": "string (e.g. 'High overhead', 'Low on western horizon')"
-  },
+    "sun_position": "string (e.g. 'High overhead', 'Low on western horizon')",
+    "capture_date_estimate": "string 'YYYY-MM-DD' or null — your best estimate of the calendar date"
+  }${IMAGINE_EVIDENCE_SCHEMA.replace(/^,/, ",")},
   "person_analysis": [
     {
       "person_id": number,
@@ -255,6 +310,43 @@ Analyze EVERY visual cue with forensic precision. Cross-reference cultural patte
       if (attemptOk) break;
     }
 
+    // CREDENTIAL FAILOVER — a rejected/expired Gemini credential is not a
+    // "model overloaded" condition, and must not silently kill the feature.
+    // Fall the whole analysis over to the platform gateway vision model.
+    if (!text) {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (LOVABLE_API_KEY) {
+        try {
+          const gw = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-3.6-flash",
+              messages: [{
+                role: "user",
+                content: [
+                  { type: "text", text: `${systemPrompt}\n\nReturn ONLY the JSON object described above.` },
+                  { type: "image_url", image_url: { url: `data:${mimeType};base64,${image_base64}` } },
+                ],
+              }],
+            }),
+          });
+          if (gw.ok) {
+            const gj = await gw.json();
+            const gtext = gj?.choices?.[0]?.message?.content;
+            if (typeof gtext === "string" && gtext.trim()) {
+              text = gtext;
+              modelUsed = "gateway:google/gemini-3.6-flash";
+            }
+          } else {
+            lastErr = `${lastErr} | gateway ${gw.status}: ${(await gw.text()).slice(0, 160)}`;
+          }
+        } catch (ge) {
+          lastErr = `${lastErr} | gateway error: ${ge instanceof Error ? ge.message : String(ge)}`;
+        }
+      }
+    }
+
     if (!text) {
       return new Response(
         JSON.stringify({
@@ -296,8 +388,86 @@ Analyze EVERY visual cue with forensic precision. Cross-reference cultural patte
       );
     }
 
-    (analysis as Record<string, unknown>)._model = modelUsed;
-    return new Response(JSON.stringify(analysis), {
+    const a = analysis as Record<string, unknown>;
+    const adjudicationNotes: string[] = [];
+
+    // ── STAGE 1 OVERRIDE: a hard GPS fix outranks every inference. ──
+    if (exif?.gps && Number.isFinite(exif.gps.latitude) && Number.isFinite(exif.gps.longitude)) {
+      a.estimated_location = { latitude: exif.gps.latitude, longitude: exif.gps.longitude };
+      a.confidence_score = 99;
+      a.error_radius_meters = exif.gps.hPositioningErrorMeters ?? 25;
+      a.status = "SUCCESS";
+      a.insufficient_data = false;
+      a.location_source = "exif_gps";
+      adjudicationNotes.push(
+        "Coordinate taken directly from the file's embedded GPS fix; the visual analysis below is corroboration, not the source of the location.",
+      );
+    } else {
+      a.location_source = "visual_inference";
+      // ── STAGE 4 INTEGRITY: reconcile the model against its own ranking. ──
+      adjudicationNotes.push(...reconcileHypotheses(a));
+    }
+
+    // ── STAGE 5: deterministic astronomical validation. ──
+    const loc = a.estimated_location as { latitude?: number; longitude?: number } | undefined;
+    const te = (a.time_estimation || {}) as Record<string, unknown>;
+    let solar: ReturnType<typeof verifySolarClaim> | null = null;
+    if (loc && Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude)) {
+      solar = verifySolarClaim({
+        lat: loc.latitude as number,
+        lon: loc.longitude as number,
+        isoDate:
+          exif?.capturedAtUtc || exif?.capturedAtLocal || (typeof te.capture_date_estimate === "string" ? te.capture_date_estimate : null),
+        claimedLocalTime: typeof te.estimated_local_time === "string" ? te.estimated_local_time : null,
+        claimedShadowDirection:
+          (typeof te.shadow_direction === "string" ? te.shadow_direction : null) ||
+          (typeof te.shadow_analysis === "string" ? te.shadow_analysis : null),
+        claimedSunPosition: typeof te.sun_position === "string" ? te.sun_position : null,
+      });
+      a.solar_verification = solar;
+
+      // Confidence is evidence-weighted: physics can lift it a little, or sink it hard.
+      // EXIF-sourced coordinates are ground truth and are never penalised by a model's bad time guess.
+      if (solar.checked && a.location_source !== "exif_gps") {
+        const before = Number(a.confidence_score) || 0;
+        const after = Math.max(0, Math.min(99, Math.round(before + solar.confidenceDelta)));
+        if (after !== before) {
+          a.confidence_score = after;
+          adjudicationNotes.push(
+            `Astronomical validation adjusted confidence ${before}% → ${after}%. ${solar.verdict}`,
+          );
+          // Penalising the leader can demote it below a rival. Re-rank so the
+          // ledger never shows a #1 that is less probable than #2, and move the
+          // reported coordinate to whichever hypothesis now leads.
+          const hyps = a.hypotheses as
+            | { label?: string; probability: number; latitude?: number; longitude?: number }[]
+            | undefined;
+          if (Array.isArray(hyps) && hyps.length > 0) {
+            const priorLeader = hyps[0];
+            priorLeader.probability = after;
+            hyps.sort((x, y) => (Number(y.probability) || 0) - (Number(x.probability) || 0));
+            const leader = hyps[0];
+            if (leader !== priorLeader) {
+              adjudicationNotes.push(
+                `Re-ranked after astronomical validation: "${leader.label ?? "hypothesis 1"}" (${leader.probability}%) overtakes "${priorLeader.label ?? "prior leader"}" (${priorLeader.probability}%).`,
+              );
+              if (Number.isFinite(leader.latitude) && Number.isFinite(leader.longitude)) {
+                a.estimated_location = { latitude: leader.latitude, longitude: leader.longitude };
+              }
+              a.confidence_score = Math.max(0, Math.min(99, Math.round(Number(leader.probability) || 0)));
+            }
+          }
+        }
+        if (solar.consistent === false) {
+          a.status = (Number(a.confidence_score) || 0) < 35 ? "AMBIGUOUS" : a.status;
+        }
+      }
+    }
+
+    if (adjudicationNotes.length) a.adjudication_notes = adjudicationNotes;
+    a._model = modelUsed;
+    a._pipeline = "imagine-evidence-v2";
+    return new Response(JSON.stringify(a), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

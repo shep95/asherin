@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
-import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, Search, Users, GitBranch, ChevronRight, CheckCircle2, Info, ExternalLink, Globe, Navigation } from "lucide-react";
+import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, Search, Users, GitBranch, ChevronRight, CheckCircle2, Info, ExternalLink, Globe, Navigation, Sun, ListChecks, Layers, ShieldQuestion } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { extractExifFacts, type ExifFacts } from "@/lib/imagine/exif";
 import LocationMapPanel from "./search/LocationMapPanel";
 import LinkedImageryMap, { type ImageryDataPoint } from "./search/LinkedImageryMap";
 
@@ -20,8 +21,50 @@ interface TimeEstimation {
   estimated_local_time: string;
   time_confidence: number;
   shadow_analysis: string;
+  shadow_direction?: string | null;
   estimated_season: string;
   sun_position: string;
+  capture_date_estimate?: string | null;
+}
+
+// ─── EVIDENCE PIPELINE TYPES (Imagine v2) ───
+type EvidenceWeight = "decisive" | "strong" | "moderate" | "weak";
+
+interface Observable {
+  where: string;
+  reading: string;
+  inference: string;
+  weight: EvidenceWeight;
+}
+
+interface Correlation {
+  observable: string;
+  referent: string;
+  eliminates: string;
+  strength: EvidenceWeight;
+  pivot_query?: string | null;
+}
+
+interface Hypothesis {
+  label: string;
+  latitude: number;
+  longitude: number;
+  probability: number;
+  supporting_observables?: number[];
+  wrong_if?: string;
+  next_check?: string;
+}
+
+interface SolarVerification {
+  checked: boolean;
+  consistent: boolean | null;
+  confidenceDelta: number;
+  sunElevationDeg?: number;
+  sunAzimuthDeg?: number;
+  expectedShadowBearingDeg?: number;
+  claimedShadowBearingDeg?: number;
+  bearingErrorDeg?: number;
+  verdict: string;
 }
 
 interface AnalysisResult {
@@ -38,6 +81,13 @@ interface AnalysisResult {
   person_analysis?: PersonAnalysis[];
   insufficient_data?: boolean;
   insufficient_data_reason?: string;
+  observables?: Observable[];
+  correlations?: Correlation[];
+  hypotheses?: Hypothesis[];
+  self_consistency?: string;
+  solar_verification?: SolarVerification;
+  adjudication_notes?: string[];
+  location_source?: "exif_gps" | "visual_inference";
 }
 
 // ─── FACE SEARCH TYPES ───
@@ -176,6 +226,8 @@ const OracleLocusView = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imageType, setImageType] = useState<string>("image/jpeg");
+  // Stage 1 (STRIP): metadata read on-device before anything is sent upstream.
+  const [exifFacts, setExifFacts] = useState<ExifFacts | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -215,6 +267,12 @@ const OracleLocusView = () => {
         setImageBase64(base64);
         setImageType(file.type);
         setResult(null);
+        setExifFacts(null);
+        // Fire-and-forget: EXIF never blocks the preview, and a parse failure
+        // degrades to content-only analysis instead of breaking the upload.
+        void extractExifFacts(file)
+          .then(setExifFacts)
+          .catch(() => setExifFacts(null));
       } else {
         setFacePreview(dataUrl);
         setFaceBase64(base64);
@@ -264,7 +322,26 @@ const OracleLocusView = () => {
           Authorization: `Bearer ${session?.session?.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ image_base64: imageBase64, image_type: imageType }),
+        body: JSON.stringify({
+          image_base64: imageBase64,
+          image_type: imageType,
+          // Stage 1 evidence travels with the frame so the adjudicator can rank
+          // hard metadata above its own inference.
+          exif: exifFacts
+            ? {
+                hasExif: exifFacts.hasExif,
+                gps: exifFacts.gps,
+                capturedAtLocal: exifFacts.capturedAtLocal,
+                capturedAtUtc: exifFacts.capturedAtUtc,
+                make: exifFacts.make,
+                model: exifFacts.model,
+                software: exifFacts.software,
+                focalLengthMm: exifFacts.focalLengthMm,
+                orientation: exifFacts.orientation,
+                notes: exifFacts.notes,
+              }
+            : null,
+        }),
       });
       if (!res.ok) throw new Error("Analysis failed");
       const data = await res.json();
@@ -534,7 +611,7 @@ const OracleLocusView = () => {
                             <p className="text-[9px] text-muted-foreground mt-1">Error Radius</p>
                           </div>
                           <div className="rounded-xl bg-card/30 p-3 text-center">
-                            <p className="text-2xl font-extralight text-foreground">{result.identified_features.length}</p>
+                            <p className="text-2xl font-extralight text-foreground">{(result.identified_features || []).length}</p>
                             <p className="text-[9px] text-muted-foreground mt-1">Features Found</p>
                           </div>
                         </div>
@@ -571,11 +648,157 @@ const OracleLocusView = () => {
                         </div>
                       </div>
 
+                      {/* ── EVIDENCE PIPELINE: STAGE 1 STRIP ── */}
+                      {(exifFacts || result.location_source) && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Stage 1 · Metadata Strip</p>
+                            {result.location_source === "exif_gps" && (
+                              <span className="rounded-md border border-foreground/20 bg-foreground/[0.06] px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-foreground/80">Hard GPS fix</span>
+                            )}
+                          </div>
+                          <div className="grid gap-1.5 sm:grid-cols-2">
+                            {exifFacts?.gps && (
+                              <p className="text-[11px] font-light text-foreground/80">GPS · {exifFacts.gps.latitude.toFixed(6)}, {exifFacts.gps.longitude.toFixed(6)}</p>
+                            )}
+                            {exifFacts?.capturedAtUtc && <p className="text-[11px] font-light text-foreground/70">Captured (UTC) · {exifFacts.capturedAtUtc}</p>}
+                            {exifFacts?.capturedAtLocal && <p className="text-[11px] font-light text-foreground/70">Captured (local) · {exifFacts.capturedAtLocal}</p>}
+                            {(exifFacts?.make || exifFacts?.model) && (
+                              <p className="text-[11px] font-light text-foreground/70">Device · {[exifFacts?.make, exifFacts?.model].filter(Boolean).join(" ")}</p>
+                            )}
+                            {exifFacts?.focalLengthMm && <p className="text-[11px] font-light text-foreground/70">Focal length · {exifFacts.focalLengthMm} mm</p>}
+                          </div>
+                          {(exifFacts?.notes || []).map((n, i) => (
+                            <p key={i} className="text-[10px] font-light text-muted-foreground/80 leading-relaxed">{n}</p>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* ── STAGE 2: CITED OBSERVABLES ── */}
+                      {Array.isArray(result.observables) && result.observables.length > 0 && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
+                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Stage 2 · Cited Observables</p>
+                            <span className="text-[10px] font-mono text-muted-foreground/60">{result.observables.length}</span>
+                          </div>
+                          <div className="space-y-2">
+                            {result.observables.map((o, i) => (
+                              <div key={i} className="rounded-xl border border-border/10 bg-background/30 p-3 space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-[9px] font-mono text-muted-foreground/60">{String(i).padStart(2, "0")}</span>
+                                  <span className={`rounded px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] ${
+                                    o.weight === "decisive" ? "bg-foreground/[0.12] text-foreground"
+                                    : o.weight === "strong" ? "bg-foreground/[0.08] text-foreground/85"
+                                    : o.weight === "moderate" ? "bg-foreground/[0.05] text-foreground/70"
+                                    : "bg-foreground/[0.03] text-muted-foreground"}`}>{o.weight}</span>
+                                  <span className="text-[10px] font-light text-muted-foreground/70">{o.where}</span>
+                                </div>
+                                <p className="text-xs font-light text-foreground/85 leading-relaxed">{o.reading}</p>
+                                <p className="text-[11px] font-light text-muted-foreground/80 leading-relaxed">→ {o.inference}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── STAGE 3: CORRELATIONS ── */}
+                      {Array.isArray(result.correlations) && result.correlations.length > 0 && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
+                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Stage 3 · Correlation Bridge</p>
+                          </div>
+                          <div className="space-y-2">
+                            {result.correlations.map((c, i) => (
+                              <div key={i} className="rounded-xl border border-border/10 bg-background/30 p-3 space-y-1">
+                                <p className="text-xs font-light text-foreground/85">{c.observable} <span className="text-muted-foreground/50">→</span> {c.referent}</p>
+                                <p className="text-[10px] font-light text-muted-foreground/75">Eliminates · {c.eliminates}</p>
+                                {c.pivot_query && (
+                                  <p className="text-[10px] font-mono text-foreground/70">Pivot · {c.pivot_query}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── STAGE 4: RANKED HYPOTHESES ── */}
+                      {Array.isArray(result.hypotheses) && result.hypotheses.length > 0 && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <ShieldQuestion className="h-3.5 w-3.5 text-muted-foreground" />
+                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Stage 4 · Ranked Hypotheses</p>
+                          </div>
+                          <div className="space-y-2">
+                            {result.hypotheses.map((h, i) => (
+                              <div key={i} className={`rounded-xl border p-3 space-y-1.5 ${i === 0 ? "border-foreground/25 bg-foreground/[0.05]" : "border-border/10 bg-background/30"}`}>
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="text-xs font-light text-foreground">{i + 1}. {h.label}</p>
+                                  <span className="text-xs font-mono text-foreground/85">{h.probability}%</span>
+                                </div>
+                                <p className="text-[10px] font-mono text-muted-foreground/70">{Number(h.latitude).toFixed(5)}, {Number(h.longitude).toFixed(5)}</p>
+                                {h.wrong_if && <p className="text-[11px] font-light text-muted-foreground/85 leading-relaxed">Wrong if · {h.wrong_if}</p>}
+                                {h.next_check && <p className="text-[11px] font-light text-muted-foreground/70 leading-relaxed">Next check · {h.next_check}</p>}
+                                <button
+                                  onClick={() => setMapDestination(`${h.latitude},${h.longitude}`)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-card/40 hover:bg-foreground/[0.06] px-2.5 py-1 text-[10px] font-light text-muted-foreground/80 hover:text-foreground transition-colors"
+                                >
+                                  <Navigation className="h-3 w-3" /> Plot this hypothesis
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── STAGE 5: ASTRONOMICAL VALIDATION ── */}
+                      {result.solar_verification?.checked && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Sun className="h-3.5 w-3.5 text-muted-foreground" />
+                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Stage 5 · Astronomical Validation</p>
+                            <span className={`rounded px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] ${
+                              result.solar_verification.consistent === true ? "bg-foreground/[0.1] text-foreground"
+                              : result.solar_verification.consistent === false ? "bg-destructive/15 text-destructive"
+                              : "bg-foreground/[0.04] text-muted-foreground"}`}>
+                              {result.solar_verification.consistent === true ? "Consistent" : result.solar_verification.consistent === false ? "Contradicted" : "Marginal"}
+                            </span>
+                          </div>
+                          <div className="grid gap-1 sm:grid-cols-3">
+                            <p className="text-[11px] font-light text-muted-foreground/80">Sun elevation · {result.solar_verification.sunElevationDeg}°</p>
+                            <p className="text-[11px] font-light text-muted-foreground/80">Sun azimuth · {result.solar_verification.sunAzimuthDeg}°</p>
+                            {result.solar_verification.expectedShadowBearingDeg !== undefined && (
+                              <p className="text-[11px] font-light text-muted-foreground/80">Expected shadow · {result.solar_verification.expectedShadowBearingDeg}°</p>
+                            )}
+                          </div>
+                          <p className="text-[11px] font-light text-foreground/80 leading-relaxed">{result.solar_verification.verdict}</p>
+                        </div>
+                      )}
+
+                      {/* ── ADJUDICATION AUDIT TRAIL ── */}
+                      {Array.isArray(result.adjudication_notes) && result.adjudication_notes.length > 0 && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-2">
+                          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Adjudication Audit Trail</p>
+                          {result.adjudication_notes.map((n, i) => (
+                            <p key={i} className="text-[11px] font-light text-muted-foreground/85 leading-relaxed">· {n}</p>
+                          ))}
+                        </div>
+                      )}
+
+                      {result.self_consistency && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-2">
+                          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Overhead Self-Consistency</p>
+                          <p className="text-xs font-light text-foreground/80 leading-relaxed">{result.self_consistency}</p>
+                        </div>
+                      )}
+
                       {/* Rationale */}
                       <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
                         <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Analysis Rationale</p>
                         <div className="space-y-2">
-                          {result.rationale.map((r, i) => (
+                          {(result.rationale || []).map((r, i) => (
                             <div key={i} className="flex gap-3 items-start">
                               <span className="text-[9px] text-accent font-mono mt-0.5">{String(i + 1).padStart(2, "0")}</span>
                               <p className="text-xs font-light text-foreground/80 leading-relaxed">{r}</p>
@@ -585,11 +808,11 @@ const OracleLocusView = () => {
                       </div>
 
                       {/* Identified Features */}
-                      {result.identified_features.length > 0 && (
+                      {(result.identified_features || []).length > 0 && (
                         <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
                           <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Identified Features</p>
                           <div className="flex flex-wrap gap-2">
-                            {result.identified_features.map((f, i) => (
+                            {(result.identified_features || []).map((f, i) => (
                               <div key={i} className={`rounded-lg px-3 py-1.5 text-[10px] ${featureTypeColors[f.type] || featureTypeColors.default}`}>
                                 <span className="uppercase tracking-wider opacity-60">{f.type}</span>
                                 <span className="mx-1.5 opacity-30">·</span>
@@ -667,11 +890,11 @@ const OracleLocusView = () => {
                       )}
 
                       {/* Alternative Locations */}
-                      {result.potential_alternative_locations.length > 0 && (
+                      {(result.potential_alternative_locations || []).length > 0 && (
                         <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
                           <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Alternative Locations</p>
                           <div className="space-y-2">
-                            {result.potential_alternative_locations.map((alt, i) => (
+                            {(result.potential_alternative_locations || []).map((alt, i) => (
                               <div key={i} className="flex items-center justify-between rounded-xl bg-card/20 px-4 py-2.5">
                                 <span className="text-xs font-light text-foreground">{alt.region}</span>
                                 <span className="text-[10px] text-muted-foreground">{alt.confidence}%</span>
