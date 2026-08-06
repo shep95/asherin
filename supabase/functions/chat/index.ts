@@ -1334,6 +1334,33 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       console.error("[chat] Google Mesh bridge failed:", (e as Error).message);
     }
 
+    // ── Google Substrate: the indexed ledger ─────────────────────────────
+    // Pull, never push. The Mesh calls Google live; the Substrate reads what
+    // was already harvested — milliseconds instead of seconds, and it can see
+    // across months. Fires only on an explicit self/ledger-shaped turn, and
+    // only for a verified caller with a non-empty ledger.
+    let googleSubstrateContext = "";
+    try {
+      const lastUserForSub = [...messages].reverse().find((m: any) => m.role === "user");
+      const subQ = String(lastUserForSub?.content || "");
+      const { classifySubstrateIntent, runSubstratePull, formatSubstrateContext } =
+        await import("../_shared/googleSubstrateBridge.ts");
+      const subIntent = classifySubstrateIntent(subQ);
+      if (subIntent.active && authHeader) {
+        const bundle = await runSubstratePull(authHeader, subQ, subIntent);
+        googleSubstrateContext = formatSubstrateContext(bundle);
+        if (bundle) {
+          console.log(
+            `[chat] Substrate: signals=${bundle.signals}, insights=${bundle.insights.length}, hits=${bundle.hits.length}, ${bundle.elapsedMs}ms`,
+          );
+        }
+      }
+    } catch (e) {
+      console.error("[chat] Google Substrate bridge failed:", (e as Error).message);
+    }
+
+
+
     if (shouldSearch(messages, mode)) {
       const searchUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
       if (searchUserMsg) {
@@ -1941,7 +1968,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       skillInjection ? `\n${skillInjection}` : "",
       swarmInjection ? `\n[SWARM ORCHESTRATOR — Active Agent: ${activeAgentId || "general"}]\n${swarmInjection}` : "",
       DEFENSIVE_SECURITY_REALISM_STATE,
-      webSearchContext + googleMeshContext,
+      webSearchContext + googleMeshContext + googleSubstrateContext,
       leaksContext,
       archiveContext,
       jurisdictionalContext,

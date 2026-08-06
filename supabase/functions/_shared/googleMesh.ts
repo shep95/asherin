@@ -26,6 +26,7 @@ export const TIER_SCOPES: Record<number, string[]> = {
     "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/contacts.readonly",
     "https://www.googleapis.com/auth/drive.metadata.readonly",
+    "https://www.googleapis.com/auth/tasks.readonly",
   ],
   // T3 — Comprehension. Signals used to model rhythm, place and attention.
   3: [
