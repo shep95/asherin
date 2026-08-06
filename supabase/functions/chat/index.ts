@@ -16,6 +16,7 @@ import { SOCIAL_AWARENESS_BRAIN } from "../_shared/socialAwarenessBrain.ts";
 
 import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchitectureBrain.ts";
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
+import { SILENT_OBSERVABLE_DIRECTIVE } from "../_shared/imagineEvidence.ts";
 import { SYSTEM_TWO_FORCING_BRAIN } from "../_shared/systemTwoForcingBrain.ts";
 import { HYPOTHETICAL_REALISM_DOCTRINE } from "../_shared/hypotheticalRealismDoctrine.ts";
 import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
@@ -1962,6 +1963,8 @@ The operator is requesting a defensive security audit / flaw check of their own 
       zophielCodingBrainContent,
       AUREON_IMAGE_INTELLIGENCE,
       hasChartAttachment ? MARKET_STRUCTURE_VISION_BRAIN : "",
+      // Grounding: any attached image is answered from cited observables, not impressions.
+      hasChartAttachment ? SILENT_OBSERVABLE_DIRECTIVE : "",
       AUREON_ADVANCED_PROTOCOLS,
       AUREON_VISUAL_DOMINANCE,
       CONTEXT_INTELLIGENCE_PROMPT,
