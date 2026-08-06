@@ -435,39 +435,65 @@ async function fetchX(handle: string, timeoutMs: number): Promise<SocialProbeRes
     return done({ verdict: "not_found", profile: null, note: `No readable X profile at @${handle} — the account may be suspended, renamed, or protected.`, residualPath: "Run a handle hunt to find the current alias." });
   }
 
-  // The parser emits `# Display Name (@handle)` then a bullet block, then a
-  // `## Latest Posts` section of `### N. Post` entries.
-  const head = md.match(/^#\s+(.+?)\s*\(@([A-Za-z0-9_]+)\)/m);
+  // The parser emits `# Display Name (@handle)`, a bio paragraph, a bullet
+  // block of stats, then `## Latest Posts` of `### N. Post` entries. It also
+  // markdown-escapes punctuation, so every extracted string is unescaped
+  // before use — otherwise names surface as "NASA \- @NASA".
+  const unescape = (s: string) => s.replace(/\\([-_*[\]()#.!\\])/g, "$1").trim();
+
+  const head = md.match(/^#\s+(.+?)\s*\(@([A-Za-z0-9_]+)\)\s*$/m);
+  const resolvedHandle = head?.[2] ?? handle;
+  let displayName = head?.[1] ? unescape(head[1]) : null;
+  // X titles often repeat the handle inside the name ("NASA - @NASA"); the
+  // duplicate is chrome, not identity.
+  if (displayName) {
+    displayName = displayName.replace(/\s*[-–—|]\s*@[A-Za-z0-9_]+\s*$/i, "").trim() || displayName;
+  }
+
   const followers = md.match(/Followers:\s*([\d,]+)/i);
   const following = md.match(/Following:\s*([\d,]+)/i);
+  const postCount = md.match(/(?:Posts|Tweets):\s*([\d,]+)/i);
   const verified = /Verified:\s*yes/i.test(md);
   const avatar = md.match(/Profile Picture:\s*!\[[^\]]*\]\(([^)]+)\)/i);
   const parseCount = (m: RegExpMatchArray | null) => (m ? num(m[1].replace(/,/g, "")) : null);
 
   // Bio is the free text between the title and the first bullet or section.
-  const bioBlock = md.split(/\n-\s|\n##\s/)[0].split("\n").slice(1).join(" ").trim();
+  const bioBlock = unescape(md.split(/\n-\s|\n##\s/)[0].split("\n").slice(1).join(" ").trim());
 
   const posts: SocialPost[] = [];
   const sections = md.split(/^###\s+\d+\.\s*Post\s*$/m).slice(1);
   for (const sec of sections) {
     const url = sec.match(/https:\/\/x\.com\/[A-Za-z0-9_]+\/status\/(\d+)/);
     const posted = sec.match(/Posted:\s*(.+)/);
-    const when = posted ? new Date(posted[1].trim()) : null;
-    // Strip the metadata lines to leave the post body.
-    const text = sec
-      .replace(/Posted:.*/g, "")
-      .replace(/URL:.*/g, "")
-      .replace(/\[https?:[^\]]*\]\([^)]*\)/g, "")
-      .replace(/^[-*\s]+$/gm, "")
-      .trim();
+    const when = posted ? new Date(unescape(posted[1])) : null;
+    const likes = sec.match(/Likes:\s*([\d,]+)/i);
+    const reposts = sec.match(/(?:Retweets|Reposts):\s*([\d,]+)/i);
+    const replies = sec.match(/(?:Replies|Comments):\s*([\d,]+)/i);
+
+    // The body arrives as a blockquote. Strip the metadata lines and the
+    // quote markers so the text reads as the author wrote it.
+    const text = unescape(
+      sec
+        .replace(/^Posted:.*$/gm, "")
+        .replace(/^URL:.*$/gm, "")
+        .replace(/^Likes:.*$/gm, "")
+        .replace(/\[https?:[^\]]*\]\(([^)]*)\)/g, "$1")
+        .split("\n")
+        .map((l) => l.replace(/^>\s?/, ""))
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim(),
+    );
+
     if (!url && !text) continue;
     posts.push({
-      id: url?.[1] ?? `${handle}-${posts.length}`,
+      id: url?.[1] ?? `${resolvedHandle}-${posts.length}`,
       url: url?.[0] ?? null,
       text: text.slice(0, 2000),
       postedAt: when && !Number.isNaN(when.getTime()) ? when.toISOString() : null,
-      likes: null,
-      comments: null,
+      likes: parseCount(likes),
+      comments: parseCount(replies),
+      shares: parseCount(reposts),
       linkedHandles: mentionsIn(text),
     });
   }
@@ -476,10 +502,10 @@ async function fetchX(handle: string, timeoutMs: number): Promise<SocialProbeRes
     verdict: "ok",
     profile: {
       platform: "x",
-      handle: head?.[2] ?? handle,
-      url: profileUrl("x", handle),
-      displayName: head?.[1]?.trim() ?? null,
-      bio: bioBlock && !bioBlock.startsWith("http") ? bioBlock.slice(0, 500) : null,
+      handle: resolvedHandle,
+      url: profileUrl("x", resolvedHandle),
+      displayName,
+      bio: bioBlock && !/^https?:/i.test(bioBlock) ? bioBlock.slice(0, 500) : null,
       followers: parseCount(followers),
       following: parseCount(following),
       verified,
@@ -489,13 +515,14 @@ async function fetchX(handle: string, timeoutMs: number): Promise<SocialProbeRes
       avatarUrl: avatar?.[1] ?? null,
       publicEmail: null,
       publicPhone: null,
-      postCount: null,
+      postCount: parseCount(postCount),
       posts,
     },
     note: "",
     residualPath: null,
   });
 }
+
 
 // ── Dispatcher ─────────────────────────────────────────────────────────────
 
