@@ -610,15 +610,37 @@ export function buildDomainProfile(input: {
     });
   }
 
-  if (sensitivityClasses.includes("PCI") || sensitivityClasses.includes("CREDENTIAL")) {
+  // A SWIFT/BIC or routing code is a public directory identifier, not secret
+  // material. Firing "critical" on it trains operators to ignore the finding,
+  // so the critical tier is reserved for card data, full account numbers and
+  // credentials; directory identifiers get their own lower-severity notice.
+  const SECRET_COLUMN = /(card.?number|pan\b|cvv|cvc|iban|account.?number|acct.?no|password|passwd|secret|api.?key|token|private.?key)/i;
+  const secretCols = sensitiveFields
+    .filter((s) => (s.cls === "PCI" || s.cls === "CREDENTIAL") && SECRET_COLUMN.test(s.column))
+    .map((s) => s.column);
+  const directoryCols = sensitiveFields
+    .filter((s) => s.cls === "PCI" && !SECRET_COLUMN.test(s.column))
+    .map((s) => s.column);
+
+  if (secretCols.length) {
     findings.push({
       code: "RAW_SECRET_MATERIAL",
       severity: "critical",
       message: "Payment or credential material detected in a raw ingest file.",
-      evidence: sensitiveFields.filter((s) => s.cls === "PCI" || s.cls === "CREDENTIAL").map((s) => s.column).join(", "),
+      evidence: Array.from(new Set(secretCols)).join(", "),
       remediation: "Tokenise or drop these columns before storage; raw retention puts the whole environment into PCI-DSS / secret-rotation scope.",
     });
+  } else if (directoryCols.length) {
+    findings.push({
+      code: "PAYMENT_ROUTING_IDENTIFIERS",
+      severity: "low",
+      message: "Payment routing identifiers are present (public directory codes, not secrets) — they still enable counterparty attribution.",
+      evidence: Array.from(new Set(directoryCols)).join(", "),
+      remediation: "Restrict to analysts with counterparty scope and exclude from exports shared outside the institution.",
+    });
   }
+
+
 
   // Temporal integrity — a dataset with no usable time axis cannot be trended.
   // A time axis is any bound column whose canonical, property or header reads
