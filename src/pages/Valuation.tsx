@@ -165,9 +165,17 @@ const Valuation = () => {
               Private Company
             </span>
           </div>
-          <h1 className="mt-3 text-5xl md:text-7xl font-extralight tracking-tight">
-            ${(VALUATION_HEADLINE / 1000).toFixed(1)}B
+          {/* The heading names the entity and the page type before the figure,
+              so the H1 describes the page rather than reading as a bare number. */}
+          <h1 className="mt-3 font-extralight tracking-tight">
+            <span className="block text-xl md:text-2xl text-muted-foreground/80">
+              Asherin Company Valuation
+            </span>
+            <span className="mt-1 block text-5xl md:text-7xl">
+              ${(VALUATION_HEADLINE / 1000).toFixed(1)}B
+            </span>
           </h1>
+
           <p className="mt-4 text-sm font-light text-muted-foreground/80">
             As of <span className="text-foreground/90">{VALUATION_DATE}</span> · asset + portfolio-based · updated 07/08/2026.
           </p>
