@@ -4343,6 +4343,54 @@ export type Database = {
         }
         Relationships: []
       }
+      google_insights: {
+        Row: {
+          code: string
+          computed_at: string
+          detail: string
+          dismissed: boolean
+          domain: string
+          evidence: Json
+          first_seen_at: string
+          id: string
+          metric: Json
+          severity: number
+          subject_key: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          computed_at?: string
+          detail?: string
+          dismissed?: boolean
+          domain: string
+          evidence?: Json
+          first_seen_at?: string
+          id?: string
+          metric?: Json
+          severity?: number
+          subject_key?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          computed_at?: string
+          detail?: string
+          dismissed?: boolean
+          domain?: string
+          evidence?: Json
+          first_seen_at?: string
+          id?: string
+          metric?: Json
+          severity?: number
+          subject_key?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       google_place_nodes: {
         Row: {
           created_at: string
@@ -4387,6 +4435,130 @@ export type Database = {
           visit_count?: number
         }
         Relationships: []
+      }
+      google_signals: {
+        Row: {
+          account_email: string | null
+          account_id: string | null
+          actor_email: string | null
+          actor_name: string | null
+          amount: number | null
+          counterparties: string[]
+          created_at: string
+          currency: string | null
+          direction: string | null
+          external_id: string
+          fingerprint: string
+          id: string
+          kind: string
+          metadata: Json
+          occurred_at: string | null
+          people_text: string
+          search: unknown
+          snippet: string | null
+          source: string
+          subject: string | null
+          user_id: string
+        }
+        Insert: {
+          account_email?: string | null
+          account_id?: string | null
+          actor_email?: string | null
+          actor_name?: string | null
+          amount?: number | null
+          counterparties?: string[]
+          created_at?: string
+          currency?: string | null
+          direction?: string | null
+          external_id: string
+          fingerprint: string
+          id?: string
+          kind: string
+          metadata?: Json
+          occurred_at?: string | null
+          people_text?: string
+          search?: unknown
+          snippet?: string | null
+          source: string
+          subject?: string | null
+          user_id: string
+        }
+        Update: {
+          account_email?: string | null
+          account_id?: string | null
+          actor_email?: string | null
+          actor_name?: string | null
+          amount?: number | null
+          counterparties?: string[]
+          created_at?: string
+          currency?: string | null
+          direction?: string | null
+          external_id?: string
+          fingerprint?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          occurred_at?: string | null
+          people_text?: string
+          search?: unknown
+          snippet?: string | null
+          source?: string
+          subject?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_signals_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "google_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_sweeps: {
+        Row: {
+          account_id: string | null
+          cursor: string | null
+          error: string | null
+          id: string
+          last_run_at: string | null
+          signals_ingested: number
+          source: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          cursor?: string | null
+          error?: string | null
+          id?: string
+          last_run_at?: string | null
+          signals_ingested?: number
+          source: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          cursor?: string | null
+          error?: string | null
+          id?: string
+          last_run_at?: string | null
+          signals_ingested?: number
+          source?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_sweeps_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "google_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       google_voiceprints: {
         Row: {
