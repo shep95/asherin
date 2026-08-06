@@ -811,8 +811,10 @@ export function buildContactReport({ dossier: d, messages, ownAddresses, peers =
         ? [
             weekendShare < 0.05 && "weekends (zero observed traffic)",
             afterHours < 0.15 && "outside 08:00–18:00",
+            quietWeekday && `${quietWeekday} (their quietest weekday)`,
           ].filter(Boolean).join(", ") || "No dead window is observable — their traffic is broadly distributed."
         : null,
+
       unavailable: "Under 8 inbound messages — a dead window would be an artefact of a small sample.",
     },
     {
