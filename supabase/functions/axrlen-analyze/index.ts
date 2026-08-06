@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { buildVedicContext, vedicContextAsPromptBlock } from "../_shared/vedicContext.ts";
-import { nexusPrimeCore } from "../_shared/axrlenSystemPrompt.ts";
+import { nexusPrimeCore, AXRLEN_SPECIFICITY_ADDENDUM } from "../_shared/axrlenSystemPrompt.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ── News & Topic-Relevant Sources (no government/scientific APIs) ──────
@@ -287,7 +287,7 @@ serve(async (req) => {
 
     // Shared NEXUS-PRIME doctrine (identical to the inline axrlenBridge core)
     // + this endpoint's structured JSON output contract.
-    const systemPrompt = nexusPrimeCore(today) + `
+    const systemPrompt = nexusPrimeCore(today) + AXRLEN_SPECIFICITY_ADDENDUM + `
 
 ═══════════════════════════════════════════════════════════════
 OUTPUT CONTRACT — STRUCTURED JSON (this endpoint only)
