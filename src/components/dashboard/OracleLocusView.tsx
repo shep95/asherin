@@ -226,6 +226,8 @@ const OracleLocusView = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imageType, setImageType] = useState<string>("image/jpeg");
+  // Stage 1 (STRIP): metadata read on-device before anything is sent upstream.
+  const [exifFacts, setExifFacts] = useState<ExifFacts | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
