@@ -83,8 +83,15 @@ const GoogleIntelligenceView = () => {
       // Redirect handled by hook - just trigger it inline
       const { data: { session } } = await (await import("@/integrations/supabase/client")).supabase.auth.getSession();
       if (!session) return;
-      const res = await (await import("@/integrations/supabase/client")).supabase.functions.invoke("google-oauth", { body: { action: "get_auth_url" } });
-      if (res.data?.url) window.location.href = res.data.url;
+      const res = await (await import("@/integrations/supabase/client")).supabase.functions.invoke("google-oauth", {
+        // Without an explicit redirect_uri the server falls back to the request
+        // origin, which is not the browser's origin — the exchange then fails.
+        body: { action: "get_auth_url", redirect_uri: `${window.location.origin}/dashboard` },
+      });
+      if (res.data?.url) {
+        const { openGoogleConsent } = await import("@/lib/googleConsent");
+        await openGoogleConsent(res.data.url);
+      }
     } catch (err) {
       console.error("Connect failed:", err);
     } finally {

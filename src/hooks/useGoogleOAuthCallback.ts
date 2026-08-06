@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
+import { isConsentPopup, reportConsentResult } from "@/lib/googleConsent";
+
 
 /**
  * Google OAuth return handler.
@@ -38,13 +40,20 @@ export function useGoogleOAuthCallback(onDone?: () => void) {
     url.searchParams.delete("prompt");
     window.history.replaceState({}, "", url.pathname + url.search);
 
+    // In popup mode the exchange happens here (same origin, same session) and
+    // the opener is told the outcome. Toasting inside a window that is about
+    // to close would show the user nothing.
+    const popupMode = isConsentPopup();
+
     exchangeInFlight = exchangeCode(code, state)
       .then((data: any) => {
-        toast.success(`Connected ${data?.email || "Google account"}.`);
+        if (popupMode) reportConsentResult({ ok: true, email: data?.email });
+        else toast.success(`Connected ${data?.email || "Google account"}.`);
         return data;
       })
       .catch((err: Error) => {
-        toast.error(`Failed to connect: ${err.message}`);
+        if (popupMode) reportConsentResult({ ok: false, message: err.message });
+        else toast.error(`Failed to connect: ${err.message}`);
       })
       .finally(() => {
         onDone?.();

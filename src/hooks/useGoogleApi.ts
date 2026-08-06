@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface GoogleAccount {
   id: string;
@@ -72,7 +73,16 @@ export function useGoogleApi() {
         // Store state for validation on return
         if (data.state) sessionStorage.setItem("google_oauth_state", data.state);
         sessionStorage.setItem("google_oauth_return", window.location.pathname);
-        window.location.href = data.url;
+        // Google will not render consent inside a frame; this escapes it.
+        const { openGoogleConsent } = await import("@/lib/googleConsent");
+        const result = await openGoogleConsent(data.url);
+        if (result.status === "connected") {
+          toast.success(`Connected ${result.email || "Google account"}.`);
+          await fetchAccounts();
+        } else if (result.status === "failed") {
+          toast.error(`Failed to connect: ${result.message}`);
+        }
+        return result;
       }
     } catch (err) {
       console.error("Failed to get auth URL:", err);
@@ -80,7 +90,7 @@ export function useGoogleApi() {
     } finally {
       setLoading(false);
     }
-  }, [callOAuth]);
+  }, [callOAuth, fetchAccounts]);
 
   // [Finding #1/#5] Pass state for CSRF validation
   const exchangeCode = useCallback(async (code: string, state?: string) => {
