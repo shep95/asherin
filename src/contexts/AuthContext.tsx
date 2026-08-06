@@ -53,6 +53,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(nextSession?.user ?? null);
       setLoading(false);
 
+      if (nextSession?.user && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
+        // OAuth returns to the bare origin (the only URI Google accepts), so
+        // the destination the user actually asked for is replayed here — only
+        // after a real session exists, and only for same-origin paths.
+        try {
+          const next = sessionStorage.getItem("asherin:post_auth_redirect");
+          if (next) {
+            sessionStorage.removeItem("asherin:post_auth_redirect");
+            if (next.startsWith("/") && !next.startsWith("//") && next !== window.location.pathname) {
+              window.location.replace(next);
+              return;
+            }
+          }
+        } catch {
+          /* storage unavailable — stay put */
+        }
+      }
+
       if (nextSession?.user && event === "SIGNED_IN") {
         const sid = nextSession.user.id + "_" + (nextSession.access_token?.substring(0, 8) || "x");
         if (sessionRegisteredRef.current !== sid) {
