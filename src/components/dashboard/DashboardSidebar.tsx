@@ -1,7 +1,8 @@
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasSearchAccess, hasProAccess, hasMaximumAccess } from "@/contexts/SubscriptionContext";
+import { MAXIMUM_VIEWS } from "@/hooks/useAccess";
 import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {

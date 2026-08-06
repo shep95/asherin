@@ -9,7 +9,7 @@ import type { DashboardView } from "@/components/dashboard/types";
 // surfaces read the operator's own connected accounts, so they are withheld
 // from the free trial as well: only a live maximum-tier subscription (or an
 // admin) opens them.
-const MAXIMUM_VIEWS: DashboardView[] = ["google"];
+export const MAXIMUM_VIEWS: DashboardView[] = ["google"];
 // Enterprise / Pro-only views
 const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion", "axrlen"];
 const PRO_VIEWS: DashboardView[] = [
