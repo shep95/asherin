@@ -4,7 +4,7 @@ import {
   Search, Activity, Globe, Shield, RefreshCw, Network, Zap,
   Heart, CreditCard, Briefcase, Brain, Lock, CheckCircle2,
   Eye, TrendingUp, BarChart3, ChevronRight, Clock,
-  FileText, Camera, Sparkles, Dumbbell,
+  FileText, Camera, Sparkles, Dumbbell, Database,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -29,9 +29,10 @@ import YouTubeDataView from "./modules/YouTubeDataView";
 import SearchHistoryView from "./modules/SearchHistoryView";
 import ChromeDataView from "./modules/ChromeDataView";
 import GoogleMeshPanel from "./modules/GoogleMeshPanel";
+import SubstrateExplorer from "./modules/SubstrateExplorer";
 import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
-type GoogleModule = "overview" | "mesh" | "location" | "email" | "subscriptions" | "health" | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions" | "automation" | "security" | "scenarios" | "gmail" | "drive" | "photos" | "youtube" | "search" | "fit" | "chrome" | "connected";
+type GoogleModule = "overview" | "substrate" | "mesh" | "location" | "email" | "subscriptions" | "health" | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions" | "automation" | "security" | "scenarios" | "gmail" | "drive" | "photos" | "youtube" | "search" | "fit" | "chrome" | "connected";
 
 interface ModuleDef {
   id: GoogleModule;
@@ -41,6 +42,7 @@ interface ModuleDef {
 }
 
 const nexusModules: ModuleDef[] = [
+  { id: "substrate", label: "Intelligence Substrate", icon: Database, description: "Every Google surface harvested into one searchable ledger — findings, briefs and exportable reports" },
   { id: "mesh", label: "Google Mesh", icon: Network, description: "Voiceprint, place cartography, attention ledger & ghostwriting — drafts only, never sends" },
   { id: "twin", label: "AI Twin", icon: Brain, description: "Your complete digital replica — predicts decisions, automates life" },
   { id: "location", label: "Location Prophet", icon: MapPin, description: "Predicts where you'll be next week with 95% accuracy" },
@@ -106,6 +108,7 @@ const GoogleIntelligenceView = () => {
 
   const renderModule = () => {
     switch (activeModule) {
+      case "substrate": return <SubstrateExplorer />;
       case "mesh": return <GoogleMeshPanel />;
       case "location": return <LocationProphet />;
       case "email": case "gmail": return <EmailAssistant />;
