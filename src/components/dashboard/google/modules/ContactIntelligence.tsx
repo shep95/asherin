@@ -24,6 +24,8 @@ import { latticeFindings, correspondenceSeries } from "@/lib/cloudIntel/lattice"
 import { median } from "@/lib/cloudIntel/logic";
 import FindingCard from "../intel/FindingCard";
 import { TrendStat } from "../intel/TrendStat";
+import RelationGraph from "../intel/RelationGraph";
+
 
 
 
