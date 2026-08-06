@@ -130,18 +130,62 @@ async function fetchServiceData(service: string, params: any, headers: Record<st
   }
 
   if (service === "gmail_stats") {
-    const [unreadRes, importantRes, starredRes] = await Promise.all([
-      fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=1&q=is:unread", { headers }),
-      fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=1&q=is:important+is:unread", { headers }),
-      fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=1&q=is:starred", { headers }),
-    ]);
-    const [unread, important, starred] = await Promise.all([unreadRes.json(), importantRes.json(), starredRes.json()]);
+    // `messages?q=…&maxResults=1` returns `resultSizeEstimate`, which Gmail
+    // computes from a *page* heuristic — for large mailboxes it collapses to
+    // the same rounded number for every query, which is why unread/important/
+    // starred previously all read identical. The labels endpoint returns exact
+    // server-side counters instead, so each figure is independently true.
+    const labelIds = ["INBOX", "UNREAD", "IMPORTANT", "STARRED", "SENT", "DRAFT", "SPAM", "TRASH", "CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL"];
+    const counters: Record<string, { messages: number; threads: number; unread: number }> = {};
+    await Promise.all(
+      labelIds.map(async (id) => {
+        try {
+          const r = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/labels/${id}`, { headers });
+          if (!r.ok) return;
+          const d = await r.json();
+          counters[id] = {
+            messages: Number(d.messagesTotal) || 0,
+            threads: Number(d.threadsTotal) || 0,
+            unread: Number(d.messagesUnread) || 0,
+          };
+        } catch {
+          // A single missing system label must not void the whole read.
+        }
+      })
+    );
+    let mailboxTotal = 0;
+    try {
+      const pr = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", { headers });
+      if (pr.ok) mailboxTotal = Number((await pr.json()).messagesTotal) || 0;
+    } catch { /* profile is a bonus, not a requirement */ }
+
+    const inbox = counters.INBOX || { messages: 0, threads: 0, unread: 0 };
     return {
-      unread: unread.resultSizeEstimate || 0,
-      important: important.resultSizeEstimate || 0,
-      starred: starred.resultSizeEstimate || 0,
+      // Backwards-compatible keys.
+      unread: counters.UNREAD?.messages ?? inbox.unread,
+      important: counters.IMPORTANT?.unread ?? 0,
+      starred: counters.STARRED?.messages ?? 0,
+      // Richer, exact counters for the synthesis layer.
+      inboxTotal: inbox.messages,
+      inboxThreads: inbox.threads,
+      inboxUnread: inbox.unread,
+      importantTotal: counters.IMPORTANT?.messages ?? 0,
+      sentTotal: counters.SENT?.messages ?? 0,
+      draftTotal: counters.DRAFT?.messages ?? 0,
+      spamTotal: counters.SPAM?.messages ?? 0,
+      trashTotal: counters.TRASH?.messages ?? 0,
+      promotionsTotal: counters.CATEGORY_PROMOTIONS?.messages ?? 0,
+      socialTotal: counters.CATEGORY_SOCIAL?.messages ?? 0,
+      mailboxTotal,
+      // Reciprocity across the whole mailbox, not just the sampled window.
+      lifetimeReciprocity:
+        inbox.messages + (counters.SENT?.messages ?? 0) > 0
+          ? (counters.SENT?.messages ?? 0) / (inbox.messages + (counters.SENT?.messages ?? 0))
+          : null,
+      source: "gmail.labels",
     };
   }
+
 
   if (service === "calendar_events") {
     const now = new Date();
