@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { AzplenTab } from "./types";
 import IngestPanel from "./IngestPanel";
+import DomainIntelligencePanel from "./DomainIntelligencePanel";
 import DataTablePanel from "./DataTablePanel";
 import EntityResolutionPanel from "./EntityResolutionPanel";
 import PredictionsPanel from "./PredictionsPanel";
