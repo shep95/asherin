@@ -384,28 +384,35 @@ Deno.serve(async (req) => {
         if (error) return json({ error: "sentinel_enqueue_failed", message: error.message }, 500, cors);
       }
 
+      // Degraded harvest → hold the watermark. The enqueued rows still stand
+      // (they are real), but the window stays open so the next sweep re-reads
+      // what the failing channel never returned.
+      const degraded = failures.length > 0;
       await sb.from("mesh_vault_settings").upsert({
         user_id: userId,
         sentinel_enabled: body.enabled === undefined ? (settings?.sentinel_enabled ?? true) : !!body.enabled,
-        last_watermark: nowIso,
+        last_watermark: degraded ? (settings?.last_watermark ?? null) : nowIso,
         last_sweep_at: nowIso,
         channels: {
           mail: readable.length, contacts: bookable.length, calendar: datable.length,
+          degraded, failures: failures.slice(0, 6),
         },
         updated_at: nowIso,
       }, { onConflict: "user_id" });
 
       await sb.from("mesh_dossier_runs").insert({
         user_id: userId, phase: "sentinel", queued: rows.length,
-        skipped: cold.skipped.length + cal.skipped.length + phone.skipped.length,
+        skipped: cold.skipped.length + cal.skipped.length + phone.skipped.length + book.skipped.length,
         stats: {
           inboundMessages: inbound.length, calendarPeople: calendar.length,
-          contactsRead: contacts.length, sinceMs, channels: {
-            inbound_mail: cold.targets.length, calendar: cal.targets.length, phone_book: phone.targets.length,
+          contactsRead: contacts.length, sinceMs, degraded, failures, channels: {
+            inbound_mail: cold.targets.length, calendar: cal.targets.length,
+            phone_book: phone.targets.length, address_book: bookTargets.length,
           },
         },
         finished_at: nowIso,
       });
+
 
       return json({
         newSubjects: rows.map((r) => ({
