@@ -52,11 +52,19 @@ export function useGoogleOAuthCallback(onDone?: () => void) {
     url.searchParams.delete("prompt");
     window.history.replaceState({}, "", url.pathname + url.search);
 
-    // In popup mode the exchange happens here (same origin, same session) and
-    // the opener is told the outcome. Toasting inside a window that is about
-    // to close would show the user nothing.
     const popupMode = isConsentPopup();
 
+    // The popup lands on the canonical redirect origin. When that is not the
+    // origin the user is signed in on, the session simply does not exist here
+    // (localStorage is per-origin) — so hand the code to the opener instead of
+    // failing an exchange that could never have worked.
+    if (popupMode) {
+      const opener = openerOriginFromState(state);
+      if (opener && opener !== window.location.origin && relayConsentCode(code, state, opener)) return;
+    }
+
+    // Same-origin popup: exchange here and report the outcome. Toasting inside
+    // a window that is about to close would show the user nothing.
     exchangeInFlight = exchangeCode(code, state)
       .then((data: any) => {
         if (popupMode) reportConsentResult({ ok: true, email: data?.email });
