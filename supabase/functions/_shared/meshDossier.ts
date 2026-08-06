@@ -245,7 +245,18 @@ export interface MeshDossierDoc {
   };
   gaps: string[];
   jurisdiction: string;
+  /** Which inbound channel produced this subject (mail, calendar, phone…). */
+  channel?: string | null;
+  /** Outcome of the reverse-identifier pass, when one was run. */
+  reverse?: {
+    identifier: string;
+    factsAdded: number;
+    hits: number;
+    timedOut?: boolean;
+    error?: string;
+  } | null;
 }
+
 
 const FIELD_LABEL: Record<string, string> = {
   address: "Addresses", phone: "Phone numbers", email: "Email addresses",
