@@ -18,6 +18,8 @@ import SubscriptionPlans from "@/components/SubscriptionPlans";
 import SiteFooter from "@/components/SiteFooter";
 import LiveDemoStrip from "@/components/landing/LiveDemoStrip";
 import TrustBand from "@/components/landing/TrustBand";
+import GeoBlock from "@/components/seo/GeoBlock";
+
 import ScrollProgressBar from "@/components/landing/ScrollProgressBar";
 
 
