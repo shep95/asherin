@@ -69,10 +69,20 @@ export interface SocialProbeResult {
 
 // ── Capability registry ────────────────────────────────────────────────────
 // Single source of truth. Anything not listed as `true` is not claimed.
+//
+// `reliability` is the distinction that matters operationally. A capability
+// can be real and still be scarce: Instagram genuinely returns rich data, but
+// only through an endpoint throttled by egress IP reputation, so it cannot be
+// promised on demand. Grading it separately from "can we do this at all"
+// stops the product from advertising an opportunistic read as a guaranteed
+// one — the exact failure mode of claiming reach we do not have.
+
+export type Reliability = "reliable" | "opportunistic" | "blocked";
 
 export interface PlatformCapability {
   platform: Platform;
   label: string;
+  reliability: Reliability;
   /** Public data about an arbitrary target — the OSINT surface. */
   targetProfile: boolean;
   targetPosts: boolean;
@@ -83,12 +93,15 @@ export interface PlatformCapability {
   /** Why the unavailable parts are unavailable. */
   constraint: string;
   transport: string;
+  /** Plain-language reliability caveat, shown next to results. */
+  reliabilityNote: string;
 }
 
 export const CAPABILITIES: Record<Platform, PlatformCapability> = {
   x: {
     platform: "x",
     label: "X / Twitter",
+    reliability: "reliable",
     targetProfile: true,
     targetPosts: true,
     targetRelationships: true,
@@ -97,22 +110,28 @@ export const CAPABILITIES: Record<Platform, PlatformCapability> = {
     constraint:
       "Public posts and profile are readable. Direct messages require X's paid API tier plus a per-user OAuth app; the managed X connector is app-only and read-only, so it can never reach DMs.",
     transport: "Firecrawl structured profile parser",
+    reliabilityNote:
+      "Served through a rotating proxy pool, so reads succeed consistently and are not tied to our egress IP.",
   },
   instagram: {
     platform: "instagram",
     label: "Instagram",
+    reliability: "opportunistic",
     targetProfile: true,
     targetPosts: true,
     targetRelationships: true,
     selfMessages: false,
     selfTimeline: false,
     constraint:
-      "Public profile, recent posts, tagged accounts and coauthors are readable. Direct messages are not exposed by Meta to any third party. Private accounts yield metadata only.",
-    transport: "Instagram public web profile endpoint",
+      "Public profile, recent posts, tagged accounts and coauthors are readable when the window is open. Direct messages are not exposed by Meta to any third party. Private accounts yield metadata only.",
+    transport: "Instagram public web profile endpoint (direct, unproxied)",
+    reliabilityNote:
+      "Instagram throttles this endpoint by egress IP, and no proxy vendor will carry the domain. Reads succeed in bursts and then lock out for a period. Successful captures are banked and reused so a locked window never costs you data you already earned.",
   },
   linkedin: {
     platform: "linkedin",
     label: "LinkedIn",
+    reliability: "blocked",
     targetProfile: false,
     targetPosts: false,
     targetRelationships: false,
@@ -121,10 +140,12 @@ export const CAPABILITIES: Record<Platform, PlatformCapability> = {
     constraint:
       "LinkedIn answers unauthenticated requests with an anti-bot challenge (HTTP 999) and Firecrawl refuses the domain by policy. Messaging is partner-gated. Target data is reachable only as search-engine fragments.",
     transport: "none — search-engine fragments only",
+    reliabilityNote: "No direct read path exists. Do not expect profile data from this platform.",
   },
   facebook: {
     platform: "facebook",
     label: "Facebook",
+    reliability: "blocked",
     targetProfile: false,
     targetPosts: false,
     targetRelationships: false,
@@ -133,6 +154,8 @@ export const CAPABILITIES: Record<Platform, PlatformCapability> = {
     constraint:
       "Meta rejects unauthenticated page reads (HTTP 400) and Firecrawl refuses the domain by policy. Graph API access to non-owned pages requires an approved Business review.",
     transport: "none — search-engine fragments only",
+    reliabilityNote: "No direct read path exists. Do not expect profile data from this platform.",
+
   },
 };
 
