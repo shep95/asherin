@@ -21,8 +21,8 @@ import { useGoogleOAuthCallback } from "@/hooks/useGoogleOAuthCallback";
 
 const TIERS: Array<{ tier: number; label: string; grants: string }> = [
   { tier: 1, label: "Identity", grants: "Name, email, profile only." },
-  { tier: 2, label: "Read", grants: "Mail and calendar, read-only." },
-  { tier: 3, label: "Comprehension", grants: "Adds Drive, Photos and activity for pattern analysis." },
+  { tier: 2, label: "Read", grants: "Mail, calendar, contacts, tasks and Drive file list — read-only." },
+  { tier: 3, label: "Comprehension", grants: "Adds activity, sleep and heart-rate signals for pattern analysis." },
   { tier: 4, label: "Agency", grants: "Adds drafting into Gmail Drafts. Never sends." },
   { tier: 5, label: "Delegated Send", grants: "Lets you approve a specific draft for sending. One draft at a time." },
 ];
