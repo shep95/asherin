@@ -310,6 +310,43 @@ Analyze EVERY visual cue with forensic precision. Cross-reference cultural patte
       if (attemptOk) break;
     }
 
+    // CREDENTIAL FAILOVER — a rejected/expired Gemini credential is not a
+    // "model overloaded" condition, and must not silently kill the feature.
+    // Fall the whole analysis over to the platform gateway vision model.
+    if (!text) {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (LOVABLE_API_KEY) {
+        try {
+          const gw = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-3.6-flash",
+              messages: [{
+                role: "user",
+                content: [
+                  { type: "text", text: `${systemPrompt}\n\nReturn ONLY the JSON object described above.` },
+                  { type: "image_url", image_url: { url: `data:${mimeType};base64,${image_base64}` } },
+                ],
+              }],
+            }),
+          });
+          if (gw.ok) {
+            const gj = await gw.json();
+            const gtext = gj?.choices?.[0]?.message?.content;
+            if (typeof gtext === "string" && gtext.trim()) {
+              text = gtext;
+              modelUsed = "gateway:google/gemini-3.6-flash";
+            }
+          } else {
+            lastErr = `${lastErr} | gateway ${gw.status}: ${(await gw.text()).slice(0, 160)}`;
+          }
+        } catch (ge) {
+          lastErr = `${lastErr} | gateway error: ${ge instanceof Error ? ge.message : String(ge)}`;
+        }
+      }
+    }
+
     if (!text) {
       return new Response(
         JSON.stringify({
