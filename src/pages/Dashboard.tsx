@@ -871,7 +871,8 @@ const Dashboard = () => {
   const trackUsage = useCallback(async (modeUsed: ChatMode) => {
     if (!user) return;
     const modeCol = `${modeUsed}_prompts`;
-    const { data: stats } = await supabase.from("usage_stats").select("*").eq("user_id", user.id).single();
+    // maybeSingle(): zero rows is a normal first-use state, not a 406 error.
+    const { data: stats } = await supabase.from("usage_stats").select("*").eq("user_id", user.id).maybeSingle();
     if (stats) {
       const today = new Date().toISOString().split("T")[0];
       const streakDays = stats.last_active_date === today ? stats.streak_days :
