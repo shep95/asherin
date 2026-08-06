@@ -377,7 +377,7 @@ Deno.serve(async (req) => {
     if (action === "vault_process") {
       const batch = Math.min(Math.max(Number(body.batch) || 1, 1), 3);
       const { data: queue, error: qErr } = await sb.from("mesh_dossiers")
-        .select("id, subject_key, subject_name, subject_email, hop, relationship")
+        .select("id, subject_key, subject_name, subject_email, hop, channel, relationship")
         .eq("user_id", userId).eq("status", "queued")
         .order("hop", { ascending: true })
         .order("priority", { ascending: false })
