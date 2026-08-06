@@ -41,19 +41,15 @@ Deno.serve(async (req) => {
 
     // ── GET AUTH URL ──
     if (action === "get_auth_url") {
-      const scopes = [
-        "openid",
-        "email",
-        "profile",
-        "https://www.googleapis.com/auth/gmail.readonly",
-        "https://www.googleapis.com/auth/calendar.readonly",
-        "https://www.googleapis.com/auth/contacts.readonly",
-        "https://www.googleapis.com/auth/drive.metadata.readonly",
-        "https://www.googleapis.com/auth/fitness.activity.read",
-        "https://www.googleapis.com/auth/fitness.heart_rate.read",
-        "https://www.googleapis.com/auth/fitness.sleep.read",
-        "https://www.googleapis.com/auth/fitness.body.read",
-      ];
+      // ── Staged consent (Google Mesh) ──────────────────────────────────
+      // Tier 1 Identity → 2 Read → 3 Comprehension → 4 Agency (compose only).
+      // Requesting everything up front is what makes users abandon consent, and
+      // it hands the app write power it does not yet need. Tiers are cumulative
+      // and default to 3 so existing callers keep their previous capability set.
+      const { scopesForTier } = await import("../_shared/googleMesh.ts");
+      const requestedTier = Number(body.tier) || 3;
+      const scopes = scopesForTier(requestedTier);
+
 
       // [Finding #1/#5] Generate a cryptographic state nonce tied to the user
       const stateNonce = crypto.randomUUID();
@@ -160,6 +156,14 @@ Deno.serve(async (req) => {
 
       const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
 
+      // Derive the consent tier actually GRANTED (not requested) — users can
+      // uncheck scopes on Google's screen, and the UI must reflect reality.
+      const grantedScopes: string[] = tokenData.scope?.split(" ") || [];
+      const grantedTier = grantedScopes.some((s: string) => s.includes("gmail.compose")) ? 4
+        : grantedScopes.some((s: string) => s.includes("fitness.")) ? 3
+        : grantedScopes.some((s: string) => s.includes("gmail.readonly")) ? 2
+        : 1;
+
       // Check if account already exists
       const { data: existing } = await supabase
         .from("google_accounts")
@@ -181,7 +185,8 @@ Deno.serve(async (req) => {
           display_name: userInfo.name,
           avatar_url: userInfo.picture,
           status: "connected",
-          scopes: tokenData.scope?.split(" ") || [],
+          scopes: grantedScopes,
+          consent_tier: grantedTier,
           last_sync_at: new Date().toISOString(),
         }).eq("id", existing.id);
       } else {
@@ -194,7 +199,8 @@ Deno.serve(async (req) => {
           refresh_token: tokenData.refresh_token,
           token_expires_at: expiresAt,
           status: "connected",
-          scopes: tokenData.scope?.split(" ") || [],
+          scopes: grantedScopes,
+          consent_tier: grantedTier,
           is_primary: true,
         });
       }
