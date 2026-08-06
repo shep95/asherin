@@ -57,10 +57,30 @@ async function getAllValidTokens(userId: string): Promise<{ token: string; accou
   return results;
 }
 
+// ── Bounded-concurrency map. Google rate-limits hard above ~10 parallel
+// per-user reads, and an unbounded Promise.all over 100 ids trips 429s that
+// surface to the operator as an empty roster. Cap the pool, keep order. ──
+async function pooled<T, R>(items: T[], limit: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      out[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
 // ── Extracted service data fetching ──
 async function fetchServiceData(service: string, params: any, headers: Record<string, string>): Promise<any> {
   if (service === "gmail_inbox") {
-    const maxResults = params?.maxResults || 20;
+    // The old path requested `maxResults` then silently sliced to 10, so every
+    // downstream analyzer was reasoning over a 10-message keyhole. Honor the
+    // caller's ask, ceilinged at a value the function's CPU budget survives.
+    const maxResults = Math.max(1, Math.min(120, Number(params?.maxResults) || 20));
     const q = params?.q || "is:inbox";
     const res = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}&q=${encodeURIComponent(q)}`,
@@ -68,30 +88,44 @@ async function fetchServiceData(service: string, params: any, headers: Record<st
     );
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
-    const messages = data.messages?.slice(0, 10) || [];
-    const details = await Promise.all(
-      messages.map(async (msg: any) => {
+    const messages = (data.messages || []).slice(0, maxResults);
+    const details = await pooled(messages, 8, async (msg: any) => {
+      try {
         const r = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata` +
+            `&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject` +
+            `&metadataHeaders=Date&metadataHeaders=In-Reply-To&metadataHeaders=List-Unsubscribe`,
           { headers }
         );
-        return r.json();
-      })
-    );
+        if (!r.ok) return null;
+        return await r.json();
+      } catch {
+        // One dropped message must not void the whole sweep.
+        return null;
+      }
+    });
+    const hdr = (d: any, name: string) =>
+      (d.payload?.headers || []).find((h: any) => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
     return {
       totalMessages: data.resultSizeEstimate || 0,
-      messages: details.map((d: any) => {
-        const hdrs = d.payload?.headers || [];
-        return {
-          id: d.id,
-          from: hdrs.find((h: any) => h.name === "From")?.value || "",
-          subject: hdrs.find((h: any) => h.name === "Subject")?.value || "",
-          date: hdrs.find((h: any) => h.name === "Date")?.value || "",
-          snippet: d.snippet || "",
-          labelIds: d.labelIds || [],
-          isUnread: d.labelIds?.includes("UNREAD"),
-        };
-      }),
+      messages: details.filter(Boolean).map((d: any) => ({
+        id: d.id,
+        threadId: d.threadId || null,
+        from: hdr(d, "From"),
+        to: hdr(d, "To"),
+        cc: hdr(d, "Cc"),
+        subject: hdr(d, "Subject"),
+        date: hdr(d, "Date"),
+        // internalDate is the server clock in ms — authoritative, unlike the
+        // Date header which the sender controls and can be skewed or absent.
+        internalDate: d.internalDate ? Number(d.internalDate) : null,
+        inReplyTo: hdr(d, "In-Reply-To") || null,
+        isBulk: !!hdr(d, "List-Unsubscribe"),
+        snippet: d.snippet || "",
+        sizeEstimate: d.sizeEstimate ?? null,
+        labelIds: d.labelIds || [],
+        isUnread: d.labelIds?.includes("UNREAD"),
+      })),
     };
   }
 
@@ -126,30 +160,73 @@ async function fetchServiceData(service: string, params: any, headers: Record<st
         start: e.start?.dateTime || e.start?.date, end: e.end?.dateTime || e.end?.date,
         attendees: (e.attendees || []).length, location: e.location, status: e.status,
         organizer: e.organizer?.email, isAllDay: !!e.start?.date,
+        attendeeEmails: (e.attendees || []).map((a: any) => a.email).filter(Boolean),
       })),
       totalEvents: data.items?.length || 0,
     };
   }
 
   if (service === "contacts") {
-    const pageSize = params?.pageSize || 100;
-    const res = await fetch(
-      `https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,photos,organizations&pageSize=${pageSize}&sortOrder=LAST_MODIFIED_DESCENDING`,
-      { headers }
-    );
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
+    // "All contacts need to be important" — a single 100-row page is not the
+    // address book, it is a sample of it. Walk pageToken until the book is
+    // exhausted or the ceiling is hit, and keep EVERY address, not just [0].
+    const ceiling = Math.max(1, Math.min(2000, Number(params?.pageSize) || 1000));
+    const personFields =
+      "names,emailAddresses,phoneNumbers,photos,organizations,biographies,nicknames,urls,relations,addresses,birthdays,metadata,memberships";
+    const connections: any[] = [];
+    let pageToken: string | undefined;
+    let totalPeople = 0;
+    for (let page = 0; page < 20 && connections.length < ceiling; page++) {
+      const pageSize = Math.min(1000, ceiling - connections.length);
+      const url =
+        `https://people.googleapis.com/v1/people/me/connections?personFields=${personFields}` +
+        `&pageSize=${pageSize}&sortOrder=LAST_MODIFIED_DESCENDING` +
+        (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "");
+      const res = await fetch(url, { headers });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      totalPeople = data.totalPeople || totalPeople;
+      connections.push(...(data.connections || []));
+      pageToken = data.nextPageToken;
+      if (!pageToken) break;
+    }
     return {
-      totalContacts: data.totalPeople || data.connections?.length || 0,
-      contacts: (data.connections || []).map((c: any) => ({
-        name: c.names?.[0]?.displayName || "Unknown",
-        email: c.emailAddresses?.[0]?.value || "",
-        phone: c.phoneNumbers?.[0]?.value || "",
-        photo: c.photos?.[0]?.url || "",
-        organization: c.organizations?.[0]?.name || "",
-      })),
+      totalContacts: totalPeople || connections.length,
+      fetched: connections.length,
+      contacts: connections.map((c: any) => {
+        const emails = (c.emailAddresses || []).map((e: any) => e.value).filter(Boolean);
+        const phones = (c.phoneNumbers || []).map((p: any) => p.value).filter(Boolean);
+        return {
+          resourceName: c.resourceName || null,
+          name: c.names?.[0]?.displayName || "Unknown",
+          givenName: c.names?.[0]?.givenName || "",
+          familyName: c.names?.[0]?.familyName || "",
+          nickname: c.nicknames?.[0]?.value || "",
+          email: emails[0] || "",
+          emails,
+          phone: phones[0] || "",
+          phones,
+          photo: c.photos?.[0]?.url || "",
+          organization: c.organizations?.[0]?.name || "",
+          jobTitle: c.organizations?.[0]?.title || "",
+          bio: c.biographies?.[0]?.value || "",
+          urls: (c.urls || []).map((u: any) => u.value).filter(Boolean),
+          relations: (c.relations || []).map((r: any) => ({ person: r.person, type: r.type })),
+          city: c.addresses?.[0]?.city || "",
+          region: c.addresses?.[0]?.region || "",
+          country: c.addresses?.[0]?.country || "",
+          birthday: c.birthdays?.[0]?.date
+            ? [c.birthdays[0].date.year, c.birthdays[0].date.month, c.birthdays[0].date.day].filter(Boolean).join("-")
+            : "",
+          updatedAt: c.metadata?.sources?.[0]?.updateTime || null,
+          groups: (c.memberships || [])
+            .map((m: any) => m.contactGroupMembership?.contactGroupId)
+            .filter(Boolean),
+        };
+      }),
     };
   }
+
 
   if (service === "drive_files") {
     const pageSize = params?.pageSize || 20;
