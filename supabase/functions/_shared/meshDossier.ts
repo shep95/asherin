@@ -327,7 +327,19 @@ export interface BuildOptions {
   /** free-text jurisdiction hint, e.g. "Cape Coral Florida" */
   locationHint?: string;
   timeoutMs?: number;
+  /**
+   * Hard identifiers (E.164 phone, alternate address) belonging to the
+   * subject. When the name sweep comes back thin, ONE of these is run as a
+   * reverse lookup — a number resolves an identity that a common surname
+   * cannot. Bounded to a single extra pass with its own wall-clock cap.
+   */
+  identifiers?: string[];
+  /** Ceiling for the reverse pass. Defaults to 35s. */
+  reverseBudgetMs?: number;
+  /** How this subject reached the user. Recorded on the dossier. */
+  channel?: string;
 }
+
 
 export async function buildDossier(
   name: string,
