@@ -10,9 +10,15 @@ const StatsView = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("usage_stats").select("*").eq("user_id", user.id).single()
-      .then(({ data }) => { setStats(data); setLoading(false); });
+    let cancelled = false;
+    // maybeSingle(): a brand-new account has no usage_stats row yet, and
+    // single() answers zero rows with HTTP 406 — an error the UI then renders
+    // as a broken tab instead of an honest "no activity yet" zero state.
+    supabase.from("usage_stats").select("*").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => { if (!cancelled) { setStats(data); setLoading(false); } });
+    return () => { cancelled = true; };
   }, [user]);
+
 
   if (loading) {
     return <div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
