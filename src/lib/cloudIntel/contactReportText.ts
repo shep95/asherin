@@ -131,8 +131,21 @@ export function renderContactReport(r: ContactReport, contactName: string): stri
   L.push("");
 
   L.push(...banner(6, "Relationship velocity"));
-  L.push(`  Health score .......... ${r.velocity.health === null ? "NOT SCORED — under the 4-message floor." : `${r.velocity.health} / 100   ${bar(r.velocity.health)}`}`);
-  L.push(`  Warmth trend .......... ${r.velocity.trend === null ? "NOT OBSERVABLE" : `${r.velocity.trend >= 0 ? "▲ +" : "▼ "}${r.velocity.trend} per 1000 tokens, half-window over half-window`}`);
+  L.push(
+    ...field(
+      "  Health score .......... ",
+      r.velocity.health === null ? "NOT SCORED — under the 4-message floor." : `${r.velocity.health} / 100   ${bar(r.velocity.health)}`,
+    ),
+  );
+  L.push(
+    ...field(
+      "  Warmth trend .......... ",
+      r.velocity.trend === null
+        ? "NOT OBSERVABLE"
+        : `${r.velocity.trend >= 0 ? "▲ +" : "▼ "}${r.velocity.trend} per 1000 tokens, half-window over half-window`,
+    ),
+  );
+
   L.push("");
   for (const m of r.velocity.rows) L.push(...row(m, 24));
   if (r.velocity.trajectory) { L.push(""); L.push(...wrap(`  TRAJECTORY: ${r.velocity.trajectory}`, 2)); }
