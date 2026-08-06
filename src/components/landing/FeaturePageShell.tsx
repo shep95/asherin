@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
+import GeoBlock from "@/components/seo/GeoBlock";
+
 
 export interface Capability {
   icon: ElementType;
