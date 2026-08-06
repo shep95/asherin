@@ -113,12 +113,12 @@ export function renderContactReport(r: ContactReport, contactName: string): stri
   L.push(...banner(4, "Psychological profile (OCEAN markers)"));
   for (const t of r.ocean) {
     if (t.score === null) {
-      L.push(`  ${t.trait.padEnd(20)}  NOT SCORED — no supporting behaviour observed for any indicator.`);
+        L.push(...field(`  ${t.trait.padEnd(20)}  `, "NOT SCORED — no supporting behaviour observed for any indicator."));
       L.push("");
       continue;
     }
-    L.push(`  ${t.trait.padEnd(20)} ${String(t.score).padStart(3)} / 100   ${bar(t.score)}   (${t.indicators} indicator${t.indicators === 1 ? "" : "s"})`);
-    for (const e of t.evidence) L.push(...wrap(`      • ${e}`, 8));
+    L.push(...field(`  ${t.trait.padEnd(20)} `, `${String(t.score).padStart(3)} / 100   ${bar(t.score)}   (${t.indicators} indicator${t.indicators === 1 ? "" : "s"})`));
+    for (const e of t.evidence) L.push(...field("      • ", e, 8));
     L.push("");
   }
   if (r.oceanSummary) { L.push(...wrap(`  ${r.oceanSummary}`, 2)); L.push(""); }
@@ -161,11 +161,11 @@ export function renderContactReport(r: ContactReport, contactName: string): stri
     L.push("  No threads with this contact inside the sweep window.");
   }
   for (const t of r.threads) {
-    L.push(`  Thread: "${t.subject}" — last message ${new Date(t.lastMessage).toISOString().slice(0, 10)}`);
-    L.push(`  ├─ Classification:   ${t.classification}${t.caution ? "  ⚠ CAUTION" : ""}`);
-    L.push(`  ├─ Exchange:         ${t.messages} messages (${t.inbound} theirs / ${t.outbound} yours)${t.questionRatio !== null ? ` · Q:S ratio ${t.questionRatio}:1` : ""}`);
-    L.push(...wrap(`  ├─ Signal:           ${t.signal}`, 23));
-    L.push(...wrap(`  └─ Action:           ${t.action}`, 23));
+    L.push(...field('  Thread: ', `"${t.subject}" — last message ${new Date(t.lastMessage).toISOString().slice(0, 10)}`, 4));
+    L.push(...field("  ├─ Classification:   ", `${t.classification}${t.caution ? "  ⚠ CAUTION" : ""}`));
+    L.push(...field("  ├─ Exchange:         ", `${t.messages} messages (${t.inbound} theirs / ${t.outbound} yours)${t.questionRatio !== null ? ` · Q:S ratio ${t.questionRatio}:1` : ""}`));
+    L.push(...field("  ├─ Signal:           ", t.signal, 8));
+    L.push(...field("  └─ Action:           ", t.action, 8));
     L.push("");
   }
 
@@ -182,10 +182,10 @@ export function renderContactReport(r: ContactReport, contactName: string): stri
   }
   for (const f of r.risks) {
     L.push(`  ⚠ ${f.title.toUpperCase()} (${f.severity})`);
-    L.push(...wrap(`  ├─ Detection:    ${f.detection}`, 19));
-    L.push(...wrap(`  ├─ Meaning:      ${f.meaning}`, 19));
-    L.push(...wrap(`  ├─ Distinction:  ${f.distinction}`, 19));
-    L.push(...wrap(`  └─ Action:       ${f.action}`, 19));
+    L.push(...field("  ├─ Detection:    ", f.detection, 7));
+    L.push(...field("  ├─ Meaning:      ", f.meaning, 7));
+    L.push(...field("  ├─ Distinction:  ", f.distinction, 7));
+    L.push(...field("  └─ Action:       ", f.action, 7));
     L.push("");
   }
   L.push("");
@@ -198,7 +198,7 @@ export function renderContactReport(r: ContactReport, contactName: string): stri
   L.push(...wrap(`  ${r.summary.position}`, 2));
   L.push("");
   L.push("  IMMEDIATE ACTIONS:");
-  r.summary.actions.forEach((a, i) => L.push(...wrap(`  [${i + 1}] ${a}`, 6)));
+  r.summary.actions.forEach((a, i) => L.push(...field(`  [${i + 1}] `, a, 6)));
   L.push("");
   if (r.summary.projection) {
     L.push("  PROJECTION:");
@@ -208,7 +208,7 @@ export function renderContactReport(r: ContactReport, contactName: string): stri
 
   L.push(HR);
   L.push("  CHANNELS WITH NO DATA SOURCE");
-  for (const c of r.unavailableChannels) L.push(...wrap(`  • ${c}`, 4));
+  for (const c of r.unavailableChannels) L.push(...field("  • ", c, 4));
   L.push("");
   L.push(`  Confidence: ${r.confidence}% | Data points: ${r.messagesAnalyzed} | Generated: ${stamp} UTC`);
   L.push(HR);
