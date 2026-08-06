@@ -260,7 +260,10 @@ export async function buildDossier(
   for (const e of g?.edges ?? []) {
     const to = nodeById.get(e.to);
     const from = nodeById.get(e.from);
-    if (to?.ring === 2 && from && !parentOf.has(to.id)) parentOf.set(to.id, from.label);
+    if (to?.ring !== 2 || !from || parentOf.has(to.id)) continue;
+    // If the parent was itself discarded as a locality, attribute the child to
+    // the subject rather than printing "via Cape Coral".
+    parentOf.set(to.id, keep(from) ? from.label : name);
   }
   const hop2: DossierHopNode[] = (g?.nodes ?? [])
     .filter((n) => n.ring === 2 && keep(n))
