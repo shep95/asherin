@@ -363,13 +363,20 @@ export function foldCrossLinks(
 // ── utils ──────────────────────────────────────────────────────────────────
 
 /**
- * Locality detector. Background-check pages write "Lives in Cape Coral, FL"
- * next to relative lists, so the extractor can promote a city into the
- * relative field. Two independent signals catch it: the label matches the
- * jurisdiction the sweep itself resolved, or every token is a settlement word.
+ * Locality detector. Background-check pages print "Lives in Cape Coral, FL"
+ * inside the relatives block, so the extractor can promote a city into the
+ * relative field — and a phantom relative becomes a phantom cross-link.
+ *
+ * Three signals, deliberately narrow so real surnames survive: the label IS
+ * the jurisdiction this sweep resolved; the first token is a geographic
+ * prefix ("Cape", "Fort", "North"); or the last token is a settlement suffix
+ * that is not also a common surname (PARK, HILL, WOOD are excluded for that
+ * exact reason).
  */
-const PLACE_WORD =
-  /^(north|south|east|west|new|old|port|cape|fort|ft|saint|st|lake|lakes|palm|palms|coral|springs?|beach|heights|park|ridge|harbor|harbour|grove|falls|valley|hills?|shores?|acres?|creek|river|bay|island|isles?|village|city|town|county|meadows?|estates?|gardens?|point|pointe|junction|station|center|centre|heights|plains?|forest|woods?|glen|vista|mesa|ranch|hollow|crossing|landing|bluff|summit|terrace|highlands?)$/i;
+const PLACE_PREFIX =
+  /^(north|south|east|west|new|old|port|cape|fort|ft|saint|st|lake|palm|coral|mount|mt|san|santa|los|las|el|big|little|upper|lower)$/i;
+const PLACE_SUFFIX =
+  /^(acres?|springs?|beach|heights|shores?|falls|lakes|estates?|gardens?|meadows?|pointe|crossing|landing|junction|village|city|county|isles?|highlands?|plains?|mesa|vista|hollow|terrace|summit|bluff|harbou?r|township|borough)$/i;
 
 export function isPlaceLike(
   label: string,
@@ -382,9 +389,8 @@ export function isPlaceLike(
   }
   const tokens = key.split(" ").filter(Boolean);
   if (!tokens.length || tokens.length > 3) return false;
-  // "Cape Coral", "Lehigh Acres", "Fort Myers Beach" — every token settlement-ish.
-  const placeTokens = tokens.filter((t) => PLACE_WORD.test(t)).length;
-  return placeTokens >= 1 && placeTokens >= tokens.length - 1;
+  if (tokens.length === 1) return PLACE_PREFIX.test(tokens[0]) || PLACE_SUFFIX.test(tokens[0]);
+  return PLACE_PREFIX.test(tokens[0]) || PLACE_SUFFIX.test(tokens[tokens.length - 1]);
 }
 
 export function normKey(s: string): string {
