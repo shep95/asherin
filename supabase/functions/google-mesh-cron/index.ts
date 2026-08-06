@@ -165,12 +165,8 @@ Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
-  const expected = Deno.env.get("MESH_CRON_SECRET") ?? "";
   const presented = req.headers.get("x-cron-secret") ?? "";
-  // Constant-shape comparison: reject on length mismatch before content.
-  if (!expected || presented.length !== expected.length || presented !== expected) {
-    return json({ error: "Forbidden" }, 403, cors);
-  }
+  if (!presented) return json({ error: "Forbidden" }, 403, cors);
 
   const started = Date.now();
   const sb = createClient(
@@ -178,6 +174,21 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false } },
   );
+
+  // Two accepted callers: the in-database scheduler, whose token lives in a
+  // table no client role can read, and an operator holding the env secret.
+  // Length is checked first so a mismatched token cannot be probed by timing
+  // the string comparison.
+  const envSecret = Deno.env.get("MESH_CRON_SECRET") ?? "";
+  const { data: tokenRow } = await sb
+    .from("cron_tokens").select("token").eq("name", "mesh_cron").maybeSingle();
+  const dbSecret = (tokenRow?.token as string | undefined) ?? "";
+  const matches = (candidate: string) =>
+    candidate.length > 0 && candidate.length === presented.length && candidate === presented;
+  if (!matches(envSecret) && !matches(dbSecret)) {
+    return json({ error: "Forbidden" }, 403, cors);
+  }
+
 
   try {
     const enrolled = await enroll(sb);
