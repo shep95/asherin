@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 /**
  * GOOGLE MESH — the control surface for the inward-facing sensor array.
@@ -53,7 +54,7 @@ async function authorizeTier(tier: number) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Sign in first.");
   const { data, error } = await supabase.functions.invoke("google-oauth", {
-    body: { action: "get_auth_url", tier, redirect_uri: `${window.location.origin}/dashboard` },
+    body: { action: "get_auth_url", tier, redirect_uri: GOOGLE_REDIRECT_URI, origin: window.location.origin },
   });
   if (error) throw new Error(error.message);
   if (!data?.url) throw new Error("Google did not return an authorization URL.");

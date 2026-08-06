@@ -1,7 +1,19 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
-import { isConsentPopup, reportConsentResult } from "@/lib/googleConsent";
+import { isConsentPopup, relayConsentCode, reportConsentResult } from "@/lib/googleConsent";
+import { isTrustedAppOrigin } from "@/lib/googleRedirect";
+
+/** The origin that launched consent, carried through Google in `state`. */
+function openerOriginFromState(state: string): string | null {
+  try {
+    const parsed = JSON.parse(atob(state));
+    const origin = typeof parsed?.origin === "string" ? parsed.origin : "";
+    return isTrustedAppOrigin(origin) ? origin : null;
+  } catch {
+    return null;
+  }
+}
 
 
 /**
@@ -40,11 +52,19 @@ export function useGoogleOAuthCallback(onDone?: () => void) {
     url.searchParams.delete("prompt");
     window.history.replaceState({}, "", url.pathname + url.search);
 
-    // In popup mode the exchange happens here (same origin, same session) and
-    // the opener is told the outcome. Toasting inside a window that is about
-    // to close would show the user nothing.
     const popupMode = isConsentPopup();
 
+    // The popup lands on the canonical redirect origin. When that is not the
+    // origin the user is signed in on, the session simply does not exist here
+    // (localStorage is per-origin) — so hand the code to the opener instead of
+    // failing an exchange that could never have worked.
+    if (popupMode) {
+      const opener = openerOriginFromState(state);
+      if (opener && opener !== window.location.origin && relayConsentCode(code, state, opener)) return;
+    }
+
+    // Same-origin popup: exchange here and report the outcome. Toasting inside
+    // a window that is about to close would show the user nothing.
     exchangeInFlight = exchangeCode(code, state)
       .then((data: any) => {
         if (popupMode) reportConsentResult({ ok: true, email: data?.email });

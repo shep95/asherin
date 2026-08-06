@@ -53,7 +53,15 @@ Deno.serve(async (req) => {
 
       // [Finding #1/#5] Generate a cryptographic state nonce tied to the user
       const stateNonce = crypto.randomUUID();
-      const statePayload = JSON.stringify({ nonce: stateNonce, userId, ts: Date.now() });
+      // The launching origin rides inside `state` so the popup — which lands on
+      // the single Google-registered redirect origin — knows which window to
+      // hand the authorization code back to. Only same-scheme https app
+      // origins are carried; anything else is dropped rather than echoed.
+      const rawOrigin = typeof body.origin === "string" ? body.origin : "";
+      const launchOrigin = /^https:\/\/(asherin\.com|www\.asherin\.com|[a-z0-9-]+(\.[a-z0-9-]+)*\.(lovable\.app|lovableproject\.com))$/i.test(rawOrigin)
+        ? rawOrigin
+        : null;
+      const statePayload = JSON.stringify({ nonce: stateNonce, userId, ts: Date.now(), origin: launchOrigin });
       const stateB64 = btoa(statePayload);
 
       // Store the nonce in a short-lived DB record for validation on callback

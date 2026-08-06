@@ -18,6 +18,8 @@
  *      framed at all, and a last resort otherwise.
  */
 
+import { GOOGLE_REDIRECT_URI, isTrustedAppOrigin } from "@/lib/googleRedirect";
+
 export const GOOGLE_POPUP_NAME = "asherin-google-consent";
 
 export type GoogleConsentResult =
@@ -68,6 +70,7 @@ export function openGoogleConsent(url: string): Promise<GoogleConsentResult> {
 
   return new Promise<GoogleConsentResult>((resolve) => {
     let settled = false;
+    let exchanging = false;
     const finish = (result: GoogleConsentResult) => {
       if (settled) return;
       settled = true;
@@ -76,30 +79,72 @@ export function openGoogleConsent(url: string): Promise<GoogleConsentResult> {
       resolve(result);
     };
 
-    const onMessage = (event: MessageEvent) => {
-      // The popup is same-origin on return; anything else is untrusted noise.
-      if (event.origin !== window.location.origin) return;
-      const payload = event.data;
-      if (!payload || payload.type !== "asherin:google-consent") return;
-      finish(
-        payload.ok
-          ? { status: "connected", email: payload.email }
-          : { status: "failed", message: String(payload.message || "Google rejected the authorization.") },
-      );
+    const closePopup = () => {
       try {
         popup.close();
       } catch {
         /* already closed */
       }
     };
+
+    const onMessage = (event: MessageEvent) => {
+      // The popup lands on the canonical redirect origin, which is usually a
+      // *different* origin from the app the user is looking at. Trust is
+      // therefore an explicit allow-list, never "same origin or nothing".
+      if (event.origin !== window.location.origin && !isTrustedAppOrigin(event.origin)) return;
+      const payload = event.data;
+      if (!payload || typeof payload !== "object") return;
+
+      // Case A — the popup could exchange the code itself (same origin, live
+      // session) and is reporting the finished outcome.
+      if (payload.type === "asherin:google-consent") {
+        finish(
+          payload.ok
+            ? { status: "connected", email: payload.email }
+            : { status: "failed", message: String(payload.message || "Google rejected the authorization.") },
+        );
+        closePopup();
+        return;
+      }
+
+      // Case B — the popup is on the canonical origin and has no session, so
+      // it hands the code back here, where the session lives.
+      if (payload.type === "asherin:google-consent-code") {
+        if (exchanging) return;
+        exchanging = true;
+        closePopup();
+        void exchangeRelayedCode(String(payload.code || ""), payload.state ? String(payload.state) : undefined)
+          .then((email) => finish({ status: "connected", email }))
+          .catch((err: Error) => finish({ status: "failed", message: err.message }));
+      }
+    };
     window.addEventListener("message", onMessage);
 
     // The user can close the popup without deciding; poll so the caller's
-    // spinner is never orphaned.
+    // spinner is never orphaned. An in-flight exchange must not be cancelled by
+    // the very close *we* triggered, hence the `exchanging` guard.
     const watchdog = window.setInterval(() => {
-      if (popup.closed) finish({ status: "dismissed" });
+      if (popup.closed && !exchanging) finish({ status: "dismissed" });
     }, 600);
   });
+}
+
+/** Exchange a code relayed from the canonical-origin popup. */
+async function exchangeRelayedCode(code: string, state?: string): Promise<string | undefined> {
+  if (!code) throw new Error("Google returned no authorization code.");
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Sign in first.");
+  const { data, error } = await supabase.functions.invoke("google-oauth", {
+    body: { action: "exchange_code", code, state, redirect_uri: GOOGLE_REDIRECT_URI },
+  });
+  if (error) {
+    let detail = error.message;
+    try { detail = (await (error as any).context?.text?.()) ?? detail; } catch { /* keep message */ }
+    throw new Error(detail);
+  }
+  if ((data as any)?.error) throw new Error((data as any).message || (data as any).error);
+  return (data as any)?.email;
 }
 
 /** True when the current document is the consent popup reporting back. */
@@ -113,8 +158,26 @@ export function isConsentPopup(): boolean {
 
 /** Report the exchange outcome to the opener and close the popup. */
 export function reportConsentResult(result: { ok: boolean; email?: string; message?: string }): void {
+  postToOpener({ type: "asherin:google-consent", ...result });
+}
+
+/**
+ * Hand a raw authorization code back to the opener.
+ *
+ * Used when the popup landed on the canonical redirect origin but the user's
+ * session lives on the origin that opened it — localStorage is per-origin, so
+ * the popup genuinely cannot perform the exchange.
+ */
+export function relayConsentCode(code: string, state: string | undefined, targetOrigin: string): boolean {
+  if (!isTrustedAppOrigin(targetOrigin)) return false;
+  return postToOpener({ type: "asherin:google-consent-code", code, state }, targetOrigin);
+}
+
+function postToOpener(message: Record<string, unknown>, targetOrigin?: string): boolean {
+  let delivered = false;
   try {
-    window.opener?.postMessage({ type: "asherin:google-consent", ...result }, window.location.origin);
+    window.opener?.postMessage(message, targetOrigin || window.location.origin);
+    delivered = Boolean(window.opener);
   } catch {
     /* opener gone — closing still leaves the app in a sane state */
   }
@@ -125,4 +188,5 @@ export function reportConsentResult(result: { ok: boolean; email?: string; messa
       /* browser refused; the callback hook already stripped the code */
     }
   }, 120);
+  return delivered;
 }
