@@ -1396,8 +1396,33 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       console.error("[chat] Azplen bridge failed:", (e as Error).message);
     }
 
-
-
+    // ── Social layer ───────────────────────────────────────────────────────
+    // Deliberately outside shouldSearch(): a pasted profile link is an
+    // unambiguous request for social data, and gating it behind the general
+    // web-search heuristic would drop the very turns it exists to serve.
+    // It still only fires when a platform is named or a link is pasted, so a
+    // scarce Instagram read is never spent speculatively.
+    let socialContext = "";
+    try {
+      const socialUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
+      const sq = String(socialUserMsg?.content || "").slice(0, 600);
+      if (sq) {
+        const { needsSocialLayer, extractSocialTargets, runSocialIntel, formatSocialContext } =
+          await import("../_shared/socialChatBridge.ts");
+        if (needsSocialLayer(sq)) {
+          const socialTargets = extractSocialTargets(sq);
+          if (socialTargets.length) {
+            const socialBundle = await runSocialIntel(socialTargets);
+            socialContext = formatSocialContext(socialBundle);
+            console.log(
+              `[chat] Social sweep: ${socialBundle?.results.length ?? 0} target(s), ${socialBundle?.edges.length ?? 0} edge(s), ${socialBundle?.elapsedMs ?? 0}ms`,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[chat] Social bridge failed:", (e as Error).message);
+    }
 
 
     if (shouldSearch(messages, mode)) {
