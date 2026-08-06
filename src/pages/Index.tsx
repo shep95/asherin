@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { applySeoHead } from "@/lib/seoHead";
+
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import ReactMarkdown from "react-markdown";
 import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
