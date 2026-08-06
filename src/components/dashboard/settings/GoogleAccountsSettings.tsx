@@ -147,7 +147,13 @@ const GoogleAccountsSettings = () => {
               }`}
             >
               <div className="text-xs font-light text-foreground">Tier {t.tier} · {t.label}</div>
-              <p className="text-[10px] font-extralight text-muted-foreground/60 mt-0.5">{t.grants}</p>
+              <ul className="mt-1 space-y-0.5">
+                {t.grants.map((g, i) => (
+                  <li key={i} className="text-[10px] font-extralight text-muted-foreground/60">
+                    {g}
+                  </li>
+                ))}
+              </ul>
             </button>
           ))}
         </div>
