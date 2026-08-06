@@ -17,7 +17,7 @@ const PRO_VIEWS: DashboardView[] = [
   "teams", "geospatial", "plugins", "timeseries",
   "audit", "predictive", "security", "tracker",
   "pattern-analysis", "video-intelligence", "lavba", "cross",
-  "zaplen", "zaxin", "zerlal", "knowledge-vault", "zacoon",
+  "zaplen", "zaxin", "zerlal", "knowledge-vault", "zacoon", "bulwark",
 ];
 const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks"];
 

@@ -59,6 +59,7 @@ const GuardianVaultView = lazyWithRetry(() => import("@/components/dashboard/Gua
 const KnowledgeVaultView = lazyWithRetry(() => import("@/components/dashboard/KnowledgeVaultView"));
 const ZeeionView = lazyWithRetry(() => import("@/components/dashboard/zeeion/ZeeionView"));
 const AxrlenView = lazyWithRetry(() => import("@/components/dashboard/axrlen/AxrlenView"));
+const BulwarkView = lazyWithRetry(() => import("@/components/dashboard/BulwarkView"));
 const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/ZerlalView"));
 const ZaxinView = lazyWithRetry(() => import("@/components/dashboard/zaxin/ZaxinView"));
 const ZacoonPhantomView = lazyWithRetry(() => import("@/components/dashboard/ZacoonPhantomView"));
@@ -152,7 +153,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","api-keys","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","zaxin","zacoon","file-scrapper","cipher","vedic-astrology","zahten","media2code","gematria","vibe-video"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","api-keys","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","axrlen","zerlal","bulwark","zaxin","zacoon","file-scrapper","cipher","vedic-astrology","zahten","media2code","gematria","vibe-video"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -1496,6 +1497,7 @@ const Dashboard = () => {
       case "axrlen": return gatedView("axrlen", AxrlenView, "Axrlen — Predictive Intelligence", "Real-time global event prediction and policy simulation — powered by live data from 9+ intelligence sources. Available on Pro plans.");
       case "zerlal": return gatedView("zerlal", ZerlalView, "ZERLAL — Cyber Recon", "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.");
       case "google": return gatedView("google", GoogleIntelligenceView, "Cloud Intelligence Mesh — Maximum Tier", "Asherin turns your own connected accounts into a collection array: correspondent fusion, place cartography, attention ledger, commitment extraction, exposure and threat chaining. Restricted to Asherin Pro — $399/mo, Maximum Intelligence.");
+      case "bulwark": return gatedView("bulwark", BulwarkView, "Bulwark — Counter-Surveillance", "Detects monitoring pressure across your connected accounts and measures how legible this device is to a passive observer. Available on Pro plans.");
       case "zaxin": return gatedView("zaxin", ZaxinView, "Zaxin — Tactical BLE Intelligence", "AR vision, BLE radar, and tactical intelligence overlay. Available on Pro plans.");
       case "zacoon": return gatedView("zacoon", ZacoonPhantomView, "Zacoon Phantom Grid v3.0", "Multi-cortex autonomous web operative — adversarial awareness, self-correction, cryptographic audit ledger. Available on the $399/mo Pro plan.");
       

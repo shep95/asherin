@@ -78,6 +78,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   "nomad": Crosshair,
   "axrlen": Brain,
   "zerlal": Shield,
+  "bulwark": ShieldCheck,
   "zaxin": Layers,
   "zacoon": Ghost,
   "google": Globe,
