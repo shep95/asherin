@@ -645,6 +645,84 @@ export function parseAddr(raw: string): { email: string; name: string } {
   return { email, name };
 }
 
+// ── Address book (People API) ──────────────────────────────────────────────
+
+export interface ContactRecord {
+  resourceName: string;
+  name: string;
+  emails: string[];
+  phones: string[];
+  org: string | null;
+  title: string | null;
+  addresses: string[];
+  /** How many distinct identifiers the card carries — a completeness signal. */
+  richness: number;
+}
+
+/**
+ * Harvest the user's own Google Contacts. Pagination is capped: an address
+ * book is a long tail, and past a few hundred cards the marginal card is a
+ * one-off vendor, not a relationship. Failures degrade to an empty book so a
+ * missing scope never kills a correspondence sweep.
+ */
+export async function harvestContacts(token: string, max = 400): Promise<ContactRecord[]> {
+  const out: ContactRecord[] = [];
+  let pageToken: string | undefined;
+  const fields = "names,emailAddresses,phoneNumbers,organizations,addresses,metadata";
+
+  for (let page = 0; page < 4 && out.length < max; page++) {
+    let data: any;
+    try {
+      data = await gfetch(
+        "https://people.googleapis.com/v1/people/me/connections" +
+          `?pageSize=${Math.min(200, max - out.length)}&personFields=${fields}` +
+          `&sortOrder=LAST_MODIFIED_DESCENDING${pageToken ? `&pageToken=${pageToken}` : ""}`,
+        token,
+        undefined,
+        20_000,
+      );
+    } catch {
+      break; // missing scope or transient failure — the book is optional
+    }
+
+    for (const p of data?.connections ?? []) {
+      const name = String(p.names?.[0]?.displayName ?? "").replace(/["']/g, "").trim();
+      const emails = [...new Set(
+        (p.emailAddresses ?? [])
+          .map((e: any) => String(e.value ?? "").toLowerCase().trim())
+          .filter((e: string) => e.includes("@")),
+      )] as string[];
+      const phones = [...new Set(
+        (p.phoneNumbers ?? [])
+          .map((n: any) => String(n.canonicalForm ?? n.value ?? "").trim())
+          .filter(Boolean),
+      )] as string[];
+      const addresses = ((p.addresses ?? [])
+        .map((a: any) => String(a.formattedValue ?? "").trim())
+        .filter(Boolean) as string[]).slice(0, 3);
+      if (!name && !emails.length) continue;
+
+      out.push({
+        resourceName: String(p.resourceName ?? ""),
+        name: name || emails[0],
+        emails,
+        phones,
+        org: p.organizations?.[0]?.name ?? null,
+        title: p.organizations?.[0]?.title ?? null,
+        addresses,
+        richness: emails.length + phones.length + addresses.length +
+          (p.organizations?.length ? 1 : 0),
+      });
+      if (out.length >= max) break;
+    }
+
+    pageToken = data?.nextPageToken;
+    if (!pageToken) break;
+  }
+  return out;
+}
+
+
 /** Bounded metadata harvest. `q` is a Gmail search expression. */
 export async function harvestHeaders(
   token: string,
