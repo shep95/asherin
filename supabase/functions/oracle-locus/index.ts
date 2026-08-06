@@ -436,8 +436,27 @@ Analyze EVERY visual cue with forensic precision. Cross-reference cultural patte
           adjudicationNotes.push(
             `Astronomical validation adjusted confidence ${before}% → ${after}%. ${solar.verdict}`,
           );
-          const hyps = a.hypotheses as { probability: number }[] | undefined;
-          if (Array.isArray(hyps) && hyps[0]) hyps[0].probability = after;
+          // Penalising the leader can demote it below a rival. Re-rank so the
+          // ledger never shows a #1 that is less probable than #2, and move the
+          // reported coordinate to whichever hypothesis now leads.
+          const hyps = a.hypotheses as
+            | { label?: string; probability: number; latitude?: number; longitude?: number }[]
+            | undefined;
+          if (Array.isArray(hyps) && hyps.length > 0) {
+            const priorLeader = hyps[0];
+            priorLeader.probability = after;
+            hyps.sort((x, y) => (Number(y.probability) || 0) - (Number(x.probability) || 0));
+            const leader = hyps[0];
+            if (leader !== priorLeader) {
+              adjudicationNotes.push(
+                `Re-ranked after astronomical validation: "${leader.label ?? "hypothesis 1"}" (${leader.probability}%) overtakes "${priorLeader.label ?? "prior leader"}" (${priorLeader.probability}%).`,
+              );
+              if (Number.isFinite(leader.latitude) && Number.isFinite(leader.longitude)) {
+                a.estimated_location = { latitude: leader.latitude, longitude: leader.longitude };
+              }
+              a.confidence_score = Math.max(0, Math.min(99, Math.round(Number(leader.probability) || 0)));
+            }
+          }
         }
         if (solar.consistent === false) {
           a.status = (Number(a.confidence_score) || 0) < 35 ? "AMBIGUOUS" : a.status;
