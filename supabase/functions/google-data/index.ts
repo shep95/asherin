@@ -402,13 +402,40 @@ function mergeResults(service: string, results: any[]): any {
   }
 
   if (service === "gmail_stats") {
+    // Every exact counter must survive the fold. Summing only the three legacy
+    // keys was what forced the synthesis layer back onto estimates when more
+    // than one account was linked.
+    const sum = (k: string) => results.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+    const inboxTotal = sum("inboxTotal");
+    const sentTotal = sum("sentTotal");
     return {
-      unread: results.reduce((s, r) => s + (r.unread || 0), 0),
-      important: results.reduce((s, r) => s + (r.important || 0), 0),
-      starred: results.reduce((s, r) => s + (r.starred || 0), 0),
-      _per_account: results.map(r => ({ email: r._account_email, unread: r.unread || 0, important: r.important || 0, starred: r.starred || 0 })),
+      unread: sum("unread"),
+      important: sum("important"),
+      starred: sum("starred"),
+      inboxTotal,
+      inboxThreads: sum("inboxThreads"),
+      inboxUnread: sum("inboxUnread"),
+      importantTotal: sum("importantTotal"),
+      sentTotal,
+      draftTotal: sum("draftTotal"),
+      spamTotal: sum("spamTotal"),
+      trashTotal: sum("trashTotal"),
+      promotionsTotal: sum("promotionsTotal"),
+      socialTotal: sum("socialTotal"),
+      mailboxTotal: sum("mailboxTotal"),
+      lifetimeReciprocity: inboxTotal + sentTotal > 0 ? sentTotal / (inboxTotal + sentTotal) : null,
+      source: "gmail.labels",
+      _per_account: results.map(r => ({
+        email: r._account_email,
+        unread: r.unread || 0,
+        important: r.important || 0,
+        starred: r.starred || 0,
+        inboxTotal: r.inboxTotal || 0,
+        sentTotal: r.sentTotal || 0,
+      })),
     };
   }
+
 
   if (service === "calendar_events") {
     const allEvents = results.flatMap(r => (r.events || []).map((e: any) => ({ ...e, _account: r._account_email })));
