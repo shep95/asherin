@@ -613,6 +613,12 @@ const Software = () => {
             </p>
           </section>
 
+          {/* Extractable answer + sourced figures for generative engines. */}
+          <div className="mx-auto max-w-3xl">
+            <GeoBlock />
+          </div>
+
+
           {/* RAD spotlight */}
           <section className="rounded-3xl border border-foreground/25 bg-foreground/[0.04] backdrop-blur-sm p-8 sm:p-10">
             <div className="flex items-start gap-5">
