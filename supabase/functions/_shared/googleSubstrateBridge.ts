@@ -49,6 +49,8 @@ export interface SubstrateBundle {
   signals: number;
   lastIngest: string | null;
   ageHours: number | null;
+  lead: Array<Record<string, any>>;
+  focused: Array<Record<string, any>>;
   insights: Array<Record<string, any>>;
   hits: Array<Record<string, any>>;
   elapsedMs: number;
@@ -85,10 +87,31 @@ export async function runSubstratePull(
   const ageHours = lastIngest ? (Date.now() - Date.parse(lastIngest)) / 36e5 : null;
 
   // Findings first — they are the compressed, already-reasoned layer.
-  const { data: insights } = await sb.from("google_insights")
-    .select("domain, code, severity, title, detail, metric, computed_at")
-    .eq("user_id", userId).eq("dismissed", false)
-    .order("severity", { ascending: false }).limit(intent.explicit ? 24 : 12);
+  // Two pulls, because severity ordering alone buries the two rows that frame
+  // everything else: the state vector is severity 1 by design (it is a
+  // description, not an alarm) and would never survive a top-N by severity.
+  const [{ data: lead }, { data: insights }] = await Promise.all([
+    sb.from("google_insights")
+      .select("domain, code, severity, title, detail, metric, computed_at")
+      .eq("user_id", userId).eq("dismissed", false)
+      .in("code", ["state_vector", "rhythm_baseline", "ledger_coverage"]),
+    sb.from("google_insights")
+      .select("domain, code, severity, title, detail, metric, computed_at")
+      .eq("user_id", userId).eq("dismissed", false)
+      .not("code", "in", "(state_vector,rhythm_baseline,ledger_coverage)")
+      .order("severity", { ascending: false }).limit(intent.explicit ? 30 : 14),
+  ]);
+
+  // A turn naming a person deserves that person's fused dossier even when a
+  // dozen higher-severity findings outrank it.
+  let focused: Array<Record<string, any>> = [];
+  if (intent.person) {
+    const { data } = await sb.from("google_insights")
+      .select("domain, code, severity, title, detail, metric")
+      .eq("user_id", userId).eq("dismissed", false)
+      .eq("subject_key", intent.person).limit(4);
+    focused = data ?? [];
+  }
 
   // Then raw rows, but only the ones the turn actually points at.
   let sel = sb.from("google_signals")
@@ -105,6 +128,8 @@ export async function runSubstratePull(
     signals: count ?? 0,
     lastIngest,
     ageHours: ageHours == null ? null : Number(ageHours.toFixed(1)),
+    lead: lead ?? [],
+    focused,
     insights: insights ?? [],
     hits: hits ?? [],
     elapsedMs: Date.now() - started,
@@ -124,6 +149,27 @@ export function formatSubstrateContext(b: SubstrateBundle | null): string {
       ? ` This ledger is STALE — say so, and tell the user a sweep in the Google Intelligence tab will refresh it.`
       : ""),
   );
+
+  const sv = b.lead.find((i) => i.code === "state_vector")?.metric as any;
+  if (sv) {
+    parts.push(
+      "### State vector (tier 2 — correlated across every surface)\n" +
+      `- People fused: ${sv.people} across ${(sv.surfaces ?? []).join(", ") || "no surface"}\n` +
+      `- Focus index: ${sv.focus}/100 · Exposure: ${sv.exposure}/100\n` +
+      `- Median first-reply latency: ${sv.responsivenessH ?? "unmeasured"}${sv.responsivenessH ? "h" : ""}\n` +
+      `- Open commitments: ${sv.commitmentDebt}\n` +
+      `- Projected 90-day outflow: ${Object.entries(sv.projected ?? {}).map(([c, v]) => `${c} ${v}`).join(", ") || "none detected"}\n` +
+      `- Ledger span: ${String(sv.span?.from ?? "?").slice(0, 10)} → ${String(sv.span?.to ?? "?").slice(0, 10)}\n` +
+      "These are measurements over stored rows, each with a stated formula. Quote them as measured, never as estimated.",
+    );
+  }
+
+  if (b.focused.length) {
+    parts.push(
+      "### Fused dossier for the subject of this turn\n" +
+      b.focused.map((i) => `- [${i.code}] ${line(i.title, 140)}\n  ${line(i.detail, 400)}`).join("\n"),
+    );
+  }
 
   if (b.insights.length) {
     parts.push(
