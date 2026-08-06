@@ -230,12 +230,26 @@ const ContactIntelligence = () => {
     setLoading(true);
     setError(null);
     try {
-      setPhase("Harvesting address book and mail metadata…");
+      // ── Resume, do not restart. The retained corpus decides the shape of
+      // this sweep: with history on disk we ask Gmail only for what landed
+      // since the cursor; with an empty vault we take the full window once.
+      const stored = await loadCorpus(userId);
+      const held = stored?.messages ?? [];
+      const resumable = held.length > 0 && stored?.cursor != null;
+      const since = resumable ? Math.max(0, (stored!.cursor as number) - DELTA_OVERLAP_MS) : null;
+      // Gmail's `after:` takes whole seconds of epoch time.
+      const gate = since === null ? "" : ` after:${Math.floor(since / 1000)}`;
+
+      setPhase(
+        resumable
+          ? `Resuming from ${held.length.toLocaleString()} retained messages — fetching changes only…`
+          : "Harvesting address book and mail metadata…",
+      );
       // allSettled, not all: a revoked Gmail scope must not void the roster.
       const [contactRes, inboxRes, sentRes, calRes] = await Promise.allSettled([
         fetchGoogleData("contacts", { pageSize: CONTACT_DEPTH }),
-        fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: "-in:chats" }),
-        fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: "in:sent" }),
+        fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: `-in:chats${gate}` }),
+        fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: `in:sent${gate}` }),
         fetchGoogleData("calendar_events", {
           timeMin: new Date(Date.now() - 90 * 86400000).toISOString(),
           timeMax: new Date(Date.now() + 30 * 86400000).toISOString(),
@@ -256,14 +270,19 @@ const ContactIntelligence = () => {
         calRes.status === "rejected" && "calendar",
       ].filter(Boolean) as string[];
 
-      // Deduplicate on message id — a thread can surface in both queries.
-      const seen = new Set<string>();
-      const messages: RawMessage[] = [];
-      for (const m of [...(inbox?.messages || []), ...(sent?.messages || [])]) {
-        if (!m?.id || seen.has(m.id)) continue;
-        seen.add(m.id);
-        messages.push(m);
-      }
+      // Fold this harvest into the retained corpus on Gmail's stable message
+      // id. Merge, never replace: the previous behaviour rebuilt the ledger
+      // from whatever window Gmail returned, so anything older silently fell
+      // off the record on every open.
+      const harvested: RawMessage[] = [...(inbox?.messages || []), ...(sent?.messages || [])];
+      const folded = mergeCorpus(held, harvested);
+      const messages = folded.messages;
+
+      // The cursor only advances when both mail legs actually succeeded. A
+      // partial sweep that moved it would leave a permanent hole in coverage,
+      // because no later sweep ever looks back past the cursor.
+      const mailComplete = inboxRes.status === "fulfilled" && sentRes.status === "fulfilled";
+      const nextCursor = mailComplete ? Date.now() : (stored?.cursor ?? null);
 
       setPhase("Fusing identities and profiling language…");
       const ownAddresses = accounts.map((a) => a.google_email).filter(Boolean);
@@ -280,6 +299,12 @@ const ContactIntelligence = () => {
       setDossiers(built);
       setSummary(sum);
       setCorpus({ messages, own: ownAddresses });
+      setRetention({ held: messages.length, cursor: nextCursor, added: folded.added });
+
+      // Persist the corpus before the dossiers: the record must outlive the
+      // projection, so a crash between the two writes loses the cheaper half.
+      setPhase("Committing corpus to device vault…");
+      await saveCorpus(userId, messages, nextCursor, (stored?.evicted ?? 0) + folded.evicted);
 
       setPhase("Writing to device vault…");
       // One timestamp for both writes so local and mirror agree exactly and the
@@ -300,7 +325,11 @@ const ContactIntelligence = () => {
       if (failed.length) {
         setError(`Partial sweep — ${failed.join(", ")} unavailable. Results below exclude those sources.`);
       }
-      toast.success(`${built.length} identities profiled from ${messages.length} messages.`);
+      toast.success(
+        resumable
+          ? `${folded.added} new message${folded.added === 1 ? "" : "s"} merged — ${built.length} identities across ${messages.length} retained.`
+          : `${built.length} identities profiled from ${messages.length} messages.`,
+      );
     } catch (e: any) {
       console.error("[contact-intel] sweep failed:", e);
       if (alive.current) setError(e?.message || "Sweep failed. The device vault below still holds the last good run.");
@@ -374,6 +403,7 @@ const ContactIntelligence = () => {
   const onPurge = async () => {
     await clearVault(userId);
     setDossiers([]); setSummary(null); setVaultMeta(null);
+    setCorpus(null); setRetention(null);
     toast.success("Device vault purged.");
   };
 
