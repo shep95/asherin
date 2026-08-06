@@ -72,6 +72,14 @@ Deno.serve(async (req) => {
         is_primary: false,
       }, { onConflict: "user_id,google_email" }).select("id").single();
 
+      // Sweep abandoned consent attempts so the placeholder rows cannot
+      // accumulate and pollute the account list.
+      await adminClient.from("google_accounts")
+        .delete()
+        .eq("user_id", userId)
+        .eq("status", "pending_oauth")
+        .lt("token_expires_at", new Date().toISOString());
+
       const redirectUri = body.redirect_uri || `${req.headers.get("origin") || "https://ziali-magic-pixels.lovable.app"}/dashboard`;
       const params = new URLSearchParams({
         client_id: GOOGLE_CLIENT_ID,
@@ -79,7 +87,11 @@ Deno.serve(async (req) => {
         response_type: "code",
         scope: scopes.join(" "),
         access_type: "offline",
-        prompt: "consent",
+        // "select_account" is what makes multi-account real: without it Google
+        // silently re-authorizes whichever account is already signed in, so
+        // "Add account" would keep relinking the same mailbox.
+        prompt: "consent select_account",
+        include_granted_scopes: "true",
         state: stateB64,
       });
 
@@ -177,6 +189,19 @@ Deno.serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
+      const { count: liveCount } = await adminClient
+        .from("google_accounts")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("status", "connected");
+      const hasPrimary = (liveCount ?? 0) > 0;
+
+      // Drop the placeholder row this consent round created.
+      await adminClient.from("google_accounts")
+        .delete()
+        .eq("user_id", userId)
+        .eq("status", "pending_oauth");
+
       if (existing) {
         await adminClient.from("google_accounts").update({
           access_token: tokenData.access_token,
@@ -201,7 +226,8 @@ Deno.serve(async (req) => {
           status: "connected",
           scopes: grantedScopes,
           consent_tier: grantedTier,
-          is_primary: true,
+          // Primary is "the first mailbox you connected", not "the last one".
+          is_primary: !hasPrimary,
         });
       }
 
@@ -270,8 +296,9 @@ Deno.serve(async (req) => {
     if (action === "list_accounts") {
       const { data: accounts } = await supabase
         .from("google_accounts")
-        .select("id, google_email, display_name, avatar_url, status, scopes, last_sync_at, data_points_count, is_primary")
+        .select("id, google_email, display_name, avatar_url, status, scopes, last_sync_at, data_points_count, is_primary, consent_tier")
         .eq("user_id", userId)
+        .neq("status", "pending_oauth")
         .order("created_at", { ascending: true });
 
       return new Response(
@@ -282,11 +309,24 @@ Deno.serve(async (req) => {
 
     // ── DISCONNECT ──
     if (action === "disconnect") {
-      const { data } = await supabase
+      await supabase
         .from("google_accounts")
         .delete()
         .eq("id", body.account_id)
         .eq("user_id", userId);
+
+      // Never leave the mesh without a primary: promote the oldest survivor.
+      const { data: remaining } = await supabase
+        .from("google_accounts")
+        .select("id, is_primary")
+        .eq("user_id", userId)
+        .eq("status", "connected")
+        .order("created_at", { ascending: true });
+      if ((remaining ?? []).length && !(remaining ?? []).some((r: any) => r.is_primary)) {
+        await supabase.from("google_accounts")
+          .update({ is_primary: true })
+          .eq("id", remaining![0].id);
+      }
 
       return new Response(
         JSON.stringify({ success: true }),
