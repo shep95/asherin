@@ -657,23 +657,49 @@ export function augurSynthesis(input: AugurInput): Finding | null {
     });
   }
 
-  return synthesize(signals, {
-    id: "augur-reactive-mode",
-    title: "High inbound load against an unstructured week — reactive-mode risk",
-    why: [
-      "Commitment structure and inbound volume are moving in opposite directions.",
-      "Unallocated time under live load is consumed by arrival order rather than priority.",
-      "The pattern is self-reinforcing: unworked backlog raises tomorrow's inbound, which further crowds out structure.",
-    ],
-    chain: {
-      primary: "Working hours are allocated by whatever arrives first.",
-      secondary: "Deep work is displaced by correspondence triage.",
-      tertiary: "Commitments with no calendar footprint slip without generating any alert.",
-    },
-    action: "Place two two-hour focus blocks on the calendar today, then triage the backlog inside a single bounded window rather than continuously.",
-    falsifier: "Either a scheduled commitment appearing in the horizon, or unread falling below 20% of inbox total.",
-  });
+  // The theme must match the evidence. A backlog under a *busy* week is an
+  // absorption problem, not a structure problem, and calling it "unstructured"
+  // when the calendar is full would be a false narrative built on true signals.
+  const unstructured = signals.some((s) => s.label === "Unstructured horizon");
+
+  return synthesize(
+    signals,
+    unstructured
+      ? {
+          id: "augur-reactive-mode",
+          title: "High inbound load against an unstructured week — reactive-mode risk",
+          why: [
+            "Commitment structure and inbound volume are moving in opposite directions.",
+            "Unallocated time under live load is consumed by arrival order rather than priority.",
+            "The pattern is self-reinforcing: unworked backlog raises tomorrow's inbound, which further crowds out structure.",
+          ],
+          chain: {
+            primary: "Working hours are allocated by whatever arrives first.",
+            secondary: "Deep work is displaced by correspondence triage.",
+            tertiary: "Commitments with no calendar footprint slip without generating any alert.",
+          },
+          action: "Place two two-hour focus blocks on the calendar today, then triage the backlog inside a single bounded window rather than continuously.",
+          falsifier: "Either a scheduled commitment appearing in the horizon, or unread falling below 20% of inbox total.",
+        }
+      : {
+          id: "augur-absorption",
+          title: "Correspondence backlog is accumulating against an already-committed week",
+          why: [
+            "The calendar is carrying commitments, so the hours available to absorb inbound are already reduced.",
+            "Backlog and outbound deficit are rising in the same window, which means arriving mail is not being converted into replies.",
+            "Structure is present; absorption capacity is not. This is a throughput problem, not a planning one.",
+          ],
+          chain: {
+            primary: "Inbound accumulates faster than committed days can clear it.",
+            secondary: "Reply latency rises uniformly, including on the highest-value threads.",
+            tertiary: "Correspondents re-route around you rather than escalate, and the loss is invisible in every counter.",
+          },
+          action: "Convert one committed hour on the heaviest day into a bounded triage window rather than adding a new block to an already-full week.",
+          falsifier: "Unread falling below 20% of inbox total, or outbound share rising above 25%, on a subsequent sweep.",
+        }
+  );
 }
+
 
 // ───────────────────────── relationship drift (Rule 3) ─────────────────────────
 
