@@ -105,7 +105,7 @@ const SEO: Record<string, SeoEntry> = {
     ogType: "article",
   },
   "/blog/aureon-legal-advisor-multi-jurisdictional": {
-    title: "Asherin Legal Advisor (LAW Mode) — Multi-Jurisdictional AI Legal Research",
+    title: "Asherin LAW Mode — Multi-Jurisdictional Legal Research",
     description:
       "How Asherin and Asher's LAW mode runs deep legal research across any country, state, or province — surfacing older statutes that supersede newer law without fabricating citations.",
     ogType: "article",
@@ -131,13 +131,13 @@ const SEO: Record<string, SeoEntry> = {
     ogType: "article",
   },
   "/blog/predictions/world-cup-2026-group-matches-0622": {
-    title: "AXRLEN Forecast — World Cup 2026 Group Matches (22 June) | Asherin",
+    title: "AXRLEN Forecast — World Cup 2026 Groups (22 June)",
     description:
       "AXRLEN picks for the 22 June 2026 World Cup slate: Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan.",
     ogType: "article",
   },
   "/blog/predictions/world-cup-2026-group-matches-0623": {
-    title: "AXRLEN Forecast — World Cup 2026 Group Matches (23 June) | Asherin",
+    title: "AXRLEN Forecast — World Cup 2026 Groups (23 June)",
     description:
       "AXRLEN picks for the 23 June 2026 World Cup slate: Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo.",
     ogType: "article",
@@ -149,7 +149,7 @@ const SEO: Record<string, SeoEntry> = {
     ogType: "article",
   },
   "/blog/predictions/world-cup-2026-group-matches-0625": {
-    title: "AXRLEN Forecast — World Cup 2026 Group Matches (24 June) | Asherin",
+    title: "AXRLEN Forecast — World Cup 2026 Groups (24 June)",
     description:
       "AXRLEN picks for the 24 June 2026 World Cup slate: Switzerland, Bosnia, Morocco, Brazil, South Korea, Mexico — with modal scorelines and confidence weights.",
     ogType: "article",
@@ -210,7 +210,7 @@ const SEO: Record<string, SeoEntry> = {
       "Definitive, citable explanations of the terms operators actually use — sovereign AI, BYOK AI, uncensored AI, digital gnostic.",
   },
   "/glossary/sovereign-ai": {
-    title: "Sovereign AI — Definition, Origin, and Why It Matters | Asherin",
+    title: "Sovereign AI — Definition and Why It Matters",
     description:
       "Sovereign AI: a four-layer definition (key, model, refusal, data), how it differs from BYOK and uncensored, and how to verify it in 60 seconds.",
     ogType: "article",
@@ -259,7 +259,7 @@ const SEO: Record<string, SeoEntry> = {
     description: "Create, store, and deploy custom AI personas with metadata, voice, and persistent context.",
   },
   "/feature/zali": {
-    title: "ZALI Design Suite — FEA, Thermal, Material Generation | Asherin",
+    title: "ZALI Design Suite — FEA, Thermal & Materials",
     description:
       "ZALI Design Suite: AI-driven FEA simulation, thermal analysis, material selection, and assembly generation.",
   },
@@ -268,7 +268,7 @@ const SEO: Record<string, SeoEntry> = {
     description: "Zahten: adversarial simulation and counter-intelligence modeling for hostile environment analysis.",
   },
   "/feature/predictive": {
-    title: "Predictive Intelligence — Corporate Event Forecasting | Asherin",
+    title: "Predictive Intelligence — Event Forecasting",
     description: "Forecast corporate events, market dislocations, and policy moves with Monte Carlo modeling.",
   },
   "/feature/ide": {
