@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Users, Clock, Network, Zap, AlertTriangle, RefreshCw, Search,
-  HardDrive, Download, Brain, Activity, MessageSquare, Trash2, ChevronDown,
+  HardDrive, Download, Brain, Activity, MessageSquare, Trash2, ChevronDown, Cloud,
 } from "lucide-react";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAutoSync } from "@/hooks/useAutoSync";
+import { useMeshSyncState } from "@/hooks/useMeshSyncState";
 import { toast } from "sonner";
+
 import {
   buildContactIntel, type ContactDossier, type IntelSummary, type RawMessage,
 } from "./contactIntel/messageIntel";
@@ -32,6 +35,27 @@ const fmtAgo = (ms: number | null) => {
   const d = Math.round((Date.now() - ms) / 86400000);
   return d <= 0 ? "today" : d === 1 ? "1d ago" : `${d}d ago`;
 };
+
+/** Minute-grain recency for sync stamps, where "3d ago" would hide the point. */
+const fmtWhen = (ms: number | null) => {
+  if (ms === null || !Number.isFinite(ms)) return "never";
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 45) return "just now";
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
+};
+
+/** Countdown to a scheduled attempt. */
+const fmtIn = (ms: number | null) => {
+  if (ms === null || !Number.isFinite(ms)) return "—";
+  const s = Math.round((ms - Date.now()) / 1000);
+  if (s <= 0) return "due";
+  if (s < 90) return `in ${s}s`;
+  if (s < 5400) return `in ${Math.round(s / 60)}m`;
+  return `in ${Math.round(s / 3600)}h`;
+};
+
 
 /** A metric that has no evidence prints an em dash, never a fabricated zero. */
 const Metric = ({ label, value, suffix = "" }: { label: string; value: number | string | null; suffix?: string }) => (
@@ -180,16 +204,27 @@ const ContactIntelligence = () => {
     } catch (e: any) {
       console.error("[contact-intel] sweep failed:", e);
       if (alive.current) setError(e?.message || "Sweep failed. The device vault below still holds the last good run.");
+      // Rethrow so the scheduler can widen its cadence instead of retrying a
+      // revoked credential every interval.
+      throw e;
     } finally {
       if (alive.current) { setLoading(false); setPhase(""); }
     }
   }, [isConnected, fetchGoogleData, accounts, userId]);
 
-  useEffect(() => {
-    if (isConnected && accounts.length && !dossiers.length && !loading) void sweep();
-    // Intentionally keyed on connection state only — a re-sweep is operator-driven.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, accounts.length]);
+  // Foreground continuity: sweeps on open, keeps a cadence while the tab is
+  // visible, catches up on refocus and reconnect, and yields to sibling tabs.
+  const auto = useAutoSync({
+    key: `contact-intel:${userId}`,
+    enabled: Boolean(isConnected && accounts.length && userId),
+    run: sweep,
+    intervalMs: 10 * 60_000,
+    minGapMs: 3 * 60_000,
+  });
+
+  // Background continuity: what the scheduled server sweep did while closed.
+  const { state: serverSync } = useMeshSyncState(userId || undefined);
+
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -254,18 +289,18 @@ const ContactIntelligence = () => {
               <h2 className="text-lg font-extralight tracking-wide text-foreground">Contact Intelligence</h2>
               {isConnected && (
                 <button
-                  onClick={sweep}
+                  onClick={() => void auto.syncNow()}
                   disabled={loading}
                   className="flex items-center gap-1.5 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground/40"
                 >
                   <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin motion-reduce:animate-none" : ""}`} />
-                  {loading ? "Sweeping" : "Deep Sweep"}
+                  {loading ? "Sweeping" : "Sync Now"}
                 </button>
               )}
             </div>
             <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
               {isConnected
-                ? "Every identity in reach — address book, inbox, sent mail and calendar — fused into one ledger with message-pattern and language profiling, held on this device."
+                ? "Every identity in reach — address book, inbox, sent mail and calendar — fused into one ledger with message-pattern and language profiling, held on this device. Syncs on open, on a cadence while this tab is visible, and on the server while the app is closed."
                 : "Connect Google to fuse your address book with mail and calendar traffic into ranked dossiers."}
             </p>
             {loading && phase && (
@@ -276,7 +311,39 @@ const ContactIntelligence = () => {
                 <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" /> {error}
               </p>
             )}
+
+            {/* Sync posture — foreground cadence and the closed-app sweep,
+                stated separately so neither one implies the other. */}
+            {isConnected && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1" aria-live="polite">
+                <span className="flex items-center gap-1.5 text-[10px] font-light text-muted-foreground/60">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      loading || auto.syncing
+                        ? "bg-foreground/70 animate-pulse motion-reduce:animate-none"
+                        : auto.lastError
+                          ? "bg-amber-400/80"
+                          : "bg-emerald-400/70"
+                    }`}
+                  />
+                  {loading || auto.syncing
+                    ? "Live sync running"
+                    : `This tab: ${fmtWhen(auto.lastRunAt)}${auto.nextRunAt ? ` · next ${fmtIn(auto.nextRunAt)}` : ""}`}
+                </span>
+                <span className="flex items-center gap-1.5 text-[10px] font-light text-muted-foreground/60">
+                  <Cloud className="h-3 w-3 shrink-0" />
+                  {serverSync
+                    ? serverSync.enabled
+                      ? `Background: ${fmtWhen(serverSync.lastSyncedAt ? Date.parse(serverSync.lastSyncedAt) : null)}` +
+                        `${serverSync.nextDueAt ? ` · next ${fmtIn(Date.parse(serverSync.nextDueAt))}` : ""}` +
+                        `${serverSync.lastStatus === "error" ? " · last run failed" : ""}`
+                      : "Background sync off"
+                    : "Background sync arming…"}
+                </span>
+              </div>
+            )}
           </div>
+
         </div>
       </div>
 
