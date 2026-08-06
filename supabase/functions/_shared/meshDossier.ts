@@ -100,6 +100,111 @@ export function selectTargets(
   return { targets: targets.slice(0, max), skipped };
 }
 
+// ── Address-book targets ───────────────────────────────────────────────────
+
+export interface ContactTarget {
+  key: string;
+  email: string | null;
+  name: string;
+  priority: number;
+  /** Address-book facts, kept verbatim so the dossier can seed on them. */
+  profile: {
+    source: "contacts";
+    emails: string[];
+    phones: string[];
+    org: string | null;
+    title: string | null;
+    addresses: string[];
+  };
+  locationHint: string | null;
+  reason: string;
+}
+
+/** "1234 Elm St, Cape Coral, FL 33904, USA" → "Cape Coral FL" */
+function hintFromAddress(addr: string): string | null {
+  const parts = addr.split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
+  const city = parts[parts.length - 3] ?? parts[0];
+  const region = (parts[parts.length - 2] ?? "").replace(/\s*\d{4,}.*$/, "").trim();
+  const hint = [city, region].filter(Boolean).join(" ").slice(0, 60);
+  return hint.length >= 4 ? hint : null;
+}
+
+/**
+ * Turn the address book into sweep subjects.
+ *
+ * A saved contact is a stronger declaration of relationship than a single
+ * inbound message — the user typed it in — so a rich card outranks a thin
+ * correspondence. Cards already covered by the mail sweep are dropped here so
+ * the same human is never queued twice under two keys.
+ */
+export function selectContactTargets(
+  contacts: Array<{
+    name: string; emails: string[]; phones: string[];
+    org: string | null; title: string | null; addresses: string[]; richness: number;
+  }>,
+  alreadyKeyed: Set<string>,
+  opts: { max?: number } = {},
+): { targets: ContactTarget[]; skipped: Array<{ email: string; reason: string }> } {
+  const max = Math.min(Math.max(opts.max ?? 40, 1), 120);
+  const targets: ContactTarget[] = [];
+  const skipped: Array<{ email: string; reason: string }> = [];
+  const seen = new Set<string>();
+
+  for (const c of contacts) {
+    const primary = c.emails[0] ?? null;
+    const label = primary ?? c.name;
+    if (primary && isMachineAddress(primary)) {
+      skipped.push({ email: label, reason: "automated address" });
+      continue;
+    }
+    if (!looksHuman(c.name)) {
+      skipped.push({ email: label, reason: "not a personal name" });
+      continue;
+    }
+    // Mail sweep keys on the email; the book keys on the normalized name when
+    // there is no address. Both are checked so one human yields one subject.
+    const key = primary ? primary.toLowerCase() : `contact:${normKey(c.name).toLowerCase()}`;
+    if (alreadyKeyed.has(key) || seen.has(key)) {
+      skipped.push({ email: label, reason: "already a subject" });
+      continue;
+    }
+    if (c.emails.some((e) => alreadyKeyed.has(e.toLowerCase()))) {
+      skipped.push({ email: label, reason: "already a subject (alias)" });
+      continue;
+    }
+    seen.add(key);
+
+    // Completeness drives priority: a card with a phone, an employer and a
+    // street address is a resolvable identity; a bare name is a coin flip.
+    const priority = Math.round(
+      Math.min(100, 30 + c.phones.length * 14 + c.emails.length * 8 +
+        c.addresses.length * 12 + (c.org ? 10 : 0)),
+    );
+
+    targets.push({
+      key,
+      email: primary,
+      name: c.name,
+      priority,
+      profile: {
+        source: "contacts",
+        emails: c.emails.slice(0, 5),
+        phones: c.phones.slice(0, 5),
+        org: c.org,
+        title: c.title,
+        addresses: c.addresses,
+      },
+      locationHint: c.addresses.map(hintFromAddress).find(Boolean) ?? null,
+      reason: `address book · ${c.phones.length} phone(s) · ${c.emails.length} email(s)` +
+        (c.org ? ` · ${c.org}` : ""),
+    });
+  }
+
+  targets.sort((a, b) => b.priority - a.priority);
+  return { targets: targets.slice(0, max), skipped };
+}
+
 // ── Dossier shape ──────────────────────────────────────────────────────────
 
 export interface DossierFact {

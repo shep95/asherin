@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Loader2, RefreshCw, AlertTriangle, Play, ChevronRight, Trash2, Download,
-  Link2, ShieldQuestion, Users,
+  Link2, ShieldQuestion, Users, Power,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -148,6 +148,8 @@ function renderReport(row: Row, doc: any): string {
   return L.join("\n");
 }
 
+const AUTOPILOT_KEY = "hoa.vault.autopilot";
+
 const ContactVaultPane = () => {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [crossLinks, setCrossLinks] = useState<CrossLink[]>([]);
@@ -157,6 +159,12 @@ const ContactVaultPane = () => {
   const [open, setOpen] = useState<{ row: Row; doc: any } | null>(null);
   const [hint, setHint] = useState("");
   const [autoDrain, setAutoDrain] = useState(false);
+  const [autopilot, setAutopilot] = useState(
+    () => (typeof localStorage === "undefined" ? true : localStorage.getItem(AUTOPILOT_KEY) !== "off"),
+  );
+  const [autoNote, setAutoNote] = useState<string | null>(null);
+  /** Fires the first sweep once per mount — never once per render. */
+  const kicked = useRef(false);
 
   const load = useCallback(async () => {
     try {
@@ -168,29 +176,89 @@ const ContactVaultPane = () => {
       setRows(list.dossiers ?? []);
       setCrossLinks(list.crossLinks ?? []);
       setStatus(st);
+      return st as any;
     } catch (e) {
       setErr((e as Error).message);
       setRows([]);
+      return null;
     }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
 
-  // Resumable drain: one batch per tick, stops on empty queue or on error.
+  useEffect(() => {
+    localStorage.setItem(AUTOPILOT_KEY, autopilot ? "on" : "off");
+  }, [autopilot]);
+
+  /**
+   * Autopilot: the moment a Google grant exists, harvest mail + address book
+   * and start building dossiers one entity at a time. Guarded three ways —
+   * a mount-scoped ref, a persisted opt-out, and the server's own idempotent
+   * upsert — so a re-render, a second tab, or a refresh never double-sweeps.
+   */
+  useEffect(() => {
+    if (!autopilot || kicked.current || status === null || err) return;
+    kicked.current = true;
+    let cancelled = false;
+
+    (async () => {
+      let st = status;
+      const neverRun = !st?.lastRun;
+      if (neverRun) {
+        setAutoNote("Reading correspondence and contacts…");
+        try {
+          const r = await callVault<any>("vault_enqueue", { days: 365, max: 25, contacts_max: 40 });
+          if (cancelled) return;
+          setAutoNote(
+            `${r.queued} subject(s) queued — ${r.messagesAnalyzed} messages, ${r.contactsRead} contacts.`,
+          );
+          st = await load();
+        } catch (e) {
+          if (cancelled) return;
+          const msg = (e as Error).message;
+          // No grant yet is the normal cold-start state, not a failure.
+          setAutoNote(
+            /tier_required|Tier 2|Sign in/i.test(msg)
+              ? "Connect a Google account with Read access to start the automatic sweep."
+              : msg.slice(0, 180),
+          );
+          return;
+        }
+      }
+      if (cancelled) return;
+      if ((st?.census?.queued ?? 0) > 0) setAutoDrain(true);
+      else setAutoNote((n) => n ?? null);
+    })();
+
+    return () => { cancelled = true; };
+  }, [autopilot, status, err, load]);
+
+  // Resumable drain: one subject per tick, stops on empty queue or on error.
   useEffect(() => {
     if (!autoDrain) return;
     let cancelled = false;
     (async () => {
       while (!cancelled) {
         try {
-          const r = await callVault<{ done: boolean; remaining: number; built: number }>("vault_process", {
-            batch: 1, location_hint: hint,
-          });
+          const r = await callVault<{ done: boolean; remaining: number; built: number; processed: any[] }>(
+            "vault_process",
+            { batch: 1, location_hint: hint },
+          );
           if (cancelled) return;
+          const name = r.processed?.[0]?.name;
+          if (name) setAutoNote(`Built ${name} · ${r.remaining} remaining`);
           await load();
-          if (r.done || r.remaining === 0) { toast.success("Vault sweep complete."); break; }
+          if (r.done || r.remaining === 0) {
+            setAutoNote("Vault sweep complete.");
+            toast.success("Vault sweep complete.");
+            break;
+          }
         } catch (e) {
-          if (!cancelled) toast.error((e as Error).message.slice(0, 200));
+          if (!cancelled) {
+            const msg = (e as Error).message.slice(0, 200);
+            setAutoNote(msg);
+            toast.error(msg);
+          }
           break;
         }
       }
@@ -237,19 +305,40 @@ const ContactVaultPane = () => {
           <div>
             <h4 className="text-xs font-light tracking-wide text-foreground">Contact Vault</h4>
             <p className="text-[11px] font-extralight text-muted-foreground/70 mt-1 max-w-xl">
-              Everyone who actually corresponds with you becomes a standing dossier, expanded
-              along three bounded hops. Metadata in, sourced intelligence out — no message
-              bodies are stored.
+              The moment a Google account is connected, every correspondent and every card in
+              your address book — names, addresses, phone numbers — becomes a standing dossier,
+              built one entity at a time and expanded along three bounded hops. Metadata in,
+              sourced intelligence out; no message bodies are stored.
             </p>
           </div>
-          <Button variant="ghost" size="sm" className="text-xs font-extralight" onClick={() => void load()}>
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost" size="sm"
+              className={`text-xs font-extralight ${autopilot ? "text-foreground" : "text-muted-foreground/60"}`}
+              aria-pressed={autopilot}
+              onClick={() => setAutopilot((v) => !v)}
+            >
+              <Power className="h-3.5 w-3.5 mr-1.5" /> Autopilot {autopilot ? "on" : "off"}
+            </Button>
+            <Button variant="ghost" size="sm" className="text-xs font-extralight" onClick={() => void load()}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
+            </Button>
+          </div>
         </div>
 
         {err && (
           <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-extralight text-destructive">
             <AlertTriangle className="h-3.5 w-3.5" /> {err}
+          </div>
+        )}
+
+        {autoNote && !err && (
+          <div
+            className="flex items-center gap-2 rounded-xl border border-border/25 bg-background/30 px-3 py-2 text-[11px] font-extralight text-muted-foreground/80"
+            aria-live="polite"
+          >
+            {autoDrain && <Loader2 className="h-3 w-3 animate-spin shrink-0" />}
+            {autoNote}
           </div>
         )}
 
@@ -278,13 +367,15 @@ const ContactVaultPane = () => {
             size="sm" variant="outline" className="text-xs font-extralight"
             disabled={busy === "enq" || autoDrain}
             onClick={() => run("enq", async () => {
-              const r = await callVault<any>("vault_enqueue", { days: 365, max: 25 });
-              toast.success(`${r.queued} subject(s) queued from ${r.messagesAnalyzed} messages.`);
+              const r = await callVault<any>("vault_enqueue", { days: 365, max: 25, contacts_max: 40 });
+              toast.success(
+                `${r.queued} subject(s) queued — ${r.messagesAnalyzed} messages, ${r.contactsRead ?? 0} contacts.`,
+              );
               await load();
             })}
           >
             {busy === "enq" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Users className="h-3.5 w-3.5 mr-1.5" />}
-            Scan correspondence
+            Scan mail + contacts
           </Button>
           <Button
             size="sm" variant="outline" className="text-xs font-extralight"
@@ -325,8 +416,8 @@ const ContactVaultPane = () => {
         {rows === null && <div className="h-24 rounded-xl bg-foreground/[0.03] animate-pulse" aria-live="polite" />}
         {rows !== null && rows.length === 0 && !err && (
           <div className="text-xs font-extralight text-muted-foreground/70">
-            The vault is empty. Run <span className="text-foreground">Scan correspondence</span> to
-            rank the humans in your mail, then build their dossiers.
+            The vault is empty. Run <span className="text-foreground">Scan mail + contacts</span> to
+            rank the humans in your mail and address book, then build their dossiers.
           </div>
         )}
 

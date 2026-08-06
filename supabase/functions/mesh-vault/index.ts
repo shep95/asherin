@@ -18,10 +18,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import {
-  adminClient, liveAccounts, hasScope, harvestHeaders, buildRelationships, audit,
+  adminClient, liveAccounts, hasScope, harvestHeaders, harvestContacts, buildRelationships, audit,
 } from "../_shared/googleMesh.ts";
 import {
-  selectTargets, buildDossier, foldCrossLinks, normKey,
+  selectTargets, selectContactTargets, buildDossier, foldCrossLinks, normKey,
   type MeshDossierDoc,
 } from "../_shared/meshDossier.ts";
 
@@ -126,7 +126,8 @@ Deno.serve(async (req) => {
     if (action === "vault_enqueue") {
       const accounts = await liveAccounts(sb, userId, body.account_id ?? null);
       const readable = accounts.filter((a) => hasScope(a, "gmail.readonly"));
-      if (!readable.length) {
+      const bookable = accounts.filter((a) => hasScope(a, "contacts.readonly"));
+      if (!readable.length && !bookable.length) {
         return json({
           error: "tier_required",
           message: "Grant Tier 2 (Read) on a Google account before running a vault sweep.",
@@ -136,13 +137,21 @@ Deno.serve(async (req) => {
       const window = Math.min(Math.max(Number(body.days) || 365, 14), 730);
       const perQuery = Math.min(Number(body.limit) || 150, 200);
       const max = Math.min(Number(body.max) || 25, 60);
+      const contactMax = Math.min(Number(body.contacts_max) || 40, 120);
       const after = new Date(Date.now() - window * 86400000).toISOString().slice(0, 10).replace(/-/g, "/");
-      const selfEmails = readable.map((a) => a.google_email);
+      const selfEmails = accounts.map((a) => a.google_email);
 
-      const harvested = (await Promise.all(readable.flatMap((a) => [
-        harvestHeaders(a.token, `in:inbox -in:chats after:${after}`, perQuery, false).catch(() => []),
-        harvestHeaders(a.token, `in:sent -in:chats after:${after}`, perQuery, true).catch(() => []),
-      ]))).flat();
+      // Mail and address book are harvested together: correspondence proves a
+      // relationship is live, the book proves the user claimed it. Either
+      // alone leaves a blind spot.
+      const [harvested, contacts] = await Promise.all([
+        Promise.all(readable.flatMap((a) => [
+          harvestHeaders(a.token, `in:inbox -in:chats after:${after}`, perQuery, false).catch(() => []),
+          harvestHeaders(a.token, `in:sent -in:chats after:${after}`, perQuery, true).catch(() => []),
+        ])).then((r) => r.flat()),
+        Promise.all(bookable.map((a) => harvestContacts(a.token, 400).catch(() => [])))
+          .then((r) => r.flat()),
+      ]);
 
       const people = buildRelationships(harvested, selfEmails);
       const { targets, skipped } = selectTargets(people, { max });
@@ -153,45 +162,84 @@ Deno.serve(async (req) => {
         .select("subject_key, status").eq("user_id", userId);
       const known = new Map((existing ?? []).map((r: any) => [r.subject_key, r.status]));
 
+      const nowIso = new Date().toISOString();
+      const keep = (key: string) =>
+        known.has(key) && known.get(key) !== "failed" ? known.get(key)! : "queued";
+
       const rows = targets.map((t) => ({
         user_id: userId,
         subject_key: t.key,
         subject_email: t.email,
         subject_name: t.name,
         hop: 1,
-        status: known.has(t.key) && known.get(t.key) !== "failed" ? known.get(t.key)! : "queued",
+        status: keep(t.key),
         relationship: t.relationship as unknown as Record<string, unknown>,
         priority: t.priority,
         source_account: selfEmails[0] ?? null,
-        updated_at: new Date().toISOString(),
+        updated_at: nowIso,
       }));
 
-      if (rows.length) {
-        const { error } = await sb.from("mesh_dossiers").upsert(rows, { onConflict: "user_id,subject_key" });
+      // Contacts never collide with mail subjects: keys already claimed above
+      // and keys already in the vault are both excluded.
+      const claimed = new Set<string>([...known.keys(), ...rows.map((r) => r.subject_key)]);
+      const dedupeSelf = new Set(selfEmails.map((e) => e.toLowerCase()));
+      const book = contacts.filter((c) => !c.emails.some((e) => dedupeSelf.has(e)));
+      const { targets: contactTargets, skipped: contactSkipped } =
+        selectContactTargets(book, claimed, { max: contactMax });
+
+      const contactRows = contactTargets.map((t) => ({
+        user_id: userId,
+        subject_key: t.key,
+        subject_email: t.email,
+        subject_name: t.name,
+        hop: 1,
+        status: keep(t.key),
+        relationship: {
+          ...t.profile,
+          locationHint: t.locationHint,
+          reason: t.reason,
+        } as unknown as Record<string, unknown>,
+        priority: t.priority,
+        source_account: selfEmails[0] ?? null,
+        updated_at: nowIso,
+      }));
+
+      const allRows = [...rows, ...contactRows];
+      if (allRows.length) {
+        const { error } = await sb.from("mesh_dossiers").upsert(allRows, { onConflict: "user_id,subject_key" });
         if (error) return json({ error: "enqueue_failed", message: error.message }, 500, cors);
       }
 
-      const newlyQueued = rows.filter((r) => r.status === "queued").length;
+      const newlyQueued = allRows.filter((r) => r.status === "queued").length;
       await sb.from("mesh_dossier_runs").insert({
         user_id: userId, phase: "enqueue", queued: newlyQueued,
-        skipped: skipped.length,
-        stats: { messagesAnalyzed: harvested.length, correspondents: people.length, windowDays: window, accounts: selfEmails },
-        finished_at: new Date().toISOString(),
+        skipped: skipped.length + contactSkipped.length,
+        stats: {
+          messagesAnalyzed: harvested.length, correspondents: people.length,
+          contactsRead: contacts.length, contactSubjects: contactRows.length,
+          windowDays: window, accounts: selfEmails,
+        },
+        finished_at: nowIso,
       });
       await audit(sb, userId, {
         google_email: selfEmails[0] ?? "",
         action: "vault_enqueue",
-        target: `${targets.length} subjects`,
-        payload: { messagesAnalyzed: harvested.length, queued: newlyQueued },
+        target: `${allRows.length} subjects`,
+        payload: { messagesAnalyzed: harvested.length, contactsRead: contacts.length, queued: newlyQueued },
         confirmed: true,
       });
 
       return json({
         messagesAnalyzed: harvested.length,
         correspondents: people.length,
-        targets: targets.map((t) => ({ email: t.email, name: t.name, priority: t.priority, reason: t.reason })),
+        contactsRead: contacts.length,
+        contactSubjects: contactRows.length,
+        targets: [
+          ...targets.map((t) => ({ email: t.email, name: t.name, priority: t.priority, reason: t.reason })),
+          ...contactTargets.map((t) => ({ email: t.email, name: t.name, priority: t.priority, reason: t.reason })),
+        ],
         queued: newlyQueued,
-        skipped: skipped.slice(0, 40),
+        skipped: [...skipped, ...contactSkipped].slice(0, 40),
         windowDays: window,
       }, 200, cors);
     }
@@ -218,7 +266,9 @@ Deno.serve(async (req) => {
         await sb.from("mesh_dossiers").update({ status: "building" }).eq("id", row.id).eq("user_id", userId);
         try {
           const rel = (row.relationship ?? null) as any;
-          const hint = String(body.location_hint ?? "").slice(0, 80);
+          // A contact card's own street address beats a global hint — it is
+          // first-party data about this specific subject.
+          const hint = String(rel?.locationHint || body.location_hint || "").slice(0, 80);
           const { doc, summary, confidence } = await withTimeout(
             buildDossier(row.subject_name, row.subject_email, rel && rel.email ? rel : null, { locationHint: hint }),
             PER_SUBJECT_MS,
