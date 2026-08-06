@@ -1,7 +1,19 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
-import { isConsentPopup, reportConsentResult } from "@/lib/googleConsent";
+import { isConsentPopup, relayConsentCode, reportConsentResult } from "@/lib/googleConsent";
+import { isTrustedAppOrigin } from "@/lib/googleRedirect";
+
+/** The origin that launched consent, carried through Google in `state`. */
+function openerOriginFromState(state: string): string | null {
+  try {
+    const parsed = JSON.parse(atob(state));
+    const origin = typeof parsed?.origin === "string" ? parsed.origin : "";
+    return isTrustedAppOrigin(origin) ? origin : null;
+  } catch {
+    return null;
+  }
+}
 
 
 /**
