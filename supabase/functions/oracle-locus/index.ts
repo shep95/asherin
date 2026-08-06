@@ -14,6 +14,7 @@ import { verifySolarClaim } from "../_shared/solarGeometry.ts";
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
+  let resolvedGeminiKey = '';
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   if (req.method !== 'OPTIONS') {
@@ -21,7 +22,12 @@ serve(async (req) => {
       const _b = await req.clone().json().catch(() => ({} as any));
       const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
       const _gate = await import('../_shared/adminGate.ts');
-      await _gate.resolveKey(req, _byok);
+      const _res = await _gate.resolveKey(req, _byok);
+      // Use the key the gate actually resolved (platform Gemini for team, the
+      // caller's own Gemini key for BYOK) rather than a stale app-scoped key.
+      resolvedGeminiKey = _res.mode === 'admin'
+        ? (_res.geminiKey || '')
+        : (_res.byok?.provider === 'gemini' ? (_res.byok.apiKey || '') : '');
     } catch (_e) {
       const _gate = await import('../_shared/adminGate.ts');
       return _gate.byokErrorResponse(_e, corsHeaders);
@@ -31,8 +37,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
+    const GEMINI_API_KEY = resolvedGeminiKey
+      || Deno.env.get("GEMINI_API_KEY")
+      || Deno.env.get("GEMINI_API_KEY_APP");
+    if (!GEMINI_API_KEY) throw new Error("No Gemini credential available for this caller");
 
     const body = await req.json();
     const { image_base64, image_type } = body as { image_base64?: string; image_type?: string };
