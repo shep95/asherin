@@ -1,0 +1,275 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// MESH SENTINEL — every inbound contact becomes a standing intelligence file
+//
+// The vault's first generation only swept people the user already had a
+// *relationship* with: two or more messages, a reciprocity score, a saved
+// address-book card. That is exactly backwards for threat work. The subject
+// who matters most is the one who just reached you for the FIRST time — the
+// cold sender, the unknown number on a contact card, the stranger who put a
+// meeting on your calendar. Those were all discarded as "only 1 message".
+//
+// The sentinel closes that hole. It watches four channels:
+//
+//   inbound_mail  first-contact senders since the last watermark
+//   calendar      organizers and attendees who put time on your calendar
+//   phone_book    cards whose only identifier is a phone number
+//   address_book  saved cards (handled by the existing contact selector)
+//
+// Every channel yields the same target shape, keyed so one human can never be
+// queued twice under two channels, and carrying the identifiers (phone,
+// alternate emails, employer) the dossier builder uses to seed reverse
+// lookups. Selection is deterministic; nothing here calls a model.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import type { MailHeader, ContactRecord } from "./googleMesh.ts";
+import { parseAddr } from "./googleMesh.ts";
+import { isMachineAddress, looksHuman, normKey } from "./meshDossier.ts";
+
+export type ContactChannel = "inbound_mail" | "calendar" | "phone_book" | "address_book";
+
+export interface ChannelTarget {
+  key: string;
+  email: string | null;
+  name: string;
+  channel: ContactChannel;
+  priority: number;
+  /** Identifiers handed to the dossier builder for reverse lookup. */
+  identifiers: string[];
+  locationHint: string | null;
+  reason: string;
+  /** Verbatim first-party facts, persisted on the dossier row. */
+  profile: Record<string, unknown>;
+}
+
+// ── Phone normalization ────────────────────────────────────────────────────
+
+/**
+ * Normalize to a dialable, comparable string. North-American numbers collapse
+ * to +1XXXXXXXXXX; anything else keeps its own country code if the caller
+ * wrote one. Extensions, punctuation and vanity spacing are stripped, because
+ * "+1 (239) 555-0142 x12" and "12395550142" are one identifier, not two.
+ */
+export function normalizePhone(raw: string): string | null {
+  const s = String(raw ?? "").split(/\b(?:x|ext\.?|extension)\b/i)[0];
+  const plus = s.trim().startsWith("+");
+  const digits = s.replace(/\D+/g, "");
+  if (digits.length < 7 || digits.length > 15) return null;
+  if (!plus && digits.length === 10) return `+1${digits}`;
+  if (!plus && digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return `+${digits}`;
+}
+
+/** "+12395550142" → "(239) 555-0142" for report surfaces. */
+export function displayPhone(e164: string): string {
+  const d = e164.replace(/\D+/g, "");
+  if (d.length === 11 && d.startsWith("1")) {
+    return `(${d.slice(1, 4)}) ${d.slice(4, 7)}-${d.slice(7)}`;
+  }
+  return e164;
+}
+
+// ── Channel 1: first-contact inbound mail ──────────────────────────────────
+
+export interface CalendarPerson {
+  email: string;
+  name: string;
+  events: number;
+  lastAt: string;
+  organizer: boolean;
+  locations: string[];
+}
+
+/**
+ * A stranger who writes to you once is the highest-value unswept subject in
+ * the mailbox: no history to lean on, and a decision to make about them right
+ * now. `selectTargets` explicitly drops them (`minTotal = 2`, "never answered
+ * — broadcast"), so they are recovered here instead, priority-weighted by
+ * recency because a cold contact decays fast in usefulness.
+ */
+export function selectColdInbound(
+  headers: MailHeader[],
+  selfEmails: string[],
+  alreadyKeyed: Set<string>,
+  opts: { max?: number; sinceMs?: number } = {},
+): { targets: ChannelTarget[]; skipped: Array<{ email: string; reason: string }> } {
+  const max = Math.min(Math.max(opts.max ?? 20, 1), 60);
+  const since = opts.sinceMs ?? 0;
+  const self = new Set(selfEmails.map((e) => e.toLowerCase()));
+  const skipped: Array<{ email: string; reason: string }> = [];
+
+  interface Agg { email: string; name: string; count: number; lastAt: number; subjects: string[] }
+  const agg = new Map<string, Agg>();
+
+  for (const h of headers) {
+    if (h.outbound || h.at < since) continue;
+    const { email, name } = parseAddr(h.from);
+    if (!email.includes("@") || self.has(email)) continue;
+    const rec = agg.get(email) ?? { email, name, count: 0, lastAt: 0, subjects: [] };
+    rec.count++;
+    if (h.at > rec.lastAt) { rec.lastAt = h.at; rec.name = name || rec.name; }
+    if (rec.subjects.length < 3 && h.subject) rec.subjects.push(h.subject.slice(0, 120));
+    agg.set(email, rec);
+  }
+
+  const targets: ChannelTarget[] = [];
+  for (const rec of agg.values()) {
+    const key = rec.email.toLowerCase();
+    if (alreadyKeyed.has(key)) { skipped.push({ email: rec.email, reason: "already a subject" }); continue; }
+    if (isMachineAddress(rec.email)) { skipped.push({ email: rec.email, reason: "automated sender" }); continue; }
+    if (!looksHuman(rec.name)) { skipped.push({ email: rec.email, reason: "no human name on the header" }); continue; }
+
+    // Fresh contact outranks stale contact; a second message inside the window
+    // is a small confirmation bonus, not a volume score.
+    const ageDays = Math.max(0, (Date.now() - rec.lastAt) / 86400000);
+    const priority = Math.round(
+      Math.min(100, 62 + Math.min(18, (rec.count - 1) * 6) + 20 / (1 + ageDays / 7)),
+    );
+
+    targets.push({
+      key,
+      email: rec.email,
+      name: rec.name,
+      channel: "inbound_mail",
+      priority,
+      identifiers: [],
+      locationHint: null,
+      reason: `first contact · ${rec.count} inbound message(s) · ${Math.round(ageDays)}d ago`,
+      profile: {
+        source: "inbound_mail",
+        firstContact: true,
+        inboundCount: rec.count,
+        lastAt: new Date(rec.lastAt).toISOString(),
+        subjects: rec.subjects,
+        domain: rec.email.split("@")[1] ?? null,
+      },
+    });
+  }
+
+  targets.sort((a, b) => b.priority - a.priority);
+  return { targets: targets.slice(0, max), skipped };
+}
+
+// ── Channel 2: calendar counterparties ─────────────────────────────────────
+
+/**
+ * Someone who books time with you has asserted a stronger claim than someone
+ * who mails you: they expect to be in a room with you. Organizers outrank
+ * co-attendees, and a recurring counterparty outranks a one-off.
+ */
+export function selectCalendarTargets(
+  people: CalendarPerson[],
+  alreadyKeyed: Set<string>,
+  opts: { max?: number } = {},
+): { targets: ChannelTarget[]; skipped: Array<{ email: string; reason: string }> } {
+  const max = Math.min(Math.max(opts.max ?? 20, 1), 60);
+  const skipped: Array<{ email: string; reason: string }> = [];
+  const targets: ChannelTarget[] = [];
+
+  for (const p of people) {
+    const key = p.email.toLowerCase();
+    if (alreadyKeyed.has(key)) { skipped.push({ email: p.email, reason: "already a subject" }); continue; }
+    if (isMachineAddress(p.email)) { skipped.push({ email: p.email, reason: "automated invite address" }); continue; }
+    if (!looksHuman(p.name)) { skipped.push({ email: p.email, reason: "no human name on the invite" }); continue; }
+
+    const priority = Math.round(
+      Math.min(100, 55 + (p.organizer ? 18 : 6) + Math.min(20, p.events * 5)),
+    );
+    targets.push({
+      key,
+      email: p.email,
+      name: p.name,
+      channel: "calendar",
+      priority,
+      identifiers: [],
+      // A shared physical meeting place is the strongest jurisdiction hint the
+      // mesh can produce without asking the user anything.
+      locationHint: p.locations[0] ?? null,
+      reason: `${p.organizer ? "organized" : "attended"} ${p.events} meeting(s) with you`,
+      profile: {
+        source: "calendar",
+        events: p.events,
+        organizer: p.organizer,
+        lastAt: p.lastAt,
+        locations: p.locations.slice(0, 3),
+      },
+    });
+  }
+
+  targets.sort((a, b) => b.priority - a.priority);
+  return { targets: targets.slice(0, max), skipped };
+}
+
+// ── Channel 3: phone-only cards ────────────────────────────────────────────
+
+/**
+ * A card with a number and no address is invisible to an email-keyed vault.
+ * It is keyed here on the normalized number so the same human saved twice
+ * under two spellings of a name collapses to one subject, and the number is
+ * carried through as a reverse-lookup seed.
+ */
+export function selectPhoneTargets(
+  contacts: ContactRecord[],
+  alreadyKeyed: Set<string>,
+  opts: { max?: number } = {},
+): { targets: ChannelTarget[]; skipped: Array<{ email: string; reason: string }> } {
+  const max = Math.min(Math.max(opts.max ?? 30, 1), 90);
+  const skipped: Array<{ email: string; reason: string }> = [];
+  const targets: ChannelTarget[] = [];
+  const seen = new Set<string>();
+
+  for (const c of contacts) {
+    const phones = c.phones.map(normalizePhone).filter((p): p is string => !!p);
+    if (!phones.length) continue;
+    // Cards that also carry an email are already claimed by the address-book
+    // selector; sweeping them here would duplicate the same human.
+    if (c.emails.some((e) => alreadyKeyed.has(e.toLowerCase()))) continue;
+    if (c.emails.length) continue;
+
+    const key = `phone:${phones[0]}`;
+    if (alreadyKeyed.has(key) || seen.has(key)) { skipped.push({ email: phones[0], reason: "already a subject" }); continue; }
+    if (!looksHuman(c.name)) { skipped.push({ email: phones[0], reason: "not a personal name" }); continue; }
+    seen.add(key);
+
+    targets.push({
+      key,
+      email: null,
+      name: c.name,
+      channel: "phone_book",
+      priority: Math.round(Math.min(100, 44 + phones.length * 10 + c.addresses.length * 12 + (c.org ? 8 : 0))),
+      identifiers: phones.slice(0, 2),
+      locationHint: hintFromAddress(c.addresses[0] ?? ""),
+      reason: `phone-only card · ${phones.map(displayPhone).join(", ")}`,
+      profile: {
+        source: "phone_book",
+        phones,
+        org: c.org,
+        title: c.title,
+        addresses: c.addresses,
+      },
+    });
+  }
+
+  targets.sort((a, b) => b.priority - a.priority);
+  return { targets: targets.slice(0, max), skipped };
+}
+
+/** "1234 Elm St, Cape Coral, FL 33904, USA" → "Cape Coral FL" */
+function hintFromAddress(addr: string): string | null {
+  const parts = String(addr ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
+  const city = parts[parts.length - 3] ?? parts[0];
+  const region = (parts[parts.length - 2] ?? "").replace(/\s*\d{4,}.*$/, "").trim();
+  const hint = [city, region].filter(Boolean).join(" ").slice(0, 60);
+  return hint.length >= 4 ? hint : null;
+}
+
+/** Guard against two channels queueing the same human under different keys. */
+export function dedupeByIdentity(targets: ChannelTarget[]): ChannelTarget[] {
+  const byName = new Map<string, ChannelTarget>();
+  for (const t of targets) {
+    const nk = normKey(t.name);
+    const prev = byName.get(nk);
+    if (!prev || t.priority > prev.priority) byName.set(nk, t);
+  }
+  return [...byName.values()].sort((a, b) => b.priority - a.priority);
+}

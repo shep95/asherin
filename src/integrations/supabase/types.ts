@@ -5790,6 +5790,7 @@ export type Database = {
       mesh_dossiers: {
         Row: {
           built_at: string | null
+          channel: string | null
           confidence: number
           created_at: string
           dossier: Json
@@ -5810,6 +5811,7 @@ export type Database = {
         }
         Insert: {
           built_at?: string | null
+          channel?: string | null
           confidence?: number
           created_at?: string
           dossier?: Json
@@ -5830,6 +5832,7 @@ export type Database = {
         }
         Update: {
           built_at?: string | null
+          channel?: string | null
           confidence?: number
           created_at?: string
           dossier?: Json
@@ -5847,6 +5850,36 @@ export type Database = {
           updated_at?: string
           user_id?: string
           via?: string | null
+        }
+        Relationships: []
+      }
+      mesh_vault_settings: {
+        Row: {
+          channels: Json
+          created_at: string
+          last_sweep_at: string | null
+          last_watermark: string | null
+          sentinel_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channels?: Json
+          created_at?: string
+          last_sweep_at?: string | null
+          last_watermark?: string | null
+          sentinel_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channels?: Json
+          created_at?: string
+          last_sweep_at?: string | null
+          last_watermark?: string | null
+          sentinel_enabled?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
