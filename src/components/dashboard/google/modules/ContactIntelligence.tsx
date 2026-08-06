@@ -48,6 +48,9 @@ const CONTACT_DEPTH = 1000;
  */
 const DELTA_OVERLAP_MS = 2 * 86400000;
 
+/** Mirrors the vault's retention cap; backfill stops once the corpus is full. */
+const CORPUS_CEILING = 6000;
+
 const TIER_LABEL: Record<ContactDossier["tier"], string> = {
   inner: "Inner", active: "Active", periphery: "Periphery", dormant: "Dormant", archive: "Archive",
 };
@@ -237,8 +240,23 @@ const ContactIntelligence = () => {
       const held = stored?.messages ?? [];
       const resumable = held.length > 0 && stored?.cursor != null;
       const since = resumable ? Math.max(0, (stored!.cursor as number) - DELTA_OVERLAP_MS) : null;
-      // Gmail's `after:` takes whole seconds of epoch time.
+      // Gmail's `after:` / `before:` take whole seconds of epoch time.
       const gate = since === null ? "" : ` after:${Math.floor(since / 1000)}`;
+
+      // A forward-only cursor stops the ledger forgetting, but it can never
+      // reach mail that predates the first sweep — Gmail returns the newest
+      // page and nothing behind it. So each resumed sweep also walks one page
+      // backwards from the oldest message already held, until either the cap
+      // is reached or the mailbox is exhausted. Coverage then grows in both
+      // directions instead of being permanently anchored to the first run.
+      const oldestHeld = resumable
+        ? held.reduce((min, m) => {
+            const t = typeof m.internalDate === "number" ? m.internalDate : Date.parse(m.date || "");
+            return Number.isFinite(t) && t > 0 && t < min ? t : min;
+          }, Number.POSITIVE_INFINITY)
+        : Number.POSITIVE_INFINITY;
+      const backfillable = resumable && held.length < CORPUS_CEILING && Number.isFinite(oldestHeld);
+      const backGate = backfillable ? ` before:${Math.floor(oldestHeld / 1000)}` : null;
 
       setPhase(
         resumable
@@ -246,10 +264,16 @@ const ContactIntelligence = () => {
           : "Harvesting address book and mail metadata…",
       );
       // allSettled, not all: a revoked Gmail scope must not void the roster.
-      const [contactRes, inboxRes, sentRes, calRes] = await Promise.allSettled([
+      const [contactRes, inboxRes, sentRes, backInRes, backSentRes, calRes] = await Promise.allSettled([
         fetchGoogleData("contacts", { pageSize: CONTACT_DEPTH }),
         fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: `-in:chats${gate}` }),
         fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: `in:sent${gate}` }),
+        backGate
+          ? fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: `-in:chats${backGate}` })
+          : Promise.resolve(null),
+        backGate
+          ? fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: `in:sent${backGate}` })
+          : Promise.resolve(null),
         fetchGoogleData("calendar_events", {
           timeMin: new Date(Date.now() - 90 * 86400000).toISOString(),
           timeMax: new Date(Date.now() + 30 * 86400000).toISOString(),
@@ -274,7 +298,14 @@ const ContactIntelligence = () => {
       // id. Merge, never replace: the previous behaviour rebuilt the ledger
       // from whatever window Gmail returned, so anything older silently fell
       // off the record on every open.
-      const harvested: RawMessage[] = [...(inbox?.messages || []), ...(sent?.messages || [])];
+      const backIn = val(backInRes);
+      const backSent = val(backSentRes);
+      const harvested: RawMessage[] = [
+        ...(inbox?.messages || []),
+        ...(sent?.messages || []),
+        ...(backIn?.messages || []),
+        ...(backSent?.messages || []),
+      ];
       const folded = mergeCorpus(held, harvested);
       const messages = folded.messages;
 
