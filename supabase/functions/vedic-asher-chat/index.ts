@@ -193,7 +193,10 @@ async function checkAdmin(authHeader: string): Promise<boolean> {
   }
 }
 
-function jsonError(status: number, error: string): Response {
+// corsHeaders is per-request (origin-scoped), so it must be passed in — a
+// module-scope reference throws ReferenceError and turns every handled error
+// into an opaque, CORS-less 500 the browser cannot read.
+function jsonError(status: number, error: string, corsHeaders: Record<string, string>): Response {
   return new Response(JSON.stringify({ error }), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
