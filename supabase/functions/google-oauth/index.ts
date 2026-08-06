@@ -156,6 +156,14 @@ Deno.serve(async (req) => {
 
       const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
 
+      // Derive the consent tier actually GRANTED (not requested) — users can
+      // uncheck scopes on Google's screen, and the UI must reflect reality.
+      const grantedScopes: string[] = tokenData.scope?.split(" ") || [];
+      const grantedTier = grantedScopes.some((s: string) => s.includes("gmail.compose")) ? 4
+        : grantedScopes.some((s: string) => s.includes("fitness.")) ? 3
+        : grantedScopes.some((s: string) => s.includes("gmail.readonly")) ? 2
+        : 1;
+
       // Check if account already exists
       const { data: existing } = await supabase
         .from("google_accounts")
@@ -177,7 +185,8 @@ Deno.serve(async (req) => {
           display_name: userInfo.name,
           avatar_url: userInfo.picture,
           status: "connected",
-          scopes: tokenData.scope?.split(" ") || [],
+          scopes: grantedScopes,
+          consent_tier: grantedTier,
           last_sync_at: new Date().toISOString(),
         }).eq("id", existing.id);
       } else {
@@ -190,7 +199,8 @@ Deno.serve(async (req) => {
           refresh_token: tokenData.refresh_token,
           token_expires_at: expiresAt,
           status: "connected",
-          scopes: tokenData.scope?.split(" ") || [],
+          scopes: grantedScopes,
+          consent_tier: grantedTier,
           is_primary: true,
         });
       }
