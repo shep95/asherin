@@ -180,16 +180,27 @@ const ContactIntelligence = () => {
     } catch (e: any) {
       console.error("[contact-intel] sweep failed:", e);
       if (alive.current) setError(e?.message || "Sweep failed. The device vault below still holds the last good run.");
+      // Rethrow so the scheduler can widen its cadence instead of retrying a
+      // revoked credential every interval.
+      throw e;
     } finally {
       if (alive.current) { setLoading(false); setPhase(""); }
     }
   }, [isConnected, fetchGoogleData, accounts, userId]);
 
-  useEffect(() => {
-    if (isConnected && accounts.length && !dossiers.length && !loading) void sweep();
-    // Intentionally keyed on connection state only — a re-sweep is operator-driven.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, accounts.length]);
+  // Foreground continuity: sweeps on open, keeps a cadence while the tab is
+  // visible, catches up on refocus and reconnect, and yields to sibling tabs.
+  const auto = useAutoSync({
+    key: `contact-intel:${userId}`,
+    enabled: Boolean(isConnected && accounts.length && userId),
+    run: sweep,
+    intervalMs: 10 * 60_000,
+    minGapMs: 3 * 60_000,
+  });
+
+  // Background continuity: what the scheduled server sweep did while closed.
+  const { state: serverSync } = useMeshSyncState(userId || undefined);
+
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
