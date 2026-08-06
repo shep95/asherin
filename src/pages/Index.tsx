@@ -407,6 +407,15 @@ const Index = () => {
       </ScrollSection>
       <ScrollSection><TrustBand /></ScrollSection>
 
+      {/* Extractable answer + sourced figures for generative engines. */}
+      <ScrollSection>
+        <div className="relative z-10 mx-auto max-w-3xl px-6 pb-8">
+          <GeoBlock />
+        </div>
+      </ScrollSection>
+
+
+
       <ScrollSection>
       <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">
         {/* Aurora background */}
