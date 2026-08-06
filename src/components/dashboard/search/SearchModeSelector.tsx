@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Brain, Image as ImageIcon, Crosshair, ShieldAlert, Scan, Skull, FileArchive, ChevronDown, ShieldCheck, Database, Package, BookOpen, Target, Ghost, Radar } from "lucide-react";
+import { Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Image as ImageIcon, Crosshair, ShieldAlert, Scan, FileArchive, ChevronDown, ShieldCheck, Database, Package, BookOpen, Ghost } from "lucide-react";
 import type { SearchMode } from "./types";
 
 type ModeDef = { id: SearchMode; label: string; icon: React.ReactNode; accent?: boolean };
@@ -7,17 +7,13 @@ type ModeDef = { id: SearchMode; label: string; icon: React.ReactNode; accent?: 
 // Primary modes — always visible. Everything else collapses behind "More".
 const primaryModes: ModeDef[] = [
   { id: "web", label: "Web", icon: <Globe className="h-3.5 w-3.5" /> },
-  { id: "deep", label: "Deep Search", icon: <Brain className="h-3.5 w-3.5" />, accent: true },
   { id: "ghostchain", label: "Ghost Chain", icon: <Ghost className="h-3.5 w-3.5" />, accent: true },
-  { id: "zophielv2", label: "Zophiel v2", icon: <Radar className="h-3.5 w-3.5" />, accent: true },
-
-  { id: "dork", label: "Dork", icon: <Target className="h-3.5 w-3.5" />, accent: true },
   { id: "dataengine", label: "DataEngine", icon: <Database className="h-3.5 w-3.5" />, accent: true },
   { id: "imagine", label: "Imagine", icon: <ImageIcon className="h-3.5 w-3.5" />, accent: true },
-  { id: "darkweb", label: "Dark Web", icon: <Skull className="h-3.5 w-3.5" />, accent: true },
   { id: "audit", label: "ZERLAL", icon: <ShieldAlert className="h-3.5 w-3.5" />, accent: true },
   { id: "vpn", label: "OpenVPN", icon: <ShieldCheck className="h-3.5 w-3.5" />, accent: true },
 ];
+
 
 const secondaryModes: ModeDef[] = [
   { id: "extract", label: "Link Extract", icon: <Crosshair className="h-3.5 w-3.5" />, accent: true },
