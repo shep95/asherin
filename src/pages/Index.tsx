@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { applySeoHead } from "@/lib/seoHead";
+
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import ReactMarkdown from "react-markdown";
 import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
@@ -115,11 +115,12 @@ const HudStatusBar = () => {
 
 const Index = () => {
   useEffect(() => {
-    applySeoHead({
-      title: "Asherin — Uncensored AI Intelligence",
-      description: "Asherin: uncensored AI with elite coding, live web search, and end-to-end encryption. The AI that tells you the truth.",
-      path: "/",
-    });
+    // Title/description/canonical/og for "/" are owned solely by RouteSeo
+    // (src/lib/routeSeoData.ts) so the runtime head, the static index.html,
+    // and the prerendered head cannot drift apart. This effect only adds FAQ
+    // structured data, which is page-specific.
+
+
 
     const faqs = [
       { q: "What makes Asherin different?", a: "Asherin is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, intelligence tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },
