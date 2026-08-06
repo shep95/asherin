@@ -147,6 +147,7 @@ const GoogleIntelligenceView = () => {
     switch (activeModule) {
       case "substrate": return <SubstrateExplorer />;
       case "mesh": return <GoogleMeshPanel />;
+      case "dossiers": return <ContactVaultPane />;
       case "location": return <LocationProphet />;
       case "email": case "gmail": return <EmailAssistant />;
       case "subscriptions": return <SubscriptionOracle />;
