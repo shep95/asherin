@@ -714,6 +714,9 @@ const SettingsView = () => {
         {/* GitHub Integration */}
         <GitHubSettings />
 
+        {/* Google — multi-account cloud intelligence */}
+        <GoogleAccountsSettings />
+
         {/* Privacy */}
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
           <div className="flex items-center gap-3">

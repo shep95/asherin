@@ -1,42 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Plus, X, RefreshCw, Link2, Unlink, Shield, CheckCircle2,
   AlertTriangle, Globe, Zap,
 } from "lucide-react";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
 import { toast } from "sonner";
+import { useGoogleOAuthCallback } from "@/hooks/useGoogleOAuthCallback";
 
 const MultiAccountManager = () => {
-  const { accounts, loading, connectGoogle, disconnectAccount, fetchAccounts, exchangeCode, isConnected } = useGoogleApi();
+  const { accounts, loading, connectGoogle, disconnectAccount, fetchAccounts, isConnected } = useGoogleApi();
   const [crossCorrelation, setCrossCorrelation] = useState(false);
 
   useEffect(() => {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  // [Finding #1/#5] Handle OAuth callback with state validation
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const code = url.searchParams.get("code");
-    const state = url.searchParams.get("state");
-
-    if (code && state) {
-      // Clean URL immediately
-      url.searchParams.delete("code");
-      url.searchParams.delete("state");
-      url.searchParams.delete("scope");
-      window.history.replaceState({}, "", url.pathname);
-
-      // Pass state through for server-side CSRF validation
-      exchangeCode(code, state)
-        .then((data) => {
-          toast.success(`Connected ${data.email || "Google account"} successfully!`);
-        })
-        .catch((err) => {
-          toast.error(`Failed to connect: ${err.message}`);
-        });
-    }
-  }, [exchangeCode]);
+  // OAuth return is handled by a shared, locked hook so that multiple mounted
+  // Google surfaces cannot race to spend the same authorization code.
+  useGoogleOAuthCallback(useCallback(() => { void fetchAccounts(); }, [fetchAccounts]));
 
   const handleConnect = async () => {
     try {
