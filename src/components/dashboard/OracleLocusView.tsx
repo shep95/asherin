@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
-import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, Search, Users, GitBranch, ChevronRight, CheckCircle2, Info, ExternalLink, Globe, Navigation } from "lucide-react";
+import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, Search, Users, GitBranch, ChevronRight, CheckCircle2, Info, ExternalLink, Globe, Navigation, Sun, ListChecks, Layers, ShieldQuestion } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { extractExifFacts, type ExifFacts } from "@/lib/imagine/exif";
 import LocationMapPanel from "./search/LocationMapPanel";
 import LinkedImageryMap, { type ImageryDataPoint } from "./search/LinkedImageryMap";
 
