@@ -182,8 +182,14 @@ export function scoreConfidence(doc: MeshDossierDoc): number {
 /** Named absences. A silent gap reads as a finding; it is not one. */
 function findGaps(doc: MeshDossierDoc, bundle: IntelBundle): string[] {
   const gaps: string[] = [];
+  // A field can be resolved either into the ledger or as a typed graph node —
+  // reporting a gap while the graph carries the value would be a false absence.
+  const graphKinds = new Set([...doc.hop1, ...doc.hop2].map((n) => n.kind));
+  const GRAPH_EQUIV: Record<string, string> = { address: "address", employer: "employer", entity: "entity" };
   for (const k of ["address", "employer", "entity", "phone"]) {
-    if (!doc.identity[FIELD_LABEL[k]]?.length) gaps.push(`No ${FIELD_LABEL[k].toLowerCase()} resolved to this subject.`);
+    if (doc.identity[FIELD_LABEL[k]]?.length) continue;
+    if (GRAPH_EQUIV[k] && graphKinds.has(GRAPH_EQUIV[k])) continue;
+    gaps.push(`No ${FIELD_LABEL[k].toLowerCase()} resolved to this subject.`);
   }
   if (!doc.hop1.length) gaps.push("No hop-1 associates surfaced — the subject has a thin public record.");
   if (!doc.hop2.length) gaps.push("Hop-2 expansion returned nothing; hop-3 cross-links are therefore n/a.");
