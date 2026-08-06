@@ -4560,6 +4560,51 @@ export type Database = {
           },
         ]
       }
+      google_sync_state: {
+        Row: {
+          consecutive_failures: number
+          enabled: boolean
+          insights_derived: number
+          interval_minutes: number
+          last_error: string | null
+          last_started_at: string | null
+          last_status: string
+          last_synced_at: string | null
+          next_due_at: string
+          signals_ingested: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          enabled?: boolean
+          insights_derived?: number
+          interval_minutes?: number
+          last_error?: string | null
+          last_started_at?: string | null
+          last_status?: string
+          last_synced_at?: string | null
+          next_due_at?: string
+          signals_ingested?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consecutive_failures?: number
+          enabled?: boolean
+          insights_derived?: number
+          interval_minutes?: number
+          last_error?: string | null
+          last_started_at?: string | null
+          last_status?: string
+          last_synced_at?: string | null
+          next_due_at?: string
+          signals_ingested?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       google_voiceprints: {
         Row: {
           account_id: string | null
