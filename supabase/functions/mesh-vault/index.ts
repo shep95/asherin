@@ -1,0 +1,302 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// mesh-vault — automated correspondent intelligence, persisted to the Vault
+//
+// Actions:
+//   vault_status  · queue depth, hop census, last run
+//   vault_enqueue · read mail metadata → rank humans → queue hop-1 subjects
+//   vault_process · drain the queue (time-bounded, resumable, idempotent)
+//   vault_list    · dossier index + hop-3 cross-links folded across the vault
+//   vault_get     · one full dossier
+//   vault_promote · lift a hop-2 stub into the sweep queue
+//   vault_refresh · re-sweep an existing dossier
+//   vault_remove  · delete a dossier (owner only)
+//
+// Every action is scoped by a verified JWT. Reads are metadata-first; no
+// message body is stored. Nothing here sends mail.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import {
+  adminClient, liveAccounts, hasScope, harvestHeaders, buildRelationships, audit,
+} from "../_shared/googleMesh.ts";
+import {
+  selectTargets, buildDossier, foldCrossLinks, normKey,
+  type MeshDossierDoc,
+} from "../_shared/meshDossier.ts";
+
+const json = (body: unknown, status: number, cors: Record<string, string>) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
+
+/** Wall-clock guard: leave room to write results before the platform cuts us. */
+const RUN_BUDGET_MS = 95_000;
+const PER_SUBJECT_MS = 70_000;
+
+Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  const startedAt = Date.now();
+
+  try {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401, cors);
+
+    const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+    const { data: { user }, error: uErr } = await anon.auth.getUser(authHeader.slice(7));
+    if (uErr || !user) return json({ error: "Unauthorized" }, 401, cors);
+    const userId = user.id;
+
+    const body = await req.json().catch(() => ({}));
+    const action = String(body.action ?? "");
+    const sb = adminClient();
+
+    // ── STATUS ───────────────────────────────────────────────────────────
+    if (action === "vault_status") {
+      const [{ data: rows }, { data: runs }] = await Promise.all([
+        sb.from("mesh_dossiers").select("status, hop").eq("user_id", userId),
+        sb.from("mesh_dossier_runs").select("*").eq("user_id", userId)
+          .order("started_at", { ascending: false }).limit(1),
+      ]);
+      const census = { queued: 0, building: 0, ready: 0, failed: 0, linked: 0, skipped: 0 } as Record<string, number>;
+      const hops = { 1: 0, 2: 0, 3: 0 } as Record<number, number>;
+      for (const r of rows ?? []) {
+        census[r.status] = (census[r.status] ?? 0) + 1;
+        hops[r.hop] = (hops[r.hop] ?? 0) + 1;
+      }
+      return json({ census, hops, total: rows?.length ?? 0, lastRun: runs?.[0] ?? null }, 200, cors);
+    }
+
+    // ── LIST ─────────────────────────────────────────────────────────────
+    if (action === "vault_list") {
+      const hop = body.hop ? Number(body.hop) : null;
+      let q = sb.from("mesh_dossiers")
+        .select("id, subject_name, subject_email, hop, via, status, relationship, summary, confidence, priority, error_message, built_at, updated_at")
+        .eq("user_id", userId)
+        .order("hop", { ascending: true })
+        .order("confidence", { ascending: false })
+        .order("priority", { ascending: false })
+        .limit(300);
+      if (hop) q = q.eq("hop", hop);
+      const { data: rows, error } = await q;
+      if (error) return json({ error: "list_failed", message: error.message }, 500, cors);
+
+      const { data: full } = await sb.from("mesh_dossiers")
+        .select("subject_name, dossier").eq("user_id", userId).eq("hop", 1).eq("status", "ready").limit(80);
+      const crossLinks = foldCrossLinks((full ?? []) as any);
+
+      return json({ dossiers: rows ?? [], crossLinks }, 200, cors);
+    }
+
+    // ── GET ──────────────────────────────────────────────────────────────
+    if (action === "vault_get") {
+      const id = String(body.id ?? "");
+      if (!id) return json({ error: "id_required" }, 400, cors);
+      const { data, error } = await sb.from("mesh_dossiers")
+        .select("*").eq("user_id", userId).eq("id", id).maybeSingle();
+      if (error) return json({ error: "get_failed", message: error.message }, 500, cors);
+      if (!data) return json({ error: "not_found" }, 404, cors);
+      return json({ dossier: data }, 200, cors);
+    }
+
+    // ── REMOVE ───────────────────────────────────────────────────────────
+    if (action === "vault_remove") {
+      const id = String(body.id ?? "");
+      if (!id) return json({ error: "id_required" }, 400, cors);
+      const { error } = await sb.from("mesh_dossiers").delete().eq("user_id", userId).eq("id", id);
+      if (error) return json({ error: "remove_failed", message: error.message }, 500, cors);
+      return json({ removed: true }, 200, cors);
+    }
+
+    // ── PROMOTE / REFRESH (queue mutations) ──────────────────────────────
+    if (action === "vault_promote" || action === "vault_refresh") {
+      const id = String(body.id ?? "");
+      if (!id) return json({ error: "id_required" }, 400, cors);
+      const { data, error } = await sb.from("mesh_dossiers")
+        .update({ status: "queued", error_message: null })
+        .eq("user_id", userId).eq("id", id).select("id, subject_name, hop").maybeSingle();
+      if (error) return json({ error: "queue_failed", message: error.message }, 500, cors);
+      if (!data) return json({ error: "not_found" }, 404, cors);
+      return json({ queued: data }, 200, cors);
+    }
+
+    // ── ENQUEUE ──────────────────────────────────────────────────────────
+    if (action === "vault_enqueue") {
+      const accounts = await liveAccounts(sb, userId, body.account_id ?? null);
+      const readable = accounts.filter((a) => hasScope(a, "gmail.readonly"));
+      if (!readable.length) {
+        return json({
+          error: "tier_required",
+          message: "Grant Tier 2 (Read) on a Google account before running a vault sweep.",
+        }, 403, cors);
+      }
+
+      const window = Math.min(Math.max(Number(body.days) || 365, 14), 730);
+      const perQuery = Math.min(Number(body.limit) || 150, 200);
+      const max = Math.min(Number(body.max) || 25, 60);
+      const after = new Date(Date.now() - window * 86400000).toISOString().slice(0, 10).replace(/-/g, "/");
+      const selfEmails = readable.map((a) => a.google_email);
+
+      const harvested = (await Promise.all(readable.flatMap((a) => [
+        harvestHeaders(a.token, `in:inbox -in:chats after:${after}`, perQuery, false).catch(() => []),
+        harvestHeaders(a.token, `in:sent -in:chats after:${after}`, perQuery, true).catch(() => []),
+      ]))).flat();
+
+      const people = buildRelationships(harvested, selfEmails);
+      const { targets, skipped } = selectTargets(people, { max });
+
+      // Idempotent: existing subjects keep their dossier and status; only the
+      // relationship telemetry and priority are refreshed.
+      const { data: existing } = await sb.from("mesh_dossiers")
+        .select("subject_key, status").eq("user_id", userId);
+      const known = new Map((existing ?? []).map((r: any) => [r.subject_key, r.status]));
+
+      const rows = targets.map((t) => ({
+        user_id: userId,
+        subject_key: t.key,
+        subject_email: t.email,
+        subject_name: t.name,
+        hop: 1,
+        status: known.has(t.key) && known.get(t.key) !== "failed" ? known.get(t.key)! : "queued",
+        relationship: t.relationship as unknown as Record<string, unknown>,
+        priority: t.priority,
+        source_account: selfEmails[0] ?? null,
+        updated_at: new Date().toISOString(),
+      }));
+
+      if (rows.length) {
+        const { error } = await sb.from("mesh_dossiers").upsert(rows, { onConflict: "user_id,subject_key" });
+        if (error) return json({ error: "enqueue_failed", message: error.message }, 500, cors);
+      }
+
+      const newlyQueued = rows.filter((r) => r.status === "queued").length;
+      await sb.from("mesh_dossier_runs").insert({
+        user_id: userId, phase: "enqueue", queued: newlyQueued,
+        skipped: skipped.length,
+        stats: { messagesAnalyzed: harvested.length, correspondents: people.length, windowDays: window, accounts: selfEmails },
+        finished_at: new Date().toISOString(),
+      });
+      await audit(sb, userId, {
+        google_email: selfEmails[0] ?? "",
+        action: "vault_enqueue",
+        target: `${targets.length} subjects`,
+        payload: { messagesAnalyzed: harvested.length, queued: newlyQueued },
+        confirmed: true,
+      });
+
+      return json({
+        messagesAnalyzed: harvested.length,
+        correspondents: people.length,
+        targets: targets.map((t) => ({ email: t.email, name: t.name, priority: t.priority, reason: t.reason })),
+        queued: newlyQueued,
+        skipped: skipped.slice(0, 40),
+        windowDays: window,
+      }, 200, cors);
+    }
+
+    // ── PROCESS ──────────────────────────────────────────────────────────
+    if (action === "vault_process") {
+      const batch = Math.min(Math.max(Number(body.batch) || 1, 1), 3);
+      const { data: queue, error: qErr } = await sb.from("mesh_dossiers")
+        .select("id, subject_key, subject_name, subject_email, hop, relationship")
+        .eq("user_id", userId).eq("status", "queued")
+        .order("hop", { ascending: true })
+        .order("priority", { ascending: false })
+        .limit(batch);
+      if (qErr) return json({ error: "queue_read_failed", message: qErr.message }, 500, cors);
+      if (!queue?.length) {
+        return json({ processed: [], remaining: 0, done: true, message: "Queue is empty." }, 200, cors);
+      }
+
+      const processed: unknown[] = [];
+      let built = 0, failed = 0;
+
+      for (const row of queue) {
+        if (Date.now() - startedAt > RUN_BUDGET_MS - 15_000) break;
+        await sb.from("mesh_dossiers").update({ status: "building" }).eq("id", row.id).eq("user_id", userId);
+        try {
+          const rel = (row.relationship ?? null) as any;
+          const hint = String(body.location_hint ?? "").slice(0, 80);
+          const { doc, summary, confidence } = await withTimeout(
+            buildDossier(row.subject_name, row.subject_email, rel && rel.email ? rel : null, { locationHint: hint }),
+            PER_SUBJECT_MS,
+          );
+
+          await sb.from("mesh_dossiers").update({
+            status: "ready", dossier: doc as unknown as Record<string, unknown>,
+            summary, confidence, error_message: null, built_at: new Date().toISOString(),
+          }).eq("id", row.id).eq("user_id", userId);
+
+          if (row.hop === 1) await persistHopTwo(sb, userId, row.subject_name, doc);
+          built++;
+          processed.push({ id: row.id, name: row.subject_name, confidence, hop1: doc.hop1.length, hop2: doc.hop2.length, hop3: doc.hop3.length });
+        } catch (e) {
+          failed++;
+          const msg = (e as Error).message.slice(0, 300);
+          await sb.from("mesh_dossiers").update({ status: "failed", error_message: msg })
+            .eq("id", row.id).eq("user_id", userId);
+          processed.push({ id: row.id, name: row.subject_name, error: msg });
+        }
+      }
+
+      const { count } = await sb.from("mesh_dossiers")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId).eq("status", "queued");
+
+      await sb.from("mesh_dossier_runs").insert({
+        user_id: userId, phase: "process", built, failed,
+        stats: { elapsedMs: Date.now() - startedAt, batch },
+        finished_at: new Date().toISOString(),
+      });
+
+      return json({ processed, built, failed, remaining: count ?? 0, done: (count ?? 0) === 0 }, 200, cors);
+    }
+
+    return json({ error: "unknown_action", action }, 400, cors);
+  } catch (e) {
+    console.error("mesh-vault failure", e);
+    return json({ error: "internal_error", message: (e as Error).message }, 500, cors);
+  }
+});
+
+/**
+ * Persist hop-2 nodes as dormant stubs. They are knowledge, not sweeps —
+ * a stub becomes a sweep only when the user promotes it, which keeps the
+ * three-hop expansion bounded by human intent instead of by combinatorics.
+ */
+async function persistHopTwo(
+  sb: ReturnType<typeof adminClient>,
+  userId: string,
+  parentName: string,
+  doc: MeshDossierDoc,
+): Promise<void> {
+  const people = (doc.hop2 ?? []).filter((n) => n.kind === "person" && n.label && n.label.length > 4).slice(0, 12);
+  if (!people.length) return;
+  const parentKey = normKey(parentName);
+  const rows = people
+    .map((n) => ({
+      user_id: userId,
+      subject_key: `hop2:${normKey(n.label).toLowerCase()}`,
+      subject_email: null,
+      subject_name: n.label,
+      hop: 2,
+      via: n.via ?? parentName,
+      status: "linked",
+      relationship: { discoveredVia: parentName, kind: n.kind, confidence: n.confidence },
+      priority: Math.min(60, n.independentDomains * 10),
+      updated_at: new Date().toISOString(),
+    }))
+    .filter((r) => normKey(r.subject_name) !== parentKey);
+  if (!rows.length) return;
+  // ignoreDuplicates: a stub must never overwrite a dossier already built.
+  await sb.from("mesh_dossiers").upsert(rows, { onConflict: "user_id,subject_key", ignoreDuplicates: true });
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`sweep exceeded ${Math.round(ms / 1000)}s`)), ms);
+    p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+  });
+}
