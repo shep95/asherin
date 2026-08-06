@@ -44,18 +44,27 @@ export interface ChannelTarget {
 // ── Phone normalization ────────────────────────────────────────────────────
 
 /**
- * Normalize to a dialable, comparable string. North-American numbers collapse
- * to +1XXXXXXXXXX; anything else keeps its own country code if the caller
- * wrote one. Extensions, punctuation and vanity spacing are stripped, because
- * "+1 (239) 555-0142 x12" and "12395550142" are one identifier, not two.
+ * Normalize to a dialable, comparable string. Extensions, punctuation and
+ * vanity spacing are stripped, because "+1 (239) 555-0142 x12" and
+ * "12395550142" are one identifier, not two.
+ *
+ * A bare 10-digit number carries no country code, so the caller must say which
+ * country to assume. Defaulting to +1 silently mangles every non-NANP number,
+ * so `defaultCc` is explicit and a number is rejected rather than guessed when
+ * it is ambiguous and no default was supplied.
  */
-export function normalizePhone(raw: string): string | null {
-  const s = String(raw ?? "").split(/\b(?:x|ext\.?|extension)\b/i)[0];
+export function normalizePhone(raw: string, defaultCc: string | null = "1"): string | null {
+  // Word boundaries fail on "0142x12" (digit→x is not a boundary), so match the
+  // extension as a trailing suffix instead of relying on \b.
+  const s = String(raw ?? "").replace(/[\s,;-]*(?:x|ext\.?|extension)\s*\d+\s*$/i, "");
   const plus = s.trim().startsWith("+");
   const digits = s.replace(/\D+/g, "");
   if (digits.length < 7 || digits.length > 15) return null;
-  if (!plus && digits.length === 10) return `+1${digits}`;
-  if (!plus && digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (plus) return `+${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (digits.length === 10) return defaultCc ? `+${defaultCc}${digits}` : null;
+  // 7-9 digits with no country code is a local fragment: not a stable identity.
+  if (digits.length < 10) return null;
   return `+${digits}`;
 }
 
@@ -90,11 +99,16 @@ export function selectColdInbound(
   headers: MailHeader[],
   selfEmails: string[],
   alreadyKeyed: Set<string>,
-  opts: { max?: number; sinceMs?: number } = {},
+  opts: { max?: number; sinceMs?: number; knownCorrespondents?: Set<string> } = {},
 ): { targets: ChannelTarget[]; skipped: Array<{ email: string; reason: string }> } {
   const max = Math.min(Math.max(opts.max ?? 20, 1), 60);
   const since = opts.sinceMs ?? 0;
   const self = new Set(selfEmails.map((e) => e.toLowerCase()));
+  // The Gmail query is bounded by the watermark, so the harvest alone cannot
+  // prove a sender is new — it can only prove they appeared in this window.
+  // Prior correspondents are supplied by the caller; without that set the
+  // claim is downgraded rather than asserted.
+  const known = opts.knownCorrespondents ?? null;
   const skipped: Array<{ email: string; reason: string }> = [];
 
   interface Agg { email: string; name: string; count: number; lastAt: number; subjects: string[] }
@@ -121,8 +135,12 @@ export function selectColdInbound(
     // Fresh contact outranks stale contact; a second message inside the window
     // is a small confirmation bonus, not a volume score.
     const ageDays = Math.max(0, (Date.now() - rec.lastAt) / 86400000);
+    const priorHistory = known ? known.has(key) : null;
     const priority = Math.round(
-      Math.min(100, 62 + Math.min(18, (rec.count - 1) * 6) + 20 / (1 + ageDays / 7)),
+      Math.min(100, 62 + Math.min(18, (rec.count - 1) * 6) + 20 / (1 + ageDays / 7)
+        // A sender with history is a known quantity: real, but less urgent
+        // than a stranger who just appeared.
+        - (priorHistory === true ? 14 : 0)),
     );
 
     targets.push({
@@ -133,10 +151,14 @@ export function selectColdInbound(
       priority,
       identifiers: [],
       locationHint: null,
-      reason: `first contact · ${rec.count} inbound message(s) · ${Math.round(ageDays)}d ago`,
+      reason: priorHistory === false
+        ? `first contact · ${rec.count} inbound message(s) · ${Math.round(ageDays)}d ago`
+        : `inbound · ${rec.count} message(s) in watch window · ${Math.round(ageDays)}d ago`,
       profile: {
         source: "inbound_mail",
-        firstContact: true,
+        // Only asserted when the caller supplied history to check it against.
+        firstContact: priorHistory === false,
+        priorHistoryChecked: priorHistory !== null,
         inboundCount: rec.count,
         lastAt: new Date(rec.lastAt).toISOString(),
         subjects: rec.subjects,
@@ -263,13 +285,45 @@ function hintFromAddress(addr: string): string | null {
   return hint.length >= 4 ? hint : null;
 }
 
-/** Guard against two channels queueing the same human under different keys. */
+/**
+ * Collapse channels that describe the same human — and only then.
+ *
+ * Matching on the name alone merges two different people who happen to share
+ * one, which is a false identity claim and the worst failure this file can
+ * produce. A merge is therefore allowed only when the evidence supports it:
+ * identical address, or a shared name where at most one side carries an
+ * address (a phone card folding into its mail identity). Two same-named
+ * subjects with two different addresses stay two subjects.
+ */
 export function dedupeByIdentity(targets: ChannelTarget[]): ChannelTarget[] {
-  const byName = new Map<string, ChannelTarget>();
-  for (const t of targets) {
+  const byEmail = new Map<string, ChannelTarget>();
+  const byName = new Map<string, ChannelTarget[]>();
+  const out: ChannelTarget[] = [];
+
+  const absorb = (into: ChannelTarget, from: ChannelTarget) => {
+    into.identifiers = [...new Set([...into.identifiers, ...from.identifiers])].slice(0, 4);
+    into.locationHint = into.locationHint ?? from.locationHint;
+    into.email = into.email ?? from.email;
+    into.priority = Math.max(into.priority, from.priority);
+    into.profile = { ...from.profile, ...into.profile, mergedFrom: from.channel };
+    into.reason = `${into.reason} · also ${from.channel}`;
+  };
+
+  for (const t of [...targets].sort((a, b) => b.priority - a.priority)) {
+    const em = t.email?.toLowerCase() ?? null;
+    if (em) {
+      const prev = byEmail.get(em);
+      if (prev) { absorb(prev, t); continue; }
+    }
     const nk = normKey(t.name);
-    const prev = byName.get(nk);
-    if (!prev || t.priority > prev.priority) byName.set(nk, t);
+    const siblings = byName.get(nk) ?? [];
+    // Fold only into a same-named sibling whose address does not contradict.
+    const foldInto = siblings.find((s) => !s.email || !em);
+    if (foldInto) { absorb(foldInto, t); continue; }
+
+    out.push(t);
+    if (em) byEmail.set(em, t);
+    byName.set(nk, [...siblings, t]);
   }
-  return [...byName.values()].sort((a, b) => b.priority - a.priority);
+  return out.sort((a, b) => b.priority - a.priority);
 }
