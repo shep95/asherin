@@ -20,6 +20,11 @@ import {
   pullRemote, pushRemote, fetchRemoteMeta, listDevices, touchDevice, deviceId,
   type DeviceRow,
 } from "./contactIntel/remoteVault";
+import { latticeFindings, correspondenceSeries } from "@/lib/cloudIntel/lattice";
+import { median } from "@/lib/cloudIntel/logic";
+import FindingCard from "../intel/FindingCard";
+import { TrendStat } from "../intel/TrendStat";
+
 
 
 // Depth of the sweep. The Gmail metadata read is the expensive leg, so the
