@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Users, Clock, Network, Zap, AlertTriangle, RefreshCw, Search,
   HardDrive, Download, Brain, Activity, MessageSquare, Trash2, ChevronDown, Cloud,
-  ScrollText, X,
+  ScrollText,
 } from "lucide-react";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +26,7 @@ import { median } from "@/lib/cloudIntel/logic";
 import FindingCard from "../intel/FindingCard";
 import { TrendStat } from "../intel/TrendStat";
 import RelationGraph from "../intel/RelationGraph";
+import ReportViewer from "./contactIntel/ReportViewer";
 import { buildContactReport } from "@/lib/cloudIntel/contactReport";
 import { renderContactReport } from "@/lib/cloudIntel/contactReportText";
 
