@@ -14,6 +14,8 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
+import GeoBlock from "@/components/seo/GeoBlock";
+
 import SiteFooter from "@/components/SiteFooter";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
 import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
