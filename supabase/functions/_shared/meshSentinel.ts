@@ -232,15 +232,17 @@ export function selectCalendarTargets(
 export function selectPhoneTargets(
   contacts: ContactRecord[],
   alreadyKeyed: Set<string>,
-  opts: { max?: number } = {},
+  opts: { max?: number; defaultCc?: string | null } = {},
 ): { targets: ChannelTarget[]; skipped: Array<{ email: string; reason: string }> } {
   const max = Math.min(Math.max(opts.max ?? 30, 1), 90);
+  const cc = opts.defaultCc === undefined ? "1" : opts.defaultCc;
   const skipped: Array<{ email: string; reason: string }> = [];
   const targets: ChannelTarget[] = [];
   const seen = new Set<string>();
 
   for (const c of contacts) {
-    const phones = c.phones.map(normalizePhone).filter((p): p is string => !!p);
+    // Point-free .map() would feed the array index in as defaultCc.
+    const phones = c.phones.map((raw) => normalizePhone(raw, cc)).filter((p): p is string => !!p);
     if (!phones.length) continue;
     // Cards that also carry an email are already claimed by the address-book
     // selector; sweeping them here would duplicate the same human.
