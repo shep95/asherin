@@ -5,7 +5,10 @@ import {
 } from "lucide-react";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAutoSync } from "@/hooks/useAutoSync";
+import { useMeshSyncState } from "@/hooks/useMeshSyncState";
 import { toast } from "sonner";
+
 import {
   buildContactIntel, type ContactDossier, type IntelSummary, type RawMessage,
 } from "./contactIntel/messageIntel";
