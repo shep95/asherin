@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Network, Mail, Calendar, HardDrive, Heart, Users, Globe,
   CheckCircle2, Clock, Shield, RefreshCw, ChevronRight,
 } from "lucide-react";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
+import DeepDivePanel from "../intel/DeepDivePanel";
+import { scopeObservations, surface } from "@/lib/cloudIntel/googleObservations";
+
 
 const scopeToApp: Record<string, { name: string; icon: React.ElementType; category: string }> = {
   "gmail.readonly": { name: "Gmail", icon: Mail, category: "Communication" },
@@ -51,6 +54,29 @@ const ConnectedAppsView = () => {
   const appList = Array.from(allApps.values());
   const categories = [...new Set(appList.map((a) => a.category))];
 
+  // Grant surface: one observation per (account, scope). Novelty answers "what
+  // permission appeared that I did not deliberately approve", and dormancy
+  // answers "which account holds live permissions but stopped reporting" — the
+  // quieter and more dangerous of the two, since a stale grant is still a grant.
+  const grantObs = useMemo(() => scopeObservations(accounts ?? []), [accounts]);
+  const grantSpec = useMemo(
+    () =>
+      surface("Authorised Access", (accounts?.length ?? 0) > 0, {
+        unit: "grant",
+        unitPlural: "grants",
+        entityNoun: "permission",
+        entityNounPlural: "permissions",
+        // Grants all carry the account's sync time, never a moment of consent.
+        timestampsAreEvents: false,
+        expectation:
+          "Every live permission traces to an account you actively use and a capability you asked for.",
+        reviewAction: "Revoke this permission from the Google account security page if it is not in use.",
+      }),
+    [accounts]
+  );
+
+
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6">
@@ -72,6 +98,9 @@ const ConnectedAppsView = () => {
           </div>
         </div>
       </div>
+
+      <DeepDivePanel spec={grantSpec} observations={grantObs} />
+
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
