@@ -4,7 +4,7 @@ import {
   Search, Activity, Globe, Shield, RefreshCw, Network, Zap,
   Heart, CreditCard, Briefcase, Brain, Lock,
   Eye, TrendingUp, BarChart3, Clock,
-  FileText, Sparkles, Database,
+  FileText, Sparkles, Database, ScrollText,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -30,10 +30,11 @@ import SearchHistoryView from "./modules/SearchHistoryView";
 import ChromeDataView from "./modules/ChromeDataView";
 import GoogleMeshPanel from "./modules/GoogleMeshPanel";
 import SubstrateExplorer from "./modules/SubstrateExplorer";
+import ContactVaultPane from "./modules/ContactVaultPane";
 import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 type GoogleModule =
-  | "overview" | "substrate" | "mesh" | "location" | "email" | "subscriptions" | "health"
+  | "overview" | "substrate" | "mesh" | "dossiers" | "location" | "email" | "subscriptions" | "health"
   | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions"
   | "automation" | "security" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
   | "search" | "fit" | "chrome" | "connected";
