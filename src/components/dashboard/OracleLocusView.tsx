@@ -322,7 +322,26 @@ const OracleLocusView = () => {
           Authorization: `Bearer ${session?.session?.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ image_base64: imageBase64, image_type: imageType }),
+        body: JSON.stringify({
+          image_base64: imageBase64,
+          image_type: imageType,
+          // Stage 1 evidence travels with the frame so the adjudicator can rank
+          // hard metadata above its own inference.
+          exif: exifFacts
+            ? {
+                hasExif: exifFacts.hasExif,
+                gps: exifFacts.gps,
+                capturedAtLocal: exifFacts.capturedAtLocal,
+                capturedAtUtc: exifFacts.capturedAtUtc,
+                make: exifFacts.make,
+                model: exifFacts.model,
+                software: exifFacts.software,
+                focalLengthMm: exifFacts.focalLengthMm,
+                orientation: exifFacts.orientation,
+                notes: exifFacts.notes,
+              }
+            : null,
+        }),
       });
       if (!res.ok) throw new Error("Analysis failed");
       const data = await res.json();
