@@ -121,6 +121,15 @@ const FeaturePageShell = ({
         </div>
       </section>
 
+      {/* Extractable answer + sourced pricing figures for generative engines. */}
+      <section className="relative z-10 px-6">
+        <div className="mx-auto max-w-3xl">
+          <GeoBlock />
+        </div>
+      </section>
+
+
+
       {/* Capabilities */}
       <section className="relative z-10 px-6 py-28 sm:py-32">
         <div className="mx-auto max-w-6xl">
