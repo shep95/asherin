@@ -398,10 +398,20 @@ Deno.serve(async (req) => {
           // A contact card's own street address beats a global hint — it is
           // first-party data about this specific subject.
           const hint = String(rel?.locationHint || body.location_hint || "").slice(0, 80);
+          // Hard identifiers seed a reverse lookup when the name sweep is thin.
+          const identifiers: string[] = [
+            ...(Array.isArray(rel?.identifiers) ? rel.identifiers : []),
+            ...(Array.isArray(rel?.phones) ? rel.phones : []),
+          ].map((s: unknown) => String(s)).filter(Boolean).slice(0, 2);
           const { doc, summary, confidence } = await withTimeout(
-            buildDossier(row.subject_name, row.subject_email, rel && rel.email ? rel : null, { locationHint: hint }),
+            buildDossier(row.subject_name, row.subject_email, rel && rel.email ? rel : null, {
+              locationHint: hint,
+              identifiers,
+              channel: (row as any).channel ?? rel?.channel ?? rel?.source ?? null,
+            }),
             PER_SUBJECT_MS,
           );
+
 
           await sb.from("mesh_dossiers").update({
             status: "ready", dossier: doc as unknown as Record<string, unknown>,
