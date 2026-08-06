@@ -38,12 +38,27 @@ const DeepDivePanel = ({ spec, observations, extraFindings, recentDays = 14, tit
     return [...findings, ...extraFindings.filter((f) => !seen.has(f.id))];
   }, [findings, extraFindings]);
 
-  const stats = [
-    { label: spec.unitPlural.toUpperCase(), value: census.total.toLocaleString() },
-    { label: spec.entityNounPlural.toUpperCase(), value: census.entities.toLocaleString() },
-    { label: "SPAN", value: census.spanDays ? `${census.spanDays}d` : "—" },
-    { label: "RATE", value: census.total ? `${census.perDay}/day` : "—" },
-  ];
+  // On a surface whose timestamps are metadata rather than event times, span
+  // and rate describe the sync clock, not the subject. Showing them would
+  // invite exactly the inference the engine refuses to make, so they are
+  // replaced by the two figures that remain true.
+  const temporal = spec.timestampsAreEvents !== false;
+  const stats = temporal
+    ? [
+        { label: spec.unitPlural.toUpperCase(), value: census.total.toLocaleString() },
+        { label: spec.entityNounPlural.toUpperCase(), value: census.entities.toLocaleString() },
+        { label: "SPAN", value: census.spanDays ? `${census.spanDays}d` : "—" },
+        { label: "RATE", value: census.total ? `${census.perDay}/day` : "—" },
+      ]
+    : [
+        { label: spec.unitPlural.toUpperCase(), value: census.total.toLocaleString() },
+        { label: spec.entityNounPlural.toUpperCase(), value: census.entities.toLocaleString() },
+        {
+          label: "SPREAD",
+          value: census.entities ? `${(census.total / census.entities).toFixed(1)}/${spec.entityNoun}` : "—",
+        },
+        { label: "BASIS", value: "STRUCTURAL" },
+      ];
 
   return (
     <div className="space-y-4">
@@ -73,14 +88,20 @@ const DeepDivePanel = ({ spec, observations, extraFindings, recentDays = 14, tit
           ))}
         </div>
 
-        {census.total > 0 && (
+        {census.total > 0 && temporal && (
           <p className="text-[10px] font-extralight text-muted-foreground/60">
             Observed {fmtDate(census.firstSeen)} → {fmtDate(census.lastSeen)}.
           </p>
         )}
+        {census.total > 0 && !temporal && (
+          <p className="text-[10px] font-extralight text-muted-foreground/60">
+            Records on this surface carry a sync timestamp rather than an event time, so timing is
+            not interpreted here. Findings below rest on distribution alone.
+          </p>
+        )}
 
         {/* The two categories the subject is least likely to already know about. */}
-        {(census.novelEntities.length > 0 || census.dormantEntities.length > 0) && (
+        {temporal && (census.novelEntities.length > 0 || census.dormantEntities.length > 0) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
             {census.novelEntities.length > 0 && (
               <div className="rounded-xl border border-border/20 bg-foreground/[0.03] px-3 py-2.5 space-y-1.5">
