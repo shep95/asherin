@@ -610,6 +610,8 @@ const GoogleMeshPanel = () => {
       )}
 
       {/* AUDIT */}
+      {pane === "vault" && <ContactVaultPane />}
+
       {pane === "audit" && (
         <Shell>
           <div className="flex items-center justify-between">
