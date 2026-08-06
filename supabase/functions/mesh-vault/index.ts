@@ -18,12 +18,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import {
-  adminClient, liveAccounts, hasScope, harvestHeaders, harvestContacts, buildRelationships, audit,
+  adminClient, liveAccounts, hasScope, harvestHeaders, harvestContacts, buildRelationships,
+  harvestCalendarPeople, audit,
 } from "../_shared/googleMesh.ts";
 import {
   selectTargets, selectContactTargets, buildDossier, foldCrossLinks, normKey,
   type MeshDossierDoc,
 } from "../_shared/meshDossier.ts";
+import {
+  selectColdInbound, selectCalendarTargets, selectPhoneTargets, dedupeByIdentity,
+  type ChannelTarget,
+} from "../_shared/meshSentinel.ts";
+
 
 const json = (body: unknown, status: number, cors: Record<string, string>) =>
   new Response(JSON.stringify(body), {
