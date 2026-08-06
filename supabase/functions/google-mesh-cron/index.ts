@@ -139,7 +139,12 @@ async function sweepUser(sb: SupabaseClient, userId: string) {
     consecutive_failures: 0,
     signals_ingested: sweep.ingested,
     insights_derived: derived,
+    // A sweep cut short by the wall clock has backlog left. Come back on the
+    // next tick to finish the window instead of idling a full cadence — the
+    // fingerprint key makes the re-read of already-harvested rows free.
+    ...(sweep.partial ? { next_due_at: new Date(Date.now() + 5 * 60_000).toISOString() } : {}),
   }).eq("user_id", userId);
+
 
   return { ingested: sweep.ingested, derived, status: sweep.partial ? "partial" as const : "ok" as const };
 }
