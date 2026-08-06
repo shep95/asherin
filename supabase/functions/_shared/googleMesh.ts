@@ -240,8 +240,15 @@ export function computeStylometry(bodies: string[]): Stylometry {
 
     const first = (paragraphs[0] ?? "").split("\n")[0].trim();
     // A greeting is a short leading line, optionally ending in , or : .
+    // Recipient names collapse to {name} so the habit aggregates instead of
+    // fragmenting into one singleton per correspondent.
     if (first && first.length <= 48 && /^(hi|hey|hello|good (morning|afternoon|evening)|dear|yo|greetings)\b/i.test(first)) {
-      greetings.set(first.replace(/\s+/g, " "), (greetings.get(first) ?? 0) + 1);
+      const key = first
+        .replace(/\s+/g, " ")
+        .replace(/^((?:hi|hey|hello|good (?:morning|afternoon|evening)|dear|yo|greetings))\s+[^,:!]+/i, "$1 {name}")
+        .trim();
+      greetings.set(key, (greetings.get(key) ?? 0) + 1);
+
     } else if (first) {
       const opener = first.split(/\s+/).slice(0, 4).join(" ").toLowerCase();
       if (opener.length > 3) openers.set(opener, (openers.get(opener) ?? 0) + 1);
