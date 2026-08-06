@@ -1,5 +1,5 @@
 export type AzplenTab =
-  | "dashboard" | "ingest" | "table" | "graph" | "pipelines" | "workflows"
+  | "dashboard" | "ingest" | "domain" | "table" | "graph" | "pipelines" | "workflows"
   | "dashboards" | "insights" | "query" | "catalog" | "reports"
   | "webintel" | "entities" | "scenarios" | "lineage" | "threats" | "monitoring"
   | "docintel" | "files" | "predictions"
