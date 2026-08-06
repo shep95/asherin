@@ -61,10 +61,11 @@ Deno.serve(async (req) => {
 
     // ── STATUS ───────────────────────────────────────────────────────────
     if (action === "vault_status") {
-      const [{ data: rows }, { data: runs }] = await Promise.all([
-        sb.from("mesh_dossiers").select("status, hop").eq("user_id", userId),
+      const [{ data: rows }, { data: runs }, { data: settings }] = await Promise.all([
+        sb.from("mesh_dossiers").select("status, hop, channel").eq("user_id", userId),
         sb.from("mesh_dossier_runs").select("*").eq("user_id", userId)
           .order("started_at", { ascending: false }).limit(1),
+        sb.from("mesh_vault_settings").select("*").eq("user_id", userId).maybeSingle(),
       ]);
       const census = { queued: 0, building: 0, ready: 0, failed: 0, linked: 0, skipped: 0 } as Record<string, number>;
       const hops = { 1: 0, 2: 0, 3: 0 } as Record<number, number>;
@@ -72,14 +73,23 @@ Deno.serve(async (req) => {
         census[r.status] = (census[r.status] ?? 0) + 1;
         hops[r.hop] = (hops[r.hop] ?? 0) + 1;
       }
-      return json({ census, hops, total: rows?.length ?? 0, lastRun: runs?.[0] ?? null }, 200, cors);
+      const channels: Record<string, number> = {};
+      for (const r of rows ?? []) {
+        const c = (r as any).channel ?? "address_book";
+        channels[c] = (channels[c] ?? 0) + 1;
+      }
+      return json({
+        census, hops, channels, total: rows?.length ?? 0,
+        lastRun: runs?.[0] ?? null,
+        sentinel: settings ?? null,
+      }, 200, cors);
     }
 
     // ── LIST ─────────────────────────────────────────────────────────────
     if (action === "vault_list") {
       const hop = body.hop ? Number(body.hop) : null;
       let q = sb.from("mesh_dossiers")
-        .select("id, subject_name, subject_email, hop, via, status, relationship, summary, confidence, priority, error_message, built_at, updated_at")
+        .select("id, subject_name, subject_email, hop, via, channel, status, relationship, summary, confidence, priority, error_message, built_at, updated_at")
         .eq("user_id", userId)
         .order("hop", { ascending: true })
         .order("confidence", { ascending: false })
