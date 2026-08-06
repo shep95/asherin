@@ -272,7 +272,10 @@ function handleHits(text: string, subjectCanonical = ""): Hit[] {
 
 function employerHits(text: string): Hit[] {
   const out: Hit[] = [];
-  const re = /\b(?:works?\s+(?:at|for)|employed\s+(?:at|by)|employer|occupation|job\s*title|position)\b\s*:?\s*([A-Z][A-Za-z0-9&'.,\- ]{2,48})/g;
+  // Case-insensitive on the CUE ONLY — the captured employer must still open
+  // with a capital, so an `i` flag on the whole pattern (which would admit
+  // lowercase prose fragments) is deliberately avoided.
+  const re = /\b(?:[Ww]orks?\s+(?:at|for)|[Ee]mployed\s+(?:at|by)|[Ee]mployer|[Oo]ccupation|[Jj]ob\s*title|[Pp]osition)\b\s*:?\s*([A-Z][A-Za-z0-9&'.,\- ]{2,48})/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
     const v = m[1].split(/\s{2,}|[|·•]/)[0].replace(/[,.]$/, "").trim();

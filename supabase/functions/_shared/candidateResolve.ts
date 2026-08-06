@@ -148,8 +148,8 @@ function countyOf(text: string): string {
 function spouseOf(text: string): string {
   const window = text.slice(0, 8000);
   const patterns = [
-    /\b(?:spouse|wife|husband)\s*[:\-—]\s*([A-Z][a-z'’-]+(?:\s+[A-Z][a-z'’.-]+){1,2})/,
-    /\bmarried\s+to\s+([A-Z][a-z'’-]+(?:\s+[A-Z][a-z'’.-]+){1,2})/,
+    /\b(?:[Ss]pouse|[Ww]ife|[Hh]usband)\s*[:\-—]\s*([A-Z][a-z'’-]+(?:\s+[A-Z][a-z'’.-]+){1,2})/,
+    /\b[Mm]arried\s+to\s+([A-Z][a-z'’-]+(?:\s+[A-Z][a-z'’.-]+){1,2})/,
     /\b([A-Z][a-z'’-]+(?:\s+[A-Z][a-z'’.-]+){1,2}),?\s+(?:his|her)\s+(?:wife|husband|spouse)\b/,
   ];
   for (const re of patterns) {
@@ -277,7 +277,12 @@ export function resolveCandidates(
     const aliasF = topField(ledger.confirmed.alias);
     const name = aliasF?.display || intent.subject;
     const city = members.map((i) => facts[i].city).find(Boolean) || strip(intent.city || "");
-    const county = countyOf(text) || (intent.county ? `${intent.county} County` : "");
+    // Title-case the intent county so a ledger value ("LEE") never renders as
+    // the shouted "LEE County" beside a document-sourced "Lee County".
+    const titleCounty = intent.county
+      ? intent.county.toLowerCase().replace(/\b[a-z]/g, (ch) => ch.toUpperCase())
+      : "";
+    const county = countyOf(text) || (titleCounty ? `${titleCounty} County` : "");
     const spouse = spouseOf(text);
 
     const locationDisplay = addrF?.display
