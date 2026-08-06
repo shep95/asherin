@@ -21,8 +21,50 @@ interface TimeEstimation {
   estimated_local_time: string;
   time_confidence: number;
   shadow_analysis: string;
+  shadow_direction?: string | null;
   estimated_season: string;
   sun_position: string;
+  capture_date_estimate?: string | null;
+}
+
+// ─── EVIDENCE PIPELINE TYPES (Imagine v2) ───
+type EvidenceWeight = "decisive" | "strong" | "moderate" | "weak";
+
+interface Observable {
+  where: string;
+  reading: string;
+  inference: string;
+  weight: EvidenceWeight;
+}
+
+interface Correlation {
+  observable: string;
+  referent: string;
+  eliminates: string;
+  strength: EvidenceWeight;
+  pivot_query?: string | null;
+}
+
+interface Hypothesis {
+  label: string;
+  latitude: number;
+  longitude: number;
+  probability: number;
+  supporting_observables?: number[];
+  wrong_if?: string;
+  next_check?: string;
+}
+
+interface SolarVerification {
+  checked: boolean;
+  consistent: boolean | null;
+  confidenceDelta: number;
+  sunElevationDeg?: number;
+  sunAzimuthDeg?: number;
+  expectedShadowBearingDeg?: number;
+  claimedShadowBearingDeg?: number;
+  bearingErrorDeg?: number;
+  verdict: string;
 }
 
 interface AnalysisResult {
@@ -39,6 +81,13 @@ interface AnalysisResult {
   person_analysis?: PersonAnalysis[];
   insufficient_data?: boolean;
   insufficient_data_reason?: string;
+  observables?: Observable[];
+  correlations?: Correlation[];
+  hypotheses?: Hypothesis[];
+  self_consistency?: string;
+  solar_verification?: SolarVerification;
+  adjudication_notes?: string[];
+  location_source?: "exif_gps" | "visual_inference";
 }
 
 // ─── FACE SEARCH TYPES ───
