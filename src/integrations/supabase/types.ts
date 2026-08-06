@@ -7941,6 +7941,69 @@ export type Database = {
         }
         Relationships: []
       }
+      social_intel_cache: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          fetched_at: string
+          handle: string
+          handle_key: string
+          id: string
+          payload: Json
+          platform: string
+          updated_at: string
+          verdict: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          fetched_at?: string
+          handle: string
+          handle_key: string
+          id?: string
+          payload: Json
+          platform: string
+          updated_at?: string
+          verdict: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          fetched_at?: string
+          handle?: string
+          handle_key?: string
+          id?: string
+          payload?: Json
+          platform?: string
+          updated_at?: string
+          verdict?: string
+        }
+        Relationships: []
+      }
+      social_probe_cooldown: {
+        Row: {
+          consecutive_failures: number
+          cooldown_until: string
+          last_reason: string | null
+          platform: string
+          updated_at: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          cooldown_until: string
+          last_reason?: string | null
+          platform: string
+          updated_at?: string
+        }
+        Update: {
+          consecutive_failures?: number
+          cooldown_until?: string
+          last_reason?: string | null
+          platform?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
