@@ -65,7 +65,12 @@ export interface SocialProbeResult {
   source: string;
   fetchedAt: string;
   latencyMs: number;
+  /** True when served from the bank rather than a live fetch. */
+  fromCache?: boolean;
+  /** Age of the banked capture, in hours. Present only when fromCache. */
+  cacheAgeHours?: number;
 }
+
 
 // ── Capability registry ────────────────────────────────────────────────────
 // Single source of truth. Anything not listed as `true` is not claimed.
