@@ -100,18 +100,21 @@ const SEO: Record<string, SeoEntry> = {
     description:
       "Side-by-side: price, censorship, BYOK, OSINT, IDE, simulation, and privacy across Asherin, ChatGPT Plus, and Claude Pro.",
     ogType: "article",
+    datePublished: "2026-06-17",
   },
   "/blog/venice-integration": {
     title: "Venice AI in Asherin — Unfiltered, Zero Setup",
     description:
       "How Asherin routes free and BYOK traffic through Venice AI for uncensored, vision-capable answers with no key, no account, no subscription.",
     ogType: "article",
+    datePublished: "2026-06-17",
   },
   "/blog/aureon-legal-advisor-multi-jurisdictional": {
     title: "Asherin LAW Mode — Multi-Jurisdictional Legal Research",
     description:
       "How Asherin and Asher's LAW mode runs deep legal research across any country, state, or province — surfacing older statutes that supersede newer law without fabricating citations.",
     ogType: "article",
+    datePublished: "2026-07-08",
   },
 
   // Blog satellites (Theory 8 — Nested Fractal Content Architecture)
@@ -120,90 +123,105 @@ const SEO: Record<string, SeoEntry> = {
     description:
       "AI OSINT defined: the four-stage pipeline, the cross-validation requirement, and how to spot a search wrapper pretending to be intelligence.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/blog/sovereign-ai-platforms": {
     title: "The 2026 Sovereign AI Platform Landscape | Asherin",
     description:
       "Eight serious sovereign AI platforms, four architecture patterns, and the four-layer test that eliminates 60% of sovereignty claims on first inspection.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/blog/ai-without-restrictions": {
     title: "AI Without Restrictions — Operator Workflow Guide | Asherin",
     description:
       "Model choice, prompt discipline, refusal-detection, and the three workflow patterns that survive long sessions on uncensored AI.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/blog/predictions/world-cup-2026-group-matches-0622": {
     title: "AXRLEN Forecast — World Cup 2026 Groups (22 June)",
     description:
       "AXRLEN picks for the 22 June 2026 World Cup slate: Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan.",
     ogType: "article",
+    datePublished: "2026-06-22",
   },
   "/blog/predictions/world-cup-2026-group-matches-0623": {
     title: "AXRLEN Forecast — World Cup 2026 Groups (23 June)",
     description:
       "AXRLEN picks for the 23 June 2026 World Cup slate: Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo.",
     ogType: "article",
+    datePublished: "2026-06-22",
   },
   "/blog/predictions/world-cup-2026-group-matches-0624": {
     title: "AXRLEN Deep Dive — World Cup 2026 (23 June)",
     description:
       "Structural and historical AXRLEN analysis behind the 23 June 2026 picks: Portugal, England, Croatia, and Colombia.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/predictions/world-cup-2026-group-matches-0625": {
     title: "AXRLEN Forecast — World Cup 2026 Groups (24 June)",
     description:
       "AXRLEN picks for the 24 June 2026 World Cup slate: Switzerland, Bosnia, Morocco, Brazil, South Korea, Mexico — with modal scorelines and confidence weights.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/predictions/peru-2026-keiko-fujimori": {
     title: "AXRLEN — Keiko Fujimori, Peru 2026 President",
     description:
       "AXRLEN predicts Keiko Fujimori wins the 2026 Peru runoff under the Antivoto Paradox. Three scenarios, 94% polarized runoff probability.",
     ogType: "article",
+    datePublished: "2026-06-22",
   },
   "/blog/predictions/russia-ukraine-war-2026-endgame": {
     title: "AXRLEN — Russia–Ukraine 2026 Endgame Forecast",
     description:
       "AXRLEN forecasts a Korean-style armistice along the current line of contact within 24 months. Symmetric Exhaustion Cycle, 55% armistice probability, de facto Donbas/Crimea partition.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/predictions/china-taiwan-2026-flashpoint": {
     title: "AXRLEN — China–Taiwan 2026 Flashpoint Forecast",
     description:
       "AXRLEN forecasts a 72% Taiwan Strait kinetic-crisis probability in 2026 with a PLA blockade-first escalation path. Thucydides–Mahan Convergence and US deterrence dissonance.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/predictions/israel-iran-2026-shadow-war": {
     title: "AXRLEN — Israel–Iran 2026 Shadow War Forecast",
     description:
       "AXRLEN forecasts High-Intensity Intermittency and a singular Israeli 'Hard Test' strike on Iranian nuclear infrastructure. Hezbollah-first sequencing, three-month proxy spike, forced mediation.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/the-crypto-dump-october-2026": {
     title: "The Crypto Dump — BTC to $44,500 (Oct 2026)",
     description:
       "AXRLEN predicts a Bitcoin liquidity event Oct 12–19, 2026 with a $44,500 floor at 88% confidence. SBC Vedha collision and Mars–Rahu trigger.",
     ogType: "article",
+    datePublished: "2026-06-23",
   },
   "/blog/elite-corporations-algorithms-vs-axrlen": {
     title: "Elite Algorithms vs #HouseOfAsher — AXRLEN",
     description:
       "Aladdin controls the present. AXRLEN sees the future. A direct comparison between BlackRock's engine and #HouseOfAsher's predictive algorithm.",
     ogType: "article",
+    datePublished: "2026-06-24",
   },
   "/blog/btc-daily-predictions": {
     title: "AXRLEN BTC Daily — Live Long/Short Forecast | Asherin",
     description:
       "Daily 07:00 EST AXRLEN Bitcoin forecast. Live BTC price, long/short call with entry, stop loss, take profit, and a running win/loss tally.",
     ogType: "article",
+    datePublished: "2026-06-24",
   },
   "/blog/aureon-pricing-explained": {
     title: "Asherin Pricing Explained — Why $18/mo and $399/mo (2026)",
     description:
       "The full breakdown of Asherin's $18/mo and $399/mo subscription tiers, how they compare to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
 
   // Glossary cluster (Theory 12 — Sovereign Niche Monopoly)
@@ -217,24 +235,28 @@ const SEO: Record<string, SeoEntry> = {
     description:
       "Sovereign AI: a four-layer definition (key, model, refusal, data), how it differs from BYOK and uncensored, and how to verify it in 60 seconds.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/glossary/uncensored-ai": {
     title: "Uncensored AI — The Precise Definition | Asherin",
     description:
       "Uncensored AI is a model whose refusal behavior is set at the operator layer, not the vendor layer. Three failure modes of fake claims and a 60-second test.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/glossary/byok-ai": {
     title: "BYOK AI — Bring Your Own Key, Defined | Asherin",
     description:
       "BYOK AI: how it works, the economics, the nine providers Asherin supports natively, and why BYOK is necessary but not sufficient for sovereignty.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
   "/glossary/digital-gnostic": {
     title: "Digital Gnostic — Operator Demographic Defined | Asherin",
     description:
       "The Digital Gnostic operator: 2-4M in 2026, high willingness to pay, search vocabulary, and why their tooling differs from consumer AI users.",
     ogType: "article",
+    datePublished: "2026-06-19",
   },
 
   // Feature pages
