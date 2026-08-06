@@ -121,7 +121,8 @@ export const DOMAIN_PACKS: DomainPack[] = [
       { canonical: "procedure_code", match: /(procedure|cpt|hcpcs|px.?code)/i, object: "Procedure", property: "code", sensitivity: "PHI", standard: "CPT/HCPCS" },
       { canonical: "provider_id", match: /(provider|physician|clinician|npi)/i, object: "Provider", property: "id", standard: "NPI" },
       { canonical: "facility", match: /(facility|hospital|clinic|site|ward|unit)/i, object: "Facility", property: "name" },
-      { canonical: "claim_amount", match: /(charge|allowed|paid|billed|claim.?amount|reimburse)/i, object: "Claim", property: "amount" },
+      // Token-anchored: "discharge_date" must never bind as a charge amount.
+      { canonical: "claim_amount", match: /(^|[^a-z])(charge|charges|allowed|paid|billed|reimburse)([^a-z]|$)|claim.?amount/i, object: "Claim", property: "amount" },
       { canonical: "payer", match: /(payer|payor|insurer|plan.?name)/i, object: "Claim", property: "payer" },
       { canonical: "outcome", match: /(outcome|mortality|readmit|readmission|los\b|length.?of.?stay|disposition)/i, object: "Encounter", property: "outcome" },
     ],
