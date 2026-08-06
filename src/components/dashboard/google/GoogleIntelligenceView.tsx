@@ -4,7 +4,7 @@ import {
   Search, Activity, Globe, Shield, RefreshCw, Network, Zap,
   Heart, CreditCard, Briefcase, Brain, Lock,
   Eye, TrendingUp, BarChart3, Clock,
-  FileText, Sparkles, Database,
+  FileText, Sparkles, Database, ScrollText,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -30,10 +30,11 @@ import SearchHistoryView from "./modules/SearchHistoryView";
 import ChromeDataView from "./modules/ChromeDataView";
 import GoogleMeshPanel from "./modules/GoogleMeshPanel";
 import SubstrateExplorer from "./modules/SubstrateExplorer";
+import ContactVaultPane from "./modules/ContactVaultPane";
 import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 type GoogleModule =
-  | "overview" | "substrate" | "mesh" | "location" | "email" | "subscriptions" | "health"
+  | "overview" | "substrate" | "mesh" | "dossiers" | "location" | "email" | "subscriptions" | "health"
   | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions"
   | "automation" | "security" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
   | "search" | "fit" | "chrome" | "connected";
@@ -68,6 +69,7 @@ const nexusModules: ModuleDef[] = [
   { id: "content", codename: "ARCHIVE", label: "Document & Media Intel", icon: FileText, mandate: "Document intelligence, image content read and file custody mapping", directorate: "COLLECTION" },
 
   { id: "contacts", codename: "LATTICE", label: "Contact Intelligence", icon: Users, mandate: "Correspondent fusion, reciprocity scoring, psycholinguistic profile and fade detection", directorate: "ANALYSIS" },
+  { id: "dossiers", codename: "SENTINEL", label: "Correspondent Dossiers", icon: ScrollText, mandate: "Standing deep-intelligence report on every person who has ever mailed, called or shared a card with you — historical backfill plus automatic build on each new inbound contact", directorate: "ANALYSIS" },
   { id: "twin", codename: "EFFIGY", label: "Behavioural Twin", icon: Brain, mandate: "A model of the operator's decision pattern, built from observed choices only", directorate: "ANALYSIS" },
   { id: "productivity", codename: "CADENCE", label: "Attention Ledger", icon: BarChart3, mandate: "Focus blocks, context-switch cost and collaboration load across the working week", directorate: "ANALYSIS" },
   { id: "health", codename: "VITALS", label: "Physiological Signals", icon: Heart, mandate: "Biometric drift and anomaly flags against the operator's own rolling baseline", directorate: "ANALYSIS" },
@@ -145,6 +147,7 @@ const GoogleIntelligenceView = () => {
     switch (activeModule) {
       case "substrate": return <SubstrateExplorer />;
       case "mesh": return <GoogleMeshPanel />;
+      case "dossiers": return <ContactVaultPane />;
       case "location": return <LocationProphet />;
       case "email": case "gmail": return <EmailAssistant />;
       case "subscriptions": return <SubscriptionOracle />;
