@@ -247,12 +247,20 @@ const ContactIntelligence = () => {
       setSummary(sum);
 
       setPhase("Writing to device vault…");
+      // One timestamp for both writes so local and mirror agree exactly and the
+      // monotonic guard can never see this snapshot as two different versions.
+      const savedAt = Date.now();
+      const snapshot: VaultSnapshot = { id: userId, savedAt, summary: sum, dossiers: built };
       const ok = await saveVault(userId, sum, built);
       if (alive.current) {
-        setVaultMeta(
-          ok ? { savedAt: Date.now(), bytes: vaultBytes({ id: userId, savedAt: Date.now(), summary: sum, dossiers: built }) } : null,
-        );
+        setVaultMeta(ok ? { savedAt, bytes: vaultBytes(snapshot) } : null);
       }
+
+      // Mirror to the mesh so every other signed-in device inherits this run.
+      setPhase("Mirroring to device mesh…");
+      const pushed = await pushRemote(userId, snapshot);
+      if (alive.current && pushed !== "failed") void refreshMesh(userId);
+
 
       if (failed.length) {
         setError(`Partial sweep — ${failed.join(", ")} unavailable. Results below exclude those sources.`);
