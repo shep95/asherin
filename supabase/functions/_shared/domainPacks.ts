@@ -621,7 +621,12 @@ export function buildDomainProfile(input: {
   }
 
   // Temporal integrity — a dataset with no usable time axis cannot be trended.
-  const dateBinding = bindings.find((b) => /date|time/i.test(b.canonical));
+  // A time axis is any bound column whose canonical, property or header reads
+  // temporal — "eta", "period", "occurred_at" are axes just as much as "date".
+  const TEMPORAL = /(date|time|dt$|_at$|eta|period|timestamp|when|expiry|expires|due)/i;
+  const dateBinding =
+    bindings.find((b) => TEMPORAL.test(b.canonical) || TEMPORAL.test(b.property)) ??
+    bindings.find((b) => TEMPORAL.test(b.column));
   if (dateBinding) {
     const vals = sampleRows.map((r) => r[dateBinding.column]).filter(Boolean).slice(0, 200);
     const nonIso = vals.filter((v) => !ISO_DATE.test(v) && isNaN(Date.parse(v)));
