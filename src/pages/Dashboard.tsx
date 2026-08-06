@@ -22,6 +22,7 @@ const MemoryCenterView = lazyWithRetry(() => import("@/components/dashboard/Memo
 const StatsView = lazyWithRetry(() => import("@/components/dashboard/StatsView"));
 const VedicAstrologyView = lazyWithRetry(() => import("@/components/dashboard/VedicAstrologyView"));
 const SettingsView = lazyWithRetry(() => import("@/components/dashboard/SettingsView"));
+const GoogleIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/google/GoogleIntelligenceView"));
 const AIKeysSettings = lazyWithRetry(() => import("@/components/dashboard/AIKeysSettings"));
 const SubscriptionView = lazyWithRetry(() => import("@/components/dashboard/SubscriptionView"));
 const ZophielEngineView = lazyWithRetry(() => import("@/components/dashboard/ZophielEngineView"));
@@ -1493,6 +1494,7 @@ const Dashboard = () => {
       case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.");
       case "axrlen": return gatedView("axrlen", AxrlenView, "Axrlen — Predictive Intelligence", "Real-time global event prediction and policy simulation — powered by live data from 9+ intelligence sources. Available on Pro plans.");
       case "zerlal": return gatedView("zerlal", ZerlalView, "ZERLAL — Cyber Recon", "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.");
+      case "google": return gatedView("google", GoogleIntelligenceView, "Google Mesh — Cloud Intelligence", "Connect your Google accounts and let Asherin read your patterns: stylometric voiceprint, place cartography, attention ledger, relationship graph, commitments and ghostwriting. Available on Pro plans.");
       case "zaxin": return gatedView("zaxin", ZaxinView, "Zaxin — Tactical BLE Intelligence", "AR vision, BLE radar, and tactical intelligence overlay. Available on Pro plans.");
       case "zacoon": return gatedView("zacoon", ZacoonPhantomView, "Zacoon Phantom Grid v3.0", "Multi-cortex autonomous web operative — adversarial awareness, self-correction, cryptographic audit ledger. Available on the $399/mo Pro plan.");
       
