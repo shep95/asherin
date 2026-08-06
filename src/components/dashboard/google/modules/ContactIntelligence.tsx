@@ -15,6 +15,7 @@ import {
 } from "./contactIntel/messageIntel";
 import {
   saveVault, loadVault, clearVault, vaultBytes, exportVaultText, downloadText,
+  loadCorpus, saveCorpus, mergeCorpus,
   type VaultSnapshot,
 } from "./contactIntel/localVault";
 import {
@@ -38,6 +39,17 @@ import { renderContactReport } from "@/lib/cloudIntel/contactReportText";
 // silently clipped downstream.
 const MAIL_DEPTH = 100;
 const CONTACT_DEPTH = 1000;
+
+/**
+ * Delta overlap. The cursor is rewound by this much before it is handed to
+ * Gmail so mail that arrived while the previous sweep was mid-flight, or that
+ * carries a skewed clock, is still caught. Re-fetching a two-day tail is cheap;
+ * a permanently missed message is not, because nothing ever goes back for it.
+ */
+const DELTA_OVERLAP_MS = 2 * 86400000;
+
+/** Mirrors the vault's retention cap; backfill stops once the corpus is full. */
+const CORPUS_CEILING = 6000;
 
 const TIER_LABEL: Record<ContactDossier["tier"], string> = {
   inner: "Inner", active: "Active", periphery: "Periphery", dormant: "Dormant", archive: "Archive",
@@ -132,6 +144,9 @@ const ContactIntelligence = () => {
   // corpus is held for the session. A vault-restored page has dossiers but no
   // corpus; the report button says so rather than rendering a hollow report.
   const [corpus, setCorpus] = useState<{ messages: RawMessage[]; own: string[] } | null>(null);
+  // Retention posture, surfaced so the operator can see the ledger accumulating
+  // rather than having to trust that it does.
+  const [retention, setRetention] = useState<{ held: number; cursor: number | null; added: number } | null>(null);
   const [reportKey, setReportKey] = useState<string | null>(null);
   const [limit, setLimit] = useState(40);
   // Cross-device mirror posture: which endpoints feed the ledger and how fresh
@@ -171,9 +186,15 @@ const ContactIntelligence = () => {
     if (!userId) return;
     let cancelled = false;
     (async () => {
-      const local = await loadVault(userId);
+      const [local, storedCorpus] = await Promise.all([loadVault(userId), loadCorpus(userId)]);
       if (cancelled || !alive.current) return;
       if (local) applySnapshot(local);
+      // The corpus is what makes a cold open resumable: deep reports work
+      // immediately and the next sweep asks only for the delta.
+      if (storedCorpus?.messages.length) {
+        setCorpus({ messages: storedCorpus.messages, own: [] });
+        setRetention({ held: storedCorpus.messages.length, cursor: storedCorpus.cursor, added: 0 });
+      }
 
       setMesh((m) => ({ ...m, syncing: true }));
       void touchDevice(userId);
@@ -212,12 +233,47 @@ const ContactIntelligence = () => {
     setLoading(true);
     setError(null);
     try {
-      setPhase("Harvesting address book and mail metadata…");
+      // ── Resume, do not restart. The retained corpus decides the shape of
+      // this sweep: with history on disk we ask Gmail only for what landed
+      // since the cursor; with an empty vault we take the full window once.
+      const stored = await loadCorpus(userId);
+      const held = stored?.messages ?? [];
+      const resumable = held.length > 0 && stored?.cursor != null;
+      const since = resumable ? Math.max(0, (stored!.cursor as number) - DELTA_OVERLAP_MS) : null;
+      // Gmail's `after:` / `before:` take whole seconds of epoch time.
+      const gate = since === null ? "" : ` after:${Math.floor(since / 1000)}`;
+
+      // A forward-only cursor stops the ledger forgetting, but it can never
+      // reach mail that predates the first sweep — Gmail returns the newest
+      // page and nothing behind it. So each resumed sweep also walks one page
+      // backwards from the oldest message already held, until either the cap
+      // is reached or the mailbox is exhausted. Coverage then grows in both
+      // directions instead of being permanently anchored to the first run.
+      const oldestHeld = resumable
+        ? held.reduce((min, m) => {
+            const t = typeof m.internalDate === "number" ? m.internalDate : Date.parse(m.date || "");
+            return Number.isFinite(t) && t > 0 && t < min ? t : min;
+          }, Number.POSITIVE_INFINITY)
+        : Number.POSITIVE_INFINITY;
+      const backfillable = resumable && held.length < CORPUS_CEILING && Number.isFinite(oldestHeld);
+      const backGate = backfillable ? ` before:${Math.floor(oldestHeld / 1000)}` : null;
+
+      setPhase(
+        resumable
+          ? `Resuming from ${held.length.toLocaleString()} retained messages — fetching changes only…`
+          : "Harvesting address book and mail metadata…",
+      );
       // allSettled, not all: a revoked Gmail scope must not void the roster.
-      const [contactRes, inboxRes, sentRes, calRes] = await Promise.allSettled([
+      const [contactRes, inboxRes, sentRes, backInRes, backSentRes, calRes] = await Promise.allSettled([
         fetchGoogleData("contacts", { pageSize: CONTACT_DEPTH }),
-        fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: "-in:chats" }),
-        fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: "in:sent" }),
+        fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: `-in:chats${gate}` }),
+        fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: `in:sent${gate}` }),
+        backGate
+          ? fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: `-in:chats${backGate}` })
+          : Promise.resolve(null),
+        backGate
+          ? fetchGoogleData("gmail_inbox", { maxResults: MAIL_DEPTH, q: `in:sent${backGate}` })
+          : Promise.resolve(null),
         fetchGoogleData("calendar_events", {
           timeMin: new Date(Date.now() - 90 * 86400000).toISOString(),
           timeMax: new Date(Date.now() + 30 * 86400000).toISOString(),
@@ -238,14 +294,26 @@ const ContactIntelligence = () => {
         calRes.status === "rejected" && "calendar",
       ].filter(Boolean) as string[];
 
-      // Deduplicate on message id — a thread can surface in both queries.
-      const seen = new Set<string>();
-      const messages: RawMessage[] = [];
-      for (const m of [...(inbox?.messages || []), ...(sent?.messages || [])]) {
-        if (!m?.id || seen.has(m.id)) continue;
-        seen.add(m.id);
-        messages.push(m);
-      }
+      // Fold this harvest into the retained corpus on Gmail's stable message
+      // id. Merge, never replace: the previous behaviour rebuilt the ledger
+      // from whatever window Gmail returned, so anything older silently fell
+      // off the record on every open.
+      const backIn = val(backInRes);
+      const backSent = val(backSentRes);
+      const harvested: RawMessage[] = [
+        ...(inbox?.messages || []),
+        ...(sent?.messages || []),
+        ...(backIn?.messages || []),
+        ...(backSent?.messages || []),
+      ];
+      const folded = mergeCorpus(held, harvested);
+      const messages = folded.messages;
+
+      // The cursor only advances when both mail legs actually succeeded. A
+      // partial sweep that moved it would leave a permanent hole in coverage,
+      // because no later sweep ever looks back past the cursor.
+      const mailComplete = inboxRes.status === "fulfilled" && sentRes.status === "fulfilled";
+      const nextCursor = mailComplete ? Date.now() : (stored?.cursor ?? null);
 
       setPhase("Fusing identities and profiling language…");
       const ownAddresses = accounts.map((a) => a.google_email).filter(Boolean);
@@ -262,6 +330,12 @@ const ContactIntelligence = () => {
       setDossiers(built);
       setSummary(sum);
       setCorpus({ messages, own: ownAddresses });
+      setRetention({ held: messages.length, cursor: nextCursor, added: folded.added });
+
+      // Persist the corpus before the dossiers: the record must outlive the
+      // projection, so a crash between the two writes loses the cheaper half.
+      setPhase("Committing corpus to device vault…");
+      await saveCorpus(userId, messages, nextCursor, (stored?.evicted ?? 0) + folded.evicted);
 
       setPhase("Writing to device vault…");
       // One timestamp for both writes so local and mirror agree exactly and the
@@ -282,7 +356,11 @@ const ContactIntelligence = () => {
       if (failed.length) {
         setError(`Partial sweep — ${failed.join(", ")} unavailable. Results below exclude those sources.`);
       }
-      toast.success(`${built.length} identities profiled from ${messages.length} messages.`);
+      toast.success(
+        resumable
+          ? `${folded.added} new message${folded.added === 1 ? "" : "s"} merged — ${built.length} identities across ${messages.length} retained.`
+          : `${built.length} identities profiled from ${messages.length} messages.`,
+      );
     } catch (e: any) {
       console.error("[contact-intel] sweep failed:", e);
       if (alive.current) setError(e?.message || "Sweep failed. The device vault below still holds the last good run.");
@@ -337,13 +415,14 @@ const ContactIntelligence = () => {
     const d = dossiers.find((x) => x.key === reportKey);
     if (!d) return null;
     try {
-      const r = buildContactReport({ dossier: d, messages: corpus.messages, ownAddresses: corpus.own, peers: dossiers });
+      const own = corpus.own.length ? corpus.own : accounts.map((a) => a.google_email).filter(Boolean);
+      const r = buildContactReport({ dossier: d, messages: corpus.messages, ownAddresses: own, peers: dossiers });
       return { name: d.name, text: renderContactReport(r, d.name) };
     } catch (e) {
       console.error("[contact-intel] report build failed:", e);
       return { name: d.name, text: "Report generation failed. The dossier is intact; the report layer is not." };
     }
-  }, [reportKey, corpus, dossiers]);
+  }, [reportKey, corpus, dossiers, accounts]);
 
   const onExport = () => {
     if (!summary) return;
@@ -356,6 +435,7 @@ const ContactIntelligence = () => {
   const onPurge = async () => {
     await clearVault(userId);
     setDossiers([]); setSummary(null); setVaultMeta(null);
+    setCorpus(null); setRetention(null);
     toast.success("Device vault purged.");
   };
 
@@ -508,6 +588,15 @@ const ContactIntelligence = () => {
               ? `${fmtBytes(vaultMeta.bytes)} held locally · last written ${new Date(vaultMeta.savedAt).toLocaleString()}`
               : "Nothing stored on this device yet — run a deep sweep."}
           </p>
+          {retention && (
+            <p className="text-[10px] font-extralight text-muted-foreground/50" aria-live="polite">
+              {retention.held.toLocaleString()} messages retained
+              {retention.added > 0 && ` · ${retention.added} merged this sweep`}
+              {retention.cursor
+                ? ` · resuming from ${new Date(retention.cursor).toLocaleString()} — sweeps fetch changes only`
+                : " · next sweep takes a full baseline"}
+            </p>
+          )}
         </div>
         <button
           onClick={onExport}
