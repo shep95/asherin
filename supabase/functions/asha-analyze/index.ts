@@ -447,18 +447,29 @@ Deno.serve(async (req) => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: `You are Azplen, a data intelligence AI. Analyze this dataset and return exactly 3 insights as JSON array. Each insight has: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences).
+              contents: [{ parts: [{ text: `You are Azplen, a data intelligence ingest engine (not a financial-only tool). A deterministic domain pack has already classified this dataset — do not contradict it, build on it.
 
 Dataset: ${dataset.file_name}
 Schema: ${schemaDesc}
 Rows: ${rowCount}
+${domainProfile ? `Domain pack: ${domainProfile.packLabel} (${Math.round(domainProfile.confidence * 100)}% confidence)
+Mission: ${domainProfile.mission}
+Object bindings: ${domainProfile.bindings.map((b) => `${b.column}→${b.object}.${b.property}`).join(", ") || "none"}
+Sensitivity: ${domainProfile.sensitivityClasses.join(", ") || "none"} | Risk ${domainProfile.riskScore}/100 (${domainProfile.riskGrade})
+Contract findings: ${domainProfile.findings.map((f) => f.code).join(", ") || "clean"}
+Computable KPIs: ${domainProfile.kpisReady.map((k) => k.name).join(", ") || "none"}
+Blocked KPIs: ${domainProfile.kpisBlocked.map((k) => `${k.name} (missing ${k.missing.join("+")})`).join("; ") || "none"}
+Operator decisions this pack serves: ${domainProfile.decisions.join(" | ")}` : ""}
 Sample data:
 ${sampleData}
 
+Return exactly 3 insights as a JSON array. Each: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences). Each description MUST name the specific column(s) it is grounded in and be actionable for a ${domainProfile?.packLabel ?? "general operations"} operator. No generic statements about "data quality" without naming the column.
+
 Return ONLY a valid JSON array, no markdown.` }] }],
-              generationConfig: { temperature: 0.7, maxOutputTokens: 1000 },
+              generationConfig: { temperature: 0.4, maxOutputTokens: 1000 },
             }),
           });
+
 
           if (aiResp.ok) {
             const aiData = await aiResp.json();
