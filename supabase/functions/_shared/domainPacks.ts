@@ -153,7 +153,9 @@ export const DOMAIN_PACKS: DomainPack[] = [
     fields: [
       { canonical: "transaction_id", match: /(txn|transaction|trade|payment).?(id|ref|no)/i, object: "Transaction", property: "id", required: true },
       { canonical: "value_date", match: /(value|trade|post|settle|booking|txn).?(date|dt|time)|^date$/i, object: "Transaction", property: "valueDate", required: true },
-      { canonical: "amount", match: /(amount|value|debit|credit|notional|gross|net)\b/i, object: "Transaction", property: "amount", required: true },
+      // Suffixed money columns are the norm in the wild (amount_usd, net_gbp),
+      // so the boundary must accept an underscore, not only a word break.
+      { canonical: "amount", match: /(^|[^a-z])(amount|amt|debit|credit|notional|gross|net|principal)([^a-z]|$)/i, object: "Transaction", property: "amount", required: true },
       { canonical: "currency", match: /(currency|ccy|iso.?cur)/i, object: "Transaction", property: "currency", standard: "ISO 4217" },
       { canonical: "account_id", match: /(account|acct|iban|ledger).?(id|no|number|code)?/i, object: "Account", property: "id", required: true, sensitivity: "PCI" },
       { canonical: "counterparty", match: /(counterpart|beneficiar|payee|payer|vendor|merchant|customer.?name)/i, object: "Counterparty", property: "name", sensitivity: "PII" },
