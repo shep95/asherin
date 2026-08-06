@@ -291,30 +291,70 @@ Deno.serve(async (req) => {
       const gmailAfter = new Date(sinceMs).toISOString().slice(0, 10).replace(/-/g, "/");
       const perQuery = Math.min(Number(body.limit) || 120, 200);
 
+      // A swallowed harvest failure is worse than a slow sweep: if Gmail 5xxs
+      // and the watermark still advances, that window is skipped forever. Each
+      // branch reports success or failure, and the watermark only moves when
+      // every armed channel actually returned.
+      const failures: Array<{ channel: string; account: string; error: string }> = [];
+      const harvest = async <T>(channel: string, account: string, fn: () => Promise<T[]>): Promise<T[]> => {
+        try { return await fn(); }
+        catch (e) { failures.push({ channel, account, error: String((e as Error).message).slice(0, 160) }); return []; }
+      };
+
       const [inbound, contacts, calendar] = await Promise.all([
-        Promise.all(readable.map((a) =>
-          harvestHeaders(a.token, `in:inbox -in:chats after:${gmailAfter}`, perQuery, false).catch(() => []),
-        )).then((r) => r.flat()),
-        Promise.all(bookable.map((a) => harvestContacts(a.token, 400).catch(() => []))).then((r) => r.flat()),
-        Promise.all(datable.map((a) =>
-          harvestCalendarPeople(a.token, 180, selfEmails).catch(() => []),
-        )).then((r) => r.flat()),
+        Promise.all(readable.map((a) => harvest("mail", a.google_email, () =>
+          harvestHeaders(a.token, `in:inbox -in:chats after:${gmailAfter}`, perQuery, false),
+        ))).then((r) => r.flat()),
+        Promise.all(bookable.map((a) => harvest("contacts", a.google_email, () =>
+          harvestContacts(a.token, 400),
+        ))).then((r) => r.flat()),
+        Promise.all(datable.map((a) => harvest("calendar", a.google_email, () =>
+          harvestCalendarPeople(a.token, 180, selfEmails),
+        ))).then((r) => r.flat()),
       ]);
 
       const { data: existing } = await sb.from("mesh_dossiers")
-        .select("subject_key, subject_name").eq("user_id", userId);
+        .select("subject_key, subject_name, subject_email").eq("user_id", userId);
       const claimed = new Set((existing ?? []).map((r: any) => r.subject_key));
-      const claimedNames = new Set((existing ?? []).map((r: any) => normKey(r.subject_name)));
+      // Names of subjects that carry NO address. Those are the only rows a
+      // name collision can safely suppress — two different people share a name
+      // constantly, and dropping a distinct address on that basis loses a real
+      // subject and asserts an identity that was never established.
+      const anonymousNames = new Set(
+        (existing ?? []).filter((r: any) => !r.subject_email).map((r: any) => normKey(r.subject_name)),
+      );
 
-      const cold = selectColdInbound(inbound, selfEmails, claimed, { max: 25, sinceMs });
+      // Prior correspondents make "first contact" a checkable claim instead of
+      // an artifact of the watermark window.
+      const knownCorrespondents = new Set(
+        (existing ?? []).map((r: any) => String(r.subject_email ?? "").toLowerCase()).filter(Boolean),
+      );
+
+      const cold = selectColdInbound(inbound, selfEmails, claimed, { max: 25, sinceMs, knownCorrespondents });
       const cal = selectCalendarTargets(calendar, claimed, { max: 20 });
       const phone = selectPhoneTargets(contacts, claimed, { max: 25 });
+      // Cards that carry an email are skipped by the phone selector; without
+      // this pass they were reachable only through a manual scan, so a newly
+      // saved contact with an address silently never became a subject.
+      const book = selectContactTargets(contacts as any, claimed, { max: 30 });
+      const bookTargets: ChannelTarget[] = book.targets.map((t) => ({
+        key: t.key,
+        email: t.email,
+        name: t.name,
+        channel: "address_book" as const,
+        priority: t.priority,
+        identifiers: [...(t.profile.phones ?? []), ...(t.profile.emails ?? [])].slice(0, 2),
+        locationHint: t.locationHint,
+        reason: t.reason,
+        profile: t.profile as unknown as Record<string, unknown>,
+      }));
 
-      // One human, one subject: highest-priority channel wins, and anyone
-      // already in the vault under any spelling is dropped.
-      const fresh = dedupeByIdentity([...cold.targets, ...cal.targets, ...phone.targets])
-        .filter((t: ChannelTarget) => !claimedNames.has(normKey(t.name)))
+      // One human, one subject — but only where the evidence supports the
+      // merge; see dedupeByIdentity.
+      const fresh = dedupeByIdentity([...cold.targets, ...cal.targets, ...phone.targets, ...bookTargets])
+        .filter((t: ChannelTarget) => t.email ? !claimed.has(t.email.toLowerCase()) : !anonymousNames.has(normKey(t.name)))
         .slice(0, Math.min(Number(body.max) || 40, 80));
+
 
       const nowIso = new Date().toISOString();
       const rows = fresh.map((t) => ({
