@@ -488,36 +488,69 @@ serve(async (req) => {
         );
       }
     } else {
-      const aiResp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: FULL_SYSTEM_PROMPT }] },
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: userPrompt }],
-              },
-            ],
-            generationConfig: {
-              responseMimeType: "application/json",
-              temperature: 0.2,
-              maxOutputTokens: 32768,
-            },
-          }),
-        },
-      );
+      // Gemini is capacity-constrained: 503/429/5xx are transient, not terminal.
+      // Retry with exponential backoff + jitter, honoring Retry-After, and bound
+      // each attempt with an AbortController so a hung socket can't stall the fn.
+      const TRANSIENT = new Set([429, 500, 502, 503, 504]);
+      const MAX_ATTEMPTS = 3;
+      let aiResp: Response | null = null;
+      let lastStatus = 0;
+      let lastErr = "";
 
-      if (!aiResp.ok) {
-        const errText = await aiResp.text();
-        console.error("[code-audit] AI error", aiResp.status, errText);
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        const ac = new AbortController();
+        const timer = setTimeout(() => ac.abort(), 90_000);
+        try {
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              signal: ac.signal,
+              body: JSON.stringify({
+                systemInstruction: { parts: [{ text: FULL_SYSTEM_PROMPT }] },
+                contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+                generationConfig: {
+                  responseMimeType: "application/json",
+                  temperature: 0.2,
+                  maxOutputTokens: 32768,
+                },
+              }),
+            },
+          );
+          if (resp.ok) { aiResp = resp; break; }
+          lastStatus = resp.status;
+          lastErr = await resp.text();
+          console.error("[code-audit] AI error", resp.status, lastErr.slice(0, 400));
+          if (!TRANSIENT.has(resp.status) || attempt === MAX_ATTEMPTS) break;
+          const retryAfter = Number(resp.headers.get("retry-after"));
+          const backoff = Number.isFinite(retryAfter) && retryAfter > 0
+            ? Math.min(retryAfter * 1000, 8000)
+            : Math.min(700 * 2 ** (attempt - 1), 6000) + Math.floor(Math.random() * 400);
+          await new Promise((r) => setTimeout(r, backoff));
+        } catch (e) {
+          lastErr = e instanceof Error ? e.message : String(e);
+          lastStatus = 0;
+          console.error("[code-audit] AI fetch failed", lastErr);
+          if (attempt === MAX_ATTEMPTS) break;
+          await new Promise((r) => setTimeout(r, Math.min(700 * 2 ** (attempt - 1), 6000)));
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      if (!aiResp) {
+        const overloaded = lastStatus === 503 || lastStatus === 429;
         return new Response(
-          JSON.stringify({ error: `Gemini: ${aiResp.status}` }),
+          JSON.stringify({
+            error: overloaded
+              ? "Audit engine is at capacity right now — retried 3×. Try again in a few seconds, or add your own AI key in settings for a dedicated lane."
+              : `Audit engine error (${lastStatus || "network"}). ${lastErr.slice(0, 160)}`,
+          }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
+
 
       const aiData = await aiResp.json();
       const candidate = aiData?.candidates?.[0];
