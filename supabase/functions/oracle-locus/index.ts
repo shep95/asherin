@@ -310,8 +310,67 @@ Analyze EVERY visual cue with forensic precision. Cross-reference cultural patte
       );
     }
 
-    (analysis as Record<string, unknown>)._model = modelUsed;
-    return new Response(JSON.stringify(analysis), {
+    const a = analysis as Record<string, unknown>;
+    const adjudicationNotes: string[] = [];
+
+    // ── STAGE 1 OVERRIDE: a hard GPS fix outranks every inference. ──
+    if (exif?.gps && Number.isFinite(exif.gps.latitude) && Number.isFinite(exif.gps.longitude)) {
+      a.estimated_location = { latitude: exif.gps.latitude, longitude: exif.gps.longitude };
+      a.confidence_score = 99;
+      a.error_radius_meters = exif.gps.hPositioningErrorMeters ?? 25;
+      a.status = "SUCCESS";
+      a.insufficient_data = false;
+      a.location_source = "exif_gps";
+      adjudicationNotes.push(
+        "Coordinate taken directly from the file's embedded GPS fix; the visual analysis below is corroboration, not the source of the location.",
+      );
+    } else {
+      a.location_source = "visual_inference";
+      // ── STAGE 4 INTEGRITY: reconcile the model against its own ranking. ──
+      adjudicationNotes.push(...reconcileHypotheses(a));
+    }
+
+    // ── STAGE 5: deterministic astronomical validation. ──
+    const loc = a.estimated_location as { latitude?: number; longitude?: number } | undefined;
+    const te = (a.time_estimation || {}) as Record<string, unknown>;
+    let solar: ReturnType<typeof verifySolarClaim> | null = null;
+    if (loc && Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude)) {
+      solar = verifySolarClaim({
+        lat: loc.latitude as number,
+        lon: loc.longitude as number,
+        isoDate:
+          exif?.capturedAtUtc || exif?.capturedAtLocal || (typeof te.capture_date_estimate === "string" ? te.capture_date_estimate : null),
+        claimedLocalTime: typeof te.estimated_local_time === "string" ? te.estimated_local_time : null,
+        claimedShadowDirection:
+          (typeof te.shadow_direction === "string" ? te.shadow_direction : null) ||
+          (typeof te.shadow_analysis === "string" ? te.shadow_analysis : null),
+        claimedSunPosition: typeof te.sun_position === "string" ? te.sun_position : null,
+      });
+      a.solar_verification = solar;
+
+      // Confidence is evidence-weighted: physics can lift it a little, or sink it hard.
+      // EXIF-sourced coordinates are ground truth and are never penalised by a model's bad time guess.
+      if (solar.checked && a.location_source !== "exif_gps") {
+        const before = Number(a.confidence_score) || 0;
+        const after = Math.max(0, Math.min(99, Math.round(before + solar.confidenceDelta)));
+        if (after !== before) {
+          a.confidence_score = after;
+          adjudicationNotes.push(
+            `Astronomical validation adjusted confidence ${before}% → ${after}%. ${solar.verdict}`,
+          );
+          const hyps = a.hypotheses as { probability: number }[] | undefined;
+          if (Array.isArray(hyps) && hyps[0]) hyps[0].probability = after;
+        }
+        if (solar.consistent === false) {
+          a.status = (Number(a.confidence_score) || 0) < 35 ? "AMBIGUOUS" : a.status;
+        }
+      }
+    }
+
+    if (adjudicationNotes.length) a.adjudication_notes = adjudicationNotes;
+    a._model = modelUsed;
+    a._pipeline = "imagine-evidence-v2";
+    return new Response(JSON.stringify(a), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
