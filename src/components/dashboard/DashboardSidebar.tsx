@@ -215,7 +215,7 @@ const DashboardSidebar = ({
     // Maximum Intelligence ($399/mo Asherin Pro). Checked ahead of the feature
     // map because `tierHasFeature` is currently open to every tier — routing
     // this surface through it would publish the entry to unentitled operators.
-    if (MAXIMUM_VIEWS.includes(item.id as string)) return hasMaximumAccess(tierKey);
+    if (MAXIMUM_VIEWS.includes(item.id as DashboardView)) return hasMaximumAccess(tierKey);
     const featureId = VIEW_FEATURE_MAP[item.id as string];
     if (featureId) {
       return tierHasFeature(tierKey, featureId);
